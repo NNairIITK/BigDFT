@@ -2,6 +2,7 @@
 !!    Fake functions for MPI in the case of serial version
 !!    Copy of the file @ref flib/src/MPIfake.f90
 !!    except the routine @ref mpi_wtime
+!!
 !! @author
 !!    Copyright (C) 2007-2013 BigDFT group 
 !!    This file is distributed under the terms of the
@@ -10,7 +11,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 !!
 !! @todo
-!! Use flib library with teh speudo program
+!! Use flib library with the pseudo program
 
 
 subroutine  MPI_INIT(ierr)

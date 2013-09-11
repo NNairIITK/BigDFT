@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module (pseudo) defining the inetrfaces with libxc library for the pseudo program
+!> Module (pseudo) defining the interfaces with libxc library for the pseudo program
 !! Test version derived from BigDFTs libABINIT/src/56_xc/m_libxc_functionals.F90
 module libxcModule
 

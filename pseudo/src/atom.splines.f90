@@ -1,4 +1,5 @@
 !> @file
+!! @author
 !! sandia mathematical program library
 !!     applied mathematics division 2613
 !!     sandia laboratories
@@ -22,6 +23,12 @@
 !!  * the primary document for the library of which this routine is     *
 !!  * part is sand77-1441.                                              *
 !!  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 !!
 !! @todo Remove arithmetic if
 
@@ -57,7 +64,7 @@
 !!            and
 !!                    ypp(n) = an*ypp(n-1) + bn
 !!            where
-!!                    abs(a1).lt. 1.0  and  abs(an).lt. 1.0.
+!!                    abs(a1)< 1.0  and  abs(an)< 1.0.
 !!
 !!            the smoothest spline (i.e., least integral of square
 !!            of second derivative) is obtained by a1=b1=an=bn=0.
@@ -91,7 +98,7 @@
 !!          --normal code
 !!             1 means that the requested spline was computed.
 !!          --abnormal codes
-!!             2 means that n, the number of points, was .lt. 4.
+!!             2 means that n, the number of points, was < 4.
 !!             3 means the abscissas were not strictly increasing.
 !!
 !!   --work--
@@ -110,7 +117,7 @@ subroutine splift(x,y,yp,ypp,n,w,ierr,isx,a1,b1,an,bn)
                                            !! on the second derivative of the spline at the end points (see ypp).
                                            !! the end condition constraints are ypp(1) = a1*ypp(2) + b1
                                            !! and                               ypp(n) = an*ypp(n-1) + bn
-                                           !! where abs(a1).lt. 1.0  and  abs(an).lt. 1.0.
+                                           !! where abs(a1)< 1.0  and  abs(an)< 1.0.
    integer, intent(out) :: ierr !< a status code
                                 !! (normal),   1 means that the requested spline was computed.
                                 !! (abnormal), 2 means that n, the number of points, was < 4.
@@ -206,7 +213,7 @@ end subroutine splift
 !! splift, smoo, etc.) on the intervals (xlo,xup(i)), where xup
 !! is a sequence of upper limits on the intervals of integration.
 !! the only restrictions on xlo and xup(*) are
-!!            xlo .lt. xup(1),
+!!            xlo < xup(1),
 !!            xup(i) .le. xup(i+1)   for each i .
 !! endpoints beyond the span of abscissas are allowed.
 !! the spline over the interval (x(i),x(i+1)) is regarded
@@ -240,12 +247,12 @@ end subroutine splift
 !!           ans(i) = integral from xlo to xup(i)
 !!    ierr -- error status
 !!            = 1 integration successful
-!!            = 2 improper input - n.lt.4 or nup.lt.1
+!!            = 2 improper input - n<4 or nup<1
 !!            = 3 improper input - abscissas not in
 !!                    strictly ascending order
 !!            = 4 improper input - right endpoints xup not
 !!                    in ascending order
-!!            = 5 improper input - xlo.gt.xup(1)
+!!            = 5 improper input - xlo>xup(1)
 !!            = 6 integration successful but at least one endpoint
 !!                    not within span of abscissas
 !!
@@ -267,9 +274,9 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
   real(kind=8) :: psum0,psum1,psum2,psum3,sum,sum0,sum1,sum2,sum3
   integer :: nm1,nm2,i,j,m
   !Check length of arrays
-  if (n < 4  .or.  nup < 1) then
+  if (n < 4 .or. nup < 1) then
      ierr = 2
-     write(6,'(36h in spliq, either n.lt.4 or nup.lt.1)')
+     write(6,'(1x,a)') ' in spliq, either n<4 or nup>1'
      return
   end if
   nm1 = n-1
@@ -278,7 +285,7 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
   do i = 1,nm1
      if (x(i) >= x(i+1)) then
         ierr = 3
-        write(6,'(43h in spliq, abscissas not in ascending order)')
+        write(6,'(1x,a)') 'in spliq, abscissas not in ascending order'
         return
      end if
   end do
@@ -287,7 +294,7 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
       do i = 2,nup
          if (xup(i-1) > xup(i)) then
             ierr = 4
-            write(6,'(49h in spliq, right endpoints not in ascending order)')
+            write(6,'(1x,a)') 'in spliq, right endpoints not in ascending order'
             return
          end if
       end do
@@ -295,109 +302,99 @@ subroutine spliq(x,y,yp,ypp,n,xlo,xup,nup,ans,ierr)
    !Check if left end point < right end points
    if (xlo > xup(1)) then
       ierr = 5
-      write(6,'(26h in spliq, xlo .gt. xup(1))')
+      write(6,'(1x,a)') 'in spliq, xlo > xup(1)'
       write(6,*) xlo ,'>',xup(1)
       return
    end if
    !Normal code
    ierr = 1
-   if (xlo .lt. x(1)  .or.  xup(nup) .gt. x(n)) ierr = 6
+   if (xlo < x(1)  .or.  xup(nup) > x(n)) ierr = 6
 
-   ! locate xlo in interval (x(i),x(i+1))
-      do 10 i = 1,nm2
-        if (xlo .lt. x(i+1)) go to 20
- 10     continue
-      i = nm1
- 20   continue
-      hlo = xlo-x(i)
-      hlo2 = hlo*hlo
-      hi = x(i+1)-x(i)
-      hi2 = hi*hi
-      do 30 j = 1,nup
-        if (xup(j) .gt. x(i+1)  .and.  xlo .lt. x(nm1)) go to 40
-!
-!   compute special cases of xup in interval with xlo
-!
-        hup = xup(j)-x(i)
-        hsum = hup+hlo
-        hdiff = hup-hlo
-        hup2 = hup*hup
-        sum = (ypp(i+1)-ypp(i))*hsum*hdiff*(hup2+hlo2)/(24.D0*hi)
-        sum = sum + ypp(i)*hdiff*(hup2+hlo*hup+hlo2)/6.D0
-        sum = sum + yp(i)*hdiff*hsum/2.D0
-        sum = sum + y(i)*hdiff
-        ans(j) = sum
- 30   continue
-      return
-!
-!   compute integral between xlo and x(i+1) as four terms in taylor
-!   polynomial and advance i to i+1
-!
- 40   continue
-      hdiff = hi-hlo
-      hsum = hi+hlo
-      sum0 = y(i)*hdiff
-      sum1 = yp(i)*hdiff*hsum
-      sum2 = ypp(i)*hdiff*(hi2+hi*hlo+hlo2)
-      sum3 = (ypp(i+1)-ypp(i))*hdiff*hsum*(hi2+hlo2)/hi
-      i = i+1
-!
-!   locate each xup(m) in interval (x(i),x(i+1))
-!
-      do m = j,nup
- 50      continue  
-         if (xup(m) .lt. x(i+1)  .or.  i .eq. nm1) go to 60
-!
-!   augment integral between abscissas to include interval
-!   (x(i),x(i+1)) and advance i to i+1
-!
-        hi = x(i+1)-x(i)
-        hi2 = hi*hi
-        hi3 = hi2*hi
-        sum0 = sum0 + y(i)*hi
-        sum1 = sum1 + yp(i)*hi2
-        sum2 = sum2 + ypp(i)*hi3
-        sum3 = sum3 + (ypp(i+1)-ypp(i))*hi3
-        i = i+1
-        go to 50
-!
-!   integral between x(i) and xup(m) is zero
-!
- 60     continue
-        if (xup(m) .ne. x(i)) go to 70
-        sum = ((sum3/24.D0 + sum2/6.D0) + sum1/2.D0) + sum0
-        go to 90
-!
-!   compute integral between x(i) and xup(m) and evaluate
-!   taylor polynomial in reverse order
-!
- 70     continue
-        hup = xup(m)-x(i)
-        hup2 = hup*hup
-        hup3 = hup2*hup
-        hup4 = hup3*hup
-        hi = x(i+1)-x(i)
-        psum0 = y(i)*hup
-        psum1 = yp(i)*hup2
-        psum2 = ypp(i)*hup3
-        psum3 = (ypp(i+1)-ypp(i))*hup4/hi
-        sum = (sum3+psum3)/24.D0 + (sum2+psum2)/6.D0
-        sum = sum + (sum1+psum1)/2.D0
-        sum = sum + (sum0+psum0)
- 90     continue
-        ans(m) = sum
-     end do
+   ! locate xlo in interval (x(j),x(j+1))
+   i = nm1
+   do j = 1,nm2
+      if (xlo < x(j+1)) then
+         i=j
+         exit
+      end if
+   end do
+   hlo = xlo-x(i)
+   hlo2 = hlo*hlo
+   hi = x(i+1)-x(i)
+   hi2 = hi*hi
+
+   do j = 1,nup
+      if (xup(j) > x(i+1) .and. xlo < x(nm1)) exit
+
+      ! compute special cases of xup in interval with xlo
+      hup = xup(j)-x(i)
+      hsum = hup+hlo
+      hdiff = hup-hlo
+      hup2 = hup*hup
+      sum = (ypp(i+1)-ypp(i))*hsum*hdiff*(hup2+hlo2)/(24.D0*hi)
+      sum = sum + ypp(i)*hdiff*(hup2+hlo*hup+hlo2)/6.D0
+      sum = sum + yp(i)*hdiff*hsum/2.D0
+      sum = sum + y(i)*hdiff
+      ans(j) = sum
+   end do
+   if (j > nup) return
+
+   ! compute integral between xlo and x(i+1) as four terms in Taylor polynomial and advance i to i+1
+   hdiff = hi-hlo
+   hsum = hi+hlo
+   sum0 = y(i)*hdiff
+   sum1 = yp(i)*hdiff*hsum
+   sum2 = ypp(i)*hdiff*(hi2+hi*hlo+hlo2)
+   sum3 = (ypp(i+1)-ypp(i))*hdiff*hsum*(hi2+hlo2)/hi
+   i = i+1
+
+   ! locate each xup(m) in interval (x(i),x(i+1))
+   do m = j,nup
+      do
+         if (xup(m) < x(i+1)  .or.  i == nm1) exit
+
+         ! augment integral between abscissas to include interval
+         ! (x(i),x(i+1)) and advance i to i+1
+         hi = x(i+1)-x(i)
+         hi2 = hi*hi
+         hi3 = hi2*hi
+         sum0 = sum0 + y(i)*hi
+         sum1 = sum1 + yp(i)*hi2
+         sum2 = sum2 + ypp(i)*hi3
+         sum3 = sum3 + (ypp(i+1)-ypp(i))*hi3
+         i = i+1
+      end do
+
+      ! integral between x(i) and xup(m) is zero
+
+      if (xup(m) == x(i)) then
+         sum = ((sum3/24.D0 + sum2/6.D0) + sum1/2.D0) + sum0
+      else
+         ! compute integral between x(i) and xup(m) and evaluate
+         ! taylor polynomial in reverse order
+         hup = xup(m)-x(i)
+         hup2 = hup*hup
+         hup3 = hup2*hup
+         hup4 = hup3*hup
+         hi = x(i+1)-x(i)
+         psum0 = y(i)*hup
+         psum1 = yp(i)*hup2
+         psum2 = ypp(i)*hup3
+         psum3 = (ypp(i+1)-ypp(i))*hup4/hi
+         sum = (sum3+psum3)/24.D0 + (sum2+psum2)/6.D0
+         sum = sum + (sum1+psum1)/2.D0
+         sum = sum + (sum0+psum0)
+      end if
+      ans(m) = sum
+   end do
 end subroutine spliq
 
-!
-!      *****************************************************************
-!
 
 !> This subroutine is a translation of the algol procedure bisect,
 !! num. math. 9, 386-393(1967) by barth, martin, and wilkinson.
 !! handbook for auto. comp., vol.ii-linear algebra, 249-256(1971).
 !!
-!! this subroutine finds those eigenvalues of a tridiagonal
+!! This subroutine finds those eigenvalues of a tridiagonal
 !! symmetric matrix between specified boundary indices,
 !! using bisection.
 !!
@@ -464,204 +461,246 @@ end subroutine spliq
 !! applied mathematics division, Argonne National Laboratory
 subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
 
-      implicit none
-      !Arguments
-      integer, intent(in) :: n,m,m11
-      integer, intent(out) :: ierr
-      integer, dimension(m), intent(out) :: ind
-      !Local variables
-      real(kind=8), parameter :: machep = 2.D0**(-47)
-      integer :: i,j,k,l,p,q,r,s,ii,m1,m2,m22,tag,isturm
-      real(kind=8) :: d(n),e(n),e2(n),w(m),rv4(n),rv5(n)
-      real(kind=8) :: u,v,lb,t1,t2,ub,xu,x0,x1,eps1
-!     ------------------------------------------------------------------
-!
-!     ********** machep is a machine dependent parameter specifying
-!                the relative precision of floating point arithmetic.
-!
-!                **********
-!      machep = 2.D0**(-47)
-!
-      ierr = 0
-      tag = 0
-      xu = d(1)
-      x0 = d(1)
+   implicit none
+   !Arguments
+   integer, intent(in) :: n,m,m11
+   integer, intent(out) :: ierr
+   integer, dimension(m), intent(out) :: ind
+   real(kind=8), intent(inout) :: eps1
+   real(kind=8), dimension(n), intent(in) :: d,e
+   real(kind=8), dimension(n), intent(out) :: e2,rv4,rv5
+   real(kind=8), dimension(m), intent(out) :: w
+   !Local variables
+   !> machep is a machine dependent parameter specifying
+   !! the relative precision of floating point arithmetic.
+   real(kind=8), parameter :: machep = 2.D0**(-47)
+   integer :: i,j,k,l,p,q,r,s,ii,m1,m2,m22,tag,isturm
+   real(kind=8) :: u,v,lb,t1,t2,ub,xu,x0,x1
+
+   ierr = 0
+   tag = 0
+   xu = d(1)
+   x0 = d(1)
+   u = 0.D0
+
+   ! look for small sub-diagonal entries and determine an interval containing all the eigenvalues
+   do 40 i = 1, n
+      x1 = u
       u = 0.D0
-!     ********** look for small sub-diagonal entries and determine an
-!                interval containing all the eigenvalues **********
-      do 40 i = 1, n
-         x1 = u
-         u = 0.D0
-         if (i .ne. n) u = abs(e(i+1))
-         xu = min(d(i)-(x1+u),xu)
-         x0 = max(d(i)+(x1+u),x0)
-         if (i .eq. 1) go to 20
-         if (abs(e(i)) .gt. machep * (abs(d(i)) + abs(d(i-1)))) go to 40
-   20    e2(i) = 0.D0
-   40 continue
-!
-      x1 = max(abs(xu),abs(x0)) * machep * DBLE(n)
-      xu = xu - x1
-      t1 = xu
-      x0 = x0 + x1
-      t2 = x0
-!     ********** determine an interval containing exactly
-!                the desired eigenvalues **********
-      p = 1
-      q = n
-      m1 = m11 - 1
-      if (m1 .eq. 0) go to 75
-      isturm = 1
-   50 v = x1
-      x1 = xu + (x0 - xu) * 0.5D0
-      if (x1 .eq. v) go to 980
-      go to 320
-   60 if (s - m1) 65, 73, 70
-   65 xu = x1
-      go to 50
-   70 x0 = x1
-      go to 50
-   73 xu = x1
-      t1 = x1
-   75 m22 = m1 + m
-      if (m22 .eq. n) go to 90
-      x0 = t2
-      isturm = 2
-      go to 50
-   80 if (s - m22) 65, 85, 70
-   85 t2 = x1
-   90 q = 0
-      r = 0
-!     ********** establish and process next submatrix, refining
-!                interval by the gerschgorin bounds **********
-  100 if (r .eq. m) go to 1001
-      tag = tag + 1
-      p = q + 1
-      xu = d(p)
-      x0 = d(p)
+      if (i .ne. n) u = abs(e(i+1))
+      xu = min(d(i)-(x1+u),xu)
+      x0 = max(d(i)+(x1+u),x0)
+      if (i == 1) go to 20
+      if (abs(e(i)) > machep * (abs(d(i)) + abs(d(i-1)))) go to 40
+   20 continue
+      e2(i) = 0.D0
+40 continue
+
+   x1 = max(abs(xu),abs(x0)) * machep * DBLE(n)
+   xu = xu - x1
+   t1 = xu
+   x0 = x0 + x1
+   t2 = x0
+   ! determine an interval containing exactly the desired eigenvalues
+   p = 1
+   q = n
+   m1 = m11 - 1
+   if (m1 == 0) go to 75
+   isturm = 1
+
+50 continue
+   v = x1
+   x1 = xu + (x0 - xu) * 0.5D0
+   if (x1 == v) go to 980
+   go to 320
+
+60 continue
+
+   if (s - m1) 65, 73, 70
+65 continue
+   xu = x1
+   go to 50
+70 continue
+   x0 = x1
+   go to 50
+73 continue
+   xu = x1
+   t1 = x1
+
+75 continue
+   m22 = m1 + m
+   if (m22 == n) go to 90
+   x0 = t2
+   isturm = 2
+   go to 50
+
+80 continue
+
+   if (s - m22) 65, 85, 70
+85 continue
+   t2 = x1
+
+90 continue
+   q = 0
+   r = 0
+
+   ! establish and process next submatrix, refining interval by the gerschgorin bounds
+100 continue
+   if (r == m) go to 1001
+   tag = tag + 1
+   p = q + 1
+   xu = d(p)
+   x0 = d(p)
+   u = 0.D0
+
+   do 120 q = p, n
+      x1 = u
       u = 0.D0
-!
-      do 120 q = p, n
-         x1 = u
-         u = 0.D0
-         v = 0.D0
-         if (q .eq. n) go to 110
-         u = abs(e(q+1))
-         v = e2(q+1)
-  110    xu = min(d(q)-(x1+u),xu)
-         x0 = max(d(q)+(x1+u),x0)
-         if (v .eq. 0.D0) go to 140
-  120 continue
-!
-  140 x1 = max(abs(xu),abs(x0)) * machep
-      if (eps1 .le. 0.D0) eps1 = -x1
-      if (p .ne. q) go to 180
-!     ********** check for isolated root within interval **********
-      if (t1 .gt. d(p) .or. d(p) .ge. t2) go to 940
-      m1 = p
-      m2 = p
-      rv5(p) = d(p)
-      go to 900
-  180 x1 = x1 * DBLE(q-p+1)
-      lb = max(t1,xu-x1)
-      ub = min(t2,x0+x1)
-      x1 = lb
-      isturm = 3
-      go to 320
-  200 m1 = s + 1
-      x1 = ub
-      isturm = 4
-      go to 320
-  220 m2 = s
-      if (m1 .gt. m2) go to 940
-!     ********** find roots by bisection **********
-      x0 = ub
-      isturm = 5
-!
-      do 240 i = m1, m2
-         rv5(i) = ub
-         rv4(i) = lb
-  240 continue
-!     ********** loop for k-th eigenvalue
-!                for k=m2 step -1 until m1 do --
-!                (-do- not used to legalize -computed go to-) **********
-      k = m2
-  250    xu = lb
-!     ********** for i=k step -1 until m1 do -- **********
-         do 260 ii = m1, k
-            i = m1 + k - ii
-            if (xu .ge. rv4(i)) go to 260
-            xu = rv4(i)
-            go to 280
-  260    continue
-!
-  280    if (x0 .gt. rv5(k)) x0 = rv5(k)
-!     ********** next bisection step **********
-  300    x1 = (xu + x0) * 0.5D0
-         if ((x0 - xu) .le. (2.D0 * machep * &
-            (abs(xu) + abs(x0)) + abs(eps1))) go to 420
-!     ********** in-line procedure for sturm sequence **********
-  320    s = p - 1
-         u = 1.D0
-!
-         do 340 i = p, q
-            if (u .ne. 0.D0) go to 325
-            v = abs(e(i)) / machep
-            if (e2(i) .eq. 0.D0) v = 0.D0
-            go to 330
-  325       v = e2(i) / u
-  330       u = d(i) - x1 - v
-            if (u .lt. 0.D0) s = s + 1
-  340    continue
-!
-         go to (60,80,200,220,360), isturm
-!     ********** refine intervals **********
-  360    if (s .ge. k) go to 400
-         xu = x1
-         if (s .ge. m1) go to 380
-         rv4(m1) = x1
-         go to 300
-  380    rv4(s+1) = x1
-         if (rv5(s) .gt. x1) rv5(s) = x1
-         go to 300
-  400    x0 = x1
-         go to 300
-!     ********** k-th eigenvalue found **********
-  420    rv5(k) = x1
-      k = k - 1
-      if (k .ge. m1) go to 250
-!     ********** order eigenvalues tagged with their
-!                submatrix associations **********
-  900 s = r
-      r = r + m2 - m1 + 1
-      j = 1
-      k = m1
-!
-      do 920 l = 1, r
-         if (j .gt. s) go to 910
-         if (k .gt. m2) go to 940
-         if (rv5(k) .ge. w(l)) go to 915
-!
-         do 905 ii = j, s
-            i = l + s - ii
-            w(i+1) = w(i)
-            ind(i+1) = ind(i)
-  905    continue
-!
-  910    w(l) = rv5(k)
-         ind(l) = tag
-         k = k + 1
-         go to 920
-  915    j = j + 1
-  920 continue
-!
-  940 if (q .lt. n) go to 100
-      go to 1001
-!     ********** set error -- interval cannot be found containing
-!                exactly the desired eigenvalues **********
-  980 ierr = 3 * n + isturm
- 1001 lb = t1
-      ub = t2
+      v = 0.D0
+      if (q == n) go to 110
+      u = abs(e(q+1))
+      v = e2(q+1)
+110   continue
+      xu = min(d(q)-(x1+u),xu)
+      x0 = max(d(q)+(x1+u),x0)
+      if (v == 0.D0) go to 140
+120 continue
+
+140 continue
+   x1 = max(abs(xu),abs(x0)) * machep
+   if (eps1 .le. 0.D0) eps1 = -x1
+   if (p .ne. q) go to 180
+   ! check for isolated root within interval
+   if (t1 > d(p) .or. d(p) .ge. t2) go to 940
+   m1 = p
+   m2 = p
+   rv5(p) = d(p)
+   go to 900
+
+180 continue
+   x1 = x1 * DBLE(q-p+1)
+   lb = max(t1,xu-x1)
+   ub = min(t2,x0+x1)
+   x1 = lb
+   isturm = 3
+   go to 320
+200 continue
+   m1 = s + 1
+   x1 = ub
+   isturm = 4
+   go to 320
+220 continue
+   m2 = s
+   if (m1 > m2) go to 940
+
+   ! find roots by bisection
+   x0 = ub
+   isturm = 5
+
+   do 240 i = m1, m2
+      rv5(i) = ub
+      rv4(i) = lb
+240 continue
+
+   ! loop for k-th eigenvalue
+   ! for k=m2 step -1 until m1 do --
+   ! (-do- not used to legalize -computed go to-)
+   k = m2
+250 continue
+   xu = lb
+   ! for i=k step -1 until m1 do --
+   do 260 ii = m1, k
+      i = m1 + k - ii
+      if (xu .ge. rv4(i)) go to 260
+      xu = rv4(i)
+      go to 280
+260 continue
+
+280 continue
+   if (x0 > rv5(k)) x0 = rv5(k)
+   ! next bisection step
+300 continue
+   x1 = (xu + x0) * 0.5D0
+   if ((x0 - xu) .le. (2.D0 * machep * (abs(xu) + abs(x0)) + abs(eps1))) go to 420
+
+   ! in-line procedure for sturm sequence
+320 continue
+   s = p - 1
+   u = 1.D0
+
+   do 340 i = p, q
+      if (u .ne. 0.D0) go to 325
+      v = abs(e(i)) / machep
+      if (e2(i) == 0.D0) v = 0.D0
+      go to 330
+325   continue
+      v = e2(i) / u
+330   continue
+      u = d(i) - x1 - v
+      if (u < 0.D0) s = s + 1
+340 continue
+
+   go to (60,80,200,220,360), isturm
+
+   ! refine intervals
+360 continue
+   if (s .ge. k) go to 400
+   xu = x1
+   if (s .ge. m1) go to 380
+   rv4(m1) = x1
+   go to 300
+
+380 continue
+   rv4(s+1) = x1
+   if (rv5(s) > x1) rv5(s) = x1
+   go to 300
+
+400 continue
+   x0 = x1
+   go to 300
+
+   ! k-th eigenvalue found
+420 continue
+   rv5(k) = x1
+   k = k - 1
+   if (k .ge. m1) go to 250
+
+   ! order eigenvalues tagged with their submatrix associations
+900 continue
+   s = r
+   r = r + m2 - m1 + 1
+   j = 1
+   k = m1
+
+   do 920 l = 1, r
+      if (j > s) go to 910
+      if (k > m2) go to 940
+      if (rv5(k) .ge. w(l)) go to 915
+
+      do 905 ii = j, s
+         i = l + s - ii
+         w(i+1) = w(i)
+         ind(i+1) = ind(i)
+905   continue
+
+910   continue
+      w(l) = rv5(k)
+      ind(l) = tag
+      k = k + 1
+      go to 920
+915   continue
+      j = j + 1
+920 continue
+
+940 continue
+   if (q < n) go to 100
+   go to 1001
+   ! set error -- interval cannot be found containing exactly the desired eigenvalues
+980 continue
+   ierr = 3 * n + isturm
+1001 continue
+   lb = t1
+   ub = t2
 
 end subroutine tridib
 
@@ -725,176 +764,203 @@ end subroutine tridib
 subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
 
    implicit none
-   integer :: i,j,m,n,p,q,r,s,ii,ip,jj,nm,its,tag,ierr,group
-   double precision :: d(n),e(n),e2(n),w(m),z(nm,m)
-   double precision :: rv1(n),rv2(n),rv3(n),rv4(n),rv6(n)
-   double precision :: u,v,uk,xu,x0,x1,eps2,eps3,eps4,norm,order
-   integer :: ind(m)
+   !Arguments
+   integer, intent(in) :: nm,n,m
+   integer, dimension(m), intent(in) :: ind
+   integer, intent(out) :: ierr
+   real(kind=8), dimension(n), intent(in) :: d,e,e2
+   real(kind=8), dimension(m), intent(in) :: w
+   real(kind=8), dimension(nm,m), intent(out) :: z
+   real(kind=8), dimension(n), intent(out) :: rv1,rv2,rv3,rv4,rv6 !< Temporary storage arrays
+   !Local variables
+   integer :: i,j,p,q,r,s,ii,ip,jj,its,tag,group
+   real(kind=8) :: u,v,uk,xu,x0,x1,eps2,eps3,eps4,norm,order
    !Local variables
    real(kind=8), parameter :: machep= 2.D0**(-47) !< machine dependent parameter specifying
                                                   !! the relative precision of floating point arithmetic.
-!
-      ierr = 0
-      if (m .eq. 0) go to 1001
-      tag = 0
-      order = 1.D0 - e2(1)
-      q = 0
-!     ********** establish and process next submatrix **********
-  100 p = q + 1
-!
-      do 120 q = p, n
-         if (q .eq. n) go to 140
-         if (e2(q+1) .eq. 0.D0) go to 140
-  120 continue
-!     ********** find vectors by inverse iteration **********
-  140 tag = tag + 1
-      s = 0
-!
-      do 920 r = 1, m
-         if (ind(r) .ne. tag) go to 920
-         its = 1
-         x1 = w(r)
-         if (s .ne. 0) go to 510
-!     ********** check for isolated root **********
-         xu = 1.D0
-         if (p .ne. q) go to 490
-         rv6(p) = 1.D0
-         go to 870
-  490    norm = abs(d(p))
-         ip = p + 1
-!
-         do 500 i = ip, q
-  500    norm = norm + abs(d(i)) + abs(e(i))
-!     ********** eps2 is the criterion for grouping,
-!                eps3 replaces zero pivots and equal
-!                roots are modified by eps3,
-!                eps4 is taken very small to avoid overflow **********
-         eps2 = 1.0D-3 * norm
-         eps3 = machep * norm
-         uk = DBLE(q-p+1)
-         eps4 = uk * eps3
-         uk = eps4 / sqrt(uk)
-         s = p
-  505    group = 0
-         go to 520
-!     ********** look for close or coincident roots **********
-  510    if (abs(x1-x0) .ge. eps2) go to 505
-         group = group + 1
-         if (order * (x1 - x0) .le. 0.D0) x1 = x0 + order * eps3
-!     ********** elimination with interchanges and
-!                initialization of vector **********
-  520    v = 0.D0
-!
-         do 580 i = p, q
-            rv6(i) = uk
-            if (i .eq. p) go to 560
-            if (abs(e(i)) .lt. abs(u)) go to 540
-!     ********** warning -- a divide check may occur here if
-!                e2 array has not been specified correctly **********
-            xu = u / e(i)
-            rv4(i) = xu
-            rv1(i-1) = e(i)
-            rv2(i-1) = d(i) - x1
-            rv3(i-1) = 0.D0
-            if (i .ne. q) rv3(i-1) = e(i+1)
-            u = v - xu * rv2(i-1)
-            v = -xu * rv3(i-1)
-            go to 580
-  540       xu = e(i) / u
-            rv4(i) = xu
-            rv1(i-1) = u
-            rv2(i-1) = v
-            rv3(i-1) = 0.D0
-  560       u = d(i) - x1 - xu * v
-            if (i .ne. q) v = e(i+1)
-  580    continue
-!
-         if (u .eq. 0.D0) u = eps3
-         rv1(q) = u
-         rv2(q) = 0.D0
-         rv3(q) = 0.D0
-!     ********** back substitution
-!                for i=q step -1 until p do -- **********
-  600    do 620 ii = p, q
-            i = p + q - ii
-            rv6(i) = (rv6(i) - u * rv2(i) - v * rv3(i)) / rv1(i)
-            v = u
-            u = rv6(i)
-  620    continue
-!     ********** orthogonalize with respect to previous
-!                members of group **********
-         if (group .eq. 0) go to 700
-         j = r
-!
-         do 680 jj = 1, group
-  630       j = j - 1
-            if (ind(j) .ne. tag) go to 630
-            xu = 0.D0
-!
-            do 640 i = p, q
-  640       xu = xu + rv6(i) * z(i,j)
-!
-            do 660 i = p, q
-  660       rv6(i) = rv6(i) - xu * z(i,j)
-!
-  680    continue
-!
-  700    norm = 0.D0
-!
-         do 720 i = p, q
-  720    norm = norm + abs(rv6(i))
-!
-         if (norm .ge. 1.D0) go to 840
-!     ********** forward substitution **********
-         if (its .eq. 5) go to 830
-         if (norm .ne. 0.D0) go to 740
-         rv6(s) = eps4
-         s = s + 1
-         if (s .gt. q) s = p
-         go to 780
-  740    xu = eps4 / norm
-!
-         do 760 i = p, q
-  760    rv6(i) = rv6(i) * xu
-!     ********** elimination operations on next vector
-!                iterate **********
-  780    do 820 i = ip, q
-            u = rv6(i)
-!     ********** if rv1(i-1) .eq. e(i), a row interchange
-!                was performed earlier in the
-!                triangularization process **********
-            if (rv1(i-1) .ne. e(i)) go to 800
-            u = rv6(i-1)
-            rv6(i-1) = rv6(i)
-  800       rv6(i) = u - rv4(i) * rv6(i-1)
-  820    continue
-!
-         its = its + 1
-         go to 600
-!     ********** set error -- non-converged eigenvector **********
-  830    ierr = -r
+
+   ierr = 0
+   if (m == 0) go to 1001
+   tag = 0
+   order = 1.D0 - e2(1)
+   q = 0
+   ! establish and process next submatrix
+100 continue
+   p = q + 1
+
+   do 120 q = p, n
+      if (q == n) go to 140
+      if (e2(q+1) == 0.D0) go to 140
+120 continue
+   ! find vectors by inverse iteration
+140 continue
+   tag = tag + 1
+   s = 0
+
+   do 920 r = 1, m
+      if (ind(r) .ne. tag) go to 920
+      its = 1
+      x1 = w(r)
+      if (s .ne. 0) go to 510
+      ! check for isolated root
+      xu = 1.D0
+      if (p .ne. q) go to 490
+      rv6(p) = 1.D0
+      go to 870
+  490 continue
+      norm = abs(d(p))
+      ip = p + 1
+
+      do 500 i = ip, q
+         norm = norm + abs(d(i)) + abs(e(i))
+500   continue
+
+      ! eps2 is the criterion for grouping,
+      ! eps3 replaces zero pivots and equal
+      ! roots are modified by eps3,
+      ! eps4 is taken very small to avoid overflow
+      eps2 = 1.0D-3 * norm
+      eps3 = machep * norm
+      uk = DBLE(q-p+1)
+      eps4 = uk * eps3
+      uk = eps4 / sqrt(uk)
+      s = p
+505   continue
+      group = 0
+      go to 520
+      ! look for close or coincident roots
+510   continue
+      if (abs(x1-x0) .ge. eps2) go to 505
+      group = group + 1
+      if (order * (x1 - x0) .le. 0.D0) x1 = x0 + order * eps3
+      ! elimination with interchanges and initialization of vector
+520   continue
+      v = 0.D0
+
+      do 580 i = p, q
+         rv6(i) = uk
+         if (i == p) go to 560
+         if (abs(e(i)) < abs(u)) go to 540
+         ! warning -- a divide check may occur here if e2 array has not been specified correctly
+         xu = u / e(i)
+         rv4(i) = xu
+         rv1(i-1) = e(i)
+         rv2(i-1) = d(i) - x1
+         rv3(i-1) = 0.D0
+         if (i .ne. q) rv3(i-1) = e(i+1)
+         u = v - xu * rv2(i-1)
+         v = -xu * rv3(i-1)
+         go to 580
+540      continue
+         xu = e(i) / u
+         rv4(i) = xu
+         rv1(i-1) = u
+         rv2(i-1) = v
+         rv3(i-1) = 0.D0
+560      continue
+         u = d(i) - x1 - xu * v
+         if (i .ne. q) v = e(i+1)
+580   continue
+
+      if (u == 0.D0) u = eps3
+      rv1(q) = u
+      rv2(q) = 0.D0
+      rv3(q) = 0.D0
+      ! back substitution
+      ! for i=q step -1 until p do --
+600   continue
+      do 620 ii = p, q
+         i = p + q - ii
+         rv6(i) = (rv6(i) - u * rv2(i) - v * rv3(i)) / rv1(i)
+         v = u
+         u = rv6(i)
+620   continue
+      ! orthogonalize with respect to previous members of group
+      if (group == 0) go to 700
+      j = r
+
+      do 680 jj = 1, group
+630      continue
+         j = j - 1
+         if (ind(j) .ne. tag) go to 630
          xu = 0.D0
-         go to 870
-!     ********** normalize so that sum of squares is
-!                1 and expand to full order **********
-  840    u = 0.D0
-!
-         do 860 i = p, q
-  860    u = u + rv6(i)**2
-!
-         xu = 1.D0 / sqrt(u)
-!
-  870    do 880 i = 1, n
-  880    z(i,r) = 0.D0
-!
-         do 900 i = p, q
-  900    z(i,r) = rv6(i) * xu
-!
-         x0 = x1
-  920 continue
-!
-      if (q .lt. n) go to 100
- 1001 return
+
+         do 640 i = p, q
+            xu = xu + rv6(i) * z(i,j)
+640      continue
+
+         do 660 i = p, q
+            rv6(i) = rv6(i) - xu * z(i,j)
+660      continue
+
+680   continue
+
+700   continue
+      norm = 0.D0
+
+      do 720 i = p, q
+         norm = norm + abs(rv6(i))
+720   continue
+
+      if (norm .ge. 1.D0) go to 840
+      ! forward substitution
+      if (its == 5) go to 830
+      if (norm .ne. 0.D0) go to 740
+      rv6(s) = eps4
+      s = s + 1
+      if (s > q) s = p
+      go to 780
+  740 continue
+      xu = eps4 / norm
+
+      do 760 i = p, q
+         rv6(i) = rv6(i) * xu
+760   continue
+
+      ! elimination operations on next vector iterate
+780   continue
+      do 820 i = ip, q
+         u = rv6(i)
+         ! if rv1(i-1) == e(i), a row interchange was performed earlier in the triangularization process
+         if (rv1(i-1) .ne. e(i)) go to 800
+         u = rv6(i-1)
+         rv6(i-1) = rv6(i)
+800      continue
+         rv6(i) = u - rv4(i) * rv6(i-1)
+820   continue
+
+      its = its + 1
+      go to 600
+      ! set error -- non-converged eigenvector
+830   continue
+      ierr = -r
+      xu = 0.D0
+      go to 870
+      ! normalize so that sum of squares is 1 and expand to full order
+840   continue
+      u = 0.D0
+
+      do 860 i = p, q
+         u = u + rv6(i)**2
+  860 continue
+
+      xu = 1.D0 / sqrt(u)
+
+  870 continue
+      do 880 i = 1, n
+         z(i,r) = 0.D0
+880   continue
+
+      do 900 i = p, q
+         z(i,r) = rv6(i) * xu
+900   continue
+
+      x0 = x1
+920 continue
+
+   if (q < n) go to 100
+
+1001 return
 
 end subroutine tinvit
 
@@ -948,88 +1014,96 @@ end subroutine tinvit
 !!             WAS NOT POSITIVE.
 !!
 !! @author Written by Rondall E. Jones
-subroutine SPLINT (X,Y,YPP,N,XI,YI,YPI,YPPI,NI,KERR)
+subroutine splint (x,y,ypp,n,xi,yi,ypi,yppi,ni,kerr)
          
    implicit none
    !Arguments
-   Integer, Intent(in) :: N,NI
-   Real(kind=8), Intent(in) :: X(N),Y(N),YPP(N),XI(NI)
-   Integer, Intent(out) :: KERR
-   Real(kind=8), Intent(out) :: YI(NI),YPI(NI),YPPI(NI)
+   integer, intent(in) :: n,ni
+   real(kind=8), intent(in) :: x(n),y(n),ypp(n),xi(ni)
+   integer, intent(out) :: kerr
+   real(kind=8), intent(out) :: yi(ni),ypi(ni),yppi(ni)
    !Local variables
-   Integer :: nm1,i,K,IL,IR
-   Real(8) :: H,H2,XR,XR2,XR3,XL,XL2,XL3,XX
+   integer :: nm1,i,k,il,ir
+   real(kind=8) :: h,h2,xr,xr2,xr3,xl,xl2,xl3,xx
   
-   ! CHECK INPUT
-   IF (NI) 1,1,2
- 1    CONTINUE
-    !    1 CALL ERRCHK(67,67HIN SPLINT,  THE REQUESTED NUMBER OF INTERPOLATI
-    !     1NS WAS NOT POSITIVE)
-      KERR = 3
-      RETURN
- 2    KERR = 1
-      NM1= N-1
+   ! check input
+   if (ni) 1,1,2
+1  continue
+   ! call errchk(67,67hin splint, the requested number of interpolations was not positive)
+   kerr = 3
+   return
+2  continue
+   kerr = 1
+   nm1= n-1
 
-    !
-    !    K IS INDEX ON VALUE OF XI BEING WORKED ON.  XX IS THAT VALUE.
-    !    I IS CURRENT INDEX INTO X ARRAY.
-    !
-      K  = 1
-      XX = XI(1)
-      IF (XX.LT.X(1)) GO TO 90
-      IF (XX.GT.X(N)) GO TO 80
-      IL = 1
-      IR = N
-!
-!   BISECTION SEARCH
-!
- 10   I  = (IL+IR)/2
-      IF (I.EQ.IL) GO TO 100
-      IF (XX-X(I)) 20,100,30
- 20   IR = I
-      GO TO 10
- 30   IL = I
-      GO TO 10
-!
-!     LINEAR FORWARD SEARCH
-!
- 50   IF (XX-X(I+1)) 100,100,60
- 60   IF (I.GE.NM1) GO TO 80
-      I  = I+1
-      GO TO 50
-!
-! EXTRAPOLATION
-!
- 80   KERR = 2
-      I  = NM1
-      GO TO 100
- 90   KERR = 2
-      I  = 1
-!
-!     INTERPOLATION
-!
- 100  H  = X(I+1) - X(I)
-      H2 = H*H
-      XR = (X(I+1)-XX)/H
-      XR2= XR*XR
-      XR3= XR*XR2
-      XL = (XX-X(I))/H
-      XL2= XL*XL
-      XL3= XL*XL2
-      YI(K) = Y(I)*XR + Y(I+1)*XL-H2*(YPP(I)*(XR-XR3) + YPP(I+1)*(XL-XL3))/6.0D0
-      YPI(K) = (Y(I+1)-Y(I))/H+H*(YPP(I)*(1.0D0-3.0D0*XR2)-YPP(I+1)* (1.0D0-3.0D0*XL2))/6.0D0
-      YPPI(K) = YPP(I)*XR + YPP(I+1)*XL
-!
-!     NEXT POINT
-!
-      IF (K.GE.NI) RETURN
-      K = K+1
-      XX = XI(K)
-      IF (XX.LT.X(1)) GO TO 90
-      IF (XX.GT.X(N)) GO TO 80
-      IF (XX-XI(K-1)) 110,100,50
- 110  IL = 1
-      IR = I+1
-      GO TO 10
+   ! k is index on value of xi being worked on.  xx is that value.
+   ! i is current index into x array.
+   
+   k  = 1
+   xx = xi(1)
+   if (xx<x(1)) go to 90
+   if (xx>x(n)) go to 80
+   il = 1
+   ir = n
 
-END subroutine SPLINT
+   ! bisection search
+
+10 continue
+   i  = (il+ir)/2
+   if (i==il) go to 100
+   if (xx-x(i)) 20,100,30
+20 continue
+   ir = i
+   go to 10
+30 continue
+   il = i
+   go to 10
+
+   ! linear forward search
+
+50 continue
+   if (xx-x(i+1)) 100,100,60
+60 continue
+   if (i.ge.nm1) go to 80
+   i  = i+1
+   go to 50
+
+   ! extrapolation
+
+80 continue
+   kerr = 2
+   i  = nm1
+   go to 100
+90 continue
+   kerr = 2
+   i  = 1
+
+   ! interpolation
+
+100 continue
+   h  = x(i+1) - x(i)
+   h2 = h*h
+   xr = (x(i+1)-xx)/h
+   xr2= xr*xr
+   xr3= xr*xr2
+   xl = (xx-x(i))/h
+   xl2= xl*xl
+   xl3= xl*xl2
+   yi(k) = y(i)*xr + y(i+1)*xl-h2*(ypp(i)*(xr-xr3) + ypp(i+1)*(xl-xl3))/6.0d0
+   ypi(k) = (y(i+1)-y(i))/h+h*(ypp(i)*(1.0d0-3.0d0*xr2)-ypp(i+1)* (1.0d0-3.0d0*xl2))/6.0d0
+   yppi(k) = ypp(i)*xr + ypp(i+1)*xl
+
+   ! next point
+
+   if (k.ge.ni) return
+   k = k+1
+   xx = xi(k)
+   if (xx<x(1)) go to 90
+   if (xx>x(n)) go to 80
+   if (xx-xi(k-1)) 110,100,50
+110 continue
+   il = 1
+   ir = i+1
+   go to 10
+
+END SUBROUTINE splint

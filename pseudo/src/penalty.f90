@@ -1,10 +1,16 @@
 !> @file
-!! penalty routine for amoeba
+!!   penalty routine for amoeba
 !! @author
 !!    Alex Willand, under the supervision of Stefan Goedecker
 !!    gpu accelerated routines by Raffael Widmer
 !!    parts of this program were based on the fitting program by matthias krack
 !!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> penalty routine for amoeba

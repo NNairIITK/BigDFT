@@ -5,6 +5,12 @@
 !!    gpu accelerated routines by Raffael Widmer
 !!    parts of this program were based on the fitting program by matthias krack
 !!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Module (pseudo) giving the dimensions for static memory just as in the old f77 code
@@ -648,7 +654,7 @@ program pseudo
    
    
    ! a little estimation on memory reqs with wvlt
-   if (nhgrid>0) write(6,'(a,f4.2,a)')  &
+   if (nhgrid>0) write(6,'(a,f5.2,a)')  &
         'the wavelet coeffs will use about ', 8.0/2**20*int(2*crmult/hgridmin)**3,' mb per orbital.'
    
    
@@ -672,23 +678,19 @@ program pseudo
          ierr=3
       end if
    end if
-   write(errmsg,*) 'atomic reference file missing!'
-   call errorhandler(ierr,iproc,nproc,errmsg)
+   call errorhandler(ierr,iproc,nproc,'atomic reference file missing!')
 
    ! Read the file atom.??.ae
    open(unit=40,file=trim(filename),form='formatted',status='unknown')
    read(40,*,iostat=ierr) norb, wghtconf
    if (ierr /= 0) ierr=3
-   write(errmsg,*) 'error: 1st line of ae ref data'
-   call errorhandler(ierr,iproc,nproc,errmsg)
+   call errorhandler(ierr,iproc,nproc,'error: 1st line of ae ref data')
    read(40,*,iostat=ierr) znucp,zionp,rcovp,rprbp
    if (ierr /= 0) ierr=3
-   write(errmsg,*) 'error: 2nd line of ae ref data'
-   call errorhandler(ierr,iproc,nproc,errmsg)
+   call errorhandler(ierr,iproc,nproc,'error: 2nd line of ae ref data')
    read(40,'(a)',iostat=ierr) label
    if (ierr /= 0) ierr=3
-   write(errmsg,*) 'error: 3rd line of ae ref data'
-   call errorhandler(ierr,iproc,nproc,errmsg)
+   call errorhandler(ierr,iproc,nproc,'error: 3rd line of ae ref data')
    j=1
    
    do i=len(label),1,-1
@@ -728,17 +730,17 @@ program pseudo
    ! read(40,'(t2,a)',iostat=ierr) icorrp
    read(40,*,iostat=ierr) ngrid
    if (ierr /= 0 .or. ngrid .gt. nrmax ) ierr=3
-   if (ngrid .gt. nrmax )  write(6,*)'input number value is to large.'
-   write(errmsg,*) 'error: nr gridpoints in ae ref'
-   call errorhandler(ierr,iproc,nproc,errmsg)
-   write(6,*)
-   write(6,*) 'pseudo states = ', norb
-   write(6,*) 'znuc          = ', znucp
-   write(6,*) 'zpseudo       = ', zionp
-   write(6,*) 'r_covalent    = ', rcovp
-   write(6,*) 'r_confining   = ', rprbp
-   write(6,*) 'method        = ', methodae
-   write(6,*) 'gridpoints    = ', ngrid
+   if (ngrid > nrmax )  write(6,'(1x,a)') 'input number value is to large.'
+   call errorhandler(ierr,iproc,nproc,'error: nr gridpoints in ae ref')
+
+   write(6,'(/,1x,a,i10)')     'pseudo states = ', norb
+   write(6,'(1x,a,f10.3)')     'znuc          = ', znucp
+   write(6,'(1x,a,f10.3)')     'zpseudo       = ', zionp
+   write(6,'(1x,a,1pe10.3)')   'r_covalent    = ', rcovp
+   write(6,'(1x,a,1pe10.3)')   'r_confining   = ', rprbp
+   write(6,'(1x,a,a10)')       'method        = ', methodae
+   write(6,'(1x,a,i10)')       'gridpoints    = ', ngrid
+
    il(1) = 's'
    il(2) = 'p'
    il(3) = 'd'
@@ -746,7 +748,7 @@ program pseudo
    il(5) = 'g'
    nspin=1
    is(1) = '  so=0'
-   if (methodae == 'r'.or.methodae == 's') then
+   if (methodae == 'r' .or. methodae == 's') then
       nspin=2
       is(1)= 'so=+0.5'
       is(2)= 'so=-0.5'
@@ -780,8 +782,7 @@ program pseudo
       ! write(6,*,iostat=ierr) no(iorb),lo(iorb),so(iorb),zo(iorb), &
       ! ev(iorb),crcov(iorb),dcrcov(iorb),ddcrcov(iorb),plotfile
       if (ierr /= 0) ierr=3
-      write(errmsg,*)'Reading error in ae ref data'
-      call errorhandler(ierr,iproc,nproc,errmsg)
+      call errorhandler(ierr,iproc,nproc,'Reading error in ae ref data')
       write(6,'(1x,i1,a1,f6.1,f10.4,2f16.10,2f16.7,a)') &
            no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),  &
            ev(iorb),crcov(iorb) !& 
@@ -798,7 +799,7 @@ program pseudo
             ! error handling in the loop is slow, but better give detailed feedback
             ! for now, we only plot the ground state, i.e. atom.00.ae
             if (ierr /= 0) ierr=2
-            ! write(errmsg,*)'error reading ae plots', trim(plotfile), 'orb',iorb,'pt',igrid
+            ! write(errmsg,'(a,a,a,i0,a,i0)')'error reading ae plots', trim(plotfile), 'orb',iorb,'pt',igrid
             ! call errorhandler(ierr,iproc,nproc,errmsg)
          end do
          read(41,*)
@@ -816,8 +817,7 @@ program pseudo
    ! print*,'lmax=',lmax
    ! print*,'lcx=',lcx, '( charge > 1.0d-10)'
    if (lmax.gt.lmx+1)ierr=3
-   write(errmsg,*)'array dimension problem:lmax'
-   call errorhandler(ierr,iproc,nproc,errmsg)
+   call errorhandler(ierr,iproc,nproc,'array dimension problem:lmax')
    ! compute corresponding n-quantum numbers of the pseudostates
    ! no()   will contain n quantum numbers of the pseudostates afterwards
    ! noae() will contain n quantum numbers of the ae-states afterwards
@@ -840,8 +840,7 @@ program pseudo
    end do
    write(6,*) 'noccmax ', noccmax
    if (noccmax.gt.noccmx)ierr=3 
-   write(errmsg,*) 'array dimension problem: noccmax'
-   call errorhandler(ierr,iproc,nproc,errmsg)
+   call errorhandler(ierr,iproc,nproc,'array dimension problem: noccmax')
    ! print*,'noccmax=',noccmax
    do nocc=1,noccmax
       do l=0,lmax
@@ -915,8 +914,7 @@ program pseudo
       end do
       ierr=0
       if (excitae==0d0.and.iproc/=0)ierr=1
-      write(errmsg,*)'excitation energy is zero and thus ignored'
-      call errorhandler(ierr,iproc,nproc,errmsg)
+      call errorhandler(ierr,iproc,nproc,'excitation energy is zero and thus ignored')
    else
       excitae = 0d0
    end if
@@ -1115,8 +1113,8 @@ program pseudo
             end if
          end if
          if (methodae /= methodps) ierr=3
-         write(errmsg,'(a)') 'inconsistent spin treatment.'
-         call errorhandler(ierr,iproc,nproc,errmsg)
+         call errorhandler(ierr,iproc,nproc,'inconsistent spin treatment.')
+
          ! below option does not really make sense.
          ! it could actually be useful, but needs testing for
          ! allocation errors and other causes of trouble.
@@ -1195,8 +1193,7 @@ program pseudo
                write(6,*) 'option ''-mixref'' allows mixed rcov'
             endif
          endif
-         write(errmsg,*)'different integration radii found'
-         call errorhandler(ierr,iproc,nproc,errmsg)
+         call errorhandler(ierr,iproc,nproc,'different integration radii found')
          
          ! this definitely needs more testing. gpu fails for some choices of rmult
          ! i.e. crmult = 2 frmult looks savest so far
@@ -1267,8 +1264,7 @@ program pseudo
                ierr=3
             endif
          endif
-         write(errmsg,*) 'mixed ixc in atomic reference'
-         call errorhandler(ierr,iproc,nproc,errmsg)
+         call errorhandler(ierr,iproc,nproc,'mixed ixc in atomic reference')
          
          ! here we previously set the parameter/variables for the xc-functional(s)
          
@@ -1283,8 +1279,7 @@ program pseudo
             write(6,*) 'psppar    znuc=',znuc
             ierr=3
          endif
-         write(errmsg,*) 'nucleonic charge differs from ae data'
-         call errorhandler(ierr,iproc,nproc,errmsg)
+         call errorhandler(ierr,iproc,nproc,'nucleonic charge differs from ae data')
          ierr=0
          if (zionp /= zion) then
             write(6,*) 'zion from atom.ae and psppar not identical'
@@ -1293,8 +1288,7 @@ program pseudo
             ierr=1
             ! zion=zionp
          endif
-         write(errmsg,*) 'valence charge differs from ae data'
-         call errorhandler(ierr,iproc,nproc,errmsg)
+         call errorhandler(ierr,iproc,nproc,'valence charge differs from ae data')
          
          ! Read the pseudopotential the way bigdft does
 
@@ -1909,7 +1903,7 @@ program pseudo
          else
             write(13,'(a)',advance='no') 'nonrelativistic '
          end if
-         write(13,'(2(3x,g9.3),4x,a)') rcov,rprb, 'method, rcov and rprb'
+         write(13,'(2(2x,g10.3),4x,a)') rcov,rprb, 'method, rcov and rprb'
          
          call date_and_time(dateymd)
          write(13,'(1x,2i4,2x,a,23x,a)') int(znuc+.1),int(zion+.1),dateymd,' zatom, zion, date (yymmdd)'
