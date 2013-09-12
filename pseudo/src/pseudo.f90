@@ -1810,20 +1810,15 @@ program pseudo
          verbose=.true.
          
          if (nconfpaw/=-1) then
-            call pawpatch(energ,verbose,nfit,pp(1),yp(1), &
-                 noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,(nspol==2),nsmx,&
-                 no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,&
-                 occup,aeval,chrg,dhrg,ehrg,res,wght,&
-                 wfnode,psir0,wghtp0,&
+            call pawpatch(noccmax,noccmx,lmax,lmx,lpmx,nspin,nsmx,&
+                 occup,aeval,&
                  rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
-                 vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,&
-                 avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,&
-                 iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,&
-                 wghthij,&
-                 nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,&
-                 excitae,ntime,iter,itertot,penref,time,ngrid, &
-                 nconfpaw, npawl, nchannelspaw , methodps, pawstatom,&
-                 pawstn, pawstl  , pawstp,     pawrcovfact    )
+                 psi,&
+                 rae,&
+                 iproc,&
+                 ngrid, &
+                 nconfpaw, npawl, nchannelspaw, methodps, pawstatom,&
+                 pawstn, pawstl, pawstp, pawrcovfact)
             
             stop " pawpatch normal stop"
          endif

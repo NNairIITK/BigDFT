@@ -38,7 +38,7 @@ subroutine resid(nspol, &
    real(kind=8), dimension(nint), intent(in) :: pexgrd
    real(kind=8), dimension(nint,nspol), intent(in) :: xcgrd !< Vxc (ij, ispin) ; xcgrd is actually a waste of memory
    real(kind=8), dimension(nint), intent(in) :: rr,rw
-   real(kind=8), dimension(nint,lmax), intent(in) :: ppr1,ppr2,ppr3
+   real(kind=8), dimension(nint,lmax+1), intent(in) :: ppr1,ppr2,ppr3
    real(kind=8), dimension(nint), intent(in) :: aux1
    real(kind=8), dimension(nint,0:ng,lmax+1), intent(in) :: aux2
    real(kind=8), dimension(0:ng,nint), intent(in) :: expxpr
@@ -61,7 +61,7 @@ subroutine resid(nspol, &
    enddo
    if (nothing)  return
    
-   !   external and exc potential on grid 
+   ! external and exc potential on grid 
    do k=1,nint
       r=rr(k)
       ! some older comment line?
@@ -109,7 +109,7 @@ subroutine resid(nspol, &
                   enddo
                   rkin=rkin*r**ll
                   ! separable part
-                  if (ll.le.lpx-1) then
+                  if (ll <= lpx-1) then
                      sep = (scpr1(ispin)*hsep(1,ll+1,ispin) &
                           + scpr2(ispin)*hsep(2,ll+1,ispin) &
                           + scpr3(ispin)*hsep(4,ll+1,ispin)) &

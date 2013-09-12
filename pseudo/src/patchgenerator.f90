@@ -13,51 +13,45 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
+subroutine paw_generator(zion, lmx,  lpmx, lmax,  hsep, gpot, &
      alpz, alps, &
      ng, noccmax,noccmx, expo,&
      psi, aeval, occup, &
      Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid ,rw,rd,  psigrid, Npaw,&
-     PAWpatch , psipsigrid, rcov, rprb, rcore, zcore , Ngrid_box_larger)
+     PAWpatch , psipsigrid, rprb, rcore, zcore , Ngrid_box_larger)
 
   implicit none
-  integer, intent(in) :: izatom, ng,noccmax,noccmx,Nsol, labs, Ngrid,  Ngrid_box, Ngrid_box_larger
-
+  !Arguments
+  integer, intent(in) :: ng,noccmax,noccmx,Nsol, labs, Ngrid,  Ngrid_box, Ngrid_box_larger
+  integer, intent(in)::lpmx, lmx, lmax
   integer, intent(in) :: Npaw
-  
-  real(8), dimension(ng+1), intent(out) :: expo
-  integer , intent(in)::lpmx, lmx, lmax
-
-  integer, parameter :: n_int=1000
-
-  real(8), intent(in) :: rgrid(Ngrid), rd(Ngrid),rw(Ngrid), rcore, zcore
-
-  real(8), dimension(0:ng,noccmax, lmx), intent(out) :: psi, Egrid(Nsol),&
-       psigrid(Ngrid,Nsol  )
-  
-  real(8), dimension(4), intent(in) :: gpot !! gpot dim e diventata 4!!!
-  real(8),   intent(out)  :: psipsigrid(Ngrid,Nsol  )
-  real(8), intent(in) :: rcov, rprb, zion
-  
-
-
-  real(8), dimension(noccmx,lmx  ), intent(in) ::  occup
-  real(8), dimension(noccmx,lmx  ), intent(out) ::  aeval
-  real(8), intent(out):: PAWpatch(Npaw,Npaw)
-  real(8), intent(in):: hsep(6,lpmx)
-  real(8), intent(in) :: alpz, alps(*)
+  real(kind=8), dimension(ng+1), intent(out) :: expo
+  real(kind=8), intent(in), dimension(Ngrid) :: rgrid, rd, rw
+  real(kind=8), intent(in) :: rcore, zcore
+  real(kind=8), dimension(0:ng,noccmax, lmx), intent(out) :: psi
+  real(kind=8), dimension(Nsol), intent(out) :: Egrid
+  real(kind=8), dimension(Ngrid,Nsol) , intent(out) :: psigrid, psipsigrid
+  real(kind=8), dimension(4), intent(in) :: gpot !! gpot dim e diventata 4!!!
+  real(kind=8), intent(in) :: rprb, zion
+  real(kind=8), dimension(noccmx,lmx), intent(in) ::  occup
+  real(kind=8), dimension(noccmx,lmx), intent(out) ::  aeval
+  real(kind=8), dimension(Npaw,Npaw), intent(out):: PAWpatch
+  real(kind=8), dimension(6,lpmx), intent(in):: hsep
+  real(kind=8), intent(in) :: alpz
+  real(kind=8), dimension(*), intent(in) :: alps
  
-  !local variables
-  real(8) alpl
-  real(8), parameter :: fact=4.0_8
-  real(8), dimension(noccmx,lmx) ::chrg,res
-  real(8), dimension(:), allocatable :: xp
-  real(8), dimension(:,:), allocatable :: vh
+  !Local variables
+  integer, parameter :: n_int=1000
+  real(kind=8), parameter :: fact=4.0d0
+  real(kind=8) :: alpl
+  !real(kind=8), dimension(noccmx,lmx) ::chrg,res
+  real(kind=8), dimension(:), allocatable :: xp
+  real(kind=8), dimension(:,:), allocatable :: vh
 
-  real(8), dimension(:,:,:,:), allocatable :: rmt
+  real(kind=8), dimension(:,:,:,:), allocatable :: rmt
   integer :: l,i,iocc 
-  real(8) :: rij,a,a0,a0in,tt
-  real(8) :: value_at_r
+  real(kind=8) :: rij,a,a0,a0in,tt
+  real(kind=8) :: value_at_r
   integer :: lpx
 
   !filename = 'psppar.'//trim(atomname)
@@ -115,9 +109,9 @@ subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
 !!!       aeval,ng,psi,res,chrg)
   
   PAWpatch=0.0_8
-  call gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx, occup,&
+  call gatom_modified(rprb,lmax,lpx,lpmx, noccmax,noccmx, occup,&
        zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
-       aeval,ng,psi,res,chrg,&
+       aeval,ng,psi,&
        Nsol, Labs, Ngrid,Ngrid_box,Egrid,  rgrid,rw, rd,  psigrid,Npaw,  PAWpatch,&
        psipsigrid,rcore,zcore , Ngrid_box_larger   )              
  

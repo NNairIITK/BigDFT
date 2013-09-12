@@ -822,39 +822,44 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
          if (ind(r) /= tag) cycle rloop
          its = 1
          x1 = w(r)
-         if (s /= 0) go to 510
-         ! check for isolated root
-         xu = 1.d0
-         if (p == q) then
-            rv6(p) = 1.d0
-            go to 870
+         if (s == 0) then
+            ! check for isolated root
+            xu = 1.d0
+            if (p == q) then
+               rv6(p) = 1.d0
+               go to 870
+            end if
+            norm = abs(d(p))
+            ip = p + 1
+
+            do i = ip, q
+               norm = norm + abs(d(i)) + abs(e(i))
+            end do
+
+            ! eps2 is the criterion for grouping,
+            ! eps3 replaces zero pivots and equal, roots are modified by eps3,
+            ! eps4 is taken very small to avoid overflow
+            eps2 = gropep * norm
+            eps3 = machep * norm
+            uk = real(q-p+1,kind=8)
+            eps4 = uk * eps3
+            uk = eps4 / sqrt(uk)
+            s = p
+            group = 0
+
+         else
+
+            ! look for close or coincident roots
+            if (abs(x1-x0) >= eps2) then
+               group = 0
+            else
+               group = group + 1
+               if (order * (x1 - x0) <= 0.d0) x1 = x0 + order * eps3
+            end if
+
          end if
-         norm = abs(d(p))
-         ip = p + 1
 
-         do i = ip, q
-            norm = norm + abs(d(i)) + abs(e(i))
-         end do
-
-         ! eps2 is the criterion for grouping,
-         ! eps3 replaces zero pivots and equal, roots are modified by eps3,
-         ! eps4 is taken very small to avoid overflow
-         eps2 = gropep * norm
-         eps3 = machep * norm
-         uk = real(q-p+1,kind=8)
-         eps4 = uk * eps3
-         uk = eps4 / sqrt(uk)
-         s = p
-505      continue
-         group = 0
-         go to 520
-         ! look for close or coincident roots
-510      continue
-         if (abs(x1-x0) >= eps2) go to 505
-         group = group + 1
-         if (order * (x1 - x0) <= 0.d0) x1 = x0 + order * eps3
          ! elimination with interchanges and initialization of vector
-520      continue
          v = 0.d0
 
          do i = p, q
@@ -930,20 +935,18 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
             go to 870
          end if
 
-         if (norm /= 0.d0) go to 740
-         rv6(s) = eps4
-         s = s + 1
-         if (s > q) s = p
-         go to 780
-740      continue
-         xu = eps4 / norm
-
-         do i = p, q
-            rv6(i) = rv6(i) * xu
-         end do
+         if (norm == 0.d0) then
+            rv6(s) = eps4
+            s = s + 1
+            if (s > q) s = p
+         else
+            xu = eps4 / norm
+            do i = p, q
+               rv6(i) = rv6(i) * xu
+            end do
+         end if
 
          ! elimination operations on next vector iterate
-780      continue
          do i = ip, q
             u = rv6(i)
             ! if rv1(i-1) == e(i), a row interchange was performed earlier in the triangularization process

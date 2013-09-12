@@ -34,7 +34,7 @@ subroutine errorhandler(ierr,iproc,nproc,errmsg)
       sendierr=ierr
       call MPI_ALLTOALL(sendierr,1,MPI_INTEGER,  &
            getierr,1,MPI_INTEGER,MPI_COMM_WORLD,i)
-      if ( i /= 0)   write(6,'(1x,a,i0)') 'Error in MPI_ALLTOALL occured- ',i
+      if ( i /= 0)   write(6,'(1x,a,i0,a,i0)') '(iproc=',iproc,'Error in MPI_ALLTOALL occured- ',i
    else
       getierr=ierr 
    end if
@@ -52,16 +52,16 @@ subroutine errorhandler(ierr,iproc,nproc,errmsg)
       end do
       
       if (any(getierr == 3)) then
-         write(6,'(/,12x,a,/)') 'EXITING'
+         write(6,'(/,12x,a,i0,a,/)') '(iproc=',iproc,'EXITING'
          call MPI_BARRIER(MPI_COMM_WORLD,ierr)
          call MPI_FINALIZE(ierr)
          stop
       end if
    else                        !serial case
       if (ierr == 3) then
-         write(6,'(/,12x,a,/)') 'EXITING'
+         write(6,'(/,12x,a,i0,a,/)') '(iproc=',iproc,'EXITING'
          stop
       end if
    end if
 
-end subroutine
+end subroutine errorhandler

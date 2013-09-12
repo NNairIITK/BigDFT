@@ -33,7 +33,8 @@ subroutine gatom(energ, verbose)
    implicit none
 
    !Arguments
-   logical, intent(in) :: energ, verbose
+   logical, intent(in) :: energ   !< Requests a total energy calculation
+   logical, intent(in) :: verbose !< Requests a detailed output after the wfn is converged
    !Local variables
    real(kind=8), parameter :: fourpi = 16.d0*atan(1.d0)
    real(kind=8), dimension(0:ng,0:ng,lmax+1,nspin) :: hh
@@ -78,11 +79,11 @@ subroutine gatom(energ, verbose)
             do ispin=1,nspin
                do i=0,ng
                   psi(i,iocc,l+1,ispin)=1.d-8
-               enddo
-            enddo
-         enddo
-      enddo
-   endif
+               end do
+            end do
+         end do
+      end do
+   end if
    ntime=ntime+1
    
    
@@ -143,8 +144,8 @@ subroutine gatom(energ, verbose)
       !        no spin down s orbitals in the r case: nspin=2, nspol=1, 2l+1=1
       do ispin=1,max(min(2*l+1,nspin),nspol)
          if (occup(1,l+1,ispin).gt.1.d-10) stop 'lcx too small'
-      enddo
-   enddo
+      end do
+   end do
    
    ! projectors
    
@@ -170,7 +171,7 @@ subroutine gatom(energ, verbose)
          pp1(i,l)=gml1*(sqrt(ttt)**(2*lq+3))
          pp2(i,l)=gml2*ttt2*(sqrt(ttt2)**(2*lq+3))
          pp3(i,l)=gml3*ttt2**2*(sqrt(ttt2)**(2*lq+3))
-      enddo
+      end do
       !     radial grid
       rnrm1=1.d0/sqrt(.5d0*gamma(lq+1.5d0)*r_l(l)**(2*lq+3))
       rnrm2=1.d0/sqrt(.5d0*gamma(lq+3.5d0)*r_l2(l)**(2*lq+7))
@@ -180,8 +181,8 @@ subroutine gatom(energ, verbose)
          ppr1(k,l)=rnrm1*r**lq    *exp(-.5d0*(r/r_l(l))**2)
          ppr2(k,l)=rnrm2*r**(lq+2)*exp(-.5d0*(r/r_l2(l))**2)
          ppr3(k,l)=rnrm3*r**(lq+4)*exp(-.5d0*(r/r_l2(l))**2)
-      enddo
-   enddo
+      end do
+   end do
    
    
    
@@ -193,15 +194,15 @@ subroutine gatom(energ, verbose)
            + exp(-.5d0*(r/rloc)**2)*  &
            ( gpot(1) + gpot(2)*(r/rloc)**2 + gpot(3)*(r/rloc)**4 +  &
            gpot(4)*(r/rloc)**6 )
-   enddo
+   end do
    
    !     store exp(-xp(i)*r**2) in expxpr()
    do k=1,nint
       r=rr(k)
       do i=0,ng
          expxpr(i,k)= exp(-xp(i)*r**2)
-      enddo
-   enddo
+      end do
+   end do
    
    !     auxillary grids for resid:
    do k=1,nint
@@ -211,9 +212,9 @@ subroutine gatom(energ, verbose)
          do i=0,ng
             aux2(k,i,ll+1)=(xp(i)*(3.d0+2.d0  &
                  *ll-2.d0*xp(i)*r**2)*expxpr(i,k))
-         enddo
-      enddo
-   enddo
+         end do
+      end do
+   end do
    !
    ! set up charge independent part of hamiltonian
    !
@@ -259,7 +260,7 @@ subroutine gatom(energ, verbose)
                        +35.d0*rloc**6*d**3)/(2.d0*d**4*tt**7)
                else
                   stop 'l too big'
-               endif
+               end if
                !     potential from repulsive gauss potential
                tt=rloc**2/(.5d0+d*rloc**2)
                
@@ -285,12 +286,12 @@ subroutine gatom(energ, verbose)
                        + pp3(i,l)*hsep(6,l,ispin)*pp3(j,l) 
                   
                   
-               endif
+               end if
                hh(i,j,l,ispin)=hhij
-            enddo
-         enddo
-      enddo
-   enddo
+            end do
+         end do
+      end do
+   end do
    !     hhxc is kept constant at zero in the unpolarized case
    hhxc=0d0
    
@@ -306,9 +307,9 @@ subroutine gatom(energ, verbose)
          do i=j,ng
             ij=ij+1
             rho(ij,l+1,:)=0.d0
-         enddo
-      enddo
-   enddo
+         end do
+      end do
+   end do
    evsum=1.d30
    
    
@@ -338,9 +339,9 @@ subroutine gatom(energ, verbose)
                ij=ij+1
                rhoold(ij,l+1,:)=rho(ij,l+1,:)
                rho(ij,l+1,:)=0.d0
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
       do l=0,lmax
          !           no spin down s orbitals in the r case: nspin=2, nspol=1, 2l+1=1
          do ispin=1,max(min(2*l+1,nspin),nspol)
@@ -363,12 +364,12 @@ subroutine gatom(energ, verbose)
                              psi(i,iocc,l+1,ispin)  &
                              *psi(j,iocc,l+1,ispin)  &
                              *(2.d0*occup(iocc,l+1,ispin))
-                     enddo
-                  enddo
-               endif
-            enddo
-         enddo
-      enddo
+                     end do
+                  end do
+               end if
+            end do
+         end do
+      end do
       
       ! determine optimal value for rmix
       !     for minimum number of scf iterations
@@ -379,20 +380,20 @@ subroutine gatom(energ, verbose)
                delta = delta + 0.05d0
             else
                delta = delta - 0.05d0
-            endif
+            end if
          else
             if (delta .gt. odelta) then
                delta = delta - 0.05d0
             else
                delta = delta + 0.05d0
-            endif
-         endif
+            end if
+         end if
          delta = max(0.1d0,delta)
          delta = min(0.9d0,delta)
          odelta = tttt
          nscfo = nscf
          nscf = 0
-      endif
+      end if
       !     f90 intrinsic
       call random_number(rmix)
       rmix = delta + (.5d0-delta/2.d0)*rmix
@@ -412,9 +413,9 @@ subroutine gatom(energ, verbose)
                !                 the : is over nspol components, 1 or 2
                tts=rmix*rho(ij,l+1,:) + (1.d0-rmix)*rhoold(ij,l+1,:)
                rho(ij,l+1,:)=tts
-            enddo
-         enddo
-      enddo
+            end do
+         end do
+      end do
       !
       !     calc. gradient only if xc-func. with gradient-corrections
       !     rho on grid ij=1,nint:
@@ -471,7 +472,7 @@ subroutine gatom(energ, verbose)
       !        open(11,file='rhogrd')
       do k=1,nint
          vxcgrd(k,:)=vxcgrd(k,:)*rw(k)/fourpi
-      enddo
+      end do
       !        close(11)
       
       !      important: since the real space representation
@@ -540,8 +541,8 @@ subroutine gatom(energ, verbose)
                   hht(i,j)=hh(i,j,l+1,ispin)+hhsc(ij,l+1)  &
                        +hhxc(ij,l+1,ispin) 
                   sst(i,j)=ss(i,j,l+1)
-               enddo
-            enddo
+               end do
+            end do
             !     ibm/dec
             call dsygv(1,'v','l',ng+1,hht,ng+1,sst,ng+1,  &
                  eval,evec,(ng+1)**2,info)
@@ -553,8 +554,8 @@ subroutine gatom(energ, verbose)
             do iocc=0,noccmax-1
                do i=0,ng
                   evec(i,iocc)=hht(i,iocc)
-               enddo
-            enddo
+               end do
+            end do
             !     end lapack
             do iocc=1,noccmax
                !                 write(6,*)'debug: e(iocc,ispin,l,it)',
@@ -563,8 +564,8 @@ subroutine gatom(energ, verbose)
                aeval(iocc,l+1,ispin)=eval(iocc-1)
                do i=0,ng
                   psi(i,iocc,l+1,ispin)=evec(i,iocc-1)
-               enddo
-            enddo
+               end do
+            end do
             !     write(6,*) 'eval',l
             !     55         format(5(e14.7))
             !     write(6,55) eval
@@ -572,20 +573,20 @@ subroutine gatom(energ, verbose)
             !     do i=0,ng
             !     33            format(10(e9.2))
             !     write(6,33) (evec(i,iocc),iocc=0,noccmax-1)
-            !     enddo
-         enddo
-      enddo
+            !     end do
+         end do
+      end do
       tt=abs(evsum-evsumold)
       !        write(6,*)'debug: residue=',tt,it
       if (tt.lt.1.d-8) exit
-   enddo
+   end do
    if(tt>1d-8) write(6,*) 'warning: no sc convergence',tt
    
    !ccccccccccccccccccccccccccccccc
    !    end of the scf cycles     c
    !ccccccccccccccccccccccccccccccc
    
-   !     write(*,*)'debug: ks eigenvalues',aeval
+   ! write(*,*)'debug: ks eigenvalues',aeval
    itertot=itertot+it
    nscf = nscf +it
    call resid(nspol,  &
@@ -595,7 +596,7 @@ subroutine gatom(energ, verbose)
         ud,nint,ng,ngmx,psi,rho,pp1,pp2,pp3,  &
         potgrd,pexgrd,vxcgrd,rr,rw,ppr1,ppr2,ppr3,aux1,aux2,  &
         expxpr)
-   !     etot evaluates ehartree using rhogrd,
+   ! etot evaluates ehartree using rhogrd,
    if (energ) call etot(verbose,nspol,  &
         noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &
         aeval,  &
@@ -603,12 +604,12 @@ subroutine gatom(energ, verbose)
         xp,ud,nint,ng,ngmx,psi,rho,pp1,pp2,pp3,  &
         vxcgrd,excgrd,rhogrd,rhocore,occup,rr,rw,  &
         expxpr,etotal)
-   !
-   !     charge up to radius rcov or infinity
-   !
+
+   ! charge up to radius rcov or infinity
    
-   !     modification: can one integrate up to a different rcov for semicore states?
-   !     problem: loop over l is implicit here, one can not tell easily where nl<occmax(l)
+   
+   ! modification: can one integrate up to a different rcov for semicore states?
+   ! problem: loop over l is implicit here, one can not tell easily where nl<occmax(l)
    
    if (lmax.gt.3) stop 'cannot calculate chrg'
    do l=0,lmax
@@ -618,9 +619,9 @@ subroutine gatom(energ, verbose)
             chrg(iocc,l+1,ispin)=0.d0
             dhrg(iocc,l+1,ispin)=0.d0
             ehrg(iocc,l+1,ispin)=0.d0
-         enddo
-      enddo
-   enddo
+         end do
+      end do
+   end do
    do ispin=1,max(min(2*l+1,nspin),nspol)
       !     here, l=lmax+1, so do ispin=1,2 if lmax>0 and nspin=2
       do iocc=1,noccmax
@@ -704,7 +705,7 @@ subroutine gatom(energ, verbose)
             end do
          end do loopij
       end do
-   enddo
+   end do
    
    !
    !     value at origin
@@ -712,7 +713,7 @@ subroutine gatom(energ, verbose)
    psir0=0.d0
    do i=0,ng
       psir0=psir0+psi(i,1,1,1)
-   enddo
+   end do
    psir0=psir0**2
    
    !     node locations of psi*r
@@ -761,9 +762,9 @@ subroutine gatom(energ, verbose)
                        .and. ttpsi .gt. 1.0d-4 ) then
                      ttmax=ttpsi
                      ttrmax=ra
-                  endif
+                  end if
                   if (ttpsi.lt.ttmax .and. ttpsi.gt.1.0d-4) exit
-               enddo
+               end do
                !     search up to 90% of rmax
                ttrmax=max(0.90d0*ttrmax,rr(1))
                call detnp(nint,rr,ttrmax,kout)
@@ -774,7 +775,7 @@ subroutine gatom(energ, verbose)
                do k=1,kout
                   call wave3(ng,l,xp,psi(0,nocc,l+1,ispin),  &
                        expxpr,rr(k),k,nint,y1(k),y2(k),y3(k))
-               enddo
+               end do
                
                do k = 2,kout
                   !     nodes of wavefunction
@@ -788,9 +789,9 @@ subroutine gatom(energ, verbose)
                      if (nnode .ge.nocc) then
                         rnode=rnode+rrnode
                         !                          print*,'found rnode at:',rrnode
-                     endif
+                     end if
                      rlist(nnode)=rrnode
-                  endif
+                  end if
                   !     nodes of first derivative
                   if (y2(k)*y2(k-1).lt.0.d0) then
                      ndnode = ndnode +1
@@ -802,9 +803,9 @@ subroutine gatom(energ, verbose)
                      if (ndnode .ge.nocc) then
                         dnode=dnode+rrnode
                         !                        print*,'found dnode at:',rrnode
-                     endif
+                     end if
                      drlist(ndnode)=rrnode
-                  endif
+                  end if
                   !     second derivative test:
                   if (y3(k)*y3(k-1).lt.0.d0) then
                      nddnode = nddnode + 1
@@ -819,10 +820,10 @@ subroutine gatom(energ, verbose)
                         !                          print*,'found ddnode at:',rrnode
                      else
                         rrdnode=rrnode
-                     endif
+                     end if
                      ddrlist(nddnode)=rrnode
-                  endif
-               enddo
+                  end if
+               end do
                
                !     print*,'rnode,dnode,ddnode',rnode,dnode,ddnode,nnode
                
@@ -837,20 +838,20 @@ subroutine gatom(energ, verbose)
                   aa=wwav(ng,l,xp,psi(0,nocc,l+1,ispin),rlist(i))  &
                        -wwav(ng,l,xp,psi(0,nocc,l+1,ispin),rlist(i-1))
                   sum1 = sum1+aa
-               enddo
+               end do
                !     dnodes
                do i=ndnode+1-nocc,1,-2
                   aa=wave(ng,l,xp,psi(0,nocc,l+1,ispin),drlist(i))  &
                        -wave(ng,l,xp,psi(0,nocc,l+1,ispin),drlist(i-1))
                   sum2 = sum2+aa
-               enddo
+               end do
                !     ddnodes
                do i=nddnode+1-nocc,1,-2
                   aa=dwave(ng,l,xp,psi(0,nocc,l+1,ispin),ddrlist(i))  &
                        -dwave(ng,l,xp,psi(0,nocc,l+1,ispin),ddrlist(i-1))
                   !                    this test line is quite slow, for debuging purposes
                   sum3 = sum3+aa
-               enddo
+               end do
                !     old version for nodes as used in the paper:
                !                  wfnode(nocc,l+1,ispin,1)=rnode
                !                  wfnode(nocc,l+1,ispin,2)=dnode
@@ -874,10 +875,10 @@ subroutine gatom(energ, verbose)
                   if(.not. sum2*sum2 >=0d0 )wfnode(nocc,l+1,ispin,2)=0d0
                   if(.not. sum3*sum3 >=0d0 )wfnode(nocc,l+1,ispin,3)=0d0
                end if
-            endif
-         enddo
-      enddo
-   enddo
+            end if
+         end do
+      end do
+   end do
    
    !     print*,'leave gatom'
    

@@ -13,63 +13,50 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
-     noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,&
-     no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,&
-     occup,aeval,chrg,dhrg,ehrg,res,wght,&
-     wfnode,psir0,wghtp0,&
+subroutine pawpatch(noccmax,noccmx,lmax,lmx,lpmx,nspin,nsmx,&
+     occup,aeval,&
      rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
-     vh,xp,rmt,rmtg,ud,nint,ng_fit,ngmx,psi,&
-     avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae, &
-     iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,&
-     nhgrid,hgridmin,hgridmax, nhpow,ampl,crmult,frmult,&
-     excitAE,ntime,iter,itertot,penref,time,ngrid_fit,&
-     nconfpaw, npawl, nchannelspaw, ispp, pawstatom , pawstN, pawstL, pawstP ,&
-     pawrcovfact)
+     psi,&
+     rae, &
+     iproc,&
+     ngrid_fit,&
+     nconfpaw, npawl, nchannelspaw, ispp, pawstatom, &
+     pawstN, pawstL, pawstP, pawrcovfact)
   
   implicit none
+  !Arguments
   integer, parameter :: gp=kind(1.0d0) 
-  logical :: avgl1,avgl2,avgl3,ortprj,litprj,igrad
-  real(kind=8) :: pp(maxdim),so(norb),ev(norb),crcov(norb),&
-       dcrcov(norb),ddcrcov(norb),occup(noccmx,lmx,nsmx),aeval(noccmx,lmx,nsmx),&
-       chrg(noccmx,lmx,nsmx),dhrg(noccmx,lmx,nsmx),&
-       ehrg(noccmx,lmx,nsmx),res(noccmx,lmx,nsmx),&
-       wght(noccmx,lmx,nsmx,8),&
-       wfnode(noccmx,lmx,nsmx,3),&
+  real(kind=8) :: occup(noccmx,lmx,nsmx),aeval(noccmx,lmx,nsmx),&
        gpot(*),r_l(*),hsep(6,lpmx,nsmx),&
-       vh(*),xp(*),rmt(*),rmtg(*),ud(*),psi(*),&
+       psi(*),&
        rae(*),&
-       time(3), penal, psir0,wghtp0,rcov,&
-       rprb,rcore,zcore,znuc,zion,rloc,&
-       wghtexci,wghtsoft,wghtrad,wghthij,&
-       hgridmin,hgridmax, ampl,crmult,frmult,&
-       excitAE,iter,itertot,penref, wghtconf
+       rcov,&
+       rprb,rcore,zcore,znuc,zion,rloc
   
-  integer :: no(norb),lo(norb),nconfpaw, npawl, nchannelspaw , maxdim,&
-       noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,nint,ng_fit,ngmx,iproc,&
-       nproc,nhgrid,nhpow,ntime, norb, ngrid_fit, j,   pawstN, pawstL, pawstP
+  integer :: nconfpaw, npawl, nchannelspaw,&
+       noccmax,noccmx,lmax,lmx,lpmx,nspin,nsmx,iproc,&
+       ngrid_fit, j, pawstN, pawstL, pawstP
   
   real(kind=8) :: pawrcovfact
 
   character(len=1) :: ispp
-  logical :: energ, verbose, pol
   character(len=30) :: plotfile
   real(kind=8), pointer :: atom_potential_fit(:)
   real(kind=8), pointer :: statom_potential(:)
   real(kind=8) :: rdum
   
   integer :: Npaw, ng
-  integer Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl,  Ngrid_box_larger
-  real(kind=8) boxradius, biggerboxradius, a,b, EMAX
+  integer :: Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl,  Ngrid_box_larger
+  real(kind=8) :: boxradius, biggerboxradius, a,b, EMAX
   real(kind=8), pointer :: rgrid(:), yp(:), ypp(:), w(:), aepot(:), aepot_p(:), aepot_pp(:), &
        rgrid_ab(:), aepot_cent(:), staepot(:), rw(:),rd(:)
-  real(kind=8) a1,b1,an,bn
-  integer ierr, isx
-  integer LPaw, n, Nsol
-  integer igrid
+  real(kind=8) :: a1,b1,an,bn
+  integer :: ierr, isx
+  integer :: LPaw, n, Nsol
+  integer :: igrid
   real(kind=8), pointer :: psi_initial_copy(:),psi_initial(:), dumpsi_p(:)
-  real(kind=8) dum_energy
-  character(1000) filename
+  real(kind=8) :: dum_energy
+  character(len=1000) :: filename
   character(len=125) :: pawstatom
   real(gp) , pointer ::  psigrid(:,:), Egrid(:), nonloc(:)
   real(gp) , pointer ::  psigrid_pseudo(:,:), Egrid_pseudo(:)
@@ -78,10 +65,10 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   
   real(gp) , pointer ::  expo(:)
   real(gp), pointer::PAWpatch_matrix(:,:)
-  real(gp) fourpi
-  logical dump_functions
-  integer real_start, l, iocc,i 
-  integer iout, outunits(2), uout
+  real(gp) :: fourpi
+  logical :: dump_functions
+  integer :: real_start, l, iocc,i 
+  integer :: iout, outunits(2), uout
   include 'mpif.h'
   
   dump_functions= .true.
@@ -415,11 +402,11 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      psigrid_pseudo=psigrid
  
 
-     call paw_generator(znuc,zion,lmx,lpmx,lmax,hsep, gpot, &
-          rloc, r_l, &                         !! rloc=alpz=alpl    r_l=alps
+     call paw_generator(zion,lmx,lpmx,lmax,hsep, gpot, &
+          rloc, r_l, &
           ng-1 ,noccmax ,noccmx,   expo,  psi,aeval, occup ,  &
           Nsol, Lpaw , Ngrid, Ngrid_box,Egrid_pseudo,  rgrid , rw,rd, psigrid_pseudo ,&
-          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rcov, rprb, rcore,zcore, Ngrid_box_larger)
+          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rprb, rcore,zcore, Ngrid_box_larger)
      
      if( dump_functions) then
         write(plotfile, '(a,i0,a)') 'ptildes.L=',LPaw,'.plt'
@@ -486,8 +473,8 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
         write(6,*) "routine pawpatch  , PROJECT  initial wf*r**pawstP on pseudos "
         write(38,*)  "routine pawpatch  , PROJECT  initial wf*r**pawstP on pseudos "
         call find_pfproj_4tail( Nsol,Npaw,Ngrid,  Ngrid_box,Ngrid_biggerbox, rgrid, psi_initial, psigrid, real_start, &
-             psigrid_pseudo, psipsigrid_pseudo,  &
-             psigrid_bigger,dump_functions) 
+             psipsigrid_pseudo,  &
+             psigrid_bigger) 
         
 
         !! if(iproc.eq.0 .and. dump_functions.eq.1) then 
@@ -585,17 +572,16 @@ END subroutine pawpatch
 
 subroutine find_pfproj_4tail( Nsol,Npaw, Ngrid,Ngrid_box,Ngrid_biggerbox,&
      rgrid, psi1s, psigrid, real_start,&
-     ptilde, psitilde, &
-     psigrid_bigger, dump_functions )
+     psitilde, &
+     psigrid_bigger)
   implicit none
   integer, parameter :: gp=kind(1.0d0) 
   !Arguments
   integer, intent(in) ::  Nsol,Npaw,Ngrid,Ngrid_box,Ngrid_biggerbox,real_start
   real(gp), intent(inout) :: psi1s(Ngrid), rgrid(Ngrid)
   real(gp), intent(inout) :: psigrid(Ngrid,Nsol),psigrid_bigger(Ngrid,Nsol)
-  real(gp), intent(inout) :: psitilde(Ngrid,Nsol), ptilde(Ngrid,Nsol)
+  real(gp), dimension(Ngrid,Nsol), intent(inout) :: psitilde
   !! real(gp) , intent(out) :: coeffs_out(Npaw)
-  logical :: dump_functions
   !Local variables
   real(gp)   :: coeffs_out(Npaw)
   real(gp) :: dumgrid(Ngrid),  dumgrid2(Ngrid)

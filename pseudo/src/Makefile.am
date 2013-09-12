@@ -1,6 +1,6 @@
 SUBDIRS = 
 
-EXTRA_DIST = $(include_level)
+EXTRA_DIST = $(include_level) 
 
 include_level = \
 	func.inc \
