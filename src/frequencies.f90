@@ -34,17 +34,14 @@ program frequencies
    character(len=*), dimension(3), parameter :: cc = (/ 'x', 'y', 'z' /)
    !File unit
    integer, parameter :: u_hessian=20
-   real(gp) :: etot,alat,dd,rmass,fnoise
+   real(gp) :: alat,dd,rmass
    character(len=60) :: run_id
    !Input variables
-   type(atoms_data) :: atoms
-   type(input_variables) :: inputs
-   type(restart_objects) :: rst
+   type(run_objects) :: runObj
+   type(DFT_global_output) :: outs
    !Atomic coordinates, forces
-   real(gp), dimension(:), allocatable :: fxyz
-   real(gp), dimension(:,:), allocatable :: rpos
+   real(gp), dimension(:,:), allocatable :: rxyz0
    real(gp), dimension(:,:), allocatable :: fpos
-   real(gp), dimension(:,:), pointer :: rxyz
    real(gp), dimension(:,:), allocatable :: hessian           !< Hessain matrix
    real(gp), dimension(:,:), allocatable :: vector_l,vector_r !< left and right eignevectors
    real(gp), dimension(:), allocatable :: eigen_r,eigen_i     !< Real and Imaginary part of the eigenvalues
@@ -55,11 +52,10 @@ program frequencies
    real(gp), dimension(:,:), allocatable :: energies
    real(gp), dimension(:,:,:), allocatable :: forces
    real(gp), dimension(3) :: freq_step
-   real(gp), dimension(6) :: strten
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    integer :: k,km,ii,jj,ik,imoves,order,n_order
    integer :: iproc,nproc,igroup,ngroups,icalc
-   integer :: iat,jat,i,j,i_stat,i_all,ierr,infocode,ity,nconfig
+   integer :: iat,jat,i,j,ierr,infocode,ity,nconfig
    logical :: exists
    integer, dimension(4) :: mpi_info
 
@@ -81,7 +77,7 @@ program frequencies
 
    !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
    ! Read all input files. This should be the sole routine which is called to initialize the run.
-   call bigdft_set_input(trim(run_id),'posinp',rxyz,inputs,atoms)
+   call run_objects_init_from_files(runObj, trim(run_id), 'posinp')
 
    ! Read all input files.
    inquire(file="input.freq",exist=exists)
@@ -90,10 +86,10 @@ program frequencies
       if(nproc/=0)   call MPI_FINALIZE(ierr)
       stop
    end if
-   call frequencies_input_variables_new(bigdft_mpi%iproc,.true.,'input.freq',inputs)
+   call frequencies_input_variables_new(bigdft_mpi%iproc,.true.,'input.freq',runObj%inputs)
 
    !Order of the finite difference scheme
-   order = inputs%freq_order
+   order = runObj%inputs%freq_order
    if (order == -1) then
       n_order = 1
       kmoves = f_malloc(n_order,id='kmoves')
@@ -116,48 +112,49 @@ program frequencies
    end if
 
    ! Allocations
-   fxyz = f_malloc(3*atoms%astruct%nat,id='fxyz')
-   moves = f_malloc((/ 1.to.n_order, 0.to.3*atoms%astruct%nat /),id='moves')
-   energies = f_malloc((/ 1.to.n_order, 0.to.3*atoms%astruct%nat /),id='energies')
-   forces = f_malloc((/ 1.to.3*atoms%astruct%nat, 1.to.n_order, 0.to.3*atoms%astruct%nat /),id='forces')
-   rpos = f_malloc((/ 3, atoms%astruct%nat /),id='rpos')
-   fpos = f_malloc((/ 3*atoms%astruct%nat, n_order /),id='fpos')
-   hessian = f_malloc((/ 3*atoms%astruct%nat, 3*atoms%astruct%nat /),id='hessian')
+   call init_global_output(outs, runObj%atoms%astruct%nat)
+   rxyz0 = f_malloc((/ 3, runObj%atoms%astruct%nat /), id = 'rxyz0')
+   moves = f_malloc((/ 1.to.n_order, 0.to.3*runObj%atoms%astruct%nat /),id='moves')
+   energies = f_malloc((/ 1.to.n_order, 0.to.3*runObj%atoms%astruct%nat /),id='energies')
+   forces = f_malloc((/ 1.to.3*runObj%atoms%astruct%nat, 1.to.n_order, 0.to.3*runObj%atoms%astruct%nat /),id='forces')
+   fpos = f_malloc((/ 3*runObj%atoms%astruct%nat, n_order /),id='fpos')
+   hessian = f_malloc((/ 3*runObj%atoms%astruct%nat, 3*runObj%atoms%astruct%nat /),id='hessian')
 
    ! Initialize the Hessian
    hessian = 0.d0
    ! Initialize freq_step (step to move atoms)
-   freq_step(1) = inputs%freq_alpha*inputs%hx
-   freq_step(2) = inputs%freq_alpha*inputs%hy
-   freq_step(3) = inputs%freq_alpha*inputs%hz
-
-   call init_restart_objects(bigdft_mpi%iproc,inputs,atoms,rst,subname)
+   freq_step(1) = runObj%inputs%freq_alpha*runObj%inputs%hx
+   freq_step(2) = runObj%inputs%freq_alpha*runObj%inputs%hy
+   freq_step(3) = runObj%inputs%freq_alpha*runObj%inputs%hz
+   ! Reference positions.
+   call vcopy(3*runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz0(1,1), 1)
 
    !Determination of the calculation id
    icalc=0
 
    !Initialize the moves using a restart file if present
    !Regenerate it if trouble and indicate if all calculations are done
-   call frequencies_check_restart(atoms%astruct%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,infocode)
+   call frequencies_check_restart(runObj%atoms%astruct%nat,n_order,imoves,moves,energies,forces,freq_step,runObj%atoms%amu,infocode)
    !We ignore at this stage the infocode
 
    !Message
    if (bigdft_mpi%iproc == 0) then
       call yaml_map('(F) Frequency moves already calculated',imoves)
-      call yaml_map('(F) Total Frequency moves',n_order*3*atoms%astruct%nat)
+      call yaml_map('(F) Total Frequency moves',n_order*3*runObj%atoms%astruct%nat)
    end if
 
    !Reference state
    if (moves(1,0)) then
-      fxyz = forces(:,1,0)
-      etot = energies(1,0)
+      call vcopy(3*outs%fdim, forces(1,1,0), 1, outs%fxyz(1,1), 1)
+      outs%energy = energies(1,0)
       infocode=0
    else
       if (bigdft_mpi%iproc == 0) call yaml_comment('(F) Reference state calculation',hfill='=')
-      call call_bigdft(nproc,bigdft_mpi%iproc,atoms,rxyz,inputs,etot,fxyz,strten,fnoise,rst,infocode)
-      call frequencies_write_restart(0,0,0,rxyz,etot,fxyz,n_order=n_order,freq_step=freq_step,amu=atoms%amu)
+      call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+      call frequencies_write_restart(0,0,0,runObj%atoms%astruct%rxyz,outs%energy,outs%fxyz, &
+           & n_order=n_order,freq_step=freq_step,amu=runObj%atoms%amu)
       moves(:,0) = .true.
-      call restart_inputs(inputs)
+      call restart_inputs(runObj%inputs)
    end if
 
    if (bigdft_mpi%iproc == 0) then
@@ -167,16 +164,16 @@ program frequencies
       !This file contains the hessian for post-processing: it is regenerated each time.
       open(unit=u_hessian,file='hessian.dat',status="unknown")
       write(u_hessian,'(a,3(1pe20.10))') '#step=',freq_step(:)
-      write(u_hessian,'(a,100(1pe20.10))') '#--',etot,fxyz
+      write(u_hessian,'(a,100(1pe20.10))') '#--',outs%energy,outs%fxyz
    end if
 
    if (bigdft_mpi%iproc == 0) then
       call yaml_comment('(F) Start Frequencies calculation',hfill='=')
    end if
 
-   do iat=1,atoms%astruct%nat
+   do iat=1,runObj%atoms%astruct%nat
 
-      if (atoms%astruct%ifrztyp(iat) == 1) then
+      if (runObj%atoms%astruct%ifrztyp(iat) == 1) then
          if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The atom ' // trim(yaml_toa(iat)) // ' is frozen.')
          cycle
       end if
@@ -185,13 +182,13 @@ program frequencies
          ii = i+3*(iat-1)
          if (i==1) then
             !Along x axis
-            alat=atoms%astruct%cell_dim(1)
+            alat=runObj%atoms%astruct%cell_dim(1)
          else if (i==2) then
             !Along y axis
-            alat=atoms%astruct%cell_dim(2)
+            alat=runObj%atoms%astruct%cell_dim(2)
          else
             !Along z axis
-            alat=atoms%astruct%cell_dim(3)
+            alat=runObj%atoms%astruct%cell_dim(3)
          end if
          km = 0
          do ik=1,n_order
@@ -206,7 +203,7 @@ program frequencies
             !Displacement
             dd=real(k,gp)*freq_step(i)
             !We copy atomic positions
-            rpos=rxyz
+            call vcopy(3*runObj%atoms%astruct%nat, rxyz0(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
             if (bigdft_mpi%iproc == 0) then
                call yaml_open_map('(F) Move',flow=.true.)
                   call yaml_map('atom',      iat)
@@ -215,29 +212,30 @@ program frequencies
                   call yaml_map('displacement (Bohr)', dd,fmt='(1pe20.10)')
                call yaml_close_map()
             end if
-            if (atoms%astruct%geocode == 'P') then
-               rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
-            else if (atoms%astruct%geocode == 'S') then
-               rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
+            if (runObj%atoms%astruct%geocode == 'P') then
+               runObj%atoms%astruct%rxyz(i,iat)=modulo(rxyz0(i,iat)+dd,alat)
+            else if (runObj%atoms%astruct%geocode == 'S') then
+               runObj%atoms%astruct%rxyz(i,iat)=modulo(rxyz0(i,iat)+dd,alat)
             else
-               rpos(i,iat)=rxyz(i,iat)+dd
+               runObj%atoms%astruct%rxyz(i,iat)=rxyz0(i,iat)+dd
             end if
-            call call_bigdft(nproc,bigdft_mpi%iproc,atoms,rpos,inputs,etot,fpos(:,km),strten,fnoise,&
-                 rst,infocode)
-            call frequencies_write_restart(km,i,iat,rpos,etot,fpos(:,km))
+            call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+            call frequencies_write_restart(km,i,iat,runObj%atoms%astruct%rxyz,outs%energy,outs%fxyz)
+            call vcopy(3*outs%fdim, outs%fxyz(1,1), 1, fpos(1,km), 1)
             moves(km,ii) = .true.
-            call restart_inputs(inputs)
+            call restart_inputs(runObj%inputs)
          end do
          ! Build the Hessian
-         do jat=1,atoms%astruct%nat
-            rmass = amu_emass*sqrt(atoms%amu(atoms%astruct%iatype(iat))*atoms%amu(atoms%astruct%iatype(jat)))
+         do jat=1,runObj%atoms%astruct%nat
+            rmass = amu_emass*sqrt(runObj%atoms%amu(runObj%atoms%astruct%iatype(iat))* &
+                 & runObj%atoms%amu(runObj%atoms%astruct%iatype(jat)))
             do j=1,3
                jj = j+3*(jat-1)
                !Force is -dE/dR
                if (order == -1) then
-                  dd = - (fxyz(jj) - fpos(jj,1))/freq_step(i)
+                  dd = - (outs%fxyz(j,jat) - fpos(jj,1))/freq_step(i)
                else if (order == 1) then
-                  dd = - (fpos(jj,1) - fxyz(jj))/freq_step(i)
+                  dd = - (fpos(jj,1) - outs%fxyz(j,jat))/freq_step(i)
                else if (order == 2) then
                   dd = - (fpos(jj,2) - fpos(jj,1))/(2.d0*freq_step(i))
                else if (order == 3) then
@@ -257,50 +255,49 @@ program frequencies
    close(unit=u_hessian)
 
    !Deallocations
-   call f_free(rpos)
    call f_free(fpos)
    call f_free(kmoves)
 
    !allocations
-   eigen_r   = f_malloc(3*atoms%astruct%nat,id='eigen_r')
-   eigen_i   = f_malloc(3*atoms%astruct%nat,id='eigen_i')
-   vector_r  = f_malloc((/ 3*atoms%astruct%nat, 3*atoms%astruct%nat /),id='vector_r')
-   vector_l  = f_malloc((/ 3*atoms%astruct%nat, 3*atoms%astruct%nat /),id='vector_l')
-   sort_work = f_malloc(3*atoms%astruct%nat,id='sort_work')
-   iperm     = f_malloc(3*atoms%astruct%nat,id='iperm')
+   eigen_r   = f_malloc(3*runObj%atoms%astruct%nat,id='eigen_r')
+   eigen_i   = f_malloc(3*runObj%atoms%astruct%nat,id='eigen_i')
+   vector_r  = f_malloc((/ 3*runObj%atoms%astruct%nat, 3*runObj%atoms%astruct%nat /),id='vector_r')
+   vector_l  = f_malloc((/ 3*runObj%atoms%astruct%nat, 3*runObj%atoms%astruct%nat /),id='vector_l')
+   sort_work = f_malloc(3*runObj%atoms%astruct%nat,id='sort_work')
+   iperm     = f_malloc(3*runObj%atoms%astruct%nat,id='iperm')
 
    !Diagonalise the hessian matrix
-   call solve(hessian,3*atoms%astruct%nat,eigen_r,eigen_i,vector_l,vector_r)
+   call solve(hessian,3*runObj%atoms%astruct%nat,eigen_r,eigen_i,vector_l,vector_r)
    !Sort eigenvalues in ascending order (use abinit routine sort_dp)
    sort_work=eigen_r
-   do i=1,3*atoms%astruct%nat
+   do i=1,3*runObj%atoms%astruct%nat
       iperm(i)=i
    end do
-   call sort_dp(3*atoms%astruct%nat,sort_work,iperm,tol_freq)
+   call sort_dp(3*runObj%atoms%astruct%nat,sort_work,iperm,tol_freq)
 
    if (bigdft_mpi%iproc == 0) then
       call yaml_comment('(F) Frequencies results',hfill='=')
-      call yaml_map('(F) Eigenvalues (real part)',eigen_r(iperm(3*atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
-      call yaml_map('(F) Eigenvalues (imag part)',eigen_i(iperm(3*atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
-      do i=1,3*atoms%astruct%nat
+      call yaml_map('(F) Eigenvalues (real part)',eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Eigenvalues (imag part)',eigen_i(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+      do i=1,3*runObj%atoms%astruct%nat
          if (eigen_r(i)<0.0_dp) then
             eigen_r(i)=-sqrt(-eigen_r(i))
          else
             eigen_r(i)= sqrt( eigen_r(i))
          end if
       end do
-      call yaml_map('(F) Frequencies (Hartree)',eigen_r(iperm(3*atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
-      call yaml_map('(F) Frequencies (cm-1)',   eigen_r(iperm(3*atoms%astruct%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
+      call yaml_map('(F) Frequencies (Hartree)',eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Frequencies (cm-1)',   eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
       !Build frequencies.xyz in descending order
       open(unit=15,file='frequencies.xyz',status="unknown")
-      do i=3*atoms%astruct%nat,1,-1
-         write(15,'(1x,i0,1x,1pe20.10,a)') atoms%astruct%nat,eigen_r(iperm(i))
+      do i=3*runObj%atoms%astruct%nat,1,-1
+         write(15,'(1x,i0,1x,1pe20.10,a)') runObj%atoms%astruct%nat,eigen_r(iperm(i))
          write(15,'(1x,a)') 'Frequency'
-         do iat=1,atoms%astruct%nat
-            ity=atoms%astruct%iatype(iat)
+         do iat=1,runObj%atoms%astruct%nat
+            ity=runObj%atoms%astruct%iatype(iat)
             do j=1,3
                write(15,'(1x,a,1x,100(1pe20.10))') &
-                  &   atoms%astruct%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
+                  &   runObj%atoms%astruct%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
             end do
          end do
          !Blank line
@@ -316,7 +313,7 @@ program frequencies
       vibrational_entropy=0.0_gp
       !iperm: ascending order
       !Remove almost zero frequencies
-      do i=6,3*atoms%astruct%nat
+      do i=6,3*runObj%atoms%astruct%nat
          freq_exp=exp(eigen_r(iperm(i))*Ha_K/Temperature)
          freq2_exp=exp(-eigen_r(iperm(i))*Ha_K/(2.0_gp*Temperature))
          zpenergy=zpenergy+0.5_gp*eigen_r(iperm(i))
@@ -335,14 +332,9 @@ program frequencies
    end if
 
    ! De-allocations
-   !the rxyz pointer cannot yet be freed as it has not been allocate by f_malloc_ptr
-   !call f_free_ptr(rxyz)
-   i_all=-product(shape(rxyz))*kind(rxyz)
-   deallocate(rxyz,stat=i_stat)
-   call memocc(i_stat,i_all,'rxyz',subname)
+   call f_free(rxyz0)
 
-
-   call f_free(fxyz)
+   call deallocate_global_output(outs)
 
    call f_free(hessian)
    call f_free(eigen_r)
@@ -357,12 +349,9 @@ program frequencies
    call f_free(energies)
    call f_free(forces)
 
-   call free_restart_objects(rst,subname)
-
-   call deallocate_atoms(atoms,subname) 
-
    call f_release_routine()
-   call bigdft_free_input(inputs)
+
+   call run_objects_free(runObj, subname)
 
    call bigdft_finalize(ierr)
 
@@ -552,9 +541,9 @@ program frequencies
          open(unit=iunit,file='frequencies.res',status="unknown",form="unformatted")
          write(unit=iunit) n_order,freq_step,amu
 
-         write(unit=iunit) 0,etot,rxyz,fxyz
-         do iat=1,atoms%astruct%nat
-            if (atoms%astruct%ifrztyp(iat) == 1) then
+         write(unit=iunit) 0,outs%energy,rxyz0,outs%fxyz
+         do iat=1,runObj%atoms%astruct%nat
+            if (runObj%atoms%astruct%ifrztyp(iat) == 1) then
                if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The atom ' // trim(yaml_toa(iat)) // ' is frozen.')
                cycle
             end if
@@ -564,7 +553,7 @@ program frequencies
                do ik=1,n_order
                   km = km + 1
                   if (moves(km,ii)) then
-                     write(unit=iunit) km,i,iat,etot,rxyz,fxyz
+                     write(unit=iunit) km,i,iat,outs%energy,rxyz0,outs%fxyz
                   end if
                end do
             end do
@@ -581,7 +570,7 @@ program frequencies
       integer, intent(in) :: km,i,iat
       real(gp), dimension(:,:), intent(in) :: rxyz
       real(gp), intent(in) :: etot
-      real(gp), dimension(:), intent(in) :: fxyz
+      real(gp), dimension(:,:), intent(in) :: fxyz
       integer, intent(in), optional :: n_order
       real(gp), intent(in), optional :: freq_step(3)
       real(gp), dimension(:), intent(in), optional :: amu
@@ -630,7 +619,7 @@ program frequencies
       character(len=*), parameter :: subname = "integrate_forces"
       real(gp), dimension(:), allocatable :: weight
       !n(c) real(gp) :: path
-      integer :: i,i_stat,i_all
+      integer :: i
    
       !Allocation
       weight = f_malloc(n_moves,id='weight')

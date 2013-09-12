@@ -1,0 +1,5 @@
+BFGS          Geometry optimisation method                                                 
+10             Maximum number of force evaluations                                          
+1.0 1e-2       fract_fluct,forcemax                                                         
+0.0            random displacement amplitude                                                
+4.0            Stepsize for the geometry optimisation                                       

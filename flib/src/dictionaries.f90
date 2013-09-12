@@ -17,25 +17,35 @@ module dictionaries
 
   private
 
-  type, public :: dictionary_container !< public only due to the fact that some functions are public
+  !>public to be used in list_new() constructor.
+  type, public :: list_container
      character(len=max_field_length) :: val=' '
      type(dictionary), pointer :: dict => null()
+  end type list_container
+  !>public to be used in dict_new() constructor.
+  type, public :: dictionary_container
+     character(len=max_field_length) :: key=' '
+     character(len=max_field_length) :: value=' '
+    type(dictionary), pointer :: child => null()
   end type dictionary_container
 
 
   !> Error codes
-  integer :: DICT_KEY_ABSENT
-  integer :: DICT_VALUE_ABSENT
-  integer :: DICT_ITEM_NOT_VALID
-  integer :: DICT_CONVERSION_ERROR
-  integer :: DICT_INVALID_LIST
-  integer :: DICT_INVALID
+  integer, public :: DICT_KEY_ABSENT
+  integer, public :: DICT_VALUE_ABSENT
+  integer, public :: DICT_ITEM_NOT_VALID
+  integer, public :: DICT_CONVERSION_ERROR
+  integer, public :: DICT_INVALID_LIST
+  integer, public :: DICT_INVALID
 
   interface operator(.index.)
      module procedure find_index
   end interface
   interface operator(.item.)
      module procedure item_char,item_dict
+  end interface
+  interface operator(.is.)
+     module procedure dict_cont_new_with_value, dict_cont_new_with_dict
   end interface
 
   interface assignment(=)
@@ -53,8 +63,12 @@ module dictionaries
      module procedure add_char,add_dict,add_integer,add_real,add_double,add_long
   end interface
 
+  interface list_new
+     module procedure list_new,list_new_elems
+  end interface
+
   interface dict_new
-     module procedure dict_new,dict_new_single
+     module procedure dict_new,dict_new_elems
   end interface
 
   integer(kind=8), external :: f_loc
@@ -62,6 +76,7 @@ module dictionaries
   !> Public routines
   public :: operator(//),operator(.index.),assignment(=)
   public :: set,dict_init,dict_free,pop,append,prepend,add
+  public :: dict_copy, dict_update
   !Handle exceptions
   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,has_key,dict_keys
   public :: dict_new,list_new
@@ -234,8 +249,10 @@ contains
   end subroutine add_long
 
   !defines a dictionary from a array of storage data
-  function dict_new(st_arr)
-    type(storage), dimension(:), intent(in) :: st_arr
+  function dict_new(dicts)
+!    use yaml_output
+!    type(storage), dimension(:), intent(in) :: st_arr
+    type(dictionary_container), dimension(:), intent(in) :: dicts
     type(dictionary), pointer :: dict_new
     !local variables
     integer :: i_st,n_st
@@ -243,40 +260,83 @@ contains
 
     !initialize dictionary
     call dict_init(dict_tmp)
-    n_st=size(st_arr)
+    n_st=size(dicts)
     do i_st=1,n_st
-       call set(dict_tmp//trim(st_arr(i_st)%key),&
-            trim(st_arr(i_st)%value))
+       if (associated(dicts(i_st)%child)) then
+          call set(dict_tmp//dicts(i_st)%key, dicts(i_st)%child)
+       else
+          call set(dict_tmp//dicts(i_st)%key, dicts(i_st)%value)
+       end if
     end do
-
     dict_new => dict_tmp
-
   end function dict_new
 
   !defines a dictionary from a array of storage data
-  function dict_new_single(st)
-    type(storage), intent(in), optional :: st
-    type(dictionary), pointer :: dict_new_single
+  function dict_new_elems(dict0, dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9, &
+       & dict10, dict11, dict12, dict13, dict14, dict15, dict16, dict17, dict18, dict19)
+    type(dictionary_container), intent(in), optional :: dict0, dict1, dict2, dict3, dict4
+    type(dictionary_container), intent(in), optional :: dict5, dict6, dict7, dict8, dict9
+    type(dictionary_container), intent(in), optional :: dict10, dict11, dict12, dict13, dict14
+    type(dictionary_container), intent(in), optional :: dict15, dict16, dict17, dict18, dict19
+    type(dictionary), pointer :: dict_new_elems
     !local variables
-    character(len=max_field_length) :: key,val
     type(dictionary), pointer :: dict_tmp
 
-    !nullify(dict_new_single)
-
-    !initialize dictionary
     call dict_init(dict_tmp)
-    !call dictionary_nullify(dict_new_single)
+    if (present(dict0)) call add_elem(dict_tmp, dict0)
+    if (present(dict1)) call add_elem(dict_tmp, dict1)
+    if (present(dict2)) call add_elem(dict_tmp, dict2)
+    if (present(dict3)) call add_elem(dict_tmp, dict3)
+    if (present(dict4)) call add_elem(dict_tmp, dict4)
+    if (present(dict5)) call add_elem(dict_tmp, dict5)
+    if (present(dict6)) call add_elem(dict_tmp, dict6)
+    if (present(dict7)) call add_elem(dict_tmp, dict7)
+    if (present(dict8)) call add_elem(dict_tmp, dict8)
+    if (present(dict9)) call add_elem(dict_tmp, dict9)
+    if (present(dict10)) call add_elem(dict_tmp, dict10)
+    if (present(dict11)) call add_elem(dict_tmp, dict11)
+    if (present(dict12)) call add_elem(dict_tmp, dict12)
+    if (present(dict13)) call add_elem(dict_tmp, dict13)
+    if (present(dict14)) call add_elem(dict_tmp, dict14)
+    if (present(dict15)) call add_elem(dict_tmp, dict15)
+    if (present(dict16)) call add_elem(dict_tmp, dict16)
+    if (present(dict17)) call add_elem(dict_tmp, dict17)
+    if (present(dict18)) call add_elem(dict_tmp, dict18)
+    if (present(dict19)) call add_elem(dict_tmp, dict19)
+    dict_new_elems => dict_tmp
+  contains
+    subroutine add_elem(dict, elem)
+      implicit none
+      type(dictionary_container), intent(in) :: elem
+      type(dictionary), pointer :: dict
 
-    if (present(st)) then
-       key=st%key
-       val=st%value
-       call set(dict_tmp//trim(key),trim(val))
-    end if
-    
-    dict_new_single => dict_tmp
+      if (associated(elem%child)) then
+         call set(dict//elem%key, elem%child)
+      else
+         call set(dict//elem%key, elem%value)
+      end if
+    end subroutine add_elem
+  end function dict_new_elems
 
-  end function dict_new_single
+  !defines a new dictionary from a key and a value
+  function dict_cont_new_with_value(key, val)
+    character(len = *), intent(in) :: key, val
+    type(dictionary_container) :: dict_cont_new_with_value
 
+    dict_cont_new_with_value%key(1:max_field_length) = key
+    dict_cont_new_with_value%value(1:max_field_length) = val
+
+  end function dict_cont_new_with_value
+
+  function dict_cont_new_with_dict(key, val)
+    character(len = *), intent(in) :: key
+    type(dictionary), pointer, intent(in) :: val
+    type(dictionary_container) :: dict_cont_new_with_dict
+
+    dict_cont_new_with_dict%key(1:max_field_length) = key
+    dict_cont_new_with_dict%child => val
+
+  end function dict_cont_new_with_dict
 
   function dict_next(dict)
     implicit none
@@ -461,7 +521,7 @@ contains
     character(len=*), intent(in) :: key
     logical :: has_key
 
-    if (.not. associated(dict)) then
+    if (.not. associated(dict) .or. trim(key) == "") then
        has_key=.false.
        return
     end if
@@ -500,7 +560,7 @@ contains
     type(dictionary), pointer :: subd
 
     !if the dictionary starts with a master tree, eliminate it and put the child
-    if (.not. associated(subd%parent)) then
+    if (.not. associated(subd%parent) .and. associated(subd%child)) then
        call put_child(dict,subd%child)
        nullify(subd%child)
        call dict_free(subd)
@@ -515,10 +575,12 @@ contains
        call dict_free(dict%child)
     end if
     dict%child=>subd
-    !inherit the number of elements or items from subd's parent
-    !which is guaranteed to be associated
-    dict%data%nelems=subd%parent%data%nelems
-    dict%data%nitems=subd%parent%data%nitems
+    if (associated(subd%parent)) then
+       !inherit the number of elements or items from subd's parent
+       !which is guaranteed to be associated
+       dict%data%nelems=subd%parent%data%nelems
+       dict%data%nitems=subd%parent%data%nitems
+    end if
     call define_parent(dict,dict%child)
 
   end subroutine put_child
@@ -621,7 +683,7 @@ contains
   function item_char(val) result(elem)
     implicit none
     character(len=*), intent(in) :: val
-    type(dictionary_container) :: elem
+    type(list_container) :: elem
 
     elem%val(1:max_field_length)=val
 
@@ -630,7 +692,7 @@ contains
   function item_dict(val) result(elem)
     implicit none
     type(dictionary), pointer, intent(in) :: val
-    type(dictionary_container) :: elem
+    type(list_container) :: elem
     
     elem%dict=>val
   end function item_dict
@@ -638,7 +700,7 @@ contains
   !creates a list from a table of dictionaries
   function list_new(dicts)
     implicit none
-    type(dictionary_container), dimension(:) :: dicts
+    type(list_container), dimension(:) :: dicts
     type(dictionary), pointer :: list_new
     !local variables
     integer :: i_st,n_st
@@ -657,8 +719,44 @@ contains
     end do
 
     list_new => dict_tmp
-
   end function list_new
+
+  !> create a list from several optional values (string or dict).
+  function list_new_elems(dict0, dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9)
+    implicit none
+    type(list_container), intent(in) :: dict0
+    type(list_container), intent(in), optional :: dict1, dict2, dict3, dict4
+    type(list_container), intent(in), optional :: dict5, dict6, dict7, dict8, dict9
+    type(dictionary), pointer :: list_new_elems
+    !local variables
+    type(dictionary), pointer :: dict_tmp
+
+    !initialize dictionary
+    call dict_init(dict_tmp)
+    call fill(dict_tmp, dict0)
+    if (present(dict1)) call fill(dict_tmp, dict1)
+    if (present(dict2)) call fill(dict_tmp, dict2)
+    if (present(dict3)) call fill(dict_tmp, dict3)
+    if (present(dict4)) call fill(dict_tmp, dict4)
+    if (present(dict5)) call fill(dict_tmp, dict5)
+    if (present(dict6)) call fill(dict_tmp, dict6)
+    if (present(dict7)) call fill(dict_tmp, dict7)
+    if (present(dict8)) call fill(dict_tmp, dict8)
+    if (present(dict9)) call fill(dict_tmp, dict9)
+    list_new_elems => dict_tmp
+  contains
+    subroutine fill(dict, elem)
+      implicit none
+      type(list_container), intent(in) :: elem
+      type(dictionary), pointer :: dict
+      
+      if (associated(elem%dict)) then
+         call add(dict, elem%dict)
+      else if (len_trim(elem%val) > 0) then
+         call add(dict, elem%val)
+      end if
+    end subroutine fill
+  end function list_new_elems
 
   !> get the value from the dictionary
   subroutine get_value(val,dict)
@@ -684,7 +782,8 @@ contains
 
   end subroutine get_dict
 
-  !set and get routines for different types (this routine can be called from error_check also
+
+  !set and get routines for different types (this routine can be called from error_check also)
   recursive subroutine get_integer(ival,dict)
     integer, intent(out) :: ival
     type(dictionary), intent(in) :: dict
@@ -723,18 +822,53 @@ contains
     
   end subroutine get_long
 
+  !> Read a real or real/real, real:real 
+  !! Here the fraction is indicated by the ':' or '/'
+  !! The problem is that / is a separator for Fortran
+  subroutine read_fraction_string(string,var,ierror)
+    implicit none
+    !Arguments
+    character(len=*), intent(in) :: string
+    double precision, intent(out) :: var
+    integer, intent(out) :: ierror
+    !Local variables
+    character(len=max_field_length) :: tmp
+    integer :: num,den,pfr,psp
+
+    !First look at the first blank after trim
+    tmp(1:max_field_length)=trim(string)
+    psp = scan(tmp,' ')
+
+    !see whether there is a fraction in the string
+    if(psp==0) psp=len(tmp)
+    pfr = scan(tmp(1:psp),':')
+    if (pfr == 0) pfr = scan(tmp(1:psp),'/')
+    !It is not a fraction
+    if (pfr == 0) then
+       read(tmp(1:psp),*,iostat=ierror) var
+    else 
+       read(tmp(1:pfr-1),*,iostat=ierror) num
+       read(tmp(pfr+1:psp),*,iostat=ierror) den
+       if (ierror == 0) var=real(num)/real(den)
+    end if
+    !Value by defaut
+    if (ierror /= 0) var = huge(1.d0) 
+  END SUBROUTINE read_fraction_string
+
   !set and get routines for different types
   subroutine get_real(rval,dict)
     real(kind=4), intent(out) :: rval
     type(dictionary), intent(in) :: dict
     !local variables
     integer :: ierror
+    double precision :: dval
     character(len=max_field_length) :: val
 
     !take value
     val=dict
     !look at conversion
-    read(val,*,iostat=ierror)rval
+    call read_fraction_string(val, dval, ierror)
+    rval = real(dval)
 
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
     
@@ -771,11 +905,12 @@ contains
     !take value
     val=dict
     !look at conversion
-    read(val,*,iostat=ierror)dval
+    call read_fraction_string(val, dval, ierror)
 
     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
      
   end subroutine get_double
+
 
   !> assign the value to the dictionary
   subroutine put_integer(dict,ival,fmt)
@@ -856,6 +991,101 @@ contains
 
   end subroutine put_lg
 
+
+  !> merge subd into dict.
+  subroutine dict_update(dict, subd)
+    implicit none
+    type(dictionary), pointer :: dict, subd
+
+    if (.not.associated(dict)) then
+       call dict_copy(dict, subd)
+    else
+       call update(dict, subd)
+    end if
+    
+    contains
+
+      recursive subroutine update(dict, subd)
+        implicit none
+        type(dictionary), pointer :: dict, subd
+
+        integer :: i
+        character(len = max_field_length), dimension(:), allocatable :: keys
+        character(len = max_field_length) :: val
+
+        if (dict_len(subd) > 0) then
+           ! List case
+           if (dict_size(dict) > 0) then
+              ! Incompatible dict and subd.
+              call f_err_throw()
+              return
+           end if
+           ! Replace elements.
+           do i = 0, min(dict_len(dict), dict_len(subd)) - 1, 1
+              call update(dict // i, subd // i)
+           end do
+           ! Copy additional elements.
+           do i = dict_len(dict), dict_len(subd) - 1, 1
+              call dict_copy(dict // i, subd // i)
+           end do
+        else if (dict_size(subd) > 0) then
+           if (dict_len(dict) > 0) then
+              ! Incompatible dict and subd.
+              call f_err_throw()
+              return
+           end if
+           ! Dict case
+           allocate(keys(dict_size(subd)))
+           keys = dict_keys(subd)
+           do i = 1, size(keys), 1
+              call update(dict // keys(i), subd // keys(i))
+           end do
+           deallocate(keys)
+        else if (associated(subd)) then
+           ! Scalar case
+           val = subd
+           call set(dict, val)
+        end if
+      end subroutine update
+  end subroutine dict_update
+
+  subroutine dict_copy(dict, ref)
+    implicit none
+    type(dictionary), pointer :: dict, ref
+
+    if (.not. associated(dict)) call dict_init(dict)
+    call copy(dict, ref)
+
+    contains
+      recursive subroutine copy(dict, ref)
+        implicit none
+        type(dictionary), pointer :: dict, ref
+
+        integer :: i
+        character(max_field_length), dimension(:), allocatable :: keys
+        character(len = max_field_length) :: val
+
+        if (dict_len(ref) > 0) then
+           ! List case.
+           do i = 0, dict_len(ref) - 1, 1
+              call copy(dict // i, ref // i)
+           end do
+        else if (dict_size(ref) > 0) then
+           ! Dictionary case
+           allocate(keys(dict_size(ref)))
+           keys = dict_keys(ref)
+           do i = 1, size(keys), 1
+              call copy(dict // keys(i), ref // keys(i))
+           end do
+           deallocate(keys)
+        else if (associated(ref)) then
+           ! Leaf case.
+           val = ref
+           call set(dict, val)
+        end if
+      end subroutine copy
+
+  end subroutine dict_copy
 
   !include the module of error handling
   include 'error_handling.f90'

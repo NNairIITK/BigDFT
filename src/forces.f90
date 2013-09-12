@@ -378,6 +378,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+
+  ! Apply symmetries when needed
+  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
+
   if (iproc == 0) call write_forces(atoms,fxyz)
 
   !volume element for local stress
@@ -424,9 +428,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
 !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
 !!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
 !!$  endif
-
-  ! Apply symmetries when needed
-  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
 end subroutine calculate_forces
 
 
@@ -3668,8 +3669,8 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   real(gp), intent(out) :: fnoise
   !local variables
   logical :: move_this_coordinate
-  integer :: iat,ixyz
-  real(gp) :: sumx,sumy,sumz
+  integer :: iat,ixyz, ijk(3)
+  real(gp) :: sumx,sumy,sumz, u(3), scal
   !my variables
   real(gp):: fmax1,t1,t2,t3,fnrm1
   real(gp):: fmax2,fnrm2
@@ -3741,9 +3742,25 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   
   !clean the forces for blocked atoms
   do iat=1,at%astruct%nat
-     do ixyz=1,3
-        if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
-     end do
+     if (at%astruct%ifrztyp(iat) < 9000) then
+        do ixyz=1,3
+           if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
+        end do
+     else
+        ! Projection on a plane, defined by Miller indices stored in ifrztyp:
+        !  ifrztyp(iat) = 9ijk
+        ijk = (/ (at%astruct%ifrztyp(iat) - 9000) / 100, &
+             & modulo(at%astruct%ifrztyp(iat) - 9000, 100) / 10, &
+             & modulo(at%astruct%ifrztyp(iat) - 9000, 10) /)
+        u = (/ at%astruct%cell_dim(1) / real(ijk(1), gp), &
+             & at%astruct%cell_dim(2) / real(ijk(2), gp), &
+             & at%astruct%cell_dim(3) / real(ijk(3), gp) /)
+        u = u / nrm2(3, u(1), 1)
+        scal = fxyz(1,iat) * u(1) + fxyz(2,iat) * u(2) + fxyz(3,iat) * u(3)
+        fxyz(1,iat)=fxyz(1,iat) - scal * u(1)
+        fxyz(2,iat)=fxyz(2,iat) - scal * u(2)
+        fxyz(3,iat)=fxyz(3,iat) - scal * u(3)
+     end if
   end do
   
   !the noise of the forces is the norm of the translational force
@@ -4015,7 +4032,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   real(kind=8),allocatable :: rhog(:,:,:,:,:)
   real(kind=8),dimension(:),pointer :: rhor
   integer :: ierr,i_stat,i_all
-  real(kind=8) :: pi,p(3),g2,rloc,set,fac
+  real(kind=8) :: pi,p(3),g2,rloc,setv,fac
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2
   real(kind=8) :: Zion
@@ -4099,12 +4116,12 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
               !set = rhog^el (analytic)
               fac=(Zion/rloc**3.0_gp)/sqrt(2.0_gp*pi)/(2.0_gp*pi)
               fac=fac/real(n1i*hxh*n2i*hyh*n3i*hzh,kind=8)                    !Division by Volume
-              set=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
+              setv=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
 
               if (g2 /= 0) then
 
-                 potg = -set/(pi*g2)  ! V^el(G)
-                 potg2 = (set/pi)*((real(1.d0,kind=8)/g2**2.d0)&
+                 potg = -setv/(pi*g2)  ! V^el(G)
+                 potg2 = (setv/pi)*((real(1.d0,kind=8)/g2**2.d0)&
                       +real(pi*pi*2.d0*rloc**2.d0/g2,kind=8))
 
                  !STRESS TENSOR

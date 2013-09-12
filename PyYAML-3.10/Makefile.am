@@ -12,10 +12,10 @@ pyyaml_build:
 	echo "define=YAML_DECLARE_STATIC" >> setup.cfg ; \
 	echo "include_dirs=$(abs_top_srcdir)/yaml-0.1.4/include" >> setup.cfg ; \
 	echo "library_dirs=$(abs_top_builddir)/yaml-0.1.4/src/.libs" >> setup.cfg ; \
-	python setup.py build
+	python setup.py build && touch pyyaml_build
 
 pyyaml_clean:
-	python setup.py clean
+	python setup.py clean && rm -f pyyaml_build
 
 all: $(pyyaml_build)
 

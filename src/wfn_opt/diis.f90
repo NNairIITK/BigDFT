@@ -477,7 +477,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
 
   ! Calculate the residue and put it in rhopot
   if (istep > 1) then
-     ! rhopot = vin
+     ! rhopot = vin - v(out-1)
      call axpy(npoints, -1.d0, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
           & rhopot(1), 1)
      call dscal(npoints, 1.d0 - alphamix, rhopot(1), 1)

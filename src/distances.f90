@@ -346,8 +346,6 @@ contains
        !open the first file to check box features
 !print *,'here'
        call read_atomic_file(trim(contcar),0,atoms%astruct)
-       call allocate_atoms_nat(atoms, subname)
-       call allocate_atoms_ntypes(atoms, subname)
        nat=atoms%astruct%nat
 !print *,'nat',nat
        allocate(iatype(nrep**3*nat),pos(3,nrep**3*nat))

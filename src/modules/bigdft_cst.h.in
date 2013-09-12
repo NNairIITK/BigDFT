@@ -1,7 +1,13 @@
 #ifndef BIGDFT_CST_H
 #define BIGDFT_CST_H
 
-#ifndef GLIB_MAJOR_VERSION
+/* GLib support. */
+@GLIB_TRUE@
+#include <glib.h>
+#include <glib-object.h>
+@GLIB_END_TRUE@
+/* No GLib support, use same conventions. */
+@GLIB_FALSE@
 #include <stdlib.h>
 #define TRUE 1
 #define FALSE 0
@@ -9,20 +15,30 @@
 #define g_malloc(A) malloc(A)
 #define g_malloc0(A) malloc(A)
 #define g_free(A)   free(A)
+#define gint int
 #define guint unsigned int
 #define gchar char
-#define GObject void
 #define gpointer void*
 #define GQuark int
-#define GArray double
+typedef struct _GArray {gchar *data; guint len;} GArray;
 #define GType  int
-#define g_array_index(A, T, I) (A[I])
-#define g_array_unref(A) free(A)
-#endif
+#define g_array_index(A, T, I) (((T*)(A->data))[I])
+GArray* g_array_sized_new(gboolean zero, gboolean nullify, guint ele_size, guint n_ele);
+#define g_array_set_size(A, N) A->len = N
+#define g_array_unref(A) free(A->data)
+#define G_BEGIN_DECLS
+#define G_END_DECLS
+typedef struct _GObject {guint ref_count;} GObject;
+#define G_OBJECT(O) ((GObject*)O)
+#define g_object_ref(O) {O->ref_count += 1;}
+#define g_object_unref(O) {O->ref_count -= 1;}
+#define g_strdup(S) strdup(S)
+#define g_strndup(S,N) strndup(S,N)
+@GLIB_END_FALSE@
 
 #define BIGDFT_STRING_VERSION "@PACKAGE_VERSION@"
-#define BIGDFT_MAJOR_VERSION 1
-#define BIGDFT_MINOR_VERSION 7
+#define BIGDFT_MAJOR_VERSION @BIGDFT_MAJOR_VERSION@
+#define BIGDFT_MINOR_VERSION @BIGDFT_MINOR_VERSION@
 
 #define F90_1D_POINTER_SHIFT @F90_1D_POINTER_SHIFT@
 #define F90_1D_POINTER_SIZE  @F90_1D_POINTER_SIZE@
@@ -39,28 +55,42 @@
 #define F90_5D_POINTER_SHIFT @F90_5D_POINTER_SHIFT@
 #define F90_5D_POINTER_SIZE  @F90_5D_POINTER_SIZE@
 
+#undef _BIGDFT_BUILD_FULL_BINDINGS_
+@BUILD_BINDINGS_START@
+#define _BIGDFT_BUILD_FULL_BINDINGS_
+@BUILD_BINDINGS_END@
+
 /* Internal types for Fortran datatypes. */
+/* Basic types, used for minimal bindings only. */
+typedef void _dictionary;
 typedef void _atoms_data;
+typedef void _atomic_structure;
+typedef void _symmetry_data;
+typedef void _input_variables;
+typedef void _restart_objects;
+typedef void _run_objects;
+typedef void _DFT_global_output;
+typedef void _energy_terms;
+typedef void _run_image;
+typedef void _NEB_data;
+typedef void _system_fragment;
+/* Advanced types, used for full bindings. */
 typedef void _communications_arrays;
 typedef void _coulomb_operator;
 typedef void _denspot_distribution;
 typedef void _DFT_local_fields;
 typedef void _DFT_optimization_loop;
 typedef void _DFT_wavefunction;
-typedef void _energy_terms;
 typedef void _GPU_pointers;
 typedef void _grid_dimensions;
-typedef void _input_variables;
 typedef void _local_zone_descriptors;
 typedef void _locreg_descriptors;
 typedef void _nonlocal_psp_descriptors;
 typedef void _orbitals_data;
 typedef void _rho_descriptors;
 typedef void _rholoc_objects;
-typedef void _symmetry_data;
 typedef void _wavefunctions_descriptors;
 typedef void _gaussian_basis;
-typedef void _restart_objects;
 
 /***************************/
 /* Generic pointer arrays. */

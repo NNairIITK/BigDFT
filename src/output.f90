@@ -136,7 +136,7 @@ subroutine print_general_parameters(in,atoms)
   use defs_basis
   use m_ab6_symmetry
   use yaml_output
-  use module_input, only: case_insensitive_equiv
+  use module_input_keys, only: input_keys_equal
   implicit none
   !Arguments
   type(input_variables), intent(in) :: in
@@ -323,7 +323,7 @@ subroutine print_general_parameters(in,atoms)
            call yaml_map('DIIS history', in%history)
         end if
      call yaml_close_map()
-     if (case_insensitive_equiv(trim(in%geopt_approach),"AB6MD")) then
+     if (input_keys_equal(trim(in%geopt_approach),"AB6MD")) then
         call yaml_open_map('Molecular Dynamics Parameters')
            call yaml_map('ionmov',in%ionmov)
            call yaml_map('dtion', in%dtion,fmt='(0pf7.0)')
@@ -386,24 +386,23 @@ subroutine print_general_parameters(in,atoms)
   if (atoms%astruct%geocode /= 'F') then
      call yaml_comment('K points description (Reduced and Brillouin zone coordinates, Weight)',hfill='-')
      !write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
-     if (in%disableSym .and. in%nkpt > 1) then
+     if (in%disableSym .and. in%gen_nkpt > 1) then
         call yaml_warning('symmetries have been disabled, k points are not irreductible.')
         !write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
      call yaml_open_sequence('K points')!,advance='no')
      !call yaml_comment('Reduced coordinates  BZ coordinates  weight',hfill=' ')
      !write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-     do i = 1, in%nkpt, 1
+     do i = 1, in%gen_nkpt, 1
         call yaml_sequence(advance='no')
         call yaml_open_map(flow=.true.)
           call yaml_map( 'Rc', &
-             & in%kpt(:, i) * (/ atoms%astruct%cell_dim(1), atoms%astruct%cell_dim(2), &
-             & atoms%astruct%cell_dim(3) /) / two_pi,&
+             & in%gen_kpt(:, i) * atoms%astruct%cell_dim / two_pi,&
              & fmt='(f7.4)')
           call yaml_map( 'Bz', &
-             & in%kpt(:, i), &
+             & in%gen_kpt(:, i), &
              & fmt='(f7.4)')
-          call yaml_map('Wgt',in%wkpt(i),fmt='(f6.4)')
+          call yaml_map('Wgt',in%gen_wkpt(i),fmt='(f6.4)')
         call yaml_close_map(advance='no')
         call yaml_comment(trim(yaml_toa(i,fmt='(i4.4)')))
         !write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &

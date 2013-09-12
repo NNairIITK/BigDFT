@@ -42,7 +42,7 @@ program WaCo
    character(len=*), parameter :: subname='WaCo'
    character(len=4) :: num, units
    integer, allocatable :: wann_list(:), Zatoms(:,:), ncenters(:), wtypes(:,:)
-   real(gp), dimension(:,:), pointer :: rxyz, rxyz_old, cxyz,rxyz_wann
+   real(gp), dimension(:,:), pointer :: rxyz_old, cxyz,rxyz_wann
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), allocatable :: sprd(:), locrad(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
    real(wp), allocatable :: psi(:,:),wann(:),wannr(:),lwann(:)
@@ -111,7 +111,7 @@ program WaCo
    if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
   call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
-       rxyz,input,atoms)
+       input,atoms)
 
    if (input%verbosity > 2) then
       nproctiming=-nproc !timing in debug mode                                                                                                                                                                 
@@ -148,7 +148,7 @@ program WaCo
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(iproc,atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         Glr,shift)
    
    box(1) = atoms%astruct%cell_dim(1)*b2a !Glr%d%n1*input%hx * b2a
@@ -157,7 +157,7 @@ program WaCo
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-        atoms,rxyz,radii_cf,input%crmult,input%frmult,Glr)
+        atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
 
    ! don't need radii_cf anymore
    i_all = -product(shape(radii_cf))*kind(radii_cf)
@@ -899,8 +899,9 @@ program WaCo
         allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
         call memocc(i_stat,orbs%eval,'orbs%eval',subname)
         filename=trim(input%dir_output) // 'wavefunction'
-        call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
-           Glr%wfd,psi(1,1))
+        call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+             & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
+             Glr%wfd,psi(1,1))
         i_all = -product(shape(orbs%eval))*kind(orbs%eval)
         deallocate(orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'orbs%eval',subname)
@@ -928,8 +929,9 @@ program WaCo
         if(associated(orbsv%eval)) nullify(orbsv%eval)
         allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
         call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
-        call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
-           Glr%wfd,psi(1,1+orbs%norbp),virt_list)
+        call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+             & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
+             Glr%wfd,psi(1,1+orbs%norbp),virt_list)
         i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
         deallocate(orbsv%eval,stat=i_stat)
         call memocc(i_stat,i_all,'orbsv%eval',subname)
@@ -1017,7 +1019,7 @@ program WaCo
            if(outputype == 'cube') then
               !Put it in interpolating scaling functions
               call daub_to_isf(Glr,w,wann(1),wannr)
-              call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
+              call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,atoms%astruct%rxyz,wannr)
            else if(trim(outputype)=='bin') then
               i_all = -product(shape(orbsw%iokpt))*kind(orbsw%iokpt)
               deallocate(orbsw%iokpt,stat=i_stat)
@@ -1061,7 +1063,7 @@ program WaCo
                  !stop 
                 !END DEBUG
                  call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz, &
-                   (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),4,0.0d0,atoms%astruct%nat,rxyz,  & 
+                   (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),4,0.0d0,atoms%astruct%nat,atoms%astruct%rxyz,  & 
                    Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1,1),&
                    Lzd%Llr(iiwann)%wfd%keyvglob(1),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
                    Lzd%Llr(iiwann)%wfd%keyglob(1,Lzd%Llr(iiwann)%wfd%nseg_c+1),&
@@ -1074,13 +1076,13 @@ program WaCo
                 ! open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
                  call open_filename_of_iorb(ifile,.not.outformat,trim(seedname),orbsw,iwann,1,iwann_out)
                  call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
-                   atoms%astruct%nat,rxyz,  & 
+                   atoms%astruct%nat,atoms%astruct%rxyz,  & 
                    Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
                    Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), ham(1,iwann,iwann))
               else
                  call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
-                   atoms%astruct%nat,rxyz,  & 
+                   atoms%astruct%nat,atoms%astruct%rxyz,  & 
                    Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
                    Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
@@ -1090,7 +1092,7 @@ program WaCo
               stop 'ETSF not implemented yet'                
               ! should be write_wave_etsf  (only one orbital)
               call write_waves_etsf(iproc,trim(seedname)//'_'//num//'.etsf',orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-                   input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,wann)
+                   input%hx,input%hy,input%hz,atoms,atoms%astruct%rxyz,Glr%wfd,wann)
            end if
         end if
      end do  ! closing loop on iwann
@@ -1117,8 +1119,9 @@ program WaCo
         else 
            open(unit=99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
         end if
-        call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms%astruct%nat,rxyz,&
-           nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
+        call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+             & input%hx,input%hy,input%hz,atoms%astruct%nat,atoms%astruct%rxyz,&
+             nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
         close(unit=99)
      end if
 
@@ -1279,9 +1282,6 @@ program WaCo
   i_all = -product(shape(wann_list))*kind(wann_list)
   deallocate(wann_list,stat=i_stat)
   call memocc(i_stat,i_all,'wann_list',subname)
-  i_all = -product(shape(rxyz))*kind(rxyz)
-  deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz',subname)
   call deallocate_lr(Glr,subname)
   call deallocate_orbs(orbs,subname)
   !call deallocate_atoms_scf(atoms,subname)

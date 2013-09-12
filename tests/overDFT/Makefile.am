@@ -1,5 +1,6 @@
 # Give here the list of existing tests
 TESTDIRS = \
+	   GEOPT-all \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
 	   GEOPT-newIG \
@@ -99,13 +100,13 @@ InputGenPot.xabs.post-out:
 #introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> IO-wf_plain.out.out
+	$(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> log-plain.yaml
 	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_binary.cube: 
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> IO-wf_binary.out.out
+	$(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> log-binary.yaml
 	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 

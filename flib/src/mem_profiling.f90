@@ -261,7 +261,7 @@ contains
        !control of the allocation/deallocation status (to be removed once f_malloc has been inserted)
        if (istat/=0) then
           if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
-          write(message,'(a)') 'subroutine '//trim(routine)//', array '//trim(array)//&
+          write(message,'(1x,a)') 'subroutine '//trim(routine)//', array '//trim(array)//&
                ', error code '//trim(yaml_toa(istat))
           if (f_err_raise(isize>=0,trim(message),err_name='ERR_ALLOCATE')) return
           if (f_err_raise(isize< 0,trim(message),err_name='ERR_DEALLOCATE')) return

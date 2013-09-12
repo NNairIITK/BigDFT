@@ -16,34 +16,24 @@ module module_interfaces
 
    interface
 
-      subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,strten,fnoise,rst,infocode)
+      subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
-         type(input_variables),intent(inout) :: in
-         type(atoms_data), intent(inout) :: atoms
-         type(restart_objects), intent(inout) :: rst
+         type(run_objects), intent(inout) :: runObj
+         type(DFT_global_output), intent(out) :: outs
          integer, intent(inout) :: infocode
-         real(gp), intent(out) :: energy,fnoise
-         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-         real(gp), dimension(6), intent(out) :: strten
-         real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
       END SUBROUTINE call_bigdft
 
-      subroutine geopt(nproc,iproc,pos,at,fxyz,strten,epot,rst,in,ncount_bigdft)
+      subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
         use module_base
         use module_types
         implicit none
+        type(run_objects), intent(inout) :: runObj
+        type(DFT_global_output), intent(inout) :: outs
         integer, intent(in) :: nproc,iproc
-        type(atoms_data), intent(inout) :: at
-        type(input_variables), intent(inout) :: in
-        type(restart_objects), intent(inout) :: rst
-        real(gp), intent(inout) :: epot
         integer, intent(inout) :: ncount_bigdft
-        real(gp), dimension(3*at%astruct%nat), intent(inout) :: pos
-        real(gp), dimension(6), intent(inout) :: strten
-        real(gp), dimension(3*at%astruct%nat), intent(inout) :: fxyz
       END SUBROUTINE geopt
 
       subroutine kswfn_optimization_loop(iproc, nproc, o, &
@@ -111,43 +101,32 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: shift
       END SUBROUTINE system_size
 
-      subroutine standard_inputfile_names(inputs, radical, nproc)
+      subroutine standard_inputfile_names(inputs, radical)
          use module_types
          implicit none
          type(input_variables), intent(out) :: inputs
          character(len = *), intent(in) :: radical
-         integer, intent(in) :: nproc
       END SUBROUTINE standard_inputfile_names
 
-      subroutine bigdft_set_input(radical,posinp,rxyz,inputs,atoms)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: posinp
-         character(len=*),intent(in) :: radical
-         type(input_variables), intent(inout) :: inputs
-         type(atoms_data), intent(out) :: atoms
-         real(gp), dimension(:,:), pointer :: rxyz
-       END SUBROUTINE bigdft_set_input
+      subroutine bigdft_set_input(radical,posinp,inputs,atoms)
+        !n(c) use module_base
+        use module_types
+        implicit none
+        character(len=*), intent(in) :: posinp
+        character(len=*),intent(in) :: radical
+        type(input_variables), intent(inout) :: inputs
+        type(atoms_data), intent(out) :: atoms
+      END SUBROUTINE bigdft_set_input
 
-      subroutine read_input_parameters(iproc,inputs,dump)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc
-         type(input_variables), intent(inout) :: inputs
-         logical, intent(in) :: dump
-      END SUBROUTINE read_input_parameters
-  
-      subroutine read_input_parameters2(iproc,inputs,atoms,rxyz)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc
-         type(input_variables), intent(inout) :: inputs
-         type(atoms_data), intent(inout) :: atoms
-         real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-      END SUBROUTINE read_input_parameters2
+      subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
+        use module_types
+        implicit none
+        type(run_objects), intent(out) :: runObj
+        type(input_variables), intent(in), target :: inputs
+        type(atoms_data), intent(in), target :: atoms
+        type(restart_objects), intent(in), target :: rst
+        real(gp), intent(in), optional :: rxyz0
+      end subroutine run_objects_associate
 
       subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
          !n(c) use module_base
@@ -174,15 +153,15 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE initialize_atomic_file
 
-      subroutine read_xyz_positions(iproc,ifile,astruct,comment_,energy_,fxyz_,getLine)
+      subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
          !n(c) use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc,ifile
          type(atomic_structure), intent(inout) :: astruct
-         real(gp), intent(out) :: energy_
-         real(gp), dimension(:,:), pointer :: fxyz_
-         character(len = 1024), intent(out) :: comment_
+         real(gp), intent(out) :: energy
+         real(gp), dimension(:,:), pointer :: fxyz
+         character(len = 1024), intent(out) :: comment
          interface
             subroutine getline(line,ifile,eof)
                integer, intent(in) :: ifile
@@ -231,6 +210,111 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
          real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
       END SUBROUTINE write_atomic_file
+
+      subroutine merge_input_file_to_dict(dict, fname, mpi_env)
+        use dictionaries
+        use wrapper_mpi
+        implicit none
+        type(dictionary), pointer :: dict
+        character(len = *), intent(in) :: fname
+        type(mpi_environment), intent(in) :: mpi_env
+      end subroutine merge_input_file_to_dict
+
+      function read_input_dict_from_files(radical, mpi_env) result(dict)
+        use dictionaries
+        use wrapper_MPI
+        implicit none
+        character(len = *), intent(in) :: radical
+        type(mpi_environment), intent(in) :: mpi_env
+        type(dictionary), pointer :: dict
+      end function read_input_dict_from_files
+
+      subroutine inputs_from_dict(in, atoms, dict, dump)
+        use module_types
+        use module_defs
+        use dictionaries
+        implicit none
+        type(input_variables), intent(inout) :: in
+        type(atoms_data), intent(inout) :: atoms
+        type(dictionary), pointer :: dict
+        logical, intent(in) :: dump
+      end subroutine inputs_from_dict
+
+      subroutine perf_input_analyse(iproc,in,dict)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        type(input_variables), intent(inout) :: in
+      end subroutine perf_input_analyse
+
+      subroutine dft_input_analyse(iproc, in, dict_dft)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(input_variables), intent(inout) :: in
+        type(dictionary), pointer :: dict_dft
+      end subroutine dft_input_analyse
+
+      subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(input_variables), intent(inout) :: in
+        type(dictionary), pointer :: dict
+        type(symmetry_data), intent(in) :: sym
+        character(len = 1), intent(in) :: geocode
+        real(gp), intent(in) :: alat(3)
+      end subroutine kpt_input_analyse
+
+      subroutine geopt_input_analyse(iproc,in,dict)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(input_variables), intent(inout) :: in
+        type(dictionary), pointer :: dict
+      end subroutine geopt_input_analyse
+
+      subroutine mix_input_analyse(iproc,in,dict)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        !Arguments
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        type(input_variables), intent(inout) :: in
+      end subroutine mix_input_analyse
+
+      subroutine sic_input_analyse(iproc,in,dict,ixc)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        !Arguments
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        type(input_variables), intent(inout) :: in
+        integer, intent(in) :: ixc
+      end subroutine sic_input_analyse
+
+      subroutine tddft_input_analyse(iproc,in,dict)
+        use module_base
+        use module_types
+        use dictionaries
+        implicit none
+        integer, intent(in) :: iproc
+        type(dictionary), pointer :: dict
+        type(input_variables), intent(inout) :: in
+      end subroutine tddft_input_analyse
 
       subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
          !n(c) use module_base
@@ -4803,6 +4887,26 @@ module module_interfaces
           real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
           real(dp), dimension(:), pointer :: local_potential
         end subroutine integral_equation
+
+        subroutine atoms_new(atoms)
+          use module_types
+          implicit none
+          type(atoms_data), pointer :: atoms
+        end subroutine atoms_new
+
+        subroutine rst_new(self, rst)
+          use module_types
+          implicit none
+          integer(kind = 8), intent(in) :: self
+          type(restart_objects), pointer :: rst
+        end subroutine rst_new
+
+        subroutine inputs_new(in)
+          use module_types
+          implicit none
+          type(input_variables), pointer :: in
+        end subroutine inputs_new
+
 
         subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, collcom, collcom_shamop, &
                    collcom_sr, sparsemat)

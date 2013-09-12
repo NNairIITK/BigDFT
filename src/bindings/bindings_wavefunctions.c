@@ -643,7 +643,7 @@ void bigdft_wf_init_linear_comm(BigDFT_Wf *wf, const BigDFT_LocalFields *denspot
                                              (int*)&iproc, (int*)&nproc);
 }
 void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                              BigDFT_Proj *proj, BigDFT_Energs *energs,
+                              BigDFT_Proj *proj, BigDFT_Goutput *energs,
                               guint iproc, guint nproc)
 {
   int norbv;
@@ -671,7 +671,7 @@ void bigdft_wf_calculate_psi0(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
   GET_ATTR_DBL(orbs, ORBS, eval,  EVAL);
 }
 guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                                  BigDFT_Proj *proj, BigDFT_Energs *energs,
+                                  BigDFT_Proj *proj, BigDFT_Goutput *energs,
                                   BigDFT_OptLoop *params, guint iproc, guint nproc)
 {
   guint infocode;
@@ -725,7 +725,7 @@ guint bigdft_wf_optimization_loop(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
   return infocode;
 }
 void bigdft_wf_post_treatments(BigDFT_Wf *wf, BigDFT_LocalFields *denspot,
-                               BigDFT_Proj *proj, BigDFT_Energs *energs,
+                               BigDFT_Proj *proj, BigDFT_Goutput *energs,
                                guint iproc, guint nproc)
 {
   void *GPU;
@@ -1005,7 +1005,7 @@ typedef struct bigdft_data
   BigDFT_Proj         *proj;
   BigDFT_LocalFields  *denspot;
   BigDFT_Wf           *wf;
-  BigDFT_Energs       *energs;
+  BigDFT_Goutput       *energs;
   BigDFT_OptLoop      *optloop;
 } BigDFT_Data;
 static gpointer wf_optimization_thread(gpointer data)
@@ -1035,7 +1035,7 @@ static gpointer wf_optimization_thread(gpointer data)
   return (gpointer)0;
 }
 void bigdft_wf_optimization(BigDFT_Wf *wf, BigDFT_Proj *proj, BigDFT_LocalFields *denspot,
-                            BigDFT_Energs *energs, BigDFT_OptLoop *params, const BigDFT_Inputs *in,
+                            BigDFT_Goutput *energs, BigDFT_OptLoop *params, const BigDFT_Inputs *in,
                             gboolean threaded, guint iproc, guint nproc)
 {
   BigDFT_Data *ct;

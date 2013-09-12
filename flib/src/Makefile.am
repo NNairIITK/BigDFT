@@ -22,8 +22,11 @@ getarg_files =
 else
 getarg_files = get_command_argument_fake.f90
 endif
-libflib_a_SOURCES = dictionaries_base.f90 dictionaries.f90 yaml_strings.f90 callbacks.f90 utils.c utilsadd.c \
-	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
+libflib_a_SOURCES = dictionaries_base.f90 dictionaries.f90 \
+	yaml_strings.f90 callbacks.f90 utils.c utilsadd.c \
+	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 \
+	razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
+	yaml_parser.c yaml_parse.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files)
 
 DYN_INCLUDES =  allocate-inc.f90 deallocate-inc.f90 \
@@ -42,6 +45,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	DICTIONARIES.@MODULE_EXT@ \
 	DICTIONARIES_BASE.@MODULE_EXT@ \
 	YAML_OUTPUT.@MODULE_EXT@ \
+	YAML_PARSE.@MODULE_EXT@ \
 	METADATA_INTERFACES.@MODULE_EXT@ \
 	DYNAMIC_MEMORY.@MODULE_EXT@ \
 	RANDOMDATA.@MODULE_EXT@ \
@@ -52,6 +56,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
 	dictionaries_base.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@ \
+	yaml_parse.@MODULE_EXT@ \
 	metadata_interfaces.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@ \
 	randomdata.@MODULE_EXT@ \
@@ -62,6 +67,7 @@ endif
 CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include)
 
 AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
+AM_CFLAGS = @LIB_YAML_CFLAGS@
 
 # Dependencies
 $(modules): $(libflib_a_OBJECTS)
@@ -69,6 +75,7 @@ yaml_strings.o: $(STRINGS_INCLUDES)
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 #mem_profiling.o : error_handling.o
 yaml_output.o : dictionaries.o $(YAML_INCLUDES)
+yaml_parse.o : dictionaries.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 dynamic_memory.o: yaml_strings.o yaml_output.o mem_profiling.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include)

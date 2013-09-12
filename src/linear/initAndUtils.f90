@@ -649,8 +649,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
 !!$       lorbs%norbp, lorbs%isorb_par, lorbs%isorb, lorbs%onWhichMPI)
  
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
-       input%nkpt, input%kpt, input%wkpt, lorbs,.true.) !simple repartition
- 
+       input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,.true.) !simple repartition
+
   allocate(locregCenter(3,nlr), stat=istat)
   call memocc(istat, locregCenter, 'locregCenter', subname)
   

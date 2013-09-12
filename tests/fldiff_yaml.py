@@ -48,7 +48,7 @@ def ignore_key(key):
   ret = key in keys_to_ignore
   if (not(ret)):
     for p in patterns_to_ignore:
-      if key.find(p) > -1:
+      if str(key).find(p) > -1:
         ret=True
         exit
   return ret
@@ -166,17 +166,29 @@ def compare_scl(scl, ref, tols, always_fails = False):
   global failed_checks,discrepancy,biggest_tol
   failed = always_fails
   ret = (failed, None)
-  #print 'scl',scl,'ref',ref,'tols',tols
+  #print scl,ref,tols, type(ref), type(scl)
 #eliminate the character variables
   if type(ref) == type(""):
     if not(scl == ref):
       ret = (True, scl)
   elif not(always_fails):
-    if tols is None:
-      failed = not(math.fabs(scl - ref) <= epsilon)
+    # infinity case
+    if scl == ref:
+      failed = False
+      diff = 0.
     else:
-      failed = not(math.fabs(scl - ref) <= tols) 
-    discrepancy=max(discrepancy,math.fabs(scl - ref))
+      try:
+        diff = math.fabs(scl - ref)
+        ret_diff = diff
+        if tols is None:
+          failed = not(diff <= epsilon)
+        else:
+          failed = not(diff <= tols)
+      except TypeError:
+        ret_diff = "NOT SAME KIND"
+        diff = 0.
+        failed = True
+    discrepancy=max(discrepancy,diff)
 #    if (discrepancy > 1.85e-9):
 #    print 'test',scl,ref,tols,discrepancy,failed
 #      sys.exit(1)
@@ -186,7 +198,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       else:
         ret = (True, tols)
     else:
-      ret = (True, math.fabs(scl - ref))
+      ret = (True, ret_diff)
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
@@ -376,12 +388,12 @@ for i in range(len(references)):
   discrepancy=0.
   reference = references[i]
   #this executes the fldiff procedure
-  compare(datas[i], reference, tols)
+  #compare(datas[i], reference, tols)
   try:
     data = datas[i]
     compare(data, reference, tols)
   except:
-      fatal_error(args,reports)
+    fatal_error(args,reports)
   try:
     doctime = data["Timings for root process"]["Elapsed time (s)"]
   except:

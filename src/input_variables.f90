@@ -13,11 +13,13 @@
 !! Initialize memocc
 !! @todo
 !!   Should be better for debug purpose to read input.perf before
-subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
+subroutine bigdft_set_input(radical,posinp,in,atoms)
   use module_base
   use module_types
   use module_interfaces, except_this_one => bigdft_set_input
-  !use yaml_output
+  use module_input_keys
+  use yaml_output
+  use dictionaries, only: dictionary
   implicit none
 
   !Arguments
@@ -25,44 +27,26 @@ subroutine bigdft_set_input(radical,posinp,rxyz,in,atoms)
   character(len=*),intent(in) :: radical
   type(input_variables), intent(inout) :: in
   type(atoms_data), intent(out) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz 
 
   character(len=*), parameter :: subname='bigdft_set_input'
+  type(dictionary), pointer :: dict
 !!$  logical :: exist_list
-!!$  integer :: group_size,ierr
 
   atoms=atoms_null()
+  ! Read atomic file
+  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
 
   ! initialize mpi environment (this shouldn't be done twice)
 !  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
-  !standard names
-  call standard_inputfile_names(in,trim(radical), bigdft_mpi%nproc)
+  dict => read_input_dict_from_files(trim(radical), bigdft_mpi)
 
-  !call yaml_open_map('Representation of the input files')
-  ! Read all parameters and update atoms and rxyz.
-  call read_input_parameters(bigdft_mpi%iproc,in,.true.)
+  call standard_inputfile_names(in,trim(radical))
+  call inputs_from_dict(in, atoms, dict, .true.)
+  call dict_free(dict)
 
-  !call yaml_close_map()
+  ! Generate the description of input variables.
+  call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
 
-!!$  ! find out which input files will be used
-!!$  inquire(file="list_posinp",exist=exist_list)
-
-!!$  if (in%mpi_groupsize >0 .and. (.not. exist_list)) then
-!!$     group_size=in%mpi_groupsize
-!!$  else
-!!$     group_size=nproc
-!!$  endif
-!!$  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,group_size)
-!!$  !reset standard names (this should be avoided) 
-!!$  call standard_inputfile_names(in, radical, bigdft_mpi%nproc)
-
-  ! Read atomic file
-  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
-  call allocate_atoms_nat(atoms, subname)
-  call allocate_atoms_ntypes(atoms, subname)
-  call read_input_parameters2(bigdft_mpi%iproc,in,atoms,atoms%astruct%rxyz)
-
-  rxyz=>atoms%astruct%rxyz
   ! Read associated pseudo files.
   call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)
   call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
@@ -209,149 +193,96 @@ end subroutine set_inputfile
 
 
 !> Define the name of the input files
-subroutine standard_inputfile_names(in, radical, nproc)
+subroutine standard_inputfile_names(in, radical)
   use module_types
   use module_base
   use yaml_output
   implicit none
   type(input_variables), intent(inout) :: in
   character(len = *), intent(in) :: radical
-  integer, intent(in) :: nproc
-  integer :: ierr
 
   !set prefix name of the run (as input by defaut for input.dft)
   in%run_name=repeat(' ',len(in%run_name))
   if (trim(radical) /= 'input') in%run_name=trim(radical)
 
-  call set_inputfile(in%file_dft, radical,    "dft")
-  call set_inputfile(in%file_geopt, radical,  "geopt")
-  call set_inputfile(in%file_kpt, radical,    "kpt")
-  call set_inputfile(in%file_perf, radical,   "perf")
-  call set_inputfile(in%file_tddft, radical,  "tddft")
-  call set_inputfile(in%file_mix, radical,    "mix")
-  call set_inputfile(in%file_sic, radical,    "sic")
   call set_inputfile(in%file_occnum, radical, "occ")
   call set_inputfile(in%file_igpop, radical,  "occup")
   call set_inputfile(in%file_lin, radical,    "lin")
-  call set_inputfile(in%file_frag, radical,    "frag")
+  call set_inputfile(in%file_frag, radical,   "frag")
 
   if (trim(radical) == "input") then
-        in%dir_output="data" // trim(bigdft_run_id_toa())
+     in%dir_output="data" // trim(bigdft_run_id_toa())
   else
-        in%dir_output="data-"//trim(radical)!//trim(bigdft_run_id_toa())
+     in%dir_output="data-"//trim(radical)!//trim(bigdft_run_id_toa())
   end if
 
   in%files = INPUTS_NONE
-
-  ! To avoid race conditions where procs create the default file and other test its
-  ! presence, we put a barrier here.
-  if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 END SUBROUTINE standard_inputfile_names
 
-
-!> Do initialisation for all different calculation parameters of BigDFT. 
-!! Set default values if not any. Atomic informations are updated  by
-!! symmetries if necessary and by geometry input parameters.
-subroutine read_input_parameters(iproc,in,dump)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => read_input_parameters
-  use yaml_output
-
+function read_input_dict_from_files(radical, mpi_env) result(dict)
+  use dictionaries
+  use wrapper_MPI
+  use module_input_keys
+  use module_interfaces, only: merge_input_file_to_dict
+  use input_old_text_format
   implicit none
+  character(len = *), intent(in) :: radical
+  type(mpi_environment), intent(in) :: mpi_env
 
-  !Arguments
-  integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: in
-  logical, intent(in) :: dump
-  !Local variables
-  ! Default for inputs (should not be necessary if all the variables comes from the parsing)
-  call default_input_variables(in)
-  ! Read linear variables
-  ! Parse all input files, independent from atoms.
-  call inputs_parse_params(in, iproc, dump)
-  if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
-      DistProjApply=.true.
-  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
-     !only on the fly calculation
-     DistProjApply=.true.
-  end if
-
-END SUBROUTINE read_input_parameters
-
-
-subroutine read_input_parameters2(iproc,in,atoms,rxyz)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => read_input_parameters2
-  use module_input
-  use yaml_strings
-  use yaml_output
-
-  implicit none
-
-  !Arguments
-  integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-  !Local variables
   integer :: ierr
-!!$  integer :: ierror
-  !character(len=500) :: logfile,logfile_old,logfile_dir
-  !logical :: exists
-!!$  print *,'hereAAA',iproc
-  ! Shake atoms, if required.
-  call atoms_set_displacement(atoms, rxyz, in%randdis)
-!!$  print *,'hello21',atoms%astruct%ntypes,'ciaoAAA',bigdft_mpi%iproc
-  call mpi_barrier(mpi_comm_world,ierr)
+  type(dictionary), pointer :: dict
+  logical :: exists_default, exists_user
+  character(len = max_field_length) :: fname
+  character(len = 100) :: f0
 
-  ! Update atoms with symmetry information
-  call atoms_set_symmetries(atoms, rxyz, in%disableSym, in%symTol, in%elecfield)
-!!$  print *,'hello22',atoms%astruct%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$call mpi_barrier(mpi_comm_world,ierr)
+  ! Handle error with master proc only.
+  if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
+  
+  nullify(dict)
+  ! We try first default.yaml
+  inquire(file = "default.yaml", exist = exists_default)
+  if (exists_default) call merge_input_file_to_dict(dict, "default.yaml", mpi_env)
 
-  ! Parse input files depending on atoms.
-  call inputs_parse_add(in, atoms, iproc, .true.)
-!!$
-!!$  print *,'hello23',atoms%astruct%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$  call mpi_barrier(mpi_comm_world,ierr)
+  ! We try then radical.yaml
+  if (len_trim(radical) == 0) then
+     fname = "input.yaml"
+  else
+     fname(1:max_field_length) = trim(radical) // ".yaml"
+  end if
+  inquire(file = trim(fname), exist = exists_user)
+  if (exists_user) call merge_input_file_to_dict(dict, trim(fname), mpi_env)
 
-
-  ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
-!  if (atoms%astruct%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-!     if (iproc==0) call yaml_warning('GPU calculation allowed only in periodic boundary conditions')
-!     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-!  end if
-
-  ! Stop the code if it is trying to run GPU with spin=4
-  if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
-     if (iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+  ! We fallback on the old text format
+  if (.not.exists_default .and. .not. exists_user) then
+     ! Parse all files.
+     call dict_init(dict)
+     call set_inputfile(f0, radical, PERF_VARIABLES)
+     call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, DFT_VARIABLES)
+     call read_dft_from_text_format(mpi_env%iproc,dict//DFT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, KPT_VARIABLES)
+     call read_kpt_from_text_format(mpi_env%iproc,dict//KPT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, GEOPT_VARIABLES)
+     call read_geopt_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, MIX_VARIABLES)
+     call read_mix_from_text_format(mpi_env%iproc,dict//MIX_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, SIC_VARIABLES)
+     call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, TDDFT_VARIABLES)
+     call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
+  else
+     ! We add an overloading input.perf (for automatic test purposes).
+     ! This will be changed in far future when only YAML input will be allowed.
+     call set_inputfile(f0, radical, PERF_VARIABLES)
+     call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
 
-!!$  ! Stop code for unproper input variables combination.
-!!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%astruct%geocode == 'S') then
-!!$     if (iproc==0) then
-!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-!!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
-!!$     end if
-!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-!!$  end if
-  if (in%nkpt > 1 .and. in%gaussian_help) then
-     if (iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-  end if
+  if (mpi_env%iproc > 0) call f_err_severe_restore()
 
-  !check whether a directory name should be associated for the data storage
-  call check_for_data_writing_directory(iproc,in)
-
-!!$  print *,'hello24',atoms%astruct%ntypes,'ciaoAAA',bigdft_mpi%iproc
-!!$  call mpi_barrier(mpi_comm_world,ierr)
-
-
-END SUBROUTINE read_input_parameters2
-
+  ! We put a barrier here to be sure that non master proc will be stop
+  ! by any issue on the master proc.
+  call mpi_barrier(mpi_env%mpi_comm, ierr)
+end function read_input_dict_from_files
 
 !> Check the directory of data (create if not present)
 subroutine check_for_data_writing_directory(iproc,in)
@@ -363,8 +294,6 @@ subroutine check_for_data_writing_directory(iproc,in)
   type(input_variables), intent(inout) :: in
   !local variables
   logical :: shouldwrite
-  integer :: i_stat,ierror,ierr
-  character(len=100) :: dirname
 
   if (iproc==0) call yaml_comment('|',hfill='-')
 
@@ -386,30 +315,43 @@ subroutine check_for_data_writing_directory(iproc,in)
   !here you can check whether the etsf format is compiled
 
   if (shouldwrite) then
-     ! Create a directory to put the files in.
-     dirname=repeat(' ',len(dirname))
-     if (iproc == 0) then
-        call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
-        if (i_stat /= 0) then
-           call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
-           call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-        end if
-     end if
-     call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
-     in%dir_output=dirname
+     call create_dir_output(iproc, in)
      if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
      if (iproc==0) call yaml_map('Data Writing directory','./')
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
-
 END SUBROUTINE check_for_data_writing_directory
 
+subroutine create_dir_output(iproc, in)
+  use yaml_output
+  use module_types
+  use module_base
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+
+  character(len=100) :: dirname
+  integer :: i_stat,ierror,ierr
+
+  ! Create a directory to put the files in.
+  dirname=repeat(' ',len(dirname))
+  if (iproc == 0) then
+     call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
+     if (i_stat /= 0) then
+        call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
+        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+     end if
+  end if
+  call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+  in%dir_output=dirname
+END SUBROUTINE create_dir_output
 
 !> Set default values for input variables
 subroutine default_input_variables(in)
   use module_base
   use module_types
+  use dictionaries
   implicit none
 
   type(input_variables), intent(inout) :: in
@@ -417,8 +359,8 @@ subroutine default_input_variables(in)
   ! Default values.
   in%output_wf_format = WF_FORMAT_NONE
   in%output_denspot_format = output_denspot_FORMAT_CUBE
-  nullify(in%kpt)
-  nullify(in%wkpt)
+  nullify(in%gen_kpt)
+  nullify(in%gen_wkpt)
   nullify(in%kptv)
   nullify(in%nkptsv_group)
   ! Default abscalc variables
@@ -451,145 +393,6 @@ subroutine default_input_variables(in)
   nullify(in%frag%frag_index)
 END SUBROUTINE default_input_variables
 
-
-subroutine dft_input_variables_new(iproc,dump,filename,in)
-  use module_base
-  use module_types
-  use module_input
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-  type(input_variables), intent(inout) :: in
-  !local variables
-  logical :: exists
-  integer :: ierror
-  real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
-  real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
-
-  !dft parameters, needed for the SCF part
-  call input_set_file(iproc,dump,trim(filename),exists,'DFT Calculation Parameters')  
-  if (exists) in%files = in%files + INPUTS_DFT
-  !call the variable, its default value, the line ends if there is a comment
-
-  !grid spacings
-  call input_var(in%hx,'0.45',ranges=hgrid_rng)
-  call input_var(in%hy,'0.45',ranges=hgrid_rng)
-  call input_var(in%hz,'0.45',ranges=hgrid_rng,comment='hx,hy,hz: grid spacing in the three directions')
-
-  !coarse and fine radii around atoms
-  call input_var(in%crmult,'5.0',ranges=xrmult_rng)
-  call input_var(in%frmult,'8.0',ranges=xrmult_rng,&
-       comment='c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius')
-
-  !XC functional (ABINIT XC codes)
-  call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
-
-  !charge and electric field
-  call input_var(in%ncharge,'0',ranges=(/-500,500/))
-  call input_var(in%elecfield(1),'0.')
-  call input_var(in%elecfield(2),'0.')
-  call input_var(in%elecfield(3),'0.',comment='charge of the system, Electric field (Ex,Ey,Ez)')
-  !call input_var(in%elecfield(3),'0.',comment='ncharge: charge of the system, Electric field (Ex,Ey,Ez)')
-
-  !spin and polarization
-  call input_var(in%nspin,'1',exclusive=(/1,2,4/))
-  call input_var(in%mpol,'0',comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
-
-  !XC functional (ABINIT XC codes)
-  call input_var(in%gnrm_cv,'1.e-4',ranges=(/1.e-20_gp,1.0_gp/),&
-       comment='gnrm_cv: convergence criterion gradient')
-
-  !convergence parameters
-  call input_var(in%itermax,'50',ranges=(/0,10000/))
-  call input_var(in%nrepmax,'1',ranges=(/0,1000/),&
-       comment='itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs')
-
-  !convergence parameters
-  call input_var(in%ncong,'6',ranges=(/0,20/))
-  call input_var(in%idsx,'6',ranges=(/0,15/),&
-       comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
-  !does not make sense a DIIS history longer than the number of iterations
-  !only if the iscf is not particular
-  in%idsx = min(in%idsx, in%itermax)
-
-  !dispersion parameter
-  call input_var(in%dispersion,'0',ranges=(/0,5/),&
-       comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
-    
-  ! Now the variables which are to be used only for the last run
-  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
-  ! Validate inputPsiId value (Can be added via error handling exception)
-  if (ierror /=0 .and. iproc == 0) then
-     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
-     call input_psi_help()
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
-  end if
-
-  call input_var(in%output_wf_format,'0',exclusive=(/0,1,2,3/),input_iostat=ierror)
-  ! Validate output_wf value.
-  if (ierror /=0 .and. iproc == 0) then
-     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
-     call output_wf_format_help()
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
-  end if
-
-  call input_var(in%output_denspot,'0',exclusive=(/0,1,2,10,11,12,20,21,22/),&
-       comment='InputPsiId, output_wf, output_denspot')
-
-  !project however the wavefunction on gaussians if asking to write them on disk
-  ! But not if we use linear scaling version (in%inputPsiId >= 100)
-  in%gaussian_help=(in%inputPsiId >= 10 .and. in%inputPsiId < 100)
-
-  !switch on the gaussian auxiliary treatment 
-  !and the zero of the forces
-  if (in%inputPsiId == 10) then
-     in%inputPsiId=0
-  else if (in%inputPsiId == 13) then
-     in%inputPsiId=2
-  end if
-  ! Setup out grid parameters.
-  if (in%output_denspot >= 0) then
-     in%output_denspot_format = in%output_denspot / 10
-  else
-     in%output_denspot_format = output_denspot_FORMAT_CUBE
-     in%output_denspot = abs(in%output_denspot)
-  end if
-  in%output_denspot = modulo(in%output_denspot, 10)
-
-  ! Tail treatment.
-  call input_var(in%rbuf,'0.0',ranges=(/0.0_gp,10.0_gp/))
-  call input_var(in%ncongt,'30',ranges=(/1,50/),&
-       comment='rbuf, ncongt: length of the tail (AU),# tail CG iterations')
-
-  !in%calc_tail=(in%rbuf > 0.0_gp)
-
-  !davidson treatment
-  ! Now the variables which are to be used only for the last run
-  call input_var(in%norbv,'0',ranges=(/-9999,9999/))
-  call input_var(in%nvirt,'0',ranges=(/0,abs(in%norbv)/))
-  call input_var(in%nplot,'0',ranges=(/0,abs(in%norbv)/),&
-       comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
-
-  !in%nvirt = min(in%nvirt, in%norbv) commented out
-
-  ! Line to disable automatic behaviours (currently only symmetries).
-  call input_var(in%disableSym,'F',comment='disable the symmetry detection')
-
-  !define whether there should be a last_run after geometry optimization
-  !also the mulliken charge population should be inserted
-  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
-       in%output_denspot /= output_denspot_NONE .or. in%norbv /= 0) then
-     in%last_run=-1 !last run to be done depending of the external conditions
-  else
-     in%last_run=0
-  end if
-
-  call input_free((iproc == 0) .and. dump)
-
-end subroutine dft_input_variables_new
-
-
 !> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
@@ -609,51 +412,6 @@ subroutine mix_input_variables_default(in)
   in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
-
-
-!> Read the input variables needed for the geometry optimisation
-!!    Every argument should be considered as mandatory
-subroutine mix_input_variables_new(iproc,dump,filename,in)
-  use module_base
-  use module_types
-  use module_input
-  implicit none
-  !Arguments
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  !n(c) character(len=*), parameter :: subname='mix_input_variables'
-  logical :: exists
-
-  !Mix parameters, needed for the SCF poart with Davidson
-  call input_set_file(iproc,dump,trim(filename),exists,'Mixing Parameters')  
-  if (exists) in%files = in%files + INPUTS_MIX
-  !call the variable, its default value, the line ends if there is a comment
-
-  !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
-  call input_var(in%iscf,'0',exclusive=(/-1,0,1,2,3,4,5,7,12,13,14,15,17/),&
-       comment="Mixing parameters")
-  call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
-       comment="Maximum number of diagonalisation iterations")
-  call input_var(in%rpnrm_cv,'1.e-4',ranges=(/0.0_gp,10.0_gp/),&
-       comment="Stop criterion on the residue of potential or density")
-  call input_var(in%norbsempty,'0',ranges=(/0,10000/))
-  call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/)) 
-  call input_var(in%occopt,'1',ranges=(/1,5/),&
-       comment="No. of additional bands, elec. temperature, smearing method")
-  call input_var(in%alphamix,'0.0',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%alphadiis,'2.0',ranges=(/0.0_gp,10.0_gp/),&
-       comment="Multiplying factors for the mixing and the electronic DIIS")
-
-  call input_free((iproc == 0) .and. dump)
-
-  !put the startmix if the mixing has to be done
-  if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
-
-END SUBROUTINE mix_input_variables_new
-
 
 !> Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
@@ -678,111 +436,6 @@ subroutine geopt_input_variables_default(in)
 
 END SUBROUTINE geopt_input_variables_default
 
-
-!> Read the input variables needed for the geometry optimisation
-!! Every argument should be considered as mandatory
-subroutine geopt_input_variables_new(iproc,dump,filename,in)
-  use module_base
-  use module_types
-  use module_input
-  implicit none
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  character(len=*), parameter :: subname='geopt_input_variables'
-  integer :: i_stat,i
-  logical :: exists
-
-  !target stress tensor
-  in%strtarget(:)=0.0_gp
-
-  !geometry input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'Geometry Parameters')  
-  if (exists) in%files = in%files + INPUTS_GEOPT
-  !call the variable, its default value, the line ends if there is a comment
-!  if (.not. exists) then
-!     in%ncount_cluster_x=0
-!     return
-!  end if
-
-  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD','DIIS ','FIRE '/),&
-       comment="Geometry optimisation method")
-  call input_var(in%ncount_cluster_x,'1',ranges=(/0,2000/),&
-       comment="Maximum number of force evaluations")
-  !here the parsing of the wavefunction history should be added
-  in%wfn_history=1
-
-  call input_var(in%frac_fluct,'1.0',ranges=(/0.0_gp,10.0_gp/))
-  call input_var(in%forcemax,'0.0',ranges=(/0.0_gp,10.0_gp/),&
-       comment="fract_fluct,forcemax")
-  call input_var(in%randdis,'0.0',ranges=(/0.0_gp,10.0_gp/),&
-       comment="random displacement amplitude")
-
-  if (case_insensitive_equiv(trim(in%geopt_approach),"AB6MD")) then
-     in%nnos=0
-     call input_var(in%ionmov,'6',exclusive=(/6,7,8,9,12,13/),&
-          comment="AB6MD: movement ion method")
-     call input_var(in%dtion,'20.670689',ranges=(/0.0_gp,1.e3_gp/),&
-          comment="Time step for molecular dynamics - Atomic Units (20.670689 AU=0.5 fs)")
-     if (in%ionmov == 6) then
-        call input_var(in%mditemp,'300',ranges=(/0.0_gp,1.0e9_gp/),&
-             comment="Temperature of molecular dynamics")
-     elseif (in%ionmov > 7) then
-        call input_var(in%mditemp,'300',ranges=(/0.0_gp,1.0e9_gp/))
-        call input_var(in%mdftemp,'300',ranges=(/0.0_gp,1.0e9_gp/),&
-             comment="Initial and Final Temperatures of molecular dynamics")
-     end if
-
-     if (in%ionmov == 8) then
-        call input_var(in%noseinert,'1.e5',ranges=(/0.0_gp,1.0e9_gp/),&
-             comment="Thermostat inertia coefficient for Nose_Hoover dynamics")
-     else if (in%ionmov == 9) then
-        call input_var(in%friction,'1.e-3',&
-             comment="Friction coefficient for Langevin dynamics")
-        call input_var(in%mdwall,'1.e4',ranges=(/0.0_gp,1.e5_gp/),&
-             comment="Distance in bohr where atoms can bounce for Langevin dynamics")
-     else if (in%ionmov == 13) then
-        call input_var(in%nnos,'0',ranges=(/0,100/),&
-             comment="Number of Thermostat (isothermal/isenthalpic ensemble)")
-        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-        call memocc(i_stat,in%qmass,'in%qmass',subname)
-        do i=1,in%nnos-1
-           call input_var(in%qmass(i),'0.0',ranges=(/0.0_gp,1.e9_gp/))
-        end do
-        if (in%nnos > 0) call input_var(in%qmass(in%nnos),'0.0',ranges=(/0.0_gp,1.e9_gp/),&
-           comment="Mass of each thermostat (isothermal/isenthalpic ensemble)")
-        call input_var(in%bmass,'10',ranges=(/0.0_gp,1.0e9_gp/))
-        call input_var(in%vmass,'1.0',ranges=(/0.0_gp,1.0e9_gp/),&
-             comment="Barostat masses (isothermal/isenthalpic ensemble)")
-     end if
-
-     if (in%ionmov /= 13) then
-        !the allocation of this pointer should be done in any case
-        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-        call memocc(i_stat,in%qmass,'in%qmass',subname)
-     end if
-
-  else if (case_insensitive_equiv(trim(in%geopt_approach),"DIIS")) then
-     call input_var(in%betax,'2.0',ranges=(/0.0_gp,100.0_gp/))
-     call input_var(in%history,'4',ranges=(/0,1000/),&
-          comment="Stepsize and history for DIIS method")
-  else
-     call input_var(in%betax,'4.0',ranges=(/0.0_gp,100.0_gp/),&
-          comment="Stepsize for the geometry optimisation")
-  end if
-  if (case_insensitive_equiv(trim(in%geopt_approach),"FIRE")) then
-        call input_var(in%dtinit,'0.75',ranges=(/0.0_gp,1.e4_gp/))
-        call input_var(in%dtmax, '1.5',ranges=(/in%dtinit,1.e4_gp/),&
-             comment="initial and maximal time step for the FIRE method")
-  endif
-
-  call input_free((iproc == 0) .and. dump)
-
-END SUBROUTINE geopt_input_variables_new
-
-
 !> Assign default values for self-interaction correction variables
 subroutine sic_input_variables_default(in)
   use module_base
@@ -795,34 +448,6 @@ subroutine sic_input_variables_default(in)
   in%SIC%fref=0.0_gp
 
 END SUBROUTINE sic_input_variables_default
-
-
-!> Read Self-Interaction Correction (SIC) input parameters
-subroutine sic_input_variables_new(iproc,dump,filename,in)
-  use module_base
-  use module_types
-  use module_input
-  implicit none
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  logical :: exists
-  !n(c) character(len=*), parameter :: subname='sic_input_variables'
-
-  !Self-Interaction Correction input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'SIC Parameters')  
-  if (exists) in%files = in%files + INPUTS_SIC
-
-  call input_var(in%SIC%approach,'NONE',exclusive=(/'NONE','PZ  ','NK  '/),comment='SIC method: NONE, PZ, NK')
-  call input_var(in%SIC%alpha,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='SIC downscaling parameter')
-  call input_var(in%SIC%fref,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='Reference occupation fref (NK case only)')
-  in%SIC%ixc=in%ixc
-  call input_free((iproc == 0) .and. dump)
-
-END SUBROUTINE sic_input_variables_new
-
 
 !> Read linear input parameters
 subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
@@ -1032,7 +657,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
 
   call input_free((iproc == 0) .and. dump)
-
 END SUBROUTINE lin_input_variables_new
 
 
@@ -1046,642 +670,6 @@ subroutine tddft_input_variables_default(in)
   in%tddft_approach='NONE'
 
 END SUBROUTINE tddft_input_variables_default
-
-
-subroutine tddft_input_variables_new(iproc,dump,filename,in)
-  use module_base
-  use module_types
-  use module_input
-  implicit none
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  logical :: exists
-  !n(c) character(len=*), parameter :: subname='tddft_input_variables'
-
-  !TD-DFT parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'TD-DFT Parameters')  
-  if (exists) in%files = in%files + INPUTS_TDDFT
-  !call the variable, its default value, the line ends if there is a comment
-
-  call input_var(in%tddft_approach,"NONE",exclusive=(/'NONE','TDA '/),&
-       comment="TDDFT Method")
-  call input_free((iproc == 0) .and. dump)
-
-END SUBROUTINE tddft_input_variables_new
-
-subroutine kpt_input_variables_new(iproc,dump,filename,in,sym,geocode,alat)
-  use module_base
-  use module_types
-  use defs_basis
-  use m_ab6_kpoints
-  use module_input
-  use yaml_output
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-  type(input_variables), intent(inout) :: in
-  type(symmetry_data), intent(in) :: sym
-  character(len = 1), intent(in) :: geocode
-  real(gp), intent(in) :: alat(3)
-  !local variables
-  logical :: exists
-  character(len=*), parameter :: subname='kpt_input_variables_new'
-  character(len = 6) :: type
-  integer :: i_stat,ierror,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1
-  real(gp) :: kptrlen, shiftk(3,8), norm, alat_(3)
-  integer, allocatable :: iseg(:)
-
-  ! Set default values.
-  in%nkpt=1
-  in%nkptv=0
-  in%ngroups_kptv=1
-
-  nullify(in%kpt,in%wkpt,in%kptv,in%nkptsv_group)
-  call free_kpt_variables(in)
-
-  !dft parameters, needed for the SCF part
-  call input_set_file(iproc,dump,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
-  if (exists) in%files = in%files + INPUTS_KPT
-  !call the variable, its default value, the line ends if there is a comment
-
-  !if the file does not exists, put the default values
-  if (.not. exists) then
-     
-!!$     ! Set only the gamma point.
-!!$     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,in%kpt,'in%kpt',subname)
-!!$     in%kpt(:, 1) = (/ 0., 0., 0. /)
-!!$     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-!!$     in%wkpt(1) = 1.0_gp
-     !return
-  end if
-
-  call input_var(type,'manual',exclusive=(/'auto  ','mpgrid','manual'/),&
-       comment='K-point sampling method')
-
-  if (case_insensitive_equiv(trim(type),'auto')) then
-     call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
-          comment='Equivalent length of K-space resolution (Bohr)')
-     if (geocode == 'F') then
-        in%nkpt = 1
-        allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%kpt,'in%kpt',subname)
-        allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-        in%kpt = 0.
-        in%wkpt = 1.
-     else
-        call kpoints_get_auto_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-             & kptrlen, ierror)
-        if (ierror /= AB6_NO_ERROR) then
-           if (iproc==0) &
-                & call yaml_warning("ERROR: cannot generate automatic k-point grid." // &
-                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
-           stop
-        end if
-        !assumes that the allocation went through
-        call memocc(0,in%kpt,'in%kpt',subname)
-        call memocc(0,in%wkpt,'in%wkpt',subname)
-     end if
-  else if (case_insensitive_equiv(trim(type),'mpgrid')) then
-     !take the points of Monckorst-pack grid
-     call input_var(ngkpt(1),'1',ranges=(/1,10000/))
-     call input_var(ngkpt(2),'1',ranges=(/1,10000/))
-     call input_var(ngkpt(3),'1',ranges=(/1,10000/), &
-          & comment='No. of Monkhorst-Pack grid points')
-     if (geocode == 'S') ngkpt(2) = 1
-     !shift
-     call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
-     !read the shifts
-     shiftk=0.0_gp
-     do i=1,nshiftk
-        call input_var(shiftk(1,i),'0.')
-        call input_var(shiftk(2,i),'0.')
-        call input_var(shiftk(3,i),'0.',comment=' ')
-     end do
-
-     !control whether we are giving k-points to Free BC
-     if (geocode == 'F') then
-        if (iproc==0 .and. (maxval(ngkpt) > 1 .or. maxval(abs(shiftk)) > 0.)) &
-             & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
-        in%nkpt = 1
-        allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%kpt,'in%kpt',subname)
-        allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-        in%kpt = 0.
-        in%wkpt = 1.
-     else
-        call kpoints_get_mp_k_grid(sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-             & ngkpt, nshiftk, shiftk, ierror)
-        if (ierror /= AB6_NO_ERROR) then
-           if (iproc==0) &
-                & call yaml_warning("ERROR: cannot generate MP k-point grid." // &
-                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
-           stop
-        end if
-        !assumes that the allocation went through
-        call memocc(0,in%kpt,'in%kpt',subname)
-        call memocc(0,in%wkpt,'in%wkpt',subname)
-     end if
-  else if (case_insensitive_equiv(trim(type),'manual')) then
-     call input_var(in%nkpt,'1',ranges=(/1,10000/),&
-          comment='Number of K-points')
-     if (geocode == 'F' .and. in%nkpt > 1) then
-        if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
-        in%nkpt = 1
-     end if
-     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%kpt,'in%kpt',subname)
-     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-     norm=0.0_gp
-     do i=1,in%nkpt
-        call input_var( in%kpt(1,i),'0.')
-        if (geocode == 'S') then
-           call input_var( in%kpt(2,i),'0.',ranges=(/0._gp,0._gp/))
-        else
-           call input_var( in%kpt(2,i),'0.')
-        end if
-        call input_var( in%kpt(3,i),'0.')
-        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weight')
-        if (geocode == 'F') then
-           in%kpt = 0.
-           in%wkpt = 1.
-        end if
-        norm=norm+in%wkpt(i)
-     end do
-     ! We normalise the weights.
-     in%wkpt(:)=in%wkpt/norm
-  end if
-
-  ! Now read the band structure definition. do it only if the file exists
-  !nullify the kptv pointers
-  nullify(in%kptv,in%nkptsv_group)
-  if (exists .and. geocode /= 'F') then
-     call input_var(type,'bands',exclusive=(/'bands'/),&
-          comment='For doing band structure calculation',&
-          input_iostat=ierror)
-     if (ierror==0) then
-        call input_var(nseg,'1',ranges=(/1,1000/),&
-             comment='# of segments of the BZ path')
-        allocate(iseg(nseg+ndebug),stat=i_stat)
-        call memocc(i_stat,iseg,'iseg',subname)
-        !number of points for each segment, parallel granularity
-        do i=1,nseg
-           call input_var(iseg(i),'1',ranges=(/1,1000/))
-        end do
-        call input_var(ngranularity,'1',ranges=(/1,1000/),&
-             comment='points for each segment, # of points done for each group')
-        !calculate the number of groups of for the band structure
-        in%nkptv=1
-        do i=1,nseg
-           in%nkptv=in%nkptv+iseg(i)
-        end do
-        in%ngroups_kptv=&
-             ceiling(real(in%nkptv,gp)/real(ngranularity,gp))
-        
-        allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
-        call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
-        
-        ncount=0
-        do i=1,in%ngroups_kptv-1
-           !if ngranularity is bigger than nkptv  then ngroups is one
-           in%nkptsv_group(i)=ngranularity 
-           ncount=ncount+ngranularity
-        end do
-        !put the rest in the last group
-        in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
-        
-        allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
-        call memocc(i_stat,in%kptv,'in%kptv',subname)
-        
-        ikpt=1
-        call input_var(in%kptv(1,ikpt),'0.')
-        call input_var(in%kptv(2,ikpt),'0.')
-        call input_var(in%kptv(3,ikpt),'0.',comment=' ')
-        do i=1,nseg
-           ikpt=ikpt+iseg(i)
-           call input_var(in%kptv(1,ikpt),'0.5')
-           call input_var(in%kptv(2,ikpt),'0.5')
-           call input_var(in%kptv(3,ikpt),'0.5.',comment=' ')
-           !interpolate the values
-           do j=ikpt-iseg(i)+1,ikpt-1
-              in%kptv(:,j)=in%kptv(:,ikpt-iseg(i)) + &
-                   (in%kptv(:,ikpt)-in%kptv(:,ikpt-iseg(i))) * &
-                   real(j-ikpt+iseg(i),gp)/real(iseg(i), gp)
-           end do
-        end do
-        i_all=-product(shape(iseg))*kind(iseg)
-        deallocate(iseg,stat=i_stat)
-        call memocc(i_stat,i_all,'iseg',subname)
-        
-        !read an optional line to see if there is a file associated
-        call input_var(in%band_structure_filename,' ',&
-             comment=' ',input_iostat=ierror1)
-        if (ierror1 /=0) then
-           in%band_structure_filename=''
-        else
-           !since a file for the local potential is already given, do not perform ground state calculation
-           if (iproc==0) then
-              write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
-                   ', do not optimise GS wavefunctions'
-           end if
-           in%nrepmax=0
-           in%itermax=0
-           in%itrpmax=0
-           in%inputPsiId=-1000 !allocate empty wavefunctions
-           in%output_denspot=0
-        end if
-     end if
-  end if
-  
-  !Dump the input file
-  call input_free((iproc == 0) .and. dump)
-
-  ! Convert reduced coordinates into BZ coordinates.
-  alat_ = alat
-  if (geocode /= 'P') alat_(2) = 1.0_gp
-  if (geocode == 'F') then
-     alat_(1)=1.0_gp
-     alat_(3)=1.0_gp
-  end if
-  do i = 1, in%nkpt, 1
-     in%kpt(:, i) = in%kpt(:, i) / alat_ * two_pi
-  end do
-  do i = 1, in%nkptv, 1
-     in%kptv(:, i) = in%kptv(:, i) / alat_ * two_pi
-  end do
- 
-end subroutine kpt_input_variables_new
-
-
-!> Read the input variables needed for the k points generation
-subroutine kpt_input_variables(iproc,filename,in,atoms)
-  use module_base
-  use module_types
-  use defs_basis
-  use m_ab6_kpoints
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(in) :: atoms
-  !local variables
-  logical :: exists
-  character(len=*), parameter :: subname='kpt_input_variables'
-  character(len = 6) :: type
-  character(len=100) :: line
-  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount
-  real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
-  integer, allocatable :: iseg(:)
-
-  ! Set default values.
-  in%nkpt = 1
-  in%nkptv = 0
-  in%ngroups_kptv=1
-
-  inquire(file=trim(filename),exist=exists)
-
-  if (.not. exists) then
-     ! Set only the gamma point.
-     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%kpt,'in%kpt',subname)
-     in%kpt(:, 1) = (/ 0., 0., 0. /)
-     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-     in%wkpt(1) = 1.
-     return
-  !and control whether we are giving k-points to Free BC
-  else if (atoms%astruct%geocode == 'F') then
-     if (iproc==0) write(*,*)&
-          ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
-     stop
-  end if
-
-  ! Real generation of k-point set.
-  open(unit=1,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-
-  read(1,*,iostat=ierror) type
-  call check()
-  
-  if (trim(type) == "auto" .or. trim(type) == "Auto" .or. trim(type) == "AUTO") then
-     read(1,*,iostat=ierror) kptrlen
-     call check()
-     call kpoints_get_auto_k_grid(atoms%astruct%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-          & kptrlen, ierror)
-     if (ierror /= AB6_NO_ERROR) then
-        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
-        stop
-     end if
-     ! in%kpt and in%wkpt will be allocated by ab6_symmetry routine.
-     call memocc(0,in%kpt,'in%kpt',subname)
-     call memocc(0,in%wkpt,'in%wkpt',subname)
-  else if (trim(type) == "MPgrid" .or. trim(type) == "mpgrid") then
-     read(1,*,iostat=ierror) ngkpt
-     call check()
-     read(1,*,iostat=ierror) nshiftk
-     call check()
-     do i = 1, min(nshiftk, 8), 1
-        read(1,*,iostat=ierror) shiftk(:, i)
-        call check()
-     end do
-     if (atoms%astruct%geocode == 'S') ngkpt(2) = 1
-     if (atoms%astruct%geocode == 'F') ngkpt = 1
-     call kpoints_get_mp_k_grid(atoms%astruct%sym%symObj, in%nkpt, in%kpt, in%wkpt, &
-          & ngkpt, nshiftk, shiftk, ierror)
-     if (ierror /= AB6_NO_ERROR) then
-        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
-        stop
-     end if
-     ! in%kpt and in%wkpt will be allocated by ab6_symmetry routine.
-     call memocc(0,in%kpt,'in%kpt',subname)
-     call memocc(0,in%wkpt,'in%wkpt',subname)
-  else if (trim(type) == "manual" .or. trim(type) == "Manual") then
-     read(1,*,iostat=ierror) in%nkpt
-     call check()
-     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%kpt,'in%kpt',subname)
-     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-     norm=0.0_gp
-     do i = 1, in%nkpt
-        read(1,*,iostat=ierror) in%kpt(:, i), in%wkpt(i)
-        norm=norm+in%wkpt(i)
-        call check()
-     end do
-     
-     ! We normalise the weights.
-     in%wkpt(:) = in%wkpt / norm
-  end if
-  ! Now read the band structure definition.
-  read(1,*,iostat=ierror) type
-  if (ierror == 0 .and. (trim(type) == "bands" .or. trim(type) == "Bands" .or. &
-       & trim(type) == "BANDS")) then
-     read(1,*,iostat=ierror) nseg
-     call check()
-     allocate(iseg(nseg+ndebug),stat=i_stat)
-     call memocc(i_stat,iseg,'iseg',subname)
-     read(1,*,iostat=ierror) iseg, ngranularity
-     call check()
-     !calculate the number of groups of for the band structure
-     in%nkptv=1
-     do i=1,nseg
-        in%nkptv=in%nkptv+iseg(i)
-     end do
-     in%ngroups_kptv=ceiling(real(in%nkptv,gp)/real(ngranularity,gp))
-
-     allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
-     call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
-     ncount=0
-     do i=1,in%ngroups_kptv-1
-        in%nkptsv_group(i)=ngranularity !if ngranularity is bigger than nkptv  then ngroups is one
-        ncount=ncount+ngranularity
-     end do
-     !put the rest in the last group
-     in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
-
-     allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
-     call memocc(i_stat,in%kptv,'in%kptv',subname)
-     ikpt = 1
-     read(1,*,iostat=ierror) in%kptv(:, ikpt)
-     call check()
-     do i = 1, nseg
-        ikpt = ikpt + iseg(i)
-        read(1,*,iostat=ierror) in%kptv(:, ikpt)
-        call check()
-        do j = ikpt - iseg(i) + 1, ikpt - 1
-           in%kptv(:, j) = in%kptv(:, ikpt - iseg(i)) + &
-                & (in%kptv(:, ikpt) - in%kptv(:, ikpt - iseg(i))) * &
-                & real(j - ikpt + iseg(i), gp) / real(iseg(i), gp)
-        end do
-     end do
-     
-     i_all=-product(shape(iseg))*kind(iseg)
-     deallocate(iseg,stat=i_stat)
-     call memocc(i_stat,i_all,'iseg',subname)
-
-     !read an optional line to see if there is a file associated
-     read(1,'(a100)',iostat=ierror)line
-     if (ierror /=0) then
-        !last line missing, put an empty line
-        line=''
-        in%band_structure_filename=''
-     else
-        read(line,*,iostat=ierror) in%band_structure_filename
-        call check()
-        !since a file for the local potential is already given, do not perform ground state calculation
-        if (iproc==0) then
-           write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
-                ', do not optimise GS wavefunctions'
-        end if
-        in%nrepmax=0
-        in%itermax=0
-        in%itrpmax=0
-        in%inputPsiId=-1000 !allocate empty wavefunctions
-        in%output_denspot=0
-     end if
-  end if
-  close(unit=1,iostat=ierror)
-
-  ! Convert reduced coordinates into BZ coordinates.
-  alat = atoms%astruct%cell_dim
-  if (atoms%astruct%geocode == 'S') alat(2) = 1.d0
-  do i = 1, in%nkpt, 1
-     in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
-  end do
-  do i = 1, in%nkptv, 1
-     in%kptv(:, i) = in%kptv(:, i) / alat * two_pi
-  end do
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE kpt_input_variables
-
-
-!> Read the input variables which can be used for performances
-subroutine perf_input_variables(iproc,dump,filename,in)
-  use module_base
-  use module_types
-  use module_input
-  use yaml_strings
-  use yaml_output
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-  type(input_variables), intent(inout) :: in
-  !local variables
-  !n(c) character(len=*), parameter :: subname='perf_input_variables'
-  logical :: exists
-  integer :: ierr,blocks(2),ipos,i,iproc_node,nproc_node
-
-  call input_set_file(iproc, dump, filename, exists,'Performance Options')
-  if (exists) in%files = in%files + INPUTS_PERF
-  !Use Linear scaling methods
-  in%linear=INPUT_IG_OFF
-
-  in%matacc=material_acceleration_null()
-
-  call input_var("debug", .false., "Debug option", in%debug)
-  call input_var("fftcache", 8*1024, "Cache size for the FFT", in%ncache_fft)
-  call input_var("accel", 7, "NO     ", &
-       (/ "NO     ", "CUDAGPU", "OCLGPU ", "OCLCPU ", "OCLACC " /), &
-       & "Acceleration", in%matacc%iacceleration)
-
-  !determine desired OCL platform which is used for acceleration
-  call input_var("OCL_platform",repeat(' ',len(in%matacc%OCL_platform)), &
-       & "Chosen OCL platform", in%matacc%OCL_platform)
-  ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
-  do i=ipos,len(in%matacc%OCL_platform)
-     in%matacc%OCL_platform(i:i)=achar(0)
-  end do
-  call input_var("OCL_devices",repeat(' ',len(in%matacc%OCL_devices)), &
-       & "Chosen OCL devices", in%matacc%OCL_devices)
-  ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
-  do i=ipos,len(in%matacc%OCL_devices)
-     in%matacc%OCL_devices(i:i)=achar(0)
-  end do
-
-  !!@TODO to relocate
-  call input_var("blas", .false., "CUBLAS acceleration", GPUblas)
-  call input_var("projrad", 15.0d0, &
-       & "Radius of the projector as a function of the maxrad", in%projrad)
-  call input_var("exctxpar", "OP2P", &
-       & "Exact exchange parallelisation scheme", in%exctxpar)
-  call input_var("ig_diag", .true., &
-       & "Input guess: (T:Direct, F:Iterative) diag. of Ham.", &
-       & in%orthpar%directDiag)
-  call input_var("ig_norbp", 5, &
-       & "Input guess: Orbitals per process for iterative diag.", &
-       & in%orthpar%norbpInguess)
-  call input_var("ig_blocks", (/ 300, 800 /), &
-       & "Input guess: Block sizes for orthonormalisation", blocks)
-  call input_var("ig_tol", 1d-4, &
-       & "Input guess: Tolerance criterion", in%orthpar%iguessTol)
-  call input_var("methortho", 0, (/ 0, 1, 2 /), &
-       & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", in%orthpar%methOrtho)
-  call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",&
-       in%rho_commun)
-  call input_var("psolver_groupsize",0, "Size of Poisson Solver taskgroups (0=nproc)", in%PSolver_groupsize)
-  call input_var("psolver_accel",0, "Acceleration of the Poisson Solver (0=none, 1=CUDA)", in%matacc%PSolver_igpu)
-  call input_var("unblock_comms", "OFF", "Overlap Communications of fields (OFF,DEN,POT)",&
-       in%unblock_comms)
-  call input_var("linear", 3, 'OFF', (/ "OFF", "LIG", "FUL", "TMO" /), &
-       & "Linear Input Guess approach",in%linear)
-  call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",in%symTol)
-  call input_var("signaling", .false., "Expose calculation results on Network",in%signaling)
-  call input_var("signalTimeout", 0, "Time out on startup for signal connection",in%signalTimeout)  
-  call input_var("domain", "", "Domain to add to the hostname to find the IP", in%domain)
-  call input_var("inguess_geopt", 0,(/0,1/),"0= wavlet input guess, 1= real space input guess",in%inguess_geopt)
-  call input_var("store_index", .true., "linear scaling: store indices or recalculate them", in%store_index)
-  !verbosity of the output
-  call input_var("verbosity", 2,(/0,1,2,3/), &
-     & "verbosity of the output 0=low, 2=high",in%verbosity)
-  in%writing_directory=repeat(' ',len(in%writing_directory))
-  call input_var("outdir", ".","Writing directory", in%writing_directory)
-
-  !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
-  call input_var("psp_onfly", .true., &
-       & "Calculate pseudopotential projectors on the fly",DistProjApply)
- 
-  !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-  call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",in%lin%blocksize_pdsyev) !ranges=(/-100,1000/)
-  call input_var("pdgemm_blocksize",-8,"SCALAPACK linear scaling blocksize",in%lin%blocksize_pdgemm) !ranges=(/-100,1000/)
-  
-  !max number of process uses for pdsyev/pdsygv, pdgemm
-  call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdsyev) !ranges=(/1,100000/)
-  call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",in%lin%nproc_pdgemm) !ranges=(/1,100000/)
-
-  !FOE: if the determinant of the interpolation matrix to find the Fermi energy
-  !is smaller than this value, switch from cubic to linear interpolation.
-  call input_var("ef_interpol_det",1.d-20,"FOE: max determinant of cubic interpolation matrix",&
-       in%lin%ef_interpol_det)
-  call input_var("ef_interpol_chargediff",10.d0,"FOE: max charge difference for interpolation",&
-       in%lin%ef_interpol_chargediff)
-
-  !determines whether a mixing step shall be preformed after the input guess !(linear version)
-  call input_var("mixing_after_inputguess",.true.,"mixing step after linear input guess (T/F)",&
-       in%lin%mixing_after_inputguess)
-
-  !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
-  call input_var("iterative_orthogonalization",.false.,"iterative_orthogonalization for input guess orbitals",&
-       in%lin%iterative_orthogonalization)
-
-!  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
-  if (in%verbosity == 0 ) then
-     call f_malloc_set_status(output_level=0)
-     !call memocc_set_state(0)
-  end if
-
-  !here the logfile should be opened in the usual way, differentiating between 
-  ! logfiles in case of multiple taskgroups
-  if (trim(in%writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
-     call create_log_file(iproc,in)
-  else
-     !use stdout, do not crash if unit is present
-     if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
-  end if
-  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-  if (iproc==0) then
-     !start writing on logfile
-     call yaml_new_document()
-     !welcome screen
-     if (dump) call print_logo()
-  end if
-  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
-  if (iproc ==0 .and. dump) then
-     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
-     call print_configure_options()
-  end if
-  !call input_free((iproc == 0) .and. dump)
-
-  call input_free(iproc==0)
-
-  !Block size used for the orthonormalization
-  in%orthpar%bsLow = blocks(1)
-  in%orthpar%bsUp  = blocks(2)
-  
-  ! Set performance variables
-  if (.not. in%debug) then
-     call f_malloc_set_status(output_level=1)
-     !call memocc_set_state(1)
-  end if
-  call set_cache_size(in%ncache_fft)
-
-  !Check after collecting all values
-  if(.not.in%orthpar%directDiag .or. in%orthpar%methOrtho==1) then 
-     write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
-     if(in%orthpar%bsLow==in%orthpar%bsUp) then
-        write(*,'(5x,a,i0)') 'Take block size specified by user: ',in%orthpar%bsLow
-     else if(in%orthpar%bsLow<in%orthpar%bsUp) then
-        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',in%orthpar%bsLow,' and ',in%orthpar%bsUp
-     else
-        write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
-        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-     end if
-     write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
-  end if
-END SUBROUTINE perf_input_variables
-
 
 !> Read fragment input parameters
 subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
@@ -1932,7 +920,13 @@ subroutine create_log_file(iproc,inputs)
         !create that only if the stream is not already present, otherwise print a warning
         if (ierr == 0) then
            call input_set_stdout(unit=70)
-           call f_malloc_set_status(unit=70,logfile_name=trim(inputs%dir_output)//'malloc.prc')
+           if (len_trim(inputs%run_name) == 0) then
+              call f_malloc_set_status(unit=70, &
+                   & logfile_name='malloc' // trim(bigdft_run_id_toa()) // '.prc')
+           else
+              call f_malloc_set_status(unit=70, &
+                   & logfile_name='malloc-' // trim(inputs%run_name) // '.prc')
+           end if
            !call memocc_set_stdout(unit=70)
         else
            call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')
@@ -1954,15 +948,16 @@ subroutine free_kpt_variables(in)
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_kpt_variables'
   integer :: i_stat, i_all
-  if (associated(in%kpt)) then
-     i_all=-product(shape(in%kpt))*kind(in%kpt)
-     deallocate(in%kpt,stat=i_stat)
-     call memocc(i_stat,i_all,'in%kpt',subname)
+
+  if (associated(in%gen_kpt)) then
+     i_all=-product(shape(in%gen_kpt))*kind(in%gen_kpt)
+     deallocate(in%gen_kpt,stat=i_stat)
+     call memocc(i_stat,i_all,'in%gen_kpt',subname)
   end if
-  if (associated(in%wkpt)) then
-     i_all=-product(shape(in%wkpt))*kind(in%wkpt)
-     deallocate(in%wkpt,stat=i_stat)
-     call memocc(i_stat,i_all,'in%wkpt',subname)
+  if (associated(in%gen_wkpt)) then
+     i_all=-product(shape(in%gen_wkpt))*kind(in%gen_wkpt)
+     deallocate(in%gen_wkpt,stat=i_stat)
+     call memocc(i_stat,i_all,'in%gen_wkpt',subname)
   end if
   if (associated(in%kptv)) then
      i_all=-product(shape(in%kptv))*kind(in%kptv)
@@ -1974,11 +969,28 @@ subroutine free_kpt_variables(in)
      deallocate(in%nkptsv_group,stat=i_stat)
      call memocc(i_stat,i_all,'in%nkptsv_group',subname)
   end if
-  nullify(in%kpt)
-  nullify(in%wkpt)
+  nullify(in%gen_kpt)
+  nullify(in%gen_wkpt)
   nullify(in%kptv)
   nullify(in%nkptsv_group)
 end subroutine free_kpt_variables
+
+!>  Free all dynamically allocated memory from the geopt input file.
+subroutine free_geopt_variables(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  character(len=*), parameter :: subname='free_geopt_variables'
+  integer :: i_stat, i_all
+
+  if (associated(in%qmass)) then
+     i_all=-product(shape(in%qmass))*kind(in%qmass)
+     deallocate(in%qmass,stat=i_stat)
+     call memocc(i_stat,i_all,'in%qmass',subname)
+  end if
+  nullify(in%qmass)
+end subroutine free_geopt_variables
 
 !>  Free all dynamically allocated memory from the input variable structure.
 subroutine free_input_variables(in)
@@ -1988,17 +1000,11 @@ subroutine free_input_variables(in)
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
-  integer :: i_stat, i_all
 
-  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
-       & call deallocateBasicArraysInput(in%lin)
+!!$  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
+!!$       & call deallocateBasicArraysInput(in%lin)
 
-
-  if (associated(in%qmass)) then
-     i_all=-product(shape(in%qmass))*kind(in%qmass)
-     deallocate(in%qmass,stat=i_stat)
-     call memocc(i_stat,i_all,'in%qmass',subname)
-  end if
+  call free_geopt_variables(in)
   call free_kpt_variables(in)
   call deallocateBasicArraysInput(in%lin)
   call deallocateInputFragArrays(in%frag)
@@ -2524,12 +1530,12 @@ subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
    end if
 
    if (.not. file_exists) then
-      write(*,*) "Atomic input file not found."
-      write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
       if (present(status)) then
          status = 1
          return
       else
+         write(*,*) "Atomic input file not found."
+         write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
          stop 
       end if
    end if
@@ -2542,11 +1548,13 @@ subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
          call read_xyz_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
       end if
    else if (astruct%inputfile_format == "ascii") then
+      i_stat = iproc
+      if (present(status)) i_stat = 1
       !read atomic positions
       if (.not.archive) then
-         call read_ascii_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
+         call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,directGetLine)
       else
-         call read_ascii_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
+         call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
       end if
    else if (astruct%inputfile_format == "yaml") then
       !read atomic positions
@@ -2560,18 +1568,18 @@ subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
 
    !Check the number of atoms
    if (astruct%nat < 0) then
-      write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
-           &  "', the number of atoms (",astruct%nat,") < 0 (should be >= 0)."
       if (present(status)) then
          status = 1
          return
       else
+         write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
+              &  "', the number of atoms (",astruct%nat,") < 0 (should be >= 0)."
          stop 
       end if
    end if
 
    !control atom positions
-   call check_atoms_positions(iproc,astruct)
+   call check_atoms_positions(astruct,(iproc == 0))
 
    ! We delay the calculation of the symmetries.
 !this should be already in the atoms_null routine
@@ -2617,25 +1625,33 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
   !local variables
   character(len = 15) :: arFile
+  integer :: iunit
 
-  open(unit=9,file=trim(filename)//'.'//trim(atoms%astruct%inputfile_format))
+  if (trim(filename) == "stdout") then
+     iunit = 6
+  else
+     open(unit=9,file=trim(filename)//'.'//trim(atoms%astruct%inputfile_format))
+     iunit = 9
+  end if
   if (atoms%astruct%inputfile_format == "xyz") then
-     call wtxyz(9,energy,rxyz,atoms,comment)
+     call wtxyz(iunit,energy,rxyz,atoms,comment)
      if (present(forces)) call wtxyz_forces(9,forces,atoms)
   else if (atoms%astruct%inputfile_format == "ascii") then
-     call wtascii(9,energy,rxyz,atoms,comment)
+     call wtascii(iunit,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
   else if (atoms%astruct%inputfile_format == 'yaml') then
      if (present(forces)) then
-        call wtyaml(9,energy,rxyz,atoms,comment,.true.,forces)
+        call wtyaml(iunit,energy,rxyz,atoms,comment,.true.,forces)
      else
-        call wtyaml(9,energy,rxyz,atoms,comment,.false.,rxyz)
+        call wtyaml(iunit,energy,rxyz,atoms,comment,.false.,rxyz)
      end if
   else
      write(*,*) "Error, unknown file format."
      stop
   end if
-  close(unit=9)
+  if (trim(filename) /= "stdout") then
+     close(unit=9)
+  end if
 
   ! Add to archive
   if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
@@ -3098,7 +2114,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   enddo
 
   !control atom positions
-  call check_atoms_positions(iproc,atoms)
+  call check_atoms_positions(atoms,rxyz,(iproc == 0))
 
   ! We delay the calculation of the symmetries.
   atoms%astruct%sym%symObj = -1
@@ -3106,3 +2122,641 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   nullify(atoms%astruct%sym%phnons)
 
 END SUBROUTINE initialize_atomic_file
+
+subroutine dft_input_analyse(iproc, in, dict_dft)
+  use module_base
+  use module_types
+  use module_input
+  use dictionaries
+  use module_xc
+  use yaml_output
+  use module_input_keys
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: dict_dft
+
+  !grid spacings
+  in%hx = dict_dft//HGRIDS//0
+  in%hy = dict_dft//HGRIDS//1
+  in%hz = dict_dft//HGRIDS//2
+
+  !coarse and fine radii around atoms
+  in%crmult = dict_dft//RMULT//0
+  in%frmult = dict_dft//RMULT//1
+
+  !XC functional (ABINIT XC codes)
+  in%ixc = dict_dft//IXC
+
+  !charge and electric field
+  in%ncharge = dict_dft//NCHARGE
+  in%elecfield(1) = dict_dft//ELECFIELD//0
+  in%elecfield(2) = dict_dft//ELECFIELD//1
+  in%elecfield(3) = dict_dft//ELECFIELD//2
+
+  !spin and polarization
+  in%nspin = dict_dft//NSPIN
+  in%mpol = dict_dft//MPOL
+
+  ! Initialise XC calculation
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, in%nspin)
+  else
+     call xc_init(in%ixc, XC_ABINIT, in%nspin)
+  end if
+
+  !convergence parameters
+  in%gnrm_cv = dict_dft//GNRM_CV
+  in%itermax = dict_dft//ITERMAX
+  in%nrepmax = dict_dft//NREPMAX
+
+  !convergence parameters
+  in%ncong = dict_dft//NCONG
+  in%idsx = dict_dft//IDSX
+  !does not make sense a DIIS history longer than the number of iterations
+  !only if the iscf is not particular
+  in%idsx = min(in%idsx, in%itermax)
+
+  !dispersion parameter
+  in%dispersion = dict_dft//DISPERSION
+    
+  ! Now the variables which are to be used only for the last run
+  in%inputPsiId = dict_dft//INPUTPSIID
+  in%output_wf_format = dict_dft//OUTPUT_WF
+  in%output_denspot = dict_dft//OUTPUT_DENSPOT
+
+  !project however the wavefunction on gaussians if asking to write them on disk
+  ! But not if we use linear scaling version (in%inputPsiId >= 100)
+  in%gaussian_help=(in%inputPsiId >= 10 .and. in%inputPsiId < 100)
+
+  !switch on the gaussian auxiliary treatment 
+  !and the zero of the forces
+  if (in%inputPsiId == 10) then
+     in%inputPsiId = 0
+  else if (in%inputPsiId == 13) then
+     in%inputPsiId = 2
+  end if
+  ! Setup out grid parameters.
+  if (in%output_denspot >= 0) then
+     in%output_denspot_format = in%output_denspot / 10
+  else
+     in%output_denspot_format = output_denspot_FORMAT_CUBE
+     in%output_denspot = abs(in%output_denspot)
+  end if
+  in%output_denspot = modulo(in%output_denspot, 10)
+
+  ! Tail treatment.
+  in%rbuf = dict_dft//RBUF
+  in%ncongt = dict_dft//NCONGT
+
+  !davidson treatment
+  in%norbv = dict_dft//NORBV
+  in%nvirt = dict_dft//NVIRT
+  in%nplot = dict_dft//NPLOT
+!!$  call input_dict_var(in%nvirt, dict_dft//NVIRT, 0, ranges=(/0,abs(in%norbv)/))
+!!$  call input_dict_var(in%nplot, dict_dft//NPLOT, 0, ranges=(/0,abs(in%norbv)/))
+
+  ! Line to disable automatic behaviours (currently only symmetries).
+  in%disableSym = dict_dft//DISABLE_SYM
+
+  !define whether there should be a last_run after geometry optimization
+  !also the mulliken charge population should be inserted
+  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
+       in%output_denspot /= output_denspot_NONE .or. in%norbv /= 0) then
+     in%last_run=-1 !last run to be done depending of the external conditions
+  else
+     in%last_run=0
+  end if
+end subroutine dft_input_analyse
+
+subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
+  use module_base
+  use module_types
+  use defs_basis
+  use m_ab6_kpoints
+  use yaml_output
+  use module_input_keys
+  use dictionaries
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: dict
+  type(symmetry_data), intent(in) :: sym
+  character(len = 1), intent(in) :: geocode
+  real(gp), intent(in) :: alat(3)
+  !local variables
+  logical :: lstat
+  character(len=*), parameter :: subname='kpt_input_analyse'
+  integer :: i_stat,ierror,i,nshiftk, ngkpt_(3), ikpt, j, ncount, nseg, iseg_, ngranularity_
+  real(gp) :: kptrlen_, shiftk_(3,8), norm, alat_(3)
+  character(len = 6) :: method
+  
+  ! Set default values.
+  in%gen_nkpt=1
+  in%nkptv=0
+  in%ngroups_kptv=1
+
+  call free_kpt_variables(in)
+  nullify(in%kptv, in%nkptsv_group)
+  nullify(in%gen_kpt, in%gen_wkpt)
+
+  method = dict // KPT_METHOD
+  if (input_keys_equal(trim(method), 'auto')) then
+     kptrlen_ = dict // KPTRLEN
+     if (geocode == 'F') then
+        in%gen_nkpt = 1
+        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+        in%gen_kpt = 0.
+        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
+        in%gen_wkpt = 1.
+     else
+        call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
+             & kptrlen_, ierror)
+        if (ierror /= AB6_NO_ERROR) then
+           if (iproc==0) &
+                & call yaml_warning("ERROR: cannot generate automatic k-point grid." // &
+                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
+           stop
+        end if
+        !assumes that the allocation went through
+        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
+        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
+     end if
+  else if (input_keys_equal(trim(method), 'mpgrid')) then
+     !take the points of Monkhorst-pack grid
+     ngkpt_(1) = dict // NGKPT // 0
+     ngkpt_(2) = dict // NGKPT // 1
+     ngkpt_(3) = dict // NGKPT // 2
+     if (geocode == 'S') ngkpt_(2) = 1
+     !shift
+     nshiftk = dict_len(dict//SHIFTK)
+     !read the shifts
+     shiftk_=0.0_gp
+     do i=1,nshiftk
+        shiftk_(1,i) = dict // SHIFTK // (i-1) // 0
+        shiftk_(2,i) = dict // SHIFTK // (i-1) // 1
+        shiftk_(3,i) = dict // SHIFTK // (i-1) // 2
+     end do
+
+     !control whether we are giving k-points to Free BC
+     if (geocode == 'F') then
+        if (iproc==0 .and. (maxval(ngkpt_) > 1 .or. maxval(abs(shiftk_)) > 0.)) &
+             & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
+        in%gen_nkpt = 1
+        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+        in%gen_kpt = 0.
+        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
+        in%gen_wkpt = 1.
+     else
+        call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
+             & ngkpt_, nshiftk, shiftk_, ierror)
+        if (ierror /= AB6_NO_ERROR) then
+           if (iproc==0) &
+                & call yaml_warning("ERROR: cannot generate MP k-point grid." // &
+                & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
+           stop
+        end if
+        !assumes that the allocation went through
+        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
+        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
+     end if
+  else if (input_keys_equal(trim(method), 'manual')) then
+     in%gen_nkpt = max(1, dict_len(dict//KPT))
+     if (geocode == 'F' .and. in%gen_nkpt > 1) then
+        if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
+        in%gen_nkpt = 1
+     end if
+     allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+     allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
+     norm=0.0_gp
+     do i=1,in%gen_nkpt
+        in%gen_kpt(1, i) = dict // KPT // (i-1) // 0
+        in%gen_kpt(2, i) = dict // KPT // (i-1) // 1
+        in%gen_kpt(3, i) = dict // KPT // (i-1) // 2
+        if (geocode == 'S' .and. in%gen_kpt(2,i) /= 0.) then
+           in%gen_kpt(2,i) = 0.
+           if (iproc==0) call yaml_warning('Surface conditions, supressing k-points along y.')
+        end if
+        in%gen_wkpt(i) = dict // WKPT // (i-1)
+        if (geocode == 'F') then
+           in%gen_kpt = 0.
+           in%gen_wkpt = 1.
+        end if
+        norm=norm+in%gen_wkpt(i)
+     end do
+     ! We normalise the weights.
+     in%gen_wkpt(:)=in%gen_wkpt/norm
+  else
+     if (iproc==0) &
+          & call yaml_warning("ERROR: wrong k-point sampling method (" // &
+          & trim(method) // ").")
+     stop
+  end if
+
+  ! Convert reduced coordinates into BZ coordinates.
+  alat_ = alat
+  if (geocode /= 'P') alat_(2) = 1.0_gp
+  if (geocode == 'F') then
+     alat_(1)=1.0_gp
+     alat_(3)=1.0_gp
+  end if
+  do i = 1, in%gen_nkpt, 1
+     in%gen_kpt(:, i) = in%gen_kpt(:, i) / alat_(:) * two_pi
+  end do
+ 
+  in%band_structure_filename=''
+  lstat = dict // BANDS
+  if (lstat) then
+     !calculate the number of groups of for the band structure
+     in%nkptv=1
+     nseg = dict_len(dict // ISEG)
+     do i=1,nseg
+        iseg_ = dict // ISEG // (i-1)
+        in%nkptv=in%nkptv+iseg_
+     end do
+     ngranularity_ = dict // NGRANULARITY
+
+     in%ngroups_kptv=&
+          ceiling(real(in%nkptv,gp)/real(ngranularity_,gp))
+
+     allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
+
+     ncount=0
+     do i=1,in%ngroups_kptv-1
+        !if ngranularity is bigger than nkptv  then ngroups is one
+        in%nkptsv_group(i)=ngranularity_
+        ncount=ncount+ngranularity_
+     end do
+     !put the rest in the last group
+     in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
+
+     allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%kptv,'in%kptv',subname)
+
+     ikpt = 0
+     do i=1,nseg
+        iseg_ = dict // ISEG // (i-1)
+        ikpt=ikpt+iseg_
+        in%kptv(1,ikpt) = dict // KPTV // (ikpt - 1) // 0
+        in%kptv(2,ikpt) = dict // KPTV // (ikpt - 1) // 1
+        in%kptv(3,ikpt) = dict // KPTV // (ikpt - 1) // 2
+        !interpolate the values
+        do j=ikpt-iseg_+1,ikpt-1
+           in%kptv(:,j)=in%kptv(:,ikpt-iseg_) + &
+                (in%kptv(:,ikpt)-in%kptv(:,ikpt-iseg_)) * &
+                real(j-ikpt+iseg_,gp)/real(iseg_, gp)
+        end do
+     end do
+
+     ! Convert reduced coordinates into BZ coordinates.
+     do i = 1, in%nkptv, 1
+        in%kptv(:, i) = in%kptv(:, i) / alat_(:) * two_pi
+     end do
+
+     if (has_key(dict, BAND_STRUCTURE_FILENAME)) then
+        in%band_structure_filename = dict // BAND_STRUCTURE_FILENAME
+        !since a file for the local potential is already given, do not perform ground state calculation
+        if (iproc==0) then
+           write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
+                ', do not optimise GS wavefunctions'
+        end if
+        in%nrepmax=0
+        in%itermax=0
+        in%itrpmax=0
+        in%inputPsiId=-1000 !allocate empty wavefunctions
+        in%output_denspot=0
+     end if
+  else
+     in%nkptv = 0
+     allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%kptv,'in%kptv',subname)
+  end if
+
+  if (in%nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
+       & call yaml_warning('Defining a k-point path in free boundary conditions.') 
+END SUBROUTINE kpt_input_analyse
+
+!> Read the input variables needed for the geometry optimisation
+!! Every argument should be considered as mandatory
+subroutine geopt_input_analyse(iproc,in,dict)
+  use module_base
+  use module_types
+  use module_input_keys
+  use dictionaries
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: dict
+  !local variables
+  character(len=*), parameter :: subname='geopt_input_analyse'
+  integer :: i_stat,i
+  character(len = max_field_length) :: prof, meth
+  real(gp) :: betax_, dtmax_
+
+  ! Additional treatments.
+  meth = dict // GEOPT_METHOD
+  if (input_keys_equal(trim(meth), "FIRE")) then
+     prof = input_keys_get_source(dict, DTMAX)
+     if (trim(prof) == "default") then
+        betax_ = dict // BETAX
+        call set(dict // DTMAX, 0.25 * pi_param * sqrt(betax_), fmt = "(F7.4)")
+     end if
+     prof = input_keys_get_source(dict, DTINIT)
+     if (trim(prof) == "default") then
+        dtmax_ = dict // DTMAX
+        call set(dict // DTINIT, 0.5 * dtmax_, fmt = "(F7.4)")
+     end if
+  end if
+!!$  call yaml_dict_dump(dict)
+
+  call free_geopt_variables(in)
+
+  !target stress tensor
+  in%strtarget(:)=0.0_gp
+
+  !geometry input parameters
+  in%geopt_approach = dict // GEOPT_METHOD
+  in%ncount_cluster_x = dict // NCOUNT_CLUSTER_X
+  !here the parsing of the wavefunction history should be added
+  in%wfn_history=1
+
+  in%frac_fluct = dict // FRAC_FLUCT
+  in%forcemax = dict // FORCEMAX
+  in%randdis = dict // RANDDIS
+
+  if (input_keys_equal(trim(in%geopt_approach), "AB6MD")) then
+     in%nnos=0
+     in%ionmov = dict // IONMOV
+     in%dtion = dict // DTION
+     if (in%ionmov == 6) then
+        in%mditemp = dict // MDITEMP
+     elseif (in%ionmov > 7) then
+        in%mditemp = dict // MDITEMP
+        in%mdftemp = dict // MDFTEMP
+     end if
+
+     if (in%ionmov == 8) then
+        in%noseinert = dict // NOSEINERT
+     else if (in%ionmov == 9) then
+        in%friction = dict // FRICTION
+        in%mdwall = dict // MDWALL
+     else if (in%ionmov == 13) then
+        in%nnos = dict_len(dict // QMASS)
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
+        do i=1,in%nnos-1
+           in%qmass(i) = dict_len(dict // QMASS // (i-1))
+        end do
+        in%bmass = dict // BMASS
+        in%vmass = dict // VMASS
+     end if
+
+     if (in%ionmov /= 13) then
+        !the allocation of this pointer should be done in any case
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
+     end if
+  else if (input_keys_equal(trim(in%geopt_approach),"DIIS")) then
+     in%betax = dict // BETAX
+     in%history = dict // HISTORY
+  else
+     in%betax = dict // BETAX
+  end if
+
+  if (input_keys_equal(trim(in%geopt_approach),"FIRE")) then
+     in%dtinit = dict // DTINIT
+     in%dtmax = dict // DTMAX
+  endif
+END SUBROUTINE geopt_input_analyse
+
+subroutine mix_input_analyse(iproc,in,dict)
+  use module_base
+  use module_types
+  use module_input_keys
+  use dictionaries
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc
+  type(dictionary), pointer :: dict
+  type(input_variables), intent(inout) :: in
+  !local variables
+  !n(c) character(len=*), parameter :: subname='mix_input_variables'
+
+  in%iscf = dict // ISCF
+  
+  in%itrpmax = dict // ITRPMAX
+  in%rpnrm_cv = dict // RPNRM_CV
+
+  in%norbsempty = dict // NORBSEMPTY
+  in%Tel = dict // TEL
+  in%occopt = dict // OCCOPT
+
+  in%alphamix = dict // ALPHAMIX
+  in%alphadiis = dict //ALPHADIIS
+
+  !put the startmix if the mixing has to be done
+  if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
+
+END SUBROUTINE mix_input_analyse
+
+subroutine sic_input_analyse(iproc,in,dict,ixc_)
+  use module_base
+  use module_types
+  use module_input_keys
+  use dictionaries
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc
+  type(dictionary), pointer :: dict
+  type(input_variables), intent(inout) :: in
+  integer, intent(in) :: ixc_
+  !local variables
+  !n(c) character(len=*), parameter :: subname='sic_input_variables'
+
+  in%SIC%approach(1:len(in%SIC%approach)) = dict // SIC_APPROACH
+  in%SIC%alpha = dict // SIC_ALPHA
+  if (input_keys_equal(trim(in%SIC%approach), "NK")) in%SIC%fref = dict // SIC_FREF
+  in%SIC%ixc = ixc_
+
+END SUBROUTINE sic_input_analyse
+
+subroutine tddft_input_analyse(iproc,in,dict)
+  use module_base
+  use module_types
+  use module_input_keys
+  use dictionaries
+  implicit none
+  integer, intent(in) :: iproc
+  type(dictionary), pointer :: dict
+  type(input_variables), intent(inout) :: in
+  !local variables
+  !n(c) character(len=*), parameter :: subname='tddft_input_variables'
+
+  !TD-DFT parameters
+  in%tddft_approach(1:len(in%tddft_approach)) = dict // TDDFT_APPROACH
+
+END SUBROUTINE tddft_input_analyse
+
+!> Read the input variables which can be used for performances
+subroutine perf_input_analyse(iproc,in,dict)
+  use module_base
+  use module_types
+  use module_input_keys
+  use yaml_strings
+  use yaml_output
+  use dictionaries
+  implicit none
+  integer, intent(in) :: iproc
+  type(dictionary), pointer :: dict
+  type(input_variables), intent(inout) :: in
+  !local variables
+  !n(c) character(len=*), parameter :: subname='perf_input_variables'
+  integer :: ierr,ipos,i,iproc_node,nproc_node
+  character(len = 7) :: val
+
+  ! Performence and setting-up options
+  ! ----------------------------------
+  in%debug = dict // DEBUG
+  if (.not. in%debug) then
+     call f_malloc_set_status(output_level=1)
+     !call memocc_set_state(1)
+  end if
+  in%ncache_fft = dict // FFTCACHE
+  call set_cache_size(in%ncache_fft)
+  in%verbosity = dict // VERBOSITY
+  if (in%verbosity == 0 ) then
+     call f_malloc_set_status(output_level=0)
+     !call memocc_set_state(0)
+  end if
+  in%writing_directory = dict // OUTDIR
+  !here the logfile should be opened in the usual way, differentiating between 
+  ! logfiles in case of multiple taskgroups
+  if (trim(in%writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
+     call create_log_file(iproc,in)
+  else
+     !use stdout, do not crash if unit is present
+     if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
+  end if
+
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+  if (iproc==0) then
+     !start writing on logfile
+     call yaml_new_document()
+     !welcome screen
+     call print_logo()
+  end if
+  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+  if (iproc ==0) then
+     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
+     call print_configure_options()
+  end if
+
+  ! Miscellaneous options
+  ! ---------------------
+  in%symTol = dict // TOLSYM
+  in%projrad = dict // PROJRAD
+  in%exctxpar = dict // EXCTXPAR
+  in%inguess_geopt = dict // INGUESS_GEOPT
+
+  ! Material acceleration options
+  ! -----------------------------
+  in%matacc=material_acceleration_null()
+  val = dict // ACCEL
+  if (input_keys_equal(trim(val), "CUDAGPU")) then
+     in%matacc%iacceleration = 1
+  else if (input_keys_equal(trim(val), "OCLGPU")) then
+     in%matacc%iacceleration = 2
+  else if (input_keys_equal(trim(val), "OCLCPU")) then
+     in%matacc%iacceleration = 3
+  else if (input_keys_equal(trim(val), "OCLACC")) then
+     in%matacc%iacceleration = 4
+  else 
+     in%matacc%iacceleration = 0
+  end if
+  !determine desired OCL platform which is used for acceleration
+  in%matacc%OCL_platform = dict // OCL_PLATFORM
+  ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
+  do i=ipos,len(in%matacc%OCL_platform)
+     in%matacc%OCL_platform(i:i)=achar(0)
+  end do
+  in%matacc%OCL_devices = dict // OCL_DEVICES
+  ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
+  do i=ipos,len(in%matacc%OCL_devices)
+     in%matacc%OCL_devices(i:i)=achar(0)
+  end do
+  in%matacc%PSolver_igpu = dict // PSOLVER_ACCEL
+
+  ! Signaling parameters
+  in%signaling = dict // SIGNALING
+  in%signalTimeout = dict // SIGNALTIMEOUT
+  in%domain = dict // DOMAIN
+
+  !!@TODO to relocate
+  GPUblas = dict // BLAS
+  DistProjApply = dict // PSP_ONFLY 
+
+  in%orthpar%directDiag = dict // IG_DIAG
+  in%orthpar%norbpInguess = dict // IG_NORBP
+  in%orthpar%iguessTol = dict // IG_TOL
+  in%orthpar%methOrtho = dict // METHORTHO
+  !Block size used for the orthonormalization
+  in%orthpar%bsLow = dict // IG_BLOCKS // 0
+  in%orthpar%bsUp  = dict // IG_BLOCKS // 1
+  !Check after collecting all values
+  if(.not.in%orthpar%directDiag .or. in%orthpar%methOrtho==1) then 
+     write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
+     if(in%orthpar%bsLow==in%orthpar%bsUp) then
+        write(*,'(5x,a,i0)') 'Take block size specified by user: ',in%orthpar%bsLow
+     else if(in%orthpar%bsLow<in%orthpar%bsUp) then
+        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',in%orthpar%bsLow,' and ',in%orthpar%bsUp
+     else
+        write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
+        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+     end if
+     write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
+  end if
+
+  in%rho_commun = dict // RHO_COMMUN
+  in%PSolver_groupsize = dict // PSOLVER_GROUPSIZE
+  in%unblock_comms = dict // UNBLOCK_COMMS
+
+  !Use Linear scaling methods
+  val = dict // LINEAR
+  if (input_keys_equal(trim(val), "LIG")) then
+     in%linear = INPUT_IG_LIG
+  else if (input_keys_equal(trim(val), "FUL")) then
+     in%linear = INPUT_IG_FULL
+  else if (input_keys_equal(trim(val), "TMO")) then
+     in%linear = INPUT_IG_TMO
+  else
+     in%linear = INPUT_IG_OFF
+  end if
+
+  in%store_index = dict // STORE_INDEX
+
+  !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+  in%lin%blocksize_pdsyev = dict // PDSYEV_BLOCKSIZE
+  in%lin%blocksize_pdgemm = dict // PDGEMM_BLOCKSIZE
+  !max number of process uses for pdsyev/pdsygv, pdgemm
+  in%lin%nproc_pdsyev = dict // MAXPROC_PDSYEV
+  in%lin%nproc_pdgemm = dict // MAXPROC_PDGEMM
+  !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+  !is smaller than this value, switch from cubic to linear interpolation.
+  in%lin%ef_interpol_det = dict // EF_INTERPOL_DET
+  in%lin%ef_interpol_chargediff = dict // EF_INTERPOL_CHARGEDIFF
+  !determines whether a mixing step shall be preformed after the input guess !(linear version)
+  in%lin%mixing_after_inputguess = dict // MIXING_AFTER_INPUTGUESS
+  !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
+  in%lin%iterative_orthogonalization = dict // ITERATIVE_ORTHOGONALIZATION
+
+!  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+END SUBROUTINE perf_input_analyse
+

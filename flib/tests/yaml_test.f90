@@ -66,6 +66,10 @@ program yaml_test
     call test_dynamic_memory()
    call yaml_release_document()
 
+   call yaml_new_document()
+    call test_copy_merge()
+   call yaml_release_document()
+
    !prepare the finalization of the library
    call f_lib_finalize()
 end program yaml_test

@@ -535,3 +535,47 @@
      Peak Value (MB)                   :  0
      for the array                     : rhopot
      in the routine                    : PS_Check
+---
+ test dict_copy:
+   original:
+     __comment__                       : Grid shifts
+     __cond__:
+       __master_key__                  : kpt_method
+       __when__:
+       - MPGrid
+     __default__:
+     - 0.
+     - 0.
+     - 0.
+   copy:
+     __comment__                       : Grid shifts
+     __cond__:
+       __master_key__                  : kpt_method
+       __when__:
+       - MPGrid
+     __default__:
+     - 0.
+     - 0.
+     - 0.
+ test dict_update:
+   additional:
+     __exclusive__:
+       123                             : operation 123
+       456                             : operation 456
+     __default__:
+     - 1.
+     - 2.
+     - 3.
+   after merge:
+     __comment__                       : Grid shifts
+     __cond__:
+       __master_key__                  : kpt_method
+       __when__:
+       - MPGrid
+     __default__:
+     - 1.
+     - 2.
+     - 3.
+     __exclusive__:
+       123                             : operation 123
+       456                             : operation 456

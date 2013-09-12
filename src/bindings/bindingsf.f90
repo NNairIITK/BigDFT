@@ -447,9 +447,9 @@ END SUBROUTINE lzd_get_llr
 
 subroutine inputs_new(in)
   use module_types
+  use dictionaries
   implicit none
   type(input_variables), pointer :: in
-
   allocate(in)
   call default_input_variables(in)
 end subroutine inputs_new
@@ -458,27 +458,69 @@ subroutine inputs_free(in)
   implicit none
   type(input_variables), pointer :: in
 
-  !call free_input_variables(in)
-  call bigdft_free_input(in)
+  call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
-subroutine inputs_set_radical(in, nproc, rad, ln)
+subroutine inputs_set(dict, file, key, val)
+  use dictionaries
   use module_types
   implicit none
-  type(input_variables), intent(inout) :: in
-  integer, intent(in) :: ln, nproc
-  character, intent(in) :: rad(ln)
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: file, key, val
 
-  character(len = 1024) :: rad_
-  integer :: i
+  ! This is a patch for Intel, to be corrected properly later.
+  call set(dict // file // key, val(1:len(val)))
+END SUBROUTINE inputs_set
+subroutine inputs_set_at(dict, file, key, i, val)
+  use dictionaries
+  use module_types
+  implicit none
+  type(dictionary), pointer :: dict
+  integer, intent(in) :: i
+  character(len = *), intent(in) :: file, key, val
 
-  write(rad_, "(A)") " "
-  do i = 1, ln
-     write(rad_(i:i), "(A1)") rad(i)
-  end do
-  call standard_inputfile_names(in, rad_, nproc)
-end subroutine inputs_set_radical
+  ! This is a patch for Intel, to be corrected properly later.
+  call set(dict // file // key // i, val(1:len(val)))
+END SUBROUTINE inputs_set_at
+subroutine inputs_set_from_file(dict, fname)
+  use dictionaries
+  use module_interfaces, only: read_input_dict_from_files
+  use module_defs
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: fname
 
+  dict => read_input_dict_from_files(fname, bigdft_mpi)
+end subroutine inputs_set_from_file
+subroutine inputs_fill_all(inputs_values)
+  use module_input_keys
+  use dictionaries
+  implicit none
+  type(dictionary), pointer :: inputs_values
+
+  call input_keys_fill_all(inputs_values)
+end subroutine inputs_fill_all
+subroutine inputs_get_naming(in, run_name, file_occnum, file_igpop, file_lin)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  character(len = 100), intent(out) :: run_name, file_occnum, file_igpop, file_lin
+
+  run_name = in%run_name
+  file_occnum = in%file_occnum
+  file_igpop = in%file_igpop
+  file_lin = in%file_lin
+END SUBROUTINE inputs_get_naming
+subroutine inputs_get_output(in, dir_output, writing_directory)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  character(len = 100), intent(out) :: dir_output
+  character(len = 500), intent(out) :: writing_directory
+
+  dir_output = in%dir_output
+  writing_directory = in%writing_directory
+END SUBROUTINE inputs_get_output
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
      & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym)
@@ -600,6 +642,14 @@ subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, 
 
   call input_check_psi_id(inputpsi, input_wf_format, trim(dir_output), orbs, lorbs, iproc, nproc)
 END SUBROUTINE inputs_check_psi_id
+subroutine inputs_set_restart(in, id)
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  integer, intent(in) :: id
+
+  in%inputPsiId = id
+end subroutine inputs_set_restart
 
 subroutine orbs_new(orbs)
   use module_types
@@ -1126,22 +1176,50 @@ subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
   iproc = -1
 END SUBROUTINE orbs_get_iorbp
 
-subroutine energs_new(self, energs)
+subroutine global_output_new(self, outs, energs, fxyz, nat)
   use module_types
   implicit none
   integer(kind = 8), intent(in) :: self
+  type(DFT_global_output), pointer :: outs
   type(energy_terms), pointer :: energs
+  real(gp), dimension(:,:), pointer :: fxyz
+  integer, intent(in) :: nat
 
-  allocate(energs)
-  energs%c_obj = self
-END SUBROUTINE energs_new
-subroutine energs_free(energs)
+  allocate(outs)
+  call init_global_output(outs, nat)
+  energs => outs%energs
+  fxyz => outs%fxyz
+  outs%energs%c_obj = self
+END SUBROUTINE global_output_new
+subroutine global_output_free(outs)
   use module_types
   implicit none
-  type(energy_terms), pointer :: energs
+  type(DFT_global_output), pointer :: outs
 
-  deallocate(energs)
-END SUBROUTINE energs_free
+  call deallocate_global_output(outs)
+  deallocate(outs)
+END SUBROUTINE global_output_free
+subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
+  use module_types
+  implicit none
+  type(DFT_global_output), intent(in), target :: outs
+  type(energy_terms), pointer :: energs
+  real(gp), dimension(:,:), pointer :: fxyz
+  integer, intent(out) :: fdim
+  real(gp), intent(out) :: fnoise, pressure
+  real(gp), dimension(6), intent(out) :: strten
+  real(gp), intent(out) :: etot
+
+  energs => outs%energs
+  fxyz => outs%fxyz
+  fdim = outs%fdim
+
+  fnoise = outs%fnoise
+  pressure = outs%pressure
+  strten = outs%strten
+
+  etot = outs%energy
+END SUBROUTINE global_output_get
 subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
      & eproj, eexctX, ebs, eKS, trH, evsum, evsic)
   use module_types
@@ -1341,3 +1419,49 @@ subroutine rst_init(rst, iproc, atoms, inputs)
   
   call init_restart_objects(iproc, inputs, atoms, rst, "rst_init")
 end subroutine rst_init
+
+subroutine run_objects_new(runObj)
+  use module_types
+  implicit none
+  type(run_objects), pointer :: runObj
+
+  allocate(runObj)
+  call run_objects_nullify(runObj)
+END SUBROUTINE run_objects_new
+subroutine run_objects_destroy(runObj)
+  use module_types
+  use module_base
+  use yaml_output
+  implicit none
+  type(run_objects), pointer :: runObj
+
+  ! We don't do it here, we just destroy the container,
+  !  The caller is responsible to free public attributes.
+  !call run_objects_free(runObj)
+  deallocate(runObj)
+end subroutine run_objects_destroy
+subroutine run_objects_get(runObj, inputs, atoms, rst)
+  use module_types
+  implicit none
+  type(run_objects), intent(in) :: runObj
+  type(input_variables), pointer :: inputs
+  type(atoms_data), pointer :: atoms
+  type(restart_objects), pointer :: rst
+
+  inputs => runObj%inputs
+  atoms => runObj%atoms
+  rst => runObj%rst
+END SUBROUTINE run_objects_get
+subroutine run_objects_associate(runObj, inputs, atoms, rst)
+  use module_types
+  implicit none
+  type(run_objects), intent(out) :: runObj
+  type(input_variables), intent(in), target :: inputs
+  type(atoms_data), intent(in), target :: atoms
+  type(restart_objects), intent(in), target :: rst
+
+  call run_objects_nullify(runObj)
+  runObj%atoms  => atoms
+  runObj%inputs => inputs
+  runObj%rst    => rst
+END SUBROUTINE run_objects_associate

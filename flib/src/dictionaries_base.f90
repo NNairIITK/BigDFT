@@ -17,6 +17,8 @@ module dictionaries_base
   character(len=max_field_length), parameter, public :: TYPE_DICT='__dict__'
   character(len=max_field_length), parameter, public :: TYPE_LIST='__list__'
 
+  character(len = max_field_length), parameter, private :: NOT_A_VALUE = "__not_a_value__"
+
   type, public :: storage
      sequence
      integer :: item   !< Id of the item associated to the list
@@ -36,9 +38,6 @@ module dictionaries_base
   interface operator(//)
      module procedure get_child_ptr,get_list_ptr
   end interface
-  interface operator(.is.)
-     module procedure storage_data
-  end interface
 
 contains
   
@@ -57,13 +56,13 @@ contains
     type(dictionary), intent(in) :: dict
     logical :: no_value
 
-    no_value=len(trim(dict%data%value)) == 0 .and. .not. associated(dict%child)
+    no_value=trim(dict%data%value) == NOT_A_VALUE .and. .not. associated(dict%child)
   end function no_value
 
   pure function storage_null() result(st)
     type(storage) :: st
     st%key=repeat(' ',max_field_length)
-    st%value=repeat(' ',max_field_length)
+    st%value(1:max_field_length)=NOT_A_VALUE
     st%item=-1
     st%nitems=0
     st%nelems=0
@@ -248,6 +247,8 @@ contains
           else if (dict%data%nelems > 0) then
              dict_value=TYPE_DICT
           end if
+       else if (trim(dict%data%value) == NOT_A_VALUE) then
+          dict_value=repeat(' ',len(dict_value))
        else
           dict_value=dict%data%value
        end if
@@ -469,5 +470,21 @@ contains
     end if
     
   end subroutine clean_subdict
-
 end module dictionaries_base
+
+!> Routines for bindings only (issue of module)
+subroutine dict_new(dict)
+  use dictionaries_base
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call dict_init(dict)
+end subroutine dict_new
+
+subroutine dict_free(dict)
+  use dictionaries_base, mod_dict_free => dict_free
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call mod_dict_free(dict)
+end subroutine dict_free

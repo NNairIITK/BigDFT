@@ -1,8 +1,8 @@
 # To be installed:
 noinst_LIBRARIES = libmodules.a
 module_DATA = $(modules)
-include_HEADERS = $(bindings_headers)
-nodist_include_HEADERS = $(bindings_headers_nodist)
+include_HEADERS = bigdft.h bigdft_input_keys.h
+nodist_include_HEADERS = bigdft_cst.h
 
 # Code source.
 if USE_BLACS
@@ -25,17 +25,10 @@ LIBXC_MODULE = libxc_fake.f90
 xc.o: base.o libxc_fake.o
 endif
 
-if BUILD_BINDINGS
-bindings_headers = bigdft.h
-bindings_headers_nodist = bigdft_cst.h
-else
-bindings_headers =
-bindings_headers_nodist =
-endif
-
 libmodules_a_SOURCES = base.f90 \
 	defs.f90 \
 	gaussians.f90 \
+	input_keys.f90 \
 	types.f90 \
 	input.f90 \
 	interfaces.f90 \
@@ -65,7 +58,9 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
 	VDWCORRECTION.@MODULE_EXT@ \
 	MODULE_FRAGMENTS.@MODULE_EXT@ \
-	DIIS_SD_OPTIMIZATION.@MODULE_EXT@
+	DIIS_SD_OPTIMIZATION.@MODULE_EXT@ \
+	INPUT_OLD_TEXT_FORMAT.@MODULE_EXT@ \
+	MODULE_INPUT_KEYS.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -79,7 +74,9 @@ modules = module_base.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ \
 	module_fragments.@MODULE_EXT@ \
-	diis_sd_optimization.@MODULE_EXT@
+	diis_sd_optimization.@MODULE_EXT@ \
+	input_old_text_format.@MODULE_EXT@ \
+	module_input_keys.@MODULE_EXT@
 endif
 
 
@@ -94,7 +91,7 @@ PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
 
 # Hack for MIC compilation.
 if USE_MIC
-defs.o: defs.F90 configure.inc
+defs.o: defs.f90 configure.inc
 	$(PPFCCOMPILE) -offload-attribute-target=mic -opt-report-phase:offload -offload-option,mic,compiler,'-g -O0' -c -o $@ $<
 cublas_fake.o: cublas_fake.f90
 	$(FCCOMPILE) -offload-attribute-target=mic -c -o $@ $<
@@ -104,9 +101,10 @@ endif
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
+input_keys.o: $(top_builddir)/flib/src/dynamic_memory.o
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
 types.o: base.o gaussians.o
-input.o: base.o 
+input.o: base.o types.o input_keys.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o
 gaussians.o: base.o
 op2p_module.o : base.o

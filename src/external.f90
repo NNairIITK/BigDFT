@@ -36,7 +36,7 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
 
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
 
-  call bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
+  call bigdft_init_mpi_env(mpi_info, mpi_groupsize, ierr)
 
   !minimum number of different configurations dictated by ngroups
   nconfig=bigdft_mpi%ngroup
@@ -95,6 +95,15 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   mpi_info(4)=bigdft_mpi%ngroup
 end subroutine bigdft_init_mpi_env
 
+subroutine bigdft_init_mpi_force(igroup, ngroup)
+  use BigDFT_API
+  implicit none
+  integer, intent(in) :: igroup, ngroup
+
+  if (igroup >= 0) bigdft_mpi%igroup = igroup
+  if (ngroup >= 0) bigdft_mpi%ngroup = ngroup
+END SUBROUTINE bigdft_init_mpi_force
+
 subroutine bigdft_finalize(ierr)
   use BigDFT_API
   implicit none
@@ -106,7 +115,6 @@ subroutine bigdft_finalize(ierr)
    !wait all processes before finalisation
    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
    call MPI_FINALIZE(ierr)
-
 end subroutine bigdft_finalize
 
 
