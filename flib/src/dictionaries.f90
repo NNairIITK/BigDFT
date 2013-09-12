@@ -836,7 +836,7 @@ contains
     integer :: num,den,pfr,psp
 
     !First look at the first blank after trim
-    tmp(1:max_field_length)=trim(string)
+    tmp(1:max_field_length)=trim(adjustl(string))
     psp = scan(tmp,' ')
 
     !see whether there is a fraction in the string

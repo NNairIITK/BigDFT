@@ -139,7 +139,8 @@
 
   !> This routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
-  function f_err_raise(condition,err_msg,err_id,err_name,callback,callback_data)
+  !! @warning This function is detected as recrusive by gfortran
+  recursive function f_err_raise(condition,err_msg,err_id,err_name,callback,callback_data)
     use yaml_strings, only: yaml_toa
     !use yaml_output, only: yaml_dict_dump,yaml_map
     implicit none
