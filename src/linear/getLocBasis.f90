@@ -260,7 +260,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, matrixElements, 'matrixElements', subname)
       call dcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
       call dcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
-  if (.false.) then
+  if (.true.) then
       if(tmb%orthpar%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, tmb%orbs, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
@@ -305,12 +305,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               do jorb=1,tmb%orbs%norb
                   if (mod(jorb-1,9)+1<=4) then
                       jjorb=jjorb+1
-                      matrixElements(jorb,iorb,1)=smallmat(jjorb,iiorb,1)
-                      matrixElements(jorb,iorb,2)=smallmat(jjorb,iiorb,2)
+                      matrixElements(jorb,iiorb,1)=smallmat(jjorb,iiorb,1)
+                      matrixElements(jorb,iiorb,2)=smallmat(jjorb,iiorb,2)
                   end if
               end do
           end if
       end do
+      tmb%orbs%eval=-0.5d0
+      tmb%orbs%eval(1:at%astruct%nat*4)=evalsmall
       deallocate(work)
       deallocate(evalsmall)
       deallocate(smallmat)
