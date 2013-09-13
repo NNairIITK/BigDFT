@@ -53,6 +53,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(8),dimension(:),allocatable :: prefacarr
   real(kind=8),dimension(:,:),allocatable :: SK, KS, HK, KHK, KSKHK, KHKSK , Q
   integer,dimension(:),allocatable :: ipiv
+  real(kind=8) :: fnrm_low, fnrm_high
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
@@ -104,6 +105,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                       iiorb = tmb%linmat%denskern%orb_from_index(1,ii)
                       jjorb = tmb%linmat%denskern%orb_from_index(2,ii)
                   if(iiorb==jjorb) then
+                  !if(iiorb==jjorb .or. mod(iiorb-1,9)+1>4 .or.  mod(jjorb-1,9)+1>4) then
+                  !if(iiorb==jjorb .or. mod(iiorb-1,9)+1>4) then
                       tmb%linmat%denskern%matrix_compr(ii)=0.d0
                   else
                       tmb%linmat%denskern%matrix_compr(ii)=kernel_compr_tmp(ii)
@@ -396,6 +399,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! of the previous iteration (fnrmOvrlpArr).
   call timing(iproc,'eglincomms','ON')
   ist=1
+  fnrm_low=0.d0
+  fnrm_high=0.d0
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
@@ -406,7 +411,18 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
       fnrmArr(iorb)=ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
       ist=ist+ncount
+      if (mod(iiorb-1,9)+1<=4) then
+          fnrm_low=fnrm_low+fnrmArr(iorb)
+      else
+          fnrm_high=fnrm_high+fnrmArr(iorb)
+      end if
   end do
+
+  call mpiallred(fnrm_low, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(fnrm_high, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  fnrm_low=sqrt(fnrm_low/(4.d0/9.d0*dble(tmb%orbs%norb)))
+  fnrm_high=sqrt(fnrm_high/(5.d0/9.d0*dble(tmb%orbs%norb)))
+  if (iproc==0) write(*,'(a,2es16.6)') 'fnrm_low, fnrm_high', fnrm_low, fnrm_high
 
 
   ! Determine the gradient norm and its maximal component. In addition, adapt the

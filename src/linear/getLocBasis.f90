@@ -46,8 +46,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Local variables 
   integer :: istat, iall, iorb, jorb, info, ind_ham, ind_denskern
   integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie, matrixindex_in_compressed
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
-  real(kind=8),dimension(:,:,:),allocatable :: matrixElements
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, evalsmall, work
+  real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(energy_terms) :: energs
 
@@ -55,7 +55,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=gp) :: tmprtr
   real(kind=gp),dimension(:,:),allocatable :: coeff_orig
   real(kind=8) :: deviation
-  integer :: iat, iiorb, jjorb
+  integer :: iat, iiorb, jjorb, lwork
 
 
   if(calculate_ham) then
@@ -130,6 +130,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
+
+      if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
+                    energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
       !DEBUG
       !if(iproc==0) then
@@ -257,6 +260,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, matrixElements, 'matrixElements', subname)
       call dcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
       call dcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
+  if (.false.) then
       if(tmb%orthpar%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, tmb%orbs, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
@@ -266,10 +270,56 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                bigdft_mpi%mpi_comm, 1, 'v', 'l',tmb%orbs%norb, &
                matrixElements(1,1,1), tmb%orbs%norb, matrixElements(1,1,2), tmb%orbs%norb, tmb%orbs%eval, info)
       end if
+
       if(iproc==0) write(*,'(a)') 'done.'
 
       call dcopy(tmb%orbs%norb*tmb%orbs%norb, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
       infoCoeff=0
+  else
+      allocate(smallmat(at%astruct%nat*4,at%astruct%nat*4,2))
+      iiorb=0
+      do iorb=1,tmb%orbs%norb
+          jjorb=0
+          do jorb=1,tmb%orbs%norb
+              if(mod(iorb-1,9)+1<=4) then
+                  iiorb=iiorb+1
+                  if (mod(jorb-1,9)+1<=4) then
+                      jjorb=jjorb+1
+                      smallmat(jjorb,iiorb,1)=matrixElements(jorb,iorb,1)
+                      smallmat(jjorb,iiorb,2)=matrixElements(jorb,iorb,2)
+                  end if
+              end if
+          end do
+      end do
+      lwork=100*at%astruct%nat
+      allocate(work(lwork))
+      allocate(evalsmall(at%astruct%nat*4))
+      call dsygv(1, 'v', 'l', at%astruct%nat*4, smallmat(1,1,1), at%astruct%nat*4, &
+           smallmat(1,1,2), at%astruct%nat*4, evalsmall, work, lwork, info)
+      matrixElements=0.d0
+      iiorb=0
+      do iorb=1,tmb%orbs%norb
+          jjorb=0
+          do jorb=1,tmb%orbs%norb
+              if(mod(iorb-1,9)+1<=4) then
+                  iiorb=iiorb+1
+                  if (mod(jorb-1,9)+1<=4) then
+                      jjorb=jjorb+1
+                      matrixElements(jorb,iorb,1)=smallmat(jjorb,iiorb,1)
+                      matrixElements(jorb,iorb,2)=smallmat(jjorb,iiorb,2)
+                  end if
+              end if
+          end do
+      end do
+      deallocate(worka)
+      deallocate(evalsmall)
+      deallocate(smallmat)
+
+      if(iproc==0) write(*,'(a)') 'done.'
+
+      call dcopy(tmb%orbs%norb*tmb%orbs%norb, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
+      infoCoeff=0
+  end if
 
       ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
       if(iproc==0) then
@@ -391,7 +441,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
   integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, lwork
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
-  real(kind=8),dimension(:),allocatable :: psit_c_tmp, psit_f_tmp, work, eval
+  real(kind=8),dimension(:),allocatable :: psit_c_tmp, psit_f_tmp, work, eval, delta_energy_arr
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
   real(kind=8),dimension(:,:),allocatable :: coeff_old, tempmat
   logical :: energy_increased, overlap_calculated
@@ -416,6 +466,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   allocate(psi_old(size(tmb%psi),3))
   allocate(psi_tmp(size(tmb%psi)))
+  allocate(delta_energy_arr(nit_basis))
   psi_old(:,1)=tmb%psi
   if (itout==1) then
       isatur_out=0
@@ -574,6 +625,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF')
+
+      if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
+                    energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
@@ -827,7 +881,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (.not.energy_increased .and. .not.energy_increased_previous) then
-              ratio_deltas=ediff/delta_energy_prev
+              if (.not.ldiis%switchSD) then
+                  ratio_deltas=ediff/delta_energy_prev
+              else
+                  ratio_deltas=ediff/delta_energy_arr(ldiis%itBest)
+              end if
           end if
           if (.not.energy_increased_previous .and. it>1) then
               ediff_sum=ediff_sum+ediff
@@ -991,19 +1049,23 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
       end if
+      delta_energy_arr(it)=delta_energy
 
       ! Copy the coefficients to coeff_old. The coefficients will be modified in reconstruct_kernel.
       if (scf_mode/=LINEAR_FOE) then
           call dcopy(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1), 1, coeff_old(1,1), 1)
       end if
 
-      if (iproc==0) write(*,*) 'WARNING: NO UPDATE OF KERNEL'
-      !if(scf_mode/=LINEAR_FOE) then
-      !    call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-      !         orbs, tmb, overlap_calculated)
-      !else
-      !    call purify_kernel(iproc, nproc, tmb, overlap_calculated)
-      !end if
+  !!if (itout>=12) then
+  !!    if (iproc==0) write(*,*) 'WARNING: NO UPDATE OF KERNEL'
+  !!else
+      if(scf_mode/=LINEAR_FOE) then
+          call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+               orbs, tmb, overlap_calculated)
+      else
+          call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+      end if
+  !!end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
       end if
@@ -1037,6 +1099,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
+  deallocate(delta_energy_arr)
 
 contains
 
@@ -1813,7 +1876,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      end if
      call dcopy(basis_orbs%norb*orbs%norb,coeff_tmp(1,1),1,coeff(1,1),1)
   else
-     allocate(coeff_tmp(norb,basis_orbs%norbp), stat=istat)
+     allocate(coeff_tmp(norb,max(1,basis_orbs%norbp)), stat=istat)
      call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
      ! need to transpose so we can allgather - NOT VERY ELEGANT
      if (basis_orbs%norbp>0) then
