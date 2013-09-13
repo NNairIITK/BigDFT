@@ -4937,6 +4937,26 @@ module module_interfaces
         end subroutine inputs_new
 
 
+        subroutine atoms_new(atoms)
+          use module_types
+          implicit none
+          type(atoms_data), pointer :: atoms
+        end subroutine atoms_new
+
+        subroutine rst_new(self, rst)
+          use module_types
+          implicit none
+          integer(kind = 8), intent(in) :: self
+          type(restart_objects), pointer :: rst
+        end subroutine rst_new
+
+        subroutine inputs_new(in)
+          use module_types
+          implicit none
+          type(input_variables), pointer :: in
+        end subroutine inputs_new
+
+
         subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, collcom, collcom_shamop, &
                    collcom_sr, sparsemat)
           use module_base

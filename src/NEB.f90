@@ -191,6 +191,7 @@ MODULE NEB_routines
       bigdft_mpi%igroup = 0
       bigdft_mpi%ngroup = num_of_images
       do i = 1, num_of_images
+         call atoms_nullify(atoms(i))
          call read_atomic_file(trim(arr_posinp(i)), bigdft_mpi%iproc, atoms(i)%astruct, status = ierr)
          if (ierr /= 0) then
             if (i == 1 .or. i == num_of_images) stop "Missing images"

@@ -849,6 +849,7 @@ contains
     if (ierror /= 0) var = huge(1.d0) 
   END SUBROUTINE read_fraction_string
 
+
   !set and get routines for different types
   subroutine get_real(rval,dict)
     real(kind=4), intent(out) :: rval

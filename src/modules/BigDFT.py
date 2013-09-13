@@ -34,7 +34,7 @@ def __Atoms_get_rxyz__(at):
   for field_info in at.__class__.__info__.get_fields():
     name = field_info.get_name().replace('-', '_')
     if name == "rxyz":
-      s = struct.pack('d', field_info.get_value(at).data)
+      s = struct.pack('d', field_info.get_value(at))
       return numpy.ctypeslib.as_array(ctypes.cast(struct.unpack('q', s)[0],
                                                   ctypes.POINTER(ctypes.c_double)),
                                       shape = (at.nat, 3))

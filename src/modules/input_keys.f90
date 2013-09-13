@@ -163,7 +163,11 @@ contains
     use dictionaries
     implicit none
     
-    call yaml_warning("variable not allowed in context")
+    integer :: ierr
+    character(len = max_field_length) :: val
+
+    ierr = f_get_last_error(val)
+    call yaml_warning(trim(val))
   end subroutine warn_illegal
 
   subroutine input_keys_init()
@@ -451,7 +455,7 @@ contains
          & "SDCG"    .is. "a combination of Steepest Descent and Conjugate Gradient", &
          & "VSSD"    .is. "Variable Stepsize Steepest Descent method", &
          & "LBFGS"   .is. "limited-memory BFGS", &
-         & "BFGS"    .is. "Broyden–Fletcher–Goldfarb–Shanno", &
+         & "BFGS"    .is. "Broyden-Fletcher-Goldfarb-Shanno", &
          & "PBFGS"   .is. "Same as BFGS with an initial Hessian obtained from a force field", &
          & "AB6MD"   .is. "molecular dynamics from ABINIT", &
          & "DIIS"    .is. "direct inversion of iterative subspace", &
@@ -1136,7 +1140,7 @@ contains
     if (has_key(dict, key)) then
        ! Key should be present only for some unmet conditions.
        if (f_err_raise(.not.set_(dict, ref), err_id = INPUT_VAR_ILLEGAL, &
-            & err_msg = trim(key) // " is not allowed in this context.")) return
+            & err_msg = trim(file) // "/" // trim(key) // " is not allowed in this context.")) return
 
        val = dict // key
        ! There is already a value in dict.

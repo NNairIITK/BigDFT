@@ -137,6 +137,16 @@ contains
     end if
 
   end subroutine assure_initialization
+  
+  !> Set @new_unit as the new default unit and return the old default unit.
+  subroutine yaml_swap_stream(new_unit, old_unit, ierr)
+    implicit none
+    integer, intent(in) :: new_unit
+    integer, intent(out) :: old_unit, ierr
+
+    call yaml_get_default_stream(old_unit)
+    call yaml_set_default_stream(new_unit, ierr)
+  end subroutine yaml_swap_stream
 
   subroutine yaml_output_errors()
     implicit none

@@ -105,6 +105,7 @@ contains
     if (associated(dict)) then
        call dict_free_(dict)
        call dict_destroy(dict)
+       nullify(dict)
     end if
 
   contains
