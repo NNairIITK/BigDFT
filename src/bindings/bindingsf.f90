@@ -1452,7 +1452,8 @@ subroutine run_objects_get(runObj, inputs, atoms, rst)
   atoms => runObj%atoms
   rst => runObj%rst
 END SUBROUTINE run_objects_get
-subroutine run_objects_associate(runObj, inputs, atoms, rst)
+
+subroutine run_objects_association(runObj, inputs, atoms, rst)
   use module_types
   implicit none
   type(run_objects), intent(out) :: runObj
@@ -1464,4 +1465,4 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst)
   runObj%atoms  => atoms
   runObj%inputs => inputs
   runObj%rst    => rst
-END SUBROUTINE run_objects_associate
+END SUBROUTINE run_objects_association

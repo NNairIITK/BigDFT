@@ -18,6 +18,9 @@ program yaml_test
    real(kind=8), dimension(:), pointer :: extra_ref
 
    integer(kind=8), dimension(2) :: testarr
+
+   call f_lib_initialize()
+
    !First document
   
    call yaml_new_document()

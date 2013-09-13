@@ -58,6 +58,7 @@ module module_fragments
      type(minimal_orbitals_data) :: forbs
      real(wp), dimension(:), pointer :: psi_full
      type(phi_array), dimension(:), pointer :: phi
+     real(wp), dimension(:), pointer :: density
   end type fragment_basis
 
   type, public :: fragment_orbitals
@@ -72,8 +73,10 @@ module module_fragments
      type(atomic_structure) :: astruct_frg !< Number of atoms, positions, atom type etc for fragment
      type(fragment_basis) :: fbasis !< fragment basis, associated only if coherent with positions, pointer - do we really want this to be a pointer?
      ! add coeffs and or kernel
-     integer :: nksorb
-     real(gp), dimension(:,:), pointer :: coeff    
+     integer :: nelec
+     real(gp), dimension(:,:), pointer :: coeff
+     real(gp), dimension(:,:), pointer :: kernel
+     real(gp), dimension(:), pointer :: eval
   end type system_fragment
 
   !> Contains the rotation and translation (possibly deformation) which have to be applied to a given fragment
@@ -88,7 +91,8 @@ module module_fragments
 
   !public operator(*)
 
-  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, frag_center, find_frag_trans
+  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null
+  public :: frag_center, find_frag_trans, calculate_fragment_density, fragment_coeffs_to_kernel
 
 contains
 
@@ -109,7 +113,8 @@ contains
     if (in%lin%fragment_calculation) then
         ! read fragment posinps and initialize fragment, except for psi and lzds
         do ifrag=1,in%frag%nfrag_ref
-           call init_fragment_from_file(ref_frags(ifrag),trim(in%dir_output)//trim(in%frag%label(ifrag)),in)
+           call init_fragment_from_file(ref_frags(ifrag),trim(in%dir_output)//trim(in%frag%label(ifrag)),&
+                in,astruct)
         end do
 
         ! check that fragments are sensible, i.e. correct number of atoms, atom types etc.
@@ -137,15 +142,15 @@ contains
 
 
   !> Initializes all of fragment except lzd using the fragment posinp and tmb files
-  subroutine init_fragment_from_file(frag,frag_name,input) ! switch this to pure if possible
+  subroutine init_fragment_from_file(frag,frag_name,input,astruct) ! switch this to pure if possible
     use module_types
     !use module_interfaces
     implicit none
     type(system_fragment), intent(inout) :: frag
     character(len=*), intent(in) :: frag_name
     type(input_variables), intent(in) :: input
+    type(atomic_structure), intent(in) :: astruct ! atomic structure of full system
 
-    ! local variables
 
     ! nullify fragment
     frag=fragment_null()
@@ -154,7 +159,8 @@ contains
     call read_atomic_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
 
     ! iproc, nproc, nspinor not needed yet, add in later
-    call init_minimal_orbitals_data(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, input, frag%astruct_frg, frag%fbasis%forbs)
+    call init_minimal_orbitals_data(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, input, frag%astruct_frg, &
+         frag%fbasis%forbs,astruct)
     !call init_minimal_orbitals_data(iproc, nproc, nspinor, input, frag%astruct_frg, frag%fbasis%forbs)
 
     ! environment and coeffs
@@ -203,12 +209,13 @@ contains
        ifrag_ref=input%frag%frag_index(ifrag)
 
        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-          if (ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)) &
-               /= astruct%atomnames(astruct%iatype(iat+isfat))) then
+          if (trim(ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat))) &
+               /= trim(astruct%atomnames(astruct%iatype(iat+isfat)))) then
              fragments_ok=.false.
              write(*,*) 'Atom type for fragment ',ifrag,', reference fragment ',ifrag_ref,' atom number ',iat,&
-                  ' does not match ',ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat)),&
-                  astruct%atomnames(astruct%iatype(iat+isfat))
+                  ' does not match ',&
+                  trim(ref_frags(ifrag_ref)%astruct_frg%atomnames(ref_frags(ifrag_ref)%astruct_frg%iatype(iat))),&
+                  trim(astruct%atomnames(astruct%iatype(iat+isfat)))
           end if
        end do
 
@@ -228,7 +235,7 @@ contains
     !   integer, dimension(:), pointer :: isorb_par,ispot
     !   integer, dimension(:,:), pointer :: norb_par
   !> just initializing norb for now, come back and do the rest later
-  subroutine init_minimal_orbitals_data(iproc, nproc, nspinor, input, astruct, forbs)
+  subroutine init_minimal_orbitals_data(iproc, nproc, nspinor, input, astruct, forbs, astruct_full)
     use module_base
     use module_types
     implicit none
@@ -238,9 +245,10 @@ contains
     type(input_variables),intent(in) :: input
     type(atomic_structure),intent(in) :: astruct
     type(minimal_orbitals_data),intent(out) :: forbs
+    type(atomic_structure), intent(in) :: astruct_full ! atomic structure of full system
   
     ! Local variables
-    integer :: norb, ityp, iat
+    integer :: norb, ityp, iat, jtyp
     !integer :: norbu, norbd, nlr, ilr, iall, iorb, istat
     !integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
     !real(kind=8),dimension(:,:),allocatable :: locregCenter
@@ -256,7 +264,14 @@ contains
     do iat=1,astruct%nat
        ityp=astruct%iatype(iat)
        !norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
-       norb=norb+input%lin%norbsPerType(ityp)
+       do jtyp=1,astruct_full%ntypes
+          if (astruct_full%atomnames(jtyp)==astruct%atomnames(ityp)) exit
+       end do
+       if (jtyp==astruct_full%ntypes+1) then
+          print*, 'Error in fragment_init_orbitals, atom type ',astruct%atomnames(ityp),' does not exist in full structure'
+          stop
+       end if
+       norb=norb+input%lin%norbsPerType(jtyp)
        !nlr=nlr+input%lin%norbsPerType(ityp)
     end do
 
@@ -436,6 +451,157 @@ contains
   end subroutine orbs_to_min_orbs_point
 
 
+
+  subroutine calculate_fragment_density(frag,ndimrho,tmb,iorb_start,charge,atoms,rxyz,denspot)
+    use module_types
+    implicit none
+    type(system_fragment), intent(inout) :: frag
+    integer, intent(in) :: ndimrho ! add to fragment structure?
+    integer, intent(in) :: iorb_start ! the first tmb for this fragment
+    integer, intent(in) :: charge ! charge on this fragment for calculating correct kernel?!
+    type(dft_wavefunction), intent(in) :: tmb
+    type(atoms_data), intent(in) :: atoms ! just for plotting
+    real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz ! just for plotting
+    type(DFT_local_fields), intent(in) :: denspot ! just for plotting
+
+    ! local variables
+    integer :: iiorb, ilr, ind, indg, indr, ipt, jjorb, iorb, itmb
+    real(kind=gp),dimension(:,:), allocatable :: kernel, fcoeff
+    real(kind=wp),dimension(:), allocatable :: gpsi
+    real(kind=wp),dimension(:), allocatable :: psir
+    real(kind=gp) :: total_charge, tt, tt1, factor, hxh, hyh, hzh
+    type(workarr_sumrho) :: w
+
+    ! calculate fragment density and store in frag%fbasis%density
+    ! allocate to cover whole simulation cell or just the fragment region?
+    call f_routine(id='calculate_fragment_density')
+    frag%fbasis%density=f_malloc_ptr(ndimrho,id='frag%fbasis%density')
+    kernel=f_malloc((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='kernel')
+    fcoeff=f_malloc((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='fcoeff')
+
+    ! calculate density kernel for this fragment (ideally would use routine but don't have access to correct orbs and doing monoproc)
+    ! add occup
+    do iorb=1,frag%fbasis%forbs%norb
+       do itmb=1,frag%fbasis%forbs%norb
+          if (iorb<=floor((frag%nelec-charge)/2.0_gp)) then
+             fcoeff(itmb,iorb) = 2.0_gp*frag%coeff(itmb,iorb)
+          else if (iorb<=ceiling((frag%nelec-charge)/2.0_gp)) then
+             fcoeff(itmb,iorb) = 1.0_gp*frag%coeff(itmb,iorb)
+          else
+             fcoeff(itmb,iorb) = 0.0_gp
+          end if
+       end do
+    end do
+
+    call dgemm('n', 't', frag%fbasis%forbs%norb, frag%fbasis%forbs%norb, &
+         nint((frag%nelec-charge)/2.0_gp), 1.d0, &
+         frag%coeff(1,1), frag%fbasis%forbs%norb, &
+         fcoeff(1,1), frag%fbasis%forbs%norb, 0.d0, &
+         kernel(1,1), frag%fbasis%forbs%norb)
+
+    call f_free(fcoeff)
+
+    ! expand all tmbs to global box to simplify density calculation and convert to real space
+    ! as we don't have psi_full allocated, just using tmb%psi for now, but need to know where to start
+    ind=1
+    indg=1
+    indr=1
+
+    gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
+    call razero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+    call initialize_work_arrays_sumrho(tmb%lzd%glr, w)
+    psir=f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i*frag%fbasis%forbs%norb,id='psir')
+
+    do iiorb=1,tmb%orbs%norb
+       ilr = tmb%orbs%inwhichlocreg(iiorb)
+       if (iiorb < iorb_start) then
+          ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+          cycle
+       else if (iiorb >= iorb_start + frag%fbasis%forbs%norb) then
+          exit
+       end if
+
+       call Lpsi_to_global2(bigdft_mpi%iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+            tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+            1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi(indg))
+
+       call daub_to_isf(tmb%lzd%glr, w, gpsi(indg), psir(indr))
+
+       !indg = indg + tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f
+       ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+       indr = indr + tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i
+    end do
+
+    call deallocate_work_arrays_sumrho(w)
+    call f_free(gpsi)
+
+
+    ! calculate density using kernel and psi
+    hxh=.5d0*tmb%lzd%hgrids(1)
+    hyh=.5d0*tmb%lzd%hgrids(2)
+    hzh=.5d0*tmb%lzd%hgrids(3)
+    factor=1.d0/(hxh*hyh*hzh)
+    total_charge=0.d0
+    !call razero(ndimrho,frag%fbasis%density)
+    do ipt=1,ndimrho
+       tt=1.e-20_dp
+       do iiorb=1,frag%fbasis%forbs%norb
+          tt1=psir(ipt+(iiorb-1)*ndimrho)
+          tt=tt+kernel(iiorb,iiorb)*tt1**2
+          do jjorb=iiorb+1,frag%fbasis%forbs%norb
+             tt=tt+2.0_dp*kernel(jjorb,iiorb)*tt1*psir(ipt+(jjorb-1)*ndimrho)
+          end do
+       end do  
+        tt=factor*tt
+        total_charge=total_charge+tt
+        ! apply a cut-off
+        if (tt >= 1.e-6) then
+           frag%fbasis%density(ipt)=tt
+        else
+           frag%fbasis%density(ipt)=0.0_gp
+        end if
+    end do
+
+    print*,'Fragment density total charge',total_charge*hxh*hyh*hzh
+
+    !call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'fragment_density.cube', &
+    !     atoms,rxyz,denspot%dpbox,1,frag%fbasis%density)
+
+    ! Define some constant factors.
+    !hxh=.5d0*hx
+    !hyh=.5d0*hy
+    !hzh=.5d0*hz
+    !factor=1.d0/(hxh*hyh*hzh)
+
+    !do ipt=1,collcom_sr%nptsp_c
+    !    ii=collcom_sr%norb_per_gridpoint_c(ipt)
+    !    i0=collcom_sr%isptsp_c(ipt)
+    !    tt=1.e-20_dp
+    !    do i=1,ii
+    !        iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+    !        tt1=collcom_sr%psit_c(i0+i)
+    !        ind=denskern%matrixindex_in_compressed(iiorb,iiorb)
+    !        tt=tt+denskern%matrix_compr(ind)*tt1*tt1
+    !        do j=i+1,ii
+    !            jjorb=collcom_sr%indexrecvorbital_c(i0+j)
+    !            ind=denskern%matrixindex_in_compressed(jjorb,iiorb)
+    !            if (ind==0) cycle
+    !            tt=tt+2.0_dp*denskern%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
+    !        end do
+    !    end do
+    !    tt=factor*tt
+    !    total_charge=total_charge+tt
+    !    rho_local(ipt)=tt
+    !end do
+
+    call f_free(psir)
+    call f_free(kernel)
+    call f_release_routine()
+
+
+  end subroutine calculate_fragment_density
+
+
   pure function minimal_orbitals_data_null() result(forbs)
     implicit none
     type(minimal_orbitals_data) :: forbs
@@ -463,8 +629,10 @@ contains
 
     frag%nat_env=0
     nullify(frag%rxyz_env)
-    frag%nksorb=0
+    frag%nelec=0
     nullify(frag%coeff)
+    nullify(frag%kernel)
+    nullify(frag%eval)
     call nullify_atomic_structure(frag%astruct_frg)
     ! nullify fragment basis
     call nullify_fragment_basis(frag%fbasis)
@@ -488,6 +656,7 @@ contains
     !basis%forbs=minimal_orbitals_data_null()
     nullify(basis%psi_full)
     nullify(basis%phi)
+    nullify(basis%density)
   end subroutine nullify_fragment_basis
 
   subroutine minimal_orbitals_data_free(forbs)
@@ -511,6 +680,7 @@ contains
     call deallocate_local_zone_descriptors(basis%lzd,subname)
     call minimal_orbitals_data_free(basis%forbs)
     if (associated(basis%psi_full)) call f_free_ptr(basis%psi_full)
+    if (associated(basis%density)) call f_free_ptr(basis%density)
     basis=fragment_basis_null()
   end subroutine fragment_basis_free
 
@@ -527,6 +697,8 @@ contains
     call f_routine(id='fragment_free')
     if (associated(frag%rxyz_env)) call f_free_ptr(frag%rxyz_env)
     if (associated(frag%coeff)) call f_free_ptr(frag%coeff)
+    if (associated(frag%kernel)) call f_free_ptr(frag%kernel)
+    if (associated(frag%eval)) call f_free_ptr(frag%eval)
     call f_release_routine()
     call fragment_basis_free(frag%fbasis)
     frag=fragment_null()
@@ -541,6 +713,8 @@ contains
 
     frag%rxyz_env=f_malloc_ptr((/3,frag%nat_env/),id='frag%rxyz_env')
     frag%coeff=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%coeff')
+    frag%kernel=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%kernel')
+    frag%eval=f_malloc_ptr(frag%fbasis%forbs%norb,id='frag%eval')
 
     call f_release_routine()
 
@@ -734,10 +908,7 @@ contains
        call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
     !end if
 
-
   end subroutine find_frag_trans
-
-
 
   subroutine find_discrete_operations(frag_trans,R_mat)
     use module_base
@@ -1020,6 +1191,7 @@ contains
 
     !local variables
     real(gp) :: dnrm2, norm
+    integer :: i
 
     rot_axis(1)=R_mat(3,2)-R_mat(2,3)    
     rot_axis(2)=R_mat(1,3)-R_mat(3,1)
@@ -1035,11 +1207,21 @@ contains
     else
        ! squares of rot_axis are diag 0.5(R+I), signs as before
        !this is not good as it gives a array of modulus bigger than one
-       rot_axis(1:2)=0.0_gp
-       rot_axis(3)=1.0_gp
-       !rot_axis(1)=sign(dsqrt(0.5_gp*(R_mat(1,1)+1.0_gp)),rot_axis(1))
-       !rot_axis(2)=sign(dsqrt(0.5_gp*(R_mat(2,2)+1.0_gp)),rot_axis(2))
-       !rot_axis(3)=sign(dsqrt(0.5_gp*(R_mat(3,3)+1.0_gp)),rot_axis(3))
+       !rot_axis(1:2)=0.0_gp
+       !rot_axis(3)=1.0_gp
+       do i=1,3
+          if (R_mat(i,i)<-1.0_gp.and.R_mat(i,i)>-1.0_gp-1.0e-5_gp) then
+                rot_axis(i)=0.0_gp
+          else if (R_mat(i,i)<=-1.0_gp-1.0e-5_gp) then
+             stop 'Problem in assigning axis from Rmat'
+          else
+             rot_axis(i)=sign(dsqrt(0.5_gp*(R_mat(i,i)+1.0_gp)),rot_axis(i))
+          end if
+       end do
+
+       !print*,'axis_from_r3a',rot_axis,R_mat(1,1),R_mat(2,2),R_mat(3,3)
+       norm=dnrm2(3,rot_axis,1)
+       call dscal(3,1.0_gp/norm,rot_axis,1)
        !print*,'axis_from_r3',norm,rot_axis
     end if
 
@@ -1078,6 +1260,224 @@ contains
          + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
   end function det_33
 
+  subroutine fragment_coeffs_to_kernel(input_frag,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated)
+    implicit none
+    type(DFT_wavefunction), intent(inout) :: tmb
+    type(fragmentInputParameters), intent(in) :: input_frag
+    type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
+    type(orbitals_data), intent(inout) :: ksorbs
+    logical, intent(inout) :: overlap_calculated
+    integer, dimension(input_frag%nfrag), intent(in) :: input_frag_charge
+
+    integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, nelecfrag_tot, itmb, jtmb
+    integer :: nksorbs_correct, nksorbsp_correct, ksisorb_correct
+    real(gp), dimension(:,:), allocatable :: coeff_final, ks, ksk
+    !*real(gp), dimension(:), allocatable :: kernel_final
+    real(gp) :: nonidem, nelecorbs
+
+!DEAL WITH OCCUP CORRECTLY
+
+    call f_routine(id='fragment_coeffs_to_kernel')
+
+    nelecfrag_tot=0
+    do ifrag=1,input_frag%nfrag
+       ifrag_ref=input_frag%frag_index(ifrag)
+       nelecfrag_tot=nelecfrag_tot+ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
+    end do
+
+    ! in theory we could add/remove states depending on their energies, but for now we force the user to specify
+    ! need to include occupations as we actually want to compare number of electrons here?
+    nelecorbs=0
+    do iorb=1,ksorbs%norb
+       nelecorbs=nelecorbs+ksorbs%occup(iorb)
+    end do
+
+    if (nint(nelecorbs)/=nelecfrag_tot) then
+       print*,'User must specify which fragments charges are added to/removed from in charged fragment calculation',&
+            nelecfrag_tot,nelecorbs,ksorbs%norb
+       stop
+    end if
+
+    ! hacking ksorbs structure to give it correct norb - really messy, but easiest solution for now
+    ! FIX!
+    nksorbs_correct=ksorbs%norb
+    nksorbsp_correct=ksorbs%norbp
+    ksisorb_correct=ksorbs%isorb
+
+    coeff_final=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_final')
+    !*kernel_final=f_malloc(tmb%linmat%denskern%nvctr,id='kernel_final')
+    !ref_frags(ifrag_ref)%kernel=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ref_frags(ifrag_ref)%kernel')
+
+    ! copy from coeff fragment to global coeffs - occupied states only
+    isforb=0
+    jsforb=0
+    call razero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
+    !*call razero(tmb%linmat%denskern%nvctr,kernel_final(1))
+    do ifrag=1,input_frag%nfrag
+       ! find reference fragment this corresponds to
+       ifrag_ref=input_frag%frag_index(ifrag)
+
+       call razero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
+
+       do jtmb=1,nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
+          do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+             tmb%coeff(isforb+itmb,jtmb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
+             tmb%orbs%eval(jsforb+jtmb)=ref_frags(ifrag_ref)%eval(jtmb)
+          end do
+       end do
+
+       ! debug
+       !do itmb=1,tmb%orbs%norb
+       !   do jtmb=1,tmb%orbs%norb
+       !      write(40+ifrag,*) itmb,jtmb,tmb%coeff(itmb,jtmb)
+       !  end do
+       !end do
+       ! end debug
+
+       !call razero(tmb%linmat%denskern%nvctr,tmb%linmat%denskern%matrix_compr(1))
+
+       ! should correct the occupation for kernel here, but as we replace the smaller kernel with the correct bigger kernel
+       ! don't worry about this for now
+       ! can also therefore keep ksorbs%norb as it is as we don't need to keep the kernel?
+       ksorbs%norb=nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
+       if (bigdft_mpi%iproc==0) then
+          ksorbs%norbp=ksorbs%norb
+          ksorbs%isorb=0
+       else
+          ksorbs%norbp=0
+          ksorbs%isorb=0
+       end if
+
+       ! reconstruct the kernel for each fragment - don't need unoccupied states here
+       call reconstruct_kernel(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, tmb%orthpar%blocksize_pdsyev, &
+            tmb%orthpar%blocksize_pdgemm, ksorbs, tmb, overlap_calculated) 
+
+       !! debug
+       !!output final kernel
+       !! 20 - if just calculate, 21 if reconstruct total, 22 if reconstruct then sum
+       !tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+       !call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%denskern)
+       !!do itmb=1,tmb%orbs%norb
+       !!   do jtmb=1,tmb%orbs%norb
+       !!      write(30+ifrag,*) itmb,jtmb,tmb%linmat%denskern%matrix(itmb,jtmb),tmb%coeff(itmb,jtmb)
+       !!   end do
+       !!end do
+       !do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+       !   do jtmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+       !      ref_frags(ifrag_ref)%kernel(itmb,jtmb)=tmb%linmat%denskern%matrix(itmb,jtmb).....
+       !   end do
+       !end do
+       !call f_free_ptr(tmb%linmat%denskern%matrix)    
+       !! end debug
+
+       ! assemble complete kernel from separate fragment kernels
+       !call daxpy(tmb%linmat%denskern%nvctr,1.0d0,tmb%linmat%denskern%matrix_compr(1),1,kernel_final(1),1)
+
+       ! update coeff_final matrix following coeff reorthonormalization
+       do jtmb=1,nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
+          do itmb=1,tmb%orbs%norb
+             coeff_final(itmb,jsforb+jtmb)=tmb%coeff(itmb,jtmb)
+          end do
+       end do
+
+       isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+       jsforb=jsforb+nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
+    end do
+
+    !*call dcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
+    call dcopy(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1),1,tmb%coeff(1,1),1)
+
+    !*call f_free(kernel_final)
+    call f_free(coeff_final)
+
+    ! debug
+    !output final kernel
+    ! 20 - if just calculate, 21 if reconstruct total, 22 if reconstruct then sum
+    !tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+    !call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%denskern)
+    !do itmb=1,tmb%orbs%norb
+    !   do jtmb=1,tmb%orbs%norb
+    !      write(22,*) itmb,jtmb,tmb%linmat%denskern%matrix(itmb,jtmb),tmb%coeff(itmb,jtmb)
+    !   end do
+    !end do
+
+    ! check final kernel is idempotent
+    !tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+    !ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
+    !ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ksk')
+    !call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+    !call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
+    !           tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, 0.d0, ks(1,1), tmb%orbs%norb) 
+    !call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
+    !           tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, 0.d0, ksk(1,1), tmb%orbs%norb)
+
+    !nonidem=0
+    !do itmb=1,tmb%orbs%norb
+    !   do jtmb=1,tmb%orbs%norb
+    !      write(60,*) itmb,jtmb,tmb%linmat%denskern%matrix(itmb,jtmb),ksk(itmb,jtmb),&
+    !           tmb%linmat%denskern%matrix(itmb,jtmb)-ksk(itmb,jtmb)
+    !      nonidem=nonidem+tmb%linmat%denskern%matrix(itmb,jtmb)-ksk(itmb,jtmb)
+    !   end do
+    !end do
+    !print*,'non idempotency',nonidem/tmb%orbs%norb**2
+
+    !call f_free(ks) 
+    !call f_free(ksk) 
+    !call f_free_ptr(tmb%linmat%ovrlp%matrix)   
+    !call f_free_ptr(tmb%linmat%denskern%matrix)    
+    ! end debug
+
+    ! add unoccupied states to complete coeffs
+    isforb=0
+    do ifrag=1,input_frag%nfrag
+       ! find reference fragment this corresponds to
+       ifrag_ref=input_frag%frag_index(ifrag)
+       do jtmb=nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+          do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+             tmb%coeff(isforb+itmb,jsforb+jtmb-nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp))&
+                  =ref_frags(ifrag_ref)%coeff(itmb,jtmb)
+             tmb%orbs%eval(jsforb+jtmb-nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp))&
+                  =ref_frags(ifrag_ref)%eval(jtmb)
+          end do
+       end do
+
+       isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+       jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-(nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp))
+    end do
+
+    ! debug
+    !do itmb=1,tmb%orbs%norb
+    !   do jtmb=1,tmb%orbs%norb
+    !      write(50,*) itmb,jtmb,tmb%coeff(itmb,jtmb)
+    !   end do
+    !end do
+    ! end debug
+
+    ksorbs%norbp=nksorbsp_correct
+    ksorbs%norb=nksorbs_correct
+    ksorbs%isorb=ksisorb_correct
+
+    ! print starting eigenvalues
+    if(bigdft_mpi%iproc==0) then
+       write(*,'(1x,a)') '-------------------------------------------------'
+       write(*,'(1x,a)') 'some selected eigenvalues:'
+       do iorb=max(ksorbs%norb-8,1),min(ksorbs%norb+8,tmb%orbs%norb)
+           if(iorb==ksorbs%norb) then
+               write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
+           else if(iorb==ksorbs%norb+1) then
+               write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- first virtual orbital'
+           else
+               write(*,'(3x,a,i0,a,es20.12)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb)
+           end if
+       end do
+       write(*,'(1x,a)') '-------------------------------------------------'
+       write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
+    end if
+
+    call f_release_routine()
+
+  end subroutine fragment_coeffs_to_kernel
+ 
 
 
 

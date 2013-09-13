@@ -2643,9 +2643,9 @@ type(restart_objects), pointer :: rst
 */
 void FC_FUNC_(rst_new, RST_NEW)(const long *self, 
                                 _restart_objects **rst);
-/* run_objects_associate src/bindings/bindingsf.f90:1443 */
+/* run_objects_association src/bindings/bindingsf.f90:1443 */
 /* Fortran header:
-subroutine run_objects_associate(runObj, inputs, atoms, rst)
+subroutine run_objects_association(runObj, inputs, atoms, rst)
 use module_types
 implicit none
 type(run_objects), intent(out) :: runObj
@@ -2653,7 +2653,7 @@ type(input_variables), intent(in), target :: inputs
 type(atoms_data), intent(in), target :: atoms
 type(restart_objects), intent(in), target :: rst
 */
-void FC_FUNC_(run_objects_associate, RUN_OBJECTS_ASSOCIATE)(_run_objects *runObj, 
+void FC_FUNC_(run_objects_association, RUN_OBJECTS_ASSOCIATION)(_run_objects *runObj, 
                                                             const _input_variables *inputs, 
                                                             const _atoms_data *atoms, 
                                                             const _restart_objects *rst);

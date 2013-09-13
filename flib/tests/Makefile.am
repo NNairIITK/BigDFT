@@ -13,7 +13,7 @@ endif
 
 AM_FCFLAGS = -I../src
 AM_LDFLAGS = -L$(top_builddir)/flib/src
-LIBS += -lflib -lrt
+LIBS += -lflib -lrt @LIB_YAML_LIBS@
 
 if USE_MPI
 mpi_source =

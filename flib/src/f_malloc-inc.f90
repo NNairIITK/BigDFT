@@ -15,7 +15,7 @@
      lgt=min(len(routine_id),namelen)
      m%routine_id(1:lgt)=routine_id(1:lgt)
   else
-     m%routine_id=present_routine
+     m%routine_id=mems(ictrl)%present_routine
   end if
 
   if(present(profile)) m%profile=profile

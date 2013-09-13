@@ -208,9 +208,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, hpsi_small(ist), 1, lhphiold(ist), 1)
+      if(it>1) then
+         fnrmOvrlpArr(iorb,1)=ddot(ncount, hpsi_small(ist), 1, lhphiold(ist), 1)
+      end if
+         fnrmOldArr(iorb)=ddot(ncount, lhphiold(ist), 1, lhphiold(ist), 1)
       fnrmArr(iorb,1)=ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
-      fnrmOldArr(iorb)=ddot(ncount, lhphiold(ist), 1, lhphiold(ist), 1)
       ist=ist+ncount
   end do
 
@@ -229,9 +231,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
       ! Adapt step size for the steepest descent minimization.
           tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
-          if(tt>.6d0 .and. trH<trHold) then
+          ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
+          if(tt>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
               alpha(iorb)=alpha(iorb)*1.1d0
-          ! apply a threshold so that alpha never goes below around 1.d-2
           else if (alpha(iorb)>1.7d-3) then
               alpha(iorb)=alpha(iorb)*.6d0
           end if
@@ -426,6 +428,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   ! Local variables
   integer :: istat, iall, i
   character(len=*), parameter :: subname='hpsitopsi_linear'
+  real(kind=8),dimension(:),allocatable :: psittmp_c, psittmp_f
+  real(kind=8) :: ddot
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
   if(iproc==0) then
@@ -461,6 +465,79 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       call memocc(istat, iall, 'tmb%psit_f', subname)
       tmb%can_use_transposed=.false.
   end if
+
+
+  !!!!  ! EXPERIMENTAL -- DON'T USE IT ########################################################
+!!!!
+!!!!  write(*,*) 'before: iproc, ddot', iproc, ddot(tmb%npsidim_orbs, tmb%psi, 1, tmb%psi, 1)
+!!!!
+!!!!  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+!!!!       tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+!!!!
+!!!!  !if (.not.tmb%ham_descr%can_use_transposed) then
+!!!!  if (.not.associated(tmb%ham_descr%psit_c)) then
+!!!!      allocate(tmb%ham_descr%psit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
+!!!!      call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
+!!!!  end if
+!!!!  if (.not.associated(tmb%ham_descr%psit_f)) then
+!!!!      allocate(tmb%ham_descr%psit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
+!!!!      call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
+!!!!  end if
+!!!!  if (.not.associated(tmb%ham_descr%psi)) then
+!!!!      write(*,*) 'ALLOCATE'
+!!!!      allocate(tmb%ham_descr%psi(tmb%ham_descr%npsidim_orbs), stat=istat)
+!!!!      call memocc(istat, tmb%ham_descr%psi, 'tmb%ham_descr%psi', subname)
+!!!!  end if
+!!!!  allocate(psittmp_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
+!!!!  call memocc(istat, psittmp_c, 'psittmp_c', subname)
+!!!!  allocate(psittmp_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
+!!!!  call memocc(istat, psittmp_f, 'psittmp_f', subname)
+!!!!
+!!!!  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+!!!!       tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+!!!!  call dcopy(sum(tmb%ham_descr%collcom%nrecvcounts_c), tmb%ham_descr%psit_c, 1, psittmp_c, 1)
+!!!!  call dcopy(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), tmb%ham_descr%psit_f, 1, psittmp_f, 1)
+!!!!  !tmb%linmat%denskern%matrix_compr=1.d0
+!!!!  write(*,*) 'iproc, ddot trans c', iproc, &
+!!!!      ddot(sum(tmb%ham_descr%collcom%nrecvcounts_c), tmb%ham_descr%psit_c, 1, psittmp_c, 1)
+!!!!  write(*,*) 'iproc, ddot trans f', iproc, &
+!!!!      ddot(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), tmb%ham_descr%psit_f, 1, psittmp_f, 1)
+!!!!  call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+!!!!       tmb%linmat%denskern, psittmp_c, psittmp_f, .true., tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, iproc)
+!!!!  write(*,*) 'iproc, ddot trans c after', iproc, &
+!!!!      ddot(sum(tmb%ham_descr%collcom%nrecvcounts_c), tmb%ham_descr%psit_c, 1, psittmp_c, 1)
+!!!!  write(*,*) 'iproc, ddot trans f after', iproc, &
+!!!!      ddot(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), tmb%ham_descr%psit_f, 1, psittmp_f, 1)
+!!!! !!call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+!!!! !!     tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+!!!!  call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+!!!!       tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psi, tmb%ham_descr%lzd)
+!!!!  write(*,*) 'after untranspose: iproc, ddot', iproc, ddot(tmb%ham_descr%npsidim_orbs, tmb%ham_descr%psi, 1, tmb%ham_descr%psi, 1)
+!!!!
+!!!!          !!call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+!!!!          !!     tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+!!!!          !!call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+!!!!          !!     tmb%linmat%denskern, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+!!!!
+!!!!  call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+!!!!       tmb%orbs, tmb%ham_descr%psi, tmb%psi)
+!!!!  write(*,*) 'after: iproc, ddot', iproc, ddot(tmb%npsidim_orbs, tmb%psi, 1, tmb%psi, 1)
+!!!!
+!!!!  iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
+!!!!  deallocate(tmb%ham_descr%psit_c, stat=istat)
+!!!!  call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+!!!!  iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
+!!!!  deallocate(tmb%ham_descr%psit_f, stat=istat)
+!!!!  call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+!!!!  iall=-product(shape(psittmp_c))*kind(psittmp_c)
+!!!!  deallocate(psittmp_c, stat=istat)
+!!!!  call memocc(istat, iall, 'psittmp_c', subname)
+!!!!  iall=-product(shape(psittmp_f))*kind(psittmp_f)
+!!!!  deallocate(psittmp_f, stat=istat)
+!!!!  call memocc(istat, iall, 'psittmp_f', subname)
+!!!!  tmb%ham_descr%can_use_transposed=.false.
+!!!!  ! END EXPERIMENTAL ###################################################################
+
 
   if(.not.ldiis%switchSD.and.ortho) then
       if(iproc==0) then

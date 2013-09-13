@@ -97,7 +97,7 @@ contains
   end subroutine string_assignment
 
   !> Add a buffer to a string and increase its length
-  subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
+  pure subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
     implicit none
     integer, intent(in) :: string_lgt                   !< Length of the string towrite
     character(len=string_lgt), intent(inout) :: string  !< String towrite
@@ -119,14 +119,14 @@ contains
           istat=-1
           return
        else if (lgt_add+string_pos > string_lgt) then
-          write(*,*)'#ERROR (buffer string): string too long'
-          write(*,*)'#Initial String: ',string(1:string_pos)
-          write(*,*)'#Buffer: ',trim(buffer)
-          write(*,*)'#String position: ',string_pos
-          write(*,*)'#Length of Buffer: ',lgt_add
-          write(*,*)'#String limit: ',string_lgt
+!          write(*,*)'#ERROR (buffer string): string too long'
+!          write(*,*)'#Initial String: ',string(1:string_pos)
+!          write(*,*)'#Buffer: ',trim(buffer)
+!          write(*,*)'#String position: ',string_pos
+!          write(*,*)'#Length of Buffer: ',lgt_add
+!          write(*,*)'#String limit: ',string_lgt
           lgt_add=string_lgt-string_pos-1
-          write(*,*)'#Buffer shortened into: ',buffer(1:lgt_add)
+!          write(*,*)'#Buffer shortened into: ',buffer(1:lgt_add)
           !stop 
        end if
     end if
@@ -183,28 +183,28 @@ contains
   end function yaml_itoa
 
   !> Convert longinteger to character
-  function yaml_litoa(data,fmt) result(str)
+  pure function yaml_litoa(data,fmt) result(str)
     implicit none
     integer(kind=8), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_litoa
 
   !> Convert float to character
-  function yaml_ftoa(data,fmt) result(str)
+  pure function yaml_ftoa(data,fmt) result(str)
     implicit none
     real, intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_ftoa
 
   !> Convert double to character
-  function yaml_dtoa(data,fmt) result(str)
+  pure function yaml_dtoa(data,fmt) result(str)
     implicit none
     real(kind=8), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_dtoa
 
   !> character to character, only for genericity
-  function yaml_ctoa(d,fmt)
+  pure function yaml_ctoa(d,fmt)
     implicit none
     character(len=*), intent(in) :: d
     character(len=max_value_length) :: yaml_ctoa
@@ -216,7 +216,7 @@ contains
 
   !> Convert double complex to character
   !! use python notation for yaml complex
-  function yaml_ztoa(z,fmt)
+  pure function yaml_ztoa(z,fmt)
     implicit none
     double complex, intent(in) :: z
     character(len=max_value_length) :: yaml_ztoa
@@ -256,7 +256,7 @@ contains
   end function yaml_ztoa
 
   !> Convert logical to character
-  function yaml_ltoa(l,fmt)
+  pure function yaml_ltoa(l,fmt)
     implicit none
     logical, intent(in) :: l
     character(len=max_value_length) :: yaml_ltoa
@@ -279,7 +279,7 @@ contains
 
 
   !> Convert vector of double to character
-  function yaml_dvtoa(dv,fmt)
+  pure function yaml_dvtoa(dv,fmt)
     implicit none
     real(kind=8), dimension(:), intent(in) :: dv
     character(len=max_value_length) :: yaml_dvtoa
@@ -324,7 +324,7 @@ contains
 
 
   !> Convert vector of double complex to character
-  function yaml_zvtoa(dz,fmt)
+  pure function yaml_zvtoa(dz,fmt)
     implicit none
     double complex, dimension(:), intent(in) :: dz
     character(len=max_value_length) :: yaml_zvtoa
@@ -363,7 +363,7 @@ contains
   end function yaml_zvtoa
 
   !> Convert vector of integer to character
-  function yaml_ivtoa(iv,fmt)
+  pure function yaml_ivtoa(iv,fmt)
     implicit none
     integer, dimension(:), intent(in) :: iv
     character(len=max_value_length) :: yaml_ivtoa
@@ -409,7 +409,7 @@ contains
 
 
   !> Convert vector of characters to a chain of characters
-  function yaml_cvtoa(cv,fmt)
+  pure function yaml_cvtoa(cv,fmt)
     implicit none
     character(len=*), dimension(:), intent(in) :: cv
     character(len=max_value_length) :: yaml_cvtoa

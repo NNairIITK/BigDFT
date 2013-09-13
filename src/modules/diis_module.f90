@@ -356,3 +356,27 @@ contains
   end subroutine DIIS_obj_release
 
 end module diis_sd_optimization
+
+subroutine diis_opt(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,ndim_psi,psi,hpsi,diis)
+    use module_types
+    use diis_sd_optimization
+    implicit none
+    ! Arguments
+    integer, intent(in) :: nproc,iproc,ngrp,isgrp,ngrpp
+    integer, dimension(ngrp), intent(in) :: igrpproc !<array which associate each group to only one iproc for broadcasting
+    integer, dimension(ngrp), intent(in) :: ncomp_grp !< number of components per group
+    type(DIIS_obj), intent(inout) :: diis
+    integer, intent(in) :: ndim_psi !< should be greater or equal to sum(ncomp_grp(isgrp+1:isgrp+ngrpp)
+    real(wp), dimension(ndim_psi), intent(inout) :: psi
+    real(wp), dimension(ndim_psi), intent(in) :: hpsi
+
+    call DIIS_update_errors(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,hpsi,diis)
+
+    call diis_step(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,diis)
+
+    call DIIS_update_psi(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,diis)
+
+end subroutine
+
+
+

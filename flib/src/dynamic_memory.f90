@@ -31,6 +31,18 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti2
 
+     subroutine geti3(array,iadd)
+       implicit none
+       integer, dimension(:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine geti3
+
+     subroutine geti4(array,iadd)
+       implicit none
+       integer, dimension(:,:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine geti4
+
      subroutine getl1(array,iadd)
        implicit none
        logical, dimension(:), allocatable, intent(in) :: array
@@ -112,12 +124,13 @@ module metadata_interfaces
   end interface
 
 interface pad_array
-  module procedure pad_i1,pad_i2
+  module procedure pad_i1,pad_i2,pad_i3,pad_i4
   module procedure pad_l1,pad_l2
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
 end interface
 
-public :: pad_array,geti1,geti2,getl1,getl2
+public :: pad_array,geti1,geti2,geti3,geti4
+public :: getl1,getl2
 public :: getdp1,getdp2,getdp3,getdp4!,getlongaddress
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr,geti2ptr
 public :: address_toi,long_toa
@@ -145,6 +158,28 @@ contains
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
 
   end subroutine pad_i2
+
+  subroutine pad_i3(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(3), intent(in) :: shp
+    integer, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
+    
+    call pad_integer(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
+
+  end subroutine pad_i3
+
+  subroutine pad_i4(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(4), intent(in) :: shp
+    integer, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
+    
+    call pad_integer(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
+
+  end subroutine pad_i4
 
   subroutine pad_l1(array,init_to_zero,shp,ndebug)
     implicit none
@@ -394,7 +429,7 @@ contains
     
   end function address_toi
 
-  function long_toa(iadd)
+  pure function long_toa(iadd)
     use yaml_strings
     implicit none 
     integer(kind=8), intent(in) :: iadd
@@ -413,7 +448,7 @@ module dynamic_memory
   !use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
   use memory_profiling, except => ndebug
   use dictionaries, info_length => max_field_length
-  use yaml_strings, only: yaml_toa
+  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
   implicit none
 
   private 
@@ -422,18 +457,10 @@ module dynamic_memory
   integer, parameter :: error_string_len=80 !< length of error string
   integer, parameter :: ndebug=0            !< size of debug parameters
   integer, parameter :: max_rank=7          !< maximum rank in fortran
-  !> errorcodes
+  !maximum size of f_lib control variables
+  integer, parameter :: max_ctrl = 5 !<maximum number of nested levels
+  integer :: ictrl=0                 !<id of active control structure (<=max_ctrl)
 
-  logical :: profile_initialized=.false.  !< global variables for initialization
-  !>dictionaries needed for profiling storage
-  type(dictionary), pointer :: dict_global=>null()
-  type(dictionary), pointer :: dict_routine=>null()           
-  type(dictionary), pointer :: dict_calling_sequence
-  type(dictionary), pointer :: dict_codepoint=>null() !< save variable which says where we are in the code
-  logical :: routine_opened=.false.                   !< global variable (can be stored in dictionaries)
-  logical :: profile_routine=.true. !< decide whether the routine has to be profiled
-  character(len=namelen) :: present_routine=repeat(' ',namelen)
-!  character(len=namelen) :: last_opened_routine=repeat(' ',namelen)
 
   !> parameters for defitions of internal dictionary
   character(len=*), parameter :: arrayid='Array Id'
@@ -455,6 +482,25 @@ module dynamic_memory
   integer :: ERR_INVALID_MALLOC
   integer :: ERR_INVALID_RANK
   integer :: ERR_MALLOC_INTERNAL
+
+  !> control structure of flib library. 
+  !Contains all global variables of interest in a separate instance of f_lib
+  type :: mem_ctrl 
+     logical :: profile_initialized  !< global variables for initialization
+     logical :: routine_opened       !< global variable (can be stored in dictionaries)
+     logical :: profile_routine      !< decide whether the routine has to be profiled
+     character(len=namelen) :: present_routine !< name of the active routine 
+     !>dictionaries needed for profiling storage
+     type(dictionary), pointer :: dict_global    !<status of the memory at higher level
+     type(dictionary), pointer :: dict_routine   !<status of the memory inside the routine
+     type(dictionary), pointer :: dict_calling_sequence !<profiling of the routines
+     type(dictionary), pointer :: dict_codepoint !<points to where we are in the previous dictionary
+  end type mem_ctrl
+  
+  !>global variable controlling the different instances of the calls
+  !the 0 component is supposed to be unused, it is allocated to avoid segfaults
+  ! if the library routines are called without initialization
+  type(mem_ctrl), dimension(0:max_ctrl) :: mems
 
   !> Structure needed to allocate an allocatable array
   type, public :: malloc_information_all
@@ -485,14 +531,13 @@ module dynamic_memory
      character(len=namelen) :: routine_id    !< label the routine
   end type malloc_information_ptr
 
-
   type, public :: array_bounds
      integer :: nlow  !<lower bounds
      integer :: nhigh !<higher bounds
   end type array_bounds
 
   interface assignment(=)
-     module procedure i1_all,i2_all
+     module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all
      module procedure d1_all,d2_all,d3_all,d4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
@@ -504,7 +549,7 @@ module dynamic_memory
   end interface
 
   interface f_free
-     module procedure i1_all_free,i2_all_free
+     module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
      module procedure l1_all_free,l2_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free
   end interface
@@ -513,7 +558,6 @@ module dynamic_memory
      module procedure i1_ptr_free,i2_ptr_free
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
   end interface
-
 
 !!$  interface pad_with_nan
 !!$     module procedure i_padding,dp_padding,c_padding,l_padding,sp_padding,dp_padding2,dp_padding3
@@ -546,9 +590,12 @@ module dynamic_memory
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
   public :: f_free,f_free_ptr
-  public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_finalize
+  public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
   public :: f_time
   public :: assignment(=),operator(.to.)
+
+  !for internal f_lib usage
+  public :: dynamic_memory_errors
 
 contains
 
@@ -569,6 +616,41 @@ contains
     bounds%nhigh=nhigh
   end function bounds
 
+  pure function mem_ctrl_null() result(mem)
+    type(mem_ctrl) :: mem
+    call nullify_mem_ctrl(mem)
+  end function mem_ctrl_null
+  pure subroutine nullify_mem_ctrl(mem)
+    implicit none
+    type(mem_ctrl), intent(out) :: mem
+    mem%profile_initialized=.false. 
+    mem%routine_opened=.false.      
+    mem%profile_routine=.true.
+    mem%present_routine=repeat(' ',namelen)
+    !>dictionaries needed for profiling storage
+    nullify(mem%dict_global)
+    nullify(mem%dict_routine)
+    nullify(mem%dict_calling_sequence)
+    nullify(mem%dict_codepoint)
+  end subroutine nullify_mem_ctrl
+
+  pure function mem_ctrl_init() result(mem)
+    type(mem_ctrl) :: mem
+    mem=mem_ctrl_null()
+    call initialize_mem_ctrl(mem)
+  end function mem_ctrl_init
+  pure subroutine initialize_mem_ctrl(mem)
+    implicit none
+    type(mem_ctrl), intent(out) :: mem
+    mem%profile_initialized=.true.
+    !initalize the dictionary with the allocation information
+    nullify(mem%dict_routine)
+    call dict_init(mem%dict_global)
+    call dict_init(mem%dict_calling_sequence)
+    !in principle the calling sequence starts from the main
+    mem%dict_codepoint => mem%dict_calling_sequence
+  end subroutine initialize_mem_ctrl
+
   pure function malloc_information_ptr_null() result(m)
     implicit none
     type(malloc_information_ptr) :: m
@@ -577,7 +659,7 @@ contains
 
     m%ptr=.true.
     m%pin=.false.
-    m%profile=profile_routine
+    m%profile=mems(ictrl)%profile_routine
     m%put_to_zero=.false.
     m%metadata_add=0
     m%rank=1
@@ -597,7 +679,7 @@ contains
     integer :: i
 
     m%pin=.false.
-    m%profile=profile_routine !< here omp can be used to know whether to profile or not
+    m%profile=mems(ictrl)%profile_routine !< here omp can be used to know whether to profile or not
     m%put_to_zero=.false.
     m%metadata_add=0
     m%rank=1
@@ -610,6 +692,402 @@ contains
     end do
 
   end function malloc_information_all_null
+
+  !> This routine adds the corresponding subprogram name to the dictionary
+  !! and prepend the dictionary to the global info dictionary
+  !! if it is called more than once for the same name it has no effect
+  subroutine f_routine(id,profile)
+    implicit none
+    logical, intent(in), optional :: profile
+    character(len=*), intent(in), optional :: id
+    
+    !local variables
+    integer :: lgt,ncalls
+    integer(kind=8) :: itime,jtime
+
+    if (f_err_raise(ictrl == 0,&
+         'ERROR (f_routine): the routine f_malloc_initialize has not been called',&
+         ERR_MALLOC_INTERNAL)) return
+
+    if (.not. present(id)) return !no effect
+
+    !take the time
+    itime=f_time()
+
+    !desactivate profile_routine if the mother routine has desactivated it
+    if (present(profile)) mems(ictrl)%profile_routine=mems(ictrl)%profile_routine .and. profile
+
+    if (trim(mems(ictrl)%present_routine) /= trim(id)) then
+       if(associated(mems(ictrl)%dict_routine)) then
+          call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
+          nullify(mems(ictrl)%dict_routine)
+       end if
+       !this means that the previous routine has not been closed
+       if (mems(ictrl)%routine_opened) then
+          !call open_routine(dict_codepoint)
+          mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint//subprograms
+       end if
+       mems(ictrl)%routine_opened=.true.
+       !call add(dict_codepoint,trim(id))
+       !see if the key existed in the codepoint
+       if (has_key(mems(ictrl)%dict_codepoint,trim(id))) then
+          !retrieve number of calls and increase it
+          ncalls=mems(ictrl)%dict_codepoint//trim(id)//no_of_calls
+          call set(mems(ictrl)%dict_codepoint//trim(id)//no_of_calls,ncalls+1)
+          !write the starting point for the time
+          call set(mems(ictrl)%dict_codepoint//trim(id)//t0_time,itime)
+          call set(mems(ictrl)%dict_codepoint//trim(id)//prof_enabled,mems(ictrl)%profile_routine)
+       else
+          !create a new dictionary
+          call set(mems(ictrl)%dict_codepoint//trim(id),&
+               dict_new((/no_of_calls .is. yaml_toa(1), t0_time .is. yaml_toa(itime),&
+                             tot_time .is. yaml_toa(0.d0,fmt='(f4.1)'), &
+                             prof_enabled .is. yaml_toa(mems(ictrl)%profile_routine)/)))
+       end if
+       !then fix the new codepoint from this one
+       mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint//trim(id)
+
+       lgt=min(len(id),namelen)
+       mems(ictrl)%present_routine=repeat(' ',namelen)
+       mems(ictrl)%present_routine(1:lgt)=id(1:lgt)
+
+    end if
+  end subroutine f_routine
+
+  !> Close a previously opened routine
+  subroutine f_release_routine()
+    use yaml_output
+    implicit none
+
+    if (f_err_raise(ictrl == 0,&
+         'ERROR (f_release_routine): the routine f_malloc_initialize has not been called',&
+         ERR_MALLOC_INTERNAL)) return
+
+    if (associated(mems(ictrl)%dict_routine)) then
+       call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
+       nullify(mems(ictrl)%dict_routine)
+    end if
+    !call yaml_map('Closing routine',trim(dict_key(dict_codepoint)))
+
+    call close_routine(mems(ictrl)%dict_codepoint,.not. mems(ictrl)%routine_opened)!trim(dict_key(dict_codepoint)))
+
+    if (f_err_check()) return
+    !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
+    !the main program is opened until there is a subprograms keyword
+    if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),'parent not associated(A)',&
+         ERR_MALLOC_INTERNAL)) return
+    if (dict_key(mems(ictrl)%dict_codepoint%parent) == subprograms) then
+    
+       mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint%parent
+
+       if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),'parent not associated(B)',&
+            ERR_MALLOC_INTERNAL)) return
+       mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint%parent
+    else !back in the main program
+       mems(ictrl)%routine_opened=.false.
+    end if
+
+    mems(ictrl)%present_routine=trim(dict_key(mems(ictrl)%dict_codepoint))
+    if (.not. has_key(mems(ictrl)%dict_codepoint,prof_enabled)) then
+       call yaml_dict_dump(mems(ictrl)%dict_codepoint)
+       call f_err_throw('The key '//prof_enabled//' is not present in the codepoint',&
+            err_id=ERR_MALLOC_INTERNAL)
+       return
+    end if
+
+    mems(ictrl)%profile_routine=mems(ictrl)%dict_codepoint//prof_enabled! 
+    !call yaml_open_map('Codepoint after closing')
+    !call yaml_map('Potential Reference Routine',trim(dict_key(dict_codepoint)))
+    !call yaml_dict_dump(dict_codepoint)
+    !call yaml_close_map()
+
+  end subroutine f_release_routine
+
+  !>create the id of a new routine in the codepoint and points to it.
+  !! works for sequences
+  subroutine open_routine(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+    !local variables
+    integer :: ival
+    character(len=info_length) :: routinename
+    type(dictionary), pointer :: dict_tmp
+
+    !now imagine that a new routine is created
+    ival=dict_len(dict)-1
+    routinename=dict//ival
+
+    !call yaml_map('The routine which has to be converted is',trim(routinename))
+
+    call pop(dict,ival)
+
+    dict_tmp=>dict//ival//trim(routinename)
+
+    dict => dict_tmp
+    nullify(dict_tmp)
+
+  end subroutine open_routine
+
+  subroutine close_routine(dict,jump_up)
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    logical, intent(in) :: jump_up
+    !character(len=*), intent(in) :: name
+    !local variables
+    integer(kind=8) :: itime,jtime
+    real(kind=8) :: rtime
+    type(dictionary), pointer :: dict_tmp
+
+    if (f_err_raise(.not. associated(dict),'routine not associated',ERR_MALLOC_INTERNAL)) return
+
+    itime=f_time()
+
+    !update the total time, if the starting point is present
+    if (has_key(dict,t0_time)) then
+       jtime=dict//t0_time
+       jtime=itime-jtime
+       rtime=dict//tot_time
+       call set(dict//tot_time,rtime+real(jtime,kind=8)*1.d-9,fmt='(1pe15.7)')
+       call pop(dict,t0_time)
+    else
+       call f_err_throw('Key '//t0_time//&
+            ' not found, most likely f_release_routine has been called too many times',&
+            err_id=ERR_INVALID_MALLOC)
+    end if
+
+    !we should go up of three levels
+    if (jump_up) then
+       dict_tmp=>dict%parent
+       if (f_err_raise(.not. associated(dict_tmp),'parent not associated(1)',&
+         ERR_MALLOC_INTERNAL)) return
+!       call yaml_map('Present Key 1',dict_key(dict_tmp))
+       dict_tmp=>dict_tmp%parent
+       if (f_err_raise(.not. associated(dict_tmp),'parent not associated(2)',&
+            ERR_MALLOC_INTERNAL)) return
+!       call yaml_map('Present Key 2',dict_key(dict_tmp))
+       if (f_err_raise(.not. associated(dict_tmp%parent),'parent not associated(3)',&
+            ERR_MALLOC_INTERNAL)) return
+       dict_tmp=>dict_tmp%parent
+       if (f_err_raise(.not. associated(dict_tmp%parent),'parent not associated(4)',&
+            ERR_MALLOC_INTERNAL)) return
+       dict=>dict_tmp%parent
+    end if
+
+  end subroutine close_routine
+
+  !routine which is called for most of the errors of the module
+  subroutine f_malloc_callback()
+    use yaml_output, only: yaml_warning
+    implicit none
+
+    call yaml_warning('An error occured in dynamic memory module. Printing info')
+    call f_malloc_dump_status()
+    call f_err_severe()
+  end subroutine f_malloc_callback
+
+  !> Decide the error messages associated to the dynamic memory
+  subroutine dynamic_memory_errors()
+    use dictionaries, only: f_err_define
+    implicit none
+    
+    call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
+         err_action='Control the order of the allocation of if the memory limit has been reached',&
+         callback=f_malloc_callback)
+    call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Dellocation error',err_id=ERR_DEALLOCATE,&
+         err_action='Control the order of the allocation of if the memory limit has been reached',&
+         callback=f_malloc_callback)
+    call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&
+         err_action='Control the size of the arrays needed for this run with bigdft-tool program',&
+         callback=f_malloc_callback)
+    call f_err_define(err_name='ERR_INVALID_MALLOC',err_msg='Invalid specification of f_malloc',&
+         err_id=ERR_INVALID_MALLOC,&
+         err_action='Put coherent data for the memory space allocation',&
+         callback=f_malloc_callback)
+    call f_err_define(err_name='ERR_MALLOC_INTERNAL',err_msg='Internal error of memory profiler',&
+         err_id=ERR_MALLOC_INTERNAL,&
+         err_action='An invalid operation occurs, submit bug report to developers',&
+         callback=f_malloc_callback)
+    
+  end subroutine dynamic_memory_errors
+
+  !> opens a new instance of the dynamic memory handling
+  subroutine f_malloc_initialize()
+    implicit none
+    
+    !increase the number of active instances
+    ictrl=ictrl+1
+    if (f_err_raise(ictrl > max_ctrl,&
+         'The number of active instances cannot exceed'//trim(yaml_toa(max_ctrl)),&
+         ERR_MALLOC_INTERNAL)) return
+
+    !extra options can be passed at the initialization
+    mems(ictrl)=mem_ctrl_init()
+
+    !initialize the memprofiling counters
+    call set(mems(ictrl)%dict_global//'Timestamp of Profile initialization',&
+         trim(yaml_date_and_time_toa()))
+    !Process Id (used to dump)
+    call set(mems(ictrl)%dict_global//processid,0)
+    !start the profiling of the main program
+    call f_routine(id='Main program')
+
+    !set status of library to the initial case
+    call f_malloc_set_status(memory_limit=0.e0)
+
+  end subroutine f_malloc_initialize
+
+  !> Initialize the library
+  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit,iproc)
+    use yaml_output, only: yaml_date_and_time_toa
+    implicit none
+    !Arguments
+    character(len=*), intent(in), optional :: logfile_name   !< Name of the logfile
+    real(kind=4), intent(in), optional :: memory_limit       !< Memory limit
+    integer, intent(in), optional :: output_level            !< Level of output for memocc
+                                                             !! 0 no file, 1 light, 2 full
+    integer, intent(in), optional :: unit                    !< Indicate file unit for the output
+    integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default one 0)
+
+    if (f_err_raise(ictrl == 0,&
+         'ERROR (f_malloc_set_status): the routine f_malloc_initialize has not been called',&
+         ERR_MALLOC_INTERNAL)) return
+
+!!$
+!!$    if (.not. mems(ictrl)%profile_initialized) then
+!!$       profile_initialized=.true.
+!!$       !call malloc_errors()
+!!$       !initalize the dictionary with the allocation information
+!!$       nullify(dict_routine)
+!!$       call dict_init(dict_global)
+!!$       call set(dict_global//'Timestamp of Profile initialization',trim(yaml_date_and_time_toa()))
+!!$       !Process Id (used to dump)
+!!$       call set(dict_global//processid,0)
+!!$       call dict_init(dict_calling_sequence)
+!!$       !in principle the calling sequence starts from the main
+!!$       dict_codepoint => dict_calling_sequence
+!!$       call f_routine(id='Main program')
+!!$    end if
+
+    if (present(memory_limit)) call memocc_set_memory_limit(memory_limit)
+
+    if (present(output_level)) call memocc_set_state(output_level)
+
+    if (present(unit)) call memocc_set_stdout(unit)
+
+    if (present(logfile_name)) call memocc_set_filename(logfile_name)
+       
+    if (present(iproc)) call set(mems(ictrl)%dict_global//processid,iproc)
+  end subroutine f_malloc_set_status
+
+  !> Finalize f_malloc (Display status)
+  subroutine f_malloc_finalize(dump)
+    use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
+    implicit none
+    !Arguments
+    logical, intent(in), optional :: dump !< Dump always information, 
+                                          !! otherwise only for Process Id == 0 and errors
+    !local variables
+    integer :: pid
+    logical :: dump_status
+    !integer :: unt
+    
+    if (f_err_raise(ictrl == 0,&
+         'ERROR (f_malloc_finalize): the routine f_malloc_initialize has not been called',&
+         ERR_MALLOC_INTERNAL)) return
+
+    !quick return if variables not associated
+    if (associated(mems(ictrl)%dict_global)) then
+       !put the last values in the dictionary if not freed
+       if (associated(mems(ictrl)%dict_routine)) then
+          call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
+          nullify(mems(ictrl)%dict_routine)
+       end if
+
+       if (present(dump)) then
+          dump_status=.true.
+       else 
+          pid = mems(ictrl)%dict_global//processid
+          if (pid == 0) then
+             dump_status=.true.
+          else
+             dump_status=.false.
+          end if
+          !Print if error
+          if (dict_size(mems(ictrl)%dict_global) == 2) dump_status=.false.
+       end if
+       if (dump_status) then
+          call yaml_open_map('Status of the memory at finalization')
+          !call yaml_dict_dump(dict_global)
+          call dump_leaked_memory(mems(ictrl)%dict_global)
+          call yaml_close_map()
+       end if
+       call dict_free(mems(ictrl)%dict_global)
+       call f_release_routine() !release main
+       !    call yaml_open_map('Calling sequence')
+       !    call yaml_dict_dump(dict_calling_sequence)
+       !    call yaml_close_map()
+       call dict_free(mems(ictrl)%dict_calling_sequence)
+    end if
+
+    if (mems(ictrl)%profile_initialized) call memocc_report()
+
+    !nullify control structure
+    mems(ictrl)=mem_ctrl_null()
+    !lower the level
+    ictrl=ictrl-1
+  end subroutine f_malloc_finalize
+
+  !> Dump all allocations
+  subroutine dump_leaked_memory(dict)
+    use metadata_interfaces, only: address_toi
+     use yaml_output
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict
+     !Local variables
+     type(dictionary), pointer :: dict_ptr!, dict_tmp
+     character(len=256) :: array_id
+     dict_ptr => dict_next(dict)
+     do while(associated(dict_ptr))
+        if (has_key(dict_ptr,trim(arrayid))) then
+           array_id = dict_ptr//arrayid
+           call yaml_open_map(trim(array_id))
+           call yaml_dict_dump(dict_ptr)
+           call yaml_map(metadatadd,trim(dict_key(dict_ptr)))
+           call yaml_close_map()
+        else
+           call yaml_open_map(trim(dict_key(dict_ptr)))
+           call yaml_dict_dump(dict_ptr)
+           call yaml_close_map()
+        end if
+        dict_ptr=>dict_next(dict_ptr)
+     end do
+  end subroutine dump_leaked_memory
+
+  subroutine f_malloc_dump_status()
+    use yaml_output
+    implicit none
+
+    if (f_err_raise(ictrl == 0,&
+         'ERROR (f_malloc_dump_status): the routine f_malloc_initialize has not been called',&
+         ERR_MALLOC_INTERNAL)) return
+
+    call yaml_newline()
+    call yaml_open_map('Calling sequence of Main program')
+      call yaml_dict_dump(mems(ictrl)%dict_calling_sequence)
+    call yaml_close_map()
+    if (associated(mems(ictrl)%dict_routine)) then
+       call yaml_open_map('Routine dictionary')
+       call dump_leaked_memory(mems(ictrl)%dict_routine)
+       call yaml_close_map()
+    end if
+    call yaml_open_map('Global dictionary')
+    call dump_leaked_memory(mems(ictrl)%dict_global)
+    call yaml_close_map()
+
+  end subroutine f_malloc_dump_status
+
+!---routines for low-level dynamic memory handling
 
   !> For rank-1 arrays
   pure function f_malloc_simple(size,id,routine_id,profile) result(m)
@@ -664,7 +1142,7 @@ contains
        m%lbounds(i)=bounds(i)%nlow
        m%ubounds(i)=bounds(i)%nhigh
        m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-       end do
+    end do
 
     include 'f_malloc-inc.f90'
 
@@ -914,749 +1392,7 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc0_ptr
 
-  !> This routine adds the corresponding subprogram name to the dictionary
-  !! and prepend the dictionary to the global info dictionary
-  !! if it is called more than once for the same name it has no effect
-  subroutine f_routine(id,profile)
-    implicit none
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id
-    
-    !local variables
-    integer :: lgt,ncalls
-    integer(kind=8) :: itime,jtime
-
-    if (.not. present(id)) return !no effect
-
-    !take the time
-    itime=f_time()
-
-    if (present(profile)) profile_routine=profile
-
-    if (trim(present_routine) /= trim(id)) then
-       if(associated(dict_routine)) then
-          call prepend(dict_global,dict_routine)
-          nullify(dict_routine)
-       end if
-       !this means that the previous routine has not been closed
-       if (routine_opened) then
-          !call open_routine(dict_codepoint)
-          dict_codepoint=>dict_codepoint//subprograms
-       end if
-       routine_opened=.true.
-       !call add(dict_codepoint,trim(id))
-       !see if the key existed in the codepoint
-       if (has_key(dict_codepoint,trim(id))) then
-          !retrieve number of calls and increase it
-          ncalls=dict_codepoint//trim(id)//no_of_calls
-          call set(dict_codepoint//trim(id)//no_of_calls,ncalls+1)
-          !write the starting point for the time
-          call set(dict_codepoint//trim(id)//t0_time,itime)
-          call set(dict_codepoint//trim(id)//prof_enabled,profile_routine)
-       else
-          !create a new dictionary
-          call set(dict_codepoint//trim(id),&
-               dict_new((/no_of_calls .is. yaml_toa(1), t0_time .is. yaml_toa(itime),&
-                             tot_time .is. yaml_toa(int(0,kind=8)), &
-                             prof_enabled .is. yaml_toa(profile_routine)/)))
-       end if
-       !then fix the new codepoint from this one
-       dict_codepoint=>dict_codepoint//trim(id)
-
-       present_routine=repeat(' ',namelen)
-       lgt=min(len(id),namelen)
-       present_routine(1:lgt)=id(1:lgt)
-
-    end if
-  end subroutine f_routine
-
-  !> Close a previously opened routine
-  subroutine f_release_routine()
-    use yaml_output
-    implicit none
-    if (associated(dict_routine)) then
-       call prepend(dict_global,dict_routine)
-       nullify(dict_routine)
-    end if
-    !call yaml_map('Closing routine',trim(dict_key(dict_codepoint)))
-
-    call close_routine(dict_codepoint,.not. routine_opened)!trim(dict_key(dict_codepoint)))
-    if (f_err_check()) return
-    !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
-    !the main program is opened until there is a subprograms keyword
-    if (f_err_raise(.not. associated(dict_codepoint%parent),'parent not associated(A)',&
-         ERR_MALLOC_INTERNAL)) return
-    if (dict_key(dict_codepoint%parent) == subprograms) then
-       dict_codepoint=>dict_codepoint%parent
-       if (f_err_raise(.not. associated(dict_codepoint%parent),'parent not associated(B)',&
-            ERR_MALLOC_INTERNAL)) return
-       dict_codepoint=>dict_codepoint%parent
-    else !back in the main program
-       routine_opened=.false.
-    end if
-    present_routine=trim(dict_key(dict_codepoint))
-    if (.not. has_key(dict_codepoint,prof_enabled)) then
-       call yaml_dict_dump(dict_codepoint)
-       call f_err_throw('The key '//prof_enabled//' is not present in the codepoint',&
-            err_id=ERR_MALLOC_INTERNAL)
-       return
-    end if
-    profile_routine=dict_codepoint//prof_enabled! !the switch off of the profiling only works at the downmost level
-    !call yaml_open_map('Codepoint after closing')
-    !call yaml_map('Potential Reference Routine',trim(dict_key(dict_codepoint)))
-    !call yaml_dict_dump(dict_codepoint)
-    !call yaml_close_map()
-
-  end subroutine f_release_routine
-
-  !>create the id of a new routine in the codepoint and points to it.
-  !! works for sequences
-  subroutine open_routine(dict)
-    implicit none
-    type(dictionary), pointer :: dict
-    !local variables
-    integer :: ival
-    character(len=info_length) :: routinename
-    type(dictionary), pointer :: dict_tmp
-
-    !now imagine that a new routine is created
-    ival=dict_len(dict)-1
-    routinename=dict//ival
-
-    !call yaml_map('The routine which has to be converted is',trim(routinename))
-
-    call pop(dict,ival)
-
-    dict_tmp=>dict//ival//trim(routinename)
-
-    dict => dict_tmp
-    nullify(dict_tmp)
-
-  end subroutine open_routine
-
-  subroutine close_routine(dict,jump_up)
-    use yaml_output
-    implicit none
-    type(dictionary), pointer :: dict
-    logical, intent(in) :: jump_up
-    !character(len=*), intent(in) :: name
-    !local variables
-    integer(kind=8) :: itime,jtime
-    real(kind=8) :: rtime
-    type(dictionary), pointer :: dict_tmp
-
-    if (f_err_raise(.not. associated(dict),'routine not associated',ERR_MALLOC_INTERNAL)) return
-
-!!$    !jump_up=(trim(present_routine) /= trim(name))
-!!$    jump_up=(trim(last_opened_routine) /= trim(name))
-!!$
-!!$    call yaml_open_map('Test of the example')
-!!$    call yaml_map('Name',trim(name))
-!!$    call yaml_map('Last opened routine',trim(last_opened_routine))
-!!$    call yaml_map('Present Routine',present_routine)
-!!$    call yaml_map('Willing to jump up',jump_up)
-!!$    call yaml_close_map()
-
-    !call f_malloc_dump_status()
-    itime=f_time()
-
-!!$    call yaml_open_map('Codepoint')
-!!$    call yaml_dict_dump(dict)
-!!$    call yaml_close_map()
-
-    !print *,'one' 
-    !update the total time, if the starting point is present
-    if (has_key(dict,t0_time)) then
-       jtime=dict//t0_time
-       !print *,'two' 
-       jtime=itime-jtime
-       !print *,'three' 
-       rtime=dict//tot_time
-       !print *,'four' 
-       call set(dict//tot_time,rtime+real(jtime,kind=8)*1.d-9,fmt='(1pe15.7)')
-       call pop(dict,t0_time)
-    else
-       call f_err_throw('Key '//t0_time//&
-            ' not found, most likely f_release_routine has been called too much times',&
-            err_id=ERR_INVALID_MALLOC)
-    end if
-
-    !we should go up of three levels
-    if (jump_up) then
-       dict_tmp=>dict%parent
-       if (f_err_raise(.not. associated(dict_tmp),'parent not associated(1)',&
-         ERR_MALLOC_INTERNAL)) return
-!       call yaml_map('Present Key 1',dict_key(dict_tmp))
-       dict_tmp=>dict_tmp%parent
-       if (f_err_raise(.not. associated(dict_tmp),'parent not associated(2)',&
-            ERR_MALLOC_INTERNAL)) return
-!       call yaml_map('Present Key 2',dict_key(dict_tmp))
-       if (f_err_raise(.not. associated(dict_tmp%parent),'parent not associated(3)',&
-            ERR_MALLOC_INTERNAL)) return
-       dict_tmp=>dict_tmp%parent
-       if (f_err_raise(.not. associated(dict_tmp%parent),'parent not associated(4)',&
-            ERR_MALLOC_INTERNAL)) return
-       dict=>dict_tmp%parent
-
-!    else
-!       call yaml_map('Present Key',dict_key(dict))
-!!$       dict_tmp=>dict%parent
-!!$       if (f_err_raise(.not. associated(dict_tmp),'parent not associated(1)',&
-!!$         ERR_MALLOC_INTERNAL)) return
-!!$       dict=>dict_tmp
-    end if
-       
-       
-
-!!$    if (jump_up) then
-!!$       !now the routine has to be closed
-!!$       !we should jump at the upper level
-!!$       dict_tmp=>dict%parent 
-!!$       if (associated(dict_tmp%parent)) then
-!!$          nullify(dict)
-!!$          !this might be null if we are at the topmost level
-!!$          dict=>dict_tmp%parent
-!!$       end if
-!!$       nullify(dict_tmp)
-!!$    end if
-
-  end subroutine close_routine
-
-  !routine which is called for most of the errors of the module
-  subroutine f_malloc_callback()
-    use yaml_output, only: yaml_warning
-    implicit none
-
-    call yaml_warning('An error occured in dynamic memory module. Printing info')
-    call f_malloc_dump_status()
-    call f_err_severe()
-  end subroutine f_malloc_callback
-
-  !> Decide the error messages associated to the dynamic memory
-  subroutine malloc_errors()
-    use dictionaries!error_handling
-    implicit none
-    
-    call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
-         callback=f_malloc_callback)
-    call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Dellocation error',err_id=ERR_DEALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
-         callback=f_malloc_callback)
-    call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&
-         err_action='Control the size of the arrays needed for this run with bigdft-tool program',&
-         callback=f_malloc_callback)
-    call f_err_define(err_name='ERR_INVALID_MALLOC',err_msg='Invalid specification of f_malloc',&
-         err_id=ERR_INVALID_MALLOC,&
-         err_action='Put coherent data for the memory space allocation',&
-         callback=f_malloc_callback)
-    call f_err_define(err_name='ERR_MALLOC_INTERNAL',err_msg='Internal error of memory profiler',&
-         err_id=ERR_MALLOC_INTERNAL,&
-         err_action='An invalid operation occurs, submit bug report to developers',&
-         callback=f_malloc_callback)
-    
-  end subroutine malloc_errors
-
-
-  !> Initialize the library
-  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit,iproc)
-    use yaml_output, only: yaml_date_and_time_toa
-    implicit none
-    !Arguments
-    character(len=*), intent(in), optional :: logfile_name   !< Name of the logfile
-    real(kind=4), intent(in), optional :: memory_limit       !< Memory limit
-    integer, intent(in), optional :: output_level            !< Level of output for memocc
-                                                             !! 0 no file, 1 light, 2 full
-    integer, intent(in), optional :: unit                    !< Indicate file unit for the output
-    integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default one 0)
-
-    if (.not. profile_initialized) then
-       profile_initialized=.true.
-       call malloc_errors()
-       !initalize the dictionary with the allocation information
-       nullify(dict_routine)
-       call dict_init(dict_global)
-       call set(dict_global//'Timestamp of Profile initialization',trim(yaml_date_and_time_toa()))
-       !Process Id (used to dump)
-       call set(dict_global//processid,0)
-       call dict_init(dict_calling_sequence)
-       !in principle the calling sequence starts from the main
-       dict_codepoint => dict_calling_sequence
-       call f_routine(id='Main program')
-!!$       dict_codepoint => dict_calling_sequence//'Calling sequence of Main program'
-    end if
-
-    if (present(memory_limit)) call memocc_set_memory_limit(memory_limit)
-
-    if (present(output_level)) call memocc_set_state(output_level)
-
-    if (present(unit)) call memocc_set_stdout(unit)
-
-    if (present(logfile_name)) call memocc_set_filename(logfile_name)
-       
-    if (present(iproc)) call set(dict_global//processid,iproc)
-  end subroutine f_malloc_set_status
-
-  !> Finalize f_malloc (Display status)
-  subroutine f_malloc_finalize(dump)
-    use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
-    implicit none
-    !Arguments
-    logical, intent(in), optional :: dump !< Dump always information, 
-                                          !! otherwise only for Process Id == 0 and errors
-    !local variables
-    integer :: pid
-    logical :: dump_status
-    !integer :: unt
-    
-    !quick return if variables not associated
-    if (associated(dict_global)) then
-       !put the last values in the dictionary if not freed
-       if (associated(dict_routine)) then
-          !call yaml_get_default_stream(unt)
-          !call yaml_stream_attributes(unit=unt)
-          !call yaml_warning('Not all the arrays have been freed: memory leaks are possible')
-          call prepend(dict_global,dict_routine)
-          nullify(dict_routine)
-          !      end if
-          !      if (.false.) then !residual memory to be defined
-       end if
-
-       if (present(dump)) then
-          dump_status=.true.
-       else 
-          pid = dict_global//processid
-          if (pid == 0) then
-             dump_status=.true.
-          else
-             dump_status=.false.
-          end if
-          !Print if error
-          if (dict_size(dict_global) == 2) dump_status=.false.
-          !print *,'dict_size',dict_size(dict_global)
-          !print *,'dict_len',dict_len(dict_global)
-       end if
-       if (dump_status) then
-          call yaml_open_map('Status of the memory at finalization')
-          !call yaml_dict_dump(dict_global)
-          call dump_leaked_memory(dict_global)
-          call yaml_close_map()
-       end if
-       call dict_free(dict_global)
-       call f_release_routine() !release main
-       !    call yaml_open_map('Calling sequence')
-       !    call yaml_dict_dump(dict_calling_sequence)
-       !    call yaml_close_map()
-       call dict_free(dict_calling_sequence)
-    end if
-
-    if (profile_initialized) call memocc_report()
-!    end if
-    profile_initialized=.false.
-    present_routine=repeat(' ',namelen)
-    routine_opened=.false.
-    profile_routine=.true.
-  end subroutine f_malloc_finalize
-
-  !> Dump all allocations
-  subroutine dump_leaked_memory(dict)
-    use metadata_interfaces, only: address_toi
-     use yaml_output
-     implicit none
-     type(dictionary), pointer, intent(in) :: dict
-     !Local variables
-     type(dictionary), pointer :: dict_ptr!, dict_tmp
-     character(len=256) :: array_id
-     dict_ptr => dict_next(dict)
-     do while(associated(dict_ptr))
-        if (has_key(dict_ptr,trim(arrayid))) then
-           array_id = dict_ptr//arrayid
-           call yaml_open_map(trim(array_id))
-           call yaml_dict_dump(dict_ptr)
-           call yaml_map(metadatadd,trim(dict_key(dict_ptr)))
-           call yaml_close_map()
-        else
-           call yaml_open_map(trim(dict_key(dict_ptr)))
-           call yaml_dict_dump(dict_ptr)
-           call yaml_close_map()
-        end if
-        dict_ptr=>dict_next(dict_ptr)
-     end do
-  end subroutine dump_leaked_memory
-
-  subroutine f_malloc_dump_status()
-    use yaml_output
-    implicit none
-!!$    if (associated(dict_routine)) call yaml_dict_dump(dict_routine)
-!!$    call yaml_dict_dump(dict_global)
-    call yaml_newline()
-!    call yaml_map('Present routine',trim(present_routine))
-!    call yaml_open_map(Routine dictionary')
-    call yaml_open_map('Calling sequence of Main program')
-      call yaml_dict_dump(dict_calling_sequence)
-    call yaml_close_map()
-    if (associated(dict_routine)) then
-       call yaml_open_map('Routine dictionary')
-       call dump_leaked_memory(dict_routine)
-       call yaml_close_map()
-    end if
-    call yaml_open_map('Global dictionary')
-    !call yaml_dict_dump(dict_global)
-    call dump_leaked_memory(dict_global)
-    call yaml_close_map()
-
-  end subroutine f_malloc_dump_status
-
-
   !---Templates start here
-  subroutine i1_all(array,m)
-    use metadata_interfaces, metadata_address => geti1
-    implicit none
-    type(malloc_information_all), intent(in) :: m
-    integer, dimension(:), allocatable, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine i1_all
-
-  subroutine i1_all_free(array)
-    use metadata_interfaces, metadata_address => geti1
-    implicit none
-    integer, dimension(:), allocatable, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    include 'deallocate-inc.f90' 
-  end subroutine i1_all_free
-
-  subroutine i2_all(array,m)
-    use metadata_interfaces, metadata_address => geti2
-    implicit none
-    type(malloc_information_all), intent(in) :: m
-    integer, dimension(:,:), allocatable, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine i2_all
-  subroutine i2_all_free(array)
-    use metadata_interfaces, metadata_address => geti2
-    implicit none
-    integer, dimension(:,:), allocatable, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    include 'deallocate-inc.f90' 
-  end subroutine i2_all_free
-
-
-  subroutine l1_all(array,m)
-    use metadata_interfaces, metadata_address => getl1
-    implicit none
-    type(malloc_information_all), intent(in) :: m
-    logical, dimension(:), allocatable, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine l1_all
-
-  subroutine l1_all_free(array)
-    use metadata_interfaces, metadata_address => getl1
-    implicit none
-    logical, dimension(:), allocatable, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    include 'deallocate-inc.f90' 
-  end subroutine l1_all_free
-
-
-  subroutine l2_all(array,m)
-    use metadata_interfaces, metadata_address => getl2
-    implicit none
-    type(malloc_information_all), intent(in) :: m
-    logical, dimension(:,:), allocatable, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine l2_all
-
-  subroutine l2_all_free(array)
-    use metadata_interfaces, metadata_address => getl2
-    implicit none
-    logical, dimension(:,:), allocatable, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    include 'deallocate-inc.f90' 
-  end subroutine l2_all_free
-
-  subroutine d1_all(array,m)
-    use metadata_interfaces, metadata_address => getdp1
-    implicit none
-    type(malloc_information_all), intent(in) :: m
-    double precision, dimension(:), allocatable, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-   !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine d1_all
-
-  subroutine d1_all_free(array)
-    use metadata_interfaces, metadata_address => getdp1
-    implicit none
-    double precision, dimension(:), allocatable, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    include 'deallocate-inc.f90' 
-  end subroutine d1_all_free
-
-
-  subroutine d2_all(array,m)
-    use metadata_interfaces, metadata_address => getdp2
-    implicit none
-    type(malloc_information_all), intent(in) :: m
-    double precision, dimension(:,:), allocatable, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine d2_all
-
-  subroutine d2_all_free(array)
-    use metadata_interfaces, metadata_address => getdp2
-    implicit none
-    double precision, dimension(:,:), allocatable, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    include 'deallocate-inc.f90' 
-  end subroutine d2_all_free
-
-
-  subroutine d3_all(array,m)
-    use metadata_interfaces, metadata_address => getdp3
-    implicit none
-    type(malloc_information_all), intent(in) :: m
-    double precision, dimension(:,:,:), allocatable, intent(inout) :: array
-    !local variables
-    include 'allocate-inc-profile.f90' 
-    allocate(array(m%lbounds(1):m%ubounds(1),&
-         m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine d3_all
-
-  subroutine d3_all_free(array)
-    use metadata_interfaces, metadata_address => getdp3
-    implicit none
-    double precision, dimension(:,:,:), allocatable, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    include 'deallocate-inc.f90' 
-  end subroutine d3_all_free
-
-  subroutine d4_all(array,m)
-    use metadata_interfaces, metadata_address => getdp4
-    implicit none
-    type(malloc_information_all), intent(in) :: m
-    double precision, dimension(:,:,:,:), allocatable, intent(inout) :: array
-    !local variables
-    include 'allocate-inc-profile.f90' 
-    allocate(array(m%lbounds(1):m%ubounds(1),&
-         m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3),&
-         m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine d4_all
-
-  subroutine d4_all_free(array)
-    use metadata_interfaces, metadata_address => getdp4
-    implicit none
-    double precision, dimension(:,:,:,:), allocatable, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    include 'deallocate-inc.f90' 
-  end subroutine d4_all_free
-
-  !test to see if this is convenient
-  subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
-    implicit none
-    double precision, dimension(:), allocatable, intent(inout) :: arrayA
-    double precision, dimension(:), allocatable, intent(inout) :: arrayB
-    double precision, dimension(:), allocatable, optional, intent(inout) :: arrayC
-    double precision, dimension(:), allocatable, optional, intent(inout) :: arrayD
-    double precision, dimension(:), allocatable, optional, intent(inout) :: arrayE
-    double precision, dimension(:), allocatable, optional, intent(inout) :: arrayF
-    double precision, dimension(:), allocatable, optional, intent(inout) :: arrayG
-    double precision, dimension(:), allocatable, optional, intent(inout) :: arrayH
-
-    call d1_all_free(arrayA)
-    call d1_all_free(arrayB)
-    if (present(arrayC)) then
-       call d1_all_free(arrayC)
-    end if
-    if (present(arrayD)) then
-       call d1_all_free(arrayD)
-    end if
-    if (present(arrayE)) then
-       call d1_all_free(arrayE)
-    end if
-    if (present(arrayF)) then
-       call d1_all_free(arrayF)
-    end if
-    if (present(arrayG)) then
-       call d1_all_free(arrayG)
-    end if
-    if (present(arrayH)) then
-       call d1_all_free(arrayH)
-    end if
-  end subroutine d1_all_free_multi
-
-  !pointers
-  subroutine d1_ptr(array,m)
-    use metadata_interfaces, metadata_address => getdp1ptr
-    implicit none
-    type(malloc_information_ptr), intent(in) :: m
-    double precision, dimension(:), pointer, intent(inout) :: array
-    !local variables
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-
-    include 'allocate-inc.f90'
-  end subroutine d1_ptr
-
-  subroutine d1_ptr_free(array)
-    use metadata_interfaces, metadata_address => getdp1ptr
-    implicit none
-    double precision, dimension(:), pointer, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    if (.not. associated(array)) return
-    include 'deallocate-inc.f90'
-    nullify(array)
-  end subroutine d1_ptr_free
-
-  subroutine i1_ptr(array,m)
-    use metadata_interfaces, metadata_address => geti1ptr
-    implicit none
-    type(malloc_information_ptr), intent(in) :: m
-    integer, dimension(:), pointer, intent(inout) :: array
-    !local variables
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-
-    include 'allocate-inc.f90'
-  end subroutine i1_ptr
-
-  subroutine i1_ptr_free(array)
-    use metadata_interfaces, metadata_address => geti1ptr
-    implicit none
-    integer, dimension(:), pointer, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    if (.not. associated(array)) return
-    include 'deallocate-inc.f90'
-    nullify(array)
-  end subroutine i1_ptr_free
-
-
-  subroutine d2_ptr(array,m)
-    use metadata_interfaces, metadata_address => getdp2ptr
-    implicit none
-    type(malloc_information_ptr), intent(in) :: m
-    double precision, dimension(:,:), pointer, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine d2_ptr
-
-  subroutine d2_ptr_free(array)
-    use metadata_interfaces, metadata_address => getdp2ptr
-    implicit none
-    double precision, dimension(:,:), pointer, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    if (.not. associated(array)) return
-    include 'deallocate-inc.f90'
-    nullify(array)
-  end subroutine d2_ptr_free
-
-  subroutine i2_ptr(array,m)
-    use metadata_interfaces, metadata_address => geti2ptr
-    implicit none
-    type(malloc_information_ptr), intent(in) :: m
-    integer, dimension(:,:), pointer, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine i2_ptr
-
-  subroutine i2_ptr_free(array)
-    use metadata_interfaces, metadata_address => geti2ptr
-    implicit none
-    integer, dimension(:,:), pointer, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    if (.not. associated(array)) return
-    include 'deallocate-inc.f90'
-    nullify(array)
-  end subroutine i2_ptr_free
-
-
-  subroutine d3_ptr(array,m)
-    use metadata_interfaces, metadata_address => getdp3ptr
-    implicit none
-    type(malloc_information_ptr), intent(in) :: m
-    double precision, dimension(:,:,:), pointer, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
-         m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine d3_ptr
-
-  subroutine d3_ptr_free(array)
-    use metadata_interfaces, metadata_address => getdp3ptr
-    implicit none
-    double precision, dimension(:,:,:), pointer, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    if (.not. associated(array)) return
-    include 'deallocate-inc.f90'
-    nullify(array)
-  end subroutine d3_ptr_free
-
-  subroutine d4_ptr(array,m)
-    use metadata_interfaces, metadata_address => getdp4ptr
-    implicit none
-    type(malloc_information_ptr), intent(in) :: m
-    double precision, dimension(:,:,:,:), pointer, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
-         m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine d4_ptr
-
-  subroutine d4_ptr_free(array)
-    use metadata_interfaces, metadata_address => getdp4ptr
-    implicit none
-    double precision, dimension(:,:,:,:), pointer, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    if (.not. associated(array)) return
-    include 'deallocate-inc.f90'
-    nullify(array)
-  end subroutine d4_ptr_free
-
-  subroutine d5_ptr(array,m)
-    use metadata_interfaces, metadata_address => getdp5ptr
-    implicit none
-    type(malloc_information_ptr), intent(in) :: m
-    double precision, dimension(:,:,:,:,:), pointer, intent(inout) :: array
-    include 'allocate-inc-profile.f90' 
-    !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
-         m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4),&
-         m%lbounds(5):m%ubounds(5)+ndebug),stat=ierror)
-    include 'allocate-inc.f90'
-  end subroutine d5_ptr
-
-  subroutine d5_ptr_free(array)
-    use metadata_interfaces, metadata_address => getdp5ptr
-    implicit none
-    double precision, dimension(:,:,:,:,:), pointer, intent(inout) :: array
-    include 'deallocate-inc-profile.f90' 
-    if (.not. associated(array)) return
-    include 'deallocate-inc.f90'
-    nullify(array)
-  end subroutine d5_ptr_free
-
+  include 'malloc_templates-inc.f90'
 
 end module dynamic_memory

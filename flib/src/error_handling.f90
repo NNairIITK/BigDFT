@@ -55,16 +55,8 @@
     end if
     if (.not. associated(dict_errors)) then
        call dict_init(dict_errors)
-       !initialize the dictionary with the generic case
-       call f_err_define('SUCCESS','Operation has succeeded',ERR_SUCCESS,err_action='No action')
-       call f_err_define('GENERIC_ERROR',errunspec,ERR_GENERIC,err_action=errundef)
-       call f_err_define('ERR_NOT_DEFINED','The error id or name is invalid',ERR_NOT_DEFINED,&
-            err_action='Control if the err id exists')
-       !initalize also error of dictionary part of the module
-       call dictionary_errors()
+       !call dictionaries_errors()
     end if
-
-    
   end subroutine f_err_initialize
 
   subroutine f_err_finalize()
@@ -90,7 +82,10 @@
 
     !assure initialization of the library in case of misuse
     !when f_lib library becomes beta, this should become a severe error
-    if (.not. associated(dict_errors)) call f_err_initialize()
+    if (.not. associated(dict_errors)) then !call f_err_initialize()
+       write(0,*)'error_handling library not initialized, f_lib_initialized should be called'
+       call f_err_severe()
+    end if
 
     err_id=ERR_GENERIC
 !    if (associated(dict_errors)) then
@@ -191,63 +186,6 @@
              call f_err_throw(message,callback_data=clbk_data_add)
           end if
        end if
-
-!       !to prevent infinite loop due to not association of the error handling
-!       if (.not. associated(dict_present_error)) then
-!          write(0,*)'error_handling library not initialized'
-!          call f_err_severe()
-!       end if
-!
-!       !search the error ID (the generic error is always the first)
-!       new_errcode=ERR_GENERIC
-!       if (present(err_name)) then
-!          new_errcode= max(dict_errors .index. err_name,ERR_GENERIC)
-!          !add a potentially verbose error list in case the specified error name has not been found
-!          call yaml_map('Error raised, name entered',err_name)
-!          call yaml_map('Errorcode found',new_errcode)
-!          call yaml_map('Index function returned',dict_errors .index. err_name)
-!          call yaml_dict_dump(dict_errors)
-!          call yaml_map('Dump ended',.true.)
-!       else if (present(err_id)) then
-!          new_errcode=ERR_GENERIC
-!          if (err_id < dict_len(dict_errors)) new_errcode=err_id
-!       end if
-!
-!       if (present(err_msg)) then
-!          message(1:len(message))=err_msg
-!       else
-!          message(1:len(message))='UNKNOWN'
-!       end if
-!       call add(dict_present_error,&
-!            dict_new((/ errid .is. yaml_toa(new_errcode),&
-!            'Additional Info' .is. message/)))
-!       !call add(dict_present_error,new_errcode)
-!
-!!!$       if (present(err_msg)) then
-!!!$          call f_dump_error(new_errcode,err_msg)
-!!!$       else
-!!!$          call f_dump_error(new_errcode,'')
-!!!$       end if
-!
-!       !identify callback function 
-!       clbk_add=callback_add
-!       clbk_data_add=callback_data_add
-!       if (present(callback_data)) clbk_data_add=callback_data
-!       if (present(callback)) then
-!          clbk_add=f_loc(callback)
-!       else
-!          !find the callback in the error definition
-!          !these data can be inserted in a function
-!          dict_tmp=>f_get_error_dict(new_errcode)
-!          !that is how dict_keys function should be called      
-!          if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
-!          dict_tmp=>dict_tmp//trim(keys(1))
-!
-!          if (has_key(dict_tmp,errclbk)) clbk_add=dict_tmp//errclbk
-!          if (has_key(dict_tmp,errclbkadd)) clbk_data_add=dict_tmp//errclbkadd
-!       end if
-!
-!       call err_abort(clbk_add,clbk_data_add)
     end if
   end function f_err_raise
 
@@ -351,7 +289,7 @@
   end function f_get_last_error
 
   !> clean the dictionary of present errors
-  subroutine f_err_clean()
+   subroutine f_err_clean()
     implicit none
     call dict_free(dict_present_error)
     call dict_init(dict_present_error)
@@ -373,7 +311,6 @@
   function f_get_error_definitions()
     implicit none
     type(dictionary), pointer :: f_get_error_definitions
-
     f_get_error_definitions => dict_errors
   end function f_get_error_definitions
 

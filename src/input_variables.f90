@@ -70,7 +70,6 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
 
 END SUBROUTINE bigdft_set_input
 
-
 !> De-allocate the variable of type input_variables
 subroutine bigdft_free_input(in)
   use module_base
@@ -391,6 +390,7 @@ subroutine default_input_variables(in)
   nullify(in%frag%label)
   nullify(in%frag%dirname)
   nullify(in%frag%frag_index)
+  nullify(in%frag%charge)
 END SUBROUTINE default_input_variables
 
 !> Assign default values for mixing variables
@@ -488,7 +488,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
   call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
 
-  comments = 'kernel iterations (low, high)'
+  comments = 'kernel iterations (low, high) - directmin only'
+  call input_var(in%lin%nItdmin_lowaccuracy,'1',ranges=(/0,1000/))
+  call input_var(in%lin%nItdmin_highaccuracy,'1',ranges=(/0,1000/),comment=comments)
+
+  comments = 'density iterations (low, high)'
   call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
   call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/),comment=comments)
 
@@ -497,7 +501,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
   call input_var(in%lin%DIIS_hist_highaccur,'0',ranges=(/0,100/),comment=comments)
 
-  comments = 'DIIS history for kernel (low, high)'
+  comments = 'DIIS history for kernel (low, high) - directmin only'
+  call input_var(in%lin%dmin_hist_lowaccuracy,'0',ranges=(/0,100/))
+  call input_var(in%lin%dmin_hist_highaccuracy,'0',ranges=(/0,100/),comment=comments)
+
+  comments = 'DIIS history for density mixing (low, high)'
   call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
   call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/),comment=comments)
 
@@ -522,7 +530,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments = 'factor to reduce the confinement. Only used for hybrid mode.'
   call input_var(in%lin%reduce_confinement_factor,'0.5d0',ranges=(/-1.d100,1.d0/),comment=comments)
 
-  comments = 'kernel convergence (low, high)'
+  comments = 'kernel convergence (low, high) - directmin only'
+  call input_var(in%lin%convCritdmin_lowaccuracy,'1.d-5',ranges=(/0.d0,1.d0/))
+  call input_var(in%lin%convCritdmin_highaccuracy,'1.d-5',ranges=(/0.d0,1.d0/),comment=comments)
+
+  comments = 'density convergence (low, high)'
   call input_var(in%lin%convCritMix_lowaccuracy,'1.d-13',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%convCritMix_highaccuracy,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
 
@@ -536,6 +548,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
   call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,10.0_gp/))
   call input_var(in%lin%alphaSD,'1.d0',ranges=(/0.0_gp,10.0_gp/),comment=comments)
+
+  comments = 'initial step size for kernel update (SD), curve fitting for alpha update - directmin only'
+  call input_var(in%lin%alphaSD_coeff,'1.d0',ranges=(/0.0_gp,10.0_gp/))
+  call input_var(in%lin%curvefit_dmin,'F',comment=comments)
 
   comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
   call input_var(in%lin%evlow,'-.5d0',ranges=(/-10.d0,-1.d-10/))
@@ -560,9 +576,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%pulay_correction,'T',comment=comments)
 
   !fragment calculation and transfer integrals: true or false
-  comments='fragment calculation; calculate transfer_integrals'
+  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation'
   call input_var(in%lin%fragment_calculation,'F')
-  call input_var(in%lin%calc_transfer_integrals,'F',comment=comments)
+  call input_var(in%lin%calc_transfer_integrals,'F')
+  call input_var(in%lin%constrained_dft,'F',comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
@@ -741,7 +758,7 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
     end if
   end do
 
-  comments = '# fragment number j, reference fragment i this corresponds to'
+  comments = '# fragment number j, reference fragment i this corresponds to, charge on this fragment'
   do ifrag=1,in%frag%nfrag
     call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag/))
     if (frag_num/=ifrag) then
@@ -750,7 +767,8 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
        call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
        stop
     end if
-    call input_var(in%frag%frag_index(frag_num),'1',ranges=(/0,100000/),comment=comments)
+    call input_var(in%frag%frag_index(frag_num),'1',ranges=(/0,100000/))
+    call input_var(in%frag%charge(frag_num),'1',ranges=(/-500,500/),comment=comments)
   end do
 
   call input_free((iproc == 0) .and. dump)
@@ -770,6 +788,9 @@ END SUBROUTINE fragment_input_variables
  
     allocate(input_frag%frag_index(input_frag%nfrag), stat=i_stat)
     call memocc(i_stat, input_frag%frag_index, 'input_frag%frag_index', subname)
+
+    allocate(input_frag%charge(input_frag%nfrag), stat=i_stat)
+    call memocc(i_stat, input_frag%charge, 'input_frag%charge', subname)
 
     !allocate(input_frag%frag_info(input_frag%nfrag_ref,2), stat=i_stat)
     !call memocc(i_stat, input_frag%frag_info, 'input_frag%frag_info', subname)
@@ -806,6 +827,13 @@ END SUBROUTINE fragment_input_variables
       call memocc(i_stat,i_all,'input_frag%frag_index',subname)
       nullify(input_frag%frag_index)
     end if 
+ 
+    if(associated(input_frag%charge)) then
+      i_all = -product(shape(input_frag%charge))*kind(input_frag%charge)
+      deallocate(input_frag%charge,stat=i_stat)
+      call memocc(i_stat,i_all,'input_frag%charge',subname)
+      nullify(input_frag%charge)
+    end if 
 
     if(associated(input_frag%label)) then
       i_all = -product(shape(input_frag%label))*kind(input_frag%label)
@@ -832,6 +860,7 @@ END SUBROUTINE fragment_input_variables
     type(fragmentInputParameters),intent(inout) :: input_frag
 
     nullify(input_frag%frag_index)
+    nullify(input_frag%charge)
     !nullify(input_frag%frag_info)
     nullify(input_frag%label)
     nullify(input_frag%dirname)

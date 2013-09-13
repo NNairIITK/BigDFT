@@ -426,10 +426,10 @@ subroutine init_atomic_values(verb, atoms, ixc)
            & atoms%donlcc, rcore(ityp), qcore(ityp), radii_cf, read_radii, exists)
      !To eliminate the runtime warning due to the copy of the array (TD)
      atoms%radii_cf(ityp,:)=radii_cf(:)
-     !ALEX: Count Gaussians for rhocore
-     if(atoms%npspcode(ityp)==12) nlcc_dim=nlcc_dim+1
 
      if (exists) then
+        !ALEX: Count Gaussians for rhocore
+        if(atoms%npspcode(ityp)==12) nlcc_dim=nlcc_dim+1
         !! first time just for dimension ( storeit = . false.)
         call pawpatch_from_file( filename, atoms,ityp,&
              paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
