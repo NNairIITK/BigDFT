@@ -519,11 +519,11 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
       lb = t1
       ub = t2
       return
+   else
+      go to 320
    end if
-   go to 320
 
 60 continue
-
    if (s-m1 < 0) then
       xu = x1
       go to 50
