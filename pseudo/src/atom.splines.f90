@@ -523,18 +523,6 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
       go to 320
    end if
 
-60 continue
-   if (s-m1 < 0) then
-      xu = x1
-      go to 50
-   else if (s-m1 > 0) then
-      x0 = x1
-      go to 50
-   else
-      xu = x1
-      t1 = x1
-   end if
-
 75 continue
    m22 = m1 + m
    if (m22 == n) then
@@ -606,7 +594,6 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
 
    ! loop for k-th eigenvalue
    ! for k=m2 step -1 until m1 do --
-   ! (-do- not used to legalize -computed go to-)
    k = m2
 250 continue
    xu = lb
@@ -624,7 +611,16 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
    ! next bisection step
 300 continue
    x1 = (xu + x0) * 0.5d0
-   if ((x0 - xu) <= (2.d0 * machep * (abs(xu) + abs(x0)) + abs(eps1))) go to 420
+   if ((x0 - xu) <= (2.d0 * machep * (abs(xu) + abs(x0)) + abs(eps1))) then
+      ! k-th eigenvalue found
+      rv5(k) = x1
+      k = k - 1
+      if (k >= m1) then
+         go to 250
+      else
+         go to 900
+      end if
+   end if
 
    ! in-line procedure for Sturm sequence
 320 continue
@@ -646,7 +642,17 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
    select case(isturm)
 
    case(1)
-      go to 60
+      if (s-m1 < 0) then
+         xu = x1
+         go to 50
+      else if (s-m1 > 0) then
+         x0 = x1
+         go to 50
+      else
+         xu = x1
+         t1 = x1
+         go to 75
+      end if
 
    case(2)
       if (s-m22 < 0) then
@@ -690,13 +696,6 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
       stop 'tridib: illegal value of isturm'
 
    end select
-
-
-   ! k-th eigenvalue found
-420 continue
-   rv5(k) = x1
-   k = k - 1
-   if (k >= m1) go to 250
 
    ! order eigenvalues tagged with their submatrix associations
 900 continue
