@@ -537,26 +537,15 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
 
 75 continue
    m22 = m1 + m
-   if (m22 == n) go to 90
+   if (m22 == n) then
+      q = 0
+      r = 0
+      go to 100
+   end if
    x0 = t2
    isturm = 2
    go to 50
 
-80 continue
-
-   if (s-m22 < 0) then
-      xu = x1
-      go to 50
-   else if (s-m22 > 0) then
-      x0 = x1
-      go to 50
-   else
-      t2 = x1
-   end if
-
-90 continue
-   q = 0
-   r = 0
 
    ! establish and process next submatrix, refining interval by the GerschGorin bounds
 100 continue
@@ -586,27 +575,22 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
 
    x1 = max(abs(xu),abs(x0)) * machep
    if (eps1 <= 0.d0) eps1 = -x1
-   if (p /= q) go to 180
-   ! check for isolated root within interval
-   if (t1 > d(p) .or. d(p) >= t2) go to 940
-   m1 = p
-   m2 = p
-   rv5(p) = d(p)
-   go to 900
+   if (p == q) then
+      ! check for isolated root within interval
+      if (t1 > d(p) .or. d(p) >= t2) go to 940
+      m1 = p
+      m2 = p
+      rv5(p) = d(p)
+      go to 900
+   else
+      x1 = x1 * real(q-p+1,kind=8)
+      lb = max(t1,xu-x1)
+      ub = min(t2,x0+x1)
+      x1 = lb
+      isturm = 3
+      go to 320
+   end if
 
-180 continue
-   x1 = x1 * real(q-p+1,kind=8)
-   lb = max(t1,xu-x1)
-   ub = min(t2,x0+x1)
-   x1 = lb
-   isturm = 3
-   go to 320
-
-200 continue
-   m1 = s + 1
-   x1 = ub
-   isturm = 4
-   go to 320
 220 continue
    m2 = s
    if (m1 > m2) go to 940
@@ -665,10 +649,24 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
       go to 60
 
    case(2)
-      go to 80
+      if (s-m22 < 0) then
+         xu = x1
+         go to 50
+      else if (s-m22 > 0) then
+         x0 = x1
+         go to 50
+      else
+         t2 = x1
+         q = 0
+         r = 0
+         go to 100
+      end if
 
    case(3)
-      go to 200
+      m1 = s + 1
+      x1 = ub
+      isturm = 4
+      go to 320
 
    case(4)
       go to 220
@@ -689,8 +687,8 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
       go to 300
 
    case default
-
       stop 'tridib: illegal value of isturm'
+
    end select
 
 
@@ -1080,14 +1078,23 @@ subroutine splint (x,y,ypp,n,xi,yi,ypi,yppi,ni,kerr)
    ! i is current index into x array.
    k  = 1
    xx = xi(1)
-   if (xx < x(1)) go to 90
-   if (xx > x(n)) go to 80
+   if (xx < x(1)) then
+      kerr = 2
+      i = 1
+      go to 100
+   end if
+   if (xx > x(n)) then
+      ! extrapolation
+      kerr = 2
+      i = nm1
+      go to 100
+   end if
    il = 1
    ir = n
 
    ! bisection search
 10 continue
-   i  = (il+ir)/2
+   i = (il+ir)/2
    if (i == il) go to 100
 
    if (xx-x(i) < 0.d0) then
@@ -1103,18 +1110,16 @@ subroutine splint (x,y,ypp,n,xi,yi,ypi,yppi,ni,kerr)
    ! linear forward search
 50 continue
    if (xx-x(i+1) <= 0.d0) go to 100
-   if (i >= nm1) go to 80
-   i  = i+1
-   go to 50
+   if (i >= nm1) then
+      ! extrapolation
+      kerr = 2
+      i = nm1
+      go to 100
+   else
+      i = i+1
+      go to 50
+   end if
 
-   ! extrapolation
-80 continue
-   kerr = 2
-   i  = nm1
-   go to 100
-90 continue
-   kerr = 2
-   i  = 1
 
    ! interpolation
 100 continue
@@ -1135,8 +1140,16 @@ subroutine splint (x,y,ypp,n,xi,yi,ypi,yppi,ni,kerr)
 
    k = k+1
    xx = xi(k)
-   if (xx < x(1)) go to 90
-   if (xx > x(n)) go to 80
+   if (xx < x(1)) then
+      kerr = 2
+      i = 1
+      go to 100
+   end if
+   if (xx > x(n)) then
+      kerr = 2
+      i = nm1
+      go to 100
+   end if
 
    if (xx-xi(k-1) < 0.d0) then
       il = 1
