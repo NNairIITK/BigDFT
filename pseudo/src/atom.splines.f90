@@ -840,7 +840,13 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
             xu = 1.d0
             if (p == q) then
                rv6(p) = 1.d0
-               go to 870
+               do i = 1, n
+                  z(i,r) = 0.d0
+               end do
+               z(p,r) = rv6(p) * xu
+               x0 = x1
+               !Start again
+               cycle rloop
             end if
             norm = abs(d(p))
             ip = p + 1
@@ -905,90 +911,88 @@ subroutine tinvit(nm,n,d,e,e2,m,w,ind,z,ierr,rv1,rv2,rv3,rv4,rv6)
          rv1(q) = u
          rv2(q) = 0.d0
          rv3(q) = 0.d0
-         ! back substitution
-         ! for i=q step -1 until p do --
-600      continue
-         do ii = p, q
-            i = p + q - ii
-            rv6(i) = (rv6(i) - u * rv2(i) - v * rv3(i)) / rv1(i)
-            v = u
-            u = rv6(i)
-         end do
 
-         ! orthogonalize with respect to previous members of group
-         if (group /= 0) then
-            j = r
-            do jj = 1, group
-               j = j - 1
-               if (ind(j) /= tag) cycle
-               xu = 0.d0
-
-               do i = p, q
-                  xu = xu + rv6(i) * z(i,j)
-               end do
-
-               do i = p, q
-                  rv6(i) = rv6(i) - xu * z(i,j)
-               end do
+         ! back substitution for i=q step -1 until p do --
+         back_substitution: do
+            do ii = p, q
+               i = p + q - ii
+               rv6(i) = (rv6(i) - u * rv2(i) - v * rv3(i)) / rv1(i)
+               v = u
+               u = rv6(i)
             end do
-         end if
 
-         norm = 0.d0
+            ! orthogonalize with respect to previous members of group
+            if (group /= 0) then
+               j = r
+               do jj = 1, group
+                  j = j - 1
+                  if (ind(j) /= tag) cycle
+                  xu = 0.d0
 
-         do i = p, q
-            norm = norm + abs(rv6(i))
-         end do
+                  do i = p, q
+                     xu = xu + rv6(i) * z(i,j)
+                  end do
 
-         if (norm >= 1.d0) go to 840
-         ! forward substitution
-         if (its == 5) then
-            ! set error -- non-converged eigenvector
-            ierr = -r
-            xu = 0.d0
-            go to 870
-         end if
-
-         if (norm == 0.d0) then
-            rv6(s) = eps4
-            s = s + 1
-            if (s > q) s = p
-         else
-            xu = eps4 / norm
-            do i = p, q
-               rv6(i) = rv6(i) * xu
-            end do
-         end if
-
-         ! elimination operations on next vector iterate
-         do i = ip, q
-            u = rv6(i)
-            ! if rv1(i-1) == e(i), a row interchange was performed earlier in the triangularization process
-            if (rv1(i-1) == e(i)) then
-               u = rv6(i-1)
-               rv6(i-1) = rv6(i)
-            else
-               rv6(i) = u - rv4(i) * rv6(i-1)
+                  do i = p, q
+                     rv6(i) = rv6(i) - xu * z(i,j)
+                  end do
+               end do
             end if
-         end do
 
-         its = its + 1
-         go to 600
+            norm = 0.d0
 
-         ! normalize so that sum of squares is 1 and expand to full order
-840      continue
-         u = 0.d0
+            do i = p, q
+               norm = norm + abs(rv6(i))
+            end do
 
-         do i = p, q
-            u = u + rv6(i)**2
-         end do
+            !We have finished, quit the loop back_substitution
+            if (norm >= 1.d0) then
+               ! normalize so that sum of squares is 1 and expand to full order
+               u = 0.d0
+               do i = p, q
+                  u = u + rv6(i)**2
+               end do
+               xu = 1.d0 / sqrt(u)
+               exit back_substitution
+            end if
 
-         xu = 1.d0 / sqrt(u)
+            ! forward substitution
+            if (its == 5) then
+               ! set error -- non-converged eigenvector
+               ierr = -r
+               xu = 0.d0
+               exit back_substitution
+            end if
 
-870      continue
+            if (norm == 0.d0) then
+               rv6(s) = eps4
+               s = s + 1
+               if (s > q) s = p
+            else
+               xu = eps4 / norm
+               do i = p, q
+                  rv6(i) = rv6(i) * xu
+               end do
+            end if
+
+            ! elimination operations on next vector iterate
+            do i = ip, q
+               u = rv6(i)
+               ! if rv1(i-1) == e(i), a row interchange was performed earlier in the triangularization process
+               if (rv1(i-1) == e(i)) then
+                  u = rv6(i-1)
+                  rv6(i-1) = rv6(i)
+               else
+                  rv6(i) = u - rv4(i) * rv6(i-1)
+               end if
+            end do
+
+            its = its + 1
+         end do back_substitution
+
          do i = 1, n
             z(i,r) = 0.d0
          end do
-
          do i = p, q
             z(i,r) = rv6(i) * xu
          end do
