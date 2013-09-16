@@ -524,17 +524,16 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
 
 60 continue
 
-   select case(s-m1)
-   case(:-1)
+   if (s-m1 < 0) then
       xu = x1
       go to 50
-   case(1:)
+   else if (s-m1 > 0) then
       x0 = x1
       go to 50
-   case(0)
+   else
       xu = x1
       t1 = x1
-   end select
+   end if
 
 75 continue
    m22 = m1 + m
@@ -545,16 +544,15 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
 
 80 continue
 
-   select case(s-m22)
-   case(:-1)
+   if (s-m22 < 0) then
       xu = x1
       go to 50
-   case(1:)
+   else if (s-m22 > 0) then
       x0 = x1
       go to 50
-   case(0)
+   else
       t2 = x1
-   end select
+   end if
 
 90 continue
    q = 0
@@ -660,24 +658,41 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
       if (u < 0.d0) s = s + 1
    end do
 
-   go to (60,80,200,220,360), isturm
+   !go to (60,80,200,220,360), isturm
+   select case(isturm)
 
-   ! refine intervals
-360 continue
-   if (s >= k) go to 400
-   xu = x1
-   if (s >= m1) go to 380
-   rv4(m1) = x1
-   go to 300
+   case(1)
+      go to 60
 
-380 continue
-   rv4(s+1) = x1
-   if (rv5(s) > x1) rv5(s) = x1
-   go to 300
+   case(2)
+      go to 80
 
-400 continue
-   x0 = x1
-   go to 300
+   case(3)
+      go to 200
+
+   case(4)
+      go to 220
+
+   case(5)
+      ! refine intervals
+      if (s >= k) then
+         x0 = x1
+         go to 300
+      end if
+      xu = x1
+      if (s >= m1) then
+         rv4(s+1) = x1
+         if (rv5(s) > x1) rv5(s) = x1
+         go to 300
+      end if
+      rv4(m1) = x1
+      go to 300
+
+   case default
+
+      stop 'tridib: illegal value of isturm'
+   end select
+
 
    ! k-th eigenvalue found
 420 continue
