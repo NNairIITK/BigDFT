@@ -90,7 +90,7 @@ subroutine difnrl(v,ar,br,&
    ! set underflow trap
    juflow=1
    do j=2,nr
-      if (lp*abs(log(r(j))) .ge. expzer/2) juflow = j
+      if (lp*abs(log(r(j))) >= expzer/2) juflow = j
    end do
 
    ! determine effective charge and vzero for startup of
@@ -110,203 +110,203 @@ subroutine difnrl(v,ar,br,&
 
    if (ev > emax) ev = emax
    !! write(6,15) ev,nodes
-10 continue
-   !! if (itmax .lt. 2) write(6,'(1x,a,1pe18.10,a,i2)') 'ev',ev,' nodes =',nodes
 
-   if (itmax == 0) return
-   if (ev > 0.d0) then
-      write(6,'(//,1x,a)') 'error in difnrl - ev greater then v(infinty)'
-      stop 'difnrl one'
-   end if
+   !Big loop for convergence
+   Bigloop: do
+      ! if (itmax < 2) write(6,'(1x,a,1pe18.10,a,i2)') 'ev',ev,' nodes =',nodes
 
-   ! find practical infinity ninf and classical turning
-   ! point nctp for orbital
-   icount=0
-20 continue
-   icount=icount+1
-   do j=nr,2,-1
-      temp = v(j) -ev
-      if (temp .lt. 0.0) temp = 0.0d0
-      if (r(j)*sqrt(temp) .lt. expzer) exit
-   end do
-   ninf=j
-   nctp = ninf - 5
-   do j=2,ninf-5
-     if (v(j) .lt. ev) nctp = j
-   end do
-   if (ev .ge. etol*10) nctp=ninf-5
-   if (ev .ge. etol) ev=0.0d0
-   if (nctp .le. 6) then
-     ev = 0.9d0*ev
-     if (icount .gt. 100) then
-       write(*,*)
-       write(6,'(1x,a)') 'error in difnrl - cannot find the classical turning point '
-       stop 'difnrl two'
-     end if
-     goto 20
-   end if
-
-   ! outward integration from 1 to nctp
-   ! startup
-   bb = (vzero-ev)/(4*lp+2)
-   do j=2,5
-      ar(j) = rlp(j) * (1+(aa+bb*r(j))*r(j))
-      br(j) = rabrlo(j) * (lp+(aa*(lp+1)+bb*(lp+2)*r(j))*r(j))
-   end do
-
-   ! Predictor-corrector array added.
-   fa(1) = br(1)
-   fb(1) = b*br(1) + rab2(1)*var0
-   fa(2) = br(2)
-   fb(2) = b*br(2) + rab2(2)*(v(2)-ev )*ar(2)
-   fa(3) = br(3)
-   fb(3) = b*br(3) + rab2(3)*(v(3)-ev )*ar(3)
-   fa(4) = br(4)
-   fb(4) = b*br(4) + rab2(4)*(v(4)-ev )*ar(4)
-   fa(5) = br(5)
-   fb(5) = b*br(5) + rab2(5)*(v(5)-ev )*ar(5)
-
-   ! intergration loop
-   nodes = 0
-   do j=6,nctp
-
-      ! predictor (Adams-Bashforth)
-      j1=j-1
-      j2=j-2
-      j3=j-3
-      j4=j-4
-      j5=j-5
-      vev=v(j)-ev
-      arp = ar(j1) + abc1*fa(j1)+abc2*fa(j2)+abc3*fa(j3)+ abc4*fa(j4)+abc5*fa(j5)
-      brp = br(j1) + abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+ abc4*fb(j4)+abc5*fb(j5)
-      fb1 = b*brp + rab2(j)*vev*arp
-
-      ! corrector (Adams-Moulton)
-      arc = ar(j1) + amc0*brp+amc1*fa(j1)+amc2*fa(j2)+ amc3*fa(j3)+amc4*fa(j4)
-      brc = br(j1) + amc0*fb1+amc1*fb(j1)+amc2*fb(j2)+ amc3*fb(j3)+amc4*fb(j4)
-      fb0 = b*brc + rab2(j)*vev*arc
-
-      ! error reduction step
-      ar(j) = arc + amc0*(brc-brp)
-      br(j) = brc + amc0*(fb0-fb1)
-      fa(j) = br(j)
-      fb(j) = b*br(j) + rab2(j)*vev*ar(j)
-
-      ! count nodes - if no underflow
-
-      if(j.gt.juflow.and.ar(j)*ar(j-1).lt.0.0)nodes=nodes+1
-   end do
-
-   arctp = ar(nctp)
-   brctp = br(nctp)
-
-   ! end outward integration
-
-   ! if number of nodes correct, start inward integration
-   ! else modify energy stepwise and try again
-   if (nodes /= np-lo-1) then
-      ! c.hartwig
-      !! write(6,*) 'nodes,ev',nodes,ev
-      if (nodes .lt. np-lo-1) then
-         ! too few nodes; increase ev
-         if (ev .gt. emin) emin = ev
-         ev = ev - ev/10
-      else
-
-         ! too many nodes; decrease ev
-         if (ev .lt. emax) emax = ev
-         ev = ev + ev/10
+      if (itmax == 0) return
+      if (ev > 0.d0) then
+         write(6,'(//,1x,a)') 'error in difnrl - ev greater then v(infinty)'
+         stop 'difnrl one'
       end if
-        itmax = itmax-1
-        goto 10
-   end if
 
-   ! inward integration from ninf to nctp
-   ! startup
-   do j=ninf,ninf-4,-1
-      alf = v(j) - ev
-      if (alf .lt. 0.0) alf = 0.0d0
-      alf = sqrt(alf)
-      ar(j) = exp(-alf*r(j))
-      br(j) = -rab(j)*alf*ar(j)
-   end do
+      ! find practical infinity ninf and classical turning
+      ! point nctp for orbital
+      do icount=1,100
+         do j=nr,2,-1
+            temp = v(j) -ev
+            if (temp < 0.d0) temp = 0.0d0
+            if (r(j)*sqrt(temp) < expzer) exit
+         end do
+         ninf=j
+         nctp = ninf - 5
+         do j=2,ninf-5
+           if (v(j) < ev) nctp = j
+         end do
+         if (ev >= etol*10.d0) nctp=ninf-5
+         if (ev >= etol) ev=0.0d0
+         if (nctp > 6) exit
+         ev = 0.9d0*ev
+      end do
+      if (icount > 100) then
+         write(*,*)
+         write(6,'(1x,a)') 'error in difnrl - cannot find the classical turning point '
+         stop 'difnrl two'
+      end if
 
-   ! Array for predictor-corrector added.
-   fa(ninf)  = br(ninf)
-   fb(ninf)  = b*br(ninf ) + rab2(ninf )* (v(ninf )-ev)*ar(ninf )
-   ninf1 = ninf - 1
-   fa(ninf1) = br(ninf1)
-   fb(ninf1) = b*br(ninf1) + rab2(ninf1)* (v(ninf1)-ev)*ar(ninf1)
-   ninf2 = ninf - 2
-   fa(ninf2) = br(ninf2)
-   fb(ninf2) = b*br(ninf2) + rab2(ninf2)* (v(ninf2)-ev)*ar(ninf2)
-   ninf3 = ninf - 3
-   fa(ninf3) = br(ninf3)
-   fb(ninf3) = b*br(ninf3) + rab2(ninf3)* (v(ninf3)-ev)*ar(ninf3)
-   ninf4 = ninf - 4
-   fa(ninf4) = br(ninf4)
-   fb(ninf4) = b*br(ninf4) + rab2(ninf4)* (v(ninf4)-ev)*ar(ninf4)
+      ! outward integration from 1 to nctp
+      ! startup
+      bb = (vzero-ev)/(4*lp+2)
+      do j=2,5
+         ar(j) = rlp(j) * (1+(aa+bb*r(j))*r(j))
+         br(j) = rabrlo(j) * (lp+(aa*(lp+1)+bb*(lp+2)*r(j))*r(j))
+      end do
 
-   ! integration loop
-   istop = ninf - nctp
-   if (istop .lt. 5) goto 222
+      ! Predictor-corrector array added.
+      fa(1) = br(1)
+      fb(1) = b*br(1) + rab2(1)*var0
+      fa(2) = br(2)
+      fb(2) = b*br(2) + rab2(2)*(v(2)-ev )*ar(2)
+      fa(3) = br(3)
+      fb(3) = b*br(3) + rab2(3)*(v(3)-ev )*ar(3)
+      fa(4) = br(4)
+      fb(4) = b*br(4) + rab2(4)*(v(4)-ev )*ar(4)
+      fa(5) = br(5)
+      fb(5) = b*br(5) + rab2(5)*(v(5)-ev )*ar(5)
 
-   do j=ninf-5,nctp,-1
+      ! intergration loop
+      nodes = 0
+      do j=6,nctp
 
-      ! predictor (Adams-Bashforth)
-      j1 = j + 1
-      j2 = j + 2
-      j3 = j + 3
-      j4 = j + 4
-      j5 = j + 5
-      vev = v(j)-ev
-      arp = ar(j1) - (abc1*fa(j1)+abc2*fa(j2)+abc3*fa(j3)+ abc4*fa(j4)+abc5*fa(j5))
-      brp = br(j1) - (abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+ abc4*fb(j4)+abc5*fb(j5))
-      fb0 = b*brp + rab2(j)*vev*arp
+         ! predictor (Adams-Bashforth)
+         j1=j-1
+         j2=j-2
+         j3=j-3
+         j4=j-4
+         j5=j-5
+         vev=v(j)-ev
+         arp = ar(j1) + abc1*fa(j1)+abc2*fa(j2)+abc3*fa(j3)+ abc4*fa(j4)+abc5*fa(j5)
+         brp = br(j1) + abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+ abc4*fb(j4)+abc5*fb(j5)
+         fb1 = b*brp + rab2(j)*vev*arp
 
-      ! corrector (Adams-Moulton)
-      arc = ar(j1) - (amc0*brp+amc1*fa(j1)+amc2*fa(j2)+ amc3*fa(j3)+amc4*fa(j4))
-      brc = br(j1) - (amc0*fb0+amc1*fb(j1)+amc2*fb(j2)+ amc3*fb(j3)+amc4*fb(j4))
+         ! corrector (Adams-Moulton)
+         arc = ar(j1) + amc0*brp+amc1*fa(j1)+amc2*fa(j2)+ amc3*fa(j3)+amc4*fa(j4)
+         brc = br(j1) + amc0*fb1+amc1*fb(j1)+amc2*fb(j2)+ amc3*fb(j3)+amc4*fb(j4)
+         fb0 = b*brc + rab2(j)*vev*arc
 
-      fb1 = b*brc + rab2(j)*vev*arc
+         ! error reduction step
+         ar(j) = arc + amc0*(brc-brp)
+         br(j) = brc + amc0*(fb0-fb1)
+         fa(j) = br(j)
+         fb(j) = b*br(j) + rab2(j)*vev*ar(j)
 
-      ! error reduction step
-      ar(j) = arc - amc0*(brc-brp)
-      br(j) = brc - amc0*(fb1-fb0)
-      fa(j) = br(j)
-      fb(j) = b*br(j) + rab2(j)*vev*ar(j)
-   end do
+         ! count nodes - if no underflow
 
-   ! end inward integration
+         if(j>juflow.and.ar(j)*ar(j-1)<0.0)nodes=nodes+1
+      end do
 
-   ! rescale ar and br outside nctp to match ar(nctp) from
-   ! outward integration
+      arctp = ar(nctp)
+      brctp = br(nctp)
 
-222 continue
-   factor = arctp/ar(nctp)
-   do j=nctp,ninf
-      ar(j) = factor * ar(j)
-      br(j) = factor * br(j)
-   end do
+      ! end outward integration
 
-   ! find normalizing factor
-   factor = 0.0d0
-   ll = 4
-   do j=2,ninf
-      factor = factor + ll*ar(j)*ar(j)*rab(j)
-      ll = 6 - ll
-   end do
-   factor = factor / 3.d0
+      ! if number of nodes correct, start inward integration
+      ! else modify energy stepwise and try again
+      if (nodes /= np-lo-1) then
+         ! c.hartwig
+         !! write(6,*) 'nodes,ev',nodes,ev
+         if (nodes < np-lo-1) then
+            ! too few nodes; increase ev
+            if (ev > emin) emin = ev
+            ev = ev - ev/10
+         else
+            ! too many nodes; decrease ev
+            if (ev < emax) emax = ev
+            ev = ev + ev/10
+         end if
+           itmax = itmax-1
+           !and new loop
+           cycle Bigloop
+      end if
 
-   ! modify eigenvalue ev
-   dev = arctp * (brctp-br(nctp)) / (factor * rab(nctp))
-   if (5.d0*abs(dev) > -ev) dev=sign(ev,dev)/5.d0
-   itmax = itmax-1
-   evold = ev
-   ev = ev + dev
-   if (ev .gt. emax) ev = (evold + emax) / 2.d0
-   if (ev .lt. emin) ev = (evold + emin) / 2.d0
-   if (abs(dev) .gt. tol*(1-ev)) goto 10
+      ! inward integration from ninf to nctp
+      ! startup
+      do j=ninf,ninf-4,-1
+         alf = v(j) - ev
+         if (alf < 0.0) alf = 0.0d0
+         alf = sqrt(alf)
+         ar(j) = exp(-alf*r(j))
+         br(j) = -rab(j)*alf*ar(j)
+      end do
+
+      ! Array for predictor-corrector added.
+      fa(ninf)  = br(ninf)
+      fb(ninf)  = b*br(ninf ) + rab2(ninf )* (v(ninf )-ev)*ar(ninf )
+      ninf1 = ninf - 1
+      fa(ninf1) = br(ninf1)
+      fb(ninf1) = b*br(ninf1) + rab2(ninf1)* (v(ninf1)-ev)*ar(ninf1)
+      ninf2 = ninf - 2
+      fa(ninf2) = br(ninf2)
+      fb(ninf2) = b*br(ninf2) + rab2(ninf2)* (v(ninf2)-ev)*ar(ninf2)
+      ninf3 = ninf - 3
+      fa(ninf3) = br(ninf3)
+      fb(ninf3) = b*br(ninf3) + rab2(ninf3)* (v(ninf3)-ev)*ar(ninf3)
+      ninf4 = ninf - 4
+      fa(ninf4) = br(ninf4)
+      fb(ninf4) = b*br(ninf4) + rab2(ninf4)* (v(ninf4)-ev)*ar(ninf4)
+
+      ! integration loop
+      istop = ninf - nctp
+      if (istop >= 5) then
+
+         do j=ninf-5,nctp,-1
+
+            ! predictor (Adams-Bashforth)
+            j1 = j + 1
+            j2 = j + 2
+            j3 = j + 3
+            j4 = j + 4
+            j5 = j + 5
+            vev = v(j)-ev
+            arp = ar(j1) - (abc1*fa(j1)+abc2*fa(j2)+abc3*fa(j3)+ abc4*fa(j4)+abc5*fa(j5))
+            brp = br(j1) - (abc1*fb(j1)+abc2*fb(j2)+abc3*fb(j3)+ abc4*fb(j4)+abc5*fb(j5))
+            fb0 = b*brp + rab2(j)*vev*arp
+
+            ! corrector (Adams-Moulton)
+            arc = ar(j1) - (amc0*brp+amc1*fa(j1)+amc2*fa(j2)+ amc3*fa(j3)+amc4*fa(j4))
+            brc = br(j1) - (amc0*fb0+amc1*fb(j1)+amc2*fb(j2)+ amc3*fb(j3)+amc4*fb(j4))
+
+            fb1 = b*brc + rab2(j)*vev*arc
+
+            ! error reduction step
+            ar(j) = arc - amc0*(brc-brp)
+            br(j) = brc - amc0*(fb1-fb0)
+            fa(j) = br(j)
+            fb(j) = b*br(j) + rab2(j)*vev*ar(j)
+         end do
+         ! end inward integration
+      end if
+
+      ! rescale ar and br outside nctp to match ar(nctp) from
+      ! outward integration
+      factor = arctp/ar(nctp)
+      do j=nctp,ninf
+         ar(j) = factor * ar(j)
+         br(j) = factor * br(j)
+      end do
+
+      ! find normalizing factor
+      factor = 0.0d0
+      ll = 4
+      do j=2,ninf
+         factor = factor + ll*ar(j)*ar(j)*rab(j)
+         ll = 6 - ll
+      end do
+      factor = factor / 3.d0
+
+      ! modify eigenvalue ev
+      dev = arctp * (brctp-br(nctp)) / (factor * rab(nctp))
+      if (5.d0*abs(dev) > -ev) dev=sign(ev,dev)/5.d0
+      itmax = itmax-1
+      evold = ev
+      ev = ev + dev
+      if (ev > emax) ev = (evold + emax) / 2.d0
+      if (ev < emin) ev = (evold + emin) / 2.d0
+
+      !Finish the calculation ?
+      if (abs(dev) <= tol*(1.d0-ev)) exit
+   end do Bigloop
 
    ! normalize wavefunction and change br from d(ar)/dj to d(ar)/dr
    factor = 1.d0 / sqrt(factor)
