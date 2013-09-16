@@ -127,9 +127,8 @@ subroutine difnrl(v,ar,br,&
    do j=nr,2,-1
       temp = v(j) -ev
       if (temp .lt. 0.0) temp = 0.0d0
-      if (r(j)*sqrt(temp) .lt. expzer) goto 23
+      if (r(j)*sqrt(temp) .lt. expzer) exit
    end do
-23 continue
    ninf=j
    nctp = ninf - 5
    do j=2,ninf-5

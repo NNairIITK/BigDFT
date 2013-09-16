@@ -38,10 +38,8 @@ subroutine penalty(energ,verbose,pp,penal,  &
    
    include 'mpif.h'
    
-   ! set res() =-1 for orbitals with zero charge and
-   !  wght(nocc,l+1,ispin,5) set to zero
-   ! this avoids unneccessay computations of res() in the
-   ! routine resid()
+   ! set res() =-1 for orbitals with zero charge and wght(nocc,l+1,ispin,5) set to zero
+   ! this avoids unnecessary computations of res() in the routine resid()
    
    ! when we print out detailed info with verbose,
    ! we actually do not want to miss any residues
@@ -187,58 +185,57 @@ subroutine penalty(energ,verbose,pp,penal,  &
    !---------------- parallel computation of excitation energies and softness ----------------
    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
    
-   !     first, make sure that excitation energies of value zero are ignored
+   ! first, make sure that excitation energies of value zero are ignored
    if (excitae.eq.0d0)wghtexci=0d0
    
-   !     if the weight for softness is nonzero,
-   !     calculate the change in kinetic energy when
-   !     transforming psi into a debauchie wavelet basis
+   ! if the weight for softness is nonzero,
+   ! calculate the change in kinetic energy when
+   ! transforming psi into a daubechies wavelet basis
    
    if (wghtsoft .gt. 0d0 .and. nhgrid .gt. 0 ) then ! .and. mod(iter,nskip).eq.0)
       call ekin_wvlt(verbose,iproc,nproc,ng,ngmx,  &
            noccmx,lmx,nspin,nsmx,  &
            nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,  &
            frmult, xp,psi,occup,ekin_pen,time)
-      !        important: here we scale the radii for the coarse
-      !                   and fine grid with the parameter rcov.
+      ! important: here we scale the radii for the coarse and fine grid with the parameter rcov.
    else
       ekin_pen=0d0
    end if
    
    if (nproc.eq.1) then
-      !        serial case: one configuration, no excitation energies
+      ! serial case: one configuration, no excitation energies
       pen_cont(4)=wghtconf**2*penal
       pen_cont(6)=wghtsoft**2*ekin_pen
       penal=sqrt(penal+sum(pen_cont(6:7)))
-      !        write(16,*)'debug:ekin_pen,penal',ekin_pen,penal,wghtsoft
+      ! write(16,*)'debug:ekin_pen,penal',ekin_pen,penal,wghtsoft
    else 
-      !        parallel case
-      !        set up penalty contributions to be summed over all processes
+      ! parallel case
+      ! set up penalty contributions to be summed over all processes
       call cpu_time(t)
       time(2)=time(2)-t
       
-      !        compute excitation energy for this configuration. 
-      !        for this, get total energy of configuration 1.
+      ! compute excitation energy for this configuration. 
+      ! for this, get total energy of configuration 1.
       if (iproc.eq.0) eref=etotal
       call mpi_bcast(eref,1,mpi_double_precision,0,  &
            mpi_comm_world,ierr)
       if (ierr.ne.0) write(*,*)'mpi_bcast ierr',ierr
       excit=etotal-eref
       
-      !        sum up penalty contributions from this mpi process
+      ! sum up penalty contributions from this mpi process
       pen_cont(1)=wghtconf**2 *penal
       pen_cont(2)=wghtexci**2 *(excit-excitae)**2
       pen_cont(3)=wghtsoft**2 *ekin_pen
       
-      !        write(6,*)'debug lines for penalty over processes'
-      !        write(6,*)'wghtconf,penal',wghtconf ,penal
-      !        write(6,*)'wghtexci,(excit-excitae)**2',&
-           !    &       wghtexci,(excit-excitae)**2
-      !        write(6,*)'wghtsoft,ekin_pen',wghtsoft,ekin_pen
-      !        write(6,*)'products',pen_cont(1:3)
+      ! write(6,*)'debug lines for penalty over processes'
+      ! write(6,*)'wghtconf,penal',wghtconf ,penal
+      ! write(6,*)'wghtexci,(excit-excitae)**2',&
+      !    &       wghtexci,(excit-excitae)**2
+      ! write(6,*)'wghtsoft,ekin_pen',wghtsoft,ekin_pen
+      ! write(6,*)'products',pen_cont(1:3)
       
-      !        sum up over all processes, that is over all configurations
-      !        and over the orbitals and hgrid samples of the wavelet transform
+      ! sum up over all processes, that is over all configurations
+      ! and over the orbitals and hgrid samples of the wavelet transform
       call mpi_allreduce(pen_cont(1:3),pen_cont(4:6),3,  &
            mpi_double_precision,mpi_sum,mpi_comm_world,ierr)
       if (ierr.ne.0) write(*,*)'mpi_allreduce ierr',ierr

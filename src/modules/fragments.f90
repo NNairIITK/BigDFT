@@ -518,7 +518,6 @@ contains
     implicit none
     type(system_fragment), intent(inout) :: frag
     character(len=200) :: subname
-    integer :: i_all, i_stat
 
     subname='fragment_free'
 
