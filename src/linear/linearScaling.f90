@@ -71,7 +71,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(sparseMatrix) :: denskern_init
   real(8),dimension(:),allocatable :: rho_init, rho_init_old, philarge
   real(8) :: tt, ddot, tt_old, meanconf_der
-  integer :: idens_cons, ii, i, sdim, ldim, npsidim_large, ists, istl, nspin, unitname, ilr
+  integer :: idens_cons, ii, sdim, ldim, npsidim_large, ists, istl, nspin, unitname, ilr
   real(8),dimension(10000) :: meanconf_array
   character(len=5) :: num
   character(len=50) :: filename
