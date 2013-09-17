@@ -4,7 +4,8 @@ SUBDIRS = \
 	  atoms \
 	  H-pseudo \
 	  C-pseudo \
-	  pawpatchtest
+	  pawpatchtest \
+	  tutorials
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs

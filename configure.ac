@@ -1080,8 +1080,8 @@ pseudo/tests/atoms/Makefile
 pseudo/tests/H-pseudo/Makefile
 pseudo/tests/C-pseudo/Makefile
 pseudo/tests/pawpatchtest/Makefile
-pseudo/tutorials/Makefile
-pseudo/tutorials/oxygen.NLCC/Makefile
+pseudo/tests/tutorials/Makefile
+pseudo/tests/tutorials/oxygen.NLCC/Makefile
 doc/Makefile
 tests/Makefile
 tests/libs/Makefile

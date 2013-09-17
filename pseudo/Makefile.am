@@ -3,8 +3,7 @@ EXTRA_DIST = \
 
 SUBDIRS = \
 	src \
-	tests \
-	tutorials
+	tests
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi

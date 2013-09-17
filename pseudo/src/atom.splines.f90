@@ -534,7 +534,6 @@ subroutine tridib(n,eps1,d,e,e2,lb,ub,m11,m,w,ind,ierr,rv4,rv5)
    isturm = 2
    go to 50
 
-
    ! establish and process next submatrix, refining interval by the GerschGorin bounds
 100 continue
    if (r == m) then
