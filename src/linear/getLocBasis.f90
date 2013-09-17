@@ -678,28 +678,28 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           correction_orthoconstraint_local=2
       end if
 
-      !!! PLOT ###########################################################################
-      !!hxh=0.5d0*tmb%lzd%hgrids(1)      
-      !!hyh=0.5d0*tmb%lzd%hgrids(2)      
-      !!hzh=0.5d0*tmb%lzd%hgrids(3)      
-      !!npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-      !!allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
-      !!philarge=0.d0
-      !!ists=1
-      !!istl=1
-      !!do iorb=1,tmb%orbs%norbp
-      !!    ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
-      !!    sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      !!    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-      !!    nspin=1 !this must be modified later
-      !!    call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
-      !!         tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
-      !!    ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      !!    istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-      !!end do
-      !!call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it)
-      !!deallocate(philarge)
-      !!! END PLOT #######################################################################
+      ! PLOT ###########################################################################
+      hxh=0.5d0*tmb%lzd%hgrids(1)      
+      hyh=0.5d0*tmb%lzd%hgrids(2)      
+      hzh=0.5d0*tmb%lzd%hgrids(3)      
+      npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
+      philarge=0.d0
+      ists=1
+      istl=1
+      do iorb=1,tmb%orbs%norbp
+          ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
+          sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+          nspin=1 !this must be modified later
+          call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+               tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
+          ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      end do
+      call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it)
+      deallocate(philarge)
+      ! END PLOT #######################################################################
 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then

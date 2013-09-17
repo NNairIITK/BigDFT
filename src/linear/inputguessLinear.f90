@@ -59,6 +59,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(sparseMatrix) :: ham_small ! for FOE
   logical :: finished
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
+  real(kind=8),dimension(:),allocatable :: philarge
+  integer :: npsidim_large, sdim, ldim, ists, istl, ilr, nspin
 
   call nullify_orbitals_data(orbs_gauss)
 
@@ -310,8 +312,35 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
 
-  if (.not. input%lin%iterative_orthogonalization) then
 
+
+  ! PLOT ###########################################################################
+      hxh=0.5d0*tmb%lzd%hgrids(1)
+      hyh=0.5d0*tmb%lzd%hgrids(2)
+      hzh=0.5d0*tmb%lzd%hgrids(3)
+      npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
+      philarge=0.d0
+      ists=1
+      istl=1
+      do iorb=1,tmb%orbs%norbp
+          ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
+          sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+          nspin=1 !this must be modified later
+          call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+               tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
+          ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      end do
+      call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 1)
+      deallocate(philarge)
+  ! END PLOT #######################################################################
+
+
+
+
+  if (.not. input%lin%iterative_orthogonalization) then
       ! Standard orthonomalization
       !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp

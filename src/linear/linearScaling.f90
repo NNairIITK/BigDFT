@@ -69,10 +69,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   !!! EXPERIMENTAL ############################################
   type(sparseMatrix) :: denskern_init
-  real(8),dimension(:),allocatable :: rho_init, rho_init_old
+  real(8),dimension(:),allocatable :: rho_init, rho_init_old, philarge
   real(8) :: tt, ddot, tt_old, meanconf_der
-  integer :: idens_cons, ii
+  integer :: idens_cons, ii, i, sdim, ldim, npsidim_large, ists, istl, nspin, unitname, ilr
   real(8),dimension(10000) :: meanconf_array
+  character(len=5) :: num
+  character(len=50) :: filename
   !!! #########################################################
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -397,13 +399,40 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            !    if (iproc==0) write(*,*) 'set ldiis%isx=0)'
            !    ldiis%isx=0
            !end if
-           if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
-           orthonormalization_on=.false.
+           !if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
+           !orthonormalization_on=.false.
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
                ratio_deltas,orthonormalization_on,input%lin%extra_states,itout)
+
+           ! WRITE SUPPORT FUNCTIONS TO DISK ############################################
+           npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
+           allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))                          
+           philarge=0.d0
+           ists=1                                                                                                          
+           istl=1
+           do iorb=1,tmb%orbs%norbp
+               ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)                                                           
+               sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                            
+               ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                      
+               nspin=1 !this must be modified later
+               call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &              
+                    tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))                                                       
+               write(num,'(i5.5)') tmb%orbs%isorb+iorb
+               filename='supfun_'//num
+               unitname=100*iproc+5
+               open(unit=unitname,file=trim(filename))
+               do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+                   write(unitname,'(es25.17)') philarge(istl+i-1)
+               end do
+               close(unit=unitname)
+               ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                       
+               istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
+           end do
+           deallocate(philarge)
+           ! ############################################################################
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
@@ -1160,7 +1189,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         if (iproc==0) write(*,*) 'WARNING MODIFY nit_basis'
         nit_basis=0
     end if
-    if (mean_conf<1.d-2) then
+    if (mean_conf<1.d-5) then
     !if (itout>=13) then
         if (iproc==0) write(*,*) 'outswitch off ortho'
         orthonormalization_on=.false.
