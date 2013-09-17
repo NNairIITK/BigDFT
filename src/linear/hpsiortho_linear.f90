@@ -50,11 +50,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), allocatable :: prefac
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
-  real(8),dimension(:),allocatable :: prefacarr
+  real(8),dimension(:),allocatable :: prefacarr, dphi, dpsit_c, dpsit_f
   real(kind=8),dimension(:,:),allocatable :: SK, KS, HK, KHK, KSKHK, KHKSK , Q
   integer,dimension(:),allocatable :: ipiv
   real(kind=8) :: fnrm_low, fnrm_high, fnrm_in, fnrm_out, rx, ry, rz, rr, hh, fnrm_tot2
-  integer :: iseg, isegf, j0, jj, j1, i1, i2, i3, i0, istart, iold, inew
+  integer :: iseg, isegf, j0, jj, j1, i1, i2, i3, i0, istart, iold, inew, ind_ham, ind_denskern, iorbp
+  real(kind=8),dimension(3) :: noise
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
@@ -355,6 +356,31 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
+  !!! Calculate the derivative basis functions
+  !!allocate(dphi(3*tmb%ham_descr%npsidim_orbs))
+  !!call get_derivative_supportfunctions(tmb%ham_descr%npsidim_orbs, tmb%ham_descr%lzd%hgrids(1), tmb%ham_descr%lzd, tmb%orbs, tmb%ham_descr%psi, dphi)
+  !!if(.not. associated(tmb%hpsi)) then
+  !!    allocate(hpsit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
+  !!    allocate(hpsit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
+  !!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+  !!end if
+  !!allocate(dpsit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
+  !!allocate(dpsit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
+  !!ist=1
+  !!do i=1,3
+  !!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, dphi(ist), dpsit_c, dpsit_f, tmb%ham_descr%lzd)
+  !!    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, dpsit_c, hpsit_c, dpsit_f, hpsit_f, tmb%linmat%ham)
+  !!    noise(i)=0.d0
+  !!    do iorb=1,tmb%orbs%norb
+  !!       ii=matrixindex_in_compressed(tmb%linmat%ham,iorb,iorb)
+  !!       noise(i) = noise(i) + tmb%linmat%ham%matrix_compr(ii)
+  !!    end do
+  !!    ist=ist+tmb%ham_descr%npsidim_orbs
+  !!end do
+  !!!!if (nproc>1) then
+  !!!!   call mpiallred(noise(1), 3, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!!!end if
+  !!if (iproc==0) write(*,'(a,3es12.3)') 'noise', noise
 
 
 
@@ -369,96 +395,96 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  ! Gradient in the outer shell
-  hh=(tmb%lzd%hgrids(1)+tmb%lzd%hgrids(2)+tmb%lzd%hgrids(3))/3.d0
-  fnrm_in=0.d0
-  fnrm_out=0.d0
+  !!! Gradient in the outer shell
+  !!hh=(tmb%lzd%hgrids(1)+tmb%lzd%hgrids(2)+tmb%lzd%hgrids(3))/3.d0
+  !!fnrm_in=0.d0
+  !!fnrm_out=0.d0
 
-  istart=0
-  iold=0
-  inew=0
+  !!istart=0
+  !!iold=0
+  !!inew=0
 
-  do iorb=1,tmb%orbs%norbp
+  !!do iorb=1,tmb%orbs%norbp
 
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 
-      do iseg=1,tmb%lzd%llr(ilr)%wfd%nseg_c
-          jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
-          j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
-          j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
-          ii=j0-1
-          i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
-          ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
-          i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
-          i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
-          i1=i0+j1-j0
-          do i=i0,i1
-              rx=(tmb%lzd%llr(ilr)%ns1+i)*tmb%lzd%hgrids(1)
-              ry=(tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)
-              rz=(tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)
-              rr = sqrt((rx-tmb%lzd%llr(ilr)%locregcenter(1))**2 + &
-                        (ry-tmb%lzd%llr(ilr)%locregcenter(2))**2 + &
-                        (rz-tmb%lzd%llr(ilr)%locregcenter(3))**2)
-              if (rr<tmb%lzd%llr(ilr)%locrad-8*hh) then
-                  fnrm_in=fnrm_in+hpsi_small(istart+i-i0+jj)**2
-              else
-                  fnrm_out=fnrm_out+hpsi_small(istart+i-i0+jj)**2
-              end if
-          end do
-      end do
+  !!    do iseg=1,tmb%lzd%llr(ilr)%wfd%nseg_c
+  !!        jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+  !!        j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+  !!        j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+  !!        ii=j0-1
+  !!        i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+  !!        ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+  !!        i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+  !!        i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+  !!        i1=i0+j1-j0
+  !!        do i=i0,i1
+  !!            rx=(tmb%lzd%llr(ilr)%ns1+i)*tmb%lzd%hgrids(1)
+  !!            ry=(tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)
+  !!            rz=(tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)
+  !!            rr = sqrt((rx-tmb%lzd%llr(ilr)%locregcenter(1))**2 + &
+  !!                      (ry-tmb%lzd%llr(ilr)%locregcenter(2))**2 + &
+  !!                      (rz-tmb%lzd%llr(ilr)%locregcenter(3))**2)
+  !!            if (rr<tmb%lzd%llr(ilr)%locrad-8*hh) then
+  !!                fnrm_in=fnrm_in+hpsi_small(istart+i-i0+jj)**2
+  !!            else
+  !!                fnrm_out=fnrm_out+hpsi_small(istart+i-i0+jj)**2
+  !!            end if
+  !!        end do
+  !!    end do
 
 
-      isegf=tmb%lzd%llr(ilr)%wfd%nseg_c+min(1,tmb%lzd%llr(ilr)%wfd%nseg_f)
-      do iseg=isegf,isegf+tmb%lzd%llr(ilr)%wfd%nseg_f-1
-          jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
-          j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
-          j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
-          ii=j0-1
-          i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
-          ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
-          i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
-          i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
-          i1=i0+j1-j0
-          do i=i0,i1
-              rx=(tmb%lzd%llr(ilr)%ns1+i)*tmb%lzd%hgrids(1)
-              ry=(tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)
-              rz=(tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)
-              rr = sqrt((rx-tmb%lzd%llr(ilr)%locregcenter(1))**2 + &
-                        (ry-tmb%lzd%llr(ilr)%locregcenter(2))**2 + &
-                        (rz-tmb%lzd%llr(ilr)%locregcenter(3))**2)
-              if (rr<tmb%lzd%llr(ilr)%locrad-8*hh) then
-                  fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+1)**2
-                  fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+2)**2
-                  fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+3)**2
-                  fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+4)**2
-                  fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+5)**2
-                  fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+6)**2
-                  fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+7)**2
-              else
-                  fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+1)**2
-                  fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+2)**2
-                  fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+3)**2
-                  fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+4)**2
-                  fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+5)**2
-                  fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+6)**2
-                  fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+7)**2
-              end if
-          end do
-      end do
+  !!    isegf=tmb%lzd%llr(ilr)%wfd%nseg_c+min(1,tmb%lzd%llr(ilr)%wfd%nseg_f)
+  !!    do iseg=isegf,isegf+tmb%lzd%llr(ilr)%wfd%nseg_f-1
+  !!        jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+  !!        j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+  !!        j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+  !!        ii=j0-1
+  !!        i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+  !!        ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+  !!        i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+  !!        i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+  !!        i1=i0+j1-j0
+  !!        do i=i0,i1
+  !!            rx=(tmb%lzd%llr(ilr)%ns1+i)*tmb%lzd%hgrids(1)
+  !!            ry=(tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)
+  !!            rz=(tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)
+  !!            rr = sqrt((rx-tmb%lzd%llr(ilr)%locregcenter(1))**2 + &
+  !!                      (ry-tmb%lzd%llr(ilr)%locregcenter(2))**2 + &
+  !!                      (rz-tmb%lzd%llr(ilr)%locregcenter(3))**2)
+  !!            if (rr<tmb%lzd%llr(ilr)%locrad-8*hh) then
+  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+1)**2
+  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+2)**2
+  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+3)**2
+  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+4)**2
+  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+5)**2
+  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+6)**2
+  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+7)**2
+  !!            else
+  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+1)**2
+  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+2)**2
+  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+3)**2
+  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+4)**2
+  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+5)**2
+  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+6)**2
+  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+7)**2
+  !!            end if
+  !!        end do
+  !!    end do
 
-      istart=istart+ncount
+  !!    istart=istart+ncount
 
-  end do
+  !!end do
 
-  call mpiallred(fnrm_in, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(fnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  fnrm_tot2=fnrm_in+fnrm_out
-  fnrm_in=sqrt(fnrm_in/dble(tmb%orbs%norb))
-  fnrm_out=sqrt(fnrm_out/dble(tmb%orbs%norb))
-  fnrm_tot2=sqrt(fnrm_tot2/dble(tmb%orbs%norb))
-  if (iproc==0) write(*,'(a,3es16.4)') 'fnrm_in, fnrm_out, fnrm_tot2', fnrm_in, fnrm_out, fnrm_tot2
+  !!call mpiallred(fnrm_in, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!call mpiallred(fnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!fnrm_tot2=fnrm_in+fnrm_out
+  !!fnrm_in=sqrt(fnrm_in/dble(tmb%orbs%norb))
+  !!fnrm_out=sqrt(fnrm_out/dble(tmb%orbs%norb))
+  !!fnrm_tot2=sqrt(fnrm_tot2/dble(tmb%orbs%norb))
+  !!if (iproc==0) write(*,'(a,3es16.4)') 'fnrm_in, fnrm_out, fnrm_tot2', fnrm_in, fnrm_out, fnrm_tot2
 
 
 

@@ -846,7 +846,9 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                         jorb=ikorb-orbse%isorb
                         orbse%occup(ikorb)=at%aocc(iocc,iat)
 
+                        !!write(*,'(a,4i6,2es12.4)') 'iat, l, m, iocc, at%aocc(iocc,iat), ek', iat, l, m, iocc, at%aocc(iocc,iat), ek
                         eks=eks+ek*at%aocc(iocc,iat)*orbse%kwgts(ikpts)
+                        !!write(*,*) 'iat, at%aocc(iocc,iat)', iat, at%aocc(iocc,iat)
                         if (present(mapping)) then
                            iiorb=mapping(iorb)
                            jjorb=iiorb-orbse%isorb
