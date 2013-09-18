@@ -219,6 +219,7 @@ subroutine standard_inputfile_names(in, radical)
   in%files = INPUTS_NONE
 END SUBROUTINE standard_inputfile_names
 
+
 function read_input_dict_from_files(radical, mpi_env) result(dict)
   use dictionaries
   use wrapper_MPI
@@ -448,6 +449,7 @@ subroutine sic_input_variables_default(in)
   in%SIC%fref=0.0_gp
 
 END SUBROUTINE sic_input_variables_default
+
 
 !> Read linear input parameters
 subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
@@ -2442,6 +2444,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   if (in%nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
 END SUBROUTINE kpt_input_analyse
+
 
 !> Read the input variables needed for the geometry optimisation
 !! Every argument should be considered as mandatory
