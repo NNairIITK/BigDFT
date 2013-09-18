@@ -785,9 +785,9 @@ contains
     call close_routine(mems(ictrl)%dict_codepoint,.not. mems(ictrl)%routine_opened)!trim(dict_key(dict_codepoint)))
 
     if (f_err_check()) then
-       call yaml_warning('ERROR found!')
-       call f_dump_last_error()
-       call yaml_comment('End of ERROR')
+!!$       call yaml_warning('ERROR found!')
+!!$       call f_dump_last_error()
+!!$       call yaml_comment('End of ERROR')
        return
     end if
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
