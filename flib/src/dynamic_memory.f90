@@ -697,6 +697,7 @@ contains
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
   subroutine f_routine(id,profile)
+    use yaml_output !debug
     implicit none
     logical, intent(in), optional :: profile
     character(len=*), intent(in), optional :: id
@@ -717,7 +718,19 @@ contains
     !desactivate profile_routine if the mother routine has desactivated it
     if (present(profile)) mems(ictrl)%profile_routine=mems(ictrl)%profile_routine .and. profile
 
-    if (trim(mems(ictrl)%present_routine) /= trim(id)) then
+    !print *,'test',trim(mems(ictrl)%present_routine),'test2',trim(id),'ccc',mems(ictrl)%routine_opened
+    !if (trim(mems(ictrl)%present_routine) /= trim(id) .or. &
+    !         (trim(mems(ictrl)%present_routine) == trim(id) .and. .not. mems(ictrl)%routine_opened) ) then
+    call yaml_open_map('Status before the opening of the routine')
+      call yaml_map('Level',ictrl)
+      call yaml_map('Routine opened',mems(ictrl)%routine_opened)
+      call yaml_map('Codepoint',trim(dict_key(mems(ictrl)%dict_codepoint)))
+      call yaml_open_map('Codepoint dictionary')
+      call yaml_dict_dump(mems(ictrl)%dict_codepoint)
+      call yaml_close_map()
+    call yaml_close_map()
+
+    if (.true.) then
        if(associated(mems(ictrl)%dict_routine)) then
           call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
           nullify(mems(ictrl)%dict_routine)
@@ -771,11 +784,17 @@ contains
 
     call close_routine(mems(ictrl)%dict_codepoint,.not. mems(ictrl)%routine_opened)!trim(dict_key(dict_codepoint)))
 
-    if (f_err_check()) return
+    if (f_err_check()) then
+       call yaml_warning('ERROR found!')
+       call f_dump_last_error()
+       call yaml_comment('End of ERROR')
+       return
+    end if
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     !the main program is opened until there is a subprograms keyword
     if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),'parent not associated(A)',&
          ERR_MALLOC_INTERNAL)) return
+
     if (dict_key(mems(ictrl)%dict_codepoint%parent) == subprograms) then
     
        mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint%parent
@@ -796,11 +815,12 @@ contains
     end if
 
     mems(ictrl)%profile_routine=mems(ictrl)%dict_codepoint//prof_enabled! 
-    !call yaml_open_map('Codepoint after closing')
-    !call yaml_map('Potential Reference Routine',trim(dict_key(dict_codepoint)))
-    !call yaml_dict_dump(dict_codepoint)
-    !call yaml_close_map()
 
+    call yaml_open_map('Codepoint after closing')
+    call yaml_map('Potential Reference Routine',trim(dict_key(mems(ictrl)%dict_codepoint)))
+    call yaml_dict_dump(mems(ictrl)%dict_codepoint)
+    call yaml_close_map()
+    call yaml_comment('End of release routine',hfill='=')
   end subroutine f_release_routine
 
   !>create the id of a new routine in the codepoint and points to it.
@@ -829,7 +849,7 @@ contains
   end subroutine open_routine
 
   subroutine close_routine(dict,jump_up)
-    use yaml_output
+    use yaml_output !debug
     implicit none
     type(dictionary), pointer :: dict
     logical, intent(in) :: jump_up
@@ -842,6 +862,12 @@ contains
     if (f_err_raise(.not. associated(dict),'routine not associated',ERR_MALLOC_INTERNAL)) return
 
     itime=f_time()
+    !debug
+    call yaml_open_map('codepoint'//trim(dict_key(dict)))
+    call yaml_dict_dump(dict)
+    call yaml_close_map()
+    call yaml_comment('We should jump up '//trim(yaml_toa(jump_up)),hfill='}')
+    !end debug
 
     !update the total time, if the starting point is present
     if (has_key(dict,t0_time)) then

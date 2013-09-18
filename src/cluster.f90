@@ -244,8 +244,8 @@ subroutine run_objects_free(runObj, subname)
      call free_input_variables(runObj%inputs)
      deallocate(runObj%inputs)
   end if
-  call f_lib_finalize()
-  call yaml_close_all_streams()
+  ! to be inserted again soon call f_lib_finalize()
+  !call yaml_close_all_streams()
 END SUBROUTINE run_objects_free
 
 subroutine run_objects_free_container(runObj)

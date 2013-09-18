@@ -1517,8 +1517,11 @@ contains
     call set(dict // SIC_APPROACH, dummy_str)
     call input_var(dummy_real,'0.0',comment='')
     call set(dict // SIC_ALPHA, dummy_real, fmt = "(E8.2)")
-    call input_var(dummy_real,'0.0',comment='')
-    call set(dict // SIC_FREF, dummy_real, fmt = "(E8.2)")
+    
+    if (input_keys_equal(trim(dummy_str),'NK')) then
+       call input_var(dummy_real,'0.0',comment='')
+       call set(dict // SIC_FREF, dummy_real, fmt = "(E8.2)")
+    end if
 
     call input_free(.false.)
   END SUBROUTINE read_sic_from_text_format

@@ -2,12 +2,14 @@
 subroutine test_dynamic_memory()
    use yaml_output
    use dynamic_memory
+   use dictionaries
    implicit none
    !logical :: fl
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
   integer,dimension(:,:,:),allocatable :: weight
   integer,dimension(:,:,:,:),allocatable :: orbital_id
+  external :: abort2
 
 
    call yaml_comment('Routine-Tree creation example',hfill='~')
@@ -55,6 +57,17 @@ call yaml_comment('debug 2')
       call f_free(orbital_id)
     call f_release_routine()
    call f_release_routine()
+   !repeat it to see if it gives errors
+   !the point is what to do with a subroutine which is called like the parent routine
+   call yaml_comment('Test for debug')
+   call f_routine(id='PS_Check')
+   call f_release_routine()
+   call yaml_comment('End test for debug')
+   call f_routine(id='PS_Check')
+   call f_release_routine()
+   call yaml_comment('End test for debug2')
+   !call f_malloc_dump_status()
+
    call f_routine(id='Routine E')
     call f_free(density)
    call f_release_routine()

@@ -59,8 +59,7 @@ program memguess
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror
-
-   call f_malloc_set_status(memory_limit=0.e0)
+   call f_lib_initialize()
 
    ! Get arguments
    !call getarg(1,tatonam)
