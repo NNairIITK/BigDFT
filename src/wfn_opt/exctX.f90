@@ -1,13 +1,14 @@
 !> @file
 !!   Routines to calculate the exact exchange potential
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
- 
-!>    Calculate the exact exchange potential
+
+
+!> Calculate the exact exchange potential
 subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psi,psir,eexctX)
 
@@ -18,11 +19,12 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   use yaml_output
 
   implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,n3p,nspin
-  real(gp), intent(in) :: hxh,hyh,hzh
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(in) :: orbs
+  character(len=1), intent(in) :: geocode             !< Determine Boundary conditions
+  integer, intent(in) :: iproc,nproc                  !< MPI information
+  integer, intent(in) :: n3p,nspin                    !< spin and ...
+  real(gp), intent(in) :: hxh,hyh,hzh                 !< hgrid
+  type(locreg_descriptors), intent(in) :: lr          !< Local region descriptors
+  type(orbitals_data), intent(in) :: orbs             !< Orbitals
   integer, dimension(0:nproc-1), intent(in) :: n3parr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   type(coulomb_operator), intent(in) :: pkernel
@@ -698,7 +700,7 @@ END SUBROUTINE exact_exchange_potential_virt
 !> Calculate the exact exchange potential on occupied orbitals
 !! within the symmetric round-robin scheme
 !! the psi is already given in the real-space form
-subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
+subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
      hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
   use module_base
   use module_types
@@ -706,7 +708,6 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   use module_xc
   use yaml_output
   implicit none
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   type(locreg_descriptors), intent(in) :: lr
@@ -1363,13 +1364,9 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 END SUBROUTINE exact_exchange_potential_round
 
 
-!!$!> BigDFT/exact_exchange_potential_round
-!!$!! :
-!!$!!   Calculate the exact exchange potential on occupied orbitals
-!!$!!   within the symmetric round-robin scheme
-!!$!!   the psi is already given in the real-space form
-!!$!!
-!!$!! 
+!!$!> Calculate the exact exchange potential on occupied orbitals
+!!$!! within the symmetric round-robin scheme
+!!$!! the psi is already given in the real-space form
 !!$subroutine exact_exchange_potential_round_new(iproc,nproc,geocode,nspin,lr,orbs,&
 !!$     hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
 !!$  use module_base
@@ -1387,7 +1384,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  real(gp), intent(out) :: eexctX
 !!$  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
 !!$  !local variables
-!!$  character(len=*), parameter :: subname='exact_exchange_potential_round'
+!!$  character(len=*), parameter :: subname='exact_exchange_potential_round_new'
 !!$  logical :: doit
 !!$  integer :: i_all,i_stat,ierr,ispin,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp,jgroup
 !!$  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,jprocsend,jprocrecv,jprocrecv2,nend,isorb,iorbs,iorbe,jorbs,jorbe

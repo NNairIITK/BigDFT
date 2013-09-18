@@ -134,7 +134,7 @@ div.personalarea
 /*****************/
 /* CSS du header */
 /*****************/
-div.header
+div#main.header
 { 
   background-color:#D05050;
   background-image:url("../images/sample.png");

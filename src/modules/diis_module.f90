@@ -1,3 +1,14 @@
+!> @file
+!! DIIS and Steepest descent routines
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module handling DIIS (Direct Inversion in the Iterative Subspace) and SD (Steepest Descent) optimisation
 module diis_sd_optimization
   use module_base
 
@@ -147,7 +158,7 @@ contains
     type(DIIS_obj), intent(inout) :: diis
     ! Local variables
     character(len=*), parameter :: subname='diisstp'
-    integer :: i,j,ist,jst,mi,info,jj,mj,i_all,i_stat,ierr
+    integer :: i,j,ist,jst,mi,info,jj,mj,ierr
     integer :: ispsi,ispsidst,ncomp,iacc_add,igrpp,igrp
     real(tp) :: psicoeff
     integer, dimension(:), allocatable :: ipiv

@@ -442,6 +442,11 @@ module dynamic_memory
   character(len=*), parameter :: metadatadd='Address of metadata'
   character(len=*), parameter :: firstadd='Address of first element'
   character(len=*), parameter :: processid='Process Id'
+  character(len=*), parameter :: subprograms='Subroutines'
+  character(len=*), parameter :: no_of_calls='No. of calls'
+  character(len=*), parameter :: t0_time='Time of last opening'
+  character(len=*), parameter :: tot_time='Total time (s)'
+  character(len=*), parameter :: prof_enabled='Profiling Enabled'
 
   !error codes
   integer :: ERR_ALLOCATE
@@ -918,10 +923,13 @@ contains
     character(len=*), intent(in), optional :: id
     
     !local variables
-    integer :: lgt
-    integer(kind=8) :: itime
+    integer :: lgt,ncalls
+    integer(kind=8) :: itime,jtime
 
     if (.not. present(id)) return !no effect
+
+    !take the time
+    itime=f_time()
 
     if (present(profile)) profile_routine=profile
 
@@ -932,11 +940,28 @@ contains
        end if
        !this means that the previous routine has not been closed
        if (routine_opened) then
-          call open_routine(dict_codepoint)
-!          last_opened_routine=present_routine
+          !call open_routine(dict_codepoint)
+          dict_codepoint=>dict_codepoint//subprograms
        end if
        routine_opened=.true.
-       call add(dict_codepoint,trim(id))
+       !call add(dict_codepoint,trim(id))
+       !see if the key existed in the codepoint
+       if (has_key(dict_codepoint,trim(id))) then
+          !retrieve number of calls and increase it
+          ncalls=dict_codepoint//trim(id)//no_of_calls
+          call set(dict_codepoint//trim(id)//no_of_calls,ncalls+1)
+          !write the starting point for the time
+          call set(dict_codepoint//trim(id)//t0_time,itime)
+          call set(dict_codepoint//trim(id)//prof_enabled,profile_routine)
+       else
+          !create a new dictionary
+          call set(dict_codepoint//trim(id),&
+               dict_new((/no_of_calls .is. yaml_toa(1), t0_time .is. yaml_toa(itime),&
+                             tot_time .is. yaml_toa(int(0,kind=8)), &
+                             prof_enabled .is. yaml_toa(profile_routine)/)))
+       end if
+       !then fix the new codepoint from this one
+       dict_codepoint=>dict_codepoint//trim(id)
 
        present_routine=repeat(' ',namelen)
        lgt=min(len(id),namelen)
@@ -947,23 +972,45 @@ contains
 
   !> Close a previously opened routine
   subroutine f_release_routine()
-!    use yaml_output
+    use yaml_output
     implicit none
     if (associated(dict_routine)) then
        call prepend(dict_global,dict_routine)
        nullify(dict_routine)
     end if
+    !call yaml_map('Closing routine',trim(dict_key(dict_codepoint)))
+
     call close_routine(dict_codepoint,.not. routine_opened)!trim(dict_key(dict_codepoint)))
-!!$    call yaml_open_map('Codepoint after closing')
-!!$    call yaml_map('Potential Reference Routine',trim(dict_key(dict_codepoint)))
-!!$      call yaml_dict_dump(dict_codepoint)
-!!$    call yaml_close_map()
-    present_routine=trim(dict_key(dict_codepoint))
+    if (f_err_check()) return
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
-    routine_opened=.false.
-    profile_routine=.true. !the switch off of the profiling only works at the downmost level
+    !the main program is opened until there is a subprograms keyword
+    if (f_err_raise(.not. associated(dict_codepoint%parent),'parent not associated(A)',&
+         ERR_MALLOC_INTERNAL)) return
+    if (dict_key(dict_codepoint%parent) == subprograms) then
+       dict_codepoint=>dict_codepoint%parent
+       if (f_err_raise(.not. associated(dict_codepoint%parent),'parent not associated(B)',&
+            ERR_MALLOC_INTERNAL)) return
+       dict_codepoint=>dict_codepoint%parent
+    else !back in the main program
+       routine_opened=.false.
+    end if
+    present_routine=trim(dict_key(dict_codepoint))
+    if (.not. has_key(dict_codepoint,prof_enabled)) then
+       call yaml_dict_dump(dict_codepoint)
+       call f_err_throw('The key '//prof_enabled//' is not present in the codepoint',&
+            err_id=ERR_MALLOC_INTERNAL)
+       return
+    end if
+    profile_routine=dict_codepoint//prof_enabled! !the switch off of the profiling only works at the downmost level
+    !call yaml_open_map('Codepoint after closing')
+    !call yaml_map('Potential Reference Routine',trim(dict_key(dict_codepoint)))
+    !call yaml_dict_dump(dict_codepoint)
+    !call yaml_close_map()
+
   end subroutine f_release_routine
 
+  !>create the id of a new routine in the codepoint and points to it.
+  !! works for sequences
   subroutine open_routine(dict)
     implicit none
     type(dictionary), pointer :: dict
@@ -981,20 +1028,21 @@ contains
     call pop(dict,ival)
 
     dict_tmp=>dict//ival//trim(routinename)
+
     dict => dict_tmp
     nullify(dict_tmp)
 
   end subroutine open_routine
 
   subroutine close_routine(dict,jump_up)
-!    use yaml_output
+    use yaml_output
     implicit none
     type(dictionary), pointer :: dict
     logical, intent(in) :: jump_up
     !character(len=*), intent(in) :: name
     !local variables
-
-    !integer :: ival
+    integer(kind=8) :: itime,jtime
+    real(kind=8) :: rtime
     type(dictionary), pointer :: dict_tmp
 
     if (f_err_raise(.not. associated(dict),'routine not associated',ERR_MALLOC_INTERNAL)) return
@@ -1009,17 +1057,68 @@ contains
 !!$    call yaml_map('Willing to jump up',jump_up)
 !!$    call yaml_close_map()
 
-    if (jump_up) then
-       !now the routine has to be closed
-       !we should jump at the upper level
-       dict_tmp=>dict%parent 
-       if (associated(dict_tmp%parent)) then
-          nullify(dict)
-          !this might be null if we are at the topmost level
-          dict=>dict_tmp%parent
-       end if
-       nullify(dict_tmp)
+    !call f_malloc_dump_status()
+    itime=f_time()
+
+!!$    call yaml_open_map('Codepoint')
+!!$    call yaml_dict_dump(dict)
+!!$    call yaml_close_map()
+
+    !print *,'one' 
+    !update the total time, if the starting point is present
+    if (has_key(dict,t0_time)) then
+       jtime=dict//t0_time
+       !print *,'two' 
+       jtime=itime-jtime
+       !print *,'three' 
+       rtime=dict//tot_time
+       !print *,'four' 
+       call set(dict//tot_time,rtime+real(jtime,kind=8)*1.d-9,fmt='(1pe15.7)')
+       call pop(dict,t0_time)
+    else
+       call f_err_throw('Key '//t0_time//&
+            ' not found, most likely f_release_routine has been called too much times',&
+            err_id=ERR_INVALID_MALLOC)
     end if
+
+    !we should go up of three levels
+    if (jump_up) then
+       dict_tmp=>dict%parent
+       if (f_err_raise(.not. associated(dict_tmp),'parent not associated(1)',&
+         ERR_MALLOC_INTERNAL)) return
+!       call yaml_map('Present Key 1',dict_key(dict_tmp))
+       dict_tmp=>dict_tmp%parent
+       if (f_err_raise(.not. associated(dict_tmp),'parent not associated(2)',&
+            ERR_MALLOC_INTERNAL)) return
+!       call yaml_map('Present Key 2',dict_key(dict_tmp))
+       if (f_err_raise(.not. associated(dict_tmp%parent),'parent not associated(3)',&
+            ERR_MALLOC_INTERNAL)) return
+       dict_tmp=>dict_tmp%parent
+       if (f_err_raise(.not. associated(dict_tmp%parent),'parent not associated(4)',&
+            ERR_MALLOC_INTERNAL)) return
+       dict=>dict_tmp%parent
+
+!    else
+!       call yaml_map('Present Key',dict_key(dict))
+!!$       dict_tmp=>dict%parent
+!!$       if (f_err_raise(.not. associated(dict_tmp),'parent not associated(1)',&
+!!$         ERR_MALLOC_INTERNAL)) return
+!!$       dict=>dict_tmp
+    end if
+       
+       
+
+!!$    if (jump_up) then
+!!$       !now the routine has to be closed
+!!$       !we should jump at the upper level
+!!$       dict_tmp=>dict%parent 
+!!$       if (associated(dict_tmp%parent)) then
+!!$          nullify(dict)
+!!$          !this might be null if we are at the topmost level
+!!$          dict=>dict_tmp%parent
+!!$       end if
+!!$       nullify(dict_tmp)
+!!$    end if
 
   end subroutine close_routine
 
@@ -1028,7 +1127,7 @@ contains
     use yaml_output, only: yaml_warning
     implicit none
 
-    call yaml_warning('An error occured while allocating an array. Printing info')
+    call yaml_warning('An error occured in dynamic memory module. Printing info')
     call f_malloc_dump_status()
     call f_err_severe()
   end subroutine f_malloc_callback
@@ -1082,7 +1181,9 @@ contains
        call set(dict_global//processid,0)
        call dict_init(dict_calling_sequence)
        !in principle the calling sequence starts from the main
-       dict_codepoint => dict_calling_sequence//'Calling sequence of Main program'
+       dict_codepoint => dict_calling_sequence
+       call f_routine(id='Main program')
+!!$       dict_codepoint => dict_calling_sequence//'Calling sequence of Main program'
     end if
 
     if (present(memory_limit)) call memocc_set_memory_limit(memory_limit)
@@ -1142,6 +1243,7 @@ contains
           call yaml_close_map()
        end if
        call dict_free(dict_global)
+       call f_release_routine() !release main
        !    call yaml_open_map('Calling sequence')
        !    call yaml_dict_dump(dict_calling_sequence)
        !    call yaml_close_map()
@@ -1190,7 +1292,9 @@ contains
     call yaml_newline()
 !    call yaml_map('Present routine',trim(present_routine))
 !    call yaml_open_map(Routine dictionary')
-    call yaml_dict_dump(dict_calling_sequence)
+    call yaml_open_map('Calling sequence of Main program')
+      call yaml_dict_dump(dict_calling_sequence)
+    call yaml_close_map()
     if (associated(dict_routine)) then
        call yaml_open_map('Routine dictionary')
        call dump_leaked_memory(dict_routine)

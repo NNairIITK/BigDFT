@@ -2433,7 +2433,7 @@ subroutine give_rcov(iproc,atoms,nat,rcov)
         rcov(iat)=2.50d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cs') then
         rcov(iat)=4.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pa') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ba') then
         rcov(iat)=4.00d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='La') then
         rcov(iat)=3.50d0

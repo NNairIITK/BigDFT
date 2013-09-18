@@ -59,7 +59,7 @@
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
- date                                  :  2013-06-11
+ date                                  :  2013-06-21
  bill-to: &id001
    given                               : Chris
    address:
@@ -84,7 +84,7 @@
   #--------------------------------------------------- Yaml Invoice Example, using dictionaries
  Retrieve the price value              :  2392.0000000000000
  invoice                               : 34843
- date                                  :  2013-06-11
+ date                                  :  2013-06-21
  bill-to:
    given                               : Chris
    family                              : Dumars
@@ -116,7 +116,7 @@
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4203552
+   Callback Procedure Address          : 4229376
  Additional Info                       : Extra message added
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
  Print the error ID                    :  13
@@ -128,7 +128,7 @@
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4203552
+   Callback Procedure Address          : 4229376
  Additional Info                       : Extra message added again
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
  Callback done, errcode                :  13
@@ -195,23 +195,23 @@
        purpose to see whether yaml module prints it
      Action:
        For this error, contact the routine developer at mail at univ dot gov
-     Callback Procedure Address        : 4203552
+     Callback Procedure Address        : 4229376
  - ERR_TITI:
      Id                                : 14
      Message                           : test2
-     Callback Procedure Address        : 4203488
-     Callback Procedure Data Address   : 140733692254052
+     Callback Procedure Address        : 4229312
+     Callback Procedure Data Address   : 140733872811136
  - ERR_GRAVE:
      Id                                : 15
      Message                           : test2
-     Callback Procedure Address        : 4259152
+     Callback Procedure Address        : 4292080
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End of error list
  Additional Info                       : This is the list of the errors
  ERR_TITI:
    Id                                  : 14
    Message                             : test2
-   Callback Procedure Address          : 4203488
-   Callback Procedure Data Address     : 140733692254052
+   Callback Procedure Address          : 4229312
+   Callback Procedure Data Address     : 140733872811136
  Additional Info                       : Now TITI error has been raised
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TITI
  Callback done                         :  Yes
@@ -226,10 +226,11 @@
  DICT_VALUE_ABSENT:
    Id                                  : 5
    Message                             : The value for this key is absent
+ Additional Info                       : The key is "Toto"
  Error pipe is still full              :  No
  Toto                                  : 
  toto                                  : 1
- titi                                  : 1.00000000000000000
+ titi                                  : 1.0000000000000000
  tutu: [1, 2]
  List: [a: 0, 4, 1.0]
  New key: {Example: 4}
@@ -319,53 +320,211 @@
    - 2
    - 3
  Keys of prepended dict                :  [ Test1, Test2, Stack, Stack2 ]
+ Iterating in dictA                    :  Yes
+ Key of dictA                          : Test1
+ Value of dictA                        : __dict__
+ Iterating in dictA                    :  Yes
+ Key of dictA                          : Test2
+ Value of dictA                        : __dict__
+ Iterating in dictA                    :  Yes
+ Key of dictA                          : Stack
+ Value of dictA                        : __list__
+ Iterating in dictA                    :  Yes
+ Key of dictA                          : Stack2
+ Value of dictA                        : __list__
+ Item of dictA                         :  0
+ Value of dictA                        : Value1
+ Item of dictA                         :  1
+ Value of dictA                        : Value2
+ Item of dictA                         :  2
+ Value of dictA                        : Value3
+ Item of dictA                         :  3
+ Value of dictA                        : Value4
+ Item of dictA                         :  4
+ Value of dictA                        : Value5
+ Item of dictA                         :  5
+ Value of dictA                        : Value6
+ Item of dictA                         :  6
+ Value of dictA                        : Value7
+ Item of dictA                         :  7
+ Value of dictA                        : Value8
+ Item of dictA                         :  8
+ Value of dictA                        : Value9
+ Item of dictA                         :  9
+ Value of dictA                        : Value10
+ List in a list:
+    #call yaml_sequence("5")
+    #call yaml_sequence("6")
+    #call yaml_sequence(advance="no")
+    #call yaml_open_sequence("",flow=.false.)
+    #call yaml_sequence("55")
+    #call yaml_sequence("66")
+    #call yaml_close_sequence()
+ - 5
+ - 6
+ - - 55
+   - 66
+    #call yaml_sequence("5")
+    #call yaml_sequence("6")
+    #call yaml_sequence(advance="no")
+    #call yaml_open_sequence("",flow=.true.)
+    #call yaml_sequence("55")
+    #call yaml_sequence("66")
+    #call yaml_close_sequence()
+ - 5
+ - 6
+ -  [55, 66]
+ Item of dictA                         :  0
+ Key of dictA                          : 
+ Value of dictA                        : 5
+ Item of dictA                         :  1
+ Key of dictA                          : 
+ Value of dictA                        : 6
+ Item of dictA                         :  2
+ Key of dictA                          : 
+ Value of dictA                        : __list__
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Routine-Tree creation example
  Calling sequence of Main program:
- - PS_Check:
-   - Routine 0
-   - Routine A
-   - Routine D:
-     - SubCase 1
-     - Subcase 2:
-       - SubSubcase1
-     - SubCase 3
-   - Routine E
-   - Routine F
+   Main program:
+     No. of calls                      :  1
+     Time of last opening              :  1371838687625319424
+     Total time (s)                    :  0
+     Profiling Enabled                 :  Yes
+     Subroutines:
+       PS_Check:
+         No. of calls                  :  1
+         Time of last opening          :  1371838687625379187
+         Total time (s)                :  0
+         Profiling Enabled             :  Yes
+         Subroutines:
+           Routine 0:
+             No. of calls              :  1
+             Total time (s)            : 3.5689380E-02
+             Profiling Enabled         :  Yes
+           Routine A:
+             No. of calls              :  1
+             Total time (s)            : 6.4268000E-05
+             Profiling Enabled         :  Yes
+           Routine D:
+             No. of calls              :  1
+             Total time (s)            : 6.1920600E-04
+             Profiling Enabled         :  Yes
+             Subroutines:
+               SubCase 1:
+                 No. of calls          :  1
+                 Total time (s)        : 6.1189000E-05
+                 Profiling Enabled     :  Yes
+               Subcase 2:
+                 No. of calls          :  1
+                 Total time (s)        : 2.1952100E-04
+                 Profiling Enabled     :  Yes
+                 Subroutines:
+                   SubSubcase1:
+                     No. of calls      :  1
+                     Total time (s)    : 6.2001000E-05
+                     Profiling Enabled :  Yes
+               SubCase 3:
+                 No. of calls          :  1
+                 Total time (s)        : 6.4030000E-05
+                 Profiling Enabled     :  Yes
+           Routine E:
+             No. of calls              :  1
+             Total time (s)            : 1.6119600E-04
+             Profiling Enabled         :  Yes
+           Routine F:
+             No. of calls              :  1
+             Total time (s)            : 6.8491000E-05
+             Profiling Enabled         :  Yes
  Routine dictionary:
    pot_ion:
      Array Id                          : pot_ion
      Size (Bytes)                      : 0
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0xbb9878
-     Address of metadata               : 140733692253760
+     Address of first element          : 0xd69960
+     Address of metadata               : 140733872810992
    xc_pot:
      Array Id                          : xc_pot
      Size (Bytes)                      : 48
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0xbc2f58
-     Address of metadata               : 140733692253952
+     Address of first element          : 0xd69fc0
+     Address of metadata               : 140733872810848
    extra_ref:
      Array Id                          : extra_ref
      Size (Bytes)                      : 0
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0xbb98a8
-     Address of metadata               : 140733692253696
+     Address of first element          : 0xd69980
+     Address of metadata               : 140733872811040
    rhopot:
      Array Id                          : rhopot
      Size (Bytes)                      : 48
      Allocating Routine Id             : PS_Check
-     Address of first element          : 0xbc2fb8
-     Address of metadata               : 140733692253824
+     Address of first element          : 0xd68f30
+     Address of metadata               : 140733872810896
  Global dictionary:
    potential:
      Array Id                          : potential
      Size (Bytes)                      : 24
      Allocating Routine Id             : Routine 0
-     Address of first element          : 0xbb9988
-     Address of metadata               : 140733692253888
+     Address of first element          : 0xd68a70
+     Address of metadata               : 140733872810944
    Timestamp of Profile initialization:
-     2013-06-11 18:34:36.340
+     2013-06-21 20:18:07.625
+   Process Id:
+     0
+ Calling sequence of Main program:
+   Main program:
+     No. of calls                      :  1
+     Time of last opening              :  1371838687625319424
+     Total time (s)                    :  0
+     Profiling Enabled                 :  Yes
+     Subroutines:
+       PS_Check:
+         No. of calls                  :  1
+         Total time (s)                : 3.8712381E-02
+         Profiling Enabled             :  Yes
+         Subroutines:
+           Routine 0:
+             No. of calls              :  1
+             Total time (s)            : 3.5689380E-02
+             Profiling Enabled         :  Yes
+           Routine A:
+             No. of calls              : 4
+             Total time (s)            : 2.5119900E-04
+             Profiling Enabled         : Yes
+           Routine D:
+             No. of calls              :  1
+             Total time (s)            : 6.1920600E-04
+             Profiling Enabled         :  Yes
+             Subroutines:
+               SubCase 1:
+                 No. of calls          :  1
+                 Total time (s)        : 6.1189000E-05
+                 Profiling Enabled     :  Yes
+               Subcase 2:
+                 No. of calls          :  1
+                 Total time (s)        : 2.1952100E-04
+                 Profiling Enabled     :  Yes
+                 Subroutines:
+                   SubSubcase1:
+                     No. of calls      :  1
+                     Total time (s)    : 6.2001000E-05
+                     Profiling Enabled :  Yes
+               SubCase 3:
+                 No. of calls          :  1
+                 Total time (s)        : 6.4030000E-05
+                 Profiling Enabled     :  Yes
+           Routine E:
+             No. of calls              :  1
+             Total time (s)            : 1.6119600E-04
+             Profiling Enabled         :  Yes
+           Routine F:
+             No. of calls              :  1
+             Total time (s)            : 6.8491000E-05
+             Profiling Enabled         :  Yes
+ Global dictionary:
+   Timestamp of Profile initialization:
+     2013-06-21 20:18:07.625
    Process Id:
      0
  Memory Consumption Report:
