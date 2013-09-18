@@ -950,6 +950,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%calc_dipole,'F')
   call input_var(in%lin%pulay_correction,'T')
   call input_var(in%lin%diag_end,'F',comment=comments)
+  ! not sure whether to actually make this an input variable or not so just set to false for now
+  in%lin%diag_start=.false.
 
   !fragment calculation and transfer integrals: true or false
   comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
@@ -1719,6 +1721,7 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   character(len=*), parameter :: subname='fragment_input_variables'
   character(len=256) :: comments
   integer :: ifrag, frag_num, ierr
+  real :: charge
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 
@@ -1783,7 +1786,8 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
        stop
     end if
     call input_var(in%frag%frag_index(frag_num),'1',ranges=(/0,100000/))
-    call input_var(in%frag%charge(frag_num),'1',ranges=(/-500,500/),comment=comments)
+    call input_var(charge,'0.0',ranges=(/-500.0,500.0/),comment=comments)
+    in%frag%charge(frag_num)=charge
   end do
 
   call input_free((iproc == 0) .and. dump)

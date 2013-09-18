@@ -1276,26 +1276,28 @@ contains
          + a(1,3)*(a(2,1)*a(3,2) - a(3,1)*a(2,2))
   end function det_33
 
-  subroutine fragment_coeffs_to_kernel(iproc,input_frag,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated)
+  subroutine fragment_coeffs_to_kernel(iproc,input_frag,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
+    nstates_max)
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
     type(fragmentInputParameters), intent(in) :: input_frag
     type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
     type(orbitals_data), intent(inout) :: ksorbs
     logical, intent(inout) :: overlap_calculated
-    integer, dimension(input_frag%nfrag), intent(in) :: input_frag_charge
+    real(kind=gp), dimension(input_frag%nfrag), intent(in) :: input_frag_charge
     integer, intent(in) :: iproc
+    integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
 
-    integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, nelecfrag_tot, itmb, jtmb, iall, istat
+    integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, iall, istat
     real(gp), dimension(:,:), allocatable :: coeff_final, ks, ksk
     !*real(gp), dimension(:), allocatable :: kernel_final
-    real(gp) :: nonidem, nelecorbs
+    real(gp) :: nonidem, nelecorbs, nelecfrag_tot, jstate_max
     character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
 
-!DEAL WITH OCCUP CORRECTLY
     call timing(iproc,'kernel_init','ON')
     call f_routine(id='fragment_coeffs_to_kernel')
 
+    nstates_max=0
     nelecfrag_tot=0
     do ifrag=1,input_frag%nfrag
        ifrag_ref=input_frag%frag_index(ifrag)
@@ -1359,15 +1361,23 @@ contains
     do ifrag=1,input_frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input_frag%frag_index(ifrag)
-
        call razero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
-       do jtmb=1,nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
+       jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp
+       do jtmb=1,ceiling(jstate_max)
           do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
              tmb%coeff(isforb+itmb,jtmb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
              tmb%orbs%eval(jsforb+jtmb)=ref_frags(ifrag_ref)%eval(jtmb)
           end do
+
+          if (ceiling(jstate_max)/=jstate_max.and.jtmb==jstate_max) then
+             tmb%orbs%occup(jtmb+jsforb)=(jstate_max*2.0d0)-2*(ceiling(jstate_max)-1)
+          else
+             tmb%orbs%occup(jtmb+jsforb)=2.0d0
+          end if
+          if (bigdft_mpi%iproc==0) print*,'ifrag,jtmb,occ,iorb',ifrag,jtmb,tmb%orbs%occup(jtmb+jsforb),jtmb+jsforb
        end do
+       nstates_max=nstates_max+ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
 
        ! debug
        !do itmb=1,tmb%orbs%norb
@@ -1384,7 +1394,7 @@ contains
 
        ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-            nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
+            ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
             tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, 0, tmb%orbs, &
             tmb%linmat%ovrlp, tmb%coeff)
 
@@ -1410,14 +1420,14 @@ contains
        !call daxpy(tmb%linmat%denskern%nvctr,1.0d0,tmb%linmat%denskern%matrix_compr(1),1,kernel_final(1),1)
 
        ! update coeff_final matrix following coeff reorthonormalization
-       do jtmb=1,nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
+       do jtmb=1,ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
           do itmb=1,tmb%orbs%norb
              coeff_final(itmb,jsforb+jtmb)=tmb%coeff(itmb,jtmb)
           end do
        end do
 
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-       jsforb=jsforb+nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
+       jsforb=jsforb+ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
     end do
     call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
@@ -1469,17 +1479,18 @@ contains
     do ifrag=1,input_frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input_frag%frag_index(ifrag)
-       do jtmb=nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+       jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp
+       do jtmb=ceiling(jstate_max)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-             tmb%coeff(isforb+itmb,jsforb+jtmb-nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp))&
-                  =ref_frags(ifrag_ref)%coeff(itmb,jtmb)
-             tmb%orbs%eval(jsforb+jtmb-nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp))&
-                  =ref_frags(ifrag_ref)%eval(jtmb)
+             tmb%coeff(isforb+itmb,jsforb+jtmb-ceiling(jstate_max))=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
+             tmb%orbs%eval(jsforb+jtmb-ceiling(jstate_max))=ref_frags(ifrag_ref)%eval(jtmb)
           end do
+          tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max))=0.0d0
+          if (bigdft_mpi%iproc==0) print*,'ifrag,jtmb,occ,iorb',ifrag,jtmb,0.0,jsforb+jtmb-ceiling(jstate_max)
        end do
 
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-       jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-(nint((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp))
+       jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-ceiling(jstate_max)
     end do
 
     ! debug
@@ -1505,6 +1516,11 @@ contains
        end do
        write(*,'(1x,a)') '-------------------------------------------------'
        write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
+    end if
+
+    if (nstates_max/=ksorbs%norb) then
+       if (bigdft_mpi%iproc==0) print*,'Warning, number of states with non-zero occupation in fragments (',nstates_max,&
+            ') differs from number of KS states (',ksorbs%norb,') - might have convergence problems'
     end if
 
     call f_release_routine()
