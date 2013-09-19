@@ -399,8 +399,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            !    if (iproc==0) write(*,*) 'set ldiis%isx=0)'
            !    ldiis%isx=0
            !end if
-           !if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
-           !orthonormalization_on=.false.
+           if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
+           orthonormalization_on=.false.
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
