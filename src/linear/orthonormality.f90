@@ -222,7 +222,8 @@ call timing(iproc,'misc','ON')
      ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
      tmp_mat_compr(ii)=-0.5d0*lagmat%matrix_compr(ii)-0.5d0*lagmat%matrix_compr(ii_trans)
      ! SM: This is a hack, should use another variable
-     if (.false..or.correction_orthoconstraint==2) then
+     !if (.false..or.correction_orthoconstraint==2) then
+     if (.false..and.correction_orthoconstraint==2) then
          if (iproc==0 .and. ii==1) write(*,*) 'only normalization constraint'
          if (iorb/=jorb) then
              tmp_mat_compr(ii)=0.d0

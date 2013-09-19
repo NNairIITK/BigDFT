@@ -9,7 +9,7 @@
  
 
 !> Plots the orbitals
-subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it)
+subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
 use module_base
 use module_types
 implicit none
@@ -22,6 +22,7 @@ integer :: nat
 real(kind=8), dimension(3,nat) :: rxyz
 real(kind=8) :: hxh, hyh, hzh
 integer :: it
+character(len=4),intent(in) :: basename
 
 integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iat
 integer :: unit1, unit2, unit3, unit4, unit5, unit6, unit7, unit8, unit9, unit10, unit11, unit12
@@ -87,18 +88,18 @@ unit12=20*iproc+14
         write(c1,'(i5.5)') iproc
         write(c2,'(i5.5)') iorb
         write(c3,'(i5.5)') it
-        file1='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_x'
-        file2='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_y'
-        file3='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_z'
-        file4='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_pxpypz'
-        file5='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_mxpypz'
-        file6='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_mxmypz'
-        file7='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_pxmypz'
-        file8='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_1st'
-        file9='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_2nd'
-        file10='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_3rd'
-        file11='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_4th'
-        file12='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_info'
+        file1=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_x'
+        file2=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_y'
+        file3=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_z'
+        file4=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_pxpypz'
+        file5=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_mxpypz'
+        file6=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_mxmypz'
+        file7=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_pxmypz'
+        file8=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_1st'
+        file9=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_2nd'
+        file10=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_3rd'
+        file11=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_4th'
+        file12=basename//'_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_info'
         open(unit=unit1, file=trim(file1))
         open(unit=unit2, file=trim(file2))
         open(unit=unit3, file=trim(file3))
