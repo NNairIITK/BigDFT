@@ -187,7 +187,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! wavelets (i.e. with cutoff)
   call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
        at%astruct%nat, norbsPerAt, mapping, &
-       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,1.d-3*input%lin%potentialPrefac_ao)
+       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks)!,1.d-7*input%lin%potentialPrefac_ao)
   if (iproc==0) write(*,*) 'eks',eks
 
   ! Create the potential. First calculate the charge density.
@@ -198,27 +198,59 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end do
 
   ! Transform the atomic orbitals to the wavelet basis.
-  if (orbs_gauss%norb/=tmb%orbs%norb) stop 'orbs%gauss%norb does not match tmbs%orbs%norb'
-  orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
-  call wavefunction_dimension(tmb%lzd,orbs_gauss)
-  call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
-  call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
-       psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
 
-  ! Calculate kinetic energy
-  allocate(confdatarrtmp(tmb%orbs%norbp))
-  call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
+  !!if (.false.) then
+      ! linear version
 
-  call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
-       tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-       tmb%orbs, tmb%psi, tmb%ham_descr%psi)
-  if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+      if (orbs_gauss%norb/=tmb%orbs%norb) stop 'orbs%gauss%norb does not match tmbs%orbs%norb'
+      orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
+      call wavefunction_dimension(tmb%lzd,orbs_gauss)
+      call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
+      call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
+           psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
 
-  call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-       tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
-       energs,input%SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-  call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
-       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+      ! Calculate kinetic energy
+      allocate(confdatarrtmp(tmb%orbs%norbp))
+      call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
+
+      call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
+           tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+      if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+
+      call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
+           energs,input%SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+
+  !!else
+  !!    ! cubic version
+
+  !!    if (orbs_gauss%norb/=tmb%orbs%norb) stop 'orbs%gauss%norb does not match tmbs%orbs%norb'
+  !!    orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
+  !!    call wavefunction_dimension(tmb%lzd,orbs_gauss)
+  !!    call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
+  !!    call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
+  !!         psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
+
+  !!    ! Calculate kinetic energy
+  !!    allocate(confdatarrtmp(tmb%orbs%norbp))
+  !!    call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
+
+  !!    call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
+  !!         tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+  !!         tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+  !!    if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+
+  !!    call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+  !!         tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
+  !!         energs,input%SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+  !!    call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
+  !!         energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+
+  !!end if
+
   if (iproc==0) write(*,*) 'eks, energs%ekin', eks, energs%ekin
   if (iproc==0) write(*,*) 'conv crit:', abs(eks-energs%ekin)/dble(tmb%orbs%norb)
   deallocate(confdatarrtmp)
@@ -351,7 +383,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
       !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
       !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
-      !if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
+      !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
       call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
@@ -438,7 +470,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
      info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
      reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
-     20,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
+     30,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
      ratio_deltas,ortho_on,input%lin%extra_states,0)
  call deallocateDIIS(ldiis)
  ! END NEW ############################################################################

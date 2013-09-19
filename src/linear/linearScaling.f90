@@ -382,6 +382,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
                end if
                !if (iproc==0) write(*,'(a,es18.8)') 'tmb%confdatarr(1)%prefac',tmb%confdatarr(1)%prefac
+               !if (iproc==0) write(*,*) "WARNING: DON'T LET THE PREFACTOR GO BELOW 1.D-5"
+               !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,2.4d-5)
            end if
 
            !!if (pnrm_out<5.d-9) then
@@ -1189,7 +1191,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         if (iproc==0) write(*,*) 'WARNING MODIFY nit_basis'
         nit_basis=0
     end if
-    if (mean_conf<1.d-5) then
+    if (mean_conf<2.4d-4) then
     !if (itout>=13) then
         if (iproc==0) write(*,*) 'outswitch off ortho'
         orthonormalization_on=.false.

@@ -713,35 +713,35 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
 
-      ! PLOT ###########################################################################
-      hxh=0.5d0*tmb%lzd%hgrids(1)      
-      hyh=0.5d0*tmb%lzd%hgrids(2)      
-      hzh=0.5d0*tmb%lzd%hgrids(3)      
-      npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-      allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
-      philarge=0.d0
-      ists=1
-      istl=1
-      do iorb=1,tmb%orbs%norbp
-          ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
-          sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-          nspin=1 !this must be modified later
-          call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
-               tmb%lzd%llr(ilr), hpsi_small(ists), philarge(istl))
-          ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-      end do
-      call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it, 'grad')
-      deallocate(philarge)
-      ! END PLOT #######################################################################
+      !!! PLOT ###########################################################################
+      !!hxh=0.5d0*tmb%lzd%hgrids(1)      
+      !!hyh=0.5d0*tmb%lzd%hgrids(2)      
+      !!hzh=0.5d0*tmb%lzd%hgrids(3)      
+      !!npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !!allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
+      !!philarge=0.d0
+      !!ists=1
+      !!istl=1
+      !!do iorb=1,tmb%orbs%norbp
+      !!    ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
+      !!    sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !!    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !!    nspin=1 !this must be modified later
+      !!    call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+      !!         tmb%lzd%llr(ilr), hpsi_small(ists), philarge(istl))
+      !!    ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !!    istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !!end do
+      !!call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it, 'grad')
+      !!deallocate(philarge)
+      !!! END PLOT #######################################################################
 
       if (it_tot==1) then
           energy_first=trH
       end if
       if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
                                             trH, energy_first, (trH-energy_first)/energy_first
-      if ((trH-energy_first)/energy_first>1.d-5 .and. itout>0) then
+      if ((trH-energy_first)/energy_first>1.d-4 .and. itout>0) then
           stop_optimization=.true.
           if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
                                                 trH, energy_first, (trH-energy_first)/energy_first
@@ -1000,7 +1000,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!if(it>=nit_basis .or. it_tot>=3*nit_basis .or. reduce_conf) then
       !!    if(it>=nit_basis .and. .not.energy_increased) then
       !if(it>=nit_basis .or. it_tot>=3*nit_basis) then
-      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or.  fnrm<1.d-40) then
+      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or.  fnrm<2.3d-4) then
           if(it>=nit_basis) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
@@ -1026,7 +1026,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!        write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
           !!    end if
           !!    infoBasisFunctions=0
-          else if (fnrm<1.d-40) then
+          else if (fnrm<2.3d-4) then
               if (iproc==0) write(*,* ) 'converged!'
               infoBasisFunctions=0
           end if
