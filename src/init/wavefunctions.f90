@@ -786,7 +786,14 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(bigdft_mpi%iproc,in)
+  
+  !check if an error has been found and raise an exception to be handled
+  if (f_err_check()) then
+     call f_err_throw('Error in reading input variables from dictionary',&
+          err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+  end if
 
 end subroutine inputs_from_dict
+
 
 

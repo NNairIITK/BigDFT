@@ -271,10 +271,51 @@
     f_get_error_dict=>dict_errors//icode
   end function f_get_error_dict
 
+  function f_get_no_of_errors()
+    implicit none
+    integer :: f_get_no_of_errors
+
+    f_get_no_of_errors=dict_len(dict_present_error)
+  end function f_get_no_of_errors
+
+  function f_get_past_error(ierr_num,add_msg)
+    implicit none
+    integer, intent(in) :: ierr_num
+    character(len=*), optional :: add_msg
+    integer :: f_get_past_error
+    
+    f_get_past_error=get_error_id(ierr_num)
+    if (present(add_msg)) call get_error_msg(ierr_num,add_msg)
+    
+  end function f_get_past_error
+
+  function get_error_id(ierr)
+    implicit none
+    integer, intent(in) :: ierr
+    integer :: get_error_id
+    if (ierr >= 0) then
+       get_error_id=dict_present_error//ierr//errid
+    else
+       get_error_id=0
+    end if
+  end function get_error_id
+
+  subroutine get_error_msg(ierr,add_msg)
+    implicit none
+    integer, intent(in) :: ierr
+    character(len=*), intent(out) :: add_msg
+
+    if (ierr >=0) then
+       add_msg=dict_present_error//ierr//'Additional Info'
+    else
+       add_msg=repeat(' ',len(add_msg))
+    end if
+  end subroutine get_error_msg
+
   !> identify id of lastr error occured
   function f_get_last_error(add_msg)
     implicit none
-    character(len=*), optional :: add_msg
+    character(len=*), intent(out), optional :: add_msg
     integer :: f_get_last_error
     !local variables
     integer :: ierr

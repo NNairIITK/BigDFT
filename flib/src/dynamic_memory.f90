@@ -697,7 +697,7 @@ contains
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
   subroutine f_routine(id,profile)
-    use yaml_output !debug
+    !use yaml_output !debug
     implicit none
     logical, intent(in), optional :: profile
     character(len=*), intent(in), optional :: id
@@ -721,14 +721,16 @@ contains
     !print *,'test',trim(mems(ictrl)%present_routine),'test2',trim(id),'ccc',mems(ictrl)%routine_opened
     !if (trim(mems(ictrl)%present_routine) /= trim(id) .or. &
     !         (trim(mems(ictrl)%present_routine) == trim(id) .and. .not. mems(ictrl)%routine_opened) ) then
-    call yaml_open_map('Status before the opening of the routine')
-      call yaml_map('Level',ictrl)
-      call yaml_map('Routine opened',mems(ictrl)%routine_opened)
-      call yaml_map('Codepoint',trim(dict_key(mems(ictrl)%dict_codepoint)))
-      call yaml_open_map('Codepoint dictionary')
-      call yaml_dict_dump(mems(ictrl)%dict_codepoint)
-      call yaml_close_map()
-    call yaml_close_map()
+    !debug
+!!$    call yaml_open_map('Status before the opening of the routine')
+!!$      call yaml_map('Level',ictrl)
+!!$      call yaml_map('Routine opened',mems(ictrl)%routine_opened)
+!!$      call yaml_map('Codepoint',trim(dict_key(mems(ictrl)%dict_codepoint)))
+!!$      call yaml_open_map('Codepoint dictionary')
+!!$      call yaml_dict_dump(mems(ictrl)%dict_codepoint)
+!!$      call yaml_close_map()
+!!$    call yaml_close_map()
+    !end debug  
 
     if (.true.) then
        if(associated(mems(ictrl)%dict_routine)) then
@@ -769,7 +771,7 @@ contains
 
   !> Close a previously opened routine
   subroutine f_release_routine()
-    use yaml_output
+    use yaml_output, only: yaml_dict_dump
     implicit none
 
     if (f_err_raise(ictrl == 0,&
@@ -816,11 +818,13 @@ contains
 
     mems(ictrl)%profile_routine=mems(ictrl)%dict_codepoint//prof_enabled! 
 
-    call yaml_open_map('Codepoint after closing')
-    call yaml_map('Potential Reference Routine',trim(dict_key(mems(ictrl)%dict_codepoint)))
-    call yaml_dict_dump(mems(ictrl)%dict_codepoint)
-    call yaml_close_map()
-    call yaml_comment('End of release routine',hfill='=')
+    !debug
+!!$    call yaml_open_map('Codepoint after closing')
+!!$    call yaml_map('Potential Reference Routine',trim(dict_key(mems(ictrl)%dict_codepoint)))
+!!$    call yaml_dict_dump(mems(ictrl)%dict_codepoint)
+!!$    call yaml_close_map()
+!!$    call yaml_comment('End of release routine',hfill='=')
+    !end debug
   end subroutine f_release_routine
 
   !>create the id of a new routine in the codepoint and points to it.
@@ -849,7 +853,7 @@ contains
   end subroutine open_routine
 
   subroutine close_routine(dict,jump_up)
-    use yaml_output !debug
+    !use yaml_output !debug
     implicit none
     type(dictionary), pointer :: dict
     logical, intent(in) :: jump_up
@@ -863,10 +867,10 @@ contains
 
     itime=f_time()
     !debug
-    call yaml_open_map('codepoint'//trim(dict_key(dict)))
-    call yaml_dict_dump(dict)
-    call yaml_close_map()
-    call yaml_comment('We should jump up '//trim(yaml_toa(jump_up)),hfill='}')
+!!$    call yaml_open_map('codepoint'//trim(dict_key(dict)))
+!!$    call yaml_dict_dump(dict)
+!!$    call yaml_close_map()
+!!$    call yaml_comment('We should jump up '//trim(yaml_toa(jump_up)),hfill='}')
     !end debug
 
     !update the total time, if the starting point is present

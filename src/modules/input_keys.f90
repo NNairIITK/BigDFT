@@ -672,8 +672,8 @@ contains
          & COMMENT   .is. 'SIC method', &
          & EXCLUSIVE .is. dict_new(&
          &    "none" .is. "no self-interaction correction", &
-         &    "PZ"   .is. "???", &
-         &    "NK"   .is. "???"), &
+         &    "PZ"   .is. "Perdew-Zunger SIC scheme", &
+         &    "NK"   .is. "Non-Koopmans correction (Experimental)"), &
          & DEFAULT.is. "none" ))
 
     call set(p // SIC_ALPHA, dict_new( &
@@ -682,7 +682,7 @@ contains
          & DEFAULT   .is. "0." ))
 
     call set(p // SIC_FREF, dict_new( &
-         & COMMENT   .is. 'reference occupation fref', &
+         & COMMENT   .is. 'reference occupation fref (for NK case only)', &
          & COND      .is. dict_new(MASTER_KEY .is. SIC_APPROACH, &
          &                            WHEN .is. list_new(.item. "NK")), &
          & RANGE     .is. list_new(.item."0.", .item."1."), &

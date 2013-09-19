@@ -356,7 +356,6 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      endif
 
      call memocc(i_stat,kernel%kernel,'kernel',subname)
-call yaml_comment('before inplane',hfill='~')
      !!! PSolver n1-n2 plane mpi partitioning !!!   
      call inplane_partitioning(kernel%mpi_env,md2,n2/2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
@@ -657,15 +656,7 @@ subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mp
      inplane_mpi=mpi_environment_null()
   endif
 
-  !see the differences with the normal case
-  call f_malloc_dump_status()
-
-
   call mpi_environment_set(part_mpi,mpi_env%iproc,&
        mpi_env%nproc,mpi_env%mpi_comm,n3pr2)
-
-  !see the differences with the normal case
-  call f_malloc_dump_status()
-  call yaml_comment('end of inplane',hfill='~')
 
 end subroutine inplane_partitioning

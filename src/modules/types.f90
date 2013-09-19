@@ -30,7 +30,8 @@ module module_types
   integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
   integer, parameter :: BIGDFT_INVALID        = -12 !< Invalid entry
   integer :: BIGDFT_MPI_ERROR                       !< see error definitions below
-  integer :: BIGDFT_LINALG_ERROR                    !<to be moved to linalg wrappers
+  integer :: BIGDFT_LINALG_ERROR                    !< to be moved to linalg wrappers
+  integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< problems in parsing input variables
 
   !> Input wf parameters.
   integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
@@ -2675,11 +2676,15 @@ subroutine bigdft_init_errors()
        BIGDFT_MPI_ERROR,&
        err_action='Check if the error is related to MPI library or runtime condtions')
 
-    call f_err_define('BIGDFT_LINALG_ERRROR',&
+    call f_err_define('BIGDFT_LINALG_ERROR',&
        'An error of linear algebra occurred',&
        BIGDFT_LINALG_ERROR,&
        err_action='Check if the matrix is correct at input, also look at the info value')
 
+    call f_err_define('BIGDFT_INPUT_VARIABLES_ERROR',&
+       'An error while parsing the input variables occured',&
+       BIGDFT_INPUT_VARIABLES_ERROR,&
+       err_action='Check above which input variable has been not correctly parsed')
 
   !define the severe operation via MPI_ABORT
   call f_err_severe_override(bigdft_severe_abort)

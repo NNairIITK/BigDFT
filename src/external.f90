@@ -261,7 +261,8 @@ subroutine bigdft_severe_abort()
 
   !the MPI_ABORT works only in MPI_COMM_WORLD
   call f_malloc_dump_status()
-  call f_dump_last_error()
+  !call f_dump_last_error()
+  call f_dump_all_errors()
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 

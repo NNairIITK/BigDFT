@@ -25,6 +25,21 @@ subroutine f_dump_last_error()
   end if
 end subroutine f_dump_last_error
 
+subroutine f_dump_all_errors()
+  use dictionaries, only: f_get_error_dict,f_get_past_error,&
+       max_field_length,f_get_no_of_errors
+  use yaml_output, only: yaml_dict_dump,yaml_map
+  implicit none
+  !local variables
+  integer :: ierr
+  character(len=max_field_length) :: add_msg
+  
+  do ierr=0,f_get_no_of_errors()-1
+     call yaml_dict_dump(f_get_error_dict(f_get_past_error(ierr,add_msg)))
+     if (trim(add_msg)/= 'UNKNOWN') call yaml_map('Additional Info',add_msg)
+  end do
+end subroutine f_dump_all_errors
+
 !> dump the list of possible errors as they are defined at present
 subroutine f_dump_possible_errors(extra_msg)
   use yaml_output

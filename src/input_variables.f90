@@ -2601,6 +2601,7 @@ subroutine sic_input_analyse(iproc,in,dict,ixc_)
   use module_types
   use module_input_keys
   use dictionaries
+  use yaml_output
   implicit none
   !Arguments
   integer, intent(in) :: iproc
@@ -2614,6 +2615,12 @@ subroutine sic_input_analyse(iproc,in,dict,ixc_)
   in%SIC%alpha = dict // SIC_ALPHA
   if (input_keys_equal(trim(in%SIC%approach), "NK")) in%SIC%fref = dict // SIC_FREF
   in%SIC%ixc = ixc_
+
+!!$  call yaml_map('Error found',f_err_check())
+!!$  if (f_err_check()) then
+!!$     call f_dump_all_errors()
+!!$  end if
+!!$  stop
 
 END SUBROUTINE sic_input_analyse
 
