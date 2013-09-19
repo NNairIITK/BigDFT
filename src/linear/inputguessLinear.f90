@@ -60,7 +60,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   logical :: finished
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   real(kind=8),dimension(:),allocatable :: philarge
-  integer :: npsidim_large, sdim, ldim, ists, istl, ilr, nspin
+  integer :: npsidim_large, sdim, ldim, ists, istl, ilr, nspin, info_basis_functions
+  real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
+  logical :: ortho_on, fix_supportfunctions, reduce_conf
+  type(localizedDIISParameters) :: ldiis
 
   call nullify_orbitals_data(orbs_gauss)
 
@@ -314,28 +317,28 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
 
-  ! PLOT ###########################################################################
-      hxh=0.5d0*tmb%lzd%hgrids(1)
-      hyh=0.5d0*tmb%lzd%hgrids(2)
-      hzh=0.5d0*tmb%lzd%hgrids(3)
-      npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-      allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
-      philarge=0.d0
-      ists=1
-      istl=1
-      do iorb=1,tmb%orbs%norbp
-          ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
-          sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-          nspin=1 !this must be modified later
-          call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
-               tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
-          ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-      end do
-      call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 1)
-      deallocate(philarge)
-  ! END PLOT #######################################################################
+  !!! PLOT ###########################################################################
+  !!    hxh=0.5d0*tmb%lzd%hgrids(1)
+  !!    hyh=0.5d0*tmb%lzd%hgrids(2)
+  !!    hzh=0.5d0*tmb%lzd%hgrids(3)
+  !!    npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !!    allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
+  !!    philarge=0.d0
+  !!    ists=1
+  !!    istl=1
+  !!    do iorb=1,tmb%orbs%norbp
+  !!        ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
+  !!        sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!        ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !!        nspin=1 !this must be modified later
+  !!        call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+  !!             tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
+  !!        ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!        istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !!    end do
+  !!    call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 1)
+  !!    deallocate(philarge)
+  !!! END PLOT #######################################################################
 
 
 
@@ -348,9 +351,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
       !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
       !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
-      if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
-      !call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
-      !     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+      !if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
+      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
  else
 
@@ -422,6 +425,25 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  !!call mpi_finalize(istat)
  !!stop
 
+
+
+
+ ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
+ ortho_on=.true.
+ fix_supportfunctions=.false.
+ call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
+ ldiis%alphaSD=input%lin%alphaSD
+ ldiis%alphaDIIS=input%lin%alphaDIIS
+ energs%eexctX=0.d0 !temporary fix
+ call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+     info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
+     reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
+     20,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
+     ratio_deltas,ortho_on,input%lin%extra_states,0)
+ call deallocateDIIS(ldiis)
+ ! END NEW ############################################################################
+
+
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
   if (input%lin%scf_mode==LINEAR_FOE) then
@@ -452,7 +474,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   ! Mix the density.
   if (input%lin%mixing_after_inputguess .and. (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
-     call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+     !!call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+     !!     denspot, mixdiis, rhopotold, pnrm)
+     if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
+     call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, 1.d0, &
           denspot, mixdiis, rhopotold, pnrm)
   end if
 
