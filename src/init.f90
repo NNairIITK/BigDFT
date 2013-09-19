@@ -2698,7 +2698,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      overlap_calculated=.false.
      allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
      call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
-
      allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
      call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
 
@@ -2740,7 +2739,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         if (in%lin%calc_transfer_integrals) then
            in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
            call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
-           in_frag_charge(cdft%ifrag_charged(2))=0
+           ! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
+           in_frag_charge(cdft%ifrag_charged(2))=in%ncharge - in_frag_charge(cdft%ifrag_charged(1))
+           cdft%charge=cdft%ifrag_charged(1)-cdft%ifrag_charged(2)
         else
            in_frag_charge=>in%frag%charge
         end if
@@ -2752,7 +2753,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! this is overkill as we are recalculating the kernel anyway - fix at some point
      ! or just put into fragment structure to save recalculating for CDFT
      if (in%lin%fragment_calculation) then
-        call fragment_coeffs_to_kernel(in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
+        call fragment_coeffs_to_kernel(iproc,in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
         if (in%lin%calc_transfer_integrals.and.in%lin%constrained_dft) then
            call f_free_ptr(in_frag_charge)
         else
@@ -2795,13 +2796,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!call f_free_ptr(tmb%linmat%denskern%matrix)   
 
      tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
-
      i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
      deallocate(tmb%psit_c,stat=i_stat)                                                 
      call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
      i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
      deallocate(tmb%psit_f,stat=i_stat)                                                 
-     call memocc(i_stat,i_all,'tmb%psit_f',subname)     
+     call memocc(i_stat,i_all,'tmb%psit_f',subname)
+     nullify(tmb%psit_c)
+     nullify(tmb%psit_f)
 
      ! Now need to calculate the charge density and the potential related to this inputguess
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -2822,10 +2824,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            call calculate_weight_matrix_using_density(cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
-           call calculate_weight_matrix_lowdin(cdft,tmb,in,ref_frags,.true.)
+           call calculate_weight_matrix_lowdin(cdft,tmb,in,ref_frags,.false.)
            ! debug
-           call plot_density(iproc,nproc,'initial_density.cube', &
-                atoms,rxyz,denspot%dpbox,1,denspot%rhov)
+           !call plot_density(iproc,nproc,'initial_density.cube', &
+           !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
            ! debug
         else 
            stop 'Error invalid method for calculating CDFT weight matrix'

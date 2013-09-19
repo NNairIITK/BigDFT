@@ -1029,7 +1029,7 @@ contains
     else !back in the main program
        routine_opened=.false.
     end if
-    present_routine=trim(dict_key(dict_codepoint))
+    present_routine(1:len(present_routine))=trim(dict_key(dict_codepoint))
     if (.not. has_key(dict_codepoint,prof_enabled)) then
        call yaml_dict_dump(dict_codepoint)
        call f_err_throw('The key '//prof_enabled//' is not present in the codepoint',&
@@ -1173,10 +1173,10 @@ contains
     implicit none
     
     call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
+         err_action='Control the order of the allocation or if the memory limit has been reached',&
          callback=f_malloc_callback)
     call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Dellocation error',err_id=ERR_DEALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
+         err_action='Control the order of the deallocation or if the memory limit has been reached',&
          callback=f_malloc_callback)
     call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&
          err_action='Control the size of the arrays needed for this run with bigdft-tool program',&
@@ -1389,7 +1389,8 @@ contains
     integer, dimension(:,:,:), allocatable, intent(inout) :: array
     include 'allocate-inc-profile.f90' 
     !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
+    allocate(array(m%lbounds(1):m%ubounds(1),&
+         m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
     include 'allocate-inc.f90'
   end subroutine i3_all
 
@@ -1408,8 +1409,9 @@ contains
     integer, dimension(:,:,:,:), allocatable, intent(inout) :: array
     include 'allocate-inc-profile.f90' 
     !allocate the array
-    allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
-                   m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
+    allocate(array(m%lbounds(1):m%ubounds(1),&
+         m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3),&
+         m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
     include 'allocate-inc.f90'
   end subroutine i4_all
 

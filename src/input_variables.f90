@@ -945,16 +945,18 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-           'calculate dipole ; pulay correction'
+           'calculate dipole ; pulay correction; diagonalization at the end (dmin, FOE)'
   call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
-  call input_var(in%lin%pulay_correction,'T',comment=comments)
+  call input_var(in%lin%pulay_correction,'T')
+  call input_var(in%lin%diag_end,'F',comment=comments)
 
   !fragment calculation and transfer integrals: true or false
-  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation'
+  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
   call input_var(in%lin%fragment_calculation,'F')
   call input_var(in%lin%calc_transfer_integrals,'F')
-  call input_var(in%lin%constrained_dft,'F',comment=comments)
+  call input_var(in%lin%constrained_dft,'F')
+  call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
@@ -1610,6 +1612,7 @@ subroutine perf_input_variables(iproc,dump,filename,in)
   call input_var("domain", "", "Domain to add to the hostname to find the IP", in%domain)
   call input_var("inguess_geopt", 0,(/0,1/),"0= wavlet input guess, 1= real space input guess",in%inguess_geopt)
   call input_var("store_index", .true., "linear scaling: store indices or recalculate them", in%store_index)
+  call input_var("check_sumrho", 2, (/0,1,2/), "linear sumrho: 0=no check, 1=light check, 2=full check", in%check_sumrho)
   !verbosity of the output
   call input_var("verbosity", 2,(/0,1,2,3/), &
      & "verbosity of the output 0=low, 2=high",in%verbosity)
@@ -1718,8 +1721,8 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   integer :: ifrag, frag_num, ierr
 
   !Linear input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters')  
-  if (exists) in%files = in%files + INPUTS_FRAG
+  call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 
+  if (exists .and. dump) in%files = in%files + INPUTS_FRAG
 
   if (.not. exists .and. in%lin%fragment_calculation) then ! we should be doing a fragment calculation, so this is a problem
      write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' is missing and fragment calculation was specified"

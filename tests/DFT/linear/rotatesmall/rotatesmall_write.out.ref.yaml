@@ -27,15 +27,15 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.0.30
- Timestamp of this run                 : 2013-06-27 10:57:18.439
+ Version Number                        : 1.7.0.32
+ Timestamp of this run                 : 2013-09-03 10:39:01.257
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
  MPI tasks of root process node        :  6
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Configure arguments                 : " 'FC=mpif90'"
    Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
@@ -66,6 +66,7 @@
  #|domain                       Domain to add to the hostname to find the IP                 
  #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
  #|store_index T                linear scaling: store indices or recalculate them            
+ #|check_sumrho 2               linear sumrho: 0=no check, 1=light check, 2=full check       
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
@@ -139,8 +140,8 @@
  #|4              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|1 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|F F F          fragment calculation; calculate transfer_integrals; constrained DFT calcula
+ #|1 F F F        Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|Si 4 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, pref
  #|H  1 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0 Atom name, number of basis functions per atom, prefa
  # ==== WARNING: the following lines have not been processed by the parser ====
@@ -311,10 +312,6 @@
    Hamiltonian application             : 41.103
  Estimated Memory Peak (MB)            :  41
   #WARNING: Do not call check_communications in the linear scaling version!
- Checking transposition for sumrho:
-   Tolerances for this check           :  1.000000000000000E-10
-   transposition check, sum            :  0.000000000000000E+00
-   transposition check, max            :  0.000000000000000E+00
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -325,6 +322,14 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  0.000000000000000000E+00
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  0.000000000000000000E+00
  Ion-Ion interaction energy            :  4.93139716176255E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -7.000000937172
@@ -349,12 +354,12 @@
      Box                               :  [  111,  111,  111 ]
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  9417,  240 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  9412,  234 ]
    Tolerances for this check: [ 2.54840003402478921E-06,  1.55431223447521916E-15]
    Maxdiff for transpose (checksum)    :  7.27595761418342590E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  6440,  240 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  6439,  234 ]
    Tolerances for this check: [ 4.50740006018024442E-06,  1.55431223447521916E-15]
    Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
@@ -379,7 +384,16 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.200E-01,  1.200E-01 ]}
+ -  {Process:  0, Timing:  [  2.080E-01,  2.080E-01 ]}
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-0.180000000000, -0.180000000000,  0.180000000000]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -387,32 +401,32 @@
    MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  1.25022268E-03, y: -1.27870689E-03, z:  5.17500230E-04, 
+ Average noise forces: {x:  1.25022268E-03, y: -1.27870689E-03, z:  5.17500229E-04, 
                     total:  1.86170743E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.553250211454E-02, fnrm2:  3.973488334616E-03}
- Raw forces norm (Ha/Bohr): {maxval:  3.564007144464E-02, fnrm2:  3.976978981527E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.553250211387E-02, fnrm2:  3.973488334472E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  3.564007144389E-02, fnrm2:  3.976978981381E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [-9.079078889337E-03,  9.139532421923E-03, -9.513767216554E-03]} # 0001
- -  {H: [ 1.714532608734E-02,  2.557847955423E-02,  1.772957651983E-02]} # 0002
- -  {H: [-2.501377616892E-02, -1.717555285364E-02,  1.716487313453E-02]} # 0003
- -  {H: [ 1.694752897092E-02, -1.754245912251E-02, -2.538068243780E-02]} # 0004
+ -  {Si: [-9.079078889428E-03,  9.139532421873E-03, -9.513767216544E-03]} # 0001
+ -  {H: [ 1.714532608711E-02,  2.557847955366E-02,  1.772957651953E-02]} # 0002
+ -  {H: [-2.501377616836E-02, -1.717555285333E-02,  1.716487313424E-02]} # 0003
+ -  {H: [ 1.694752897068E-02, -1.754245912220E-02, -2.538068243722E-02]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.09
-   Elapsed time (s)                    :  5.10
+   CPU time (s)                        :  7.42
+   Elapsed time (s)                    :  7.45
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
  - Do not call check_communications in the linear scaling version!
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-06-27 10:57:18.437
+     2013-09-03 10:39:01.256
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3215
-   Tot. No. of Deallocations           :  3215
+   Tot. No. of Allocations             :  3227
+   Tot. No. of Deallocations           :  3227
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  111

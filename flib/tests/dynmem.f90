@@ -9,7 +9,6 @@ subroutine test_dynamic_memory()
   integer,dimension(:,:,:),allocatable :: weight
   integer,dimension(:,:,:,:),allocatable :: orbital_id
 
-
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
@@ -25,6 +24,9 @@ subroutine test_dynamic_memory()
    call f_release_routine()
 
    call f_routine(id='Routine A')
+weight=f_malloc((/1.to.8,1.to.8,2.to.4/),id='weight')
+weight(1,1,2)=5
+call f_free(weight)
    call f_release_routine()
 
 !!$
