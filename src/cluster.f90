@@ -586,6 +586,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
        inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
   !new position due to new input guess
+  call plotOrbitals(iproc, KSwfn, KSwfn%psi, atoms%astruct%nat, rxyz, .125d0, .125d0, .125d0, 0, 'cubi')
 
   !call deallocate_wfd(wfd_old,subname)
   ! modified by SM

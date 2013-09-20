@@ -409,32 +409,32 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
                ratio_deltas,orthonormalization_on,input%lin%extra_states,itout)
 
-           ! WRITE SUPPORT FUNCTIONS TO DISK ############################################
-           npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
-           allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))                          
-           philarge=0.d0
-           ists=1                                                                                                          
-           istl=1
-           do iorb=1,tmb%orbs%norbp
-               ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)                                                           
-               sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                            
-               ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                      
-               nspin=1 !this must be modified later
-               call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &              
-                    tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))                                                       
-               write(num,'(i5.5)') tmb%orbs%isorb+iorb
-               filename='supfun_'//num
-               unitname=100*iproc+5
-               open(unit=unitname,file=trim(filename))
-               do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-                   write(unitname,'(es25.17)') philarge(istl+i-1)
-               end do
-               close(unit=unitname)
-               ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                       
-               istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
-           end do
-           deallocate(philarge)
-           ! ############################################################################
+           !!! WRITE SUPPORT FUNCTIONS TO DISK ############################################
+           !!npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
+           !!allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))                          
+           !!philarge=0.d0
+           !!ists=1                                                                                                          
+           !!istl=1
+           !!do iorb=1,tmb%orbs%norbp
+           !!    ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)                                                           
+           !!    sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                            
+           !!    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                      
+           !!    nspin=1 !this must be modified later
+           !!    call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &              
+           !!         tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))                                                       
+           !!    write(num,'(i5.5)') tmb%orbs%isorb+iorb
+           !!    filename='supfun_'//num
+           !!    unitname=100*iproc+5
+           !!    open(unit=unitname,file=trim(filename))
+           !!    do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+           !!        write(unitname,'(es25.17)') philarge(istl+i-1)
+           !!    end do
+           !!    close(unit=unitname)
+           !!    ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                       
+           !!    istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
+           !!end do
+           !!deallocate(philarge)
+           !!! ############################################################################
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
