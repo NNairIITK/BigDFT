@@ -702,15 +702,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!! END PLOT #######################################################################
 
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
               meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
               hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, hpsi_noprecond)
-      else
-         call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, &
-              fnrm, fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, &
-              energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small)
-      end if
+      !else
+      !   call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, &
+      !        fnrm, fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, &
+      !        energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small)
+      !end if
 
 
       !!! PLOT ###########################################################################
@@ -907,7 +907,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ediff=trH-trH_old
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (.not.energy_increased .and. .not.energy_increased_previous) then
               if (.not.ldiis%switchSD) then
                   ratio_deltas=ediff/delta_energy_prev
@@ -934,7 +934,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) write(*,*) 'reduce the confinement'
               reduce_conf=.true.
           end if
-      end if
+      !end if
 
       if (energy_increased) then
           energy_increased_previous=.true.
@@ -1002,7 +1002,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!if(it>=nit_basis .or. it_tot>=3*nit_basis .or. reduce_conf) then
       !!    if(it>=nit_basis .and. .not.energy_increased) then
       !if(it>=nit_basis .or. it_tot>=3*nit_basis) then
-      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or.  fnrm<2.3d-4) then
+      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or.  fnrm<5.0d-4 .or. (itout==0 .and. it>1 .and. ratio_deltas<0.1d0)) then
           if(it>=nit_basis) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
@@ -1028,8 +1028,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!        write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
           !!    end if
           !!    infoBasisFunctions=0
-          else if (fnrm<2.3d-4) then
+          !else if (fnrm<2.3d-4) then
+          else if (fnrm<5.0d-4) then
               if (iproc==0) write(*,* ) 'converged!'
+              infoBasisFunctions=0
+          else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0) then
+              if (iproc==0) write(*,*) 'extended input guess converged!'
               infoBasisFunctions=0
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
@@ -1044,13 +1048,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       trH_old=trH
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
               lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff)
-      else
-         call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on)
-      end if
+      !else
+      !   call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+      !        lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on)
+      !end if
 
 
       overlap_calculated=.false.
@@ -1067,7 +1071,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! Estimate the energy change, that is to be expected in the next optimization
       ! step, given by the product of the force and the "displacement" .
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, psidiff, hpsi_noprecond, delta_energy)
           ! This is a hack...
           if (energy_increased) then
@@ -1077,7 +1081,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
           delta_energy_arr(it)=delta_energy
-      end if
+      !end if
 
       ! Copy the coefficients to coeff_old. The coefficients will be modified in reconstruct_kernel.
       if (scf_mode/=LINEAR_FOE) then
@@ -1168,7 +1172,7 @@ contains
       allocate(hpsit_f_tmp(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          allocate(hpsi_noconf(tmb%ham_descr%npsidim_orbs), stat=istat)
          call memocc(istat, hpsi_noconf, 'hpsi_noconf', subname)
 
@@ -1177,7 +1181,7 @@ contains
 
          allocate(hpsi_noprecond(tmb%npsidim_orbs), stat=istat)
          call memocc(istat, hpsi_noprecond, 'hpsi_noprecond', subname)
-      end if
+      !end if
 
       if (scf_mode/=LINEAR_FOE) then
           allocate(coeff_old(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
@@ -1234,7 +1238,7 @@ contains
       deallocate(hpsit_f_tmp, stat=istat)
       call memocc(istat, iall, 'hpsit_f_tmp', subname)
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          iall=-product(shape(hpsi_noconf))*kind(hpsi_noconf)
          deallocate(hpsi_noconf, stat=istat)
          call memocc(istat, iall, 'hpsi_noconf', subname)
@@ -1246,7 +1250,7 @@ contains
          iall=-product(shape(hpsi_noprecond))*kind(hpsi_noprecond)
          deallocate(hpsi_noprecond, stat=istat)
          call memocc(istat, iall, 'hpsi_noprecond', subname)
-      end if
+      !end if
 
       if (scf_mode/=LINEAR_FOE) then
           iall=-product(shape(coeff_old))*kind(coeff_old)

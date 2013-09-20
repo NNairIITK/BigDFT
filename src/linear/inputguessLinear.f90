@@ -470,7 +470,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
      info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
      reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
-     30,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
+     50,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
      ratio_deltas,ortho_on,input%lin%extra_states,0)
  call deallocateDIIS(ldiis)
  ! END NEW ############################################################################
