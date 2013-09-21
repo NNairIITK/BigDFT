@@ -12,7 +12,7 @@
 subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, num_extra)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, fake_name => optimize_coeffs
   use diis_sd_optimization
   implicit none
 

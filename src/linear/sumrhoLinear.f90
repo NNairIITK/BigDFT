@@ -2069,7 +2069,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! Now calculate the charge density and store the result in rho_check
       rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho_check')
       !$omp parallel default (none) &
-      !$omp private (i3, i2, i1, iixyz, ind, tt, i, ii, tti, ikernel, jj, ttj) &
+      !$omp private (i3, i2, i1, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
       !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, rho_check) &
       !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary)
       do i3=ii3s,ii3e
