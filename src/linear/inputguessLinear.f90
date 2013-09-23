@@ -192,6 +192,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   hzh=.5_gp*hz
 
   ! Transform the atomic orbitals to the wavelet basis.
+  if (orbs_gauss%norb/=tmb%orbs%norb) stop 'orbs%gauss%norb does not match tmbs%orbs%norb'
   orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
   call wavefunction_dimension(tmb%lzd,orbs_gauss)
   call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))

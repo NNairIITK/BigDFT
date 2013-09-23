@@ -15,3 +15,7 @@
   integer(kind=8) :: ilsize,jlsize,iadd
   character(len=namelen) :: array_id,routine_id
   type(dictionary), pointer :: dict_add
+
+  if (f_err_raise(ictrl == 0,&
+       'ERROR (f_free): the routine f_malloc_initialize has not been called',&
+       ERR_MALLOC_INTERNAL)) return

@@ -29,7 +29,6 @@ module dictionaries
     type(dictionary), pointer :: child => null()
   end type dictionary_container
 
-
   !> Error codes
   integer, public :: DICT_KEY_ABSENT
   integer, public :: DICT_VALUE_ABSENT
@@ -107,14 +106,24 @@ module dictionaries
   !public variables of the callback module
   public :: f_err_set_callback,f_err_unset_callback,f_err_open_try,f_err_close_try
   public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
-  public :: f_loc
+  public :: f_loc,f_get_past_error,f_get_no_of_errors
 
+  !for internal f_lib usage
+  public :: dictionaries_errors
 
 contains
 
   !>define the errors of the dictionary module
-  subroutine dictionary_errors()
+  subroutine dictionaries_errors()
     implicit none
+
+    !initialize the dictionary with the generic case
+    call f_err_define('SUCCESS','Operation has succeeded',ERR_SUCCESS,err_action='No action')
+    call f_err_define('GENERIC_ERROR',errunspec,ERR_GENERIC,err_action=errundef)
+    call f_err_define('ERR_NOT_DEFINED','The error id or name is invalid',ERR_NOT_DEFINED,&
+         err_action='Control if the err id exists')
+    !initalize also error of dictionary part of the module
+
     call f_err_define('DICT_KEY_ABSENT',&
          'The dictionary has no key',DICT_KEY_ABSENT,&
          err_action='Internal error, contact developers')
@@ -131,24 +140,7 @@ contains
          'Conversion error of the dictionary value',DICT_CONVERSION_ERROR,&
          err_action='Check the nature of the conversion')
 
-  end subroutine dictionary_errors
-
-!!$  !> seems unused routine
-!!$  subroutine reset_next(next,dict)
-!!$    implicit none
-!!$    type(dictionary), target :: next
-!!$    type(dictionary) :: dict
-!!$    !local variables
-!!$    type(dictionary), pointer :: dict_all
-!!$    
-!!$    !do something only if needed
-!!$    if (.not. associated(dict%next,target=next)) then
-!!$       dict_all=>dict%next
-!!$       dict%next=>next
-!!$       deallocate(dict_all)
-!!$    end if
-!!$
-!!$  end subroutine reset_next
+  end subroutine dictionaries_errors
 
   subroutine pop_dict(dict,key)
     implicit none
@@ -192,19 +184,22 @@ contains
                   !the next should now become me
                   dict => dict%next
                end if
-               deallocate(dict_first)
+               !eliminate the top of the tree
+               call dict_destroy(dict_first)
             else
                call dict_free(dict)
             end if
          else if (associated(dict%next)) then
             call pop_dict_(dict%next,key)
          else
-            if (f_err_raise(err_msg='Key is '//trim(key),&
-                 err_id=DICT_KEY_ABSENT)) return
+            call f_err_throw(err_msg='Key is '//trim(key),&
+                 err_id=DICT_KEY_ABSENT)
+            return
          end if
       else
-         if (f_err_raise(err_msg='Key is '//trim(key),&
-              err_id=DICT_KEY_ABSENT)) return
+         call f_err_throw(err_msg='Key is '//trim(key),&
+              err_id=DICT_KEY_ABSENT)
+         return
       end if
 
     end subroutine pop_dict_
@@ -825,7 +820,7 @@ contains
   !> Read a real or real/real, real:real 
   !! Here the fraction is indicated by the ':' or '/'
   !! The problem is that / is a separator for Fortran
-  subroutine read_fraction_string(string,var,ierror)
+  pure subroutine read_fraction_string(string,var,ierror)
     implicit none
     !Arguments
     character(len=*), intent(in) :: string
@@ -838,7 +833,6 @@ contains
     !First look at the first blank after trim
     tmp(1:max_field_length)=trim(adjustl(string))
     psp = scan(tmp,' ')
-
     !see whether there is a fraction in the string
     if(psp==0) psp=len(tmp)
     pfr = scan(tmp(1:psp),':')
@@ -854,6 +848,7 @@ contains
     !Value by defaut
     if (ierror /= 0) var = huge(1.d0) 
   END SUBROUTINE read_fraction_string
+
 
   !set and get routines for different types
   subroutine get_real(rval,dict)

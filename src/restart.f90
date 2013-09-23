@@ -497,6 +497,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
 
 end subroutine verify_file_presence
 
+
 !> Associate to the absolute value of orbital a filename which depends of the k-point and 
 !! of the spin sign
 subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
@@ -695,6 +696,7 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
   end if
 END SUBROUTINE read_wave_to_isf
 
+
 subroutine free_wave_to_isf(psiscf)
   use module_base
   implicit none
@@ -706,6 +708,7 @@ subroutine free_wave_to_isf(psiscf)
   deallocate(psiscf,stat=i_stat)
   call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
 END SUBROUTINE free_wave_to_isf
+
 
 subroutine read_wave_descr(lstat, filename, ln, &
      & norbu, norbd, iorbs, ispins, nkpt, ikpts, nspinor, ispinor)
@@ -900,7 +903,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
 END SUBROUTINE writeLinearCoefficients
 
 
-!write Hamiltonian, overlap and kernel matrices in tmb basis
+!> Write Hamiltonian, overlap and kernel matrices in tmb basis
 subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   use module_types
   use module_base
@@ -1528,17 +1531,14 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
 END SUBROUTINE tmb_overlap_onsite_rotate
 
 
-
-
-
 !> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nksorb,at,rxyz,psi,coeff)
+subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff)
   use module_types
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
   implicit none
-  integer, intent(in) :: iproc,iformat,npsidim,nksorb
+  integer, intent(in) :: iproc,iformat,npsidim,nelec
   !integer, intent(in) :: norb   !< number of orbitals, not basis functions
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
@@ -1606,7 +1606,8 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nksorb,at
       else
          open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
       end if
-      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%astruct%nat,rxyz,orbs%norb,nksorb,coeff,orbs%eval)
+      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%astruct%nat,rxyz,orbs%norb,&
+           nelec,coeff,orbs%eval)
       close(99)
     end if
      call cpu_time(tr1)
@@ -1757,7 +1758,6 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   call memocc(i_stat,i_all,'gpsi',subname)
   ! END DEBUG 
 
-
 END SUBROUTINE readonewave_linear
 
 
@@ -1875,6 +1875,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old
     lstat = .true.
 
 END SUBROUTINE io_read_descr_linear
+
 
 subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
        & lstat, error, nat, rxyz_old)
@@ -2008,13 +2009,11 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
      end do
   end do
 
-
 END SUBROUTINE read_coeff_minbasis
 
 
-
-!> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
-!!  have changed
+!> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
+!! have changed
 subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
        ref_frags,input_frag,frag_calc,orblist)
   use module_base
@@ -2046,7 +2045,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   logical :: lstat
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
-  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, itmb, jtmb, jsforb
+  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
@@ -2057,12 +2056,10 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   logical :: skip
 !!$ integer :: ierr
 
-
   ! DEBUG
   character(len=12) :: orbname
   real(wp), dimension(:), allocatable :: gpsi
 
-open(16)
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
@@ -2196,7 +2193,7 @@ open(16)
   ! reformat fragments
   nullify(psi_old)
 
-!if several fragments do this, otherwise find 3 nearest neighbours (use sort in time.f90) and send rxyz arrays with 4 atoms
+  !if several fragments do this, otherwise find 3 nearest neighbours (use sort in time.f90) and send rxyz arrays with 4 atoms
 
   if (input_frag%nfrag>1) then
      ! Find fragment transformations for each fragment, then put in frag_trans array for each orb
@@ -2369,8 +2366,8 @@ open(16)
 
               call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,frag_trans_orb(iorbp))
 
-              !write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
-              !     ifrag,iiorb,frag_trans_orb(iorbp)%rot_axis,frag_trans_orb(iorbp)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+              write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
+                   ifrag,iiorb,frag_trans_orb(iorbp)%rot_axis,frag_trans_orb(iorbp)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
 
            end do
         end do
@@ -2400,7 +2397,7 @@ open(16)
      call memocc(i_stat,i_all,'rxyz4_new',subname)
 
   end if
-close(16)
+
 
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,psi_old,phi_array_old)
 
@@ -2469,57 +2466,21 @@ close(16)
         stop 'Coefficient format not implemented'
      end if
 
-     call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-          ref_frags(ifrag_ref)%nksorb,ref_frags(ifrag_ref)%coeff,&
-          tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
-          !tmb%orbs%eval(isforb+1)
-
+     !if (input_frag%nfrag>1) then
+        call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
+             !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
+             !tmb%orbs%eval(isforb+1)
+        ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
+     !else
+     !   call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+     !        ref_frags(ifrag_ref)%nelec,tmb%coeff,tmb%orbs%eval)
+     !end if
      close(unitwf)
 
      isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do
 
-  ! copy from coeff fragment to global coeffs - take occupied ones first, then unoccupied
-  ! (ideally reorder these by eval?)
-  isforb=0
-  jsforb=0
-  call to_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
-  do ifrag=1,input_frag%nfrag
-     ! find reference fragment this corresponds to
-     ifrag_ref=input_frag%frag_index(ifrag)
-
-     do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-        do jtmb=1,ref_frags(ifrag_ref)%nksorb
-           tmb%coeff(isforb+itmb,jsforb+jtmb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
-        end do
-     end do
-
-     isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-     jsforb=jsforb+ref_frags(ifrag_ref)%nksorb
-  end do
-
-  isforb=0
-  do ifrag=1,input_frag%nfrag
-     ! find reference fragment this corresponds to
-     ifrag_ref=input_frag%frag_index(ifrag)
-     do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-        do jtmb=ref_frags(ifrag_ref)%nksorb+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-           tmb%coeff(isforb+itmb,jsforb+jtmb-ref_frags(ifrag_ref)%nksorb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
-        end do
-     end do
-
-     isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-     jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-ref_frags(ifrag_ref)%nksorb
-  end do
-
-!!$open(10)
-!!$  do itmb=1,tmb%orbs%norb
-!!$     do jtmb=1,tmb%orbs%norb
-!!$        if (iproc==0) write(10,*) jtmb,itmb,tmb%coeff(jtmb,itmb)
-!!$     end do
-!!$  end do
-!!$close(10)
-!!$call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
@@ -2576,7 +2537,6 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
 
   ! to be fixed
   if (present(orblist)) then
-print*,'present(orblist)',present(orblist)
      stop 'orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation'
   end if
 
@@ -2687,10 +2647,12 @@ END SUBROUTINE initialize_linear_from_file
 
 
 !> Copy old support functions from phi to phi_old
-subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
+subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   use module_base
   use module_types
+  use yaml_output
   implicit none
+  integer,intent(in) :: iproc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: lzd
   type(local_zone_descriptors), intent(inout) :: lzd_old
@@ -2785,6 +2747,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   call memocc(i_stat,phi_old,'phi_old',subname)
 
   ! Now copy the suport functions
+  if (iproc==0) call yaml_map('Check the normalization of the support functions, tolerance',1.d-3,fmt='(1es12.4)')
   ind1=0
   do iorb=1,orbs%norbp
       tt=0.d0
@@ -2797,10 +2760,12 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
       end do
       tt=sqrt(tt)
       if (abs(tt-1.d0) > 1.d-3) then
-         write(*,*)'wrong phi_old',iiorb,tt
+         !write(*,*)'wrong phi_old',iiorb,tt
+         call yaml_warning('support function, value:'//trim(yaml_toa(iiorb,fmt='(i6)'))//trim(yaml_toa(tt,fmt='(1i6,1es18.9)')))
          !stop 
       end if
   end do
+!  if (iproc==0) call yaml_close_map()
 
   !!!deallocation
   !!i_all=-product(shape(phi))*kind(phi)
@@ -2867,7 +2832,7 @@ END SUBROUTINE copy_old_inwhichlocreg
 
 
 !> Reformat wavefunctions if the mesh have changed (in a restart)
-!NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
+!! NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
 subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
        frag_trans,psi_old,phi_array_old)
   use module_base
@@ -3033,7 +2998,7 @@ call timing(iproc,'Reformatting ','OF')
 END SUBROUTINE reformat_supportfunctions
 
 
-!checks whether reformatting is needed based on various criteria and returns final shift and centres needed for reformat
+!> Checks whether reformatting is needed based on various criteria and returns final shift and centres needed for reformat
 subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgrids,nvctr_c_old,nvctr_f_old,&
        nvctr_c,nvctr_f,n_old,n,ns_old,ns,frag_trans,centre_old_box,centre_new_box,da)  
   use module_base
@@ -3125,6 +3090,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
 
 end subroutine reformat_check
 
+
 subroutine print_reformat_summary(iproc,reformat_reason)
   use module_base
   use module_types
@@ -3149,6 +3115,7 @@ subroutine print_reformat_summary(iproc,reformat_reason)
   end if
 
 end subroutine print_reformat_summary
+
 
 subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,psi,psig)
   use module_base
@@ -3208,6 +3175,3 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   end do
 
 end subroutine psi_to_psig
-
-
-

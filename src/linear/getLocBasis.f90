@@ -9,11 +9,12 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,ldiis_coeff)
+    calculate_ham,ham_small,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use constrained_dft
   use diis_sd_optimization
   implicit none
 
@@ -25,7 +26,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
   integer,intent(out) :: infoCoeff
-  real(kind=8),intent(out) :: ebs
+  real(kind=8),intent(inout) :: ebs
   real(kind=8),intent(inout) :: fnrm
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd
   real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -34,18 +35,24 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
   logical,intent(in) :: calculate_ham
   type(sparseMatrix), intent(inout) :: ham_small ! for foe only
-  type(DIIS_obj),intent(inout),optional :: ldiis_coeff
+  type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
+  integer, intent(in), optional :: nitdmin ! for dmin only
+  real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
+  logical, intent(in), optional :: curvefit_dmin ! for dmin only
+  type(cdft_data),intent(inout),optional :: cdft
+
 
   ! Local variables 
   integer :: istat, iall, iorb, jorb, info, ind_ham, ind_denskern
-  integer :: isegsmall, iseglarge, iismall, iilarge, i, is,  ie,matrixindex_in_compressed
+  integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie, matrixindex_in_compressed
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(energy_terms) :: energs
 
   character(len=*),parameter :: subname='get_coeff'
-  real(kind=8) :: tmprtr
+  real(kind=gp) :: tmprtr
+  real(kind=gp),dimension(:,:),allocatable :: coeff_orig
 
 
   if(calculate_ham) then
@@ -113,9 +120,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       deallocate(confdatarrtmp)
 
       !DEBUG
-      !!if(iproc==0) then
-      !! print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
-      !!end if
+      !if(iproc==0) then
+      !  print *,'Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
+      !end if
       !END DEBUG
 
       iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
@@ -186,10 +193,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if(iproc==0) write(*,*) 'No Hamiltonian application required.'
   end if
 
-
-  ! CDFT: add V*w_ab to Hamiltonian here
-
-
+  ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
+  if (present(cdft)) then
+     call daxpy(tmb%linmat%ham%nvctr,cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)   
+  end if
 
   if (scf_mode/=LINEAR_FOE) then
       allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
@@ -199,21 +206,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
       call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   end if
-
-  ! DEBUG LR
-  !!if (iproc==0) then
-  !!   open(11)
-  !!   open(12)
-  !!   do iorb=1,tmb%orbs%norb
-  !!      do jorb=1,tmb%orbs%norb
-  !!          write(11+iproc,*) iorb,jorb,tmb%linmat%ham%matrix(jorb,iorb)
-  !!          write(12+iproc,*) iorb,jorb,tmb%linmat%ovrlp%matrix(jorb,iorb)
-  !!      end do
-  !!   end do
-  !!   close(11)
-  !!   close(12)
-  !!end if
-  ! END DEBUG LR
 
   ! Diagonalize the Hamiltonian.
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
@@ -261,45 +253,25 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       deallocate(matrixElements, stat=istat)
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-      call optimize_coeffs_sparse(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm)
+     if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
+     call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, curvefit_dmin)
+  end if
+
+  ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
+  if (present(cdft)) then
+     call daxpy(tmb%linmat%ham%nvctr,-cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)   
   end if
 
   if (scf_mode/=LINEAR_FOE) then
-
-      allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
-      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
-      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
-      iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
-      deallocate(tmb%linmat%denskern%matrix, stat=istat)
-      call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
-
       call timing(iproc,'getlocbasinit','ON') !lr408t
-      ! Calculate the band structure energy 
-      ebs=0.d0
-      do iorb=1,tmb%orbs%norb
-         do jorb=1,tmb%orbs%norb
-            ind_ham = matrixindex_in_compressed(tmb%linmat%ham,iorb,jorb)
-            ind_denskern = matrixindex_in_compressed(tmb%linmat%denskern,jorb,iorb)
-            if (ind_ham==0.or.ind_denskern==0) cycle
-            ebs = ebs + tmb%linmat%denskern%matrix_compr(ind_denskern)*tmb%linmat%ham%matrix_compr(ind_ham)
-         end do
-      end do
+      ! Calculate the band structure energy and update kernel
+      if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,ebs,tmb%coeff,orbs,tmb%orbs,.true.)
+      else if (present(cdft)) then
+         ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,ebs,tmb%coeff,orbs,tmb%orbs,.false.)
+      end if
       call timing(iproc,'getlocbasinit','OF') !lr408t
-
-      ! Calculate the KS eigenvalues - needed for Pulay - could take advantage of compression here as above?
-      !call to_zero(orbs%norb, orbs%eval(1))
-      !do iorb=1,orbs%norbp
-      !    iiorb=orbs%isorb+iorb
-      !    do jorb=1,tmb%orbs%norb
-      !        do korb=1,tmb%orbs%norb
-      !            orbs%eval(iiorb) = orbs%eval(iiorb) + &
-      !                               tmb%coeff(jorb,iiorb)*tmb%coeff(korb,iiorb)*tmb%linmat%ham%matrix(jorb,korb)
-      !        end do
-      !    end do
-      !end do
-      !call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
       iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
       deallocate(tmb%linmat%ham%matrix, stat=istat)
@@ -1278,6 +1250,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
   allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+
   call reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
        tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
 
@@ -1403,8 +1376,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, orbs, blocksize_dsyev, blocksize
 
   call timing(iproc,'renormCoefCom1','OF')
 
-  call overlapPowerMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, inversion_method, &
-       blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff, ovrlp_coeff2, orbs)
+  call overlapPowerPlusMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, inversion_method, &
+       blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp_coeff, ovrlp_coeff2, .false., orbs)
   call timing(iproc,'renormCoefCom2','ON')
 
   iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)

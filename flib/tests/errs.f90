@@ -22,7 +22,6 @@ subroutine test_error_handling()
 !!$  print *,'address',f_loc(abort1)
 !!$  print *,'address',f_loc(ival)
 
-  call f_err_initialize()
   
 !!$!  call f_err_set_callback(abort1)
   call f_err_severe_override(abort2)

@@ -116,6 +116,7 @@ contains
        end if
        call f_free(group_list)
     end if
+
     call f_release_routine()
   end subroutine mpi_environment_set
 

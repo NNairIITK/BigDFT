@@ -31,6 +31,8 @@ program BigDFT
    integer, dimension(4) :: mpi_info
    integer :: iconfig,nconfig,ngroups,igroup
 
+   call f_lib_initialize()
+
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
@@ -93,6 +95,8 @@ program BigDFT
    deallocate(arr_posinp,arr_radical)
 
    call bigdft_finalize(ierr)
+
+   call f_lib_finalize()
 
 END PROGRAM BigDFT
 

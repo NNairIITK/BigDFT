@@ -1,6 +1,6 @@
 !> @file
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
-!! yaml: Yet Another Markeup Language (ML for Human)
+!! yaml: Yet Another Markup Language -> Y Ain't a Markup Language (Human readable ML)
 !! @author
 !!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -71,7 +71,7 @@ module yaml_output
   logical :: module_initialized=.false.  !<tells if the module has been already referenced or not
   !error ids
   integer :: YAML_STREAM_ALREADY_PRESENT !< trying to create a stream already present
-  integer :: YAML_STREAM_NOT_FOUND       !< trying to seach for a absent unitt
+  integer :: YAML_STREAM_NOT_FOUND       !< trying to seach for a absent unit
   integer :: YAML_UNIT_INCONSISTENCY     !< internal error, unit inconsistency
   integer :: YAML_INVALID                !< invalid action, unit inconsistency
 
@@ -98,6 +98,8 @@ module yaml_output
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump
 
+  !for internal f_lib usage
+  public :: yaml_output_errors
 
 contains
 
@@ -134,20 +136,12 @@ contains
   !! should be called only once unless the module has been closed by close_all_streams
   subroutine assure_initialization()
     implicit none
-    if (.not. module_initialized) then
-       module_initialized=.true.
-       !initialize error messages
-       call f_err_define('YAML_INVALID','Generic error of yaml module, invalid operation',&
-            YAML_INVALID)
-       call f_err_define('YAML_STREAM_ALREADY_PRESENT','The stream is already present',&
-            YAML_STREAM_ALREADY_PRESENT)
-       call f_err_define('YAML_STREAM_NOT_FOUND','The stream has not been found',&
-            YAML_STREAM_NOT_FOUND)
-       call f_err_define('YAML_UNIT_INCONSISTENCY',&
-            'The array of the units is not in agreement with the array of the streams',&
-            YAML_UNIT_INCONSISTENCY,&
-            err_action='This is an internal error of yaml_output module, contact developers')
+    if (.not. module_initialized) module_initialized=associated(f_get_error_definitions)
 
+    if (.not. module_initialized) then
+       stop 'yaml_output module not initialized, f_lib_initialize not called'
+       !module_initialized=.true.
+       !call yaml_output_errors()
     end if
 
   end subroutine assure_initialization
@@ -162,6 +156,23 @@ contains
     call yaml_set_default_stream(new_unit, ierr)
   end subroutine yaml_swap_stream
 
+  subroutine yaml_output_errors()
+    implicit none
+    !initialize error messages
+    call f_err_define('YAML_INVALID','Generic error of yaml module, invalid operation',&
+         YAML_INVALID)
+    call f_err_define('YAML_STREAM_ALREADY_PRESENT','The stream is already present',&
+         YAML_STREAM_ALREADY_PRESENT)
+    call f_err_define('YAML_STREAM_NOT_FOUND','The stream has not been found',&
+         YAML_STREAM_NOT_FOUND)
+    call f_err_define('YAML_UNIT_INCONSISTENCY',&
+         'The array of the units is not in agreement with the array of the streams',&
+         YAML_UNIT_INCONSISTENCY,&
+         err_action='This is an internal error of yaml_output module, contact developers')
+    !the module is ready for usage
+    module_initialized=.true.
+  end subroutine yaml_output_errors
+  
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
   subroutine yaml_set_default_stream(unit,ierr)
@@ -488,6 +499,7 @@ contains
     stream_units=6
     active_streams=1 !stdout is always kept active
     default_stream=1
+    module_initialized=.false.
   end subroutine yaml_close_all_streams
 
 

@@ -184,6 +184,7 @@ end subroutine pkernel_free
 !! @ingroup PSolver
 subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   use yaml_output
+  use dynamic_memory
   implicit none
   logical, intent(in) :: wrtmsg
   type(coulomb_operator), intent(inout) :: kernel
@@ -234,10 +235,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
        allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
      endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
-
      !!! PSolver n1-n2 plane mpi partitioning !!!   
      call inplane_partitioning(kernel%mpi_env,md2,n2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
-
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
 !!$       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
 !!$       n3pr2=n3/2+1
@@ -360,10 +359,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      endif
 
      call memocc(i_stat,kernel%kernel,'kernel',subname)
-
      !!! PSolver n1-n2 plane mpi partitioning !!!   
      call inplane_partitioning(kernel%mpi_env,md2,n2/2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
- 
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
 !!$       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
 !!$       n3pr2=n3/2+1

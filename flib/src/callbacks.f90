@@ -28,13 +28,12 @@ module exception_callbacks
      module procedure err_set_callback_simple,err_set_callback_advanced
   end interface
 
-  !internal variables not meant to be exported outside
-  public :: callback_add,callback_data_add,severe_callback_add,err_abort
 
   public :: f_err_set_callback,f_err_unset_callback
   public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
   
-  ! public :: f_loc
+  !internal variables for f_lib usage
+  public :: callback_add,callback_data_add,severe_callback_add,err_abort
 
 contains
 

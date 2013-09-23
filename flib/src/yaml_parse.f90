@@ -16,7 +16,25 @@ module yaml_parse
   public :: yaml_parse_from_char_array
   public :: yaml_parse_from_string
 
+  !for internal f_lib usage
+  public :: yaml_parse_errors
+
 contains
+
+  subroutine yaml_parse_errors()
+    use dictionaries, only: f_err_define
+    implicit none
+
+    call f_err_define(err_name='YAML_PARSE_ERROR',&
+         err_msg='YAML parse error.',&
+         err_action='modify your inputs.',&
+         err_id=YAML_PARSE_ERROR)
+    call f_err_define(err_name='YAML_PARSE_UNSUPPORTED',&
+         err_msg='YAML standard not supported.',&
+         err_action='kindly ask developers to finish implementation.',&
+         err_id=YAML_PARSE_UNSUPPORTED)
+
+  end subroutine yaml_parse_errors
 
   subroutine yaml_parse_from_file(dict, fname)
     use dictionaries

@@ -448,7 +448,7 @@ BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inpu
   run->atoms = atoms;
   g_object_ref(G_OBJECT(run->atoms));
   run->restart = rst;
-  FC_FUNC_(run_objects_associate, RUN_OBJECTS_ASSOCIATE)(run->data, inputs->data, atoms->data, rst->data);
+  FC_FUNC_(run_objects_association, RUN_OBJECTS_ASSOCIATION)(run->data, inputs->data, atoms->data, rst->data);
 
   return run;
 }

@@ -15,6 +15,9 @@ program yaml_test
    use dynamic_memory
    implicit none
    !logical :: fl
+
+   call f_lib_initialize()
+
    !First document
   
    call yaml_new_document()
