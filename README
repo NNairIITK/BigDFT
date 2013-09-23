@@ -89,4 +89,9 @@ This documentation can be generated in the <tt>doc</tt> directory by <tt>make do
      the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 
+
+@defgroup RESERVED Reserved Names
+@brief Convention of naming for some variables
+@details
+Some names of arguments of routines are reserved.
 */

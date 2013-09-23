@@ -31,7 +31,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode  !< Indicates the boundary conditions (BC) of the problem:
+  character(len=1), intent(in) :: geocode  !< See @link geocode @endlink
+                                           !! Indicates the boundary conditions (BC) of the problem:
                                            !! 'F' free BC, isolated systems.
                                            !!     The program calculates the solution as if the given density is
                                            !!     "alone" in R^3 space.
@@ -546,7 +547,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   use dictionaries, only: f_err_raise
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode  !< Indicates the boundary conditions (BC) of the problem:
+  character(len=1), intent(in) :: geocode  !< @see geocode
+                                           !! Indicates the boundary conditions (BC) of the problem:
                                            !! 'F' free BC, isolated systems.
                                            !!     The program calculates the solution as if the given density is
                                            !!     "alone" in R^3 space.

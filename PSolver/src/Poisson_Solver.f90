@@ -55,57 +55,74 @@
 !!
 !! @ingroup PSolver
 module Poisson_Solver
-  use wrapper_linalg
-  use wrapper_MPI
-  ! TO BE REMOVED with f_malloc
-  use memory_profiling
-  !use m_profiling
-  ! TO BE REMOVED with f_malloc
-
-  implicit none
-
-  private
-
-  ! General precision, density and the potential types
-  integer, parameter, public :: gp=kind(1.0d0)  !< general-type precision
-  integer, parameter, public :: dp=kind(1.0d0)  !< density-type precision
-  integer, parameter, public :: wp=kind(1.0d0)  !< potential-type precision
-  ! Associated MPI precisions.
-  integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
-  integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
-  integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
-
-  include 'configure.inc'
-
-  !> Defines the fundamental structure for the kernel
-  type, public :: coulomb_operator
-     !variables with physical meaning
-     integer :: itype_scf !< order of the ISF family to be used
-     real(gp) :: mu !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
-     character(len=1) :: geocode !< Code for the boundary conditions
-     integer, dimension(3) :: ndims !< dimension of the box of the density
-     real(gp), dimension(3) :: hgrids !<grid spacings in each direction
-     real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
-     real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
-     real(dp) :: work1_GPU,work2_GPU,k_GPU
-     integer, dimension(5) :: plan
-     integer, dimension(3) :: geo
-     !variables with computational meaning
-     type(mpi_environment) :: mpi_env !< complete environment for the POisson Solver
-     type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
-     integer :: igpu !< control the usage of the GPU
-     integer :: initCufftPlan
-     integer :: keepGPUmemory
-  end type coulomb_operator
-
-  !calculate the allocation dimensions
-  public :: PS_dim4allocation, PS_getVersion
-  !routine that creates the kernel
-  public :: pkernel_init, pkernel_set, pkernel_free
-  !calculate the poisson solver
-  public :: H_potential 
-  !calculate the allocation dimensions
-  public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
+   use wrapper_linalg
+   use wrapper_MPI
+   ! TO BE REMOVED with f_malloc
+   use memory_profiling
+   !use m_profiling
+   ! TO BE REMOVED with f_malloc
+   
+   implicit none
+   
+   private
+   
+   ! General precision, density and the potential types
+   integer, parameter, public :: gp=kind(1.0d0)  !< general-type precision
+   integer, parameter, public :: dp=kind(1.0d0)  !< density-type precision
+   integer, parameter, public :: wp=kind(1.0d0)  !< potential-type precision
+   ! Associated MPI precisions.
+   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
+   integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
+   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
+   
+   include 'configure.inc'
+   
+   !> Defines the fundamental structure for the kernel
+   type, public :: coulomb_operator
+      !variables with physical meaning
+      integer :: itype_scf             !< order of the ISF family to be used
+      real(gp) :: mu                   !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
+       !> geocode Indicates the boundary conditions (BC) of the problem:
+       !!          - 'F' free BC, isolated systems.
+       !!                The program calculates the solution as if the given density is
+       !!                "alone" in R^3 space.
+       !!          - 'S' surface BC, isolated in y direction, periodic in xz plane                
+       !!                The given density is supposed to be periodic in the xz plane,
+       !!                so the dimensions in these direction mus be compatible with the FFT
+       !!                Beware of the fact that the isolated direction is y!
+       !!          - 'P' periodic BC.
+       !!                The density is supposed to be periodic in all the three directions,
+       !!                then all the dimensions must be compatible with the FFT.
+       !!                No need for setting up the kernel (in principle for Plane Waves)
+       !!          - 'W' Wires BC.
+       !!                The density is supposed to be periodic in z direction, 
+       !!                which has to be compatible with the FFT.
+       !!          - 'H' Helmholtz Equation Solver
+       !! @ingroup RESERVED
+      character(len=1) :: geocode
+      integer, dimension(3) :: ndims   !< dimension of the box of the density
+      real(gp), dimension(3) :: hgrids !<grid spacings in each direction
+      real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
+      real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
+      real(dp) :: work1_GPU,work2_GPU,k_GPU
+      integer, dimension(5) :: plan
+      integer, dimension(3) :: geo
+      !variables with computational meaning
+      type(mpi_environment) :: mpi_env !< complete environment for the POisson Solver
+      type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
+      integer :: igpu !< control the usage of the GPU
+      integer :: initCufftPlan
+      integer :: keepGPUmemory
+   end type coulomb_operator
+   
+   !calculate the allocation dimensions
+   public :: PS_dim4allocation, PS_getVersion
+   !routine that creates the kernel
+   public :: pkernel_init, pkernel_set, pkernel_free
+   !calculate the poisson solver
+   public :: H_potential 
+   !calculate the allocation dimensions
+   public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
 
 contains
 

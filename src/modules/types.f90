@@ -402,13 +402,13 @@ module module_types
   !! wavefunction localisation region
   type, public :: locreg_descriptors
      character(len=1) :: geocode
-     logical :: hybrid_on   !< interesting for global, periodic, localisation regions
-     integer :: ns1,ns2,ns3 !< starting point of the localisation region in global coordinates
-     integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
-     integer :: Localnorb              !< number of orbitals contained in locreg
-     integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
-     real(kind=8),dimension(3) :: locregCenter !< center of the locreg 
-     real(kind=8) :: locrad !< cutoff radius of the localization region
+     logical :: hybrid_on                       !< interesting for global, periodic, localisation regions
+     integer :: ns1,ns2,ns3                     !< starting point of the localisation region in global coordinates
+     integer :: nsi1,nsi2,nsi3                  !< starting point of locreg for interpolating grid
+     integer :: Localnorb                       !< number of orbitals contained in locreg
+     integer, dimension(3) :: outofzone         !< vector of points outside of the zone outside Glr for periodic systems
+     real(kind=8), dimension(3) :: locregCenter !< center of the locreg 
+     real(kind=8) :: locrad                     !< cutoff radius of the localization region
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
