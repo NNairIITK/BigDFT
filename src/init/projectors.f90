@@ -471,22 +471,10 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
   ityp=at%astruct%iatype(iat)
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-!!$  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-!!$
-!!$  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$  jseg_c=nlpspd%nseg_p(2*iat-2)+1
   !decide the loop bounds
   do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
      do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
-!!$           call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
-!!$                at%psppar(l,0,ityp),rxyz(1,iat),lr,&
-!!$                hx,hy,hz,kx,ky,kz,ncplx_k,&
-!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
-!!$                proj(istart_c),nwarnings)
            call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
                 at%psppar(l,0,ityp),rxyz(1),lr,&
                 hx,hy,hz,kx,ky,kz,ncplx_k,&
@@ -522,26 +510,6 @@ subroutine deallocate_proj_descr(nlpspd,subname)
   end if
   nullify(nlpspd%plr)
   nlpspd%natoms=0
-  
-!!$  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-!!$  deallocate(nlpspd%nboxp_c,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'nboxp_c',subname)
-!!$  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-!!$  deallocate(nlpspd%nboxp_f,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'nboxp_f',subname)
-!!$  i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
-!!$  deallocate(nlpspd%keyg_p,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'keyg_p',subname)
-!!$  i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
-!!$  deallocate(nlpspd%keyv_p,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'keyv_p',subname)
-!!$  i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
-!!$  deallocate(nlpspd%nvctr_p,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'nvctr_p',subname)
-!!$  i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
-!!$  deallocate(nlpspd%nseg_p,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'nseg_p',subname)
-
 END SUBROUTINE deallocate_proj_descr
 
 
@@ -664,10 +632,6 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
               !restore the norm of the projector
               !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))
            else
-!!!              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
-!!!                   'The norm of the nonlocal PSP for atom n=',iat,&
-!!!                   ' (',trim(atomname),&
-!!!                   ') labeled by l=',l,' m=',m,' is ',scpr
               nwarnings=nwarnings+1
            end if
         end if
