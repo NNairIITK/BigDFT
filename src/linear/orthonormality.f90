@@ -267,7 +267,8 @@ call timing(iproc,'misc','ON')
       !!end if
 
       ! This is the original
-      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, tmp_mat, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, &
+           tmp_mat, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
 
       !!! Test
       !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, tmp_mat, orbs%norb, linmat%ovrlp%matrix, orbs%norb, 0.d0, tmp_mat2, orbs%norb)

@@ -258,6 +258,94 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   deallocate(psigau,stat=istat)
   call memocc(istat,iall,'psigau',subname)
 
+  iall=-product(shape(orbs_gauss%onwhichatom))*kind(orbs_gauss%onwhichatom)
+  deallocate(orbs_gauss%onwhichatom,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%onwhichatom',subname)
+
+  iall=-product(shape(orbs_gauss%norb_par))*kind(orbs_gauss%norb_par)
+  deallocate(orbs_gauss%norb_par,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%norb_par',subname)
+
+  iall=-product(shape(orbs_gauss%kpts))*kind(orbs_gauss%kpts)
+  deallocate(orbs_gauss%kpts,stat=istat)
+  call memocc(istat,iall,'psigau',subname)
+
+  iall=-product(shape(orbs_gauss%spinsgn))*kind(orbs_gauss%spinsgn)
+  deallocate(orbs_gauss%spinsgn,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%spinsgn',subname)
+
+  iall=-product(shape(orbs_gauss%ikptproc))*kind(orbs_gauss%ikptproc)
+  deallocate(orbs_gauss%ikptproc,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%ikptproc',subname)
+
+  iall=-product(shape(orbs_gauss%kwgts))*kind(orbs_gauss%kwgts)
+  deallocate(orbs_gauss%kwgts,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%kwgts',subname)
+
+  iall=-product(shape(orbs_gauss%occup))*kind(orbs_gauss%occup)
+  deallocate(orbs_gauss%occup,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%occup',subname)
+
+  iall=-product(shape(orbs_gauss%inwhichlocreg))*kind(orbs_gauss%inwhichlocreg)
+  deallocate(orbs_gauss%inwhichlocreg,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%inwhichlocreg',subname)
+
+  iall=-product(shape(orbs_gauss%iokpt))*kind(orbs_gauss%iokpt)
+  deallocate(orbs_gauss%iokpt,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%iokpt',subname)
+
+  iall=-product(shape(orbs_gauss%ispot))*kind(orbs_gauss%ispot)
+  deallocate(orbs_gauss%ispot,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%ispot',subname)
+
+  iall=-product(shape(orbs_gauss%isorb_par))*kind(orbs_gauss%isorb_par)
+  deallocate(orbs_gauss%isorb_par,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%isorb_par',subname)
+
+  iall=-product(shape(orbs_gauss%onwhichmpi))*kind(orbs_gauss%onwhichmpi)
+  deallocate(orbs_gauss%onwhichmpi,stat=istat)
+  call memocc(istat,iall,'orbs_gauss%onwhichmpi',subname)
+
+  iall=-product(shape(G%ndoc))*kind(G%ndoc)
+  deallocate(G%ndoc,stat=istat)
+  call memocc(istat,iall,'G%ndoc',subname)
+
+  iall=-product(shape(G%nshell))*kind(G%nshell)
+  deallocate(G%nshell,stat=istat)
+  call memocc(istat,iall,'G%xp',subname)
+
+  iall=-product(shape(G%xp))*kind(G%xp)
+  deallocate(G%xp,stat=istat)
+  call memocc(istat,iall,'G%xp',subname)
+
+  iall=-product(shape(G%psiat))*kind(G%psiat)
+  deallocate(G%psiat,stat=istat)
+  call memocc(istat,iall,'G%psiat',subname)
+
+  iall=-product(shape(G%nam))*kind(G%nam)
+  deallocate(G%nam,stat=istat)
+  call memocc(istat,iall,'G%nam',subname)
+
+
+
+  !!call f_free(tmb%orbs%onwhichatom)
+  !!call f_free(tmb%orbs%norb_par)
+  !!call f_free(tmb%orbs%kpts)
+  !!call f_free(tmb%orbs%spinsgn)
+  !!call f_free(tmb%orbs%ikptproc)
+  !!call f_free(tmb%orbs%kwgts)
+  !!call f_free(tmb%orbs%occup)
+  !!call f_free(tmb%orbs%inwhichlocreg)
+  !!call f_free(tmb%orbs%iokpt)
+  !!call f_free(tmb%orbs%ispot)
+  !!call f_free(tmb%orbs%isorb_par)
+  !!call f_free(tmb%orbs%onwhichmpi)
+  !!call f_free(G%ndoc)
+  !!call f_free(G%nshell)
+  !!call f_free(G%xp)
+  !!call f_free(G%psiat)
+
+
 
 
   ! #######################################################################
