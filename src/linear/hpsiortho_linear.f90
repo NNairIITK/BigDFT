@@ -337,22 +337,24 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !call memocc(istat, lagmat%matrix_compr, 'lagmat%matrix_compr', subname)
 
   ! Calculate the overlap matrix, can be optimized ############################
-  !if(.not.tmb%can_use_transposed) then
-      if(.not.associated(tmb%psit_c)) then
-          allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-      end if
-      if(.not.associated(tmb%psit_f)) then
-          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-      end if
-  !end if
-  call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-       tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-  tmb%can_use_transposed=.true.
+  if (correction_orthoconstraint==0) then
+      !if(.not.tmb%can_use_transposed) then
+          if(.not.associated(tmb%psit_c)) then
+              allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+              call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+          end if
+          if(.not.associated(tmb%psit_f)) then
+              allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+              call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+          end if
+      !end if
+      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+      tmb%can_use_transposed=.true.
 
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-       tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+  end if
   ! ###########################################################################
 
 
@@ -542,18 +544,18 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
       fnrmArr(iorb)=ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
       ist=ist+ncount
-      if (mod(iiorb-1,9)+1<=4) then
-          fnrm_low=fnrm_low+fnrmArr(iorb)
-      else
-          fnrm_high=fnrm_high+fnrmArr(iorb)
-      end if
+      !!!if (mod(iiorb-1,9)+1<=4) then
+      !!!    fnrm_low=fnrm_low+fnrmArr(iorb)
+      !!!else
+      !!!    fnrm_high=fnrm_high+fnrmArr(iorb)
+      !!!end if
   end do
 
-  call mpiallred(fnrm_low, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(fnrm_high, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  fnrm_low=sqrt(fnrm_low/(4.d0/9.d0*dble(tmb%orbs%norb)))
-  fnrm_high=sqrt(fnrm_high/(5.d0/9.d0*dble(tmb%orbs%norb)))
-  if (iproc==0) write(*,'(a,2es16.6)') 'fnrm_low, fnrm_high', fnrm_low, fnrm_high
+  !!!call mpiallred(fnrm_low, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!!call mpiallred(fnrm_high, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!!fnrm_low=sqrt(fnrm_low/(4.d0/9.d0*dble(tmb%orbs%norb)))
+  !!!fnrm_high=sqrt(fnrm_high/(5.d0/9.d0*dble(tmb%orbs%norb)))
+  !!!if (iproc==0) write(*,'(a,2es16.6)') 'fnrm_low, fnrm_high', fnrm_low, fnrm_high
 
 
   ! Determine the gradient norm and its maximal component. In addition, adapt the
