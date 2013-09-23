@@ -48,6 +48,7 @@ program wvl
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
 
+  call f_lib_initialize()
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
@@ -289,5 +290,5 @@ program wvl
   !wait all processes before finalisation
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call MPI_FINALIZE(ierr)
-
+  call f_lib_finalize()
 end program wvl

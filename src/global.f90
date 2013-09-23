@@ -47,6 +47,7 @@ program MINHOP
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
 
+  call f_lib_initialize()
   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
   if (nconfig < 0) stop 'runs-file not supported for MH executable'
@@ -762,7 +763,7 @@ end do hopping_loop
 !!$  call mpi_environment_free(bigdft_mpi)
 !!$
 !!$  call MPI_FINALIZE(ierr)
-
+  call f_lib_finalize()
 
 contains
 
