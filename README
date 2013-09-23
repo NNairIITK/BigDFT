@@ -90,8 +90,8 @@ This documentation can be generated in the <tt>doc</tt> directory by <tt>make do
      Boston, MA 02111-1307, USA.
 
 
-@defgroup RESERVED Reserved Names
-@brief Convention of naming for some variables
+@defgroup RESERVED Reserved Names of some common arguments
+@brief Convention of naming for some common arguments
 @details
-Some names of arguments of routines are reserved.
+Some common names of arguments of routines are reserved.
 */

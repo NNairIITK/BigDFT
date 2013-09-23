@@ -547,7 +547,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   use dictionaries, only: f_err_raise
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode  !< @see geocode
+  character(len=1), intent(in) :: geocode  !< @see poisson_solver::coulomb_operator::geocode
                                            !! Indicates the boundary conditions (BC) of the problem:
                                            !! 'F' free BC, isolated systems.
                                            !!     The program calculates the solution as if the given density is
