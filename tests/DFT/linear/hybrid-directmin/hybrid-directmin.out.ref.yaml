@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-07-02 08:43:53.404
+ Timestamp of this run                 : 2013-09-24 16:44:46.263
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -46,7 +46,8 @@
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
-     -Wl,--end-group -openmp -lpthread -lm' '--without-yaml' '--enable-minima-hopping'"
+     -Wl,--end-group -openmp -lpthread -lm' '--with-scalapack' '--enable-minima-hopping' 
+     '--without-yaml'"
    Compilers (CC, FC, CXX)             :  [ gcc, /opt/openmpi-1.6.1/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
@@ -78,6 +79,7 @@
  #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
  #|store_index F                linear scaling: store indices or recalculate them            
  #|check_sumrho 1               linear sumrho: 0=no check, 1=light check, 2=full check       
+ #|experimental_mode F          linear scaling: activate the experimental mode               
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
@@ -150,7 +152,7 @@
  #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|3.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0  F           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|F F            fragment calculation; calculate transfer_integrals; constrained DFT calcula
+ #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|C  4 4.9d-2 4.9d-2 0.0d-2 4.5 4.5 10.d0 Atom name, number of basis functions per atom, pre
  #|O  4 4.9d-2 4.9d-2 0.0d-2 4.5 4.5 10.d0 Atom name, number of basis functions per atom, pre
  #|H  1 4.9d-2 4.9d-2 0.0d-2 4.5 4.5 10.d0 Atom name, number of basis functions per atom, pre
@@ -380,6 +382,13 @@
      -  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
      -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
      Wavelet conversion succeeded      :  Yes
+     Deviation from normalization      :  8.53E-03
+     Total No. of Atomic Input Orbitals:  46
+     Atomic Input Orbital Generation:
+     -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+     -  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
+     -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+     Wavelet conversion succeeded      :  Yes
      Deviation from normalization      :  2.14E-04
      Poisson Solver:
        BC                              : Free
@@ -588,44 +597,44 @@
    Calculate Non Local forces          :  Yes
    Average noise forces: {x:  6.11733963E-02, y:  6.89371679E-02, z:  7.34176090E-03, 
                       total:  9.24576605E-02}
-   Clean forces norm (Ha/Bohr): {maxval:  1.068971792328E-01, fnrm2:  3.672525290972E-02}
-   Raw forces norm (Ha/Bohr): {maxval:  1.347333893712E-01, fnrm2:  4.597218755377E-02}
+   Clean forces norm (Ha/Bohr): {maxval:  1.068971792326E-01, fnrm2:  3.672525290957E-02}
+   Raw forces norm (Ha/Bohr): {maxval:  1.347333893710E-01, fnrm2:  4.597218755356E-02}
     #------------------------------------------------------------------------- Atomic Forces
    Atomic Forces (Ha/Bohr):
-   -  {H: [-2.625906155704E-02, -2.343225918070E-02, -6.063808534910E-03]} # 0001
-   -  {H: [-4.591412899470E-03, -2.744363080527E-02,  8.631081878684E-03]} # 0002
-   -  {H: [-5.007643032228E-03, -3.395569154822E-02,  6.149292464308E-04]} # 0003
-   -  {C: [-1.071582924773E-02, -8.251837064479E-03, -2.959796586554E-03]} # 0004
-   -  {H: [-3.117866895366E-03, -1.546251835535E-02, -3.864806354204E-04]} # 0005
-   -  {O: [ 7.699161970276E-02,  1.321075469965E-02, -3.060927217584E-02]} # 0006
-   -  {H: [-2.272855054219E-02, -3.930242656971E-03, -1.104029863992E-03]} # 0007
-   -  {C: [-9.836040046462E-03, -1.677524834839E-02,  1.292671460353E-02]} # 0008
-   -  {O: [ 3.457968709744E-02,  5.484624738118E-02,  1.865325853571E-02]} # 0009
-   -  {C: [-1.019267162453E-02, -1.825176551225E-02, -8.111796234850E-03]} # 0010
-   -  {C: [-9.182039388550E-03, -2.261357089137E-02,  1.944020386750E-02]} # 0011
-   -  {C: [-1.854499951548E-02,  2.722494211454E-03,  6.322922738259E-03]} # 0012
-   -  {H: [-1.257804364532E-02, -8.044231595698E-03,  1.235918981153E-02]} # 0013
-   -  {H: [-1.014811770389E-02,  2.400822201759E-03,  5.881876089650E-04]} # 0014
-   -  {H: [-3.261111045908E-02,  1.723890877876E-03,  4.181288663727E-03]} # 0015
-   -  {O: [ 3.954511839116E-02,  4.336641254342E-02, -9.943044110102E-03]} # 0016
-   -  {H: [-3.584232588257E-03, -1.948617508736E-02, -2.735227862163E-02]} # 0017
-   -  {O: [ 5.149137493760E-02,  9.344439592228E-02,  6.617409288009E-03]} # 0018
-   -  {H: [-2.351018098336E-02, -1.406784679157E-02, -3.804679479038E-03]} # 0019
+   -  {H: [-2.625906155684E-02, -2.343225918058E-02, -6.063808534686E-03]} # 0001
+   -  {H: [-4.591412899695E-03, -2.744363080529E-02,  8.631081878698E-03]} # 0002
+   -  {H: [-5.007643032408E-03, -3.395569154789E-02,  6.149292464174E-04]} # 0003
+   -  {C: [-1.071582924752E-02, -8.251837064753E-03, -2.959796586899E-03]} # 0004
+   -  {H: [-3.117866895593E-03, -1.546251835516E-02, -3.864806355692E-04]} # 0005
+   -  {O: [ 7.699161970358E-02,  1.321075470021E-02, -3.060927217612E-02]} # 0006
+   -  {H: [-2.272855054196E-02, -3.930242656941E-03, -1.104029864043E-03]} # 0007
+   -  {C: [-9.836040046296E-03, -1.677524834805E-02,  1.292671460390E-02]} # 0008
+   -  {O: [ 3.457968709667E-02,  5.484624738016E-02,  1.865325853573E-02]} # 0009
+   -  {C: [-1.019267162472E-02, -1.825176551221E-02, -8.111796235108E-03]} # 0010
+   -  {C: [-9.182039389103E-03, -2.261357089179E-02,  1.944020386765E-02]} # 0011
+   -  {C: [-1.854499951482E-02,  2.722494211531E-03,  6.322922738011E-03]} # 0012
+   -  {H: [-1.257804364516E-02, -8.044231595495E-03,  1.235918981134E-02]} # 0013
+   -  {H: [-1.014811770370E-02,  2.400822201675E-03,  5.881876089605E-04]} # 0014
+   -  {H: [-3.261111045897E-02,  1.723890877907E-03,  4.181288663698E-03]} # 0015
+   -  {O: [ 3.954511839054E-02,  4.336641254346E-02, -9.943044110073E-03]} # 0016
+   -  {H: [-3.584232588158E-03, -1.948617508733E-02, -2.735227862172E-02]} # 0017
+   -  {O: [ 5.149137493757E-02,  9.344439592203E-02,  6.617409288833E-03]} # 0018
+   -  {H: [-2.351018098341E-02, -1.406784679149E-02, -3.804679479013E-03]} # 0019
     #--------------------------------------------------------------- Timing for root process
    Timings for root process:
-     CPU time (s)                      :  67.86
-     Elapsed time (s)                  :  34.92
+     CPU time (s)                      :  71.89
+     Elapsed time (s)                  :  36.66
     #------------------------------ Warnings obtained during the run, check their relevance!
    WARNINGS:
    - Do not call check_communications in the linear scaling version!
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-07-02 08:43:53.402
+     2013-09-24 16:44:46.261
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  80209
-   Tot. No. of Deallocations           :  80209
+   Tot. No. of Allocations             :  80395
+   Tot. No. of Deallocations           :  80395
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  270

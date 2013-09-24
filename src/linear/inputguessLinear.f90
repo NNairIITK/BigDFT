@@ -389,7 +389,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   ! Create the potential. First calculate the charge density.
   do iorb=1,tmb%orbs%norb
-      if (iproc==0) write(*,*) 'WARNING: use mapping for occupation numbers!'
+      if (iproc==0 .and. iorb==1) write(*,*) 'WARNING: use mapping for occupation numbers!'
       !tmb%orbs%occup(iorb)=orbs_gauss%occup(iorb)
       tmb%orbs%occup(iorb)=orbs_gauss%occup(inversemapping(iorb))
   end do
