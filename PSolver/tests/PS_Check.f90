@@ -39,6 +39,8 @@ program PS_Check
    type(mpi_environment) :: bigdft_mpi
    character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
 
+   call f_lib_initialize() 
+
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
@@ -316,13 +318,14 @@ program PS_Check
    !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
    
    call f_release_routine()
-   call f_lib_finalize()
    if (iproc==0) then
       call yaml_release_document()
       call yaml_close_all_streams()
    end if
 
    call MPI_FINALIZE(ierr)
+
+   call f_lib_finalize()
 
    !END PROGRAM PS_Check
 

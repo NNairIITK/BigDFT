@@ -18,6 +18,9 @@ program yaml_test
    real(kind=8), dimension(:), pointer :: extra_ref
 
    integer(kind=8), dimension(2) :: testarr
+
+   call f_lib_initialize()
+
    !First document
   
    call yaml_new_document()
@@ -67,6 +70,10 @@ program yaml_test
 
    call yaml_new_document()
     call test_dynamic_memory()
+   call yaml_release_document()
+
+   call yaml_new_document()
+    call test_copy_merge()
    call yaml_release_document()
 
    !prepare the finalization of the library

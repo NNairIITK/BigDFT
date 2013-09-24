@@ -33,9 +33,9 @@
 
      !search in the dictionaries the address
      !a error event should be raised in this case
-     dict_add=>find_key(dict_routine,trim(address))
+     dict_add=>find_key(mems(ictrl)%dict_routine,trim(address))
      if (.not. associated(dict_add)) then
-        dict_add=>find_key(dict_global,trim(address))
+        dict_add=>find_key(mems(ictrl)%dict_global,trim(address))
         if (f_err_raise(.not. associated(dict_add),'address'//trim(address)//&
              'not present in dictionary',ERR_INVALID_MALLOC)) then
            return
@@ -57,9 +57,9 @@
 
      if (use_global) then
         !call yaml_dict_dump(dict_global)
-        call pop(dict_global,trim(address))
+        call pop(mems(ictrl)%dict_global,trim(address))
      else
-        call pop(dict_routine,trim(address))
+        call pop(mems(ictrl)%dict_routine,trim(address))
      end if
 !  end if
 

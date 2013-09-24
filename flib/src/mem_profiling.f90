@@ -245,15 +245,7 @@ contains
           call yaml_map('in the routine',trim(memtot%routine))
           call yaml_close_map()
           call yaml_close_map()
-          !write it in Yaml Format without yaml module
-!!$            write(stdout,'(1x,a)')'Memory Consumption Report:'
-!!$            write(stdout,'(1x,a,i0)')'  Tot. No. of Allocations  : ',memalloc
-!!$            write(stdout,'(1x,a,i0)')'  Tot. No. of Deallocations: ',memdealloc
-!!$            write(stdout,'(1x,a,i0)')'  Remaining Memory (B)     : ',memtot%memory
-!!$            write(stdout,'(1x,a)')   '  Memory occupation: '
-!!$            write(stdout,'(1x,a,i0)')'     Peak Value (MB): ',memtot%peak/int(1048576,kind=8)
-!!$            write(stdout,'(1x,a)')   '     for the array: '//trim(memtot%array)       
-!!$            write(stdout,'(1x,a)')   '     in the routine: '//trim(memtot%routine)       
+
           !here we can add a routine which open the malloc.prc file in case of some 
           !memory allocation problem, and which eliminates it for a successful run
           if (malloc_level == 1 .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
@@ -273,26 +265,12 @@ contains
        !control of the allocation/deallocation status (to be removed once f_malloc has been inserted)
        if (istat/=0) then
           if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
-          write(message,'(1x,a)')'subroutine '//trim(routine),', array '//trim(array)//&
+          write(message,'(1x,a)')'subroutine '//trim(routine)//', array '//trim(array)//&
                ', error code '//trim(yaml_toa(istat))
           if (f_err_raise(isize>=0,trim(message),err_name='ERR_ALLOCATE')) return
           if (f_err_raise(isize< 0,trim(message),err_name='ERR_DEALLOCATE')) return
        end if
-!!$       if (istat/=0) then
-!!$          if (isize>=0) then
-!!$             !here the error handling module should be used
-!!$             
-!!$             write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
-!!$                  ', error code=',istat,' exiting...'
-!!$
-!!$             call MPI_ABORT(MPI_COMM_WORLD,ierr)
-!!$          else if (isize<0) then
-!!$             write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
-!!$                  ', error code=',istat,' exiting...'
-!!$             if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
-!!$             call MPI_ABORT(MPI_COMM_WORLD,ierr)
-!!$          end if
-!!$       end if
+
        !total counter, for all the processes
        memtot%memory=memtot%memory+int(isize,kind=8)
        if (memtot%memory > memtot%peak) then
@@ -310,8 +288,7 @@ contains
             memtot%memory > int(real(memorylimit,kind=8)*1073741824.d0,kind=8)) then !memory limit is in GB
           write(message,'(1x,a,f7.3,2(a,i0),a)')&
                'Limit of ',memorylimit,' GB reached, memproc ',memproc,' total memory is ',memtot%memory,' B. '
-!!$          write(*,'(1x,a)') 'Array '//trim(memtot%array)//', routine '//trim(memtot%routine)
-!!$          call MPI_ABORT(MPI_COMM_WORLD,ierr)
+
           if (f_err_raise(.true.,trim(message)//' Array '//trim(memtot%array)//&
                ', routine '//trim(memtot%routine),err_name='ERR_MEMLIMIT')) return
        end if

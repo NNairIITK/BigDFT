@@ -3339,9 +3339,8 @@ subroutine wpdot(  &
 !$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f)&
 !$omp shared (apsi_f,scpr) &
 !!$omp parallel default(shared) &
-!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
 !$omp private(i,jaj,iaoff,length,ja1,ja0,jb1,jb0,iboff) &
-!$omp private(jbj,ibseg)
+!$omp private(jbj,ibseg,iaseg0)
 
   scpr=0.0_dp
   scpr0=0.0_dp

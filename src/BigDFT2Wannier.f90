@@ -36,7 +36,7 @@ program BigDFT2Wannier
    real(kind=8) ::tel
    real(kind=8) :: znorm,xnorm,ortho,ddot
    real(kind=8),parameter :: eps6=1.0d-6, eps8=1.0d-8
-   real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
+   real(gp), dimension(:,:), pointer :: rxyz_old
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
    real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:),sph_har_etsf(:),psir(:),psir_re(:),psir_im(:),sph_daub(:)
@@ -69,6 +69,7 @@ program BigDFT2Wannier
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
    integer, dimension(4) :: mpi_info
 
+   call f_lib_initialize()
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
@@ -91,7 +92,7 @@ program BigDFT2Wannier
    if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
 
   call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
-       rxyz,input,atoms)
+       input,atoms)
 
 
    if (input%verbosity > 2) then
@@ -161,12 +162,12 @@ program BigDFT2Wannier
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(iproc,atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
       &   Glr,shift)
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-      &   atoms,rxyz,radii_cf,input%crmult,input%frmult,Glr)
+      &   atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
 
    ! don't need radii_cf anymore
    i_all = -product(shape(radii_cf))*kind(radii_cf)
@@ -276,8 +277,9 @@ program BigDFT2Wannier
          call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
 
          filename= trim(input%dir_output) // 'virtuals'
-         call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
-         Glr%wfd,psi_etsfv)
+         call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3, &
+              & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
+              Glr%wfd,psi_etsfv)
          i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
          deallocate(orbsv%eval,stat=i_stat)
          nullify(orbsv%eval)
@@ -355,7 +357,7 @@ program BigDFT2Wannier
             call dscal(nz*ny*nx,1.0_dp/sqrt(xnorm),sph_har_etsf(1),1)
             if(w_sph .or. w_ang .or. w_rad) then
                call write_functions(w_sph, w_ang, w_rad, 'sph_har', 'func_r', 'ylm', np, Glr, &
-               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, rxyz, sph_har_etsf, func_r, ylm)
+               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, atoms%astruct%rxyz, sph_har_etsf, func_r, ylm)
             end if
             call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
             pshft=pshft + Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f 
@@ -534,7 +536,7 @@ program BigDFT2Wannier
       if(orbs%norbp > 0) then
             filename=trim(input%dir_output) // 'wavefunction'
             call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-            input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,Glr%wfd,psi_etsf(1,1))
+            input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,Glr%wfd,psi_etsf(1,1))
       end if
       ! For bin files, the eigenvalues are distributed, so reduce them
       if((filetype == 'bin' .or. filetype == 'BIN') .and. nproc > 0) then
@@ -575,7 +577,7 @@ program BigDFT2Wannier
       if(orbsv%norbp > 0 .and. .not. residentity) then
          filename=trim(input%dir_output) // 'virtuals'
             call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-            input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz, Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
+            input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz, Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
       end if
       ! For bin files, the eigenvalues are distributed, so reduce them
       if(residentity)then
@@ -662,7 +664,7 @@ program BigDFT2Wannier
             call dscal(nz*ny*nx,1.0_dp/sqrt(xnorm),sph_har_etsf(1),1)
             if(w_sph .or. w_ang .or. w_rad) then
                call write_functions(w_sph, w_ang, w_rad, 'sph_har', 'func_r', 'ylm', np, Glr, &
-               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, rxyz, sph_har_etsf, func_r, ylm)
+               &    0.5_dp*input%hx, 0.5_dp*input%hy, 0.5_dp*input%hz, atoms, atoms%astruct%rxyz, sph_har_etsf, func_r, ylm)
             end if
             !print *,'before isf_to_daub',sqrt(ddot(nz*ny*nx,sph_har_etsf(1),1,sph_har_etsf(1),1))
             call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
@@ -792,7 +794,7 @@ program BigDFT2Wannier
             allocate(orbsv%eval(orbsv%norb))
             orbsv%eval = 99.0_dp
             call writemywaves(iproc,trim(input%dir_output) // "virtuals",iformat,orbsv,Glr%d%n1,Glr%d%n2,&
-              Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz,Glr%wfd,psi_etsf(1,1+orbs%norbp))
+              Glr%d%n3,input%hx,input%hy,input%hz,atoms,atoms%astruct%rxyz,Glr%wfd,psi_etsf(1,1+orbs%norbp))
             deallocate(orbsv%eval)
          end if
          
@@ -990,7 +992,7 @@ program BigDFT2Wannier
          s=1 ! s is the spin, set by default to 1
          if (w_unk) then 
             if (iproc==0) call write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms, &
-               &   rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
+               &   atoms%astruct%rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
          end if
       end do
    
@@ -1017,7 +1019,7 @@ call bigdft_finalize(ierr)
 !!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 !!$
 !!$call MPI_FINALIZE(ierr)
-
+call f_lib_finalize()
 contains
 
 subroutine allocate_initial()
@@ -1154,9 +1156,6 @@ subroutine final_deallocations()
   i_all = -product(shape(psi_daub_im))*kind(psi_daub_im)
   deallocate(psi_daub_im,stat=i_stat)
   call memocc(i_stat,i_all,'psi_daub_im',subname)
-  i_all = -product(shape(rxyz))*kind(rxyz)
-  deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz',subname)
   i_all = -product(shape(virt_list))*kind(virt_list)
   deallocate(virt_list,stat=i_stat)
   call memocc(i_stat,i_all,'virt_list',subname)

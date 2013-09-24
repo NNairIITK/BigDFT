@@ -1,10 +1,5 @@
 #include <config.h>
 
-#ifdef HAVE_GLIB
-#include <glib-object.h>
-#include <gio/gio.h>
-#endif
-
 #include "bigdft.h"
 #include "bindings.h"
 #include "bindings_api.h"
@@ -13,7 +8,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static void bigdft_atoms_dispose(GObject *atoms);
 static void bigdft_atoms_finalize(GObject *atoms);
 
 /**
@@ -34,6 +28,7 @@ static void bigdft_atoms_finalize(GObject *atoms);
 #ifdef HAVE_GLIB
 G_DEFINE_TYPE(BigDFT_Atoms, bigdft_atoms, G_TYPE_OBJECT)
 
+static void bigdft_atoms_dispose(GObject *atoms);
 static void bigdft_atoms_class_init(BigDFT_AtomsClass *klass)
 {
   /* Connect the overloading methods. */
@@ -48,7 +43,6 @@ static void bigdft_atoms_free_additional(BigDFT_Atoms *atoms)
 {
   guint i;
 
-  FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(&atoms->rxyz);
   if (atoms->atomnames)
     {
       for (i = 0; i < atoms->ntypes; i++)
@@ -63,12 +57,12 @@ static void bigdft_atoms_init(BigDFT_Atoms *obj)
   memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Atoms) - sizeof(GObject));
 #else
   memset(obj, 0, sizeof(BigDFT_Atoms));
+  G_OBJECT(obj)->ref_count = 1;
 #endif
-  F90_2D_POINTER_INIT(&obj->rxyz);
 }
+#ifdef HAVE_GLIB
 static void bigdft_atoms_dispose(GObject *obj)
 {
-#ifdef HAVE_GLIB
   BigDFT_Atoms *atoms = BIGDFT_ATOMS(obj);
 
   if (atoms->dispose_has_run)
@@ -77,8 +71,8 @@ static void bigdft_atoms_dispose(GObject *obj)
 
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_atoms_parent_class)->dispose(obj);
-#endif
 }
+#endif
 static void bigdft_atoms_finalize(GObject *obj)
 {
   BigDFT_Atoms *atoms = BIGDFT_ATOMS(obj);
@@ -91,7 +85,7 @@ static void bigdft_atoms_finalize(GObject *obj)
   G_OBJECT_CLASS(bigdft_atoms_parent_class)->finalize(obj);
 #endif
 }
-static void bigdft_atoms_get_nat_arrays(BigDFT_Atoms *atoms)
+void bigdft_atoms_get_nat_arrays(BigDFT_Atoms *atoms)
 {
   GET_ATTR_UINT  (atoms, ATOMS, iatype,   IATYPE);
   GET_ATTR_UINT  (atoms, ATOMS, iasctype, IASCTYPE);
@@ -99,8 +93,9 @@ static void bigdft_atoms_get_nat_arrays(BigDFT_Atoms *atoms)
   GET_ATTR_INT   (atoms, ATOMS, ifrztyp,  IFRZTYP);
   GET_ATTR_DBL   (atoms, ATOMS, amu,      AMU);
   GET_ATTR_DBL_2D(atoms, ATOMS, aocc,     AOCC);
+  GET_ATTR_DBL_2D(atoms, ATOMS, rxyz,     RXYZ);
 }
-static void bigdft_atoms_get_ntypes_arrays(BigDFT_Atoms *atoms)
+void bigdft_atoms_get_ntypes_arrays(BigDFT_Atoms *atoms)
 {
   GET_ATTR_UINT  (atoms, ATOMS, nelpsp,     NELPSP);
   GET_ATTR_UINT  (atoms, ATOMS, npspcode,   NPSPCODE);
@@ -124,17 +119,38 @@ BigDFT_Atoms* bigdft_atoms_new()
   atoms = g_malloc(sizeof(BigDFT_Atoms));
   bigdft_atoms_init(atoms);
 #endif
-  FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data, &atoms->sym);
+  FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data);
+  FC_FUNC_(atoms_get, ATOMS_GET)(atoms->data, &atoms->astruct, &atoms->sym);
+  bigdft_atoms_copy_from_fortran(atoms);
 
   return atoms;
 }
-void bigdft_atoms_free(BigDFT_Atoms *atoms)
+BigDFT_Atoms* bigdft_atoms_new_from_fortran(_atoms_data *at)
 {
+  BigDFT_Atoms *atoms;
+
 #ifdef HAVE_GLIB
-  g_object_unref(G_OBJECT(atoms));
+  atoms = BIGDFT_ATOMS(g_object_new(BIGDFT_ATOMS_TYPE, NULL));
 #else
-  bigdft_atoms_finalize(atoms);
-  g_free(atoms);
+  atoms = g_malloc(sizeof(BigDFT_Atoms));
+  bigdft_atoms_init(atoms);
+#endif
+  atoms->data = at;
+  FC_FUNC_(atoms_get, ATOMS_get)(atoms->data, &atoms->astruct, &atoms->sym);
+  bigdft_atoms_copy_from_fortran(atoms);
+
+  return atoms;
+}
+void bigdft_atoms_unref(BigDFT_Atoms *atoms)
+{
+  g_object_unref(G_OBJECT(atoms));
+#ifdef HAVE_GLIB
+#else
+  if (G_OBJECT(atoms)->ref_count <= 0)
+    {
+      bigdft_atoms_finalize(G_OBJECT(atoms));
+      g_free(atoms);
+    }
 #endif
 }
 BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
@@ -147,35 +163,67 @@ BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
   atoms = g_malloc(sizeof(BigDFT_Atoms));
   bigdft_atoms_init(atoms);
 #endif
-  FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data, &atoms->sym);
+  FC_FUNC_(atoms_new, ATOMS_NEW)(&atoms->data);
+  FC_FUNC_(atoms_get, ATOMS_GET)(atoms->data, &atoms->astruct, &atoms->sym);
   
   if (!bigdft_atoms_set_structure_from_file(atoms, filename))
     {
-      bigdft_atoms_free(atoms);
+      bigdft_atoms_unref(atoms);
       atoms = (BigDFT_Atoms*)0;
     }
 
   return atoms;
 }
+
 void bigdft_atoms_set_n_atoms(BigDFT_Atoms *atoms, guint nat)
 {
-  FC_FUNC_(atoms_set_n_atoms, ATOMS_SET_N_ATOMS)(atoms->data, &atoms->rxyz,
-                                                 (int*)(&nat));
+  const gchar subname[] = "bigdft_atoms_set_n_atoms";
+
+  FC_FUNC_(astruct_set_n_atoms, ASTRUCT_SET_N_ATOMS)(atoms->astruct, (int*)(&nat),
+                                                     subname, strlen(subname));
   atoms->nat = nat;
   bigdft_atoms_get_nat_arrays(atoms);
 }
-void bigdft_atoms_set_n_types(BigDFT_Atoms *atoms, guint ntypes)
+static void _sync_atomnames(BigDFT_Atoms *atoms)
 {
-  FC_FUNC_(atoms_set_n_types, ATOMS_SET_N_TYPES)(atoms->data, (int*)(&ntypes));
+  gchar name[20];
+  guint i, j;
+
+  for (i = 0; i < atoms->ntypes; i++)
+    {
+      j = i + 1;
+      memset(name, ' ', 20);
+      if (atoms->atomnames[i])
+        memcpy(name, atoms->atomnames[i], strlen(atoms->atomnames[i]));
+      FC_FUNC_(atoms_set_name, ATOMS_SET_NAME)(atoms->data, (int*)(&j), name, 20);
+    }
+}
+/**
+ * bigdft_atoms_set_types:
+ * @atoms: 
+ * @names: (array zero-terminated=1):
+ *
+ * Pouet.
+ **/
+void bigdft_atoms_set_types(BigDFT_Atoms *atoms, const gchar **names)
+{
+  guint i, ntypes;
+  const gchar subname[] = "bigdft_atoms_set_types";
+
+  for (ntypes = 0; names[ntypes]; ntypes++);
+  FC_FUNC_(astruct_set_n_types, ASTRUCT_SET_N_TYPES)(atoms->astruct, (int*)(&ntypes),
+                                                     subname, strlen(subname));
   atoms->ntypes = ntypes;
   bigdft_atoms_get_ntypes_arrays(atoms);
   atoms->atomnames = g_malloc(sizeof(gchar*) * (ntypes + 1));
-  memset(atoms->atomnames, 0, sizeof(gchar*) * (ntypes + 1));
+  for (i = 0; i < ntypes; i++)
+    atoms->atomnames[i] = g_strdup(names[i]);
+  atoms->atomnames[ntypes] = (gchar*)0;
+  _sync_atomnames(atoms);
 }
-void bigdft_atoms_sync(BigDFT_Atoms *atoms)
+static void _sync_geometry(BigDFT_Atoms *atoms)
 {
   gchar format[5], units[20];
-  guint i, j;
 
   memset(format, ' ', 5);
   if (atoms->format)
@@ -183,37 +231,64 @@ void bigdft_atoms_sync(BigDFT_Atoms *atoms)
   memset(units, ' ', 20);
   if (atoms->units)
     memcpy(units, atoms->units, strlen(atoms->units));
-  FC_FUNC_(atoms_sync, ATOMS_SYNC)(atoms->data, atoms->alat, atoms->alat + 1, atoms->alat + 2,
-                                   &atoms->geocode, format, units, 1, 5, 20);
-  for (i = 0; i < atoms->ntypes; i++)
-    {
-      j = i + 1;
-      memset(units, ' ', 20);
-      if (atoms->atomnames[i])
-        memcpy(units, atoms->atomnames[i], strlen(atoms->atomnames[i]));
-      FC_FUNC_(atoms_set_name, ATOMS_SET_NAME)(atoms->data, (int*)(&j), units, 20);
-    }
+  FC_FUNC_(astruct_set_geometry, ASTRUCT_SET_GEOMETRY)(atoms->astruct, atoms->alat,
+                                                       &atoms->geocode, format, units, 1, 5, 20);
+}
+/**
+ * bigdft_atoms_set_geometry:
+ * @atoms: 
+ * @geocode: 
+ * @alat: (array fixed-size=3):
+ * @units: 
+ *
+ * 
+ **/
+void bigdft_atoms_set_geometry(BigDFT_Atoms *atoms, gchar geocode, double alat[3], const gchar *units)
+{
+  atoms->geocode = geocode;
+  atoms->alat[0] = alat[0];
+  atoms->alat[1] = alat[1];
+  atoms->alat[2] = alat[2];
+  strncpy(atoms->units, units, 20);
+  _sync_geometry(atoms);
+}
+void bigdft_atoms_set_default_file_format(BigDFT_Atoms *atoms, const gchar *format)
+{
+  strncpy(atoms->format, format, 6);
+  _sync_geometry(atoms);
 }
 void bigdft_atoms_copy_from_fortran(BigDFT_Atoms *atoms)
 {
   guint ln, i, j;
   gchar str[20];
+  int nat, ntypes;
 
-  FC_FUNC_(atoms_copy_geometry_data, ATOMS_COPY_GEOMETRY_DATA)
-    (atoms->data, &atoms->geocode, atoms->format, atoms->units, 1, 5, 20);
-  FC_FUNC_(atoms_copy_alat, ATOMS_COPY_ALAT)(atoms->data, atoms->alat,
-                                             atoms->alat + 1, atoms->alat + 2);
-  FC_FUNC_(atoms_copy_nat, ATOMS_COPY_NAT)(atoms->data, (int*)(&atoms->nat));
-  bigdft_atoms_get_nat_arrays(atoms);
-  FC_FUNC_(atoms_copy_ntypes, ATOMS_COPY_NTYPES)(atoms->data,
-                                                 (int*)(&atoms->ntypes));
-  bigdft_atoms_get_ntypes_arrays(atoms);
+  FC_FUNC_(astruct_copy_geometry_data, ASTRUCT_COPY_GEOMETRY_DATA)
+    (atoms->astruct, &atoms->geocode, atoms->format, atoms->units, 1, 5, 20);
+  FC_FUNC_(astruct_copy_alat, ASTRUCT_COPY_ALAT)(atoms->astruct, atoms->alat);
+  FC_FUNC_(astruct_copy_nat, ASTRUCT_COPY_NAT)(atoms->astruct, &nat);
+  if (nat > 0)
+    {
+      atoms->nat = (guint)nat;
+      bigdft_atoms_get_nat_arrays(atoms);
+    }
+  else
+    atoms->nat = 0;
+  FC_FUNC_(astruct_copy_ntypes, ASTRUCT_COPY_NTYPES)(atoms->astruct, &ntypes);
+  if (atoms->ntypes > 0)
+    {
+      atoms->ntypes = (guint)ntypes;
+      bigdft_atoms_get_ntypes_arrays(atoms);
+    }
+  else
+    atoms->ntypes = 0;
   atoms->atomnames = g_malloc(sizeof(gchar*) * (atoms->ntypes + 1));
   for (i = 0; i < atoms->ntypes; i++)
     {
       j = i + 1;
-      FC_FUNC_(atoms_copy_name, ATOMS_COPY_NAME)(atoms->data,
-                                                 (int*)(&j), str, (int*)(&ln), ln);
+      FC_FUNC_(astruct_copy_name, ASTRUCT_COPY_NAME)(atoms->astruct,
+                                                     (int*)(&j), str, (int*)(&ln), 20);
+      fprintf(stderr, "%d\n", ln);
       atoms->atomnames[i] = g_malloc(sizeof(gchar) * (ln + 1));
       memcpy(atoms->atomnames[i], str, sizeof(gchar) * ln);
       atoms->atomnames[i][ln] = '\0';
@@ -222,14 +297,13 @@ void bigdft_atoms_copy_from_fortran(BigDFT_Atoms *atoms)
 }
 gboolean bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename)
 {
-  guint lstat, ln;
+  guint lstat;
 
   FC_FUNC_(atoms_empty, ATOMS_EMPTY)(atoms->data);
   bigdft_atoms_free_additional(atoms);
 
-  ln = strlen(filename);
-  FC_FUNC_(atoms_set_from_file, ATOMS_SET_FROM_FILE)((int*)(&lstat), atoms->data,
-                                                     &atoms->rxyz, filename, (int*)(&ln), ln);
+  FC_FUNC_(astruct_set_from_file, ASTRUCT_SET_FROM_FILE)((int*)(&lstat), atoms->astruct,
+                                                         filename, strlen(filename));
 
   if (!lstat)
     return FALSE;
@@ -237,26 +311,6 @@ gboolean bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *
     bigdft_atoms_copy_from_fortran(atoms);
 
   return TRUE;
-}
-/**
- * bigdft_atoms_set_psp:
- * @atoms:
- * @ixc:
- * @nspin:
- * @occup: (allow-none):
- *
- */
-void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar *occup)
-{
-  int verb = 0;
-  int ln;
-
-  FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(&verb, atoms->data, &ixc);
-  FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA)
-    (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc));
-  ln = (occup)?strlen(occup):0;
-  FC_FUNC_(atoms_read_variables, ATOMS_READ_VARIABLES)(atoms->data, (int*)&nspin,
-                                                       occup, &ln, ln);
 }
 /**
  * bigdft_atoms_set_symmetries:
@@ -272,13 +326,42 @@ void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active,
   int disable;
 
   disable = (!active);
-  FC_FUNC_(atoms_set_symmetries, ATOMS_SET_SYMMETRIES)(atoms->data, atoms->rxyz.data,
-                                                       &disable, &tol, elecfield);
+  FC_FUNC_(astruct_set_symmetries, ASTRUCT_SET_SYMMETRIES)(atoms->astruct, &disable, &tol, elecfield);
 }
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
 {
-  FC_FUNC_(atoms_set_displacement, ATOMS_SET_DISPLACEMENT)(atoms->data, atoms->rxyz.data, &randdis);
+  FC_FUNC_(astruct_set_displacement, ASTRUCT_SET_DISPLACEMENT)(atoms->astruct, &randdis);
+}
+/**
+ * bigdft_atoms_set_psp:
+ * @atoms:
+ * @ixc:
+ * @nspin:
+ * @occup: (allow-none):
+ *
+ */
+void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar *occup)
+{
+  int verb = 0;
+  int ln;
+  const gchar subname[] = "bigdft_atoms_set_psp";
+
+  /* Allocate the atomic arrays if not already. */
+  if (!atoms->psppar)
+    {
+      FC_FUNC_(allocate_atoms_nat, ALLOCATE_ATOMS_NAT)(atoms->data, subname, strlen(subname));
+      bigdft_atoms_get_nat_arrays(atoms);
+      FC_FUNC_(allocate_atoms_ntypes, ALLOCATE_ATOMS_NTYPES)(atoms->data, subname, strlen(subname));
+      bigdft_atoms_get_ntypes_arrays(atoms);
+    }
+
+  FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(&verb, atoms->data, &ixc);
+  FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA)
+    (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc));
+  ln = (occup)?strlen(occup):0;
+  FC_FUNC_(atoms_read_variables, ATOMS_READ_VARIABLES)(atoms->data, (int*)&nspin,
+                                                       occup, &ln, ln);
 }
 /**
  * bigdft_atoms_get_radii:
@@ -292,51 +375,46 @@ void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
 GArray* bigdft_atoms_get_radii(const BigDFT_Atoms *atoms, double crmult,
                                double frmult, double projrad)
 {
-#ifdef GLIB_MAJOR_VERSION
   GArray *arr;
-#endif
-  double *radii_cf;
   double crmult_, frmult_, projrad_;
 
-#ifdef GLIB_MAJOR_VERSION
   arr = g_array_sized_new(FALSE, FALSE, sizeof(double), 3 * atoms->ntypes);
-  arr = g_array_set_size(arr, 3 * atoms->ntypes);
-  radii_cf = (double*)arr->data;
-#else
-  radii_cf = g_malloc(sizeof(double) * 3 * atoms->ntypes);
-#endif
+  g_array_set_size(arr, 3 * atoms->ntypes);
   crmult_  = (crmult <= 0.)?5.:crmult;
   frmult_  = (frmult <= 0.)?8.:frmult;
   projrad_ = (projrad <= 0.)?15.:projrad;
-  FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(atoms->data, radii_cf,
+  FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(atoms->data, (double*)arr->data,
                                                        &crmult_, &frmult_, &projrad_);
-#ifdef GLIB_MAJOR_VERSION
   return arr;
-#else
-  return radii_cf;
-#endif
 }
 
-void bigdft_atoms_write(const BigDFT_Atoms *atoms, const gchar *filename)
+/**
+ * bigdft_atoms_write:
+ * @atoms: 
+ * @filename: 
+ * @format: (allow-none):
+ *
+ * 
+ **/
+void bigdft_atoms_write(BigDFT_Atoms *atoms, const gchar *filename, const gchar *format)
 {
   gchar *comment;
-  int ln, ln2;
   f90_pointer_double_2D forces;
 
+  /* Update format if necessary. */
+  if (format)
+    {
+      strncpy(atoms->format, format, 6);
+      _sync_geometry(atoms);
+    }
   if (atoms->comment)
-    {
-      comment = atoms->comment;
-      ln = strlen(atoms->comment);
-    }
+    comment = atoms->comment;
   else
-    {
-      comment = " ";
-      ln = 1;
-    }
+    comment = " ";
+
   F90_2D_POINTER_INIT(&forces);
-  ln2 = strlen(filename);
-  FC_FUNC_(atoms_write, ATOMS_WRITE)(atoms->data, filename, &ln2, atoms->rxyz.data,
-                                     &forces, &atoms->energy, comment, &ln, ln2, ln);
+  FC_FUNC_(atoms_write, ATOMS_WRITE)(atoms->data, filename, &forces, &atoms->energy, comment,
+                                     strlen(filename), strlen(comment));
 }
 
 gchar* bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat)

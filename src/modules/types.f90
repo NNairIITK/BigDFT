@@ -30,7 +30,8 @@ module module_types
   integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
   integer, parameter :: BIGDFT_INVALID        = -12 !< Invalid entry
   integer :: BIGDFT_MPI_ERROR                       !< see error definitions below
-  integer :: BIGDFT_LINALG_ERROR                    !<to be moved to linalg wrappers
+  integer :: BIGDFT_LINALG_ERROR                    !< to be moved to linalg wrappers
+  integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< problems in parsing input variables
 
   !> Input wf parameters.
   integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
@@ -213,19 +214,23 @@ module module_types
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
-     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-                           file_mix,file_sic,file_occnum,file_igpop,file_lin,file_frag
+     character(len=100) :: file_occnum,file_igpop,file_lin,file_frag
      character(len=100) :: dir_output !< Strings of the directory which contains all data output files
      character(len=100) :: run_name   !< Contains the prefix (by default input) used for input files as input.dft
      integer :: files                 !< Existing files.
      !miscellaneous variables
      logical :: gaussian_help
-     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
-     integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty, occopt
-     integer :: OUTPUT_DENSPOT,dispersion,last_run,output_wf_format,OUTPUT_DENSPOT_format
+     integer :: itrpmax
+     integer :: iscf,norbsempty,norbsuempty,norbsdempty, occopt
+     integer :: last_run
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
-     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
+     real(gp) :: rpnrm_cv,gnrm_startmix
      integer :: verbosity
+     ! DFT basic parameters.
+     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
+     integer :: norbv,nvirt,nplot
+     integer :: output_denspot,dispersion,output_wf_format,output_denspot_format
+     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
      real(gp) :: elecfield(3)
      logical :: disableSym
 
@@ -247,9 +252,13 @@ module module_types
      integer :: freq_method  !< Method to calculate the frequencies
 
      ! kpoints related input variables
-     integer :: nkpt, nkptv,ngroups_kptv
+     ! generated results
+     integer :: gen_nkpt
+     real(gp), pointer :: gen_kpt(:,:), gen_wkpt(:)
+     ! Band structure path
+     integer :: nkptv,ngroups_kptv
      integer, dimension(:), pointer :: nkptsv_group
-     real(gp), pointer :: kpt(:,:), wkpt(:), kptv(:,:)
+     real(gp), pointer :: kptv(:,:)
      character(len=100) :: band_structure_filename
 
      ! Geometry variables from *.geopt
@@ -929,13 +938,29 @@ module module_types
   !!  for post-treatment
   type, public :: restart_objects
      integer :: version !< 0=cubic, 100=linear
-     integer :: n1,n2,n3
+     integer :: n1,n2,n3,nat
      real(gp) :: hx_old,hy_old,hz_old
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
      type(DFT_wavefunction) :: tmb !<support functions for linear scaling
      type(GPU_pointers) :: GPU 
   end type restart_objects
+
+  !> Public container to be used with call_bigdft().
+  type, public :: run_objects
+     type(input_variables), pointer    :: inputs
+     type(atoms_data), pointer         :: atoms
+     type(restart_objects), pointer    :: rst
+  end type run_objects
+
+  !> Used to store results of a DFT calculation.
+  type, public :: DFT_global_output
+     real(gp) :: energy, fnoise, pressure
+     type(energy_terms) :: energs
+     integer :: fdim                           !< Dimension of allocated forces (second dimension)
+     real(gp), dimension(:,:), pointer :: fxyz
+     real(gp), dimension(6) :: strten
+  end type DFT_global_output
 
 !> type paw_ij_objects
 
@@ -1180,11 +1205,10 @@ contains
   end function symm_null
 
   pure subroutine nullify_symm(sym)
-     implicit none
-     type(symmetry_data), intent(out) :: sym
-     sym%symObj=-1
-     nullify(sym%irrzon)
-     nullify(sym%phnons)
+    type(symmetry_data), intent(out) :: sym
+    sym%symObj=-1
+    nullify(sym%irrzon)
+    nullify(sym%phnons)
   end subroutine nullify_symm
   pure subroutine nullify_sym(sym)
      type(symmetry_data), intent(out) :: sym
@@ -1229,27 +1253,26 @@ contains
     implicit none
     type(atomic_structure) :: astruct
      call nullify_atomic_structure(astruct)
-   end function atomic_structure_null
+  end function atomic_structure_null
 
-   pure subroutine nullify_atomic_structure(astruct)
-     implicit none
-     type(atomic_structure), intent(out) :: astruct
+  pure subroutine nullify_atomic_structure(astruct)
+    type(atomic_structure), intent(out) :: astruct
 
-     astruct%geocode='X'
-     astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
-     astruct%units=repeat(' ',len(astruct%units))
-     astruct%nat=-1
-     astruct%ntypes=-1
-     astruct%cell_dim(1)=0.0_gp
-     astruct%cell_dim(2)=0.0_gp
-     astruct%cell_dim(3)=0.0_gp
-     nullify(astruct%input_polarization)
-     nullify(astruct%ifrztyp)
-     nullify(astruct%atomnames)
-     nullify(astruct%iatype)
-     nullify(astruct%rxyz)
-     call nullify_symm(astruct%sym)
-   end subroutine nullify_atomic_structure
+    astruct%geocode='X'
+    astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
+    astruct%units=repeat(' ',len(astruct%units))
+    astruct%nat=-1
+    astruct%ntypes=-1
+    astruct%cell_dim(1)=0.0_gp
+    astruct%cell_dim(2)=0.0_gp
+    astruct%cell_dim(3)=0.0_gp
+    nullify(astruct%input_polarization)
+    nullify(astruct%ifrztyp)
+    nullify(astruct%atomnames)
+    nullify(astruct%iatype)
+    nullify(astruct%rxyz)
+    call nullify_symm(astruct%sym)
+  end subroutine nullify_atomic_structure
 
   function bigdft_run_id_toa()
     use yaml_output
@@ -1408,10 +1431,9 @@ subroutine deallocate_orbs(orbs,subname)
        call memocc(i_stat,i_all,'orbs%ispot',subname)
     end if
 
-END SUBROUTINE deallocate_orbs
+  END SUBROUTINE deallocate_orbs
 
-
-!> Allocate and nullify restart objects
+  !> All in one routine to initialise and set-up restart objects.
   subroutine init_restart_objects(iproc,inputs,atoms,rst,subname)
     use module_base
     implicit none
@@ -1421,23 +1443,27 @@ END SUBROUTINE deallocate_orbs
     type(input_variables), intent(in) :: inputs
     type(atoms_data), intent(in) :: atoms
     type(restart_objects), intent(out) :: rst
-    !local variables
-    integer :: i_stat
+
+    call restart_objects_new(rst)
+    call restart_objects_set_mode(rst, inputs%inputpsiid)
+    call restart_objects_set_nat(rst, atoms%astruct%nat, subname)
+    call restart_objects_set_mat_acc(rst, iproc, inputs%matacc)
+  END SUBROUTINE init_restart_objects
+
+  !> Allocate and nullify restart objects
+  subroutine restart_objects_new(rst)
+    use module_base
+    implicit none
+    !Arguments
+    type(restart_objects), intent(out) :: rst
 
     ! Decide whether we use the cubic or the linear version
-    select case (inputs%inputpsiid)
-    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
-         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
-       rst%version = CUBIC_VERSION
-    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
-       rst%version = LINEAR_VERSION
-    end select
+    rst%version = UNINITIALIZED(CUBIC_VERSION)
 
     !allocate pointers
-    allocate(rst%rxyz_new(3,atoms%astruct%nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
-    allocate(rst%rxyz_old(3,atoms%astruct%nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
+    rst%nat = 0
+    nullify(rst%rxyz_new)
+    nullify(rst%rxyz_old)
 
     !nullify unallocated pointers
     rst%KSwfn%c_obj = 0
@@ -1447,6 +1473,7 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%KSwfn%gaucoeffs)
     nullify(rst%KSwfn%oldpsis)
 
+    rst%KSwfn%Lzd%Glr = locreg_null()
     nullify(rst%KSwfn%Lzd%Glr%wfd%keyglob)
     nullify(rst%KSwfn%Lzd%Glr%wfd%keygloc)
     nullify(rst%KSwfn%Lzd%Glr%wfd%keyvloc)
@@ -1459,11 +1486,59 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%KSwfn%gbd%psiat)
     nullify(rst%KSwfn%gbd%rxyz)
 
+    !Nullify LZD for cubic version (new input guess)
+    call nullify_local_zone_descriptors(rst%tmb%lzd)
+  END SUBROUTINE restart_objects_new
+
+  subroutine restart_objects_set_mode(rst, inputpsiid)
+    implicit none
+    type(restart_objects), intent(inout) :: rst
+    integer, intent(in) :: inputpsiid
+
+    select case (inputpsiid)
+    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+       rst%version = CUBIC_VERSION
+    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+       rst%version = LINEAR_VERSION
+    end select
+  END SUBROUTINE restart_objects_set_mode
+  subroutine restart_objects_set_nat(rst, nat, subname)
+    use module_base
+    implicit none
+    !Arguments
+    character(len=*), intent(in) :: subname
+    integer, intent(in) :: nat
+    type(restart_objects), intent(inout) :: rst
+    !local variables
+    integer :: i_all,i_stat
+    if (associated(rst%rxyz_old)) then
+       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
+       deallocate(rst%rxyz_old,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_old',subname)
+    end if
+    if (associated(rst%rxyz_new)) then
+       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
+       deallocate(rst%rxyz_new,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_new',subname)
+    end if
+
+    rst%nat = nat
+    allocate(rst%rxyz_new(3,nat+ndebug),stat=i_stat)
+    call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
+    allocate(rst%rxyz_old(3,nat+ndebug),stat=i_stat)
+    call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
+  END SUBROUTINE restart_objects_set_nat
+
+  subroutine restart_objects_set_mat_acc(rst, iproc, matacc)
+    implicit none
+    !Arguments
+    type(restart_objects), intent(inout) :: rst
+    integer, intent(in) :: iproc
+    type(material_acceleration), intent(in) :: matacc
     !initialise the acceleration strategy if required
-    call init_material_acceleration(iproc,inputs%matacc,rst%GPU)
-
-  END SUBROUTINE init_restart_objects
-
+    call init_material_acceleration(iproc,matacc,rst%GPU)
+  END SUBROUTINE restart_objects_set_mat_acc
 
 !>  De-Allocate restart_objects
   subroutine free_restart_objects(rst,subname)
@@ -1476,8 +1551,11 @@ END SUBROUTINE deallocate_orbs
 
     if (rst%version == LINEAR_VERSION) then
        call destroy_DFT_wavefunction(rst%tmb)
-       call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
     end if
+    !always deallocate lzd for new input guess
+    !call deallocate_lzd(rst%tmb%lzd, subname)
+    ! Modified by SM
+    call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
 
     call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr,subname)
 
@@ -1493,12 +1571,6 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'eval',subname)
     end if
 
-    if (associated(rst%rxyz_old)) then
-       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
-       deallocate(rst%rxyz_old,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_old',subname)
-    end if
-
     if (associated(rst%KSwfn%oldpsis)) then
        do istep=0,product(shape(rst%KSwfn%oldpsis))-1
           call old_wavefunction_free(rst%KSwfn%oldpsis(istep),subname)
@@ -1507,6 +1579,11 @@ END SUBROUTINE deallocate_orbs
     end if
 
 
+    if (associated(rst%rxyz_old)) then
+       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
+       deallocate(rst%rxyz_old,stat=i_stat)
+       call memocc(i_stat,i_all,'rxyz_old',subname)
+    end if
     if (associated(rst%rxyz_new)) then
        i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
        deallocate(rst%rxyz_new,stat=i_stat)
@@ -2284,7 +2361,6 @@ subroutine nullify_paw_ij_objects(paw_ij)
   type(paw_ij_objects), intent(inout) :: paw_ij
 
   nullify(paw_ij%dij) 
-
 end subroutine nullify_paw_ij_objects
 
 subroutine nullify_cprj_objects(cprj)
@@ -2310,6 +2386,44 @@ subroutine nullify_gaussian_basis(G)
   nullify(G%rxyz)
 
 END SUBROUTINE nullify_gaussian_basis
+
+subroutine nullify_global_output(outs)
+  implicit none
+  type(DFT_global_output), intent(out) :: outs
+
+  outs%fdim      = 0
+  nullify(outs%fxyz)
+  outs%energy    = UNINITIALIZED(1.0_gp)
+  outs%fnoise    = UNINITIALIZED(1.0_gp)
+  outs%pressure  = UNINITIALIZED(1.0_gp)
+  outs%strten(:) = UNINITIALIZED(1.0_gp)
+END SUBROUTINE nullify_global_output
+
+subroutine init_global_output(outs, nat)
+  use module_base
+  implicit none
+  type(DFT_global_output), intent(out) :: outs
+  integer, intent(in) :: nat
+
+  call nullify_global_output(outs)
+  outs%fdim = nat
+  allocate(outs%fxyz(3, outs%fdim))
+  outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
+END SUBROUTINE init_global_output
+
+subroutine deallocate_global_output(outs, fxyz)
+  use module_base
+  implicit none
+  type(DFT_global_output), intent(inout) :: outs
+  real(gp), intent(out), optional :: fxyz
+
+  if (associated(outs%fxyz)) then
+     if (present(fxyz)) then
+        call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
+     end if
+     deallocate(outs%fxyz)
+  end if
+END SUBROUTINE deallocate_global_output
 
 !> cprj_clean will be obsolete with the PAW library
 !! this is cprj_free in abinit.
@@ -2566,11 +2680,15 @@ subroutine bigdft_init_errors()
        BIGDFT_MPI_ERROR,&
        err_action='Check if the error is related to MPI library or runtime condtions')
 
-    call f_err_define('BIGDFT_LINALG_ERRROR',&
+    call f_err_define('BIGDFT_LINALG_ERROR',&
        'An error of linear algebra occurred',&
        BIGDFT_LINALG_ERROR,&
        err_action='Check if the matrix is correct at input, also look at the info value')
 
+    call f_err_define('BIGDFT_INPUT_VARIABLES_ERROR',&
+       'An error while parsing the input variables occured',&
+       BIGDFT_INPUT_VARIABLES_ERROR,&
+       err_action='Check above which input variable has been not correctly parsed')
 
   !define the severe operation via MPI_ABORT
   call f_err_severe_override(bigdft_severe_abort)

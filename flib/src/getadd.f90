@@ -22,10 +22,12 @@ subroutine call_external_f(routine)!,args)
 !  print *,'calling external, args',args
   
 !  if (args==0) then
+
      call routine()
 !  else
 !     call routine(args)
 !  end if
+
 end subroutine call_external_f
 
 !> function which identify the address of the scalar object

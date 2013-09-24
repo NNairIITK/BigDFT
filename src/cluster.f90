@@ -9,21 +9,16 @@
  
 
 !> Routine to use BigDFT as a blackbox
-subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,infocode)
+subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   use module_base
   use module_types
   use module_interfaces, except_this_one => call_bigdft
   use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
-  type(input_variables),intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
-  type(restart_objects), intent(inout) :: rst
+  type(run_objects), intent(inout) :: runObj
+  type(DFT_global_output), intent(inout) :: outs
   integer, intent(inout) :: infocode
-  real(gp), intent(out) :: energy,fnoise
-  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz0
-  real(gp), dimension(6), intent(out) :: strten
-  real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
 
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
@@ -35,7 +30,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 
   !temporary interface, not needed anymore since all arguments are structures
 !!$  interface
-!!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
+!!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
 !!$          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
 !!$          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
 !!$       use module_base
@@ -51,8 +46,8 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
 !!$       !type(orbitals_data), intent(inout) :: orbs
 !!$       type(GPU_pointers), intent(inout) :: GPU
 !!$       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
-!!$       real(gp), intent(out) :: energy,fnoise
-!!$       real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
+!!$       type(energy_terms), intent(out), target :: energs
+!!$       real(gp), intent(out) :: energy,fnoise,pressure
 !!$       real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
 !!$       real(gp), dimension(6), intent(out) :: strten
 !!$       real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
@@ -62,20 +57,21 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   !put a barrier for all the processes
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   call f_routine(id=subname)
+
   if (nproc > 1) then
      !check that the positions are identical for all the processes
-     rxyz_glob=f_malloc((/3,atoms%astruct%nat,nproc/),id='rxyz_glob')
+     rxyz_glob=f_malloc((/3,runObj%atoms%astruct%nat,nproc/),id='rxyz_glob')
      
      !gather the results for all the processors
-     call MPI_GATHER(rxyz0,3*atoms%astruct%nat,mpidtypg,&
-          rxyz_glob,3*atoms%astruct%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
+     call MPI_GATHER(runObj%atoms%astruct%rxyz,3*runObj%atoms%astruct%nat,mpidtypg,&
+          rxyz_glob,3*runObj%atoms%astruct%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
      if (iproc==0) then
         maxdiff=0.0_gp
         do jproc=2,nproc
-           do iat=1,atoms%astruct%nat
+           do iat=1,runObj%atoms%astruct%nat
               do i=1,3
                  maxdiff=max(maxdiff,&
-                      abs(rxyz_glob(i,iat,jproc)-rxyz0(i,iat)))
+                      abs(rxyz_glob(i,iat,jproc)-runObj%atoms%astruct%rxyz(i,iat)))
               end do
            end do
         end do
@@ -88,112 +84,113 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   end if
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
-  do iat=1,atoms%astruct%nat
-     if (atoms%astruct%geocode == 'P') then
-        rst%rxyz_new(1,iat)=modulo(rxyz0(1,iat),atoms%astruct%cell_dim(1))
-        rst%rxyz_new(2,iat)=modulo(rxyz0(2,iat),atoms%astruct%cell_dim(2))
-        rst%rxyz_new(3,iat)=modulo(rxyz0(3,iat),atoms%astruct%cell_dim(3))
-     else if (atoms%astruct%geocode == 'S') then
-        rst%rxyz_new(1,iat)=modulo(rxyz0(1,iat),atoms%astruct%cell_dim(1))
-        rst%rxyz_new(2,iat)=rxyz0(2,iat)
-        rst%rxyz_new(3,iat)=modulo(rxyz0(3,iat),atoms%astruct%cell_dim(3))
-     else if (atoms%astruct%geocode == 'F') then
-        rst%rxyz_new(1,iat)=rxyz0(1,iat)
-        rst%rxyz_new(2,iat)=rxyz0(2,iat)
-        rst%rxyz_new(3,iat)=rxyz0(3,iat)
+  do iat=1,runObj%atoms%astruct%nat
+     if (runObj%atoms%astruct%geocode == 'P') then
+        runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
+        runObj%rst%rxyz_new(2,iat)=modulo(runObj%atoms%astruct%rxyz(2,iat),runObj%atoms%astruct%cell_dim(2))
+        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+     else if (runObj%atoms%astruct%geocode == 'S') then
+        runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
+        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+     else if (runObj%atoms%astruct%geocode == 'F') then
+        runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
+        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+        runObj%rst%rxyz_new(3,iat)=runObj%atoms%astruct%rxyz(3,iat)
      end if
   end do
 
   !assign the verbosity of the output
   !the verbose variables is defined in module_base
-  verbose=in%verbosity
+  verbose=runObj%inputs%verbosity
 
   ! Use the restart for the linear scaling version... probably to be modified.
-  if(in%inputPsiId==1) then
-      if (rst%version == LINEAR_VERSION) then
-          in%inputPsiId=101
-          do iorb=1,rst%tmb%orbs%norb
-              if (in%lin%locrad_lowaccuracy(iorb) /=  in%lin%locrad_highaccuracy(iorb))then
+  if(runObj%inputs%inputPsiId==1) then
+      if (runObj%rst%version == LINEAR_VERSION) then
+          runObj%inputs%inputPsiId=101
+          do iorb=1,runObj%rst%tmb%orbs%norb
+              if (runObj%inputs%lin%locrad_lowaccuracy(iorb) /=  runObj%inputs%lin%locrad_highaccuracy(iorb))then
                   stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
                         &when using the linear restart!'
               end if
           end do
       end if
   end if
-  inputPsiId_orig=in%inputPsiId
-
+  inputPsiId_orig=runObj%inputs%inputPsiId
 
   loop_cluster: do
      !allocate history container if it has not been done
-     if (in%wfn_history > 1  .and. .not. associated(rst%KSwfn%oldpsis)) then
-        allocate(rst%KSwfn%oldpsis(0:in%wfn_history+1))
-        rst%KSwfn%istep_history=0
-        do istep=0,in%wfn_history+1
-          rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
+     if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
+        allocate(runObj%rst%KSwfn%oldpsis(0:runObj%inputs%wfn_history+1))
+        runObj%rst%KSwfn%istep_history=0
+        do istep=0,runObj%inputs%wfn_history+1
+          runObj%rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
         end do
      end if
 
-     if (in%inputPsiId == 0 .and. associated(rst%KSwfn%psi)) then
-        i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-        deallocate(rst%KSwfn%psi,stat=i_stat)
+     if (runObj%inputs%inputPsiId == 0 .and. associated(runObj%rst%KSwfn%psi)) then
+        i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
+        deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-        deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
+        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
+        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
 
-        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd,subname)
      end if
      !experimental, finite difference method for calculating forces on particular quantities
      inquire(file='input.finite_difference_forces',exist=exists)
      if (exists) then
-        in%last_run=1 !do the last_run things nonetheless
-        in%inputPsiId=0 !the first run always restart from IG
+        runObj%inputs%last_run=1 !do the last_run things nonetheless
+        runObj%inputs%inputPsiId=0 !the first run always restart from IG
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
-     call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,strten,fnoise,&
-          rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
-          rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, &
+          & outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
+          runObj%rst%KSwfn,runObj%rst%tmb,&!psi,runObj%rst%Lzd,runObj%rst%gaucoeffs,runObj%rst%gbd,runObj%rst%orbs,&
+          runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
      if (exists) then
-        call forces_via_finite_differences(iproc,nproc,atoms,in,energy,fxyz,fnoise,rst,infocode)
+        call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs, &
+             & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
      end if
 
-     if (in%inputPsiId==1 .and. infocode==2) then
-        if (in%gaussian_help) then
-           in%inputPsiId=11
+     if (runObj%inputs%inputPsiId==1 .and. infocode==2) then
+        if (runObj%inputs%gaussian_help) then
+           runObj%inputs%inputPsiId=11
         else
-           in%inputPsiId=0
+           runObj%inputs%inputPsiId=0
         end if
-     else if (in%inputPsiId==101 .and. infocode==2) then
+     else if (runObj%inputs%inputPsiId==101 .and. infocode==2) then
          ! problems after restart for linear version
-         in%inputPsiId=100
-     else if ((in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
-        !in%inputPsiId=0 !better to diagonalise than to restart an input guess
-        in%inputPsiId=1
+         runObj%inputs%inputPsiId=100
+     else if ((runObj%inputs%inputPsiId==1 .or. runObj%inputs%inputPsiId==0) .and. infocode==1) then
+        !runObj%inputs%inputPsiId=0 !better to diagonalise than to restart an input guess
+        runObj%inputs%inputPsiId=1
         !if (iproc==0) then
         !   call yaml_warning('Self-consistent cycle did not meet convergence criteria')
         !   write(*,*)&
         !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
         !end if
         exit loop_cluster
-     else if (in%inputPsiId == 0 .and. infocode==3) then
+     else if (runObj%inputs%inputPsiId == 0 .and. infocode==3) then
         if (iproc == 0) then
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
            write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
            write(comment,'(a)')'UNCONVERGED WF '
            !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
 
-           call write_atomic_file("posfail",energy,rst%rxyz_new,atoms,trim(comment))
+           call write_atomic_file("posfail",outs%energy,runObj%rst%rxyz_new,runObj%atoms,trim(comment))
 
         end if
 
-        i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-        deallocate(rst%KSwfn%psi,stat=i_stat)
+        i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
+        deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-        deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
+        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
+        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
 
-        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd,subname)
 
         !finalize memory counting (there are still at least positions and the forces allocated)
         call memocc(0,0,'count','stop')
@@ -208,15 +205,118 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,strten,fnoise,rst,
   end do loop_cluster
 
   !preserve the previous value
-  in%inputPsiId=inputPsiId_orig
+  runObj%inputs%inputPsiId=inputPsiId_orig
 
   !put a barrier for all the processes
   call f_release_routine()
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
-
 END SUBROUTINE call_bigdft
 
+!> Routines to handle the argument objects of call_bigdft().
+subroutine run_objects_nullify(runObj)
+  use module_types
+  implicit none
+  type(run_objects), intent(out) :: runObj
+
+  nullify(runObj%inputs)
+  nullify(runObj%atoms)
+  nullify(runObj%rst)
+END SUBROUTINE run_objects_nullify
+
+subroutine run_objects_free(runObj, subname)
+  use module_types
+  use module_base
+  use yaml_output
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  character(len = *), intent(in) :: subname
+
+  if (associated(runObj%rst)) then
+     call free_restart_objects(runObj%rst,subname)
+     deallocate(runObj%rst)
+  end if
+  if (associated(runObj%atoms)) then
+     call deallocate_atoms(runObj%atoms,subname) 
+     deallocate(runObj%atoms)
+  end if
+  if (associated(runObj%inputs)) then
+     call free_input_variables(runObj%inputs)
+     deallocate(runObj%inputs)
+  end if
+  ! to be inserted again soon call f_lib_finalize()
+  !call yaml_close_all_streams()
+END SUBROUTINE run_objects_free
+
+subroutine run_objects_free_container(runObj)
+  use module_types
+  use module_base
+  use yaml_output
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+
+  ! Currently do except nullifying everything.
+  call run_objects_nullify(runObj)
+END SUBROUTINE run_objects_free_container
+
+subroutine run_objects_init_from_files(runObj, radical, posinp)
+  use module_types
+  use module_interfaces, only: atoms_new, rst_new, inputs_new
+  implicit none
+  type(run_objects), intent(out) :: runObj
+  character(len = *), intent(in) :: radical, posinp
+
+  integer(kind = 8) :: dummy
+
+  call run_objects_nullify(runObj)
+  call atoms_new(runObj%atoms)
+  call inputs_new(runObj%inputs)
+  call bigdft_set_input(radical, posinp, runObj%inputs, runObj%atoms)
+
+  call rst_new(dummy, runObj%rst)
+  call restart_objects_new(runObj%rst)
+  call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
+  call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_init_from_files")
+  call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
+END SUBROUTINE run_objects_init_from_files
+
+!!$subroutine run_objects_nullify_from_objects(runObj, atoms, inputs, rst)
+!!$  use module_types
+!!$  implicit none
+!!$  type(run_objects), intent(out) :: runObj
+!!$  type(atoms_data), intent(in), target :: atoms
+!!$  type(input_variables), intent(in), target, optional :: inputs
+!!$  type(restart_objects), intent(in), target, optional :: rst
+!!$
+!!$  call run_objects_nullify(runObj)
+!!$  runObj%atoms  => atoms
+!!$  if (present(inputs)) then
+!!$     runObj%inputs => inputs
+!!$  else
+!!$  end if
+!!$  if (present(rst)) then
+!!$     runObj%rst    => rst
+!!$  else
+!!$  end if
+!!$END SUBROUTINE run_objects_nullify_from_objects
+
+subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
+  use module_types
+  implicit none
+  type(run_objects), intent(out) :: runObj
+  type(input_variables), intent(in), target :: inputs
+  type(atoms_data), intent(in), target :: atoms
+  type(restart_objects), intent(in), target :: rst
+  real(gp), intent(in), optional :: rxyz0
+
+  call run_objects_nullify(runObj)
+  runObj%atoms  => atoms
+  runObj%inputs => inputs
+  runObj%rst    => rst
+  if (present(rxyz0)) then
+     call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
+  end if
+END SUBROUTINE run_objects_associate
 
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
@@ -236,9 +336,8 @@ END SUBROUTINE call_bigdft
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-     KSwfn,tmb,&
-     rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
+subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
+     KSwfn,tmb,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
@@ -260,7 +359,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   integer, intent(out) :: infocode
-  real(gp), intent(out) :: energy,fnoise
+  type(energy_terms), intent(out) :: energs
+  real(gp), intent(out) :: energy,fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
   !local variables
@@ -275,8 +375,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   integer :: iat,i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
-  type(energy_terms), target :: energs ! Target attribute is mandatory for C wrappers
-  real(gp) :: pressure
   type(grid_dimensions) :: d_old
   type(wavefunctions_descriptors) :: wfd_old
   type(local_zone_descriptors) :: lzd_old
@@ -933,7 +1031,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   if (DoDavidson) then
 
      !for a band structure calculation allocate the array in which to put the eigenvalues
-     if (associated(in%kptv)) then
+     if (associated(in%kptv) .and. in%nkptv > 0) then
         allocate(band_structure_eval(KSwfn%orbs%norbu+KSwfn%orbs%norbd+in%nspin*norbv,in%nkptv+ndebug),stat=i_stat)
         call memocc(i_stat,band_structure_eval,'band_structure_eval',subname)
      end if
@@ -947,7 +1045,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
         nvirtd = 0
         if (in%nspin==2) nvirtd=nvirtu
         ! Create the orbitals.
-        if (associated(in%kptv)) then
+        if (associated(in%kptv) .and. in%nkptv > 0) then
            nvirtu = nvirtu + KSwfn%orbs%norbu
            nvirtd = nvirtd + KSwfn%orbs%norbd
            nvirt  = nvirtu+nvirtd
@@ -1097,7 +1195,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
         !in the case of band structure calculation, copy the values of the eigenvectors
         !into a new array to write them afterwards
-        if (associated(in%kptv)) then
+        if (associated(in%kptv) .and. in%nkptv > 0) then
            call dcopy(VTwfn%orbs%norb*nkptv,VTwfn%orbs%eval(1),1,band_structure_eval(1,ikpt),1)
            !increment the value of ikpt
            ikpt=ikpt+in%nkptsv_group(igroup)
@@ -1114,7 +1212,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
 
      end do
 
-     if (associated(in%kptv)) then
+     if (associated(in%kptv) .and. in%nkptv > 0) then
         !dump the band structure eigenvalue on a file and deallocate it
         if (iproc == 0) then
            open(unit=11,file='band_structure.dat',status='unknown')

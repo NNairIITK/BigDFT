@@ -1,6 +1,6 @@
 !> @file
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
-!! yaml: Yet Another Markeup Language (ML for Human)
+!! yaml: Yet Another Markup Language -> Y Ain't a Markup Language (Human readable ML)
 !! @author
 !!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -71,7 +71,7 @@ module yaml_output
   logical :: module_initialized=.false.  !<tells if the module has been already referenced or not
   !error ids
   integer :: YAML_STREAM_ALREADY_PRESENT !< trying to create a stream already present
-  integer :: YAML_STREAM_NOT_FOUND       !< trying to seach for a absent unitt
+  integer :: YAML_STREAM_NOT_FOUND       !< trying to seach for a absent unit
   integer :: YAML_UNIT_INCONSISTENCY     !< internal error, unit inconsistency
   integer :: YAML_INVALID                !< invalid action, unit inconsistency
 
@@ -86,10 +86,12 @@ module yaml_output
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
   public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
-  public :: yaml_set_stream,yaml_set_default_stream,yaml_close_stream
+  public :: yaml_set_stream,yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump
 
+  !for internal f_lib usage
+  public :: yaml_output_errors
 
 contains
 
@@ -126,24 +128,43 @@ contains
   !! should be called only once unless the module has been closed by close_all_streams
   subroutine assure_initialization()
     implicit none
-    if (.not. module_initialized) then
-       module_initialized=.true.
-       !initialize error messages
-       call f_err_define('YAML_INVALID','Generic error of yaml module, invalid operation',&
-            YAML_INVALID)
-       call f_err_define('YAML_STREAM_ALREADY_PRESENT','The stream is already present',&
-            YAML_STREAM_ALREADY_PRESENT)
-       call f_err_define('YAML_STREAM_NOT_FOUND','The stream has not been found',&
-            YAML_STREAM_NOT_FOUND)
-       call f_err_define('YAML_UNIT_INCONSISTENCY',&
-            'The array of the units is not in agreement with the array of the streams',&
-            YAML_UNIT_INCONSISTENCY,&
-            err_action='This is an internal error of yaml_output module, contact developers')
+    if (.not. module_initialized) module_initialized=associated(f_get_error_definitions)
 
+    if (.not. module_initialized) then
+       stop 'yaml_output module not initialized, f_lib_initialize not called'
+       !module_initialized=.true.
+       !call yaml_output_errors()
     end if
 
   end subroutine assure_initialization
+  
+  !> Set @new_unit as the new default unit and return the old default unit.
+  subroutine yaml_swap_stream(new_unit, old_unit, ierr)
+    implicit none
+    integer, intent(in) :: new_unit
+    integer, intent(out) :: old_unit, ierr
 
+    call yaml_get_default_stream(old_unit)
+    call yaml_set_default_stream(new_unit, ierr)
+  end subroutine yaml_swap_stream
+
+  subroutine yaml_output_errors()
+    implicit none
+    !initialize error messages
+    call f_err_define('YAML_INVALID','Generic error of yaml module, invalid operation',&
+         YAML_INVALID)
+    call f_err_define('YAML_STREAM_ALREADY_PRESENT','The stream is already present',&
+         YAML_STREAM_ALREADY_PRESENT)
+    call f_err_define('YAML_STREAM_NOT_FOUND','The stream has not been found',&
+         YAML_STREAM_NOT_FOUND)
+    call f_err_define('YAML_UNIT_INCONSISTENCY',&
+         'The array of the units is not in agreement with the array of the streams',&
+         YAML_UNIT_INCONSISTENCY,&
+         err_action='This is an internal error of yaml_output module, contact developers')
+    !the module is ready for usage
+    module_initialized=.true.
+  end subroutine yaml_output_errors
+  
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
   subroutine yaml_set_default_stream(unit,ierr)
@@ -468,6 +489,7 @@ contains
     stream_units=6
     active_streams=1 !stdout is always kept active
     default_stream=1
+    module_initialized=.false.
   end subroutine yaml_close_all_streams
 
 
@@ -628,12 +650,13 @@ contains
 
 
   !> Open a yaml map (dictionary)
-  subroutine yaml_open_map(mapname,label,flow,unit)
+  subroutine yaml_open_map(mapname,label,tag,flow,unit)
     implicit none
     integer, optional, intent(in) :: unit
     character(len=*), optional, intent(in) :: mapname
     logical, optional, intent(in) :: flow
     character(len=*), optional, intent(in) :: label
+    character(len=*), optional, intent(in) :: tag
     !local variables
     logical :: doflow
     integer :: msg_lgt
@@ -656,8 +679,13 @@ contains
        !put the semicolon
        call buffer_string(towrite,len(towrite),':',msg_lgt)
     end if
+    !put the optional tag description
+    if (present(tag) .and. len_trim(tag) > 0) then
+       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
+    end if
     !put the optional name
-    if (present(label)) then
+    if (present(label) .and. len_trim(label) > 0) then
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
@@ -705,11 +733,12 @@ contains
 
 
   !> Open a yaml sequence
-  subroutine yaml_open_sequence(mapname,label,flow,advance,unit)
+  subroutine yaml_open_sequence(mapname,label,tag,flow,advance,unit)
     use yaml_strings
     implicit none
     character(len=*), optional, intent(in) :: mapname !< Key of the sequence
     character(len=*), optional, intent(in) :: label   !< Add a label to be referenced as &xxx
+    character(len=*), optional, intent(in) :: tag     !< Add a tag to be referenced as !xxx
     logical, optional, intent(in) :: flow             !< .true.  Add [ and represent the sequence as a stream
                                                       !! .false. Add a flow level (go to the line and indent)
     character(len=*), optional, intent(in) :: advance !< Same option as write
@@ -735,6 +764,11 @@ contains
        call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
        !put the semicolon
        call buffer_string(towrite,len(towrite),':',msg_lgt)
+    end if
+    !put the optional tag
+    if (present(tag).and. len_trim(tag)>0) then
+       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
     end if
     !put the optional name
     if (present(label).and. len_trim(label)>0) then
@@ -836,11 +870,12 @@ contains
 
 
   !> Do a yaml map
-  subroutine yaml_map(mapname,mapvalue,label,advance,unit)
+  subroutine yaml_map(mapname,mapvalue,label,tag,advance,unit)
     implicit none
     character(len=*), intent(in) :: mapname             !< key
     character(len=*), intent(in) :: mapvalue            !< value
     character(len=*), optional, intent(in) :: label     !< label for reference (&xxx)
+    character(len=*), optional, intent(in) :: tag       !< tag for tagging (!xxx)
     character(len=*), optional, intent(in) :: advance   !< advance or not
     integer, optional, intent(in) :: unit               !< unit for strem
     !local variables
@@ -861,17 +896,28 @@ contains
     !put the message
     call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
     !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
+    call buffer_string(towrite,len(towrite),':',msg_lgt)
+    !put the optional tag
+    if (present(tag) .and. len_trim(tag) > 0) then
+       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
+    end if
     !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+    if (present(label) .and. len_trim(label) > 0) then
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
+    !put a space
+    call buffer_string(towrite,len(towrite),' ',msg_lgt)
 
     !while putting the message verify that the string is not too long
     msg_lgt_ck=msg_lgt
     !print *, 'here'
-    call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
+    if (len_trim(mapvalue) == 0) then
+       call buffer_string(towrite,len(towrite),"~",msg_lgt,istat=ierr)
+    else
+       call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
+    end if
     !print *, 'here2',ierr
     if (ierr ==0) then
        call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING,istat=ierr)
