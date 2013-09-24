@@ -50,6 +50,6 @@ for scientific work.
 @dir ./PSolver/tests
 @brief Contains some tests for the PSolver library
 
-@defgroup PSolver The PSolver library
+@defgroup PSOLVER The PSolver library
 @brief Interpolating scaling function Poisson Solver Library
 */

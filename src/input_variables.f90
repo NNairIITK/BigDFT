@@ -2275,7 +2275,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   type(input_variables), intent(inout) :: in
   type(dictionary), pointer :: dict
   type(symmetry_data), intent(in) :: sym
-  character(len = 1), intent(in) :: geocode
+  character(len = 1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   real(gp), intent(in) :: alat(3)
   !local variables
   logical :: lstat

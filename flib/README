@@ -20,7 +20,7 @@ The <tt>src</tt> directory contains the different routine of the flib library:
 The <tt>tests</tt> directory contains some useful examples and tests.
 
 
-@defgroup flib    The Flib library
+@defgroup FLIB    The Flib library
 @brief
   The flib library is a low-level library used by BigDFT in order to do some low-level operations:
   - Define the dictionary type (see @ref flib_dictionary)
@@ -29,32 +29,32 @@ The <tt>tests</tt> directory contains some useful examples and tests.
   - Error handling (see @ref flib_error)
 
 
-@defgroup flib_dictionary   Dictionary type and methods (flib)
-@ingroup flib
+@defgroup FLIB_DICTIONARY   Dictionary type and methods (flib)
+@ingroup FLIB
 @brief Flib dictionary type and its associated methods
 @details
 flib provides an object called dictionary. These dictionaries are used in the other parts of the flib library.
 There are many examples in the file dicts.f90
 
 
-@defgroup flib_yaml  Routines to write YAML output (flib)
-@ingroup flib
+@defgroup FLIB_YAML  Routines to write YAML output (flib)
+@ingroup FLIB
 @brief Flib yaml output routines
 @details
 flib provides routines to display YAML output.
 There are many examples in the files yaml_test.f90 and yaml_invoice.f90.
 
 
-@defgroup flib_memory  Dynamic Memory Management (flib)
-@ingroup flib
+@defgroup FLIB_MEMORY  Dynamic Memory Management (flib)
+@ingroup FLIB
 @brief flib dynamic memory management
 @details
 flib provides routines to allocate, deallocate and trace the dynamic memory.
 There are many examples in the file dynmem.f90
 
 
-@defgroup flib_error  Error Handling (flib)
-@ingroup flib
+@defgroup FLIB_ERROR  Error Handling (flib)
+@ingroup FLIB
 @brief flib error handling routines
 @details
 flib provides routines to handle the exceptions and the errors with a mechanism of callback routines.

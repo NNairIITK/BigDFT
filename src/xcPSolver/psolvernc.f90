@@ -31,19 +31,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode  !< See @link geocode @endlink
-                                           !! Indicates the boundary conditions (BC) of the problem:
-                                           !! 'F' free BC, isolated systems.
-                                           !!     The program calculates the solution as if the given density is
-                                           !!     "alone" in R^3 space.
-                                           !! 'S' surface BC, isolated in y direction, periodic in xz plane                
-                                           !!     The given density is supposed to be periodic in the xz plane,
-                                           !!     so the dimensions in these direction mus be compatible with the FFT
-                                           !!     Beware of the fact that the isolated direction is y!
-                                           !! 'P' periodic BC.
-                                           !!     The density is supposed to be periodic in all the three directions,
-                                           !!     then all the dimensions must be compatible with the FFT.
-                                           !!     No need for setting up the kernel.
+  character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=1), intent(in) :: datacode !< Indicates the distribution of the data of the input/output array:
                                            !! 'G' global data. Each process has the whole array of the density 
                                            !!     which will be overwritten with the whole array of the potential
@@ -547,19 +535,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   use dictionaries, only: f_err_raise
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode  !< @see poisson_solver::coulomb_operator::geocode
-                                           !! Indicates the boundary conditions (BC) of the problem:
-                                           !! 'F' free BC, isolated systems.
-                                           !!     The program calculates the solution as if the given density is
-                                           !!     "alone" in R^3 space.
-                                           !! 'S' surface BC, isolated in y direction, periodic in xz plane                
-                                           !!     The given density is supposed to be periodic in the xz plane,
-                                           !!     so the dimensions in these direction mus be compatible with the FFT
-                                           !!     Beware of the fact that the isolated direction is y!
-                                           !! 'P' periodic BC.
-                                           !!     The density is supposed to be periodic in all the three directions,
-                                           !!     then all the dimensions must be compatible with the FFT.
-                                           !!     No need for setting up the kernel.
+  character(len=1), intent(in) :: geocode  !<  @copydoc poisson_solver::coulomb_operator::geocode
   character(len=1), intent(in) :: datacode !< Indicates the distribution of the data of the input/output array:
                                            !! 'G' global data. Each process has the whole array of the density 
                                            !!     which will be overwritten with the whole array of the potential
@@ -623,7 +599,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
 !!$       use module_base
 !!$       use module_types
 !!$       implicit none
-!!$       character(len=1), intent(in) :: geocode
+!!$       character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
 !!$       character(len=1), intent(in) :: datacode
 !!$       logical, intent(in) :: sumpion
 !!$       integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin

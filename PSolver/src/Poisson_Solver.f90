@@ -36,11 +36,11 @@
 !!           call PSolver(geocode,'G',0,1,nx,ny,nz,0,hx,hy,hz,&
 !!                rhopot,kernel,fake_arr,energy,fake_exc,fake_vxc,0.d0,.false.,1)
 !!       where:
-!!         @param rhopot    is the density on input, and the electrostatic potential on output
-!!                   (an array of dimension(nx,ny,nz))
-!!         @param energy    is the result of @f$ 1/2 \int dx rho(x) potA @f$(x)
-!!         @param fake_arr  is an array of dimension(1), untouched
-!!         @param fake_*xc  values of the XC energies, automatically zero in that case
+!!          rhopot    is the density on input, and the electrostatic potential on output
+!!                    (an array of dimension(nx,ny,nz))
+!!          energy    is the result of @f$ 1/2 \int dx rho(x) potA @f$(x)
+!!          fake_arr  is an array of dimension(1), untouched
+!!          fake_*xc  values of the XC energies, automatically zero in that case
 !!
 !!       Any other changment of the arguments require reading of the documentation.
 !!       See documentations of the Public routines
@@ -53,7 +53,7 @@
 !!    the XC part in the PSolver routine
 !!    Search for
 !!
-!! @ingroup PSolver
+!! @ingroup PSOLVER
 module Poisson_Solver
    use wrapper_linalg
    use wrapper_MPI
@@ -80,9 +80,9 @@ module Poisson_Solver
    !> Defines the fundamental structure for the kernel
    type, public :: coulomb_operator
       !variables with physical meaning
-      integer :: itype_scf             !< order of the ISF family to be used
-      real(gp) :: mu                   !< inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
-       !> geocode Indicates the boundary conditions (BC) of the problem:
+      integer :: itype_scf             !< Order of the ISF family to be used
+      real(gp) :: mu                   !< Inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
+       !> geocode is used in all the code to specify the boundary conditions (BC) the problem:
        !!          - 'F' free BC, isolated systems.
        !!                The program calculates the solution as if the given density is
        !!                "alone" in R^3 space.

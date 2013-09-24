@@ -8,7 +8,7 @@
 !! For the list of contributors, see ~/AUTHORS 
 
 
-!>   Calculate the values of a scaling function in real uniform grid
+!> Calculate the values of a scaling function in real uniform grid
 subroutine scaling_function(itype,nd,nrange,a,x)
 
   use Poisson_Solver, only: dp
@@ -97,7 +97,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
 END SUBROUTINE scaling_function
 
 
-!>   Calculate the values of the wavelet function in a real uniform mesh.
+!> Calculate the values of the wavelet function in a real uniform mesh.
 subroutine wavelet_function(itype,nd,a,x)
 
   use Poisson_Solver, only: dp
@@ -183,8 +183,8 @@ subroutine wavelet_function(itype,nd,a,x)
 END SUBROUTINE wavelet_function
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! order interpolating scaling function
 subroutine scf_recursion(itype,n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -241,17 +241,15 @@ subroutine zero(n,x)
 END SUBROUTINE zero
 
 
-!>   forward wavelet transform
-!!   nd: length of data set
-!!   nt length of data in data set to be transformed
+!> Forward wavelet transform
 !!   m filter length (m has to be even!)
-!!   x input data, y output data
 subroutine for_trans_8(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -286,17 +284,14 @@ subroutine for_trans_8(nd,nt,x,y)
 END SUBROUTINE for_trans_8
 
 
-!> backward wavelet transform
-!! @param nd   length of data set
-!! @param nt   length of data in data set to be transformed
-!! @param m    filter length (m has to be even!)
-!! @param x    input data, y output data
+!> Backward wavelet transform
 subroutine back_trans_8(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -330,9 +325,7 @@ subroutine back_trans_8(nd,nt,x,y)
         
 END SUBROUTINE back_trans_8
 
-
-
-!>   Tests the 4 orthogonality relations of the filters
+!> Tests the 4 orthogonality relations of the filters
 subroutine ftest_8
   implicit none
   !Arguments
@@ -382,8 +375,8 @@ subroutine ftest_8
 END SUBROUTINE ftest_8
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   8th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 8th-order interpolating scaling function
 subroutine scf_recursion_8(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -427,16 +420,13 @@ END SUBROUTINE scf_recursion_8
 
 
 !> Forward wavelet transform
-!!   @param nd: length of data set
-!!   @param  nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
 subroutine for_trans_14(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -471,16 +461,13 @@ END SUBROUTINE for_trans_14
 
 
 !> Backward wavelet transform
-!!   @param nd  length of data set
-!!   @param nt  length of data in data set to be transformed
-!!   @param m   filter length (m has to be even!)
-!!   @param x   input data, y output data
 subroutine back_trans_14(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -515,7 +502,7 @@ subroutine back_trans_14(nd,nt,x,y)
 END SUBROUTINE back_trans_14
 
 
-!>   Tests the 4 orthogonality relations of the filters
+!> Tests the 4 orthogonality relations of the filters
 subroutine ftest_14
   implicit none
   !Arguments
@@ -565,8 +552,8 @@ subroutine ftest_14
 END SUBROUTINE ftest_14
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   14th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 14th-order interpolating scaling function
 subroutine scf_recursion_14(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -610,16 +597,13 @@ END SUBROUTINE scf_recursion_14
 
 
 !> Forward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
 subroutine for_trans_16(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -653,17 +637,14 @@ subroutine for_trans_16(nd,nt,x,y)
 END SUBROUTINE for_trans_16
 
 
-!>   backward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Backward wavelet transform
 subroutine back_trans_16(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -697,7 +678,7 @@ subroutine back_trans_16(nd,nt,x,y)
 END SUBROUTINE back_trans_16
 
 
-!>   Tests the 4 orthogonality relations of the filters
+!> Tests the 4 orthogonality relations of the filters
 subroutine ftest_16
   implicit none
   !Arguments
@@ -747,8 +728,8 @@ subroutine ftest_16
 END SUBROUTINE ftest_16
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   16th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 16th-order interpolating scaling function
 subroutine scf_recursion_16(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -791,17 +772,14 @@ subroutine scf_recursion_16(n_iter,n_range,kernel_scf,kern_1_scf)
 END SUBROUTINE scf_recursion_16
 
 
-!>   forward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Forward wavelet transform
 subroutine for_trans_20(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -835,17 +813,14 @@ subroutine for_trans_20(nd,nt,x,y)
 END SUBROUTINE for_trans_20
 
 
-!>   backward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Backward wavelet transform
 subroutine back_trans_20(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -880,8 +855,7 @@ END SUBROUTINE back_trans_20
 
 
 
-!>   Tests the 4 orthogonality relations of the filters
-!!
+!> Tests the 4 orthogonality relations of the filters
 subroutine ftest_20
   implicit none
   !Arguments
@@ -931,8 +905,8 @@ subroutine ftest_20
 END SUBROUTINE ftest_20
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   16th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 20th-order interpolating scaling function
 subroutine scf_recursion_20(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -975,17 +949,14 @@ subroutine scf_recursion_20(n_iter,n_range,kernel_scf,kern_1_scf)
 END SUBROUTINE scf_recursion_20
 
 
-!>   forward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Forward wavelet transform
 subroutine for_trans_24(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1019,17 +990,14 @@ subroutine for_trans_24(nd,nt,x,y)
 END SUBROUTINE for_trans_24
 
 
-!>   backward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Backward wavelet transform
 subroutine back_trans_24(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1063,7 +1031,7 @@ subroutine back_trans_24(nd,nt,x,y)
 END SUBROUTINE back_trans_24
 
 
-!>   Tests the 4 orthogonality relations of the filters
+!> Tests the 4 orthogonality relations of the filters
 subroutine ftest_24
   implicit none
   !Arguments
@@ -1113,8 +1081,8 @@ subroutine ftest_24
 END SUBROUTINE ftest_24
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   16th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 24th-order interpolating scaling function
 subroutine scf_recursion_24(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -1157,17 +1125,14 @@ subroutine scf_recursion_24(n_iter,n_range,kernel_scf,kern_1_scf)
 END SUBROUTINE scf_recursion_24
 
 
-!>   forward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Forward wavelet transform
 subroutine for_trans_30(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1201,17 +1166,14 @@ subroutine for_trans_30(nd,nt,x,y)
 END SUBROUTINE for_trans_30
 
 
-!>   backward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Backward wavelet transform
 subroutine back_trans_30(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1245,8 +1207,8 @@ subroutine back_trans_30(nd,nt,x,y)
 END SUBROUTINE back_trans_30
 
 
-!>   Tests the 4 orthogonality relations of the filters
-subroutine ftest_30
+!> Tests the 4 orthogonality relations of the filters
+subroutine ftest_30()
   implicit none
   !Arguments
   !Local variables
@@ -1295,8 +1257,8 @@ subroutine ftest_30
 END SUBROUTINE ftest_30
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   16th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 30th-order interpolating scaling function
 subroutine scf_recursion_30(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -1339,17 +1301,14 @@ subroutine scf_recursion_30(n_iter,n_range,kernel_scf,kern_1_scf)
 END SUBROUTINE scf_recursion_30
 
 
-!>   forward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Forward wavelet transform
 subroutine for_trans_40(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1383,17 +1342,14 @@ subroutine for_trans_40(nd,nt,x,y)
 END SUBROUTINE for_trans_40
 
 
-!>   backward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Backward wavelet transform
 subroutine back_trans_40(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1427,7 +1383,7 @@ subroutine back_trans_40(nd,nt,x,y)
 END SUBROUTINE back_trans_40
 
 
-!>   Tests the 4 orthogonality relations of the filters
+!> Tests the 4 orthogonality relations of the filters
 subroutine ftest_40
   implicit none
   !Arguments
@@ -1478,8 +1434,8 @@ END SUBROUTINE ftest_40
 
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   16th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 40th-order interpolating scaling function
 subroutine scf_recursion_40(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -1522,17 +1478,14 @@ subroutine scf_recursion_40(n_iter,n_range,kernel_scf,kern_1_scf)
 END SUBROUTINE scf_recursion_40
 
 
-!>   forward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Forward wavelet transform
 subroutine for_trans_50(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1566,17 +1519,14 @@ subroutine for_trans_50(nd,nt,x,y)
 END SUBROUTINE for_trans_50
 
 
-!>   backward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Backward wavelet transform
 subroutine back_trans_50(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1610,7 +1560,7 @@ subroutine back_trans_50(nd,nt,x,y)
 END SUBROUTINE back_trans_50
 
 
-!>   Tests the 4 orthogonality relations of the filters
+!> Tests the 4 orthogonality relations of the filters
 subroutine ftest_50
   implicit none
   !Arguments
@@ -1660,8 +1610,8 @@ subroutine ftest_50
 END SUBROUTINE ftest_50
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   16th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 50th-order interpolating scaling function
 subroutine scf_recursion_50(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -1704,17 +1654,14 @@ subroutine scf_recursion_50(n_iter,n_range,kernel_scf,kern_1_scf)
 END SUBROUTINE scf_recursion_50
 
 
-!>   forward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Forward wavelet transform
 subroutine for_trans_60(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1748,17 +1695,14 @@ subroutine for_trans_60(nd,nt,x,y)
 END SUBROUTINE for_trans_60
 
 
-!>   backward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Backward wavelet transform
 subroutine back_trans_60(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1792,7 +1736,7 @@ subroutine back_trans_60(nd,nt,x,y)
 END SUBROUTINE back_trans_60
 
 
-!>   Tests the 4 orthogonality relations of the filters
+!> Tests the 4 orthogonality relations of the filters
 subroutine ftest_60
   implicit none
   !Arguments
@@ -1842,8 +1786,8 @@ subroutine ftest_60
 END SUBROUTINE ftest_60
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   16th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 60th-order interpolating scaling function
 subroutine scf_recursion_60(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -1886,17 +1830,14 @@ subroutine scf_recursion_60(n_iter,n_range,kernel_scf,kern_1_scf)
 END SUBROUTINE scf_recursion_60
 
 
-!>   forward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Forward wavelet transform
 subroutine for_trans_100(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1930,17 +1871,14 @@ subroutine for_trans_100(nd,nt,x,y)
 END SUBROUTINE for_trans_100
 
 
-!>   backward wavelet transform
-!!   @param nd: length of data set
-!!   @param nt length of data in data set to be transformed
-!!   @param m filter length (m has to be even!)
-!!   @param x input data, y output data
+!> Backward wavelet transform
 subroutine back_trans_100(nd,nt,x,y)
   implicit none
   !Arguments
-  integer, intent(in) :: nd,nt
-  real(kind=8), intent(in) :: x(0:nd-1)
-  real(kind=8), intent(out) :: y(0:nd-1)
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
   !Local variables
   integer :: i,j,ind
 
@@ -1974,7 +1912,7 @@ subroutine back_trans_100(nd,nt,x,y)
 END SUBROUTINE back_trans_100
 
 
-!>   Tests the 4 orthogonality relations of the filters
+!> Tests the 4 orthogonality relations of the filters
 subroutine ftest_100
   implicit none
   !Arguments
@@ -2024,8 +1962,8 @@ subroutine ftest_100
 END SUBROUTINE ftest_100
 
 
-!>   Do iterations to go from p0gauss to pgauss
-!!   16th-order interpolating scaling function
+!> Do iterations to go from p0gauss to pgauss
+!! 100th-order interpolating scaling function
 subroutine scf_recursion_100(n_iter,n_range,kernel_scf,kern_1_scf)
   implicit none
   !Arguments
@@ -2066,5 +2004,3 @@ subroutine scf_recursion_100(n_iter,n_range,kernel_scf,kern_1_scf)
      end do loop_iter_i
   end do loop_iter_scf
 END SUBROUTINE scf_recursion_100
-
-

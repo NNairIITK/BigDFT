@@ -286,7 +286,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   use module_interfaces, fake_name => XC_potential
   use module_xc
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=1), intent(in) :: datacode
   integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,mpi_comm
   integer, intent(in) :: nspin !< Value of the spin-polarisation
@@ -804,7 +804,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   !!       The density is supposed to be periodic in all the three directions,
   !!       then all the dimensions must be compatible with the FFT.
   !!       No need for setting up the kernel.
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: m1,m3     !< Global dimensions in the three directions.
   integer, intent(in) :: nxc       !< Value of the effective distributed dimension in the third direction
   integer, intent(in) :: nwb       !< Enlarged dimension for calculating the WB correction
@@ -1062,7 +1062,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   implicit none
 
   !Arguments----------------------
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   logical, intent(in) :: sumpion
   integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
   integer, intent(in) :: nwbl,nwbr
@@ -1488,7 +1488,7 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,&
 gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr
   real(dp), intent(in) :: hx,hy,hz
   real(dp), dimension(n01,n02,n03,2*nspden-1,0:3), intent(in) :: gradient

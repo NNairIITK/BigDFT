@@ -1341,7 +1341,7 @@ nullify(Qvect,dumQvect)
      use module_types
      use gaussians
      implicit none
-     character(len=1), intent(in) :: geocode
+     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
      integer, intent(in) :: iproc,nproc
      real(gp), intent(in) :: hx,hy,hz
      type(grid_dimensions), intent(in) :: grid

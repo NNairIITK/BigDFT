@@ -209,7 +209,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   implicit none
   
   ! Calling arguments
-  character(len=1),intent(in) :: geocode
+  character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   type(convolutions_bounds),intent(in):: boundsin
   type(convolutions_bounds),intent(inout):: boundsout
   character(len=*),intent(in):: subname
@@ -256,7 +256,7 @@ use module_types
 implicit none
 
 ! Calling arguments
-character(len=1),intent(in) :: geocode 
+character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode 
 type(kinetic_bounds),intent(in):: kbin
 type(kinetic_bounds),intent(inout):: kbout
 character(len=*),intent(in):: subname
@@ -420,7 +420,7 @@ use module_types
 implicit none
 
 ! Calling arguments
-character(len=1), intent(in) :: geocode
+character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
 type(shrink_bounds),intent(in):: sbin
 type(shrink_bounds),intent(inout):: sbout
 character(len=*),intent(in):: subname
@@ -561,7 +561,7 @@ use module_types
 implicit none
 
 ! Calling arguments
-character(len=1),intent(in) :: geocode
+character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
 type(grow_bounds),intent(in):: gbin
 type(grow_bounds),intent(inout):: gbout
 character(len=*),intent(in):: subname

@@ -377,7 +377,7 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,& !n(c) elecfield (arg:9)
   !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
   type(atoms_data), intent(in) :: at

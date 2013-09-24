@@ -362,7 +362,7 @@ END SUBROUTINE preconditionall2
 subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   real(gp), intent(in) :: eval,eval_zero
   real(gp), intent(out) :: cprecr
 
@@ -471,7 +471,7 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -501,7 +501,7 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -705,7 +705,7 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(grid_dimensions), intent(in) :: d
@@ -833,7 +833,7 @@ subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(grid_dimensions), intent(in) :: d
@@ -890,7 +890,7 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(workarr_precond), intent(inout) :: w

@@ -536,7 +536,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   logical, intent(in) :: verb
   real(gp), intent(in) :: hxh,hyh,hzh,psoffset
@@ -1161,7 +1161,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: iproc,nproc,n3pi,i3s
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3), intent(in) :: shift

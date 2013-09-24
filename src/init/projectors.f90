@@ -551,7 +551,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=20), intent(in) :: atomname
   integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f,ncplx
   type(locreg_descriptors),intent(in) :: lr
@@ -689,7 +689,7 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=20), intent(in) :: atomname
   integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f
   integer, intent(in) :: ncplx_k,ncplx_g
@@ -885,7 +885,7 @@ subroutine crtproj(geocode,nterm,lr, &
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: nterm,mvctr_c,mvctr_f,mseg_c,mseg_f
   integer, intent(in) :: ncplx_g,ncplx_k
   real(gp), intent(in) :: hx,hy,hz,rx,ry,rz,kx,ky,kz
@@ -1424,7 +1424,7 @@ END FUNCTION im_cmplx_prod
 subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,rmult,radius
   real(gp), dimension(3), intent(in) :: rxyz

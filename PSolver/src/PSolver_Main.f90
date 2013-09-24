@@ -3,7 +3,7 @@
 !! @author
 !!    Creation date: February 2007
 !!    Luigi Genovese
-!!    Copyright (C) 2002-2011 BigDFT group 
+!!    Copyright (C) 2002-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -11,30 +11,12 @@
 !!
 
 
-!>    Calculate the Hartree potential by solving Poisson equation 
-!!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
-!!    from a given @f$\rho@f$, 
-!!    for different boundary conditions an for different data distributions.
-!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
+!> Calculate the Hartree potential by solving the Poisson equation 
+!! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
+!! from a given @f$\rho@f$, 
+!! for different boundary conditions an for different data distributions.
+!! Following the boundary conditions, it applies the Poisson Kernel previously calculated.
 !!    
-!!  @param geocode Indicates the boundary conditions (BC) of the problem:
-!!          - 'F' free BC, isolated systems.
-!!                The program calculates the solution as if the given density is
-!!                "alone" in R^3 space.
-!!          - 'S' surface BC, isolated in y direction, periodic in xz plane                
-!!                The given density is supposed to be periodic in the xz plane,
-!!                so the dimensions in these direction mus be compatible with the FFT
-!!                Beware of the fact that the isolated direction is y!
-!!          - 'P' periodic BC.
-!!                The density is supposed to be periodic in all the three directions,
-!!                then all the dimensions must be compatible with the FFT.
-!!                No need for setting up the kernel (in principle for Plane Waves)
-!!          - 'W' Wires BC.
-!!                The density is supposed to be periodic in z direction, 
-!!                which has to be compatible with the FFT.
-!!          - 'H' Helmholtz Equation Solver
-!!                ... 
-!!                ...
 !!  @param datacode Indicates the distribution of the data of the input/output array:
 !!          - 'G' global data. Each process has the whole array of the density 
 !!                which will be overwritten with the whole array of the potential.
@@ -79,7 +61,7 @@
 !!
 !! @todo
 !!    Wire boundary condition is missing
-!! @ingroup PSolver
+!! @ingroup PSOLVER
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      quiet,stress_tensor) !optional argument
   use yaml_output
@@ -438,28 +420,13 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
      end if
   end if
 
-
-
 END SUBROUTINE H_potential
 
 
-
-!>    Calculate the dimensions needed for the allocation of the arrays 
-!!    related to the Poisson Solver
+!> Calculate the dimensions needed for the allocation of the arrays 
+!! related to the Poisson Solver
 !!
 !! SYNOPSIS
-!!    @param geocode  Indicates the boundary conditions (BC) of the problem:
-!!            'F' free BC, isolated systems.
-!!                The program calculates the solution as if the given density is
-!!                "alone" in R^3 space.
-!!            'S' surface BC, isolated in y direction, periodic in xz plane                
-!!                The given density is supposed to be periodic in the xz plane,
-!!                so the dimensions in these direction mus be compatible with the FFT
-!!                Beware of the fact that the isolated direction is y!
-!!            'P' periodic BC.
-!!                The density is supposed to be periodic in all the three directions,
-!!                then all the dimensions must be compatible with the FFT.
-!!                No need for setting up the kernel.
 !!    @param datacode Indicates the distribution of the data of the input/output array:
 !!            'G' global data. Each process has the whole array of the density 
 !!                which will be overwritten with the whole array of the potential
@@ -497,15 +464,12 @@ END SUBROUTINE H_potential
 !!    The XC enlarging due to GGA part is not present for surfaces and 
 !!    periodic boundary condition. This is related to the fact that the calculation of the
 !!    gradient and the White-Bird correction are not yet implemented for non-isolated systems
-!! Author:
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2007
-!!
+!! @author Luigi Genovese
+!! @date February 2007
 subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradient,use_wb_corr,&
      n3d,n3p,n3pi,i3xcsh,i3s)
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=1), intent(in) :: datacode
   integer, intent(in) :: iproc,nproc,n01,n02,n03
   logical, intent(in) :: use_gradient, use_wb_corr
@@ -589,13 +553,10 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
 END SUBROUTINE PS_dim4allocation
 
 
-
-!>   Calculate the dimensions to be used for the XC part, taking into account also
-!!   the White-bird correction which should be made for some GGA functionals
+!> Calculate the dimensions to be used for the XC part, taking into account also
+!! the White-bird correction which should be made for some GGA functionals
 !!
 !! SYNOPSIS
-!!    geocode   choice of the boundary conditions
-!!
 !!    @param use_gradient .true. if functional is using the gradient.
 !!    @param use_wb_corr  .true. if functional is using WB corrections.
 !!    @param m2        dimension to be parallelised
@@ -605,18 +566,12 @@ END SUBROUTINE PS_dim4allocation
 !!    @param i3s       starting addres of the distributed dimension
 !!    @param i3xcsh    shift to be applied to i3s for having the striting address of the potential
 !!
-!! @warning
-!!    It is imperative that iend <=m2
-!! Author:
-!!    Luigi Genovese
-!! CREATION DATE
-!!    May 2008
-!!
+!! @warning It is imperative that iend <=m2
 subroutine xc_dimensions(geocode,use_gradient,use_wb_corr,&
      & istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
   implicit none
 
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   logical, intent(in) :: use_gradient, use_wb_corr
   integer, intent(in) :: istart,iend,m2
   integer, intent(out) :: nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh
@@ -684,9 +639,8 @@ subroutine xc_dimensions(geocode,use_gradient,use_wb_corr,&
 END SUBROUTINE xc_dimensions
 
 
-
-!>    Calculate four sets of dimension needed for the calculation of the
-!!    convolution for the periodic system
+!> Calculate four sets of dimension needed for the calculation of the
+!! convolution for the periodic system
 !!
 !!    @param n01,n02,n03 original real dimensions (input)
 !!
@@ -706,11 +660,8 @@ END SUBROUTINE xc_dimensions
 !!    due to the backward-compatibility
 !!    with the other geometries of the Poisson Solver.
 !!    The dimensions 2 and 3 are exchanged.
-!! Author:
-!!    Luigi Genovese
-!! CREATION DATE
-!!    October 2006
-!!
+!! @author Luigi Genovese
+!! @date October 2006
 subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,enlarge_md2)
   !use module_defs, only: md2plus
  implicit none
@@ -788,9 +739,8 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 END SUBROUTINE P_FFT_dimensions
 
 
-
-!>    Calculate four sets of dimension needed for the calculation of the
-!!    convolution for the surface system
+!> Calculate four sets of dimension needed for the calculation of the
+!! convolution for the surface system
 !!
 !! SYNOPSIS
 !!    n01,n02,n03 original real dimensions (input)
@@ -815,11 +765,8 @@ END SUBROUTINE P_FFT_dimensions
 !!    due to the backward-compatibility
 !!    with the Poisson Solver with other geometries.
 !!    Dimensions n02 and n03 were exchanged
-!! Author:
-!!    Luigi Genovese
-!! CREATION DATE
-!!    October 2006
-!!
+!! @author Luigi Genovese
+!! @date October 2006
 subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
  implicit none
  logical, intent(in) :: enlarge_md2
@@ -899,8 +846,9 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 
 END SUBROUTINE S_FFT_dimensions
 
-!>    Calculate four sets of dimension needed for the calculation of the
-!!    convolution for the Wires BC system
+
+!> Calculate four sets of dimension needed for the calculation of the
+!! convolution for the Wires BC system
 !!
 !! SYNOPSIS
 !!    n01,n02,n03 original real dimensions (input)
@@ -925,11 +873,8 @@ END SUBROUTINE S_FFT_dimensions
 !!    due to the backward-compatibility
 !!    with the Poisson Solver with other geometries.
 !!    Dimensions n02 and n03 were exchanged
-!! Author:
-!!    Luigi Genovese
-!! CREATION DATE
-!!    October 2006
-!!
+!! @author Luigi Genovese
+!! @date October 2006
 subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
  implicit none
  logical, intent(in) :: enlarge_md2
@@ -1008,9 +953,8 @@ subroutine W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 END SUBROUTINE W_FFT_dimensions
 
 
-
-!>    Calculate four sets of dimension needed for the calculation of the
-!!    zero-padded convolution
+!> Calculate four sets of dimension needed for the calculation of the
+!! zero-padded convolution
 !!
 !!    @param n01,n02,n03 original real dimensions (input)
 !!
@@ -1032,11 +976,8 @@ END SUBROUTINE W_FFT_dimensions
 !!    The dimension m2 and m3 correspond to n03 and n02 respectively
 !!    this is needed since the convolution routine manage arrays of dimension
 !!    (md1,md3,md2/nproc)
-!! Author:
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2006
-!!
+!! @author Luigi Genovese
+!! @date February 2006
 subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
   !use module_defs, only: md2plus
  implicit none
@@ -1112,4 +1053,3 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  end do
 
 END SUBROUTINE F_FFT_dimensions
-

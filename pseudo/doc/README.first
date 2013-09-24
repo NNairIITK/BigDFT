@@ -1,5 +1,5 @@
 /*! 
-\defgroup pseudo The pseudo program
+@defgroup PSEUDO The pseudo program
 @brief The pseudopotential generation program: The atom and pseudo programs are used to generate the pseudopotentials used by the BigDFT code.
 
 @details

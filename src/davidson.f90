@@ -2116,7 +2116,7 @@ END SUBROUTINE add_confining_potential
 subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rxyz,pot)
    use module_base
    implicit none
-   character(len=1), intent(in) :: geocode
+   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
    integer, intent(in) :: n1i,n2i,n3i,nat
    real(gp), intent(in) :: rlimit,hxh,hyh,hzh
    real(gp), dimension(3,nat), intent(in) :: rxyz

@@ -458,7 +458,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    use module_base
    implicit none
    !Arguments
-   character, intent(in) :: geocode(1)
+   character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,ntypes
    real(gp), intent(in) :: rmult,hx,hy,hz
    integer, dimension(nat), intent(in) :: iatype
@@ -471,7 +471,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    real(gp) :: dx,dy2,dz2,rad
 
    !some checks
-   if (geocode(1) /= 'F') then
+   if (geocode(1:1) /= 'F') then
       !the nbuf value makes sense only in the case of free BC
       if (nbuf /=0) then
          write(*,'(1x,a)')'ERROR: a nonzero value of nbuf is allowed only for Free BC (tails)'
@@ -484,7 +484,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       end if
    end if
 
-   if (geocode(1) == 'F') then
+   if (geocode(1:1) == 'F') then
       do i3=nl3,nu3 
          do i2=nl2,nu2 
             do i1=nl1,nu1
@@ -524,7 +524,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          mu3=floor((rxyz(3,iat)+rad)/hz + eps_mach)
 
          !for Free BC, there must be no incoherences with the previously calculated delimiters
-         if (geocode(1) == 'F') then
+         if (geocode(1:1) == 'F') then
            if (ml1 < nl1) then
                write(*,'(a,i0,3x,i0)')  'ERROR: ml1 < nl1  ', ml1, nl1
                stop

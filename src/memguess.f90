@@ -865,7 +865,7 @@ END SUBROUTINE shift_periodic_directions
 subroutine calc_vol(geocode,nat,rxyz,vol)
    use module_base
    implicit none
-   character(len=1), intent(in) :: geocode
+   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
    integer, intent(in) :: nat
    real(gp), dimension(3,nat), intent(in) :: rxyz
    real(gp), intent(out) :: vol

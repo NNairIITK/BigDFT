@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 ! Init and free routines
 !> Allocate a new atoms_data type, for bindings.
 subroutine atoms_new(atoms)
@@ -26,6 +27,7 @@ subroutine atoms_free(atoms)
   call deallocate_atoms(atoms, "atoms_free")
   deallocate(atoms)
 END SUBROUTINE atoms_free
+
 
 subroutine astruct_nullify(astruct)
   use module_types
@@ -80,6 +82,7 @@ subroutine atoms_nullify(atoms)
   nullify(atoms%paw_S_matrices)
   nullify(atoms%paw_Sm1_matrices)
 end subroutine atoms_nullify
+
 
 !> Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
@@ -418,7 +421,7 @@ subroutine astruct_set_displacement(astruct, randdis)
   use module_types
   implicit none
   type(atomic_structure), intent(inout) :: astruct
-  real(gp), intent(in) :: randdis                                 !< random displacement
+  real(gp), intent(in) :: randdis !< random displacement
 
   integer :: iat
   real(gp) :: tt
@@ -680,6 +683,7 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   astruct%atomnames(1:astruct%ntypes)=atomnames(1:astruct%ntypes)
 END SUBROUTINE read_xyz_positions
 
+
 !> Read atomic positions of ascii files.
 subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   use yaml_output
@@ -931,6 +935,7 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   astruct%atomnames(1:astruct%ntypes)=atomnames(1:astruct%ntypes)
 END SUBROUTINE read_ascii_positions
 
+
 subroutine read_yaml_positions(filename, astruct, comment, energy, fxyz)
   use module_base
   use module_types
@@ -1061,6 +1066,7 @@ subroutine read_yaml_positions(filename, astruct, comment, energy, fxyz)
   call memocc(i_stat,i_all,'igchrg',subname)
 END SUBROUTINE read_yaml_positions
 
+
 !> Find extra information
 subroutine find_extra_info(line,extra)
   implicit none
@@ -1177,6 +1183,7 @@ contains
   
 END SUBROUTINE parse_extra_info
 
+
 subroutine valid_frzchain(frzchain,go)
   implicit none
   character(len=*), intent(in) :: frzchain
@@ -1274,7 +1281,7 @@ subroutine check_atoms_positions(astruct, simplify)
 END SUBROUTINE check_atoms_positions
 
 
-!>Write xyz atomic file.
+!> Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -1371,7 +1378,7 @@ subroutine wtxyz_forces(iunit,fxyz,at)
   
 end subroutine wtxyz_forces
 
-!>Write ascii file (atomic position). 
+!> Write ascii file (atomic position). 
 subroutine wtascii(iunit,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -1437,8 +1444,8 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
      write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor(j),j=1,3),symbol,extra
   end do
 
-
 END SUBROUTINE wtascii
+
 
 subroutine wtascii_forces(iunit,fxyz,at)
   use module_base
@@ -1471,6 +1478,7 @@ subroutine wtascii_forces(iunit,fxyz,at)
      write(iunit, "(A,3(1pe25.17,A),a)") "# ",(fxyz(j,iat), ";",j=1,3),' '//endline
   end do
 end subroutine wtascii_forces
+
 
 !>Write the extra info necessary for the output file
 subroutine write_extra_info(extra,natpol,ifrztyp)
@@ -1517,7 +1525,8 @@ subroutine frozen_itof(ifrztyp,frzchain)
         
 END SUBROUTINE frozen_itof
 
-!>Write yaml atomic file.
+
+!> Write yaml atomic file.
 subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
   use module_base
   use module_types
@@ -1663,8 +1672,8 @@ contains
 end subroutine wtyaml
 
 
-!>Calculate the charge and the spin polarisation to be placed on a given atom
-!!   RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
+!> Calculate the charge and the spin polarisation to be placed on a given atom
+!! RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
 subroutine charge_and_spol(natpol,nchrg,nspol)
   implicit none
   integer, intent(in) :: natpol
@@ -1682,7 +1691,6 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
   nspol=natpol-1000*nchrg-nsgn*100
 
 END SUBROUTINE charge_and_spol
-
 
 
 subroutine astruct_set_from_file(lstat, astruct, filename)
@@ -1717,6 +1725,8 @@ subroutine atoms_write(atoms, filename, forces, energy, comment)
      call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment)
   end if
 END SUBROUTINE atoms_write
+
+
 !> Deallocate a new atoms_data type, for bindings.
 subroutine atoms_empty(atoms)
   use module_types
@@ -1726,15 +1736,17 @@ subroutine atoms_empty(atoms)
   call deallocate_atoms(atoms, "atoms_empty")
 END SUBROUTINE atoms_empty
 
-! Set routines for bindings
+
+!> Set routines for bindings
 subroutine atoms_read_variables(atoms, nspin, occup, ln)
   use module_types
   use memory_profiling
   implicit none
+  !Arguments
   type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: nspin, ln
-  character, intent(in) :: occup(ln)
-
+  character(len=1), dimension(ln), intent(in) :: occup
+  !Local variables
   integer :: i
   character(len = 1024) :: filename_
 
@@ -1745,21 +1757,25 @@ subroutine atoms_read_variables(atoms, nspin, occup, ln)
 
   call read_atomic_variables(atoms, trim(filename_), nspin)
 END SUBROUTINE atoms_read_variables
+
+
 subroutine atoms_set_name(atoms, ityp, name)
   use module_types
   implicit none
   type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: ityp
-  character, intent(in) :: name(20)
+  character(len=1), dimension(20), intent(in) :: name
 
   write(atoms%astruct%atomnames(ityp), "(20A1)") name
 END SUBROUTINE atoms_set_name
+
+
 subroutine astruct_set_geometry(astruct, alat, geocode, format, units)
   use module_types
   implicit none
   type(atomic_structure), intent(inout) :: astruct
   real(gp), intent(in) :: alat(3)
-  character, intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character, intent(in) :: format(5)
   character, intent(in) :: units(20)
 
@@ -1769,7 +1785,7 @@ subroutine astruct_set_geometry(astruct, alat, geocode, format, units)
   write(astruct%units, "(20A1)") units
 END SUBROUTINE astruct_set_geometry
 
-! Accessors for bindings.
+!> Accessors for bindings.
 subroutine atoms_get(atoms, astruct, symObj)
   use module_types
   implicit none
@@ -1780,6 +1796,8 @@ subroutine atoms_get(atoms, astruct, symObj)
   astruct => atoms%astruct
   symObj => atoms%astruct%sym
 END SUBROUTINE atoms_get
+
+
 subroutine astruct_copy_nat(astruct, nat)
   use module_types
   implicit none
@@ -1788,6 +1806,8 @@ subroutine astruct_copy_nat(astruct, nat)
 
   nat = astruct%nat
 END SUBROUTINE astruct_copy_nat
+
+
 subroutine astruct_copy_ntypes(astruct, ntypes)
   use module_types
   implicit none
@@ -1796,6 +1816,8 @@ subroutine astruct_copy_ntypes(astruct, ntypes)
 
   ntypes = astruct%ntypes
 END SUBROUTINE astruct_copy_ntypes
+
+
 subroutine atoms_get_iatype(atoms, iatype)
   use module_types
   implicit none
@@ -1804,6 +1826,8 @@ subroutine atoms_get_iatype(atoms, iatype)
 
   iatype => atoms%astruct%iatype
 END SUBROUTINE atoms_get_iatype
+
+
 subroutine atoms_get_iasctype(atoms, iasctype)
   use module_types
   implicit none
@@ -1812,6 +1836,8 @@ subroutine atoms_get_iasctype(atoms, iasctype)
 
   iasctype => atoms%iasctype
 END SUBROUTINE atoms_get_iasctype
+
+
 subroutine atoms_get_natpol(atoms, natpol)
   use module_types
   implicit none
@@ -1820,6 +1846,8 @@ subroutine atoms_get_natpol(atoms, natpol)
 
   natpol => atoms%astruct%input_polarization
 END SUBROUTINE atoms_get_natpol
+
+
 subroutine atoms_get_ifrztyp(atoms, ifrztyp)
   use module_types
   implicit none
@@ -1828,6 +1856,8 @@ subroutine atoms_get_ifrztyp(atoms, ifrztyp)
 
   ifrztyp => atoms%astruct%ifrztyp
 END SUBROUTINE atoms_get_ifrztyp
+
+
 subroutine atoms_get_rxyz(atoms, rxyz)
   use module_types
   implicit none
@@ -1836,6 +1866,8 @@ subroutine atoms_get_rxyz(atoms, rxyz)
 
   rxyz => atoms%astruct%rxyz
 END SUBROUTINE atoms_get_rxyz
+
+
 subroutine atoms_get_nelpsp(atoms, nelpsp)
   use module_types
   implicit none
@@ -1844,6 +1876,8 @@ subroutine atoms_get_nelpsp(atoms, nelpsp)
 
   nelpsp => atoms%nelpsp
 END SUBROUTINE atoms_get_nelpsp
+
+
 subroutine atoms_get_npspcode(atoms, npspcode)
   use module_types
   implicit none
@@ -1852,6 +1886,8 @@ subroutine atoms_get_npspcode(atoms, npspcode)
 
   npspcode => atoms%npspcode
 END SUBROUTINE atoms_get_npspcode
+
+
 subroutine atoms_get_nzatom(atoms, nzatom)
   use module_types
   implicit none
@@ -1860,6 +1896,8 @@ subroutine atoms_get_nzatom(atoms, nzatom)
 
   nzatom => atoms%nzatom
 END SUBROUTINE atoms_get_nzatom
+
+
 subroutine atoms_get_nlcc_ngv(atoms, nlcc_ngv)
   use module_types
   implicit none
@@ -1876,6 +1914,8 @@ subroutine atoms_get_nlcc_ngc(atoms, nlcc_ngc)
 
   nlcc_ngc => atoms%nlcc_ngc
 END SUBROUTINE atoms_get_nlcc_ngc
+
+
 subroutine atoms_get_ixcpsp(atoms, ixcpsp)
   use module_types
   implicit none
@@ -1884,6 +1924,8 @@ subroutine atoms_get_ixcpsp(atoms, ixcpsp)
 
   ixcpsp => atoms%ixcpsp
 END SUBROUTINE atoms_get_ixcpsp
+
+
 subroutine atoms_get_amu(atoms, amu)
   use module_types
   implicit none
@@ -1949,7 +1991,7 @@ subroutine astruct_copy_geometry_data(astruct, geocode, format, units)
   use module_types
   implicit none
   type(atomic_structure), intent(in) :: astruct
-  character(len = 1), intent(out) :: geocode
+  character(len = 1), intent(out) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len = 5), intent(out) :: format
   character(len = 20), intent(out) :: units
 
@@ -2009,6 +2051,7 @@ subroutine astruct_copy_alat(astruct, alat)
   alat(3) = astruct%cell_dim(3)
 END SUBROUTINE astruct_copy_alat
 
+
 subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
   use module_base
   use module_types
@@ -2017,7 +2060,7 @@ subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
   implicit none
   type(symmetry_data), intent(inout) :: sym
   integer, intent(in) :: n1i, n2i, n3i, nspin
-  character, intent(in) :: geocode
+  character, intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
 
   character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
   integer :: i_stat, nsym, i_all, i_third

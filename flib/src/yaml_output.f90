@@ -77,7 +77,7 @@ module yaml_output
 
   !> Generic routine to create a yaml map as foo: 1
   !! as call yaml_map('foo',1)
-  !! @ingroup flib_yaml
+  !! @ingroup FLIB_YAML
   !! @param mapname  Key of the map i.e. 'foo'
   !! @param mapvalue Value of the map i.e. 1
   !! @param label    (optional) Label (&xxx) to refer to the map
@@ -132,21 +132,21 @@ contains
     nullify(strm%dict_warning)
   end function stream_null
 
-  !>initialize the variables of the module, like error definitions.
+  !> Initialize the variables of the module, like error definitions.
   !! should be called only once unless the module has been closed by close_all_streams
   subroutine assure_initialization()
-    implicit none
-    if (.not. module_initialized) module_initialized=associated(f_get_error_definitions)
-
-    if (.not. module_initialized) then
-       stop 'yaml_output module not initialized, f_lib_initialize not called'
-       !module_initialized=.true.
-       !call yaml_output_errors()
-    end if
+     implicit none
+     if (.not. module_initialized) module_initialized=associated(f_get_error_definitions)
+     
+     if (.not. module_initialized) then
+        stop 'yaml_output module not initialized, f_lib_initialize not called'
+        !module_initialized=.true.
+        !call yaml_output_errors()
+     end if
 
   end subroutine assure_initialization
   
-  !> Set @new_unit as the new default unit and return the old default unit.
+  !> Set new_unit as the new default unit and return the old default unit.
   subroutine yaml_swap_stream(new_unit, old_unit, ierr)
     implicit none
     integer, intent(in) :: new_unit
@@ -375,7 +375,7 @@ contains
   !! Put document_closed to .false.
   !! Check if already used before yaml_release_document by testing document_closed
   !! In this case, do nothing
-  !! @ingroup flib_yaml
+  !! @ingroup FLIB_YAML
   subroutine yaml_new_document(unit)
     implicit none
     integer, optional, intent(in) :: unit !< Unit of the stream
@@ -401,7 +401,7 @@ contains
 
 
   !> After this routine is called, the new_document will become effective again
-  !! @ingroup flib_yaml
+  !! @ingroup FLIB_YAML
   subroutine yaml_release_document(unit)
     implicit none
     integer, optional, intent(in) :: unit  !< Stream Identity number
@@ -660,7 +660,7 @@ contains
 
 
   !> Open a yaml map (dictionary)
-  !! @ingroup flib_yaml
+  !! @ingroup FLIB_YAML
   subroutine yaml_open_map(mapname,label,tag,flow,unit)
     implicit none
     integer, optional, intent(in) :: unit
@@ -715,7 +715,7 @@ contains
 
 
   !> Close the map
-  !! @ingroup flib_yaml
+  !! @ingroup FLIB_YAML
   subroutine yaml_close_map(advance,unit)
     implicit none
     integer, optional, intent(in) :: unit

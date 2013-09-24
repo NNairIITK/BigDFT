@@ -558,7 +558,7 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   use module_interfaces, except_this_one => read_density
   implicit none
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
@@ -688,7 +688,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(dp), dimension(n1i,n2i,max(n3p,1),nspin), intent(out) :: pot
   !local variables
@@ -740,7 +740,7 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
@@ -803,7 +803,7 @@ contains
     use module_types
     implicit none
     character(len=*), intent(in) :: filename
-    character(len=1), intent(in) :: geocode
+    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
     integer, intent(in) :: nspin
     integer, intent(out) :: n1i,n2i,n3i
     real(gp), intent(out) :: hxh,hyh,hzh
@@ -911,7 +911,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: n1i,n2i,n3i
   real(dp), dimension(n1i*n2i*n3i) :: rho
   !local variables

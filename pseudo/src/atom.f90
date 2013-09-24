@@ -32,7 +32,7 @@
 
 
  !> Calculate the all-electron electronic structure for one atom
- !! @ingroup pseudo
+ !! @ingroup PSEUDO
 program ae_atom
 
    implicit none
@@ -271,7 +271,7 @@ program ae_atom
          ! diverging - reduce mixing coefficient
          if (xmixo < xmixo_min) xmixo = xmixo_min
          dvold = dvmax
-         write(6,'(1x,a,i5,1x,a,1pe10.3,1x,a,1pe10.3)') 'iter =', iter, 'dvmax =', dvmax, 'xmixo =', xmixo
+         write(6,'(1x,a,i5,1x,a,1pe19.12,1x,a,1pe19.12)') 'iter =', iter, 'dvmax =', dvmax, 'xmixo =', xmixo
 
          ! mix input and output electronic potentials
          call mixer(xmixo,nr,vid,viu,vod,vou)
@@ -380,8 +380,7 @@ subroutine prdiff(nconf,econf)
       nconf = 0
       return
    end if
-   write(6,*)
-   write(6,*) '---------------------------------------------'
+   write(6,'(/,a)') '---------------------------------------------'
    write(6,'(" Total energy differences",//,2x,19i9)') (i,i=0,nconf-1)
    do i=1,nconf
       write(6,'(1x,i2,1x,19f9.5)') i-1,(0.5d0*(econf(i)-econf(j)),j=1,i)
@@ -901,7 +900,7 @@ subroutine input(itype,iXC,ispp,  &
       else
          read(instrg(j1:j2),*,iostat=ierr) iXC
          if (ierr/=0) then
-          write(6,*)'Could not read the XC input in atom.dat'
+          write(6,'(1x,a)' ) 'Could not read the XC input in atom.dat'
           stop
          end if
       end if
@@ -916,14 +915,13 @@ subroutine input(itype,iXC,ispp,  &
       ispp=instrg(j1:j1)
       if (ispp=='R') ispp='r'
       if (ispp/='r'.and.ispp/='n'.and.ispp/='s') then
-         write(6,*) 'The first non-blank character on line 3'
-         write(6,*) 'of atom.dat must be one of'
-         write(6,*) 'n: for non relativistic calculations'
-         write(6,*) 'r: for relativistic calculations'
-         write(6,*) 's: for (relat) spin polarized calculations'
-         write(6,*)
-         write(6,*) 'Character found:',ispp
-         write(6,*) 'Exiting.'
+         write(6,'(1x,a)')       'The first non-blank character on line 3'
+         write(6,'(1x,a)')       'of atom.dat must be one of'
+         write(6,'(1x,a)')       'n: for non relativistic calculations'
+         write(6,'(1x,a)')       'r: for relativistic calculations'
+         write(6,'(1x,a)')       's: for (relat) spin polarized calculations'
+         write(6,'(/,1x,a,1x,a)') 'Character found:',ispp
+         write(6,'(1x,a)')        'Exiting.'
          stop
       end if
 
@@ -1159,7 +1157,7 @@ subroutine input(itype,iXC,ispp,  &
 
     write(6,'(" input data for orbitals",//,"  i    n    l    s     j     occ",/)')
     
-    write(6,'(a)') ' Using LDA for generating the input guess wfn'
+    write(6,'(1x,a)') ' Using LDA for generating the input guess wfn'
     call libxc_functionals_init(-20,nspol)
     
     !write(6,*)' initializing libXC with iXC=',iXC,'spin',nspol

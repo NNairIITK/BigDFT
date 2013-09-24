@@ -8,8 +8,8 @@
 !! For the list of contributors, see ~/AUTHORS 
 
 
-!>  Parallel version of Poisson Solver
-!!  General version, for each boundary condition
+!> Parallel version of Poisson Solver
+!! General version, for each boundary condition
 subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,geocode,ncplx,&
      n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,scal,hx,hy,hz,offset,strten)
   use Poisson_Solver, only: dp, gp
@@ -19,7 +19,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !to be preprocessed
   include 'perfdata.inc'
   !Arguments
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(inout) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx
   integer, intent(in) :: planes_comm,inplane_comm,iproc_inplane
   real(gp), intent(in) :: scal,hx,hy,hz,offset
@@ -668,6 +668,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !write(*,*) 'TIMING:PS ', real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE G_PoissonSolver
 
+
 !> General routine, takes into account the free boundary conditions
 subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
      n1,n1dim,md2,nd3,nproc,zmpi1,zw)
@@ -791,6 +792,7 @@ subroutine G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt,zw)
 
 END SUBROUTINE G_switch_upcorn
 
+
 subroutine G_switch_upcorn2(nfft,n2,n2dim,lot,n1,lzt,zt,zw,n3pr1,zt_init)
   use Poisson_Solver, only: dp
   !use module_base
@@ -820,6 +822,7 @@ subroutine G_switch_upcorn2(nfft,n2,n2dim,lot,n1,lzt,zt,zw,n3pr1,zt_init)
   end do
 
 END SUBROUTINE G_switch_upcorn2
+
 
 !> (Based on suitable modifications of S.Goedecker routines)
 !! Restore data into output array
@@ -866,7 +869,7 @@ subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
 END SUBROUTINE P_unfill_downcorn
 
 
-!>complex output
+!> Complex output
 subroutine C_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   implicit none
   !Arguments
@@ -1338,6 +1341,7 @@ subroutine G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
   end do
 END SUBROUTINE G_unmpiswitch_downcorn
 
+
 subroutine G_unmpiswitch_downcorn2(j3,nfft,Jp2stf,J2stf,lot,n1,&
     n1dim,md2,nd3,n3pr1,n3pr2,zw,zmpi1)
   implicit none
@@ -1575,5 +1579,3 @@ subroutine unscramble_pack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw,cosinarr)
   end do
 
 END SUBROUTINE unscramble_pack
-
-
