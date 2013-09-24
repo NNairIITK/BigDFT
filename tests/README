@@ -32,7 +32,7 @@ export run_parallel=...
 make check
 </pre>
 
-Each internal libraries as @link flib @endlink have also their set of non-regression tests 
+Each internal libraries as @link FLIB @endlink have also their set of non-regression tests 
 (see @link ./flib/tests @endlink).
 
 */
