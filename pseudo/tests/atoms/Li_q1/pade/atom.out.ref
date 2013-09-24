@@ -16,7 +16,7 @@
 
   i    n    l    s     j     occ
 
- Using LDA for generating the input guess wfn
+  Using LDA for generating the input guess wfn
   1    1    0   0.5   0.5    2.0000
   2    2    0   0.5   0.5    1.0000
   3    3    0   0.5   0.5    0.0000
@@ -40,51 +40,51 @@
  r(1) = .0 , r(2) = 2.515678E-07 , ... , r( 880) = 34.48229717
  a = 10.01094121  b = 60.00000000
 
- iter =    1 dvmax = 2.754E-01 xmixo = 4.343E-01
- iter =    2 dvmax = 1.297E-01 xmixo = 4.343E-01
- iter =    3 dvmax = 5.824E-02 xmixo = 4.343E-01
- iter =    4 dvmax = 2.533E-02 xmixo = 4.343E-01
- iter =    5 dvmax = 1.085E-02 xmixo = 4.343E-01
- iter =    6 dvmax = 4.625E-03 xmixo = 4.343E-01
- iter =    7 dvmax = 2.244E-03 xmixo = 4.343E-01
- iter =    8 dvmax = 1.334E-03 xmixo = 4.343E-01
- iter =    9 dvmax = 7.839E-04 xmixo = 4.343E-01
- iter =   10 dvmax = 4.568E-04 xmixo = 4.343E-01
- iter =   11 dvmax = 2.646E-04 xmixo = 4.343E-01
- iter =   12 dvmax = 1.526E-04 xmixo = 4.343E-01
- iter =   13 dvmax = 8.770E-05 xmixo = 4.343E-01
- iter =   14 dvmax = 5.029E-05 xmixo = 4.343E-01
- iter =   15 dvmax = 2.880E-05 xmixo = 4.343E-01
- iter =   16 dvmax = 1.647E-05 xmixo = 4.343E-01
- iter =   17 dvmax = 9.478E-06 xmixo = 4.343E-01
- iter =   18 dvmax = 5.503E-06 xmixo = 4.343E-01
- iter =   19 dvmax = 3.178E-06 xmixo = 4.343E-01
- iter =   20 dvmax = 1.827E-06 xmixo = 4.343E-01
- iter =   21 dvmax = 1.046E-06 xmixo = 4.343E-01
- iter =   22 dvmax = 5.979E-07 xmixo = 4.343E-01
- iter =   23 dvmax = 3.409E-07 xmixo = 4.343E-01
- iter =   24 dvmax = 1.941E-07 xmixo = 4.343E-01
- iter =   25 dvmax = 1.103E-07 xmixo = 4.343E-01
- iter =   26 dvmax = 6.266E-08 xmixo = 4.343E-01
- iter =   27 dvmax = 3.618E-08 xmixo = 4.343E-01
- iter =   28 dvmax = 2.283E-08 xmixo = 4.343E-01
- iter =   29 dvmax = 1.434E-08 xmixo = 4.343E-01
- iter =   30 dvmax = 8.998E-09 xmixo = 4.343E-01
- iter =   31 dvmax = 5.637E-09 xmixo = 4.343E-01
- iter =   32 dvmax = 3.517E-09 xmixo = 4.343E-01
- iter =   33 dvmax = 2.189E-09 xmixo = 4.343E-01
- iter =   34 dvmax = 1.358E-09 xmixo = 4.343E-01
- iter =   35 dvmax = 8.403E-10 xmixo = 4.343E-01
- iter =   36 dvmax = 5.191E-10 xmixo = 4.343E-01
- iter =   37 dvmax = 3.199E-10 xmixo = 4.343E-01
- iter =   38 dvmax = 1.968E-10 xmixo = 4.343E-01
- iter =   39 dvmax = 1.208E-10 xmixo = 4.343E-01
- iter =   40 dvmax = 7.413E-11 xmixo = 4.343E-01
- iter =   41 dvmax = 4.541E-11 xmixo = 4.343E-01
- iter =   42 dvmax = 2.777E-11 xmixo = 4.343E-01
- iter =   43 dvmax = 1.697E-11 xmixo = 4.343E-01
- iter =   44 dvmax = 1.036E-11 xmixo = 4.343E-01
- iter =   45 dvmax = 6.321E-12 xmixo = 4.343E-01
+ iter =    1 dvmax = 2.754332074251E-01 xmixo = 4.342944819033E-01
+ iter =    2 dvmax = 1.296508643035E-01 xmixo = 4.342944819033E-01
+ iter =    3 dvmax = 5.823514827892E-02 xmixo = 4.342944819033E-01
+ iter =    4 dvmax = 2.532930807809E-02 xmixo = 4.342944819033E-01
+ iter =    5 dvmax = 1.085326427551E-02 xmixo = 4.342944819033E-01
+ iter =    6 dvmax = 4.624519083436E-03 xmixo = 4.342944819033E-01
+ iter =    7 dvmax = 2.243800340583E-03 xmixo = 4.342944819033E-01
+ iter =    8 dvmax = 1.333964779777E-03 xmixo = 4.342944819033E-01
+ iter =    9 dvmax = 7.838568727975E-04 xmixo = 4.342944819033E-01
+ iter =   10 dvmax = 4.567817989564E-04 xmixo = 4.342944819033E-01
+ iter =   11 dvmax = 2.645715880847E-04 xmixo = 4.342944819033E-01
+ iter =   12 dvmax = 1.525545425522E-04 xmixo = 4.342944819033E-01
+ iter =   13 dvmax = 8.770075040591E-05 xmixo = 4.342944819033E-01
+ iter =   14 dvmax = 5.029319229746E-05 xmixo = 4.342944819033E-01
+ iter =   15 dvmax = 2.879544855362E-05 xmixo = 4.342944819033E-01
+ iter =   16 dvmax = 1.646729125083E-05 xmixo = 4.342944819033E-01
+ iter =   17 dvmax = 9.477554680953E-06 xmixo = 4.342944819033E-01
+ iter =   18 dvmax = 5.503468040742E-06 xmixo = 4.342944819033E-01
+ iter =   19 dvmax = 3.177543374686E-06 xmixo = 4.342944819033E-01
+ iter =   20 dvmax = 1.826603127290E-06 xmixo = 4.342944819033E-01
+ iter =   21 dvmax = 1.046466392064E-06 xmixo = 4.342944819033E-01
+ iter =   22 dvmax = 5.979399291322E-07 xmixo = 4.342944819033E-01
+ iter =   23 dvmax = 3.409459143362E-07 xmixo = 4.342944819033E-01
+ iter =   24 dvmax = 1.940866441035E-07 xmixo = 4.342944819033E-01
+ iter =   25 dvmax = 1.103395248730E-07 xmixo = 4.342944819033E-01
+ iter =   26 dvmax = 6.266169036298E-08 xmixo = 4.342944819033E-01
+ iter =   27 dvmax = 3.617982474569E-08 xmixo = 4.342944819033E-01
+ iter =   28 dvmax = 2.283081062024E-08 xmixo = 4.342944819033E-01
+ iter =   29 dvmax = 1.434418400073E-08 xmixo = 4.342944819033E-01
+ iter =   30 dvmax = 8.998446821886E-09 xmixo = 4.342944819033E-01
+ iter =   31 dvmax = 5.637069322969E-09 xmixo = 4.342944819033E-01
+ iter =   32 dvmax = 3.517305794815E-09 xmixo = 4.342944819033E-01
+ iter =   33 dvmax = 2.189208037872E-09 xmixo = 4.342944819033E-01
+ iter =   34 dvmax = 1.358229106920E-09 xmixo = 4.342944819033E-01
+ iter =   35 dvmax = 8.403027255888E-10 xmixo = 4.342944819033E-01
+ iter =   36 dvmax = 5.190728585408E-10 xmixo = 4.342944819033E-01
+ iter =   37 dvmax = 3.199225244600E-10 xmixo = 4.342944819033E-01
+ iter =   38 dvmax = 1.967785076446E-10 xmixo = 4.342944819033E-01
+ iter =   39 dvmax = 1.208454537117E-10 xmixo = 4.342944819033E-01
+ iter =   40 dvmax = 7.412723267519E-11 xmixo = 4.342944819033E-01
+ iter =   41 dvmax = 4.540525820190E-11 xmixo = 4.342944819033E-01
+ iter =   42 dvmax = 2.777166678287E-11 xmixo = 4.342944819033E-01
+ iter =   43 dvmax = 1.696855853674E-11 xmixo = 4.342944819033E-01
+ iter =   44 dvmax = 1.035717999995E-11 xmixo = 4.342944819033E-01
+ iter =   45 dvmax = 6.320756636226E-12 xmixo = 4.342944819033E-01
 
  rcov         =   3.3999999999999999
  charge(rcov) = int_0^rcov g^2 r^2 dr   +  int_0^infinity f^2 r^2 dr
