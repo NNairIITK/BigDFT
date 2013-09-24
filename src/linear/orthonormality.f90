@@ -229,15 +229,16 @@ call timing(iproc,'misc','ON')
              tmp_mat_compr(ii)=0.d0
          end if
      end if
-     if (iorb==jorb) then
-         orbs%eval(iorb)=lagmat%matrix_compr(ii)
-     end if
+     !!if (iorb==jorb) then
+     !!    orbs%eval(iorb)=lagmat%matrix_compr(ii)
+     !!end if
   end do
 
   ! NEW: reactivate correction for non-orthogonality ##########
   if (correction_orthoconstraint==0) then
       ! WARNING: it is mandatory that the overlap matrix has been calculated before
       !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
+      if (iproc==0) write(*,*) 'correction orthoconstraint'
       allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb))
       call uncompressMatrix(iproc,linmat%ovrlp)
       allocate(tmp_mat(orbs%norb,orbs%norb))

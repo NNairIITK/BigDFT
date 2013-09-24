@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis)
+subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => optimizeDIIS
@@ -21,6 +21,8 @@ type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(npsidim),intent(in):: hphi
 real(8),dimension(npsidim),intent(inout):: phi
 type(localizedDIISParameters),intent(inout):: ldiis
+logical,intent(in) :: experimental_mode                       
+
 
 ! Local variables
 integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, info
@@ -131,9 +133,12 @@ do iorb=1,orbs%norbp
         mat(i,min(ldiis%isx,ldiis%is)+1)=1.d0
         rhs(i)=0.d0
         do j=i,min(ldiis%isx,ldiis%is)
-            !mat(i,j)=ldiis%mat(i,j,iorb)
-            if (iproc==0) write(*,*) 'WARNING: TAKING ONE SINGLE MATRIX!!'
-            mat(i,j)=totmat(i,j)
+            if (experimental_mode) then
+                if (iproc==0) write(*,*) 'WARNING: TAKING ONE SINGLE MATRIX!!'
+                mat(i,j)=totmat(i,j)
+            else
+                mat(i,j)=ldiis%mat(i,j,iorb)
+            end if
             !if(iproc==0) write(*,'(a,2i8,es14.3)') 'i, j, mat(i,j)', i, j, mat(i,j)
             !!write(*,'(a,3i8,es14.3)') 'proc, i, j, mat(i,j)', iproc, i, j, mat(i,j)
         end do

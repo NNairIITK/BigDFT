@@ -400,7 +400,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
     reduce_conf,fix_supportfunctions,nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit,deltaenergy_multiplier_TMBfix,&
-    ratio_deltas,ortho_on,extra_states,itout)
+    ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode)
   !
   ! Purpose:
   ! ========
@@ -438,6 +438,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical, intent(inout) :: ortho_on
   integer, intent(in) :: extra_states
   integer,intent(in) :: itout
+  real(kind=8),intent(in) :: conv_crit
+  logical,intent(in) :: experimental_mode
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
@@ -628,8 +630,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF')
 
-      if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
-                    energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
+      !if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
+      !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
@@ -705,7 +707,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
               meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
-              hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, hpsi_noprecond)
+              hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
+              experimental_mode, hpsi_noprecond)
       !else
       !   call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, &
       !        fnrm, fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, &
@@ -738,15 +741,17 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
 
-      if (it_tot==1) then
-          energy_first=trH
-      end if
-      if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
-                                            trH, energy_first, (trH-energy_first)/energy_first
-      if ((trH-energy_first)/energy_first>1.d-4 .and. itout>0) then
-          stop_optimization=.true.
-          if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
+      if (experimental_mode) then
+          if (it_tot==1) then
+              energy_first=trH
+          end if
+          if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
                                                 trH, energy_first, (trH-energy_first)/energy_first
+          if ((trH-energy_first)/energy_first>1.d-4 .and. itout>0) then
+              stop_optimization=.true.
+              if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
+                                                    trH, energy_first, (trH-energy_first)/energy_first
+          end if
       end if
 
 
@@ -907,7 +912,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ediff=trH-trH_old
 
-      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
           if (.not.energy_increased .and. .not.energy_increased_previous) then
               if (.not.ldiis%switchSD) then
                   ratio_deltas=ediff/delta_energy_prev
@@ -934,7 +939,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) write(*,*) 'reduce the confinement'
               reduce_conf=.true.
           end if
-      !end if
+      end if
 
       if (energy_increased) then
           energy_increased_previous=.true.
@@ -981,14 +986,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
-             if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
-             !if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
-             !ortho_on=.false.
-             !alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
+             !if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
+             if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
+             ortho_on=.false.
+             alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
           end if
       end if 
 
 
+      !if (iproc==0) write(*,*) 'conv_Crit', conv_crit
       ! Write some information to the screen.
       if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
           write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, trace, diff', &
@@ -1002,7 +1008,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!if(it>=nit_basis .or. it_tot>=3*nit_basis .or. reduce_conf) then
       !!    if(it>=nit_basis .and. .not.energy_increased) then
       !if(it>=nit_basis .or. it_tot>=3*nit_basis) then
-      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or.  fnrm<5.0d-4 .or. &
+      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or. (fnrm<conv_crit .and. experimental_mode) .or. &
           (itout==0 .and. it>1 .and. ratio_deltas<0.1d0)) then
           if(it>=nit_basis) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
@@ -1030,7 +1036,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!    end if
           !!    infoBasisFunctions=0
           !else if (fnrm<2.3d-4) then
-          else if (fnrm<5.0d-4) then
+          else if (fnrm<conv_crit .and. experimental_mode) then
               if (iproc==0) write(*,* ) 'converged!'
               infoBasisFunctions=0
           else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0) then
@@ -1051,7 +1057,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
          call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff)
+              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
+              experimental_mode)
       !else
       !   call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
       !        lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on)
@@ -1072,7 +1079,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! Estimate the energy change, that is to be expected in the next optimization
       ! step, given by the product of the force and the "displacement" .
-      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
           call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, psidiff, hpsi_noprecond, delta_energy)
           ! This is a hack...
           if (energy_increased) then
@@ -1082,7 +1089,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
           delta_energy_arr(it)=delta_energy
-      !end if
+      end if
 
       ! Copy the coefficients to coeff_old. The coefficients will be modified in reconstruct_kernel.
       if (scf_mode/=LINEAR_FOE) then
@@ -1095,7 +1102,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(scf_mode/=LINEAR_FOE) then
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, overlap_calculated)
-      else
+           else if (experimental_mode) then
           call purify_kernel(iproc, nproc, tmb, overlap_calculated)
       end if
   !!end if
@@ -1266,7 +1273,7 @@ end subroutine getLocalizedBasis
 
 
 
-subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient)
+subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient, experimental_mode)
   use module_base
   use module_types
   use module_interfaces, except_this_one => improveOrbitals
@@ -1278,6 +1285,7 @@ subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient)
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(kind=8),dimension(tmb%orbs%norbp),intent(in) :: alpha
   real(kind=wp),dimension(max(tmb%npsidim_orbs,tmb%npsidim_comp)),intent(inout) :: gradient
+  logical,intent(in) :: experimental_mode
   
   ! Local variables
   integer :: istart, iorb, iiorb, ilr, ncount
@@ -1299,7 +1307,8 @@ subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient)
       if(ldiis%alphaDIIS/=1.d0) then
           call dscal(max(tmb%npsidim_orbs,tmb%npsidim_comp), ldiis%alphaDIIS, gradient, 1)
       end if
-      call optimizeDIIS(iproc, max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%lzd, gradient, tmb%psi, ldiis)
+      call optimizeDIIS(iproc, max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%lzd, gradient, tmb%psi, ldiis, &
+           experimental_mode)
   end if
 
 end subroutine improveOrbitals

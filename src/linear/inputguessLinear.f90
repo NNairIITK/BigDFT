@@ -465,7 +465,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (.not. input%lin%iterative_orthogonalization) then
       ! Standard orthonomalization
-      !if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+      if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       !write(*,'(a,i4,4i8)') 'IG: iproc, lbound, ubound, minval, maxval',&
       !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
@@ -548,20 +548,22 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
 
- ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
- ortho_on=.true.
- fix_supportfunctions=.false.
- call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
- ldiis%alphaSD=input%lin%alphaSD
- ldiis%alphaDIIS=input%lin%alphaDIIS
- energs%eexctX=0.d0 !temporary fix
- call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-     info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
-     reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
-     50,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-     ratio_deltas,ortho_on,input%lin%extra_states,0)
- call deallocateDIIS(ldiis)
- ! END NEW ############################################################################
+ if (input%experimental_mode) then
+     ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
+     ortho_on=.true.
+     fix_supportfunctions=.false.
+     call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
+     ldiis%alphaSD=input%lin%alphaSD
+     ldiis%alphaDIIS=input%lin%alphaDIIS
+     energs%eexctX=0.d0 !temporary fix
+     call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+         info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
+         reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
+         50,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
+         ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode)
+     call deallocateDIIS(ldiis)
+     ! END NEW ############################################################################
+ end if
 
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
@@ -594,11 +596,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   ! Mix the density.
   if (input%lin%mixing_after_inputguess .and. (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
-     !!call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
-     !!     denspot, mixdiis, rhopotold, pnrm)
-     if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
-     call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, 1.d0, &
-          denspot, mixdiis, rhopotold, pnrm)
+     if (input%experimental_mode) then
+         if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
+         call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, 1.d0, &
+              denspot, mixdiis, rhopotold, pnrm)
+     else
+         call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+              denspot, mixdiis, rhopotold, pnrm)
+     end if
   end if
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then

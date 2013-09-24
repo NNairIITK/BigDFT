@@ -1304,8 +1304,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
 
    !!Just for extracting the covalent radius and rprb
    call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-   write(*,*) 'WARNING: multiply rprb with 5!!'
-   rprb=rprb*5.d0
+   !!write(*,*) 'WARNING: multiply rprb with 5!!'
+   !!rprb=rprb*5.d0
 
    
    if(present(quartic_prefactor)) then

@@ -12,7 +12,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-           energy_only, hpsi_small, hpsi_noprecond)
+           energy_only, hpsi_small, experimental_mode, hpsi_noprecond)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
@@ -32,7 +32,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(energy_terms), intent(in) :: energs
   real(kind=8), dimension(:), pointer:: hpsit_c, hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-  logical, intent(in) :: energy_only
+  logical, intent(in) :: energy_only, experimental_mode
   real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
 
@@ -508,7 +508,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
-   if(iproc==0)print *,'trH,energs',trH,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+  !if(iproc==0)print *,'trH,energs',trH,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
   if(tmb%orbs%nspin==1 .and. target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
@@ -587,9 +587,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if(fnrmArr(iorb)>fnrmMax) fnrmMax=fnrmArr(iorb)
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
       ! Adapt step size for the steepest descent minimization.
-          if (iproc==0 .and. iorb==1) write(*,*) 'WARNING: USING SAME STEP SIZE'
-          !tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))
-          tt=fnrmOvrlp_tot/sqrt(fnrm_tot*fnrmOld_tot)
+          if (experimental_mode) then
+              if (iproc==0 .and. iorb==1) write(*,*) 'WARNING: USING SAME STEP SIZE'
+              tt=fnrmOvrlp_tot/sqrt(fnrm_tot*fnrmOld_tot)
+          else
+              tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))
+          end if
           ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
           if(tt>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
               alpha(iorb)=alpha(iorb)*1.1d0
@@ -795,7 +798,8 @@ end subroutine calculate_energy_and_gradient_linear
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
-           lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff)
+           lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
+           experimental_mode)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi_linear
@@ -810,7 +814,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha, alphaDIIS
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: hpsi_small
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: psidiff
-  logical, intent(in) :: ortho
+  logical, intent(in) :: ortho, experimental_mode
   
   ! Local variables
   integer :: istat, iall, i
@@ -833,7 +837,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   ! Improve the orbitals, depending on the choice made above.
   if (present(psidiff)) call dcopy(tmb%npsidim_orbs, tmb%psi, 1, psidiff, 1)
   if(.not.ldiis%switchSD) then
-      call improveOrbitals(iproc, tmb, ldiis, alpha, hpsi_small)
+      call improveOrbitals(iproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
   else
       if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
   end if
@@ -935,7 +939,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
-  else
+  else if (experimental_mode) then
       ! Wasteful to do it transposed...
       if (iproc==0) write(*,*) 'normalize...'
       if(associated(tmb%psit_c)) then
