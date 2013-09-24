@@ -2814,7 +2814,7 @@ module module_interfaces
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated)
+           can_use_transposed, overlap_calculated, experimental_mode)
         use module_base
         use module_types
         implicit none
@@ -2830,6 +2830,7 @@ module module_interfaces
         real(8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat
+        logical,intent(in) :: experimental_mode
       end subroutine orthoconstraintNonorthogonal
 
 

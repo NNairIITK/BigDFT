@@ -390,7 +390,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%ham, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated)
+       overlap_calculated, experimental_mode)
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)

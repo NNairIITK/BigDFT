@@ -1088,7 +1088,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
           if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
-          delta_energy_arr(it)=delta_energy
+          delta_energy_arr(max(it,1))=delta_energy !max since the counter was decreased if there are problems, might lead to wrong results otherwise
       end if
 
       ! Copy the coefficients to coeff_old. The coefficients will be modified in reconstruct_kernel.

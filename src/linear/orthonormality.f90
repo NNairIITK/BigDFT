@@ -152,7 +152,7 @@ end subroutine orthonormalizeLocalized
 ! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated)
+           can_use_transposed, overlap_calculated, experimental_mode)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -172,6 +172,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
+  logical,intent(in) :: experimental_mode
 
   ! Local variables
   integer :: istat, iall, iorb, jorb, ii, ii_trans, matrixindex_in_compressed, irow, jcol, info, lwork, jj
@@ -229,9 +230,12 @@ call timing(iproc,'misc','ON')
              tmp_mat_compr(ii)=0.d0
          end if
      end if
-     !!if (iorb==jorb) then
-     !!    orbs%eval(iorb)=lagmat%matrix_compr(ii)
-     !!end if
+     if (experimental_mode) then
+         if (iorb==jorb) then
+             if (iproc==0 .and. iorb==1) write(*,*) 'MODIFY EVAL'
+             orbs%eval(iorb)=lagmat%matrix_compr(ii)
+         end if
+     end if
   end do
 
   ! NEW: reactivate correction for non-orthogonality ##########
