@@ -68,12 +68,13 @@ module yaml_output
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
   integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
 
-  logical :: module_initialized=.false.  !<tells if the module has been already referenced or not
-  !error ids
-  integer :: YAML_STREAM_ALREADY_PRESENT !< trying to create a stream already present
-  integer :: YAML_STREAM_NOT_FOUND       !< trying to seach for a absent unit
-  integer :: YAML_UNIT_INCONSISTENCY     !< internal error, unit inconsistency
-  integer :: YAML_INVALID                !< invalid action, unit inconsistency
+  logical :: module_initialized=.false.  !< Tells if the module has been already referenced or not
+
+  ! Error ids
+  integer :: YAML_STREAM_ALREADY_PRESENT !< Trying to create a stream already present
+  integer :: YAML_STREAM_NOT_FOUND       !< Trying to seach for a absent unit
+  integer :: YAML_UNIT_INCONSISTENCY     !< Internal error, unit inconsistency
+  integer :: YAML_INVALID                !< Invalid action, unit inconsistency
 
   !> Generic routine to create a yaml map as foo: 1
   !! as call yaml_map('foo',1)
@@ -136,7 +137,7 @@ contains
   !! should be called only once unless the module has been closed by close_all_streams
   subroutine assure_initialization()
      implicit none
-     if (.not. module_initialized) module_initialized=associated(f_get_error_definitions)
+     if (.not. module_initialized) module_initialized=associated(f_get_error_definitions())
      
      if (.not. module_initialized) then
         stop 'yaml_output module not initialized, f_lib_initialize not called'

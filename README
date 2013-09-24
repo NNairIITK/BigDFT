@@ -18,7 +18,7 @@ the proper boundary conditions.
 </p>
 
 @section L Libraries
-The BigDFT code has a core part and internal libraries:
+The BigDFT code has a core part and internal components:
 - The @ref flib "flib library" which controls the low-level operation concerning memory, timing, errors
   but provides also some tools as dictionaries objects and yaml output.
 - The @ref PSolver "PSolver library" is devoted to the resolution of the Poisson equation.
