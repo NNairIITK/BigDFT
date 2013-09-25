@@ -1,3 +1,4 @@
+/*! @file
 This program is based on the sources available at
 http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/pseudo/v2.2/
 
@@ -6,3 +7,5 @@ Authors:                  Raffael.Widmer (Cuda Acceleration)
                  under the supevision of  
          Stefan Goedecker, December 2010   
         Universitaet  Basel, Switzerland 
+
+*/
