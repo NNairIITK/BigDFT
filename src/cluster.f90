@@ -1572,6 +1572,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   end if
   opt%itrp=1
   rhopot_loop: do
+  KSwfn%diis%energy_old=1.d100
      if (opt%itrp > opt%itrpmax) exit
      !yaml output 
      if (iproc==0) then

@@ -1117,7 +1117,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
  end if
 
  !add the core density 
- if (associated(rhocore)) then
+ if (associated(rhocore)) then! too particular, should not enter here in this case .and. n1*n2*(n3grad+deltaright).gt.0) then
     call axpy(n1*n2*(n3grad+deltaleft),0.5_wp,rhocore(1,1,1,1),1,rhoinp(1,1,1,1),1)
     if (nspden==2) then
        if (n3grad /= n3) then

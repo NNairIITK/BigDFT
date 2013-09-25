@@ -326,7 +326,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
      allocate(rhocore(d%n1i,d%n2i,n3d,10+ndebug),stat=i_stat)
      call memocc(i_stat,rhocore,'rhocore',subname)
      !initalise it 
-     call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
+     if (n3d > 0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
