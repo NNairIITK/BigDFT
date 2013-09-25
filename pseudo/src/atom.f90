@@ -530,7 +530,7 @@ subroutine vionic(ifcore,  &
 
    !Arguments
    integer, intent(out) :: ifcore                           !< if core
-   integer, intent(in) :: nr                                !< #radial mesh points
+   integer, intent(in) :: nr                                !< \#radial mesh points
    real(kind=8), dimension(nr), intent(in) :: r             !< Radial mesh
    real(kind=8), intent(in) :: rprb                         !< Radius for the parabolic confinement potential
    real(kind=8), intent(in) :: znuc

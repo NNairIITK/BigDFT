@@ -213,7 +213,7 @@ module module_interfaces
 
       subroutine merge_input_file_to_dict(dict, fname, mpi_env)
         use dictionaries
-        use wrapper_mpi
+        use wrapper_MPI
         implicit none
         type(dictionary), pointer :: dict
         character(len = *), intent(in) :: fname

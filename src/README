@@ -1,7 +1,7 @@
 /*! @file
 @brief README of the BigDFT source directory
 
-@dir ./src
+@dir
 @brief
    This directory contains the source of the core project of BigDFT.
 
@@ -27,7 +27,7 @@
 
 @dir ./src/profiling
 @brief
-   Old profiling routines 'should be replaced by the flib routines (see @ref flib_memory)
+   Old profiling routines 'should be replaced by the flib routines (see @ref FLIB_MEMORY "flib memory")
 
 @dir ./src/tools
 @brief

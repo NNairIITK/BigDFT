@@ -1,5 +1,5 @@
-!> @file Check convolutions on GPU
-!!
+!> @file 
+!! @brief Check convolutions on GPU
 !! @author
 !!    Copyright (C) 2008-2013 BigDFT group 
 !!    This file is distributed under the terms of the

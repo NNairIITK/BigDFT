@@ -14,7 +14,4 @@
 @dir pseudo/doc
 @brief Documentation about the generation of pseudopotentials
 
-@dir pseudo/tutorials
-@brief Contains a tutorial to generate a pseudopotential for the oxygen atom.
-
 */

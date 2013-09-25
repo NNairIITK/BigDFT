@@ -1,4 +1,5 @@
-/*! @brief Installation of the PSolver library
+/*! @file
+@brief Installation of the PSolver library
 
 @page INSTALLATION-PSOLVER Installation instructions of the PSolver library
 
@@ -11,17 +12,17 @@ the code (and by me for performing non-regression tests)
 The instruction for running this are the following:
 
 -# Compile the test program with
-   <pre>
+   @verbatim
    make PSolver
-   </pre>
+   @endverbatim
    of course you can specify your (mpi)f90 compiler by suitably changing the Makefile.
 -# Run the test program by typing
-   <pre>
+   @verbatim
    <instruction for running your executable> PSolver 'n01' 'n02' 'n03' 'ixc' 'geocode' 'datacode'
-   </pre>
+   @endverbatim
    for the description of the arguments, see documentation of PSolver routine
 -# Then you get something like that:
-   <pre>
+   @verbatim
    > ompirun -np 1 PSolver 128 128 128 0 F D
    PSolver, free BC:  128 128 128 processes 1
    Calculating Poisson solver kernel, free BC... done.
@@ -52,18 +53,18 @@ The instruction for running this are the following:
        parallel:  1.1730E-01
          serial:  1.1730E-01
    energy_diffs:  0.0000E+00  0.0000E+00  0.0000E+00
-   </pre>
+   @endverbatim
    Where the differences between the computation and the analytic results are displayed.
 
 
 A report is provided in the file fort.99, which can be read like that:
-<pre>
+@verbatim
   > more fort.99
 F  128 128 128 7.81E-02 1.415E-10 1.94E+00 1.76E-01 8.90E+00 6.00E-02 17.6  1.6 80.9 0.5 0.00E+00
 ^ |dimensions|   ^          ^     |time 1)computation 2)communication| percentage of    | diff.
 |              hgrid    accuracy  |3)kernel 4)data distribution, XC  |  previous parts  | par-ser
 geocode 
-</pre>
+@endverbatim
 
 Note that the timings for initializing the test arrays is not taken into account.
 The difference between the analytic and the computed results is expected to be little ONLY 
@@ -72,9 +73,9 @@ good indicator.
 
 Also a bench that calculates the accuracy wrt the grid spacing is provided.
 You can run that by typing:
-<pre>
+@verbatim
 ./bench.csh 'start' 'step' 'end' 'geocode' 'datacode'
-</pre>
+@endverbatim
 where 'start' and 'end' indicate the range of the dimension spanned with step 'step'.
 Of course the mpi instruction must be properly adapted to your system in the script.
 

@@ -8,7 +8,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-!!
+
 
 !> Calculate the Hartree potential by solving the Poisson equation 
 !! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$

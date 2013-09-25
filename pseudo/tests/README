@@ -11,6 +11,8 @@ This directory contains:
 -  example-O.new  Test from Alex Willand (this directory is old and should be removed. 
                   This is exactly the same test as the directory pseudo/tutorials/oxygen.NLCC).
 - pawpatchtest    Tests the PAW patch.
+- tutorials       Contains a tutorial to generate a pseudopotential for the oxygen atom.
+
 
 @dir ./pseudo/tests/atoms
 @brief Tests for many atoms the atom program.

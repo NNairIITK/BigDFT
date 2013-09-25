@@ -1,3 +1,8 @@
+/* @file
+@brief List of the contributors for the different versions of BigDFT
+
+@page AUTHORS Contirbutors for the different version of BigDFT
+
 <!-- This file is written in the MediaWiki syntax, to be published on
      http://bigdft.org -->
 The BigDFT project was an European project (FP6-NEST) from 2005 to 2008.
@@ -143,3 +148,5 @@ Jaroslav Piwonski        JP  jpi@numerik.uni-kiel.de      Kiel Universität, Ger
 Mark Rayson              MR  Mark.Rayson@unibas.ch        Basel Universität, Switzerland
 Reinhold Schneider       RS  schneidr@silica.math.TU-Berlin.de TU Berlin, Germany
 Oded Zilberberg          OZ
+
+*/

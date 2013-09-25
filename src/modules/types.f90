@@ -37,7 +37,7 @@ module module_types
   integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
   integer, parameter :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
   integer, parameter :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
-  integer, parameter :: INPUT_PSI_LCAO         = 0      
+  integer, parameter :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
   integer, parameter :: INPUT_PSI_MEMORY_WVL   = 1
   integer, parameter :: INPUT_PSI_DISK_WVL     = 2
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10

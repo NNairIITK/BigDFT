@@ -1,4 +1,4 @@
-/*! @dir pseudo/tests/atom_tests
+/*! @dir pseudo/tests/atoms
 @brief Contains initial tests using the atom program with some restrictive options.
 
 @details

@@ -1,7 +1,7 @@
 /*! @file
 @brief README of the directory containg the tutorials of BigDFT
 
-@dir ./tests/tutorials
+@dir
 @brief Contains the BigDFT tutorials
 
 @page TESTS_TUTORIALS Tests the tutorial examples

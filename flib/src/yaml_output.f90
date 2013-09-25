@@ -504,7 +504,7 @@ contains
   end subroutine yaml_close_all_streams
 
 
-  !> Display a warning (yaml comment starting with '#WARNING: ')
+  !> Display a warning (yaml comment starting with '\#WARNING: ')
   subroutine yaml_warning(message,level,unit)
     implicit none
     integer, optional, intent(in) :: unit

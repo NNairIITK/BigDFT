@@ -1,6 +1,9 @@
 /*! @file
 @brief README about the documentation of BigDFT and especially the main rules to develop it.
 
+@dir
+@brief Contains some documentations about BigDFT
+
 @page DOCUMENTATION Developing the BigDFT documentation and some coding rules
 
 At the beginning of each Fortran file, it is important to add the following lines:
@@ -34,9 +37,9 @@ It is better to comment each argument of the routine in the same line of their d
    logical, intent(in) :: use_wb_corr  !< .true. if functional is using WB corrections.
 @endverbatim
 
-In order to avoid the duplication, we will define dummy structure as doc in order to specify the usual name used as
+In order to avoid the duplication, we define dummy structure as doc in order to specify the usual name used as
 arguments. Then you can insert as in the following example only @verbatim@copydoc poisson_solver::doc::geocode@endverbatim.
-This means that doxygen will insert the documentation of the memeber geocode of the struture doc from the module
+This means that doxygen will insert the documentation of the member geocode of the structure doc from the module
 poisson_solver.
 
 All variables and routines inside the modules should be commented.

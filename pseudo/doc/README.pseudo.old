@@ -36,7 +36,7 @@ The program pseudo_2.2 fits the parameters of a Goedecker
 pseudopotential. The Goedecker pseudopotential has the form
 
 local part:
-<pre>
+@verbatim
                            1/2  
                          r 2	
                Z_ion erf(------)
@@ -70,7 +70,7 @@ mit
                      (l + 2 i - 1/2)                     1/2
                   r_l                Gamma(l + 2 i - 1/2)
 
-</pre>
+@endverbatim
 
 Y_l,m(r) are the spherical harmonics.
 
@@ -91,7 +91,7 @@ directory.
 
 2. 'FITPAR':      Determines which pseudopotential parameters have to be
                   fitted. 'FITPAR' has the form:
-<pre>
+@verbatim
   Fit                        Parameter             
  f    t f f f                rloc,gpot(1,..,4)
 	    1                lmax
@@ -99,13 +99,13 @@ directory.
  t    t f t f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  f    f f f f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
  f    f f f f f f            r_l(4),h11,h12,h22,h13,h23,h33 (l=3)
- </pre>
+ @endverbatim
                   All parameters marked by a 't' will be fitted.
 
 3. 'weights.par': Contains the weights for the penalty function
                   pseudo_2.2 minimises. pseudo_2.2 fits the pseudopotential parameters by
                   minimising the penalty function:
-<pre>
+@verbatim
 subroutine penalty(penal)
     penal=0.0d0
 	do i=1,n_orbital
@@ -122,7 +122,7 @@ subroutine penalty(penal)
 	end do
     penal=sqrt(penal)
 end subroutine penalty
-</pre>
+@endverbatim
     +  aeval(i)    : eigenvalue of the ae atom
     +  ev(i)       : eigenvalue of the pseudo atom
     +  chrg(i)     : int_0^rcov psi^2 r^2 dr , ae atom
@@ -143,7 +143,7 @@ end subroutine penalty
                      of the wavefunction
     +  psir0       : squared value of the lowest s pseudo wavefunction at r=0 
 The file 'weights.par' has the following form (example: Silicon):
-<pre>
+@verbatim
     .1E+03     wghtp0
     n   l  so   eigval  chrg    dchrg  ddchrg  res    rnode dnode ddnode
    3   0  .50   2.0e1   2.0e1   0.0e0  0.0e0   0.0e0  1.0e0 0.0e0 0.0e0
@@ -168,7 +168,7 @@ The file 'weights.par' has the following form (example: Silicon):
    4   3  .50   4.0e-2  4.0e-2  0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   3 -.50   8.0e-3  8.0e-3  0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   3  .50   8.0e-3  8.0e-3  0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
-</pre>
+@endverbatim
                For each orbital there must be one line. The columns 4-11 of these
                lines correspond to whgt(i,1) - whgt(i,8). (The above file corresponds
                to a relativistic calculation; for l<>0 there are is one spin up and
@@ -177,7 +177,7 @@ The file 'weights.par' has the following form (example: Silicon):
 4. 'psp.par': This file contains the values of the input pseudopotential
               parameters . The file is overwritten during the fit with
               the improved output values. The file has the following form:
-<pre>
+@verbatim
      14             1.50000                                 ng, rij 
      2.090     4.190                                      rcov,rprb 
  r                                    (non)relativistic calculation
@@ -187,7 +187,7 @@ The file 'weights.par' has the following form (example: Silicon):
   0.42    0.59E+01 -0.12E+01  0.32E+01 0 0 0  r_l(),hsep(), so=+0.5
   0.48    0.27E+01 -0.30E-02  0.72E-02 0 0 0  r_l(),hsep(), so=+0.5
           0.27E+01  0.61E-02 -0.14E-01 0 0 0        hsep(), so=-0.5
-</pre>
+@endverbatim
         + First line: ng gives the number of Gaussians pseudo_2.2 uses as basis
               functions. rij determines the width of the smallest Gaussian. The
               basis functions are given by exp([-1/(2*r_loc/rij*(2/3)**i)]**2 *r**2)
@@ -266,7 +266,7 @@ wavefunctions can be plotted with 'gnuplot pswf.gnu'.
         the error of the eigenvalue.
 
 Examples: LDA-pseudopotential for Si with ng=12 and rij=0.7
-<pre>
+@verbatim
  nl    s      occ              ae        pseudo       diff     diff*weight
  3s    .5    2.0000
          eigenvalue       -.3774E+00  -.3774E+00  -.9710E-05   .1942E-03
@@ -277,13 +277,13 @@ Examples: LDA-pseudopotential for Si with ng=12 and rij=0.7
  6s    .5     .0000
          eigenvalue        .3532E+00   .3524E+00  -.7667E-03   .6134E-05
          residue                       .5970E-03               .0000E+00
-</pre>
+@endverbatim
 
 The residue (at least) for the occupied orbitals should be ~1.0E-6. In
 the case above the lowest Gaussians are not small/sharp enough to
 allow a good description of the 3s orbital. Doing the same calculation
 with ng=12 and rij=15 one gets:
-<pre>
+@verbatim
  3s    .5    2.0000
          eigenvalue       -.3774E+00  -.3774E+00  -.2267E-04   .4534E-03
          residue                       .1531E-06               .0000E+00
@@ -296,14 +296,14 @@ with ng=12 and rij=15 one gets:
  6s    .5     .0000
          eigenvalue        .3532E+00   .4698E+00   .1166E+00   .9326E-03
          residue                       .6714E-01               .0000E+00
-</pre>
+@endverbatim
 
 Now the Gaussian basis works well for the 3s orbital but is inadequate
 for higher s orbitals, as the highest Gaussians are not wide enough to
 describe correctly the tails of these orbitals. Wider Gaussians are
 simply added by increasing the value of ng i.e. the number of
 Gaussians.  Doing the above calculation with ng=16 and rij=15 one now gets:
-<pre>
+@verbatim
  3s    .5    2.0000
          eigenvalue       -.3774E+00  -.3774E+00  -.2269E-04   .4537E-03
          residue                       .1417E-06               .0000E+00
@@ -316,7 +316,7 @@ Gaussians.  Doing the above calculation with ng=16 and rij=15 one now gets:
  6s    .5     .0000
          eigenvalue        .3532E+00   .3523E+00  -.8734E-03   .6987E-05
          residue                       .3959E-05               .0000E+00 
-</pre>
+@endverbatim
 
 Now the Gaussian basis set is sufficient for a pseudopotential fit as
 the residue for the occupied and next higher orbital is lower than
@@ -449,44 +449,44 @@ think the current simplex-cycle will give no further improvement.
         (in 'weights.par') for all d-orbitals equal zero and setting the
         values for all d-parameters in the file FITPAR equal false:
       + 'weights.par':
-        <pre>
+        @verbatim
 ....
    4   2 -.50   0.0e5   0.0e5   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    4   2  .50   0.0e5   0.0e5   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   2 -.50   0.0e4   0.0e4   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   2  .50   0.0e4   0.0e4   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
 ....
-        </pre>
+        @endverbatim
       + 'FITPAR':
-        <pre>
+        @verbatim
   Fit                        Parameter             
  f    f f f f                rloc,gpot(1,..,4)
 	    2                lmax
  t    t f t f f t            r_l(1),h11,h12,h22,h13,h23,h33 (l=0)
  t    t f t f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  f    f f f f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
-        </pre>
+        @endverbatim
         After optimising all parameters considering only occupied orbitals, the
         parameters for the d-projector can be optimised separately by modifying
         the files 'FITPAR' and 'weights.par' in the following way:
       + 'weights.par':
-        <pre>
+        @verbatim
 ....
    4   2 -.50   1.0e5   1.0e5   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    4   2  .50   1.0e5   1.0e5   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   2 -.50   1.0e4   1.0e4   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    5   2  .50   1.0e4   1.0e4   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
 ...
-        </pre>
+        @endverbatim
       + 'FITPAR':
-        <pre>
+        @verbatim
   Fit                        Parameter             
  f    f f f f                rloc,gpot(1,..,4)
 	    2                lmax
  f    f f f f f f            r_l(1),h11,h12,h22,h13,h23,h33 (l=0)
  f    f f f f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  t    t f f f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
-        </pre>
+        @endverbatim
         This procedure usually converges faster than fitting all parameters
         simultaneously. Relevant cases are:
       +  3p-state: Na(Q=1), Mg(Q=2)
@@ -559,17 +559,17 @@ think the current simplex-cycle will give no further improvement.
         pseudo_2.2 with the option '-orth'. These orthonormal projectors
         P_i^l(r) and the corresponding matrix H(ij) have to be constructed by
         matrix-multiplications:
-        <pre>
+        @verbatim
          U (p_1^l(r),p_2^l(r),p_3^l(r)) = (P_1^l(r),P_2^l(r),P_3^l(r))
          U h(ij) UT = H(ij) ; UT = transposed(U).
-        </pre>
+        @endverbatim
         The transformation matrix U, the P_i^l(r) and the matrix elements H_ij
         are written out at the end each run whenever the command line option
         '-orth' is used. Nevertheless the file 'psp.par' always contains the
         matrix elements h_ij^l! We strongly recommend the use of the option
         '-orth'! The nonlocal part of the pseudopotential then can be
         calculated avoiding the double sum over i,j:
-        <pre>
+        @verbatim
                               3    l                                                
                              ---  ---                                                
                            l \    \                     l     l        l  *        
@@ -577,7 +577,7 @@ think the current simplex-cycle will give no further improvement.
                              /    /                                                
                              ---  ---                                                
                              i=1 m=-l 
-        </pre>
+        @endverbatim
         The use of orthonormal projectors also avoids any linear dependencies
         during the fit. As long as pseudo_2.2 does transformations of the
         matrix h(ij) (both options '-lith','-orth') the off diagonal terms
@@ -735,7 +735,7 @@ with ~1000 iterations each.)
 1. Copy the file './EXAMPLE/atom/atom_au.lda.dat' to
 './EXAMPLE/atom/atom.dat'. Edit the file atom.dat and change the
 keyword for the XC-functional from 'PADE' to 'PBE':
-<pre>
+@verbatim
    Au
    PBE 
    rel
@@ -753,7 +753,7 @@ keyword for the XC-functional from 'PADE' to 'PBE':
     7    2     0.00      0.00              
     5    3     0.00      0.00              
     6    3     0.00      0.00              
-</pre>
+@endverbatim
 
 Now run the program atom. If you are interested in the all electron
 wavefunctions or the atomic XC-potential you can plot the files
@@ -782,7 +782,7 @@ momentum orbitals equal zero. The parameters for the projectors acting
 on the l=1 orbitals can be fitted separately as the pseudo atom has no
 occupied p-orbital. 'weights.par' should now look like:
 
-<pre>
+@verbatim
  Initial weight-guess from atomic-program
  ----------------------------------------
     .1E+03     weight_psir0
@@ -806,11 +806,11 @@ occupied p-orbital. 'weights.par' should now look like:
    5   3  .50   1.0e2   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    6   3 -.50   0.0e0   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    6   3  .50   0.0e0   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
-</pre>
+@endverbatim
 
 edit the file 'FITPAR' and set all parameters that have to be fitted
 equal .true.; 'FITPAR' now should look like:
-<pre>
+@verbatim
   Fit                        Parameter
  f    t f f f                rloc,gpot(1,..,4)
             2                lmax
@@ -818,7 +818,7 @@ equal .true.; 'FITPAR' now should look like:
  f    f f f f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  t    t f t f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
  f    f f f f f f            r_l(4),h11,h12,h22,h13,h23,h33 (l=3)
-</pre>
+@endverbatim
 
 The last line of 'FITPAR' can be deleted (if you like) as there is no
 projector for l=3 (lmax=2).
@@ -834,7 +834,7 @@ current example approximately 10-20 cycles) stop further fitting of
 the parameters affecting the occupied orbitals and start fitting the
 parameters for the projectors acting on the l=1 orbitals. To do this
 modify the files 'FITPAR' and 'weights.par' in the following form:
-<pre>
+@verbatim
   Fit                        Parameter
  f    f f f f                rloc,gpot(1,..,4)
             2                lmax
@@ -842,11 +842,11 @@ modify the files 'FITPAR' and 'weights.par' in the following form:
  t    t f t f f f            r_l(2),h11,h12,h22,h13,h23,h33 (l=1)
  f    f f f f f f            r_l(3),h11,h12,h22,h13,h23,h33 (l=2)
  f    f f f f f f            r_l(4),h11,h12,h22,h13,h23,h33 (l=3)
-</pre>
+@endverbatim
 
 and
 
-<pre>
+@verbatim
  Initial weight-guess from atomic-program
  ----------------------------------------
     .1E+03     weight_psir0
@@ -870,7 +870,7 @@ and
    5   3  .50   1.0e2   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    6   3 -.50   0.0e0   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
    6   3  .50   0.0e0   0.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
-</pre>
+@endverbatim
 
 You can change the files 'FITPAR' and 'weights.par' whenever you like
 while pseudo_2.2 is running. It is unnecessary to stop pseudo_2.2! The

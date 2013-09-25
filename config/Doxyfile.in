@@ -654,7 +654,9 @@ WARN_LOGFILE           = doxygen.warnings
 # directories like "/usr/src/myproject". Separate the files or directories
 # with spaces.
 
-INPUT                  = @abs_top_srcdir@/README @abs_top_srcdir@/doc/README @abs_top_srcdir@/AUTHORS @abs_top_srcdir@/NEWS @abs_top_srcdir@/COPYING @abs_top_srcdir@/INSTALL @abs_top_srcdir@/flib @abs_top_srcdir@/pseudo @abs_top_srcdir@/src @abs_top_srcdir@/PSolver @abs_top_srcdir@/tests @abs_top_srcdir@/wrappers
+INPUT                  = @abs_top_srcdir@/README @abs_top_srcdir@/doc/README \
+                         @abs_top_srcdir@/AUTHORS @abs_top_srcdir@/NEWS @abs_top_srcdir@/COPYING @abs_top_srcdir@/INSTALL \
+                         @abs_top_srcdir@/flib @abs_top_srcdir@/pseudo @abs_top_srcdir@/src @abs_top_srcdir@/PSolver @abs_top_srcdir@/tests @abs_top_srcdir@/wrappers
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is

@@ -51,19 +51,19 @@ module module_defs
   !> experimental variables to test the add of new functionalities
   logical :: experimental_modulebase_var_onlyfion=.false.
 
-  type(mpi_environment) :: bigdft_mpi
+  type(mpi_environment) :: bigdft_mpi !< Contains all data needed for MPI processes
 
   !> Physical constants.
-  real(gp), parameter :: Bohr_Ang = 0.5291772108_gp                     !> 1 AU in angstroem
-  real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      !> 1 Hartree, in cm^-1 (from abinit 5.7.x)
-  real(gp), parameter :: Ha_eV=27.21138386_gp                           !> 1 Hartree, in eV
-  real(gp), parameter :: Ha_K=315774.65_gp                              !> 1 Hartree, in Kelvin
-  real(gp), parameter :: Ha_THz=6579.683920722_gp                       !> 1 Hartree, in THz
-  real(gp), parameter :: Ha_J=4.35974394d-18                            !> 1 Hartree, in J
-  real(gp), parameter :: e_Cb=1.602176487d-19                           !> minus the electron charge, in Coulomb
-  real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       !> Boltzmann constant in Ha/K
-  real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !> 1 atomic mass unit, in electronic mass
-  real(gp), parameter :: AU_GPa=29421.010901602753_gp                   !> 1 Ha/Bohr^3 in GPa
+  real(gp), parameter :: Bohr_Ang = 0.5291772108_gp                     !< 1 AU in angstroem
+  real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      !< 1 Hartree, in cm^-1 (from abinit 5.7.x)
+  real(gp), parameter :: Ha_eV=27.21138386_gp                           !< 1 Hartree, in eV
+  real(gp), parameter :: Ha_K=315774.65_gp                              !< 1 Hartree, in Kelvin
+  real(gp), parameter :: Ha_THz=6579.683920722_gp                       !< 1 Hartree, in THz
+  real(gp), parameter :: Ha_J=4.35974394d-18                            !< 1 Hartree, in J
+  real(gp), parameter :: e_Cb=1.602176487d-19                           !< minus the electron charge, in Coulomb
+  real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       !< Boltzmann constant in Ha/K
+  real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !< 1 atomic mass unit, in electronic mass
+  real(gp), parameter :: AU_GPa=29421.010901602753_gp                   !< 1 Ha/Bohr^3 in GPa
 
   !> Evergreens
   real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
@@ -123,10 +123,11 @@ module module_defs
     function fnrm_denpot(x,cplex,nfft,nspden,opt_denpot,user_data)
       use m_ab6_mixing
       implicit none
+      !Arguments
       integer, intent(in) :: cplex,nfft,nspden,opt_denpot
-      double precision, intent(in) :: x(*)
-      integer, intent(in) :: user_data(:)
-
+      double precision, dimension(*), intent(in) :: x
+      integer, dimension(:), intent(in) :: user_data
+      !Local variables
       integer :: ierr, ie, iproc, npoints, ishift
       double precision :: fnrm_denpot, ar, nrm_local, dnrm2
 
