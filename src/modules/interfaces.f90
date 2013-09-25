@@ -2027,7 +2027,7 @@ module module_interfaces
           fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
           reduce_conf, fix_supportfunctions,nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix,&
-          ratio_deltas,ortho_on)
+          ratio_deltas,ortho_on,extra_states)
         use module_base
         use module_types
         implicit none
@@ -2054,6 +2054,7 @@ module module_interfaces
         real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
         real(kind=8),intent(out) :: ratio_deltas
         logical, intent(inout) :: ortho_on
+        integer, intent(in) :: extra_states
       end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -2100,7 +2101,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
+         calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
       use module_base
       use module_types
       use constrained_dft
@@ -2115,7 +2116,7 @@ module module_interfaces
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout) :: GPU
       integer,intent(out) :: infoCoeff
-      real(kind=8),intent(out) :: ebs
+      real(kind=8),intent(inout) :: ebs
       real(kind=8),intent(inout) :: fnrm
       type(nonlocal_psp_descriptors),intent(in) :: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -2129,6 +2130,7 @@ module module_interfaces
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
       logical, intent(in), optional :: curvefit_dmin ! for dmin only
       type(cdft_data),intent(inout),optional :: cdft
+      integer, intent(in) :: extra_states
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
@@ -4092,7 +4094,7 @@ module module_interfaces
           type(paw_objects),optional,intent(inout) :: paw
         end subroutine orthogonalize
   
-        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, kernel)
+        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern)
           use module_base
           use module_types
           implicit none
@@ -4100,7 +4102,7 @@ module module_interfaces
           logical, intent(in) :: isKernel
           type(orbitals_data),intent(in):: orbs, orbs_tmb
           real(8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff
-          real(8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out):: kernel
+          type(sparseMatrix),intent(inout):: denskern
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, overlap_calculated)
@@ -4112,6 +4114,19 @@ module module_interfaces
           type(DFT_wavefunction),intent(inout):: tmb
           logical,intent(inout):: overlap_calculated
         end subroutine reconstruct_kernel
+
+        subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
+                   basis_overlap, coeff, orbs)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc, nproc, norb
+          integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
+          type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
+          type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
+          type(sparseMatrix),intent(in) :: basis_overlap
+          real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
+        end subroutine reorthonormalize_coeff
 
         subroutine determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
                    istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
@@ -4328,7 +4343,7 @@ module module_interfaces
           type(atomic_structure),intent(in) :: astruct
           type(orbitals_data),intent(in) :: orbs
           type(locreg_descriptors), intent(in) :: Glr
-          type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+          type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel
 
@@ -4942,7 +4957,7 @@ module module_interfaces
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
 
-        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern)
+        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, check_sumrho)
           use module_base
           use module_types
           use yaml_output
@@ -4952,9 +4967,25 @@ module module_interfaces
           type(orbitals_data),intent(in) :: orbs
           type(collective_comms),intent(in) :: collcom_sr
           type(DFT_local_fields),intent(in) :: denspot
-          type(sparseMatrix),intent(in) :: denskern
+          type(sparseMatrix),intent(inout) :: denskern
+          integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
+        subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, num_extra)
+          use module_base
+          use module_types
+          use diis_sd_optimization
+          implicit none
+          integer,intent(in):: iproc, nproc, itmax
+          type(orbitals_data),intent(in):: orbs
+          type(DFT_wavefunction),intent(inout):: tmb
+          type(DIIS_obj), intent(inout) :: ldiis_coeff
+          real(kind=gp),intent(in):: fnrm_crit
+          real(kind=gp),intent(out):: fnrm
+          real(kind=gp), intent(inout) :: energy
+          logical, intent(in) :: sd_fit_curve
+          integer, optional, intent(in) :: num_extra
+        end subroutine optimize_coeffs
   
   end interface
 END MODULE module_interfaces

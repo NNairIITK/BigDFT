@@ -466,7 +466,7 @@ call to_zero(6,rhocstr(1))
      allocate(gradient(1,1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,gradient,'gradient',subname)
      !add rhocore to the density
-     if (associated(rhocore)) then
+     if (associated(rhocore) .and. m1*m3*nxt > 0) then
         if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
            call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho_G(1),1)
            if (nspin==2) call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,&
@@ -560,7 +560,7 @@ call to_zero(6,rhocstr(1))
 
   !if rhocore is associated we then remove it from the charge density
   !and subtract its contribution from the evaluation of the XC potential integral vexcu
-  if (associated(rhocore)) then
+  if (associated(rhocore) .and. m1*m3*nxc .gt.0) then
      !at this stage the density is not anymore spin-polarised
      !sum the complete core density for non-spin polarised calculations
      call axpy(m1*m3*nxc,-1.0_wp,rhocore(1,1,i3xcsh_fake+1,1),1,rho(1),1)

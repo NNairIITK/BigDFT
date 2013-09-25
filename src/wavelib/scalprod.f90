@@ -486,11 +486,15 @@ subroutine wpdot_4(  &
 
   scpr=0.0_dp
 
-!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
-!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
-!$omp shared(bpsi3,bpsi4,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4) &
-!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f) &
-!$omp shared(apsi_f,scpr)
+!!$!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
+!!$!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
+!!$!$omp shared(bpsi3,bpsi4,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4) &
+!!$!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f) &
+!!$!$omp shared(apsi_f,scpr)
+!$omp parallel default(shared) &
+!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
+!$omp private(apsi_temp,apsi_f_temp,i,jaj,iaoff,length,ja1,ja0,jb1,jb0) &
+!$omp private(jbj,ibseg)
 
 !  !$  print *,'AAANonLocalHamiltonian with nthread:, out to:' ,omp_get_num_threads(),omp_get_thread_num()
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
@@ -700,11 +704,14 @@ subroutine wpdot_5(  &
 
   scpr=0.0_dp
 
-!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
-!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
-!$omp shared(bpsi3,bpsi4,bpsi5,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5) &
-!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr)
-
+!!$omp parallel default(none) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
+!!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
+!!$omp shared(bpsi3,bpsi4,bpsi5,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5) &
+!!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr) &
+!$omp parallel default(shared) &
+!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
+!$omp private(apsi_temp,apsi_f_temp,i,jaj,iaoff,length,ja1,ja0,jb1,jb0) &
+!$omp private(jbj,ibseg)
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
   iaseg0=1 
@@ -923,12 +930,17 @@ subroutine wpdot_8(  &
 
   scpr=0.0_dp
 
-!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
-!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
-!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi_f1,bpsi_f2,bpsi_f3) &
-!$omp shared(bpsi_f4,bpsi_f5,bpsi_f6,bpsi_f7,bpsi_f8) &
-!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f) &
-!$omp shared(apsi_f,scpr)
+!!$!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
+!!$!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
+!!$!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi_f1,bpsi_f2,bpsi_f3) &
+!!$!$omp shared(bpsi_f4,bpsi_f5,bpsi_f6,bpsi_f7,bpsi_f8) &
+!!$!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f) &
+!!$!$omp shared(apsi_f,scpr)
+!$omp parallel default(shared) &
+!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
+!$omp private(apsi_temp,apsi_f_temp,i,jaj,iaoff,length,ja1,ja0,jb1,jb0) &
+!$omp private(jbj,ibseg)
+
 
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
@@ -1177,13 +1189,17 @@ subroutine wpdot_13(  &
 
   scpr=0.0_dp
 
-!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
-!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
-!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
-!$omp shared(bpsi12,bpsi13,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5) &
-!$omp shared(bpsi_f6,bpsi_f7,bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12) &
-!$omp shared(bpsi_f13,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f) &
-!$omp shared(apsi_f,scpr)
+!!$!$omp parallel default(none) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
+!!$!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
+!!$!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
+!!$!$omp shared(bpsi12,bpsi13,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5) &
+!!$!$omp shared(bpsi_f6,bpsi_f7,bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12) &
+!!$!$omp shared(bpsi_f13,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f) &
+!!$!$omp shared(apsi_f,scpr) &
+!$omp parallel default(shared) &
+!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
+!$omp private(apsi_temp,apsi_f_temp,i,jaj,iaoff,length,ja1,ja0,jb1,jb0) &
+!$omp private(jbj,ibseg)
 
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
@@ -1477,13 +1493,18 @@ subroutine wpdot_14(  &
 
   scpr=0.0_dp
 
-!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
-!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
-!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
-!$omp shared(bpsi12,bpsi13,bpsi14,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5) &
-!$omp shared(bpsi_f6,bpsi_f7,bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12) &
-!$omp shared(bpsi_f13,bpsi_f14,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f) &
-!$omp shared(apsi_f,scpr)
+!!$!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
+!!$!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
+!!$!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
+!!$!$omp shared(bpsi12,bpsi13,bpsi14,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5) &
+!!$!$omp shared(bpsi_f6,bpsi_f7,bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12) &
+!!$!$omp shared(bpsi_f13,bpsi_f14,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f) &
+!!$!$omp shared(apsi_f,scpr)
+!$omp parallel default(shared) &
+!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
+!$omp private(apsi_temp,apsi_f_temp,i,jaj,iaoff,length,ja1,ja0,jb1,jb0) &
+!$omp private(jbj,ibseg)
+
 
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
@@ -1788,14 +1809,19 @@ subroutine wpdot_18(  &
 
   scpr=0.0_dp
 
-!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
-!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
-!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
-!$omp shared(bpsi12,bpsi13,bpsi14,bpsi15,bpsi16,bpsi17,bpsi18) &
-!$omp shared(bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5,bpsi_f6,bpsi_f7) &
-!$omp shared(bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13,bpsi_f14) &
-!$omp shared(bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,keybv_f,keybg_f) &
-!$omp shared(keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr)
+!!$!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
+!!$!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
+!!$!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
+!!$!$omp shared(bpsi12,bpsi13,bpsi14,bpsi15,bpsi16,bpsi17,bpsi18) &
+!!$!$omp shared(bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5,bpsi_f6,bpsi_f7) &
+!!$!$omp shared(bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13,bpsi_f14) &
+!!$!$omp shared(bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,keybv_f,keybg_f) &
+!!$!$omp shared(keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr)
+!$omp parallel default(shared) &
+!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
+!$omp private(apsi_temp,apsi_f_temp,i,jaj,iaoff,length,ja1,ja0,jb1,jb0) &
+!$omp private(jbj,ibseg)
+
 
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
@@ -2137,14 +2163,19 @@ subroutine wpdot_19(  &
 
   scpr=0.0_dp
 
-!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
-!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
-!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
-!$omp shared(bpsi12,bpsi13,bpsi14,bpsi15,bpsi16,bpsi17,bpsi18,bpsi19) &
-!$omp shared(bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5,bpsi_f6,bpsi_f7) &
-!$omp shared(bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13,bpsi_f14) &
-!$omp shared(bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,bpsi_f19,keybv_f,keybg_f) &
-!$omp shared(keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr)
+!!$!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
+!!$!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
+!!$!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
+!!$!$omp shared(bpsi12,bpsi13,bpsi14,bpsi15,bpsi16,bpsi17,bpsi18,bpsi19) &
+!!$!$omp shared(bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5,bpsi_f6,bpsi_f7) &
+!!$!$omp shared(bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13,bpsi_f14) &
+!!$!$omp shared(bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,bpsi_f19,keybv_f,keybg_f) &
+!!$!$omp shared(keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr)
+!$omp parallel default(shared) &
+!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
+!$omp private(apsi_temp,apsi_f_temp,i,jaj,iaoff,length,ja1,ja0,jb1,jb0) &
+!$omp private(jbj,ibseg)
+
 
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
@@ -2495,14 +2526,19 @@ subroutine wpdot_20(  &
 
   scpr=0.0_dp
 
-!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
-!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
-!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
-!$omp shared(bpsi12,bpsi13,bpsi14,bpsi15,bpsi16,bpsi17,bpsi18,bpsi19) &
-!$omp shared(bpsi20,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5,bpsi_f6,bpsi_f7) &
-!$omp shared(bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13,bpsi_f14) &
-!$omp shared(bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,bpsi_f19,bpsi_f20) &
-!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr)
+!!$!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
+!!$!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
+!!$!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
+!!$!$omp shared(bpsi12,bpsi13,bpsi14,bpsi15,bpsi16,bpsi17,bpsi18,bpsi19) &
+!!$!$omp shared(bpsi20,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5,bpsi_f6,bpsi_f7) &
+!!$!$omp shared(bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12,bpsi_f13,bpsi_f14) &
+!!$!$omp shared(bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18,bpsi_f19,bpsi_f20) &
+!!$!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr)
+!$omp parallel default(shared) &
+!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
+!$omp private(apsi_temp,apsi_f_temp,i,jaj,iaoff,length,ja1,ja0,jb1,jb0) &
+!$omp private(jbj,ibseg)
+
 
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
@@ -2863,15 +2899,19 @@ subroutine wpdot_22(  &
 
   scpr=0.0_dp
 
-!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
-!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
-!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
-!$omp shared(bpsi12,bpsi13,bpsi14,bpsi15,bpsi16,bpsi17,bpsi18,bpsi19) &
-!$omp shared(bpsi20,bpsi21,bpsi22,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5) &
-!$omp shared(bpsi_f6,bpsi_f7,bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12) &
-!$omp shared(bpsi_f13,bpsi_f14,bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18) &
-!$omp shared(bpsi_f19,bpsi_f20,bpsi_f21,bpsi_f22) &
-!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr)
+!!$!$omp parallel default(private) shared(maseg_c,keyav_c,keyag_c,keyag_c_lin) &
+!!$!$omp shared(keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f,apsi_c,bpsi1,bpsi2) &
+!!$!$omp shared(bpsi3,bpsi4,bpsi5,bpsi6,bpsi7,bpsi8,bpsi9,bpsi10,bpsi11) &
+!!$!$omp shared(bpsi12,bpsi13,bpsi14,bpsi15,bpsi16,bpsi17,bpsi18,bpsi19) &
+!!$!$omp shared(bpsi20,bpsi21,bpsi22,bpsi_f1,bpsi_f2,bpsi_f3,bpsi_f4,bpsi_f5) &
+!!$!$omp shared(bpsi_f6,bpsi_f7,bpsi_f8,bpsi_f9,bpsi_f10,bpsi_f11,bpsi_f12) &
+!!$!$omp shared(bpsi_f13,bpsi_f14,bpsi_f15,bpsi_f16,bpsi_f17,bpsi_f18) &
+!!$!$omp shared(bpsi_f19,bpsi_f20,bpsi_f21,bpsi_f22) &
+!!$!$omp shared(keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f,apsi_f,scpr)
+!$omp parallel default(shared) &
+!$omp private(iaseg0,scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7) &
+!$omp private(apsi_temp,apsi_f_temp,i,jaj,iaoff,length,ja1,ja0,jb1,jb0) &
+!$omp private(jbj,ibseg)
 
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
@@ -3293,6 +3333,15 @@ subroutine wpdot(  &
   keyag_c_lin = keyag_c(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
   keyag_f_lin = keyag_f(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
 
+
+!$omp parallel default (none) private(scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7)&
+!$omp shared (maseg_c,keyav_c,keyag_c,keyag_c_lin,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
+!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f)&
+!$omp shared (apsi_f,scpr) &
+!!$omp parallel default(shared) &
+!$omp private(i,jaj,iaoff,length,ja1,ja0,jb1,jb0,iboff) &
+!$omp private(jbj,ibseg,iaseg0)
+
   scpr=0.0_dp
   scpr0=0.0_dp
   scpr1=0.0_dp
@@ -3303,10 +3352,7 @@ subroutine wpdot(  &
   scpr6=0.0_dp
   scpr7=0.0_dp
 
-!$omp parallel default (private) firstprivate(scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7)&
-!$omp shared (maseg_c,keyav_c,keyag_c,keyag_c_lin,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
-!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f)&
-!$omp shared (apsi_f,scpr)
+
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
   iaseg0=1 

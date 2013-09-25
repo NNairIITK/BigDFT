@@ -124,6 +124,7 @@ module module_input_keys
   character(len = *), parameter, public :: EF_INTERPOL_CHARGEDIFF = "ef_interpol_chargediff"
   character(len = *), parameter, public :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
   character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
+  character(len = *), parameter, public :: CHECK_SUMRHO = "check_sumrho"
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0
@@ -899,6 +900,21 @@ contains
          & COMMENT   .is. 'iterative_orthogonalization for input guess orbitals', &
          & DEFAULT.is. "No" ))
 
+    call set(p // CHECK_SUMRHO,dict_new( &
+         COMMENT .is. 'enables linear sumrho check', &
+         DEFAULT .is. '2', &
+         EXCLUSIVE .is. dict_new('0' .is. 'no check',&
+                                 '1' .is. 'light check',&
+                                 '2' .is. 'full check')))
+    !the opportunity of entering this dictionary already in yaml format should be discussed
+    !for example the above variable becomes:
+    !check_sumrho:
+    !   COMMENT: enables linear sumrho check
+    !   DEFAULT: 2
+    !   EXCLUSIVE: {0: no check,1: light check, 2: full check}
+    !which is *way* simpler
+
+
     get_perf_parameters => p
   END FUNCTION get_perf_parameters
 
@@ -1404,6 +1420,6 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
   ierr = 0
   if (f_err_check()) ierr = f_get_last_error(val)
   call f_err_close_try()
-
+  !in the present implementation f_err_check is not cleaned after the close of the try
   if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
 end subroutine merge_input_file_to_dict

@@ -120,7 +120,7 @@ MODULE NEB_routines
          convergence,         &
          num_of_images
 
-
+      call f_lib_initialize()
       call bigdft_init(mpi_info, nconfig, run_id, ierr)
       neb_mpi = mpi_environment_null()
       neb_mpi%igroup = mpi_info(1)
@@ -557,6 +557,7 @@ MODULE NEB_routines
 
       call mpi_environment_free(neb_mpi)
       call bigdft_finalize(ierr)
+      call f_lib_initialize()
     END SUBROUTINE deallocation
 
 END MODULE NEB_routines

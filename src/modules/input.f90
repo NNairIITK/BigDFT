@@ -1790,6 +1790,9 @@ contains
     call input_var("iterative_orthogonalization",.false.," orbitals",dummy_bool)
     call set(dict // ITERATIVE_ORTHOGONALIZATION, dummy_bool)
 
+    call input_var("check_sumrho", 2, (/0,1,2/), "linear sumrho: 0=no check, 1=light check, 2=full check", dummy_int)
+    call set(dict // CHECK_SUMRHO, dummy_int)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

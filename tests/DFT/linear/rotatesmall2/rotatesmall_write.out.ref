@@ -35,7 +35,7 @@ Calculating charge density... done.
    eval(6)=   2.470858235471E-01
    eval(7)=   2.471513049872E-01
  -------------------------------------------------
- lowest, highest ev: -3.9175763108963313E-01  2.4715130498721849E-01
+ lowest, highest ev: -3.9175763108963313E-01  2.4715130498721863E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.999999940291E+00
  ------------------------------------------------------------- Input guess generated.
@@ -65,24 +65,24 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.9857784E-07   -5.45779500773418036E+00   -5.4578E+00
+   it, Delta DENS, energy, energyDiff   1  1.9857784E-07   -5.45779500773294401E+00   -5.4578E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.112701E-001    -2.106155E+000     2.403542E-002     2.000000E-001
  
- alpha, energydiff  0.22000000000000003      -7.36388882863181493E-003
+ alpha, energydiff  0.22000000000000003      -7.36388882895333552E-003
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.999999946398E+00
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.2293393E-07   -5.46515889656281217E+00   -7.3639E-03
+   it, Delta DENS, energy, energyDiff   2  1.2293393E-07   -5.46515889656189735E+00   -7.3639E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.082119117431E+00  9.021779773079E+00 -2.203649457718E+00 -2.876205006117E+00  0.000000000000E+00  4.931397161763E+00  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   3.21E-07   -5.46515889656281217E+00   -5.4652E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.082119117434E+00  9.021779773073E+00 -2.203649457718E+00 -2.876205006118E+00  0.000000000000E+00  4.931397161763E+00  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   1   3.21E-07   -5.46515889656189735E+00   -5.4652E+00
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
@@ -92,7 +92,7 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    1.23E-07   -5.46515889656281217E+00
+     FINAL values: it, Delta DENS, energy   1    1.23E-07   -5.46515889656189735E+00
    > energy difference to last iteration: -5.465159E+00
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -123,24 +123,24 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.7974990E-07   -5.49318265091115521E+00   -2.8024E-02
+   it, Delta DENS, energy, energyDiff   1  1.7974990E-07   -5.49318265091102731E+00   -2.8024E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  ----------------------------------- Determination of the orbitals in this new basis.
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.596232E-002    -2.075356E+000     2.027887E-002     2.000000E-001
  
- alpha, energydiff  0.10000000000000001       7.01691370615264987E-004
+ alpha, energydiff  0.10000000000000001       7.01691370608159559E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   6.999999947980E+00
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  2.5393047E-08   -5.49248095954053994E+00    7.0169E-04
+   it, Delta DENS, energy, energyDiff   2  2.5393047E-08   -5.49248095954041915E+00    7.0169E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.055076722835E+00  9.044584377087E+00 -2.190361835850E+00 -2.858723529451E+00  0.000000000000E+00  4.931397161763E+00  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   2   2.04E-07   -5.49248095954053994E+00   -2.7322E-02
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.055076722839E+00  9.044584377085E+00 -2.190361835850E+00 -2.858723529451E+00  0.000000000000E+00  4.931397161763E+00  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   2   2.04E-07   -5.49248095954041915E+00   -2.7322E-02
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
@@ -150,7 +150,7 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    2.54E-08   -5.49248095954053994E+00
+     FINAL values: it, Delta DENS, energy   2    2.54E-08   -5.49248095954041915E+00
    > energy difference to last iteration: -2.732206E-02
  ############################################################################################
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -158,17 +158,17 @@ Calculating charge density... done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
  some selected eigenvalues:
-   eval(1)=  -4.394246225842E-01
-   eval(2)=  -2.696744289518E-01
-   eval(3)=  -2.687965044027E-01
-   eval(4)=  -9.570892839678E-02  <-- last occupied orbital
-   eval(5)=   1.799896928996E-01  <-- first virtual orbital
-   eval(6)=   1.931908607672E-01
-   eval(7)=   1.937608022955E-01
+   eval(1)=  -4.394246225847E-01
+   eval(2)=  -2.696744289519E-01
+   eval(3)=  -2.687965044030E-01
+   eval(4)=  -9.570892839735E-02  <-- last occupied orbital
+   eval(5)=   1.799896928992E-01  <-- first virtual orbital
+   eval(6)=   1.931908607669E-01
+   eval(7)=   1.937608022951E-01
  -------------------------------------------------
- lowest, highest ev: -4.3942462258417431E-01  1.9376080229552664E-01
- calculate density kernel...    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.051500040274E+00  9.044584377087E+00 -2.190361835850E+00 -2.858723529451E+00  0.000000000000E+00  4.931397161763E+00  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   2   2.04E-07   -5.49248095954053994E+00    0.0000E+00   FINAL
+ lowest, highest ev: -4.3942462258468923E-01  1.9376080229511891E-01
+ calculate density kernel...    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.051500040277E+00  9.044584377085E+00 -2.190361835850E+00 -2.858723529451E+00  0.000000000000E+00  4.931397161763E+00  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   2   2.04E-07   -5.49248095954041915E+00    0.0000E+00   FINAL
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 4
    - Grid spacing has changed: 0

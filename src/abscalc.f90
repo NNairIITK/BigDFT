@@ -32,6 +32,7 @@ program abscalc_main
    integer, dimension(4) :: mpi_info
    logical :: exists
 
+   call f_lib_initialize()
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
@@ -118,7 +119,7 @@ program abscalc_main
    deallocate(arr_posinp,arr_radical)
 
    call bigdft_finalize(ierr)
-
+   call f_lib_finalize()
 !!$
 !!$   !No referenced by memocc!
 !!$   deallocate(arr_posinp)

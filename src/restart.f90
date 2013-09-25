@@ -889,6 +889,16 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
 
   ! Now write the coefficients
   do i = 1, ntmb
+     ! first element always positive, for consistency when using for transfer integrals
+     ! unless 1st element below some threshold, in which case first significant element
+     do j=1,ntmb
+        if (abs(coeff(j,i))>1.0e-1) then
+           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+           exit
+        end if
+     end do
+     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+
      do j = 1, ntmb
           tt = coeff(j,i)
           if (useFormattedOutput) then
@@ -1037,6 +1047,8 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      end do
 
   end if
+
+  close(99)
 
   i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
   deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
@@ -2009,6 +2021,17 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
      end do
   end do
 
+  ! rescale so first significant element is +ve
+  do i = 1, ntmb
+     do j = 1, ntmb
+        if (abs(coeff(j,i))>1.0e-1) then
+           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+           exit
+        end if
+     end do
+     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+  end do
+
 END SUBROUTINE read_coeff_minbasis
 
 
@@ -2264,6 +2287,10 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
      end do
 
      allocate(frag_trans_orb(tmb%orbs%norbp))
+     do iorbp=1,tmb%orbs%norbp
+        nullify(frag_trans_orb(iorbp)%discrete_operations)
+     end do
+
      isforb=0
      isfat=0
      do ifrag=1,input_frag%nfrag
@@ -2306,6 +2333,9 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   else
      ! only 1 'fragment', calculate rotation/shift atom wise, using nearest neighbours
      allocate(frag_trans_orb(tmb%orbs%norbp))
+     do iorbp=1,tmb%orbs%norbp
+        nullify(frag_trans_orb(iorbp)%discrete_operations)
+     end do
 
      allocate(rxyz4_ref(3,min(4,ref_frags(ifrag_ref)%astruct_frg%nat)), stat=i_stat)
      call memocc(i_stat, rxyz4_ref, 'rxyz4_ref', subname)
@@ -2401,6 +2431,13 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,psi_old,phi_array_old)
 
+  do iorbp=1,tmb%orbs%norbp
+     if (associated(frag_trans_orb(iorbp)%discrete_operations)) then
+        i_all = -product(shape(frag_trans_orb(iorbp)%discrete_operations))*kind(frag_trans_orb(iorbp)%discrete_operations)
+        deallocate(frag_trans_orb(iorbp)%discrete_operations,stat=i_stat)
+        call memocc(i_stat,i_all,'frag_trans_orb(iorbp)%discrete_operations',subname)
+     end if
+  end do
   deallocate(frag_trans_orb)
 
   do iorbp=1,tmb%orbs%norbp
@@ -2441,14 +2478,6 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
 
   ! Read the coefficient file for each fragment and assemble total coeffs
-  if(iformat == WF_FORMAT_PLAIN) then
-     open(unitwf,file=filename//'_coeff.bin',status='unknown',form='formatted')
-  else if(iformat == WF_FORMAT_BINARY) then
-     open(unitwf,file=filename//'_coeff.bin',status='unknown',form='unformatted')
-  else
-     stop 'Coefficient format not implemented'
-  end if
-
   ! coeffs should eventually go into ref_frag array and then point? or be copied to (probably copied as will deallocate frag)
   unitwf=99
   isforb=0
@@ -2761,7 +2790,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
       tt=sqrt(tt)
       if (abs(tt-1.d0) > 1.d-3) then
          !write(*,*)'wrong phi_old',iiorb,tt
-         call yaml_warning('support function, value:'//trim(yaml_toa(iiorb,fmt='(i6)'))//trim(yaml_toa(tt,fmt='(1i6,1es18.9)')))
+         call yaml_warning('support function, value:'//trim(yaml_toa(iiorb,fmt='(i6)'))//trim(yaml_toa(tt,fmt='(1es18.9)')))
          !stop 
       end if
   end do

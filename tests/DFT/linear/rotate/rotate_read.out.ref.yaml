@@ -27,15 +27,15 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.0.30
- Timestamp of this run                 : 2013-06-18 18:16:42.990
+ Version Number                        : 1.7.0.32
+ Timestamp of this run                 : 2013-09-03 11:53:26.118
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
  MPI tasks of root process node        :  6
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Configure arguments                 : " 'FC=mpif90'"
    Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
@@ -66,6 +66,7 @@
  #|domain                       Domain to add to the hostname to find the IP                 
  #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
  #|store_index T                linear scaling: store indices or recalculate them            
+ #|check_sumrho 2               linear sumrho: 0=no check, 1=light check, 2=full check       
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
@@ -139,8 +140,8 @@
  #|4              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|0 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|T T F          fragment calculation; calculate transfer_integrals; constrained DFT calcula
+ #|0 F F F        Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|T T F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|C 4 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  #|H 1 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  # ==== WARNING: the following lines have not been processed by the parser ====
@@ -344,6 +345,14 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  0.000000000000000000E+00
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  0.000000000000000000E+00
  Ion-Ion interaction energy            :  3.06908743286215E+02
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -60.000000706734
@@ -354,19 +363,99 @@
   #ALLOCATING KSwfn%orbs%eval... is this correct?
   #--------------------------------------------------------- Reading Wavefunctions from disk
  Input Hamiltonian:
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000, -0.210009186430]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000,  0.209990813570]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000, -0.210009186430]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000, -0.210009186430]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000, -0.210009186430]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000, -0.210009186430]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000, -0.210009186430]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000, -0.210009186430]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000, -0.210009186430]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
+   Rotation axis: [ 0.577350269190, -0.577350269190,  0.577350269190]
+   Rotation angle (deg)                :  0.00000000000
+   Translation vector: [-9.999999999998E-03,  0.00000000000, -0.210009186430]
+   Rotation matrix elements:
+   -  [  1.00000000000, -0.00000000000,  0.00000000000 ]
+   -  [  0.00000000000,  1.00000000000, -0.00000000000 ]
+   -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+   Suggested order for the transformation:  [  1,  2,  3 ]
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  4.395E+01,  4.500E+01 ]}
+   -  {Process:  0, Timing:  [  4.549E+01,  4.591E+01 ]}
    Poisson Solver:
      BC                                : Free
      Box                               :  [  143,  143,  143 ]
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  35202,  859 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  35173,  859 ]
    Tolerances for this check: [ 3.27923004378241631E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  26357,  801 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  26321,  801 ]
    Tolerances for this check: [ 8.11070010828945920E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
@@ -393,53 +482,53 @@
    MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x: -2.88571403E-03, y:  3.86743619E-01, z: -2.19089555E-01, 
-                    total:  4.44498805E-01}
- Clean forces norm (Ha/Bohr): {maxval:  2.304215417532E-01, fnrm2:  4.264817156957E-01}
- Raw forces norm (Ha/Bohr): {maxval:  3.799102393798E-01, fnrm2:  7.563726681346E-01}
+ Average noise forces: {x: -2.88179325E-03, y:  3.86786740E-01, z: -2.19095363E-01, 
+                    total:  4.44539160E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  2.303426063495E-01, fnrm2:  4.264423991817E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  3.798482913441E-01, fnrm2:  7.563931180698E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 3.489039045684E-02, -2.570395007931E-03,  1.777881932789E-02]} # 0001
- -  {C: [-3.396089074065E-03, -1.584264130882E-02,  3.521142718266E-02]} # 0002
- -  {C: [-3.521572311607E-02, -3.602008935122E-02,  3.040103893057E-02]} # 0003
- -  {C: [-2.849328187480E-02, -4.229523406917E-02,  1.050552369652E-02]} # 0004
- -  {C: [ 9.698144810529E-03, -2.968273384744E-02, -8.322042593927E-03]} # 0005
- -  {C: [ 4.147379987160E-02, -8.425085644493E-03, -3.205141359833E-03]} # 0006
- -  {H: [ 5.689631384133E-02,  3.412503691930E-02,  2.405661870570E-02]} # 0007
- -  {H: [-1.092513942760E-02, -3.436784072388E-03,  7.019142261290E-02]} # 0008
- -  {H: [-6.695378410253E-02, -6.463909561564E-02,  6.125956430342E-02]} # 0009
- -  {H: [-5.516804749004E-02, -8.682376570225E-02,  3.409718209400E-03]} # 0010
- -  {H: [ 1.273683531510E-02, -4.732374329070E-02, -4.295002291483E-02]} # 0011
- -  {H: [ 6.875360375481E-02,  1.311574528019E-02, -3.244052307480E-02]} # 0012
- -  {C: [ 1.026897395294E-02,  1.707737700255E-01, -6.587747972087E-02]} # 0013
- -  {C: [-2.969807299130E-02,  1.576855234613E-01, -8.163160384271E-02]} # 0014
- -  {C: [-4.409003625843E-02,  1.533674609461E-01, -8.841122347559E-02]} # 0015
- -  {C: [-1.828767912968E-02,  1.495100646257E-01, -9.461652023190E-02]} # 0016
- -  {C: [ 2.158607759938E-02,  1.541082617345E-01, -1.271567258108E-01]} # 0017
- -  {C: [ 3.590043011500E-02,  2.032102932638E-01, -1.025223035886E-01]} # 0018
- -  {H: [ 2.539920801299E-02, -6.543927516470E-02,  9.408132785017E-02]} # 0019
- -  {H: [-4.582260591612E-02, -1.175302451137E-01,  1.349197308574E-01]} # 0020
- -  {H: [-7.124985064061E-02, -1.866405744712E-01,  8.987165335251E-02]} # 0021
- -  {H: [-2.544657787824E-02, -1.606135815715E-01,  1.505594993725E-02]} # 0022
- -  {H: [ 4.585830318444E-02, -9.898217060162E-02,  1.362403628073E-02]} # 0023
- -  {H: [ 7.128480698453E-02, -6.963074142359E-02,  4.676675536677E-02]} # 0024
+ -  {C: [ 3.489676693403E-02, -2.579890917780E-03,  1.781451673649E-02]} # 0001
+ -  {C: [-3.392501165614E-03, -1.587789103744E-02,  3.522284665798E-02]} # 0002
+ -  {C: [-3.521729623492E-02, -3.604865597538E-02,  3.037664142079E-02]} # 0003
+ -  {C: [-2.849456212856E-02, -4.229107162118E-02,  1.047072986652E-02]} # 0004
+ -  {C: [ 9.699854879544E-03, -2.965265207405E-02, -8.332416753009E-03]} # 0005
+ -  {C: [ 4.147809744441E-02, -8.401834264702E-03, -3.179743550832E-03]} # 0006
+ -  {H: [ 5.690284646835E-02,  3.411144258876E-02,  2.411965444244E-02]} # 0007
+ -  {H: [-1.092374786444E-02, -3.498621886096E-03,  7.021328859317E-02]} # 0008
+ -  {H: [-6.696013934115E-02, -6.469031837513E-02,  6.121896107098E-02]} # 0009
+ -  {H: [-5.517504570902E-02, -8.681574436894E-02,  3.347303523708E-03]} # 0010
+ -  {H: [ 1.273520449132E-02, -4.726742308455E-02, -4.297129907297E-02]} # 0011
+ -  {H: [ 6.875785200089E-02,  1.316144706642E-02, -3.239931562525E-02]} # 0012
+ -  {C: [ 1.027082414677E-02,  1.706427053208E-01, -6.587620104284E-02]} # 0013
+ -  {C: [-2.970023510750E-02,  1.579375568209E-01, -8.212097358234E-02]} # 0014
+ -  {C: [-4.409471059074E-02,  1.534015780858E-01, -8.846404772377E-02]} # 0015
+ -  {C: [-1.829111251575E-02,  1.495626476944E-01, -9.464249345911E-02]} # 0016
+ -  {C: [ 2.158637966131E-02,  1.539072107682E-01, -1.267777444041E-01]} # 0017
+ -  {C: [ 3.590350817372E-02,  2.031442245666E-01, -1.024747697044E-01]} # 0018
+ -  {H: [ 2.540312611732E-02, -6.548534058288E-02,  9.415430771711E-02]} # 0019
+ -  {H: [-4.582587344146E-02, -1.170957687384E-01,  1.349872940370E-01]} # 0020
+ -  {H: [-7.125762636275E-02, -1.866756414914E-01,  8.980303744049E-02]} # 0021
+ -  {H: [-2.545207925722E-02, -1.605821323597E-01,  1.500902715166E-02]} # 0022
+ -  {H: [ 4.585950902467E-02, -9.928035015038E-02,  1.366269814164E-02]} # 0023
+ -  {H: [ 7.129096037679E-02, -6.962547598368E-02,  4.683869811858E-02]} # 0024
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  64.24
-   Elapsed time (s)                    :  65.36
+   CPU time (s)                        :  100.03
+   Elapsed time (s)                    :  101.08
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-06-18 18:16:42.988
+     2013-09-03 11:53:26.117
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  6688
-   Tot. No. of Deallocations           :  6688
+   Tot. No. of Allocations             :  7052
+   Tot. No. of Deallocations           :  7052
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  579
-     for the array                     : nrecvdspls
-     in the routine                    : transpose_communicate_psi
+     Peak Value (MB)                   :  581
+     for the array                     : psirtwork
+     in the routine                    : check_communication_sumrho

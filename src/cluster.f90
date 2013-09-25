@@ -545,6 +545,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          KSwfn%comms,shift,proj,radii_cf,ref_frags)
   end if
 
+
+  if (in%lin%fragment_calculation) then
+     call output_fragment_rotations(iproc,nproc,atoms%astruct%nat,rxyz,1,trim(in%dir_output),in%frag,ref_frags)
+     !call mpi_finalize(i_all)
+     !stop
+  end if
+
   ! temporary, really want to just initialize it here rather than copy
   ! but still need to move all cubic references to KSwfn%orbs%npsidim to just KSwfn%npsidim
   KSwfn%npsidim_orbs = KSwfn%orbs%npsidim_orbs
@@ -606,7 +613,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
 
-     !call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, denspot, tmb%linmat%denskern)
+     if (in%check_sumrho>0) then
+         call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
+              denspot, tmb%linmat%denskern, in%check_sumrho)
+     end if
 
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction) then
         allocate(tmb%coeff(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
@@ -734,24 +744,28 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (in%lin%calc_transfer_integrals) then
         if (in%lin%constrained_dft) then
            ! switch excess charge to other fragment, recalculate kernel and density and reset lagrange multiplier
+           if (iproc==0) write(*,*) '--------------------------------------------------------------------------------------'
            if (iproc==0) write(*,*) 'Warning: site-energy/transfer integral calculation not yet working for constrained DFT'
+           if (iproc==0) write(*,*) '--------------------------------------------------------------------------------------'
 
            in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
            call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
-           in_frag_charge(cdft%ifrag_charged(1))=0
+           ! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
+           in_frag_charge(cdft%ifrag_charged(1))=in%ncharge - in_frag_charge(cdft%ifrag_charged(2))
            overlap_calculated=.true.
-           call fragment_coeffs_to_kernel(in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
+           call fragment_coeffs_to_kernel(iproc,in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
            call f_free_ptr(in_frag_charge)
+           cdft%charge=-cdft%charge
 
            call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                 KSwfn%orbs, tmb, overlap_calculated)     
-           !tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
-           !i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
-           !deallocate(tmb%psit_c,stat=i_stat)                                                 
-           !call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
-           !i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
-           !deallocate(tmb%psit_f,stat=i_stat)                                                 
-           !call memocc(i_stat,i_all,'tmb%psit_f',subname)     
+           tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
+           i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
+           deallocate(tmb%psit_c,stat=i_stat)                                                 
+           call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
+           i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
+           deallocate(tmb%psit_f,stat=i_stat)                                                 
+           call memocc(i_stat,i_all,'tmb%psit_f',subname)     
 
            ! Now need to calculate the charge density and the potential related to this inputguess
            call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -759,6 +773,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
            call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                 tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+
            ! Must initialize rhopotold (FOR NOW... use the trivial one)
            call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
                 denspot%rhov(1), 1, denspot0(1), 1)
@@ -769,7 +784,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            ! keep a copy of previous wavefunctions and energies...
            allocate(psi_constrained(tmb%npsidim_orbs), stat=i_stat)
            call memocc(i_stat, psi_constrained, 'psi_constrained', subname)
-           call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
+           call dcopy(tmb%npsidim_orbs,tmb%psi(1),1,psi_constrained(1),1)
            energy_constrained=energy
 
            call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
@@ -1557,6 +1572,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   end if
   opt%itrp=1
   rhopot_loop: do
+  KSwfn%diis%energy_old=1.d100
      if (opt%itrp > opt%itrpmax) exit
      !yaml output 
      if (iproc==0) then

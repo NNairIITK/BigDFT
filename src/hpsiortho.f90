@@ -588,7 +588,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
       stop
    end if
 
-   call timing(iproc,'ApplyLocPotKin','ON') 
 
    !apply the local hamiltonian for each of the orbitals
    !given to each processor
@@ -606,13 +605,17 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    !   GPU%hpsi_ASYNC => hpsi
    end if
    if (GPUconv) then
+      call timing(iproc,'ApplyLocPotKin','ON') 
       call local_hamiltonian_GPU(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
            orbs%nspin,pot,psi,GPU%hpsi_ASYNC,energs%ekin,energs%epot,GPU)
+      call timing(iproc,'ApplyLocPotKin','OF') 
    else if (OCLconv) then
 
       !pin potential
+      call timing(iproc,'ApplyLocPotKin','ON') 
       call local_hamiltonian_OCL(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
            orbs%nspin,pot,psi,GPU%hpsi_ASYNC,energs%ekin,energs%epot,GPU)
+      call timing(iproc,'ApplyLocPotKin','OF') 
    else
 
 !!$      !temporary allocation
@@ -624,6 +627,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
       !local hamiltonian application for different methods
       !print *,'here',ipotmethod,associated(pkernelSIC)
       if (PotOrKin==1) then ! both
+         call timing(iproc,'ApplyLocPotKin','ON') 
          if(present(dpbox) .and. present(potential) .and. present(comgp)) then
             call local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
                  ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
@@ -634,11 +638,13 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                  ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
                  SIC%ixc,SIC%alpha,energs%ekin,energs%epot,energs%evsic)
          end if
+         call timing(iproc,'ApplyLocPotKin','OF') 
 !!$      i_all=-product(shape(fake_pot))*kind(fake_pot)
 !!$      deallocate(fake_pot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'fake_pot',subname)
          
       else if (PotOrKin==2) then !only pot
+         call timing(iproc,'ApplyLocPot','ON') 
          if (present(hpsi_noconf)) then
              if (.not.present(econf)) then
                  stop 'ERROR: econf must be present when hpsi_noconf is present'
@@ -651,8 +657,11 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                   ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
                   SIC%ixc,SIC%alpha,energs%epot,energs%evsic)
          end if
+         call timing(iproc,'ApplyLocPot','OF') 
       else if (PotOrKin==3) then !only kin
+         call timing(iproc,'ApplyLocKin','ON') 
          call psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,energs%ekin)
+         call timing(iproc,'ApplyLocKin','OF') 
       end if
 
       !sum the external and the BS double counting terms
@@ -662,7 +671,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    if (ipotmethod == 2 .or. ipotmethod==3) then
       nullify(pkernelSIC%kernel)
    end if
-   call timing(iproc,'ApplyLocPotKin','OF') 
 
 END SUBROUTINE LocalHamiltonianApplication
 

@@ -46,6 +46,8 @@ program test_forces
    !character(len=60) :: radical
    integer, dimension(4) :: mpi_info
 
+   call f_lib_initialize()
+
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
@@ -217,6 +219,6 @@ enddo !loop over iconfig
 
    call bigdft_finalize(ierr)
 
-!!$   call MPI_FINALIZE(ierr)
+   call f_lib_finalize()
 
 END PROGRAM test_forces

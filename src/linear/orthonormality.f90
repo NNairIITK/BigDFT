@@ -724,7 +724,7 @@ subroutine overlapPowerPlusMinusOneHalf(iproc, nproc, comm, methTransformOrder, 
 
           !  lr408 - see if LAPACK is stil to blame for convergence issues
           if(info/=0) then
-              write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+              write(*,'(a,i0,2x,i0)') 'ERROR in dsyev (overlapPowerPlusMinusOneHalf), info, norb=', info, norb
               stop
           end if
           iall=-product(shape(work))*kind(work)
@@ -1094,7 +1094,7 @@ subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrd
 
           !  lr408 - see if LAPACK is stil to blame for convergence issues
           if(info/=0) then
-              write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+              write(*,'(a,i0,2x,i0)') 'ERROR in dsyev (overlapPowerPlusMinusOneHalf_old), info, norb=', info, norb
               stop
           end if
           iall=-product(shape(work))*kind(work)

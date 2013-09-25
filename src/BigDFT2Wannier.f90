@@ -69,6 +69,7 @@ program BigDFT2Wannier
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
    integer, dimension(4) :: mpi_info
 
+   call f_lib_initialize()
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
@@ -1018,7 +1019,7 @@ call bigdft_finalize(ierr)
 !!$call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 !!$
 !!$call MPI_FINALIZE(ierr)
-
+call f_lib_finalize()
 contains
 
 subroutine allocate_initial()

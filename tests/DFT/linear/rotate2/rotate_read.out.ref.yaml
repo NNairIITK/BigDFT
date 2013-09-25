@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.0.30
- Timestamp of this run                 : 2013-06-18 18:18:13.353
+ Version Number                        : 1.7.0.32
+ Timestamp of this run                 : 2013-07-05 20:04:12.277
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -66,6 +66,7 @@
  #|domain                       Domain to add to the hostname to find the IP                 
  #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
  #|store_index T                linear scaling: store indices or recalculate them            
+ #|check_sumrho 2               linear sumrho: 0=no check, 1=light check, 2=full check       
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
@@ -344,6 +345,14 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  0.000000000000000000E+00
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  0.000000000000000000E+00
  Ion-Ion interaction energy            :  3.06908988504720E+02
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -60.000000694861
@@ -355,18 +364,18 @@
   #--------------------------------------------------------- Reading Wavefunctions from disk
  Input Hamiltonian:
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  4.312E+01,  4.323E+01 ]}
+   -  {Process:  0, Timing:  [  1.360E+01,  1.364E+01 ]}
    Poisson Solver:
      BC                                : Free
      Box                               :  [  143,  143,  145 ]
      MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  34533,  879 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  34504,  876 ]
    Tolerances for this check: [ 3.28581004387026882E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  26511,  797 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  26491,  796 ]
    Tolerances for this check: [ 8.10117010816222039E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  2.79396772384643555E-09
    Maxdiff for untranspose             :  0.00000000000000000E+00
@@ -393,53 +402,53 @@
    MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x: -4.99606588E-03, y:  8.89256840E-01, z: -4.89266511E-02, 
-                    total:  8.90615801E-01}
- Clean forces norm (Ha/Bohr): {maxval:  4.445694340184E-01, fnrm2:  1.690772060073E+00}
- Raw forces norm (Ha/Bohr): {maxval:  7.461258671877E-01, fnrm2:  3.023430985503E+00}
+ Average noise forces: {x: -4.99599521E-03, y:  8.89281217E-01, z: -4.89317769E-02, 
+                    total:  8.90640422E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  4.445939341385E-01, fnrm2:  1.690867991843E+00}
+ Raw forces norm (Ha/Bohr): {maxval:  7.461565590302E-01, fnrm2:  3.023599491245E+00}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 8.297582295584E-02, -3.529412182341E-02,  1.852768718887E-02]} # 0001
- -  {C: [ 2.699127279466E-02, -5.779109579375E-02,  2.916308422171E-02]} # 0002
- -  {C: [-5.399037633218E-02, -7.652549723377E-02,  1.253288505585E-02]} # 0003
- -  {C: [-7.873892795939E-02, -7.153426532253E-02, -1.241496055401E-02]} # 0004
- -  {C: [-2.260650613826E-02, -4.924481598794E-02, -2.367246816057E-02]} # 0005
- -  {C: [ 5.834227223784E-02, -3.017642499337E-02, -6.758334736396E-03]} # 0006
- -  {H: [ 1.431379312423E-01, -1.984946798712E-03,  3.427638886313E-02]} # 0007
- -  {H: [ 4.448770473293E-02, -5.574310099994E-02,  6.678625958090E-02]} # 0008
- -  {H: [-9.753571644568E-02, -1.134086995394E-01,  3.706181436809E-02]} # 0009
- -  {H: [-1.409541202499E-01, -1.157094585994E-01, -2.853124223785E-02]} # 0010
- -  {H: [-4.204153708249E-02, -5.940750648355E-02, -6.127960649832E-02]} # 0011
- -  {H: [ 9.994997518921E-02, -2.788223355048E-03, -2.939762558879E-02]} # 0012
- -  {C: [-3.435418208093E-04,  3.575647684176E-01,  1.461615209637E-01]} # 0013
- -  {C: [-7.201066524563E-02,  3.505436872021E-01,  7.301903847237E-02]} # 0014
- -  {C: [-7.583552972153E-02,  3.660066440321E-01,  1.092008332030E-01]} # 0015
- -  {C: [-6.945633499327E-03,  3.521896040599E-01, -2.470169001444E-01]} # 0016
- -  {C: [ 6.480160650526E-02,  3.978537877391E-01, -8.857380572907E-02]} # 0017
- -  {C: [ 6.796521123415E-02,  4.185347719432E-01, -1.336089682612E-01]} # 0018
- -  {H: [ 6.199517046704E-03, -2.290808044652E-01,  1.671465514504E-01]} # 0019
- -  {H: [-1.219844889377E-01, -3.474272854384E-01,  9.921601356022E-02]} # 0020
- -  {H: [-1.278751616237E-01, -3.317172007572E-01, -3.061514671612E-02]} # 0021
- -  {H: [-5.457444920521E-03, -2.381925968277E-01, -1.384184484598E-01]} # 0022
- -  {H: [ 1.228544189226E-01, -2.095930604153E-01, -1.878667126232E-02]} # 0023
- -  {H: [ 1.286139171156E-01, -2.170741585594E-01,  2.598210142069E-02]} # 0024
+ -  {C: [ 8.297828847218E-02, -3.529549383899E-02,  1.852799748705E-02]} # 0001
+ -  {C: [ 2.699180137570E-02, -5.779258097375E-02,  2.916338201682E-02]} # 0002
+ -  {C: [-5.399217258192E-02, -7.652689254826E-02,  1.253309902462E-02]} # 0003
+ -  {C: [-7.874110370093E-02, -7.153561791225E-02, -1.241451438429E-02]} # 0004
+ -  {C: [-2.260677130358E-02, -4.924641131163E-02, -2.367200833681E-02]} # 0005
+ -  {C: [ 5.834431006810E-02, -3.017794579303E-02, -6.758083234011E-03]} # 0006
+ -  {H: [ 1.431417345677E-01, -1.986533114708E-03,  3.427661065954E-02]} # 0007
+ -  {H: [ 4.448829382858E-02, -5.574459710612E-02,  6.678652946570E-02]} # 0008
+ -  {H: [-9.753891806550E-02, -1.134102241645E-01,  3.706219722240E-02]} # 0009
+ -  {H: [-1.409579027515E-01, -1.157110862380E-01, -2.853081898317E-02]} # 0010
+ -  {H: [-4.204212477794E-02, -5.940922580079E-02, -6.127924319689E-02]} # 0011
+ -  {H: [ 9.995316514648E-02, -2.789908193459E-03, -2.939736609917E-02]} # 0012
+ -  {C: [-3.439126418411E-04,  3.575805075201E-01,  1.461903602702E-01]} # 0013
+ -  {C: [-7.201275842518E-02,  3.505439720394E-01,  7.298930992906E-02]} # 0014
+ -  {C: [-7.583753842906E-02,  3.660184251515E-01,  1.092215679776E-01]} # 0015
+ -  {C: [-6.945504996296E-03,  3.521965381945E-01, -2.470371912787E-01]} # 0016
+ -  {C: [ 6.480361453766E-02,  3.978621197865E-01, -8.855156250565E-02]} # 0017
+ -  {C: [ 6.796685328727E-02,  4.185508797613E-01, -1.336391940189E-01]} # 0018
+ -  {H: [ 6.199017359671E-03, -2.290902667671E-01,  1.671404949003E-01]} # 0019
+ -  {H: [-1.219881621510E-01, -3.474322715028E-01,  9.921883993538E-02]} # 0020
+ -  {H: [-1.278783558582E-01, -3.317201491557E-01, -3.061756407615E-02]} # 0021
+ -  {H: [-5.456985189298E-03, -2.381995024630E-01, -1.384113790051E-01]} # 0022
+ -  {H: [ 1.228580557081E-01, -2.096016948721E-01, -1.878476079458E-02]} # 0023
+ -  {H: [ 1.286170765208E-01, -2.170820406973E-01,  2.598329702483E-02]} # 0024
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  65.90
-   Elapsed time (s)                    :  66.68
+   CPU time (s)                        :  68.56
+   Elapsed time (s)                    :  68.77
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-06-18 18:18:13.351
+     2013-07-05 20:04:12.276
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  6688
-   Tot. No. of Deallocations           :  6688
+   Tot. No. of Allocations             :  6986
+   Tot. No. of Deallocations           :  6986
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  583
-     for the array                     : nrecvdspls
-     in the routine                    : transpose_communicate_psi
+     Peak Value (MB)                   :  584
+     for the array                     : psirtwork
+     in the routine                    : check_communication_sumrho

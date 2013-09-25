@@ -179,7 +179,8 @@ module module_types
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization
-    logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin
+    logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end
+    integer :: extra_states
   end type linearInputParameters
 
   type,public:: fragmentInputParameters
@@ -323,6 +324,9 @@ module module_types
 
      !> linear scaling: store indices of the sparse matrices or recalculate them 
      logical :: store_index
+
+     !> linear scaling: perform a check of sumrho (no check, light check or full check)
+     integer :: check_sumrho
   end type input_variables
 
   !> Contains all energy terms

@@ -574,16 +574,18 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-           'calculate dipole ; pulay correction'
+           'calculate dipole ; pulay correction; diagonalization at the end (dmin, FOE)'
   call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
-  call input_var(in%lin%pulay_correction,'T',comment=comments)
+  call input_var(in%lin%pulay_correction,'T')
+  call input_var(in%lin%diag_end,'F',comment=comments)
 
   !fragment calculation and transfer integrals: true or false
-  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation'
+  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
   call input_var(in%lin%fragment_calculation,'F')
   call input_var(in%lin%calc_transfer_integrals,'F')
-  call input_var(in%lin%constrained_dft,'F',comment=comments)
+  call input_var(in%lin%constrained_dft,'F')
+  call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
   call nullifyInputLinparameters(in%lin)
@@ -710,8 +712,8 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   integer :: ifrag, frag_num, ierr
 
   !Linear input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters')  
-  if (exists) in%files = in%files + INPUTS_FRAG
+  call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 
+  if (exists .and. dump) in%files = in%files + INPUTS_FRAG
 
   if (.not. exists .and. in%lin%fragment_calculation) then ! we should be doing a fragment calculation, so this is a problem
      write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' is missing and fragment calculation was specified"
@@ -2798,6 +2800,7 @@ subroutine perf_input_analyse(iproc,in,dict)
   !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
   in%lin%iterative_orthogonalization = dict // ITERATIVE_ORTHOGONALIZATION
 
+  in%check_sumrho = dict // CHECK_SUMRHO
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
 END SUBROUTINE perf_input_analyse
 

@@ -33,50 +33,7 @@ program splined_saddle
   integer, dimension(4) :: mpi_info
   !include 'mpif.h' !non-BigDFT
 
-
-!!$  ! Start MPI in parallel version
-!!$  !in the case of MPIfake libraries the number of processors is automatically adjusted
-!!$  call MPI_INIT(ierr)
-!!$  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-!!$  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-!!$
-!!$  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,0)
-!!$
-!!$  call memocc_set_memory_limit(memorylimit)
-!!$
-!!$  ! Read a possible radical format argument.
-!!$  call get_command_argument(1, value = radical, status = istat)
-!!$  if (istat > 0) then
-!!$     write(radical, "(A)") "input"
-!!$  end if
-!!$
-!!$  if (iproc ==0) call yaml_set_stream(record_length=92)!unit=70,filename='log.yaml')
-!!$
-!!$!
-!!$!    call system("echo $HOSTNAME")
-!!$!
-!!$  ! find out which input files will be used
-!!$  inquire(file="list_posinp",exist=exist_list)
-!!$  if (exist_list) then
-!!$     open(54,file="list_posinp")
-!!$     read(54,*) nconfig
-!!$     if (nconfig > 0) then 
-!!$        !allocation not referenced since memocc count not initialised
-!!$        allocate(arr_posinp(1:nconfig))
-!!$
-!!$        do iconfig=1,nconfig
-!!$           read(54,*) arr_posinp(iconfig)
-!!$        enddo
-!!$     else
-!!$        nconfig=1
-!!$        allocate(arr_posinp(1:1))
-!!$     endif
-!!$     close(54)
-!!$  else
-!!$     nconfig=1
-!!$     allocate(arr_posinp(1:1))
-!!$  end if
-
+  call f_lib_initialize()
   !-finds the number of taskgroup size
   !-initializes the mpi_environment for each group
   !-decides the radical name for each run
@@ -180,6 +137,7 @@ enddo !loop over iconfig
   deallocate(arr_posinp,arr_radical)
 
   call bigdft_finalize(ierr)
+  call f_lib_finalize()
 
 end program splined_saddle
 

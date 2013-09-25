@@ -809,7 +809,7 @@ contains
        mems(ictrl)%routine_opened=.false.
     end if
 
-    mems(ictrl)%present_routine=trim(dict_key(mems(ictrl)%dict_codepoint))
+    mems(ictrl)%present_routine(1:len(mems(ictrl)%present_routine))=trim(dict_key(mems(ictrl)%dict_codepoint))
     if (.not. has_key(mems(ictrl)%dict_codepoint,prof_enabled)) then
        call yaml_dict_dump(mems(ictrl)%dict_codepoint)
        call f_err_throw('The key '//prof_enabled//' is not present in the codepoint',&

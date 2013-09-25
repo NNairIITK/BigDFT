@@ -47,6 +47,7 @@ program MINHOP
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
 
+  call f_lib_initialize()
   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
   if (nconfig < 0) stop 'runs-file not supported for MH executable'
@@ -762,7 +763,7 @@ end do hopping_loop
 !!$  call mpi_environment_free(bigdft_mpi)
 !!$
 !!$  call MPI_FINALIZE(ierr)
-
+  call f_lib_finalize()
 
 contains
 
@@ -2437,7 +2438,7 @@ subroutine give_rcov(iproc,atoms,nat,rcov)
         rcov(iat)=2.50d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cs') then
         rcov(iat)=4.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pa') then
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ba') then
         rcov(iat)=4.00d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='La') then
         rcov(iat)=3.50d0
