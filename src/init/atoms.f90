@@ -1775,7 +1775,7 @@ subroutine astruct_set_geometry(astruct, alat, geocode, format, units)
   implicit none
   type(atomic_structure), intent(inout) :: astruct
   real(gp), intent(in) :: alat(3)
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character, intent(in) :: format(5)
   character, intent(in) :: units(20)
 
@@ -1991,7 +1991,7 @@ subroutine astruct_copy_geometry_data(astruct, geocode, format, units)
   use module_types
   implicit none
   type(atomic_structure), intent(in) :: astruct
-  character(len = 1), intent(out) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len = 1), intent(out) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len = 5), intent(out) :: format
   character(len = 20), intent(out) :: units
 
@@ -2060,7 +2060,7 @@ subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
   implicit none
   type(symmetry_data), intent(inout) :: sym
   integer, intent(in) :: n1i, n2i, n3i, nspin
-  character, intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character, intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 
   character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
   integer :: i_stat, nsym, i_all, i_third

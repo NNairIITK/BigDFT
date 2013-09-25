@@ -269,7 +269,7 @@ module module_interfaces
         type(input_variables), intent(inout) :: in
         type(dictionary), pointer :: dict
         type(symmetry_data), intent(in) :: sym
-        character(len = 1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+        character(len = 1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
         real(gp), intent(in) :: alat(3)
       end subroutine kpt_input_analyse
 
@@ -426,7 +426,7 @@ module module_interfaces
 !!$         use module_types
 !!$         implicit none
 !!$         !Arguments
-!!$         character(len=1), intent(in) :: datacode
+!!$         character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
 !!$         character(len=3), intent(in) :: rho_commun
 !!$         integer, intent(in) :: iproc,nproc,ixc,nspin
 !!$         real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
@@ -522,7 +522,7 @@ module module_interfaces
          use module_base
          use module_types
          implicit none
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
          integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
          logical, intent(in) :: verb
          real(gp), intent(in) :: hxh,hyh,hzh,psoffset
@@ -1503,7 +1503,7 @@ module module_interfaces
          use module_types
          implicit none
          character(len=*), intent(in) :: filename
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
          integer, intent(out) :: nspin
          integer, intent(out) ::  n1i,n2i,n3i
          real(gp), intent(out) :: hxh,hyh,hzh
@@ -1519,7 +1519,7 @@ module module_interfaces
          use module_types
          implicit none
          character(len=*), intent(in) :: filename
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
          integer, intent(out) :: nspin
          integer, intent(out) ::  n1i,n2i,n3i
          real(gp), intent(out) :: hxh,hyh,hzh
@@ -1535,7 +1535,7 @@ module module_interfaces
          use module_types
          implicit none
          character(len=*), intent(in) :: filename
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
          integer, intent(out) :: nspin
          integer, intent(out) ::  n1i,n2i,n3i
          real(gp), intent(out) :: hxh,hyh,hzh
@@ -1650,8 +1650,8 @@ module module_interfaces
         use module_base
         use module_xc
         implicit none
-        character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
-        character(len=1), intent(in) :: datacode
+        character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
+        character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
         integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin,mpi_comm
         real(gp), intent(in) :: hx,hy,hz
         real(gp), intent(out) :: exc,vxc
@@ -1669,7 +1669,7 @@ module module_interfaces
         use module_xc
         use interfaces_56_xc
         implicit none
-        character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+        character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
         logical, intent(in) :: sumpion
         integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
         integer, intent(in) :: nwbl,nwbr
@@ -1704,7 +1704,7 @@ module module_interfaces
          !n(c) use module_base
          use module_types
          implicit none
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
          integer, intent(in) :: iproc,nproc,n3pi,i3s
          real(gp), intent(in) :: hxh,hyh,hzh
          real(gp), dimension(3), intent(in) :: shift
@@ -2007,7 +2007,7 @@ module module_interfaces
         use module_types
         implicit none
         integer, intent(in) :: iproc,nproc,ixc,nspin
-        character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+        character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
         character(len=4), intent(in) :: SICapproach
         type(denspot_distribution), intent(inout) :: dpbox
       end subroutine denspot_communications
@@ -2551,7 +2551,7 @@ module module_interfaces
        use module_base
        use module_types
        implicit none
-       character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+       character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
        type(convolutions_bounds),intent(in):: boundsin
        type(convolutions_bounds),intent(inout):: boundsout
        character(len=*),intent(in):: subname
@@ -2562,7 +2562,7 @@ module module_interfaces
        use module_base
        use module_types
        implicit none
-       character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+       character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
        type(kinetic_bounds),intent(in):: kbin
        type(kinetic_bounds),intent(inout):: kbout
        character(len=*),intent(in):: subname
@@ -2573,7 +2573,7 @@ module module_interfaces
        use module_base
        use module_types
        implicit none
-       character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+       character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
        type(shrink_bounds),intent(in):: sbin
        type(shrink_bounds),intent(inout):: sbout
        character(len=*),intent(in):: subname
@@ -2584,7 +2584,7 @@ module module_interfaces
        use module_base
        use module_types
        implicit none
-       character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+       character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
        type(grow_bounds),intent(in):: gbin
        type(grow_bounds),intent(inout):: gbout
        character(len=*),intent(in):: subname
@@ -3248,7 +3248,7 @@ module module_interfaces
          use module_base
          implicit none
          !Arguments
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
          integer, intent(in) :: n1,n2,n3,n3grad,deltaleft,deltaright,nspden
          real(dp), intent(in) :: hx,hy,hz
          real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: rhoinp

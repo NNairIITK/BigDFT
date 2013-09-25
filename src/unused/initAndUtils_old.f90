@@ -2014,7 +2014,7 @@ end subroutine initCoefficients
 !!!> Contains the information needed for describing completely a
 !!!! wavefunction localisation region
 !!  type, public :: locreg_descriptors
-!!     character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+!!     character(len=1) :: geocode !< @copydoc poisson_solver::doc::geocode
 !!     logical :: hybrid_on               !< interesting for global, periodic, localisation regions
 !!     integer :: ns1,ns2,ns3             !< starting point of the localisation region in global coordinates
 !!     integer :: nsi1,nsi2,nsi3          !< starting point of locreg for interpolating grid

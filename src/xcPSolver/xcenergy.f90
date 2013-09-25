@@ -236,28 +236,6 @@ end function spherical_gaussian_value
 
 !> Given a charge density, calculates the exchange-correlation potential
 !! SYNOPSIS
-!!   @param  geocode  Indicates the boundary conditions (BC) of the problem, useful for gradients
-!!          - 'F' free BC, isolated systems.
-!!                The program calculates the solution as if the given density is
-!!                "alone" in R^3 space.
-!!          - 'S' surface BC, isolated in y direction, periodic in xz plane                
-!!                The given density is supposed to be periodic in the xz plane,
-!!                so the dimensions in these direction mus be compatible with the FFT
-!!                Beware of the fact that the isolated direction is y!
-!!          - 'P' periodic BC.
-!!                The density is supposed to be periodic in all the three directions,
-!!                then all the dimensions must be compatible with the FFT.
-!!    @param datacode Indicates the distribution of the data of the input/output array:
-!!          - 'G' global data. Each process has the whole array of the density 
-!!                and the whole array of the potential
-!!          - 'D' distributed data. Each process has only the needed part of the density
-!!                and of the potential. 
-!!                The data distribution is such that each processor
-!!                has the xy planes needed for the calculation AND 
-!!                for the evaluation of the 
-!!                gradient, needed for XC part, and for the White-Bird correction, which
-!!                may lead up to 8 planes more on each side. 
-!!                Due to this fact, the information between the processors may overlap.
 !!    @param nproc       number of processors
 !!    @param iproc       label of the process,from 0 to nproc-1
 !!    @param n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
@@ -286,8 +264,8 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   use module_interfaces, fake_name => XC_potential
   use module_xc
   implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
-  character(len=1), intent(in) :: datacode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
   integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,mpi_comm
   integer, intent(in) :: nspin !< Value of the spin-polarisation
   real(gp), intent(in) :: hx,hy,hz
@@ -804,7 +782,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   !!       The density is supposed to be periodic in all the three directions,
   !!       then all the dimensions must be compatible with the FFT.
   !!       No need for setting up the kernel.
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: m1,m3     !< Global dimensions in the three directions.
   integer, intent(in) :: nxc       !< Value of the effective distributed dimension in the third direction
   integer, intent(in) :: nwb       !< Enlarged dimension for calculating the WB correction
@@ -1062,7 +1040,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   implicit none
 
   !Arguments----------------------
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: sumpion
   integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
   integer, intent(in) :: nwbl,nwbr
@@ -1488,7 +1466,7 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,&
 gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr
   real(dp), intent(in) :: hx,hy,hz
   real(dp), dimension(n01,n02,n03,2*nspden-1,0:3), intent(in) :: gradient

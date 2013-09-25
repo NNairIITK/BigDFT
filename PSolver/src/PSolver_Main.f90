@@ -10,17 +10,6 @@
 !!    For the list of contributors, see ~/AUTHORS
 !!
 
-!> @memberof datacode
-!! Indicates the distribution of the data of the input/output array:
-!!    - 'G' global data. Each process has the whole array of the density 
-!!          which will be overwritten with the whole array of the potential.
-!!    - 'D' distributed data. Each process has only the needed part of the density
-!!          and of the potential. The data distribution is such that each processor
-!!          has the xy planes needed for the calculation AND for the evaluation of the 
-!!          gradient, needed for XC part, and for the White-Bird correction, which
-!!          may lead up to 8 planes more on each side. Due to this fact, the information
-!!          between the processors may overlap.
-
 !> Calculate the Hartree potential by solving the Poisson equation 
 !! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
 !! from a given @f$\rho@f$, 
@@ -44,7 +33,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !!  dimensions that are related to the output of the PS_dim4allocation routine
    !!  it MUST be created by following the same geocode as the Poisson Solver.
    type(coulomb_operator), intent(in) :: kernel
-   character(len=1), intent(in) :: datacode !< @copydoc datacode
+   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
    !> Total integral on the supercell of the final potential on output
    !! To be used only in the periodic case, ignored for other boundary conditions.
    logical, intent(in) :: sumpion
@@ -424,8 +413,8 @@ END SUBROUTINE H_potential
 subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradient,use_wb_corr,&
       n3d,n3p,n3pi,i3xcsh,i3s)
    implicit none
-   character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::coulomb_operator::geocode
-   character(len=1), intent(in) :: datacode !< @copydoc datacode
+   character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
+   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
    integer, intent(in) :: iproc        !< Process Id
    integer, intent(in) :: nproc        !< Number of processes
    integer, intent(in) :: n01,n02,n03  !< Dimensions of the real space grid to be hit with the Poisson Solver
@@ -553,7 +542,7 @@ subroutine xc_dimensions(geocode,use_gradient,use_wb_corr,&
      & istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
   implicit none
 
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: use_gradient, use_wb_corr
   integer, intent(in) :: istart,iend,m2
   integer, intent(out) :: nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh

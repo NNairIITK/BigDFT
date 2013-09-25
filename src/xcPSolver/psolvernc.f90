@@ -31,16 +31,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::coulomb_operator::geocode
-  character(len=1), intent(in) :: datacode !< Indicates the distribution of the data of the input/output array:
-                                           !! 'G' global data. Each process has the whole array of the density 
-                                           !!     which will be overwritten with the whole array of the potential
-                                           !! 'D' distributed data. Each process has only the needed part of the density
-                                           !!     and of the potential. The data distribution is such that each processor
-                                           !!     has the xy planes needed for the calculation AND for the evaluation of the 
-                                           !!     gradient, needed for XC part, and for the White-Bird correction, which
-                                           !!     may lead up to 8 planes more on each side. Due to this fact, the information
-                                           !!     between the processors may overlap.
+  character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
+  character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
   logical, intent(in) :: sumpion           !< Logical value which states whether to sum pot_ion to the final result or not
                                            !!  if .true. rhopot will be the Hartree potential + pot_ion+vxci
                                            !!            pot_ion will be untouched
@@ -535,16 +527,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   use dictionaries, only: f_err_raise
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode  !<  @copydoc poisson_solver::coulomb_operator::geocode
-  character(len=1), intent(in) :: datacode !< Indicates the distribution of the data of the input/output array:
-                                           !! 'G' global data. Each process has the whole array of the density 
-                                           !!     which will be overwritten with the whole array of the potential
-                                           !! 'D' distributed data. Each process has only the needed part of the density
-                                           !!     and of the potential. The data distribution is such that each processor
-                                           !!     has the xy planes needed for the calculation AND for the evaluation of the 
-                                           !!     gradient, needed for XC part, and for the White-Bird correction, which
-                                           !!     may lead up to 8 planes more on each side. Due to this fact, the information
-                                           !!     between the processors may overlap.
+  character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
+  character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
   logical, intent(in) :: sumpion           !< Logical value which states whether to sum pot_ion to the final result or not
                                            !!  if .true. rhopot will be the Hartree potential + pot_ion+vxci
                                            !!            pot_ion will be untouched
@@ -599,8 +583,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
 !!$       use module_base
 !!$       use module_types
 !!$       implicit none
-!!$       character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
-!!$       character(len=1), intent(in) :: datacode
+!!$       character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+!!$       character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
 !!$       logical, intent(in) :: sumpion
 !!$       integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
 !!$       real(gp), intent(in) :: hx,hy,hz

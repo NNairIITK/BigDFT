@@ -19,7 +19,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   integer, intent(in) :: iproc      !< Proc Id
   integer, intent(in) :: nproc      !< Number of processes
   integer, intent(in) :: igpu
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, dimension(3), intent(in) :: ndims
   real(gp), dimension(3), intent(in) :: hgrids
   real(kind=8), intent(in), optional :: mu0_screening

@@ -228,7 +228,7 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   implicit none
   logical, intent(in) :: verb
   integer, intent(in) :: iproc, nproc
-  character, intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character, intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   type(input_variables), intent(in) :: in
   type(DFT_local_fields), intent(inout) :: denspot
 

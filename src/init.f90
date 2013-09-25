@@ -501,7 +501,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
    integer, intent(in)  ::iat, startjorb
    real(gp), intent(in) ::   hx,hy,hz,kx,ky,kz
    integer, intent(in) :: initial_istart_c
-   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    type(atoms_data) :: at
    integer :: iatat
 

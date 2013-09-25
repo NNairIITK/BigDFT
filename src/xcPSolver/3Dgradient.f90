@@ -26,7 +26,7 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
   use Poisson_Solver, only: dp
  implicit none
  !Arguments
- character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+ character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
  integer, intent(in) :: n1,n2,n3,n3grad,wbl,wbr,nspden
  real(dp), intent(in) :: hx,hy,hz
  real(dp), dimension(n1,n2,n3,3,nspden), intent(in) :: f_i
@@ -567,7 +567,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
   use wrapper_linalg
  implicit none
  !Arguments
- character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+ character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
  integer, intent(in) :: n1,n2,n3,n3grad,deltaleft,deltaright,nspden
  real(dp), intent(in) :: hx,hy,hz
  real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: rhoinp

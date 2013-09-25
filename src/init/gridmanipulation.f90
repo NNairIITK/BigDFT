@@ -458,7 +458,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    use module_base
    implicit none
    !Arguments
-   character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+   character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,ntypes
    real(gp), intent(in) :: rmult,hx,hy,hz
    integer, dimension(nat), intent(in) :: iatype

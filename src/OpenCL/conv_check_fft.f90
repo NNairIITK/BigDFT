@@ -545,7 +545,7 @@ contains
     use Poisson_Solver
     implicit none
     integer, intent(in) :: n01,n02,n03
-    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     real(dp), dimension(*), intent(in) :: pkernel
     real(dp), dimension(:), pointer :: pkernel2
     !local variables

@@ -98,7 +98,6 @@ module Poisson_Solver
        !!                The density is supposed to be periodic in z direction, 
        !!                which has to be compatible with the FFT.
        !!          - 'H' Helmholtz Equation Solver
-       !! @ingroup RESERVED
       character(len=1) :: geocode
       integer, dimension(3) :: ndims   !< dimension of the box of the density
       real(gp), dimension(3) :: hgrids !<grid spacings in each direction
@@ -115,14 +114,32 @@ module Poisson_Solver
       integer :: keepGPUmemory
    end type coulomb_operator
    
-   !calculate the allocation dimensions
+   ! Calculate the allocation dimensions
    public :: PS_dim4allocation, PS_getVersion
-   !routine that creates the kernel
+   ! Routine that creates the kernel
    public :: pkernel_init, pkernel_set, pkernel_free
-   !calculate the poisson solver
+   ! Calculate the poisson solver
    public :: H_potential 
-   !calculate the allocation dimensions
+   ! Calculate the allocation dimensions
    public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
+
+   !> This structure is used to indicate the arguments of the routine which are used commonly
+   !! Doxygen will duplicate the documentation for the arguments
+   type doc
+      character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode 
+                                  !! @ingroup RESERVED
+      !> Indicates the distribution of the data of the input/output array:
+      !!    - 'G' global data. Each process has the whole array of the density 
+      !!          which will be overwritten with the whole array of the potential.
+      !!    - 'D' distributed data. Each process has only the needed part of the density
+      !!          and of the potential. The data distribution is such that each processor
+      !!          has the xy planes needed for the calculation AND for the evaluation of the 
+      !!          gradient, needed for XC part, and for the White-Bird correction, which
+      !!          may lead up to 8 planes more on each side. Due to this fact, the information
+      !!          between the processors may overlap.
+      !!          @ingroup RESERVED
+      character(len=1) :: datacode
+   end type doc
 
 contains
 

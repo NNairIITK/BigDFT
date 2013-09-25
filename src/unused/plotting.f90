@@ -456,7 +456,7 @@ END SUBROUTINE plot_psifscf
 subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=*), intent(in) :: filename
   integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,i3s
   real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
@@ -509,7 +509,7 @@ subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3
      alat1,alat2,alat3,ngatherarr,rho)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nproc
   real(gp), intent(in) :: alat1,alat2,alat3

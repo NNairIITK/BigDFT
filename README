@@ -67,7 +67,9 @@ bigdft-tool -a atomic-wf [options]:
 - @link pseudo.f90 pseudo @endlink The pseudopotential generation tool
 
 @section D Documentation
-This documentation can be generated in the <tt>doc</tt> directory by <tt>make doxygen-doc</tt>.
+This documentation can be generated in the <tt>doc</tt> directory by typing <tt>make doxygen-doc</tt> using the tool
+doxygen. We describe the main rule to develop this documentation in the page 
+@ref DOCUMENTATION "Developing the BigDFT documentation and some coding rules".
 
 @author
      Copyright (C) 2008-2013 BigDFT Group

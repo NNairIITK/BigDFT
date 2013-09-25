@@ -2996,7 +2996,7 @@ END SUBROUTINE read_spread_file
 subroutine get_mindist(geocode,rxyz,cxyz,box,distw)
    use module_types
    implicit none
-   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    real(gp),dimension(3), intent(in) :: rxyz, cxyz, box
    real(gp),intent(out) :: distw
    !Local variables

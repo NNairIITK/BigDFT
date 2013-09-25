@@ -138,7 +138,7 @@ END SUBROUTINE close_file
 !!$  use module_types, only
 !!$  use Poisson_Solver, only: ck => createKernel
 !!$  implicit none
-!!$  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+!!$  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 !!$  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
 !!$  real(kind=8), intent(in) :: hx,hy,hz
 !!$  real(kind=8), pointer :: kernel(:)
@@ -407,7 +407,7 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
   implicit none
   type(local_zone_descriptors), intent(inout) :: lzd
   integer, intent(in) :: nlr
-  character, intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character, intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 
   integer :: i
   

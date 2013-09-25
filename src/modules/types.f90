@@ -401,7 +401,7 @@ module module_types
   !> Contains the information needed for describing completely a
   !! wavefunction localisation region
   type, public :: locreg_descriptors
-     character(len=1) :: geocode                !< @copydoc poisson_solver::coulomb_operator::geocode
+     character(len=1) :: geocode                !< @copydoc poisson_solver::doc::geocode
      logical :: hybrid_on                       !< Interesting for global, periodic, localisation regions
      integer :: ns1,ns2,ns3                     !< Starting point of the localisation region in global coordinates
      integer :: nsi1,nsi2,nsi3                  !< Starting point of locreg for interpolating grid
@@ -423,7 +423,7 @@ module module_types
 
   !> Used to split between points to be treated in simple or in double precision
   type, public :: rho_descriptors
-     character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+     character(len=1) :: geocode !< @copydoc poisson_solver::doc::geocode
      integer :: icomm !< method for communicating the density
      integer :: nrhotot !< dimension of the partial density array before communication
      integer :: n_csegs,n_fsegs,dp_size,sp_size
@@ -448,7 +448,7 @@ module module_types
   end type rholoc_objects
 
   type, public :: atomic_structure
-    character(len=1) :: geocode          !< @copydoc poisson_solver::coulomb_operator::geocode
+    character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
     character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
     character(len=20) :: units           !< Can be angstroem or bohr 
     integer :: nat                       !< Number of atoms
@@ -1776,7 +1776,7 @@ subroutine deallocate_orbs(orbs,subname)
   subroutine deallocate_bounds(geocode,hybrid_on,bounds,subname)
     use module_base
     implicit none
-    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     logical, intent(in) :: hybrid_on 
     type(convolutions_bounds) :: bounds
     character(len=*), intent(in) :: subname

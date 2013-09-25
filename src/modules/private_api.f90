@@ -203,7 +203,7 @@ module module_private_api
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
-       character(len=1), intent(out) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+       character(len=1), intent(out) :: geocode !< @copydoc poisson_solver::doc::geocode
        character, intent(out) :: format(5)
        character, intent(out) :: units(20)
      END SUBROUTINE atoms_copy_geometry_data

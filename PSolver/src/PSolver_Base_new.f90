@@ -19,7 +19,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !to be preprocessed
   include 'perfdata.inc'
   !Arguments
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(inout) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx
   integer, intent(in) :: planes_comm,inplane_comm,iproc_inplane
   real(gp), intent(in) :: scal,hx,hy,hz,offset

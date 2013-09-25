@@ -1054,7 +1054,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
   type(wavefunctions_descriptors), intent(in) :: wfd
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   real(gp), dimension(3), intent(inout) :: centre_old,centre_new,da
   type(fragment_transformation), intent(in) :: frag_trans
   real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold

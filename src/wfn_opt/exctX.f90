@@ -19,7 +19,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   use yaml_output
 
   implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode             !< Determine Boundary conditions
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode             !< Determine Boundary conditions
   integer, intent(in) :: iproc,nproc                  !< MPI information
   integer, intent(in) :: n3p,nspin                    !< spin and ...
   real(gp), intent(in) :: hxh,hyh,hzh                 !< hgrid
@@ -435,7 +435,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n3p,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   type(locreg_descriptors), intent(in) :: lr
@@ -1374,7 +1374,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  use Poisson_Solver
 !!$  use module_xc
 !!$  implicit none
-!!$  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+!!$  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 !!$  integer, intent(in) :: iproc,nproc,nspin
 !!$  real(gp), intent(in) :: hxh,hyh,hzh
 !!$  type(locreg_descriptors), intent(in) :: lr

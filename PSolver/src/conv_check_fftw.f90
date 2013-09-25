@@ -557,7 +557,7 @@ contains
     implicit none
     integer, intent(in) :: offset
     integer, dimension(3), intent(in) :: n0
-    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     real(dp), dimension(*), intent(in) :: pkernel
     real(dp), dimension(:), pointer :: pkernel2
     !local variables
@@ -610,7 +610,7 @@ contains
     implicit none
     integer, intent(in) :: offset
     integer, dimension(3), intent(in) :: n0
-    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     real(dp), dimension(*), intent(in) :: pkernel
     real(dp), dimension(:), pointer :: pkernel2
     !local variables
