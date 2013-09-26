@@ -1310,7 +1310,7 @@ contains
     completely_random=.true. ! completely random start for coeffs
 random=.false.
 completely_random=.false.
-    rmax=0.0d0
+    rmax=0.5d0
     random_noise=0.0d0
     if (random .or. completely_random) then
        call random_seed(size=rand_size)
@@ -1327,6 +1327,12 @@ completely_random=.false.
        ifrag_ref=input_frag%frag_index(ifrag)
        nelecfrag_tot=nelecfrag_tot+ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
     end do
+
+    if (completely_random) then
+       if (bigdft_mpi%iproc==0) print*,'Starting coeffs are replaced with a random guess'
+    else if (random) then
+       if (bigdft_mpi%iproc==0) print*,'Random noise added to starting coeffs'
+    end if
 
     ! in theory we could add/remove states depending on their energies, but for now we force the user to specify
     ! need to include occupations as we actually want to compare number of electrons here?
