@@ -88,13 +88,12 @@ module yaml_output
   public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
   public :: yaml_set_stream,yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
-  public :: yaml_dict_dump
+  public :: yaml_dict_dump,yaml_dict_dump_all
 
   !for internal f_lib usage
   public :: yaml_output_errors
 
 contains
-
 
   !> Initialize the stream to default values
   function stream_null() result(strm)
@@ -184,7 +183,7 @@ contains
 
 
   !> Get the default stream unit
-  subroutine yaml_get_default_stream(unit)
+  pure subroutine yaml_get_default_stream(unit)
     implicit none
     integer, intent(out) :: unit
 
@@ -194,17 +193,24 @@ contains
 
 
   !> Set all the output from now on to the file indicated by stdout
-  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length)
+  !! therefore the default stream is now the one indicated by @unit
+  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position)
     implicit none
-    integer, optional, intent(in) :: unit              !< File unit (by default 6)
+    integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
+                                                       !! is not 6 and it has already been opened by the processor
     integer, optional, intent(in) :: tabbing           !< Indicate a tabbing for the stream (0 no tabbing, default)
     integer, optional, intent(in) :: record_length     !< Maximum length of a record
     character(len=*), optional, intent(in) :: filename !< Filename of the stream
-    integer, optional, intent(out) :: istat            !< Status
+    character(len=*), optional, intent(in) :: position !< specifier of the position while opening the unit
+    integer, optional, intent(out) :: istat            !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
+                                                       !! it is up the the user to deal with error signals sent by istat
+
     !local variables
     integer, parameter :: NO_ERRORS           = 0
+    logical :: unit_is_open
     integer :: istream,unt,ierr
-    
+    character(len=15) :: pos
+        
     !check that the module has been initialized
     call assure_initialization()
 
@@ -216,6 +222,11 @@ contains
        unt=6
     end if
 
+    if (present(position)) then
+       pos(1:len(pos))=position
+    else
+       pos(1:len(pos))='append'
+    end if
     !check if unit has been already assigned
     do istream=1,active_streams
        if (unt==stream_units(istream)) then
@@ -242,13 +253,25 @@ contains
 
     !open fortran unit if needed
     if (present(filename) .and. unt /= 6) then
-       open(unit=unt,file=trim(filename),status='unknown',position='append',iostat=ierr)
+       !inquire whether unit exists already
+       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
+       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+       if (unit_is_open) then
+          if(present(istat)) then
+             istat=YAML_STREAM_ALREADY_PRESENT
+          else
+             call f_err_throw('The unit '//trim(yaml_toa(unt))//' is already present',&
+                  YAML_STREAM_ALREADY_PRESENT)
+          end if
+       end if
+       
+       open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
        if (present(istat)) then
           istat=ierr
        else
-          if (ierr /=0) then
-             stop 'error in file opening'
-          end if
+          if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
        end if
     end if
 
@@ -1743,9 +1766,10 @@ contains
       implicit none
       character(len=*), intent(in) :: val
       if (verb) then
-         call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(adv)//'")')
+         call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(adv)//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
       else
-         call yaml_scalar(trim(val),advance=adv)
+         call yaml_scalar(trim(val),advance=adv,unit=unt)
       end if
     end subroutine scalar
 
@@ -1753,9 +1777,10 @@ contains
       implicit none
       character(len=*), intent(in) :: key,val
       if (verb) then
-         call yaml_comment('call yaml_map("'//trim(key)//'","'//trim(val)//'")')
+         call yaml_comment('call yaml_map("'//trim(key)//'","'//trim(val)//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
       else
-         call yaml_map(trim(key),trim(val))
+         call yaml_map(trim(key),trim(val),unit=unt)
       end if
     end subroutine map
 
@@ -1766,21 +1791,24 @@ contains
       if (present(val) .and. present(adv)) then
          if (verb) then
             call yaml_comment('call yaml_sequence("'//trim(val)//&
-                 '",advance="'//trim(adv)//'")')
+                 '",advance="'//trim(adv)//&
+                 ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
          else
-            call yaml_sequence(trim(val),advance=adv)
+            call yaml_sequence(trim(val),advance=adv,unit=unt)
          end if
       else if (present(adv)) then
          if (verb) then
-            call yaml_comment('call yaml_sequence(advance="'//trim(adv)//'")')
+            call yaml_comment('call yaml_sequence(advance="'//trim(adv)//&
+                 ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
          else
-            call yaml_sequence(advance=adv)
+            call yaml_sequence(advance=adv,unit=unt)
          end if
       else if (present(val)) then
          if (verb) then
-            call yaml_comment('call yaml_sequence("'//trim(val)//'")')
+            call yaml_comment('call yaml_sequence("'//trim(val)//&
+                 ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
          else
-            call yaml_sequence(trim(val))
+            call yaml_sequence(trim(val),unit=unt)
          end if
       end if
     end subroutine sequence
@@ -1790,18 +1818,20 @@ contains
       character(len=*), intent(in) :: key
       if (verb) then
          call yaml_comment('call yaml_open_sequence("'//trim(key)//&
-              '",flow='//trim(flw)//')')
+              '",flow='//trim(flw)//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
-         call yaml_open_sequence(trim(key),flow=flowrite)
+         call yaml_open_sequence(trim(key),flow=flowrite,unit=unt)
       end if
     end subroutine open_seq
 
     subroutine close_seq()
       implicit none
       if (verb) then
-         call yaml_comment('call yaml_close_sequence()')
+         call yaml_comment('call yaml_close_sequence('//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
-         call yaml_close_sequence()
+         call yaml_close_sequence(unit=unt)
       end if
     end subroutine close_seq
 
@@ -1810,21 +1840,59 @@ contains
       character(len=*), intent(in) :: key
       if (verb) then
          call yaml_comment('call yaml_open_map("'//trim(key)//&
-              '",flow='//trim(flw)//')')
+              '",flow='//trim(flw)//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
-         call yaml_open_map(trim(key),flow=flowrite)
+         call yaml_open_map(trim(key),flow=flowrite,unit=unt)
       end if
     end subroutine open_map
 
     subroutine close_map()
       implicit none
       if (verb) then
-         call yaml_comment('call yaml_close_map()')
+         call yaml_comment('call yaml_close_map('//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
-         call yaml_close_map()
+         call yaml_close_map(unit=unt)
       end if
     end subroutine close_map
 
   end subroutine yaml_dict_dump
+
+  !> dump all the documents in the dictionary
+  ! works with a list of documents
+  ! supposes that each element of the list is a separate document
+  subroutine yaml_dict_dump_all(dict,unit,flow,verbatim)
+    implicit none
+    type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
+    logical, intent(in), optional :: flow  !< if .true. inline
+    logical, intent(in), optional :: verbatim  !< if .true. print as comments the calls performed
+    integer, intent(in), optional :: unit   !< unit in which the dump has to be 
+    !local variables
+    logical :: flowrite,verb
+    integer :: unt,idoc
+
+    if (f_err_raise(dict_len(dict) == 0,'The dictionary is not a list',&
+         err_name='YAML_STREAM_NOT_FOUND')) return
+
+    flowrite=.false.
+    if (present(flow)) flowrite=flow
+    unt=0
+    if (present(unit)) unt=unit
+    verb=.false.
+    if (present(verbatim)) verb=verbatim
+
+    do idoc=0,dict_len(dict)-1
+       if (verb) then
+          call yaml_comment('call yaml_new_document('//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
+       else
+          call yaml_new_document(unit=unt)
+       end if
+       call yaml_dict_dump(dict//idoc,unit=unt,flow=flow,verbatim=verb)
+       call yaml_release_document(unit=unt)
+    end do
+
+  end subroutine yaml_dict_dump_all
 
 end module yaml_output

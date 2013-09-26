@@ -39,6 +39,9 @@ dnl if test -n "$F90FLAGS" ; then
 dnl   F90FLAGS=`echo $F90FLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
 dnl fi
 
+dnl Check for sed and put it in the SED variable
+AC_PROG_SED()
+
 dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
 AC_PROG_CXX()
@@ -320,7 +323,7 @@ ac_with_memory_limit="no"
 AC_MSG_CHECKING([for memory limit in GB])
 AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
-if test `echo "$ac_with_memory_limit" | sed "s/[.].*//"` -ge "0" 2> /dev/null ; then
+if test `echo "$ac_with_memory_limit" | $SED "s/[.].*//"` -ge "0" 2> /dev/null ; then
   MEMORY_LIMIT=$ac_with_memory_limit
 else
   ac_with_memory_limit="undefined"
@@ -1206,4 +1209,4 @@ fi
 
 dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
 dnl in Fortran sources does not allow C comments (/*  */), so we remove them.
-sed -n '1h;1!H;${;g;s%/\*[[^*]]*\*/%%g;p;}' config.h > config.inc
+$SED -n '1h;1!H;${;g;s%/\*[[^*]]*\*/%%g;p;}' config.h > config.inc

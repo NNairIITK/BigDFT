@@ -43,6 +43,12 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti4
 
+     subroutine getc1(array,iadd)
+       implicit none
+       character, dimension(:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getc1
+
      subroutine getl1(array,iadd)
        implicit none
        logical, dimension(:), allocatable, intent(in) :: array
@@ -125,11 +131,13 @@ module metadata_interfaces
 
 interface pad_array
   module procedure pad_i1,pad_i2,pad_i3,pad_i4
+  module procedure pad_c1
   module procedure pad_l1,pad_l2
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
 end interface
 
 public :: pad_array,geti1,geti2,geti3,geti4
+public :: getc1
 public :: getl1,getl2
 public :: getdp1,getdp2,getdp3,getdp4!,getlongaddress
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr,geti2ptr
@@ -180,6 +188,17 @@ contains
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
 
   end subroutine pad_i4
+
+  subroutine pad_c1(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(1), intent(in) :: shp
+    character, dimension(shp(1)+ndebug), intent(out) :: array
+    
+    call pad_character(array,init_to_zero,shp(1),shp(1)+ndebug)
+
+  end subroutine pad_c1
 
   subroutine pad_l1(array,init_to_zero,shp,ndebug)
     implicit none
@@ -539,6 +558,7 @@ module dynamic_memory
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all
+     module procedure c1_all
      module procedure d1_all,d2_all,d3_all,d4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
      module procedure i1_ptr,i2_ptr
@@ -550,6 +570,7 @@ module dynamic_memory
 
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
+     module procedure c1_all_free
      module procedure l1_all_free,l2_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free
   end interface
