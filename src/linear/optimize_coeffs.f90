@@ -9,7 +9,7 @@
 !! NOTES: Coefficients are defined for Ntmb KS orbitals so as to maximize the number
 !!        of orthonormality constraints. This should speedup the convergence by
 !!        reducing the effective number of degrees of freedom.
-subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, num_extra)
+subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, reorder, num_extra)
   use module_base
   use module_types
   use module_interfaces
@@ -26,13 +26,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   real(kind=gp), intent(inout) :: energy
   logical, intent(in) :: sd_fit_curve
   integer, optional, intent(in) :: num_extra
+  logical, optional, intent(in) :: reorder
 
   ! Local variables
   integer:: iorb, jorb, istat, iall, info, iiorb, ierr, it
   real(kind=gp),dimension(:,:),allocatable:: grad, grad_cov_or_coeffp !coeffp, grad_cov
-  real(kind=gp) :: tt, ddot, energy0, pred_e
+  real(kind=gp) :: tt, ddot, energy0, pred_e, factor
 
   call f_routine(id='optimize_coeffs')
+
+  ! factor for scaling gradient
+  factor=0.1d0
 
   if (ldiis_coeff%idsx == 0 .and. sd_fit_curve) then
      ! calculate initial energy for SD line fitting and printing (maybe don't need to (re)calculate kernel here?)
@@ -49,7 +53,6 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      grad=f_malloc((/tmb%orbs%norb,orbs%norbp/), id='grad')
      grad_cov_or_coeffp=f_malloc((/tmb%orbs%norb,orbs%norbp/), id='grad_cov_or_coeffp')
   end if
-
 
   do it=1,itmax
 
@@ -76,7 +79,14 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         end do
      end if
      call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-     fnrm=2.0_gp*tt
+     fnrm=2.0_gp*tt!*factor**2
+
+     !scale the gradient (not sure if we always want this or just fragments/constrained!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
+     if (present(num_extra)) then
+        call dscal(tmb%orbs%norb*tmb%orbs%norbp,factor,grad(1,1),1)
+     else
+        call dscal(tmb%orbs%norb*orbs%norbp,factor,grad(1,1),1)
+     end if
 
      if (ldiis_coeff%idsx > 0) then !do DIIS
         !TO DO: make sure DIIS works
@@ -148,10 +158,31 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         fnrm=sqrt(fnrm/dble(orbs%norb))
      end if
 
+     !! experimenting with calculating cHc and diagonalizing
+     !if (present(num_extra).and.present(reorder)) then
+     !   call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+     !   !call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+     !   call reordering_coeffs(iproc, nproc, num_extra, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, tmb%coeff, reorder)
+     !   if (reorder) call reordering_coeffs(iproc, nproc, num_extra, orbs, tmb%orbs, &
+     !        tmb%linmat%ham, tmb%linmat%ovrlp, tmb%coeff, reorder)
+     !else if (present(reorder)) then
+     !   call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 0, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+     !   !call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+     !   call reordering_coeffs(iproc, nproc, 0, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, tmb%coeff, reorder)
+     !   if (reorder) call reordering_coeffs(iproc, nproc, 0, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, tmb%coeff, reorder)
+     !else
+     !   call reordering_coeffs(iproc, nproc, 0, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, tmb%coeff, .false.)
+     !end if
+
      ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
      ! instead of twice could add some criterion to check accuracy?
-     call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
-     call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+     if (present(num_extra)) then
+        call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+        call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+     else
+        call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+        call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+     end if
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energy,&
           tmb%coeff,orbs,tmb%orbs,.true.)
@@ -193,6 +224,182 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   call f_release_routine()
 
 end subroutine optimize_coeffs
+
+! experimental - for num_extra see if extra states are actually lower in energy and reorder (either by sorting or diagonalization)
+! could improve efficiency by only calculating cSc or cHc up to norb (i.e. ksorbs%norb+extra)
+subroutine reordering_coeffs(iproc, nproc, num_extra, ksorbs, basis_orbs, ham, ovrlp, coeff, reorder)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  integer, intent(in) :: iproc, nproc, num_extra
+  type(orbitals_data), intent(in) :: basis_orbs, ksorbs
+  type(sparseMatrix),intent(in) :: ham, ovrlp
+  real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
+  logical, intent(in) :: reorder
+
+  integer :: iorb, jorb, istat, iall, ierr, itmb, jtmb
+  integer, allocatable, dimension(:) :: ipiv
+  real(gp), dimension(:), allocatable :: tmp_array, eval
+  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ham_coeff, tmp_array2, ham_coeff_small, ovrlp_coeff_small, ovrlp_coeff
+  real(kind=8) :: offdiagsum, offdiagsum2
+  character(len=256) :: subname='reordering_coeffs'
+
+  allocate(ham_coeff(basis_orbs%norb,basis_orbs%norb), stat=istat)
+  call memocc(istat, ham_coeff, 'ham_coeff', subname)
+
+  allocate(coeff_tmp(basis_orbs%norbp,max(basis_orbs%norb,1)), stat=istat)
+  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+
+  if (basis_orbs%norbp>0) then
+     call dgemm('n', 'n', basis_orbs%norbp, basis_orbs%norb, basis_orbs%norb, 1.d0, ham%matrix(basis_orbs%isorb+1,1), &
+          basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
+     call dgemm('t', 'n', basis_orbs%norb, basis_orbs%norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
+          basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ham_coeff, basis_orbs%norb)
+  else
+     call to_zero(basis_orbs%norb**2, ham_coeff(1,1))
+  end if
+
+  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
+  deallocate(coeff_tmp,stat=istat)
+  call memocc(istat,iall,'coeff_tmp',subname)
+
+  if (nproc>1) then
+      call mpiallred(ham_coeff(1,1), basis_orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+  allocate(ovrlp_coeff(basis_orbs%norb,basis_orbs%norb), stat=istat)
+  call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+
+  allocate(coeff_tmp(basis_orbs%norbp,max(basis_orbs%norb,1)), stat=istat)
+  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+
+  if (basis_orbs%norbp>0) then
+     call dgemm('n', 'n', basis_orbs%norbp, basis_orbs%norb, basis_orbs%norb, 1.d0, ovrlp%matrix(basis_orbs%isorb+1,1), &
+          basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
+     call dgemm('t', 'n', basis_orbs%norb, basis_orbs%norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
+          basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, basis_orbs%norb)
+  else
+     call to_zero(basis_orbs%norb**2, ovrlp_coeff(1,1))
+  end if
+
+  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
+  deallocate(coeff_tmp,stat=istat)
+  call memocc(istat,iall,'coeff_tmp',subname)
+
+  if (nproc>1) then
+      call mpiallred(ovrlp_coeff(1,1), basis_orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+  ! above is overkill, actually just want diagonal elements but print off as a test out of curiosity
+  offdiagsum=0.0d0
+  offdiagsum2=0.0d0
+  do iorb=1,ksorbs%norb+num_extra!basis_orbs%norb
+     do jorb=1,ksorbs%norb+num_extra!basis_orbs%norb
+        if (iorb==jorb) cycle
+        offdiagsum=offdiagsum+abs(ham_coeff(iorb,jorb))
+        offdiagsum2=offdiagsum2+abs(ovrlp_coeff(iorb,jorb))
+     end do
+  end do
+  offdiagsum=offdiagsum/(basis_orbs%norb**2-basis_orbs%norb)
+  offdiagsum2=offdiagsum2/(basis_orbs%norb**2-basis_orbs%norb)
+  if (iproc==0) print*,'offdiagsum (ham,ovrlp):',offdiagsum,offdiagsum2
+
+  ! sort the states - really need just ks+extra not all, otherwise sloshing!
+  ipiv=f_malloc(ksorbs%norb+num_extra,id='coeff_final')
+  tmp_array=f_malloc(ksorbs%norb+num_extra,id='tmp_array')
+  do itmb=1,ksorbs%norb+num_extra
+     tmp_array(itmb)=-ham_coeff(itmb,itmb)
+  end do
+
+  do itmb=1,ksorbs%norb+num_extra
+     ipiv(itmb)=itmb
+  end do
+  !call sort_positions(ksorbs%norb+num_extra,tmp_array,ipiv)
+  do jtmb=1,ksorbs%norb+num_extra
+     ham_coeff(jtmb,jtmb)=-tmp_array(ipiv(jtmb))
+  end do
+
+  tmp_array2=f_malloc((/basis_orbs%norb,ksorbs%norb+num_extra/),id='tmp_array2')
+  do jtmb=1,ksorbs%norb+num_extra
+     do itmb=1,basis_orbs%norb
+        tmp_array2(itmb,jtmb)=coeff(itmb,jtmb)
+     end do
+  end do
+
+  do jtmb=1,ksorbs%norb+num_extra
+     do itmb=1,basis_orbs%norb
+        coeff(itmb,jtmb)=tmp_array2(itmb,ipiv(jtmb))
+     end do
+  end do
+  call f_free(tmp_array2)
+
+  if (reorder) then
+     ! diagonalize within the space of occ+extra
+     eval=f_malloc((/ksorbs%norb+num_extra/),id='eval')
+     ham_coeff_small=f_malloc((/ksorbs%norb+num_extra,ksorbs%norb+num_extra/),id='ham_coeff_small')
+     ovrlp_coeff_small=f_malloc((/ksorbs%norb+num_extra,ksorbs%norb+num_extra/),id='ovrlp_coeff_small')
+     ! assume ovrlp_coeff is orthgonal for now
+     do iorb=1,ksorbs%norb+num_extra
+        do jorb=1,ksorbs%norb+num_extra
+           ham_coeff_small(iorb,jorb)=ham_coeff(iorb,jorb)
+           if (iorb==jorb) then
+              ovrlp_coeff_small(iorb,jorb)=1.0d0
+           else
+              ovrlp_coeff_small(iorb,jorb)=0.0d0
+           end if
+        end do
+     end do
+     ! diagonalize within the space of occ+extra
+     call diagonalizeHamiltonian2(iproc, ksorbs%norb+num_extra, ham_coeff_small, ovrlp_coeff_small, eval)
+     call f_free(ovrlp_coeff_small)
+     coeff_tmp=f_malloc((/basis_orbs%norb,ksorbs%norb+num_extra/),id='coeff_tmp')
+
+     ! multiply new eigenvectors by coeffs
+     call dgemm('n', 'n', basis_orbs%norb, ksorbs%norb+num_extra, ksorbs%norb+num_extra, 1.d0, coeff(1,1), &
+          basis_orbs%norb, ham_coeff_small, ksorbs%norb+num_extra, 0.d0, coeff_tmp, basis_orbs%norb)
+ 
+     call f_free(ham_coeff_small)
+     call dcopy(basis_orbs%norb*(ksorbs%norb+num_extra),coeff_tmp(1,1),1,coeff(1,1),1)
+     call f_free(coeff_tmp)
+
+     do iorb=1,basis_orbs%norb
+        if (iorb<=ksorbs%norb) then
+           if (iproc==0) write(*,*) 'optimize coeffs eval',iorb,-tmp_array(ipiv(iorb)),basis_orbs%occup(iorb),&
+                ksorbs%occup(iorb),ham_coeff(iorb,iorb),eval(iorb)
+        else if (iorb<=ksorbs%norb+num_extra) then
+           if (iproc==0) write(*,*) 'optimize coeffs eval',iorb,-tmp_array(ipiv(iorb)),basis_orbs%occup(iorb),&
+                0.0d0,ham_coeff(iorb,iorb),eval(iorb)
+        !else
+        !   if (iproc==0) write(*,*) 'optimize coeffs eval',iorb,ham_coeff(iorb,iorb),basis_orbs%occup(iorb),&
+        !        0.0d0,ham_coeff(iorb,iorb)
+        end if
+     end do
+     call f_free(eval)
+   else
+      do iorb=1,basis_orbs%norb
+        if (iorb<=ksorbs%norb) then
+           if (iproc==0) write(*,*) 'optimize coeffs eval',iorb,-tmp_array(ipiv(iorb)),basis_orbs%occup(iorb),&
+                ksorbs%occup(iorb),ham_coeff(iorb,iorb)
+        else if (iorb<=ksorbs%norb+num_extra) then
+           if (iproc==0) write(*,*) 'optimize coeffs eval',iorb,-tmp_array(ipiv(iorb)),basis_orbs%occup(iorb),&
+                0.0d0,ham_coeff(iorb,iorb)
+        !else
+        !   if (iproc==0) write(*,*) 'optimize coeffs eval',iorb,ham_coeff(iorb,iorb),basis_orbs%occup(iorb),&
+        !        0.0d0,ham_coeff(iorb,iorb)
+        end if
+     end do
+  end if
+
+  call f_free(ipiv)
+  call f_free(tmp_array)
+  iall=-product(shape(ham_coeff))*kind(ham_coeff)
+  deallocate(ham_coeff,stat=istat)
+  call memocc(istat,iall,'ham_coeff',subname)
+
+end subroutine reordering_coeffs
 
 
 
@@ -449,7 +656,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   integer, intent(in) :: iproc, nproc, num_extra
   type(DFT_wavefunction), intent(inout) :: tmb
   type(orbitals_data), intent(in) :: KSorbs
-  real(gp), dimension(tmb%orbs%norb,KSorbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
+  real(gp), dimension(tmb%orbs%norb,tmb%orbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
 
   integer :: iorb, iiorb, info, ierr
   real(gp),dimension(:,:),allocatable :: sk, skh, skhp, inv_ovrlp

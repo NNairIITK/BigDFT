@@ -1289,14 +1289,38 @@ contains
     integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
 
     integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, iall, istat
-    real(gp), dimension(:,:), allocatable :: coeff_final, ks, ksk
+    integer, allocatable, dimension(:) :: ipiv
+    real(gp), dimension(:), allocatable :: tmp_array
+    real(gp), dimension(:,:), allocatable :: coeff_final, ks, ksk, tmp_array2
     !*real(gp), dimension(:), allocatable :: kernel_final
     real(gp) :: nonidem, nelecorbs, nelecfrag_tot, jstate_max
     character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
 
+    integer :: rand_size
+    integer, allocatable, dimension(:) :: rand_seed
+    real(kind=dp) :: rtime, random_noise, rmax
+    character(len=10) :: sys_time
+    logical :: random, completely_random
+
     call timing(iproc,'kernel_init','ON')
     call f_routine(id='fragment_coeffs_to_kernel')
 
+    ! adding random noise to starting to help with local minima problem
+    random=.true. ! add a bit of noise
+    completely_random=.true. ! completely random start for coeffs
+random=.false.
+completely_random=.false.
+    rmax=0.0d0
+    random_noise=0.0d0
+    if (random .or. completely_random) then
+       call random_seed(size=rand_size)
+       allocate(rand_seed(1:rand_size))
+       call date_and_time(time=sys_time)
+       read(sys_time,*) rtime
+       rand_seed=int(rtime*1000.0_dp)
+       call random_seed(put=rand_seed)
+       deallocate(rand_seed) 
+    end if
     nstates_max=0
     nelecfrag_tot=0
     do ifrag=1,input_frag%nfrag
@@ -1366,7 +1390,15 @@ contains
        jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp
        do jtmb=1,ceiling(jstate_max)
           do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-             tmb%coeff(isforb+itmb,jtmb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
+             if (random.or.completely_random) then
+                call random_number(random_noise)
+                random_noise=((random_noise-0.5d0)*2.0d0)*rmax
+             end if
+              if (.not. completely_random) then
+                tmb%coeff(isforb+itmb,jtmb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)+random_noise
+             else
+                tmb%coeff(isforb+itmb,jtmb)=random_noise
+             end if
              tmb%orbs%eval(jsforb+jtmb)=ref_frags(ifrag_ref)%eval(jtmb)
           end do
 
@@ -1375,7 +1407,7 @@ contains
           else
              tmb%orbs%occup(jtmb+jsforb)=2.0d0
           end if
-          if (bigdft_mpi%iproc==0) print*,'ifrag,jtmb,occ,iorb',ifrag,jtmb,tmb%orbs%occup(jtmb+jsforb),jtmb+jsforb
+          !if (bigdft_mpi%iproc==0) print*,'ifrag,jtmb,occ,iorb',ifrag,jtmb,tmb%orbs%occup(jtmb+jsforb),jtmb+jsforb
        end do
        nstates_max=nstates_max+ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp)
 
@@ -1482,46 +1514,92 @@ contains
        jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp
        do jtmb=ceiling(jstate_max)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-             tmb%coeff(isforb+itmb,jsforb+jtmb-ceiling(jstate_max))=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
+             if (random.or.completely_random) then
+                call random_number(random_noise)
+                random_noise=((random_noise-0.5d0)*2.0d0)*rmax
+             end if
+             if (.not. completely_random) then
+                tmb%coeff(isforb+itmb,jsforb+jtmb-ceiling(jstate_max))=ref_frags(ifrag_ref)%coeff(itmb,jtmb)+random_noise
+             else
+                tmb%coeff(isforb+itmb,jsforb+jtmb-ceiling(jstate_max))=random_noise
+             end if
              tmb%orbs%eval(jsforb+jtmb-ceiling(jstate_max))=ref_frags(ifrag_ref)%eval(jtmb)
           end do
           tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max))=0.0d0
-          if (bigdft_mpi%iproc==0) print*,'ifrag,jtmb,occ,iorb',ifrag,jtmb,0.0,jsforb+jtmb-ceiling(jstate_max)
+          !if (bigdft_mpi%iproc==0) print*,'ifrag,jtmb,occ,iorb',ifrag,jtmb,0.0,jsforb+jtmb-ceiling(jstate_max)
        end do
 
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
        jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-ceiling(jstate_max)
     end do
 
-    ! debug
-    !do itmb=1,tmb%orbs%norb
-    !   do jtmb=1,tmb%orbs%norb
-    !      write(50,*) itmb,jtmb,tmb%coeff(itmb,jtmb)
-    !   end do
-    !end do
-    ! end debug
-
-    ! print starting eigenvalues
-    if(bigdft_mpi%iproc==0) then
-       write(*,'(1x,a)') '-------------------------------------------------'
-       write(*,'(1x,a)') 'some selected eigenvalues:'
-       do iorb=max(ksorbs%norb-8,1),min(ksorbs%norb+8,tmb%orbs%norb)
-           if(iorb==ksorbs%norb) then
-               write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
-           else if(iorb==ksorbs%norb+1) then
-               write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- first virtual orbital'
-           else
-               write(*,'(3x,a,i0,a,es20.12)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb)
-           end if
+    ! reorder unoccupied states so that extra states functions correctly (ideally sort occ as well so could do smearing or whatever)
+    if (.not. completely_random) then
+       if (bigdft_mpi%iproc==0) print*,'nstates_max:',nstates_max,ksorbs%norb,tmb%orbs%norb
+       ipiv=f_malloc(tmb%orbs%norb-nstates_max,id='coeff_final')
+       tmp_array=f_malloc(tmb%orbs%norb-nstates_max,id='tmp_array')
+       do itmb=nstates_max+1,tmb%orbs%norb
+          tmp_array(itmb-nstates_max)=-tmb%orbs%eval(itmb)
        end do
-       write(*,'(1x,a)') '-------------------------------------------------'
-       write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
-    end if
+       call sort_positions(tmb%orbs%norb-nstates_max,tmp_array,ipiv)
+       !!call dcopy(tmb%orbs%norb-nstates_max,tmb%orbs%eval(nstates_max+1),1,tmp_array(1),1)
+       do jtmb=nstates_max+1,tmb%orbs%norb
+          tmb%orbs%eval(jtmb)=-tmp_array(ipiv(jtmb-nstates_max))!tmp_array(ipiv(jtmb-nstates_max))
+       end do
+       ! occup should all be zero so don't need this - in fact defeats the object of reordering?
+       !call dcopy(tmb%orbs%norb-nstates_max,tmb%orbs%occup(nstates_max+1),1,tmp_array(1),1)
+       !do jtmb=nstates_max,tmb%orbs%norb
+       !   tmb%orbs%occup(jtmb)=tmp_array(ipiv(jtmb-nstates_max))
+       !end do
+       call f_free(tmp_array)
 
-    if (nstates_max/=ksorbs%norb) then
-       if (bigdft_mpi%iproc==0) print*,'Warning, number of states with non-zero occupation in fragments (',nstates_max,&
-            ') differs from number of KS states (',ksorbs%norb,') - might have convergence problems'
-    end if
+       tmp_array2=f_malloc((/tmb%orbs%norb,tmb%orbs%norb-nstates_max/),id='tmp_array2')
+
+       do jtmb=nstates_max+1,tmb%orbs%norb
+          do itmb=1,tmb%orbs%norb
+             tmp_array2(itmb,jtmb-nstates_max)=tmb%coeff(itmb,jtmb)
+          end do
+       end do
+
+       do jtmb=nstates_max+1,tmb%orbs%norb
+          do itmb=1,tmb%orbs%norb
+             tmb%coeff(itmb,jtmb)=tmp_array2(itmb,ipiv(jtmb-nstates_max))
+          end do
+       end do
+
+       call f_free(tmp_array2)
+       call f_free(ipiv)
+
+       ! debug
+       !do itmb=1,tmb%orbs%norb
+       !   do jtmb=1,tmb%orbs%norb
+       !      write(50,*) itmb,jtmb,tmb%coeff(itmb,jtmb)
+       !   end do
+       !end do
+       ! end debug
+
+       ! print starting eigenvalues
+       if(bigdft_mpi%iproc==0) then
+          write(*,'(1x,a)') '-------------------------------------------------'
+          write(*,'(1x,a)') 'some selected eigenvalues:'
+          do iorb=1,tmb%orbs%norb!max(ksorbs%norb-8,1),min(ksorbs%norb+8,tmb%orbs%norb)
+              if(iorb==ksorbs%norb) then
+                  write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
+              else if(iorb==ksorbs%norb+1) then
+                  write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- first virtual orbital'
+              else
+                  write(*,'(3x,a,i0,a,es20.12)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb)
+              end if
+          end do
+          write(*,'(1x,a)') '-------------------------------------------------'
+          write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
+       end if
+
+       if (nstates_max/=ksorbs%norb) then
+          if (bigdft_mpi%iproc==0) print*,'Warning, number of states with non-zero occupation in fragments (',nstates_max,&
+               ') differs from number of KS states (',ksorbs%norb,') - might have convergence problems'
+       end if
+    end if ! completely random
 
     call f_release_routine()
     call timing(iproc,'kernel_init','OF')
