@@ -156,7 +156,7 @@ contains
     call yaml_open_map("allowed values")
     call yaml_dict_dump(failed_exclusive)
     call yaml_close_map()
-    stop 'Severe error, cannot proceed'
+    call f_err_severe()
   end subroutine abort_excl
 
   subroutine warn_illegal()
@@ -174,7 +174,24 @@ contains
   subroutine input_keys_init()
     use yaml_output
     use dictionaries
+    use dynamic_memory
+    use yaml_parse
     implicit none
+    !local variables
+    integer :: params_size
+    integer(kind = 8) :: cbuf_add !< address of c buffer
+    character, dimension(:), allocatable :: params
+
+!!$    !alternative filling of parameters from hard-coded source file
+!!$    call getstaticinputdef(cbuf_add,params_size)
+!!$    !allocate array
+!!$    params=f_malloc(params_size,id='params')
+!!$    !fill it and parse dictionary
+!!$    call copycbuffer(params,cbuf_add,params_size)
+!!$    call yaml_parse_from_char_array(parameters,params)
+!!$    call f_free(params)
+!!$    call yaml_dict_dump_all(parameters,unit=17)
+!!$    call dict_free(parameters)
 
     call dict_init(parameters)
     call set(parameters // DFT_VARIABLES, get_dft_parameters())
@@ -245,7 +262,7 @@ contains
          & DEFAULT   .is. "0"))
 
     call set(p // ELECFIELD, dict_new(&
-         & COMMENT   .is. "electric fielc (Ex,Ey,Ez)", &
+         & COMMENT   .is. "electric field (Ex,Ey,Ez)", &
          & DEFAULT   .is. list_new(.item."0.", .item."0.", .item."0.")))
 
     call set(p // NSPIN, dict_new(&
@@ -924,12 +941,13 @@ contains
     implicit none
     character(len = *), intent(in) :: fname
     character(len = *), intent(in), optional :: file
-
+    !local variables
+    integer, parameter :: unt=789159 !to be sure is not opened
     integer :: iunit_def, ierr
 
     ! Switch YAML output stream
     call yaml_get_default_stream(iunit_def)
-    call yaml_set_stream(unit = 789159, filename = trim(fname), tabbing = 0, record_length = 100, istat = ierr)
+    call yaml_set_stream(unit=unt,filename=trim(fname),tabbing=0,record_length=100)
 
     if (ierr == 0) then
        call input_keys_init()
@@ -944,7 +962,7 @@ contains
        end if
        call input_keys_finalize()
     end if
-
+    call yaml_close_stream(unit=unt)
     ! Set back normal YAML output
     call yaml_set_default_stream(iunit_def,ierr)
   end subroutine input_keys_dump_def

@@ -212,6 +212,7 @@ low_level = \
 
 # C objects
 c_level = posfiles.c \
+	input_variables_description.c \
 	init/atoms_yaml.c init/atoms_yaml.h
 
 libmain_a_SOURCES = \
@@ -220,6 +221,13 @@ libmain_a_SOURCES = \
 	$(high_level)
 
 libbigdft_1_a_SOURCES =
+
+input_variables_description.o: input_variables_definition-inc.h
+#build the fortran include file with the stream of input variables into a local string
+#should we check (AC_CHECK_PROG) if sed and echo are available?
+#the sed command below will transform the entire yaml document into a fortran string
+input_variables_definition-inc.h: input_variables_definition.yaml
+	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
 
 tmp-libbigdft/extract.stamp: $(subs_static_library) $(out_static_library)
 	test -e "tmp-libbigdft" || $(INSTALL) -d -m 755 tmp-libbigdft
@@ -303,7 +311,7 @@ bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
-CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.*
+CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:
 	rm -rf tmp-libbigdft
 
