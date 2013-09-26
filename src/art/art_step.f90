@@ -1,4 +1,5 @@
 !> @file
+!! Define a module for BigDFT+ART
 !! @author
 !!    Eduardo Machado-Charry (EM) 2010
 !!    Copyright (C) 2001 Normand Mousseau

@@ -1,4 +1,5 @@
 !> @file
+!! Define some module for BigDFT+ART
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010-2013 BigDFT group

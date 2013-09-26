@@ -1,11 +1,16 @@
 /*! @file
+@brier List of authors for the pseudo and atom programs
+
+
 This program is based on the sources available at
 http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/pseudo/v2.2/
 
-Authors:                  Raffael.Widmer (Cuda Acceleration)
-                        and Alex Willand (all other modifications)  
-                 under the supevision of  
-         Stefan Goedecker, December 2010   
-        Universitaet  Basel, Switzerland 
+<h2>Authors:</h2>
+<ul>
+<li>Thierry Deutsch (Fortran 90 conversion and non-regression tests), 2013</li>
+<li>Raffael Widmer (Cuda Acceleration) and</li>
+<li>Alex Willand (all other modifications)</li>
+</ul>
+under the supervision of  Stefan Goedecker, 2010-2013, Universitaet  Basel, Switzerland 
 
 */

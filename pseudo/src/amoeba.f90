@@ -1,5 +1,5 @@
 !> @file
-!! atomic program for generating and optimizing HGH pseudo-potentials.
+!! Contains the amoeba routine to minimze by the spimplex donwhill method a penalty function
 !! @author
 !!    Alex Willand, under the supervision of Stefan Goedecker
 !!    gpu accelerated routines by Raffael Widmer

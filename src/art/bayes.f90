@@ -1,4 +1,5 @@
 !> @file
+!! Define some module for BigDFT+ART
 !! @author
 !!    Written by Laurent Karim Beland, UdeM 2011!!
 !!    Copyright (C) 2001 Normand Mousseau

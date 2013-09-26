@@ -1,4 +1,6 @@
 !> @file
+!! @brief Routines to calculate the interpolating cubic splines
+!!
 !! @author
 !! sandia mathematical program library
 !!     applied mathematics division 2613

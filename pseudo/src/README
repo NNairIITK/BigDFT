@@ -1,6 +1,7 @@
-/*! @dir pseudo/src
+/*! @dir
+@brief README of the directory pseudo/src
 
-Changes as of Fri Jun 28 by Alex Willand
+Changes as of Fri Jun 28 2013 by Alex Willand
 
 - modules in pseudo.f90 with descriptions of the relevant variables
 - much shorter dummy argument lists for amoeba, ppack, penalty, gatom

@@ -1,4 +1,7 @@
-/*! @dir pseudo/tests/atoms
+/*! @file
+@brief README of the non-regression tests directory for the atom program
+
+@dir
 @brief Contains initial tests using the atom program with some restrictive options.
 
 @details

@@ -1,4 +1,10 @@
-/*! @dir ./pseudo/tests/tutorials/oxygen.NLCC
+/*! @file
+@brief Description of the NLCC pseudopotentiel egneration for the oxygen atom
+
+@dir ./pseudo/tests/tutorials
+@brief Contains the tutorials about the pseudo and atom programs
+
+@dir
 @brief
 Some Instructions for fitting of pseudo potentials with Nonlinear Core Corrections
 

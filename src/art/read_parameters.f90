@@ -1,4 +1,5 @@
 !> @file
+!! Read the parameters for BigDFT+ART
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
@@ -6,6 +7,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 
 !> ART read_parameters
 !! Read the parameters defining the simulation 

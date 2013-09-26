@@ -1,38 +1,39 @@
- !! @brief Atomic program for pseudopotential calculations
- !! @author
- !!    Program for atomic calculations
- !!    written by Sverre Froyen, February 1982
- !!    while at UC Berkeley, California
- !!
- !!    then modified by
- !!    Christian Hartwigsen, February 1998
- !!    while at MPI Stuttgart, Germany
- !!
- !!    and further altered by
- !!    Alex Willand, under the supervision of
- !!    Stefan Goedecker, December 2010
- !!    while at Universitaet Basel, Switzerland
- !!
- !!    Copyright (C) 2010-2013 BigDFT group
- !!    This file is distributed under the terms of the
- !!    GNU General Public License, see ~/COPYING file
- !!    or http://www.gnu.org/copyleft/gpl.txt .
- !!    For the list of contributors, see ~/AUTHORS
- !!
- !! @warning
- !!    Some parameters are set inside the program
- !!    the most important ones are the tolerance for the self-
- !!    consistency in the potential (set in the main program)
- !!    and the accuracy in the eigenvalue for a given potential
- !!    (set in difrel,difnrl)
- !!
- !! @todo
- !!    Possibility to use hybrid functionals (need exchange interaction)
- !!    atom is not parallelized: The tests are a problem...
+!> @file 
+!! @brief Atomic program for pseudopotential calculations
+!! @author
+!!    Program for atomic calculations
+!!    written by Sverre Froyen, February 1982
+!!    while at UC Berkeley, California
+!!
+!!    then modified by
+!!    Christian Hartwigsen, February 1998
+!!    while at MPI Stuttgart, Germany
+!!
+!!    and further altered by
+!!    Alex Willand, under the supervision of
+!!    Stefan Goedecker, December 2010
+!!    while at Universitaet Basel, Switzerland
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+!!
+!! @warning
+!!    Some parameters are set inside the program
+!!    the most important ones are the tolerance for the self-
+!!    consistency in the potential (set in the main program)
+!!    and the accuracy in the eigenvalue for a given potential
+!!    (set in difrel,difnrl)
+!!
+!! @todo
+!!    Possibility to use hybrid functionals (need exchange interaction)
+!!    atom is not parallelized: The tests are a problem...
 
 
- !> Calculate the all-electron electronic structure for one atom
- !! @ingroup PSEUDO
+!> Calculate the all-electron electronic structure for one atom
+!! @ingroup PSEUDO
 program ae_atom
 
    implicit none

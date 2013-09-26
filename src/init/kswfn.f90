@@ -1,3 +1,14 @@
+!> @file
+!!  Routines related to the initialization of the Kohn-Sham wavefunctions
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+
 subroutine glr_get_psi_size(glr, psisize)
   use module_types
   implicit none
@@ -6,6 +17,7 @@ subroutine glr_get_psi_size(glr, psisize)
 
   psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
 END SUBROUTINE glr_get_psi_size
+
 
 subroutine kswfn_free_scf_data(KSwfn, freePsit)
   use module_base
@@ -31,6 +43,7 @@ subroutine kswfn_free_scf_data(KSwfn, freePsit)
      nullify(KSwfn%psit)
   end if
 end subroutine kswfn_free_scf_data
+
 
 subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
   use module_base
@@ -84,6 +97,7 @@ subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
   call timing(iproc,'wf_signals    ','OF')
 END SUBROUTINE kswfn_emit_psi
 
+
 subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
   use module_base
   use module_types
@@ -101,6 +115,7 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
   call MPI_SEND((/ psiStart, psiSize /), 2, MPI_INTEGER, jproc, 123, bigdft_mpi%mpi_comm, ierr)
   call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, bigdft_mpi%mpi_comm, status, ierr)
 END SUBROUTINE kswfn_mpi_copy
+
 
 subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   use module_types
@@ -131,6 +146,7 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   call init_collective_comms_sumro(iproc, nproc, wfn%lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
 
 END SUBROUTINE kswfn_init_comm
+
 
 subroutine kswfn_emit_lzd(Wfn, iproc, nproc)
   use module_base
