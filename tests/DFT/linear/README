@@ -1,6 +1,9 @@
 /*! @file
 @brief README of the non-regression tests for the linear version (ground-state calculations).
 
+@dir
+@brief Contains the non-regression tests for the linear version (ground-state calculations)
+
 @page TESTS_DFT_LINEAR Test the linear version of the code.
 @brief Non-regression tests (ground-state with the linear version)
 

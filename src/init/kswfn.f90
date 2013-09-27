@@ -1,5 +1,5 @@
 !> @file
-!!  Routines related to the initialization of the Kohn-Sham wavefunctions
+!!  Routines which handles the structure DFT_wavefunction related to the Kohn-Sham wavefunctions
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group
 !!    This file is distributed under the terms of the

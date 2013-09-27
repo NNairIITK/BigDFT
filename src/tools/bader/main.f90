@@ -1,5 +1,4 @@
 !> @file
-!!-----------------------------------------------------------------------------------!
 !! Bader charge density analysis program
 !! Version 0.27e (05/09/11) 
 !!
@@ -17,7 +16,6 @@
 !!   W. Tang, E. Sanville, and G. Henkelman
 !!   J. Phys.: Condens. Matter 21, 084204 (2009)
 !!
-!-----------------------------------------------------------------------------------!
 !! @author
 !!   Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
 !!   Dipole calculations added by Ali Sadeghi <ali.sadeghi@unibas.ch>

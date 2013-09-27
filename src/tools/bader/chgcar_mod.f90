@@ -1,4 +1,5 @@
 !> @file
+!! Module for the Bader charge density analysis program
 !! @author
 !! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
 !!
@@ -7,10 +8,11 @@
 !! the Free Software Foundation, either version 3 of the License, or
 !! (at your option) any later version.
 !!
-!! A copy of the GNU General Public License is available at
-!! http://www.gnu.org/licenses/
-!!-----------------------------------------------------------------------------------!
-!! Bader charge density analysis program
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Module for reading and writing VASP CHGCAR files

@@ -1,5 +1,5 @@
 !> @file
-!!  Module to handle input variables
+!!  Modules to handle input variables
 !! @author
 !!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -1195,6 +1195,8 @@ module module_input
 
 END MODULE module_input
 
+
+!> Module reading the old format (before 1.7) for the input
 module input_old_text_format
   implicit none
   public

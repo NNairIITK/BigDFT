@@ -1,14 +1,15 @@
+!> @file
+!! Mixes the density or the potential for the linear version
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Mixes the potential in order to get a self consistent potential.
 subroutine mixPotential(iproc, n3p, Glr, input, alphaMix, rhopotOld, rhopot, pnrm)
-!
-! Purpose:
-! ========
-!   Mixes the potential in order to get a self consistent potential.
-!
-! Calling arguments:
-! ==================
-!   Input arguments
-!   ---------------
-!
 use module_base
 use module_types
 implicit none

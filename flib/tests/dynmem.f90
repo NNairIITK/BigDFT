@@ -1,4 +1,14 @@
+!> @file
+!! Test the dynamic memory allocation of the flib library
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
+
+!> Test the dynamic memory allocation (flib)
 subroutine test_dynamic_memory()
    use yaml_output
    use dynamic_memory
