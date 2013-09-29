@@ -811,8 +811,6 @@ subroutine dft_input_analyse(iproc, in, dict_dft)
   in%norbv = dict_dft//NORBV
   in%nvirt = dict_dft//NVIRT
   in%nplot = dict_dft//NPLOT
-!!$  call input_dict_var(in%nvirt, dict_dft//NVIRT, 0, ranges=(/0,abs(in%norbv)/))
-!!$  call input_dict_var(in%nplot, dict_dft//NPLOT, 0, ranges=(/0,abs(in%norbv)/))
 
   ! Line to disable automatic behaviours (currently only symmetries).
   in%disableSym = dict_dft//DISABLE_SYM
