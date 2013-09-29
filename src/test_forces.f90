@@ -32,7 +32,7 @@ program test_forces
    !input variables
    type(run_objects) :: runObj
    type(DFT_global_output) :: outs
-   character(len=60), parameter :: filename="list_posinp"
+   !character(len=60), parameter :: filename="list_posinp"
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
    ! atomic coordinates, forces

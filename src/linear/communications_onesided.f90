@@ -1,19 +1,29 @@
+!> @file
+!!  Define routine for onesided communications (linear version)
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+ 
 subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
-  real(8),dimension(nsendbuf),intent(in):: sendbuf
-  real(8),dimension(nrecvbuf),intent(out):: recvbuf
-  type(p2pComms),intent(inout):: comm
-  type(local_zone_descriptors),intent(in) :: lzd
+  integer, intent(in):: iproc, nproc, nsendbuf, nrecvbuf
+  real(kind=8), dimension(nsendbuf), intent(in):: sendbuf
+  real(kind=8), dimension(nrecvbuf), intent(out):: recvbuf
+  type(p2pComms), intent(inout):: comm
+  type(local_zone_descriptors), intent(in) :: lzd
   
   ! Local variables
+  !character(len=*), parameter :: subname='start_onesided_communication'
   integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit
   integer :: ioffset_send, mpi_type, ist, i2, i3, ist2, ist3, info, nsize, size_of_double
-  character(len=*),parameter :: subname='start_onesided_communication'
 
 
 

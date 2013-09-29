@@ -322,10 +322,10 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
   integer,dimension(4,nout) :: onedimindices
 
   !Local variables
+  !character(len=*), parameter :: subname='sparsemm'
   integer :: i,jorb,jjorb,m,mp1
   integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-  character(len=*),parameter :: subname='sparsemm'
-  real(8) :: tt
+  real(kind=8) :: tt
 
 
   !$omp parallel default(private) shared(ivectorindex, a_seq, b, c, onedimindices, nout)

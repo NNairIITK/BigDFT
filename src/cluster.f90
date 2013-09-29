@@ -1012,7 +1012,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call kswfn_post_treatments(iproc, nproc, KSwfn, tmb, &
           & inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. &
           & inputpsi == INPUT_PSI_MEMORY_LINEAR, fxyz, fnoise, fion, fdisp, fpulay, &
-          & strten, pressure, ewaldstr, xcstr, GPU, energs, denspot, atoms, rxyz, nlpspd, proj, &
+          & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpspd, proj, &
           & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole)
 
      i_all=-product(shape(fpulay))*kind(fpulay)
@@ -1895,10 +1895,11 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
 END SUBROUTINE kswfn_optimization_loop
 
+
 subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & fxyz, fnoise, fion, fdisp, fpulay, &
      & strten, pressure, ewaldstr, xcstr, &
-     & GPU, energs, denspot, atoms, rxyz, nlpspd, proj, &
+     & GPU, denspot, atoms, rxyz, nlpspd, proj, &
      & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole)
   use module_base
   use module_types
@@ -1908,10 +1909,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   implicit none
 
+  !Arguments
   type(DFT_wavefunction), intent(in) :: KSwfn
   type(DFT_wavefunction), intent(inout) :: tmb
   type(GPU_pointers), intent(inout) :: GPU
-  type(energy_terms), intent(in) :: energs
   type(DFT_local_fields), intent(inout) :: denspot
   type(atoms_data), intent(in) :: atoms
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
@@ -1927,6 +1928,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3, atoms%astruct%nat), intent(out) :: fxyz
 
+  !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
   integer :: i_all, i_stat, jproc, nsize_psi, imode
   real(dp), dimension(6) :: hstrten
@@ -2013,7 +2015,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   !
   call timing(iproc,'Forces        ','ON')
 
-  ! Calculate the forces. Pass the pulay forces in the linear scaling case.
+  ! Calculate the forces. Pass the Pulay forces in the linear scaling case.
   if (linear) then
      imode = 1
      nsize_psi=1

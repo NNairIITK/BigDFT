@@ -1,15 +1,18 @@
 !> @file
 !! Optimize the coefficients
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-!! NOTES: Coefficients are defined for Ntmb KS orbitals so as to maximize the number
-!!        of orthonormality constraints. This should speedup the convergence by
-!!        reducing the effective number of degrees of freedom.
+!!
+!! @note
+!!  Coefficients are defined for Ntmb KS orbitals so as to maximize the number
+!!  of orthonormality constraints. This should speedup the convergence by
+!!  reducing the effective number of degrees of freedom.
 subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, num_extra)
+
   use module_base
   use module_types
   use module_interfaces, fake_name => optimize_coeffs
@@ -28,7 +31,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   integer, optional, intent(in) :: num_extra
 
   ! Local variables
-  integer:: iorb, jorb, istat, iall, info, iiorb, ierr, it
+  integer:: iorb, jorb, iiorb, ierr, it
   real(kind=gp),dimension(:,:),allocatable:: grad, grad_cov_or_coeffp !coeffp, grad_cov
   real(kind=gp) :: tt, ddot, energy0, pred_e
 
@@ -210,7 +213,7 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   real(kind=gp), intent(in) :: energy0, fnrm
   real(kind=gp), intent(out) :: pred_e
   integer :: iorb, iiorb, jorb, ierr
-  real(kind=gp) :: tt, ddot, energy1, a, b, c, alpha_old
+  real(kind=gp) :: energy1, a, b, c, alpha_old
   real(kind=gp),dimension(:,:),allocatable :: coeff_tmp
 
   call timing(iproc,'dirmin_sdfit','ON')
@@ -311,7 +314,6 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
 
   integer :: iorb, iiorb, info, ierr
   real(gp),dimension(:,:),allocatable :: sk, skh, skhp, inv_ovrlp
-  integer :: matrixindex_in_compressed
   integer,dimension(:),allocatable:: ipiv
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   character(len=*),parameter:: subname='calculate_coeff_gradient'

@@ -751,7 +751,8 @@ end do hopping_loop
   call deallocate_global_output(outs)
 
   call free_input_variables(inputs_md)
-  call bigdft_free_input(inputs_opt)
+  call free_input_variables(inputs_opt)
+  !call bigdft_free_input(inputs_opt)
 !!$  call free_input_variables(inputs_opt)
 !!$  call free_input_variables(inputs_md)
 !!$

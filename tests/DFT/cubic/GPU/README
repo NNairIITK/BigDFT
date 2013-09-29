@@ -1,4 +1,0 @@
-tests GPU code (CUDA).
-
-To use GPU capabilities, you should use the option --enable-cuda with configure,
-add 'accel' keyword in input.perf with value 'CUDAGPU' (this keyword indicates that the special GPU interface is used for convolutions) and have a file for the affinity: cpu_gpu_aff.config

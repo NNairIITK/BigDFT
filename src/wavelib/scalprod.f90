@@ -1,7 +1,7 @@
 !> @file
 !!    Wrapper for simplifying the call
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group (LG)
+!!    Copyright (C) 2010-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -3714,16 +3714,16 @@ iaseg0=1
 END SUBROUTINE waxpy
 
 !> Search the segments which intersect each other
-!! @todo modify this routine to have also the end as result
+!! @todo Modify this routine to have also the end as result.
 subroutine hunt1(ascnd,xx,n,x,jlo)
   implicit none
   logical, intent(in) :: ascnd
-  integer, intent(in) :: x !<starting point in grid coordinates
-  integer, intent(in) :: n !<number of segments
-  integer, dimension(n), intent(in) :: xx !<array of segment starting points
-  integer, intent(inout) :: jlo !<input: starting segment, 
-                                ! output: closest segment corresponding to x
-                                ! warning: if jlo is outside range, routine is disabled
+  integer, intent(in) :: x                !< Starting point in grid coordinates
+  integer, intent(in) :: n                !< Number of segments
+  integer, dimension(n), intent(in) :: xx !< Array of segment starting points
+  integer, intent(inout) :: jlo           !< Input: starting segment, 
+                                          !! Output: closest segment corresponding to x
+                                          !! @warning if jlo is outside range, routine is disabled
   !local variables
   integer :: inc,jhi,jm
 

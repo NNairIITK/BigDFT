@@ -1,0 +1,14 @@
+----suggested weights for occup numbers of conf  1-----
+ 
+  0d0 1d5 1d0 1d0 1d0 1d3  psi(0), dEkin_wvlt, radii, hij, locality, E_exct
+   n   l  so    eigval  chrg    dchrg  ddchrg  res    rnode dnode ddnode
+   1   0 0.00   1.0e5   1.0e5   0.0e0  0.0e0   1.0e5  1.0e0 0.0e0 0.0e0
+   2   0 0.00   1.0e3   1.0e3   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+   3   0 0.00   1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+   4   0 0.00   1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+   2   1 0.00   1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+   3   1 0.00   1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+   4   1 0.00   1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+   3   2 0.00   1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+   4   2 0.00   1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
+   5   2 0.00   1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0

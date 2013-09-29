@@ -1,3 +1,13 @@
+!> @file
+!! Module for NEB (Nudged-Elastic Band) calculation
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Modules which contains minimizaton routines for NEB calculation
 MODULE Minimization_routines
   use module_defs

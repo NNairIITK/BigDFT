@@ -1,36 +1,38 @@
-The command 'make check' performs the series of tests:
-CUDA/:          tests CUDA implementation (GPU)
-DFT/:           tests basic features of DFT calculations
-fft/:           low level test functionality.
-H2-freq/:       computes the vibration properties of the H2  molecule using finite differences.
-MINHOP/:        tests global research using minima hopping
-NEB/:           runs NEB calculations.
-OpenCL/:        tests OpenCL code (GPU)
-PSolver/:       tests the Poisson solver implementation.
-XabsCheb/:      tests XANES calculations.
+/*! @file
+@brief README of the non-regression tests of BigDFT.
+
+@dir
+@brief Contains all non-regression tests for BigDFT
+
+@page TESTS Non-regression tests for BigDFT
+@brief Non-regression tests (BigDFT)
+
+The directory tests contains the non-regression tests concerning BigDFT.
+
+The command <tt>make check</tt> performs the series of tests:
+- @subpage TESTS_DFT;
+- @subpage TESTS_OVERDFT     Tests advanced features of BigDFT;
+- @subpage TESTS_LIBS        Tests the internal libraries used by BigDFT;
+- @subpage TESTS_TUTORIALS   Tutorials of BigDFT;
+-          tests/images      Contains the images used by the html page of the tutorials;
+-          tests/styles      Css stylesheets.
 
 
-Executables (src directory):
-----------------------------
-bigdft:      run DFT ground state calculations with or without geometry relaxations.
-memguess:    read BigDFT inputs and provide an accurate estimation of memory requirement (for each CPU in case of MPI run). 
-             It can also ouput the grid with the option 'y'.
-NEB:         run a NEB path search (the user must provide the files: NEB_driver.sh and NEB_include.sh).
-frequencies: run a finite difference calculation to find vibration for a molecule.
-MDanalysis:  browse the posout files generated during a molecular dynamic calculation to compute several quantities, 
-             like the radial distribution g(r).
-bart:        EXPERIMENTAL, ART implementation using BigDFT for the force calculation.
-abscalc:     EXPERIMENTAL, compute XANES spectrum.
-splsad:      EXPERIMENTAL, use spline saddle search method
-
-
-Read the manual for more information or go to the web site http://inac.cea.fr/L_Sim/BigDFT
+Read the manual for more information or go to the web site http://bigdft.org.
 
 
 Test in parallel
 ----------------
+
 Use the environment variable 'run_parallel' as:
+<pre>
 export run_parallel='mpirun -np 2'
 To use a batch system, add a batch file with:
 export run_parallel=...
 make check
+</pre>
+
+Each internal libraries as @link FLIB @endlink have also their set of non-regression tests 
+(see the directory flib/tests).
+
+*/

@@ -1,4 +1,15 @@
-program schtroumpf_lib
+!> @file
+!!  Check the input/output routines for the wavefunctions
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!>  Program to check the input/output routines for the wavefunctions
+program IO_wf_test
   use BigDFT_API
 
   implicit none
@@ -50,4 +61,4 @@ program schtroumpf_lib
   call memocc(0,0,'count','stop')
 
   call MPI_FINALIZE(ierr)
-end program schtroumpf_lib
+end program IO_wf_test

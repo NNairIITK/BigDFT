@@ -1,3 +1,14 @@
+!> @file
+!!  Time-Dependent DFT ai la Casida
+!! @author
+!!    Copyright (C) 2011-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Calculate the coupling matrix for the TD-DFT a la Casida
 subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,orbs,orbsv,i3s,fxc,pkernelseq,psi,psiv)
   use module_base
   use module_types

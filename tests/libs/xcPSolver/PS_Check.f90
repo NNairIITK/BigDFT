@@ -2,11 +2,13 @@
 !!  Performs a check of the Poisson Solver suite by running with different regimes
 !!  and for different choices of the XC functionals
 !! @author
-!!    Copyright (C) 2002-2010 BigDFT group 
+!!    Copyright (C) 2002-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+!> Check the Psolver components of BigDFT
 program PS_Check
    use module_base
    use module_xc
@@ -15,11 +17,9 @@ program PS_Check
    use yaml_output
 
    implicit none
-   !include 'mpif.h'
-   !Length of the box
    character(len=*), parameter :: subname='PS_Check'
-   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
-   real(kind=8), parameter :: acell = 10.d0
+   real(kind=8), parameter :: a_gauss = 1.0d0
+   real(kind=8), parameter :: acell = 10.d0    !< Length of the box
    character(len=50) :: chain
    character(len=1) :: geocode
    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
@@ -30,7 +30,7 @@ program PS_Check
    real(kind=8) :: tel
    real :: tcpu0,tcpu1
    integer :: ncount0,ncount1,ncount_rate,ncount_max
-   integer :: n01,n02,n03,itype_scf,i_all,i_stat
+   integer :: n01,n02,n03,itype_scf
    integer :: iproc,nproc,namelen,ierr,ispden
    integer :: n_cell,ixc
    integer, dimension(4) :: nxyz
@@ -490,7 +490,7 @@ program PS_Check
       !local variables
       character(len=*), parameter :: subname='compare_with_reference'
       character(len=100) :: message
-      integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i_all,i_stat,istpoti,i
+      integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,istpoti,i
       integer :: istxc,i1,i2,i3,isp,i3sd
       real(kind=8) :: eexcu,vexcu,ehartree
       real(kind=8), dimension(:), allocatable :: test,test_xc

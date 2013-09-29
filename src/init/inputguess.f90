@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to generate the input guess
 !! @author
-!!    Copyright (C) 2007-2011 (LG) BigDFT group
+!!    Copyright (C) 2007-2013 (LG) BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -174,7 +174,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
   !local variables
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals_forLinear'
-  integer, parameter :: ngx=31
+  !integer, parameter :: ngx=31
   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
@@ -460,7 +460,7 @@ subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspin
   real(gp), dimension(at%astruct%nat), intent(out) :: locrad
   integer,dimension(orbsig%norb),intent(out):: onWhichAtom
   !local variables
-  character(len=*), parameter :: subname='readAtomicOrbitals'
+  !character(len=*), parameter :: subname='readAtomicOrbitals'
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   character(len=2) :: symbol
   integer :: ity,i,iatsc,iat,lsc
@@ -552,7 +552,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
-   integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32,nmax_occ=10!actually is 24
+   integer, parameter :: noccmax=2,lmax=4,nelecmax=32,nmax_occ=10!actually is 24
+   !integer, parameter :: nterm_max=3,nmax=6
    logical :: orbpol_nc,occeq
    integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
@@ -2519,7 +2520,7 @@ subroutine write_fraction_string(l,occ,string,nstring)
    end if
 else
    nstring=5
-   write(string,'(1x,f4.2)')occ
+   write(string,'(1x,f4.2)') occ
 end if
 
 END SUBROUTINE write_fraction_string

@@ -104,7 +104,11 @@ program memguess
 
       stop
    else
-      read(unit=tatonam,fmt=*) nproc
+      read(unit=tatonam,fmt=*,iostat=ierror) nproc
+      if (ierror /= 0) then
+         call deprecation_message()
+         stop
+      end if
       i_arg = 2
       output_grid=0
       loop_getargs: do
@@ -131,14 +135,14 @@ program memguess
             !call getarg(i_arg,tatonam)
             ntimes=1
             norbgpu=0
-            read(tatonam,*,iostat=ierror)ntimes
-            if (ierror==0) then
+            read(unit=tatonam,fmt=*,iostat=ierror) ntimes
+            if (ierror == 0) then
                write(*,'(1x,a,i0,a)')&
                   &   'Repeat each calculation ',ntimes,' times.'
                i_arg = i_arg + 1
                call get_command_argument(i_arg, value = tatonam)
                !call getarg(i_arg,tatonam)
-               read(tatonam,*,iostat=ierror)norbgpu
+               read(unit=tatonam,fmt=*,iostat=ierror) norbgpu
             end if
             exit loop_getargs
          else if (trim(tatonam)=='convert') then
@@ -167,28 +171,28 @@ program memguess
             if(trim(tatonam)=='' .or. istat > 0) then
                exit loop_getargs
             else
-               read(tatonam, *) export_wf_iband
+               read(unit=tatonam,fmt=*) export_wf_iband
             end if
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = tatonam, status = istat)
             if(trim(tatonam)=='' .or. istat > 0) then
                exit loop_getargs
             else
-               read(tatonam, *) export_wf_ispin
+               read(unit=tatonam,fmt=*) export_wf_ispin
             end if
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = tatonam, status = istat)
             if(trim(tatonam)=='' .or. istat > 0) then
                exit loop_getargs
             else
-               read(tatonam, *) export_wf_ikpt
+               read(unit=tatonam,fmt=*) export_wf_ikpt
             end if
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = tatonam, status = istat)
             if(trim(tatonam)=='' .or. istat > 0) then
                exit loop_getargs
             else
-               read(tatonam, *) export_wf_ispinor
+               read(unit=tatonam,fmt=*) export_wf_ispinor
             end if
             exit loop_getargs
          else if (trim(tatonam)=='atwf') then
@@ -198,7 +202,7 @@ program memguess
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = tatonam)
             !call getarg(i_arg,tatonam)
-            read(tatonam,*,iostat=ierror)ng
+            read(unit=tatonam,fmt=*,iostat=ierror) ng
             write(*,'(1x,a,i0,a)')&
                &   'Use gaussian basis of',ng,' elements.'
             exit loop_getargs
@@ -610,7 +614,7 @@ program memguess
            in%nspin,in%itrpmax,in%iscf,peakmem)
    end if
 
-   !add the comparison between cuda hamiltonian and normal one if it is the case
+   ! Add the comparison between cuda hamiltonian and normal one if it is the case
 
    call deallocate_atoms(atoms,subname)
 
@@ -857,10 +861,11 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
 END SUBROUTINE shift_periodic_directions
 
 
+!> Calculate the extremes of the boxes taking into account the spheres around the atoms
 subroutine calc_vol(geocode,nat,rxyz,vol)
    use module_base
    implicit none
-   character(len=1), intent(in) :: geocode
+   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    integer, intent(in) :: nat
    real(gp), dimension(3,nat), intent(in) :: rxyz
    real(gp), intent(out) :: vol
@@ -868,7 +873,6 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
    integer :: iat
    real(gp) :: cxmin,cxmax,cymin,cymax,czmin,czmax
 
-   !calculate the extremes of the boxes taking into account the spheres around the atoms
    cxmax=-1.e10_gp 
    cxmin=1.e10_gp
 
@@ -1086,7 +1090,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    i_all=-product(shape(ngatherarr))*kind(ngatherarr)
    deallocate(ngatherarr,stat=i_stat)
    call memocc(i_stat,i_all,'ngatherarr',subname)
-
 
 
    !compare the results between the different actions of the hamiltonian
@@ -1500,6 +1503,8 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    call memocc(i_stat,i_all,'rxyz_file',subname)
 END SUBROUTINE take_psi_from_file
 
+
+!> Deprecated message for memguess (do not use directly!!)
 subroutine deprecation_message()
    implicit none
    write(*, "(15x,A)") "+--------------------------------------------+"

@@ -1,1 +1,16 @@
-tests the ground-state calculation capabilities.
+/*! @file
+@brief README of the non-regression tests devoted to ground-state calculation capabilities.
+
+@dir ./tests/DFT
+@brief Contains all tests related to the ground-state calculations
+
+@page TESTS_DFT Non-regression tests related to the ground-state calculations.
+@brief Non-regression tests (ground-state calculations)
+
+Tests the ground-state calculation capabilities.
+The command <tt>make check</tt> performs the series of tests:
+- @subpage TESTS_DFT_CUBIC   Tests the cubic version capabilities;
+- @subpage TESTS_DFT_LINEAR  Tests the linear version capabilities;
+- @subpage TESTS_DFT_POSTSCF Tests some post-processing after a ground-state calculation.
+
+*/

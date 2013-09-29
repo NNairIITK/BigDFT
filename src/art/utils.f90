@@ -10,8 +10,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> ART print_event
-!!    This subroutine prints the initial details for an event
+!> This subroutine prints the initial details for an event (ART)
 subroutine print_event( ievent_current, temperat )
 
   use defs
@@ -42,9 +41,8 @@ subroutine print_event( ievent_current, temperat )
 END SUBROUTINE print_event
 
 
-!> ART displacement
-!!    It computes the distance between two configurations and 
-!!    the number of particles having moved by more than a THRESHOLD
+!> It (ART) computes the distance between two configurations and 
+!! the number of particles having moved by more than a THRESHOLD
 subroutine displacement( posa, posb, delr, npart )
 
   use defs

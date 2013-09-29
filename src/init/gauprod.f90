@@ -1,14 +1,14 @@
 !> @file
 !!   Routines to handle Gaussian basis set
 !! @author
-!!    Copyright (C) 2007-2011 CEA (LG)
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Restart from gaussian functions
+!> Restart from gaussian functions
 subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
@@ -522,7 +522,6 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 END SUBROUTINE gaussian_pswf_basis
 
 
-
 !> Create gaussian structure from ptildes   _for_paw
 subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg, iorbto_paw_nchannels, iorbto_imatrixbeg )
@@ -543,7 +542,7 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
 
   !local variables
   character(len=*), parameter :: subname='gaussian_pswf_basis_for_paw'
-  integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
+  !integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
   integer :: il, j
   integer :: i_stat,iat,ityp,jtyp,ishell,iexpo,l,i
   integer :: ig,iexpoat_qs , iexpoat_coeffs
@@ -1126,7 +1125,7 @@ subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: norbp,n1,n2,n3,nspinor
   real(gp), intent(in) :: hx,hy,hz
   type(gaussian_basis), intent(in) :: G
@@ -1160,7 +1159,7 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
   use module_types
   use gaussians
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1,n2,n3,nat,nshltot,nexpo,ncoeff
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1270,7 +1269,7 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: l,ng,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1358,7 +1357,7 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1,n2,n3,nterm,ntp,nseg_c,nseg_f,mvctr_c,mvctr_f
   real(gp), intent(in) :: rx,ry,rz,hx,hy,hz
   integer, dimension(ntp), intent(in) :: lx,ly,lz

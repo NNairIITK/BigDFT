@@ -1,4 +1,5 @@
-!! Wrapper for the MPI call
+!> @file
+!! Wrapper for the MPI call (this file is preprocessed.)
 !! @author
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -11,7 +12,7 @@
 #include <config.inc>
 #endif
 
-!> Define routine which wrap the MPI calls
+!> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   use memory_profiling
@@ -27,22 +28,27 @@ module wrapper_MPI
   integer :: MPI_IN_PLACE = 0               !< Fake MPI_IN_PLACE variable to allow compilation in sumrho.
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
+
   include 'mpif.h'      !< MPI definitions and datatypes for density and wavefunctions
 
-  logical :: mpi_thread_funneled_is_supported=.false. !< control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
+  logical :: mpi_thread_funneled_is_supported=.false. !< Control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
 
-  !> interface for MPI_ALLREDUCE routine
+  !> Interface for MPI_ALLREDUCE routine
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real, &
           & mpiallred_double,mpiallred_double_1,mpiallred_double_2,&
           & mpiallred_log
   end interface
 
-  !> global MPI communicator
+  !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
-     integer :: mpi_comm
-     integer :: iproc,nproc
-     integer :: igroup,ngroup
+     integer :: mpi_comm !< MPI communicator
+     integer :: iproc    !< Process Id
+                         !! @ingroup RESERVED
+     integer :: nproc    !< Number of MPI processes (in the given communicator)
+                         !! @ingroup RESERVED
+     integer :: igroup   !< MPI Group Id
+     integer :: ngroup   !< Number of MPI groups
   end type mpi_environment
 
   public :: mpi_environment_null

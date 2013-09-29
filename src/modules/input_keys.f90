@@ -1120,7 +1120,7 @@ contains
 
     integer :: i
     type(dictionary), pointer :: ref
-    character(max_field_length), dimension(:), allocatable :: keys
+    character(len=max_field_length), dimension(:), allocatable :: keys
 
     ref => parameters // file
     allocate(keys(dict_size(ref)))
@@ -1392,52 +1392,3 @@ contains
   end subroutine input_keys_dump
 
 end module module_input_keys
-
-!> Routine to read YAML input files and create input dictionary.
-subroutine merge_input_file_to_dict(dict, fname, mpi_env)
-  use module_input_keys
-  use dictionaries
-  use yaml_parse
-  use wrapper_mpi
-  implicit none
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
-  type(mpi_environment), intent(in) :: mpi_env
-
-  integer(kind = 8) :: cbuf, cbuf_len
-  integer :: ierr
-  character(len = max_field_length) :: val
-  character, dimension(:), allocatable :: fbuf
-  type(dictionary), pointer :: udict
-  
-  if (mpi_env%iproc == 0) then
-     call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
-     if (mpi_env%nproc > 1) &
-          & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-  else
-     call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-  end if
-  allocate(fbuf(cbuf_len))
-  if (mpi_env%iproc == 0) then
-     call copyCBuffer(fbuf(1), cbuf, cbuf_len)
-     call freeCBuffer(cbuf)
-     if (mpi_env%nproc > 1) &
-          & call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-  else
-     call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-  end if
-
-  call f_err_open_try()
-  call yaml_parse_from_char_array(udict, fbuf)
-
-  ! Handle with possible partial dictionary.
-  deallocate(fbuf)
-  call dict_update(dict, udict // 0)
-  call dict_free(udict)
-  
-  ierr = 0
-  if (f_err_check()) ierr = f_get_last_error(val)
-  call f_err_close_try()
-  !in the present implementation f_err_check is not cleaned after the close of the try
-  if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
-end subroutine merge_input_file_to_dict

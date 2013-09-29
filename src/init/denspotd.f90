@@ -75,7 +75,7 @@ subroutine dpbox_set(dpbox,Lzd,iproc,nproc,mpi_comm,in,geocode)
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,mpi_comm
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   type(input_variables), intent(in) :: in 
   type(local_zone_descriptors), intent(in) :: Lzd
   type(denspot_distribution), intent(out) :: dpbox
@@ -196,7 +196,7 @@ subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbo
   use module_interfaces, except_this_one => denspot_communications
   implicit none
   integer, intent(in) :: ixc,nspin,iproc,nproc
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=4), intent(in) :: SICapproach
   type(denspot_distribution), intent(inout) :: dpbox
   !local variables
@@ -506,7 +506,8 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,ixc,dpbox)
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc
-  character(len=1), intent(in) :: geocode,datacode
+  character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
+  character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
   type(denspot_distribution), intent(inout) :: dpbox
   !Local variables
   integer :: jproc,n3d,n3p,n3pi,i3xcsh,i3s
@@ -704,7 +705,7 @@ contains
 
     subroutine geocode_buffers(geocode,nl1,nl2,nl3)
       implicit none
-      character(len=1), intent(in) :: geocode
+      character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
       integer, intent(out) :: nl1,nl2,nl3
       !local variables
       logical :: perx,pery,perz

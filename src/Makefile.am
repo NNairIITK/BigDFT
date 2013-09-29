@@ -15,7 +15,7 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 SUBDIRS = \
 	modules \
 	convolutions \
-	PSolver \
+	xcPSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
 	OpenCL \
@@ -38,7 +38,7 @@ subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	convolutions/libconvolutions.a \
-	PSolver/libxcPSolver.a \
+	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
 out_static_library =  \
@@ -111,7 +111,9 @@ AM_CFLAGS = @CUDA_INCLUDE@ @LIB_YAML_CFLAGS@
 #objects which depends from module_types
 high_level = cluster.f90 \
 	init.f90 \
+	initialization.f90 \
 	input_variables.f90 \
+	input_variables_old.f90 \
 	sumrho.f90 \
 	hpsiortho.f90 \
 	forces.f90 \
@@ -322,7 +324,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-linear/convolutions_aux.o: filterModule.o
+convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o
 
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 
@@ -334,9 +336,10 @@ xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 geometry.o bfgs.o sdcg.o: lbfgs.o
 
+initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
+
 NEB.o: images.o
 
-#initAndUtils.o: cleanup.o
 
 # Introspection for Python bindings
 # ---------------------------------

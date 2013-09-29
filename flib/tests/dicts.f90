@@ -1,13 +1,24 @@
+!> @file
+!! Test the dictionaries of flib
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed oneder the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Routine testing the dictionary object of flib
 subroutine test_dictionaries0()
   use yaml_output
   use dictionaries
   implicit none
   type(dictionary), pointer :: dict1,dict2,dict3
   !local variables
-  integer :: ival,nval
-  character(len=2) :: val
+  integer :: ival!,nval
+!!$  character(len=2) :: val
   character(len=30) :: val2
-  type(dictionary), pointer :: list,dict_tmp
+  type(dictionary), pointer :: dict_tmp
   !finding operations
 !!$  print *,' Filling a linked list' 
 !!$  call dict_init(list)

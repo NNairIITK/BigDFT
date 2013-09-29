@@ -1,4 +1,5 @@
 !> @file
+!! Define a module for BigDFT+ART
 !! @author
 !!    Eduardo Machado-Charry (EM) 2010
 !!    Copyright (C) 2001 Normand Mousseau
@@ -9,8 +10,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> ART Module diis_defs
-!! with the DIIS global arrays
+!> Module containing the DIIS global arrays for ART
 module diis_defs
 
   implicit none

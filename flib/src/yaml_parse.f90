@@ -1,3 +1,14 @@
+!> @file
+!! Module to parse the yaml (flib library)
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module containing routines to parse a yaml input
 module yaml_parse
   implicit none
 

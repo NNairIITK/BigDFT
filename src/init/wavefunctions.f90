@@ -693,107 +693,199 @@ subroutine lzd_set_hgrids(Lzd, hgrids)
   Lzd%hgrids = hgrids
 END SUBROUTINE lzd_set_hgrids
 
-subroutine inputs_from_dict(in, atoms, dict, dump)
-  use module_types
-  use module_defs
+!> Fill the arrays occup and spinsgn
+!! if iunit /=0 this means that the file 'input.occ' does exist and it opens
+subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
+  use module_base
+  use module_input
   use yaml_output
-  use module_interfaces, except => inputs_from_dict
-  use dictionaries
-  use module_input_keys
   implicit none
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
-  type(dictionary), pointer :: dict
-  logical, intent(in) :: dump
+  ! Arguments
+  logical, intent(in) :: verb
+  integer, intent(in) :: nelec,nspin,norb,norbu,iunit,norbuempty,norbdempty
+  real(gp), dimension(norb), intent(out) :: occup,spinsgn
+  ! Local variables
+  integer :: iorb,nt,ne,it,ierror,iorb1,i
+  real(gp) :: rocc
+  character(len=20) :: string
+  character(len=100) :: line
 
-  !type(dictionary), pointer :: profs
-  integer :: ierr
-
-  call default_input_variables(in)
-
-  ! To avoid race conditions where procs create the default file and other test its
-  ! presence, we put a barrier here.
-  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
-
-  ! Analyse the input dictionary and transfer it to in.
-  call input_keys_fill_all(dict)
-  call perf_input_analyse(bigdft_mpi%iproc, in, dict//PERF_VARIABLES)
-  call dft_input_analyse(bigdft_mpi%iproc, in, dict//DFT_VARIABLES)
-  call geopt_input_analyse(bigdft_mpi%iproc, in, dict//GEOPT_VARIABLES)
-  call mix_input_analyse(bigdft_mpi%iproc, in, dict//MIX_VARIABLES)
-  call sic_input_analyse(bigdft_mpi%iproc, in, dict//SIC_VARIABLES, in%ixc)
-  call tddft_input_analyse(bigdft_mpi%iproc, in, dict//TDDFT_VARIABLES)
-
-  ! Shake atoms, if required.
-  call astruct_set_displacement(atoms%astruct, in%randdis)
-  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
-  ! Update atoms with symmetry information
-  call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield)
-
-  call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
-       & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
-  
-  if (bigdft_mpi%iproc == 0 .and. dump) call input_keys_dump(dict)
-
-  if (in%gen_nkpt > 1 .and. in%gaussian_help) then
-     if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+  do iorb=1,norb
+     spinsgn(iorb)=1.0_gp
+  end do
+  if (nspin/=1) then
+     do iorb=1,norbu
+        spinsgn(iorb)=1.0_gp
+     end do
+     do iorb=norbu+1,norb
+        spinsgn(iorb)=-1.0_gp
+     end do
   end if
-  
-  if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
-      DistProjApply=.true.
-  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
-     !only on the fly calculation
-     DistProjApply=.true.
+  ! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
+
+  ! First fill the occupation numbers by default
+  nt=0
+  if (nspin==1) then
+     ne=(nelec+1)/2
+     do iorb=1,ne
+        it=min(2,nelec-nt)
+        occup(iorb)=real(it,gp)
+        nt=nt+it
+     enddo
+     do iorb=ne+1,norb
+        occup(iorb)=0._gp
+     end do
+  else
+     if (norbuempty+norbdempty == 0) then
+        if (norb > nelec) then
+           do iorb=1,min(norbu,norb/2+1)
+              it=min(1,nelec-nt)
+              occup(iorb)=real(it,gp)
+              nt=nt+it
+           enddo
+           do iorb=min(norbu,norb/2+1)+1,norbu
+              occup(iorb)=0.0_gp
+           end do
+           do iorb=norbu+1,norbu+min(norb-norbu,norb/2+1)
+              it=min(1,nelec-nt)
+              occup(iorb)=real(it,gp)
+              nt=nt+it
+           enddo
+           do iorb=norbu+min(norb-norbu,norb/2+1)+1,norb
+              occup(iorb)=0.0_gp
+           end do
+        else
+           do iorb=1,norb
+              occup(iorb)=1.0_gp
+           end do
+        end if
+     else
+        do iorb=1,norbu-norbuempty
+           occup(iorb)=1.0_gp
+        end do
+        do iorb=norbu-norbuempty+1,norbu
+           occup(iorb)=0.0_gp
+        end do
+        do iorb=1,norb-norbu-norbdempty
+           occup(norbu+iorb)=1.0_gp
+        end do
+        do iorb=norb-norbu-norbdempty+1,norb-norbu
+           occup(norbu+iorb)=0.0_gp
+        end do
+     end if
+  end if
+  ! Then read the file "input.occ" if does exist
+  if (iunit /= 0) then
+     nt=0
+     do
+        read(unit=iunit,fmt='(a100)',iostat=ierror) line
+        if (ierror /= 0) then
+           exit
+        end if
+        !Transform the line in case there are slashes (to ease the parsing)
+        do i=1,len(line)
+           if (line(i:i) == '/') then
+              line(i:i) = ':'
+           end if
+        end do
+        read(line,*,iostat=ierror) iorb,string
+        call read_fraction_string(string,rocc,ierror) 
+        if (ierror /= 0) then
+           exit
+        end if
+
+        if (ierror/=0) then
+           exit
+        else
+           nt=nt+1
+           if (iorb<0 .or. iorb>norb) then
+              !if (iproc==0) then
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
+              write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
+              !end if
+              stop
+           elseif (rocc<0._gp .or. rocc>2._gp) then
+              !if (iproc==0) then
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
+              write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
+              !end if
+              stop
+           else
+              occup(iorb)=rocc
+           end if
+        end if
+     end do
+     if (verb) then
+        call yaml_comment('('//adjustl(trim(yaml_toa(nt)))//'lines read)')
+        !write(*,'(1x,a,i0,a)') &
+        !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
+     end if
+     close(unit=iunit)
+
+     if (nspin/=1) then
+!!!        !Check if the polarisation is respected (mpol)
+!!!        rup=sum(occup(1:norbu))
+!!!        rdown=sum(occup(norbu+1:norb))
+!!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
+!!!           if (iproc==0) then
+!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "input.occ", the polarization ',rup-rdown,&
+!!!                             ' is not equal to ',norbu-norbd
+!!!           end if
+!!!           stop
+!!!        end if
+        !Fill spinsgn
+        do iorb=1,norbu
+           spinsgn(iorb)=1.0_gp
+        end do
+        do iorb=norbu+1,norb
+           spinsgn(iorb)=-1.0_gp
+        end do
+     end if
+  end if
+  if (verb) then 
+     call yaml_sequence(advance='no')
+     call yaml_open_map('Occupation Numbers',flow=.true.)
+     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
+     iorb1=1
+     rocc=occup(1)
+     do iorb=1,norb
+        if (occup(iorb) /= rocc) then
+           if (iorb1 == iorb-1) then
+              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
+              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+           else
+           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+                adjustl(trim(yaml_toa(iorb-1))),rocc,fmt='(f6.4)')
+           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           end if
+           rocc=occup(iorb)
+           iorb1=iorb
+        end if
+     enddo
+     if (iorb1 == norb) then
+        call yaml_map('Orbital No.'//trim(yaml_toa(norb)),occup(norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+     else
+        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+             adjustl(trim(yaml_toa(norb))),occup(norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+     end if
+     call yaml_close_map()
+  endif
+
+  !Check if sum(occup)=nelec
+  rocc=sum(occup)
+  if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
+     call yaml_warning('ERROR in determining the occupation numbers: the total number of electrons ' &
+        & // trim(yaml_toa(rocc,fmt='(f13.6)')) // ' is not equal to' // trim(yaml_toa(nelec)))
+     !if (iproc==0) then
+     !write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
+     !     ' is not equal to ',nelec
+     !end if
+     stop
   end if
 
-  ! Stop the code if it is trying to run GPU with spin=4
-  if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
-     if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-  end if
-
-  ! This should be moved to init_atomic_values, but we can't since
-  ! input.lin needs some arrays allocated here.
-  if (.not. associated(atoms%nzatom)) then
-     call allocate_atoms_nat(atoms, "inputs_from_dict")
-     call allocate_atoms_ntypes(atoms, "inputs_from_dict")
-  end if
-
-  ! Linear scaling (if given)
-  !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
-  call lin_input_variables_new(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
-
-  ! Fragment information (if given)
-  call fragment_input_variables(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,trim(in%file_frag),in,atoms)
-
-!!$  ! Stop code for unproper input variables combination.
-!!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
-!!$     if (bigdft_mpi%iproc==0) then
-!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-!!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
-!!$     end if
-!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-!!$  end if
-
-!!$  if (bigdft_mpi%iproc == 0) then
-!!$     profs => input_keys_get_profiles("")
-!!$     call yaml_dict_dump(profs)
-!!$     call dict_free(profs)
-!!$  end if
-
-  !check whether a directory name should be associated for the data storage
-  call check_for_data_writing_directory(bigdft_mpi%iproc,in)
-  
-  !check if an error has been found and raise an exception to be handled
-  if (f_err_check()) then
-     call f_err_throw('Error in reading input variables from dictionary',&
-          err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-  end if
-
-end subroutine inputs_from_dict
+END SUBROUTINE occupation_input_variables
 
 
 

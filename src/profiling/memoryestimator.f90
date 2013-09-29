@@ -1,14 +1,14 @@
 !> @file
 !!  Routines to estimate the use of memory
 !! @author
-!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2011
+!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2013
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Estimation of the used memory
+!> Estimation of the used memory
 subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
 
   use module_base
@@ -24,7 +24,7 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
   type(locreg_descriptors), intent(in) :: lr
   real(kind=8), intent(out) :: peakmem
   !Local variables
-  character(len=*), parameter :: subname='MemoryEstimator'
+  !character(len=*), parameter :: subname='MemoryEstimator'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: norbp,nvctrp,n1,n2,n3
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3
@@ -120,57 +120,17 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
     call yaml_map('Workspaces storage size',trim(MibdotKib(real(max(mworkrho,mworkham),kind=8))))
   call yaml_close_map()
 
-!!$  write(*,'(1x,a)')&
-!!$       '------------------------------------------------------------------ Memory Estimation'
-!!$  write(*,'(1x,a,i5,a,i6,a,3(i5))')&
-!!$       'Number of atoms=',nat,' Number of orbitals=',norb,' Sim. Box Dimensions= ', n1,n2,n3
-!!$  write(*,'(1x,a,i0,a)')&
-!!$       'Estimation performed for ',nproc,' processors.'
-!!$  write(*,'(1x,a)')&
-!!$       'Memory occupation for principal arrays:'
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '              Poisson Solver Kernel (K):',mega(omemker),'MB',kappa(omemker),'KB'  
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '             Poisson Solver Density (D):',mega(omemden),'MB',kappa(omemden),'KB'  
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '    Single Wavefunction for one orbital:',mega(omemwf),'MB',kappa(omemwf),'KB'  
-!!$  if(nproc > 1 ) omemwf=24.d0*real(norbp*nvctrp*nproc,kind=8)  !takes into account psit
-!!$  if(nproc == 1 ) omemwf=16.d0*real(norbp*nvctrp*nproc,kind=8)
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '   All Wavefunctions for each processor:',mega(omemwf),'MB',kappa(omemwf),'KB'  
-!!$  if(nproc > 1 ) omemwf=8.d0*real(2*idsx+3,kind=8)*real(norbp*nvctrp*nproc,kind=8)
-!!$  if(nproc == 1 ) omemwf=8.d0*real(2*idsx+2,kind=8)*real(norbp*nvctrp*nproc,kind=8)
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '      Wavefunctions + DIIS per proc (W):',mega(omemwf),'MB',kappa(omemwf),'KB'  
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '    Nonlocal Pseudopotential Arrays (P):',mega(omemproj),'MB',kappa(omemproj),'KB'  
-!!$  write(*,'(1x,a,2(i6,a3))')&
-!!$       '   Arrays of full uncompressed grid (U):',mega(omempot),'MB',kappa(omempot),'KB' 
-!!$
-!!$  write(*,'(1x,a)')&
-!!$       'Estimation of Memory requirements for principal code sections:'
-!!$  write(*,'(1x,a)')&
-!!$       ' Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application'
   if (nproc > 1) then 
-!!$     write(*,'(1x,a,I0,a,I2,a,I0,a,I2,a)')&
-!!$       '      ~19*K         |   W+~',nint(npotden),'*U+~',nint(nden),&
-!!$       & '*D+K+P   |   ~12*D+K+W+P  |   W+~',nint(npotham),'*U+~',nint(nden),'*D+K+P '
      tmemker=19.d0*omemker
      tmemden=omemwf+nden*omemden+npotden*omempot+omemker+omemproj
      tmemps=12.d0*omemden+omemwf+omemker+omemproj
      tmemha=nden*omemden+npotham*omempot+omemwf+omemker+omemproj
   else
-!!$     write(*,'(1x,a,I0,a,I2,a,I0,a,I2,a)')&
-!!$       '      ~11*K         |   W+~',nint(npotden - 1.d0),'*U+~',nint(nden),&
-!!$       & '*D+K+P   |   ~8*D+K+W+P   |   W+~',nint(npotham - 1.d0),'*U+~',nint(nden),'*D+K+P '
      tmemker=11.d0*omemker
      tmemden=omemwf+nden*omemden+(npotden-1.d0)*omempot+omemker+omemproj
      tmemps=8.d0*omemden+omemwf+omemker+omemproj
      tmemha=nden*omemden+(npotham-1.d0)*omempot+omemwf+omemker+omemproj
   end if
-!!$  write(*,'(1x,4(1x,i8,a))')&
-!!$       mega(tmemker),'MB         | ',mega(tmemden),'MB          |',&
-!!$       mega(tmemps),'MB     |     ',mega(tmemha),'MB'
   !estimation of the memory peak
   peakmem=max(tmemker,tmemden,tmemps,tmemha)
 
@@ -184,18 +144,8 @@ subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itr
   call yaml_map('Estimated Memory Peak (MB)',yaml_toa(mega(peakmem)))
 
 
-!!$  write(*,'(1x,a,i0,a)')&
-!!$       'The overall memory requirement needed for this calculation is thus: ',&
-!!$       mega(peakmem),' MB'
-!!$  tminamount=real(3*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8,kind=8)+3.d0*real(n01*n02,kind=8)+&
-!!$       (3.d0+2.d0*tt)*omempot+omemproj
-!!$  write(*,'(1x,a)')&
-!!$       'By reducing the DIIS history and/or increasing the number of processors the amount of'
-!!$  write(*,'(1x,a,i0,a)')&
-!!$       ' memory can be reduced but for this system it will never be less than ',&
-!!$       mega(tminamount),' MB'
-
 contains
+
 
   function mega(omemory)
     implicit none

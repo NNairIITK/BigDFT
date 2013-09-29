@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
  
-!> Modules which contains the Fortran data structures
+!> Module which contains the Fortran data structures
 !! and the routines of allocations and de-allocations
 module module_types
 
@@ -37,7 +37,7 @@ module module_types
   integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
   integer, parameter :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
   integer, parameter :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
-  integer, parameter :: INPUT_PSI_LCAO         = 0      
+  integer, parameter :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
   integer, parameter :: INPUT_PSI_MEMORY_WVL   = 1
   integer, parameter :: INPUT_PSI_DISK_WVL     = 2
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
@@ -405,14 +405,14 @@ module module_types
   !> Contains the information needed for describing completely a
   !! wavefunction localisation region
   type, public :: locreg_descriptors
-     character(len=1) :: geocode
-     logical :: hybrid_on   !< interesting for global, periodic, localisation regions
-     integer :: ns1,ns2,ns3 !< starting point of the localisation region in global coordinates
-     integer :: nsi1,nsi2,nsi3  !< starting point of locreg for interpolating grid
-     integer :: Localnorb              !< number of orbitals contained in locreg
-     integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
-     real(kind=8),dimension(3) :: locregCenter !< center of the locreg 
-     real(kind=8) :: locrad !< cutoff radius of the localization region
+     character(len=1) :: geocode                !< @copydoc poisson_solver::doc::geocode
+     logical :: hybrid_on                       !< Interesting for global, periodic, localisation regions
+     integer :: ns1,ns2,ns3                     !< Starting point of the localisation region in global coordinates
+     integer :: nsi1,nsi2,nsi3                  !< Starting point of locreg for interpolating grid
+     integer :: Localnorb                       !< Number of orbitals contained in locreg
+     integer, dimension(3) :: outofzone         !< Vector of points outside of the zone outside Glr for periodic systems
+     real(kind=8), dimension(3) :: locregCenter !< Center of the locreg 
+     real(kind=8) :: locrad                     !< Cutoff radius of the localization region
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
@@ -427,7 +427,7 @@ module module_types
 
   !> Used to split between points to be treated in simple or in double precision
   type, public :: rho_descriptors
-     character(len=1) :: geocode
+     character(len=1) :: geocode !< @copydoc poisson_solver::doc::geocode
      integer :: icomm !< method for communicating the density
      integer :: nrhotot !< dimension of the partial density array before communication
      integer :: n_csegs,n_fsegs,dp_size,sp_size
@@ -442,7 +442,7 @@ module module_types
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
 
-!> Contains arguments needed for \rho_local for WVL+PAW
+!> Contains arguments needed for rho_local for WVL+PAW
 
   type, public :: rholoc_objects
     integer ,pointer,dimension(:)    :: msz ! mesh size for local rho
@@ -452,7 +452,7 @@ module module_types
   end type rholoc_objects
 
   type, public :: atomic_structure
-    character(len=1) :: geocode          !< Boundary conditions
+    character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
     character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
     character(len=20) :: units           !< Can be angstroem or bohr 
     integer :: nat                       !< Number of atoms
@@ -1780,7 +1780,7 @@ subroutine deallocate_orbs(orbs,subname)
   subroutine deallocate_bounds(geocode,hybrid_on,bounds,subname)
     use module_base
     implicit none
-    character(len=1), intent(in) :: geocode
+    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     logical, intent(in) :: hybrid_on 
     type(convolutions_bounds) :: bounds
     character(len=*), intent(in) :: subname

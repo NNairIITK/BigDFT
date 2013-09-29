@@ -1,7 +1,7 @@
 !> @file
 !!  Module defining handling of errors
-!!  In the spirit of this module each error message is handled separately
-!!  The user of this module is able to define the stopping routine, the new error and the error codes
+!!  In the spirit of this module each error message is handled separately.
+!!  The user of this module is able to define the stopping routine, the new error and the error codes.
 !! @author Luigi Genovese
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -67,9 +67,11 @@
     call dict_free(dict_present_error)
   end subroutine f_err_finalize
 
-  !> define a new error specification and returns the corresponding error code
+  !> Define a new error specification and returns the corresponding error code
   !! optionally, a error-specific callback function can be defined
-  subroutine f_err_define(err_name,err_msg,err_id,err_action,callback,callback_data)
+  !! @warning
+  !!   gfortran complains on runtime (with option -Wextra) that this routine is recursive.
+  recursive subroutine f_err_define(err_name,err_msg,err_id,err_action,callback,callback_data)
     implicit none
     character(len=*), intent(in) :: err_name,err_msg
     integer, intent(out) :: err_id
@@ -110,12 +112,14 @@
 
   end subroutine f_err_define
 
-  !> this function returns true if a generic error has been raised  !! in case of specified errors, it returns true if an error of this kind has been raised
+  
+  !> This function returns true if a generic error has been raised
+  !! in case of specified errors, it returns true if an error of this kind has been raised
   function f_err_check(err_id,err_name)
     implicit none
-    integer, intent(in), optional :: err_id !< the code of the error to be checked for
-    character(len=*), intent(in), optional :: err_name !name of the error to search
-    logical :: f_err_check
+    integer, intent(in), optional :: err_id            !< The code of the error to be checked for
+    character(len=*), intent(in), optional :: err_name !< Name of the error to search
+    logical :: f_err_check                             !< Return code
     include 'get_err-inc.f90'
 
     !check if a particular error has been found
@@ -128,16 +132,17 @@
 
   end function f_err_check
 
-  !> this routine should be generalized to allow the possiblity of addin customized message at the 
+  !> This routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
-  function f_err_raise(condition,err_msg,err_id,err_name,callback,callback_data)
+  !! @warning This function is detected as recrusive by gfortran
+  recursive function f_err_raise(condition,err_msg,err_id,err_name,callback,callback_data)
     use yaml_strings, only: yaml_toa
     !use yaml_output, only: yaml_dict_dump,yaml_map
     implicit none
-    logical, intent(in), optional :: condition !< the condition which raise the error
-    integer, intent(in), optional :: err_id !< the code of the error to be raised.
-                                              !! it should already have been defined by f_err_define
-    character(len=*), intent(in), optional :: err_name,err_msg !search for the error and add a message to it 
+    logical, intent(in), optional :: condition                 !< the condition which raise the error
+    integer, intent(in), optional :: err_id                    !< the code of the error to be raised.
+                                                               !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name,err_msg !< search for the error and add a message to it 
     integer(kind=8), intent(in), optional :: callback_data
     external :: callback
     optional :: callback

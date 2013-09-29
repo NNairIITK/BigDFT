@@ -3,7 +3,7 @@
 !!  Routines which are present in this file should have *all* arguments as intent(in)
 !!  Also, the master process only should acces these routines
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -18,7 +18,7 @@ subroutine print_logo()
   integer :: namelen,ierr
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   integer :: nthreads
-  integer, parameter :: ln = 1024
+  !integer, parameter :: ln = 1024
 !$ integer :: omp_get_max_threads
 
 !  call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
@@ -1194,7 +1194,7 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
 END SUBROUTINE write_orbital_data
 
 
-!> Write diis weights
+!> Write DIIS weights
 subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   use module_base
   use yaml_output

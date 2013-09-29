@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
  
-!> Define important structures and methods to manipulate embedding systems
+!> Module which defines some important structures and methods to manipulate embedding systems
 module module_fragments
   use module_base, only: gp,wp
   use module_types
@@ -265,7 +265,7 @@ contains
     !integer :: norbu, norbd, nlr, ilr, iall, iorb, istat
     !integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
     !real(kind=8),dimension(:,:),allocatable :: locregCenter
-    character(len=*),parameter :: subname='init_minimal_orbitals_data'
+    !character(len=*),parameter :: subname='init_minimal_orbitals_data'
 
     call timing(iproc,'init_orbs_lin ','ON')
  
@@ -701,7 +701,6 @@ contains
     implicit none
     type(system_fragment), intent(inout) :: frag
     character(len=200) :: subname
-    integer :: i_all, i_stat
 
     subname='fragment_free'
 

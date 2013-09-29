@@ -1,13 +1,15 @@
 !> @file
+!! Define a module whihc is used to determine the saddle points with ART
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> ART Module saddles 
+
+!> Module saddles used by ART
 module saddles
 
   implicit none

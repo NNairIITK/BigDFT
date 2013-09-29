@@ -256,6 +256,7 @@ subroutine ext_buffers_coarse(periodic,nb)
 END SUBROUTINE ext_buffers_coarse
 
 
+!> Module used by the linear scaling version
 module internal_io
   implicit none
 
@@ -1053,7 +1054,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
   type(wavefunctions_descriptors), intent(in) :: wfd
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   real(gp), dimension(3), intent(inout) :: centre_old,centre_new,da
   type(fragment_transformation), intent(in) :: frag_trans
   real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
@@ -1275,7 +1276,7 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
  real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
  !local variables
  character(len=*), parameter :: subname='morph_and_transpose'
- real(gp), parameter  :: tol=1.e-14_gp
+!!$ real(gp), parameter  :: tol=1.e-14_gp
  integer :: i_all,i_stat,nunit,m_isf,i,j,l,ms,me,k1
  real(gp) :: dt,tt,t0_l,diff
  real(gp), dimension(:), allocatable :: shf !< shift filter
@@ -1852,8 +1853,7 @@ subroutine field_rototranslation3D_interpolation(da,newz,centre_old,centre_new,&
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
   !local variables
-  integer :: k1,i,j,k,l,it
-  real(gp) :: ux,uy,uz
+  integer :: i,j,k,it
   real(gp), dimension(3) :: dt
   real(gp), dimension(27) :: coeffs
 
@@ -1932,7 +1932,7 @@ contains
     real(gp), dimension(-1:1,-1:1,-1:1), intent(out) :: fijk
     real(gp), dimension(3), intent(out) :: dt
     !local variables
-    integer :: ix,iy,iz,i
+    integer :: ix,iy,iz
     integer, dimension(3) :: istart
     real(gp), dimension(3) :: t0_l
 
@@ -2020,8 +2020,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
   !local variables
-  integer :: m_isf,k1,i,j,k,me,ms,l
-  real(gp) :: ux,uy,uz,dt
+  integer :: m_isf,k1,i,j,k,me,ms
+  real(gp) :: dt
   real(gp), dimension(:), allocatable :: shf
   real(gp), dimension(:), allocatable :: work,work2
 
@@ -2444,7 +2444,7 @@ subroutine interpolate_xp_from_x(nx,ny,nz,cx,cy,cz,cx_new,hx,hy,hz,hx_new,&
   real(gp), dimension(ny,nz,nx), intent(out) :: psi_out 
   !local variables
   integer :: i,j,k,ms,me,l,m_isf,k1
-  real(gp) :: x,y,z,tt,dt,t0_l,diff
+  real(gp) :: x,y,z,tt,dt,t0_l
   !to be removed
   !real(gp), dimension(nx_old) :: tx
 

@@ -10,10 +10,6 @@
 
 !> Orthogonality routine, for all the orbitals
 !! Uses wavefunctions in their transposed form
-!! @param orthpar : Choose which orthogonalization method shall be used:
-!!    orthpar%methOrtho==0: Cholesky orthonormalization (i.e. a pseudo Gram-Schmidt)
-!!    orthpar%methOrtho==1: hybrid Gram-Schmidt/Cholesky orthonormalization
-!!    orthpar%methOrtho==2: Loewdin orthonormalization
 subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   use module_base
   use module_types
@@ -22,6 +18,10 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(in) :: comms
+  !>Choose which orthogonalization method shall be used:
+  !!    orthpar%methOrtho==0: Cholesky orthonormalization (i.e. a pseudo Gram-Schmidt)
+  !!    orthpar%methOrtho==1: hybrid Gram-Schmidt/Cholesky orthonormalization
+  !!    orthpar%methOrtho==2: Loewdin orthonormalization
   type(orthon_data), intent(in) :: orthpar
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
   type(paw_objects),optional,intent(inout) :: paw
@@ -202,13 +202,13 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
         END SUBROUTINE check_closed_shell
 
 
-        !>   Orthogonality constraint routine, for all the orbitals
-        !!   Uses wavefunctions in their transposed form
+!> Orthogonality constraint routine, for all the orbitals
+!! Uses wavefunctions in their transposed form
 subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n(c) wfd (arg:5)
-          use module_base
-          use module_types
+  use module_base
+  use module_types
   use module_interfaces, except_this_one => orthoconstraint
-          implicit none
+  implicit none
           logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
           integer, intent(in) :: iproc,nproc
           type(orbitals_data), intent(in) :: orbs
@@ -445,41 +445,41 @@ do ikptp=1,orbs%nkptsp
     call memocc(i_stat,i_all,'paw_ovrlp',subname)
   end if
 
-          i_all=-product(shape(ndim_ovrlp))*kind(ndim_ovrlp)
-          deallocate(ndim_ovrlp,stat=i_stat)
-          call memocc(i_stat,i_all,'ndim_ovrlp',subname)
+  i_all=-product(shape(ndim_ovrlp))*kind(ndim_ovrlp)
+  deallocate(ndim_ovrlp,stat=i_stat)
+  call memocc(i_stat,i_all,'ndim_ovrlp',subname)
 
-          call timing(iproc,'LagrM_comput  ','OF')
+  call timing(iproc,'LagrM_comput  ','OF')
 
-        END SUBROUTINE orthoconstraint
+END SUBROUTINE orthoconstraint
 
 
-        !>   Found the linear combination of the wavefunctions which diagonalises
-        !!   the overlap matrix
-        subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
-          use module_base
-          use module_types
+!> Found the linear combination of the wavefunctions which diagonalises
+!! the overlap matrix
+subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
+  use module_base
+  use module_types
   use yaml_output
-          implicit none
-          integer, intent(in) :: iproc,nproc
-          type(orbitals_data), intent(inout) :: orbs !eval is updated
-          type(communications_arrays), intent(in) :: comms
-          real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: hpsi
-          real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
-          real(wp), intent(out) :: evsum
-          !local variables
-          character(len=*), parameter :: subname='subspace_diagonalisation'
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(inout) :: orbs !eval is updated
+  type(communications_arrays), intent(in) :: comms
+  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: hpsi
+  real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
+  real(wp), intent(out) :: evsum
+  !local variables
+  character(len=*), parameter :: subname='subspace_diagonalisation'
   integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   !integer :: istart
   real(wp) :: occ,asymm
   real(gp), dimension(2) :: aij,aji
-          integer, dimension(:,:), allocatable :: ndim_ovrlp
-          real(wp), dimension(:), allocatable :: work_lp,work_rp,psiw
+  integer, dimension(:,:), allocatable :: ndim_ovrlp
+  real(wp), dimension(:), allocatable :: work_lp,work_rp,psiw
   real(wp), dimension(:), allocatable :: hamks
 
-          !separate the diagonalisation procedure for up and down orbitals 
-          !and for different k-points
+  !separate the diagonalisation procedure for up and down orbitals 
+  !and for different k-points
 
 !!$  !number of components of the overlap matrix for parallel case
 !!$  istart=2
@@ -749,15 +749,15 @@ do ikptp=1,orbs%nkptsp
           deallocate(ndim_ovrlp,stat=i_stat)
           call memocc(i_stat,i_all,'ndim_ovrlp',subname)
 
-        END SUBROUTINE subspace_diagonalisation
+END SUBROUTINE subspace_diagonalisation
 
 
-        !>  Makes sure all psivirt/gradients are othogonal to the occupied states psi.
-        !!  This routine is almost the same as orthoconstraint_p. Difference:
-        !!  hpsi(:,norb) -->  psivirt(:,nvirte) , therefore rectangular alag.
-        !! @warning
-        !!   Orthogonality to spin polarized channels is achieved in two calls,
-        subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_virt,msg)
+!> Makes sure all psivirt/gradients are othogonal to the occupied states psi.
+!! This routine is almost the same as orthoconstraint_p. Difference:
+!! hpsi(:,norb) -->  psivirt(:,nvirte) , therefore rectangular alag.
+!! @warning
+!!   Orthogonality to spin polarized channels is achieved in two calls,
+subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_virt,msg)
           use module_base
           use module_types
           implicit none
@@ -1350,13 +1350,18 @@ END SUBROUTINE orthon_p
 subroutine loewe_p(iproc,norb,ndim,nvctrp,nvctr_tot,psit)
   use module_base
   use module_types
-  implicit real(kind=8) (a-h,o-z)
-  logical, parameter :: parallel=.true.
-  dimension psit(nvctrp,ndim)
+  implicit none
+  !Argumments
+  integer, intent(in) :: iproc,norb,ndim,nvctrp,nvctr_tot
+  real(dp), dimension(nvctrp,ndim), intent(inout) :: psit
+  !Local variables
   character(len=*), parameter :: subname='loewe_p'
   real(kind=8), allocatable :: ovrlp(:,:,:),evall(:),psitt(:,:)
+  real(kind=8) :: dnrm2
+  real(kind=8) :: tt,ttLOC
+  integer :: nvctr_eff,i_all,i_stat,ierr,info,jorb,lorb
 
-  if (norb.eq.1) then
+  if (norb == 1) then
 
      nvctr_eff=min(nvctr_tot-iproc*nvctrp,nvctrp)
 

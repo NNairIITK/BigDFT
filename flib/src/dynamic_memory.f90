@@ -45,7 +45,7 @@ module metadata_interfaces
 
      subroutine getc1(array,iadd)
        implicit none
-       character, dimension(:), allocatable, intent(in) :: array
+       character(len=*), dimension(:), allocatable, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
      end subroutine getc1
 
@@ -194,7 +194,7 @@ contains
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
     integer, dimension(1), intent(in) :: shp
-    character, dimension(shp(1)+ndebug), intent(out) :: array
+    character(len=*), dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_character(array,init_to_zero,shp(1),shp(1)+ndebug)
 
@@ -714,6 +714,7 @@ contains
 
   end function malloc_information_all_null
 
+
   !> This routine adds the corresponding subprogram name to the dictionary
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
@@ -725,7 +726,7 @@ contains
     
     !local variables
     integer :: lgt,ncalls
-    integer(kind=8) :: itime,jtime
+    integer(kind=8) :: itime
 
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_routine): the routine f_malloc_initialize has not been called',&

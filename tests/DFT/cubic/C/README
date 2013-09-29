@@ -1,8 +1,0 @@
-tests non-local pseudo-potential for isolated system 
-
- We use the file occup.dat in order to populate equally the 3 p states.
-
- WARNING: The input guess has not the correct symmetry due to the lapack library.
- There is a small overlap (1.e-6) between s and p states in Gaussian functions projected into wavelet basis sets
- and the 3 eigenvalues of p states are a diffrence of 1.e-6.
-

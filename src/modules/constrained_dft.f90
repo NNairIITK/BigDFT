@@ -1,3 +1,14 @@
+!> @file
+!! Constrained DFT (based on linear version)
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module to perform constrained DFT calculations
 module constrained_dft
   use module_base, only: gp,wp,f_err_throw
   use module_types
@@ -6,7 +17,7 @@ module constrained_dft
 
   private
 
-  ! Need to avoid copying and pasting interfaces here - maybe shouldn't be a module?
+  !> Need to avoid copying and pasting interfaces here - maybe shouldn't be a module?
   interface
        subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
@@ -69,10 +80,10 @@ module constrained_dft
 
 contains
 
-  ! CDFT: calculates the weight matrix w_ab via the expression S^1/2PS^1/2, where S is the overlap of the whole system
-  ! CDFT: and P is a projector matrix onto the tmbs of the desired fragment
-  ! CDFT: for standalone CDFT calculations, assuming one charged fragment, for transfer integrals assuming two fragments
-  ! CDFT: where we constrain the difference - should later generalize this
+  !> CDFT: calculates the weight matrix w_ab via the expression S^1/2PS^1/2, where S is the overlap of the whole system
+  !! CDFT: and P is a projector matrix onto the tmbs of the desired fragment
+  !! CDFT: for standalone CDFT calculations, assuming one charged fragment, for transfer integrals assuming two fragments
+  !! CDFT: where we constrain the difference - should later generalize this
   subroutine calculate_weight_matrix_lowdin(cdft,tmb,input,ref_frags,calculate_overlap_matrix)
     use module_fragments
     implicit none
@@ -82,7 +93,8 @@ contains
     logical, intent(in) :: calculate_overlap_matrix
     type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
 
-    integer :: iall, iorb, jorb, istat, ifrag, ifrag_ref, isforb
+    integer :: iorb, istat, ifrag, ifrag_ref, isforb
+    !integer :: iall, jorb
     real(kind=gp), allocatable, dimension(:,:) :: proj_mat, ovrlp_half, proj_ovrlp_half, inv_ovrlp_half
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
 
@@ -208,8 +220,8 @@ contains
   end subroutine calculate_weight_matrix_lowdin
 
 
-  ! CDFT: calculates the weight matrix w_ab given w(r)
-  ! for the moment putting densities in global box and ignoring parallelization
+  !> CDFT: calculates the weight matrix w_ab given w(r)
+  !! for the moment putting densities in global box and ignoring parallelization
   subroutine calculate_weight_matrix_using_density(cdft,tmb,at,input,GPU,denspot)
     use module_fragments
     implicit none
@@ -220,7 +232,8 @@ contains
     type(DFT_local_fields), intent(inout) :: denspot
     type(GPU_pointers),intent(inout) :: GPU
 
-    integer :: iall, iorb, jorb, istat
+    integer :: iall, istat
+    !integer :: iorb, jorb
     real(kind=gp),dimension(:),allocatable :: hpsit_c, hpsit_f
     type(confpot_data),dimension(:),allocatable :: confdatarrtmp
     type(energy_terms) :: energs
@@ -307,8 +320,8 @@ contains
   end subroutine calculate_weight_matrix_using_density
 
 
-  ! CDFT: calculates the weight function w(r)
-  ! for the moment putting densities in global box and ignoring parallelization
+  !> CDFT: calculates the weight function w(r)
+  !! for the moment putting densities in global box and ignoring parallelization
   subroutine calculate_weight_function(in,ref_frags,cdft,ndimrho_all_fragments,rho_all_fragments,tmb,atoms,rxyz,denspot)
     use module_fragments
     implicit none

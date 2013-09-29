@@ -142,7 +142,7 @@ enddo !loop over iconfig
 end program splined_saddle
 
 
-!> Module minimization_sp for splined saddle
+!> Module for splined saddle
 module minimization_sp
     implicit none
     type parameterminimization_sp
@@ -813,7 +813,8 @@ subroutine pickbestanchors(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,n
     real(kind=8)::ed_tt,edd_tt,tarr(100),diff,dt
     real(kind=8), allocatable::xt(:),ft(:)
     type(parametersplinedsaddle)::pnow,pold
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter :: ndeb1=0
+    !integer, parameter :: ndeb2=0
     logical::move_this_coordinate
     if(mod(np+pnow%ns2,2)==0) then
         npv=np+pnow%ns2+4
@@ -3670,7 +3671,8 @@ subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
     real(kind=8), allocatable::yj(:)
     logical::move_this_coordinate
     integer::ixyz,iat,jxyz,jat
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0
+    !integer, parameter::ndeb2=0
     allocate(cd1(np-1+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating cd1.'
     call dmemocc(np-1,np-1+ndeb1,cd1,'cd1')
     allocate(cd2(np-1+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating cd2.'
@@ -4140,7 +4142,8 @@ subroutine initminimize(parmin)
     integer::istat
     character(2)::tapp1,tapp2
     character(4)::tapp3
-    integer, parameter::ndeb1=0,ndeb2=0
+    integer, parameter::ndeb1=0
+    !integer, parameter::ndeb2=0
     tapp1(1:2)=parmin%approach(1:2)
     if(len(trim(parmin%approach))==4) tapp2(1:2)=parmin%approach(3:4)
     if(len(trim(parmin%approach))==6) tapp3(1:4)=parmin%approach(3:6)

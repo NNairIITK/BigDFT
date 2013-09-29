@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Define a dictionary and the pure functionsits basic usage rules
+!> Module which defines a dictionary and the pure functions for its basic usage rules (no dependency)
 module dictionaries_base
 
   implicit none

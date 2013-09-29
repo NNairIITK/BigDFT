@@ -1,6 +1,6 @@
 !> @file
-!!  High level routines which needs more medium-level modules of the f_lib
-!!  They should be external, in the sense that no interface should be needed to call them
+!!  High level routines which needs more medium-level modules of the f_lib.
+!!  They should be external, in the sense that no interface should be needed to call them.
 !! @author Luigi Genovese
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -8,7 +8,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!print error information about last error
+
+!>print error information about last error
 subroutine f_dump_last_error()
   use dictionaries, only: f_get_error_dict,f_get_last_error,max_field_length
   use yaml_output, only: yaml_dict_dump,yaml_map

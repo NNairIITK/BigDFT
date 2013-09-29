@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Define all yaml strings for output
+!> Module defining all yaml strings for output.
 !! This module must be only used by the module yaml_output
 module yaml_strings
 

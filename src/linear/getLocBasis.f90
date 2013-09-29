@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
@@ -42,10 +43,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(cdft_data),intent(inout),optional :: cdft
   integer, intent(in) :: extra_states
 
-
   ! Local variables 
-  integer :: istat, iall, iorb, jorb, info, ind_ham, ind_denskern
-  integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie, matrixindex_in_compressed
+  integer :: istat, iall, iorb, info
+  integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -53,7 +53,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr
-  real(kind=gp),dimension(:,:),allocatable :: coeff_orig
 
 
   if(calculate_ham) then
@@ -846,7 +845,7 @@ end subroutine improveOrbitals
 subroutine my_geocode_buffers(geocode,nl1,nl2,nl3)
   implicit none
   integer, intent(out) :: nl1,nl2,nl3
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   !local variables
   logical :: perx,pery,perz
   integer :: nr1,nr2,nr3

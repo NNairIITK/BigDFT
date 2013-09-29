@@ -79,6 +79,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
 
   ! Local variables
+  !character(len=*),parameter :: subname='ConvolQuartic4'
   integer,parameter :: lowfil=-14,lupfil=14
   integer :: t,i1,i2,i3, icur,istart,iend,l
   real(wp) :: dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
@@ -103,7 +104,6 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(kind=8) :: tt6a0, tt6b0, tt6c0, tt6e0                     
   real(kind=8) :: tt7a0, tt7b0, tt7c0, tt7e0                     
   logical:: with_confpot
-  character(len=*),parameter :: subname='ConvolQuartic4'
   real(kind=8) :: ddot
 
 
