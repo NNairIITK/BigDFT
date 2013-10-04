@@ -68,6 +68,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp, ifrag, ifrag_charged, ifrag_ref, isforb, itmb
   integer :: dmin_diag_it, dmin_diag_freq
   logical :: reorder
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
   !!! EXPERIMENTAL ############################################
   type(sparseMatrix) :: denskern_init
@@ -117,6 +118,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   dmin_diag_it=0
   dmin_diag_freq=-1
   reorder=.false.
+  nullify(mom_vec_fake)
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
@@ -613,7 +615,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end do
                    call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-                      call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                   call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
                      denspot%rhov(1), 1, rhopotOld_out(1), 1)
                 end if
              end if
@@ -621,6 +623,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! Calculate the new potential.
              if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
              call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+             ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
+             ! switch off for FOE at the moment
+             if (input%lin%scf_mode/=LINEAR_FOE) then
+                call dcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+                call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+                if (bigdft_mpi%iproc ==0) then 
+                   call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
+                end if
+             end if
 
              ! Mix the potential
              if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
@@ -645,6 +657,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 fix_support_functions=.true.
              end if
 
+             if (input%lin%constrained_dft) then
+                call timing(iproc,'constraineddft','ON')
+                ! CDFT: see how satisfaction of constraint varies as kernel is updated
+                ! CDFT: calculate Tr[Kw]-Nc
+                call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
+                     ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+             end if
+
              ! Write some informations.
              call printSummary()
 
@@ -666,10 +686,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
          if (input%lin%constrained_dft) then
             call timing(iproc,'constraineddft','ON')
-            ! CDFT: see how satisfaction of constraint varies as kernel is updated
-            ! CDFT: calculate Tr[Kw]-Nc
-            call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
-                 ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+            !! CDFT: see how satisfaction of constraint varies as kernel is updated
+            !! CDFT: calculate Tr[Kw]-Nc
+            !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
+            !     ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+
             ! reset rhopotold (to zero) to ensure we don't exit immediately if V only changes a little
             !call razero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
@@ -773,6 +794,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ham_small,input%lin%extra_states)
+  end if
+
+  if (input%lin%fragment_calculation .and. input%frag%nfrag>1) then
+     call coeff_weight_analysis(iproc, nproc, input, KSwfn%orbs, tmb, ref_frags)
   end if
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
@@ -1027,16 +1052,29 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           else
               write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
           end if
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-                   it_SCC, pnrm, energy, energyDiff
-          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
-                   it_SCC, pnrm, energy, energyDiff
-          else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-                   it_SCC, pnrm, energy, energyDiff
-          end if
+          if (input%lin%constrained_dft) then
+             if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
+                      it_SCC, pnrm, energy, energyDiff, ebs
+             else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta POT, energy, energyDiff, Tr[KW]', &
+                      it_SCC, pnrm, energy, energyDiff, ebs
+             else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
+                      it_SCC, pnrm, energy, energyDiff, ebs
+             end if
+          else
+             if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
+                      it_SCC, pnrm, energy, energyDiff
+             else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
+                      it_SCC, pnrm, energy, energyDiff
+             else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
+                      it_SCC, pnrm, energy, energyDiff
+             end if
+          end if     
           write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
       end if
 

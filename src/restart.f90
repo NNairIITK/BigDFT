@@ -1753,22 +1753,22 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
 
   endif
 
-  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
-  allocate (gpsi(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f),stat=i_stat)
-  call memocc(i_stat,gpsi,'gpsi',subname)
-
-  call to_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
-  call Lpsi_to_global2(iproc, lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
-       1, 1, 1, glr, lr, psi, gpsi)
-
-  write(orbname,*) iorb
-  call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hgrids(1),hgrids(2),hgrids(3),rxyz,gpsi)
-  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
-
-  i_all=-product(shape(gpsi))*kind(gpsi)
-  deallocate(gpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'gpsi',subname)
-  ! END DEBUG 
+  !! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+  !allocate (gpsi(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f),stat=i_stat)
+  !call memocc(i_stat,gpsi,'gpsi',subname)
+  !
+  !call to_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
+  !call Lpsi_to_global2(iproc, lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
+  !     1, 1, 1, glr, lr, psi, gpsi)
+  !
+  !write(orbname,*) iorb
+  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hgrids(1),hgrids(2),hgrids(3),rxyz,gpsi)
+  !!call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
+  !
+  !i_all=-product(shape(gpsi))*kind(gpsi)
+  !deallocate(gpsi,stat=i_stat)
+  !call memocc(i_stat,i_all,'gpsi',subname)
+  !! END DEBUG 
 
 
 END SUBROUTINE readonewave_linear
@@ -2311,6 +2311,15 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
               frag_trans_orb(iorbp)%rot_center=frag_trans_frag(ifrag)%rot_center
               frag_trans_orb(iorbp)%rot_center_new=frag_trans_frag(ifrag)%rot_center_new
+
+              !!!!!!!!!!!!!
+              iiat=tmb%orbs%onwhichatom(iiorb)
+
+              ! use atom position
+              frag_trans_orb(iorbp)%rot_center=rxyz_old(:,iiat)
+              frag_trans_orb(iorbp)%rot_center_new=rxyz(:,iiat)
+              !!!!!!!!!!!!!
+
               frag_trans_orb(iorbp)%rot_axis=(frag_trans_frag(ifrag)%rot_axis)
               frag_trans_orb(iorbp)%theta=frag_trans_frag(ifrag)%theta
               call dcopy(size(frag_trans_frag(ifrag)%discrete_operations),frag_trans_frag(ifrag)%discrete_operations,1,&
@@ -2460,18 +2469,18 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   do iorbp=1,tmb%orbs%norbp
      iiorb=iorbp+tmb%orbs%isorb
      ilr = tmb%orbs%inwhichlocreg(iiorb)
-
+  
      call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
      call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
           tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
           1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-
+  
      write(orbname,*) iiorb
      call plot_wf(trim(dir_output)//trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%glr,&
           tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
      !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
      !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
-  
+   
      ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
   end do
   i_all=-product(shape(gpsi))*kind(gpsi)
@@ -2933,12 +2942,12 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
       !newz=frag_trans(iorb)%rot_axis!(/1.0_gp,0.0_gp,0.0_gp/)
       !centre_old(:)=frag_trans(iorb)%rot_center(:)!rxyz_old(:,iiat)
       !shift(:)=frag_trans(iorb)%dr(:)!rxyz(:,iiat)
- 
+
       call reformat_check(reformat,reformat_reason,tol,at,lzd_old%hgrids,tmb%lzd%hgrids,&
            lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
            n_old,n,ns_old,ns,frag_trans(iorb),centre_old_box,centre_new_box,da)  
-   
+
       ! just copy psi from old to new as reformat not necessary
       if (.not. reformat) then 
 
@@ -3079,6 +3088,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   da(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new_box(1),centre_old_box(1))
   da(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new_box(2),centre_old_box(2))
   da(3)=mindist(per(3),at%astruct%cell_dim(3),centre_new_box(3),centre_old_box(3))
+
 
 
   !print*,'reformat check',frag_trans%rot_center(2),ns_old(2),centre_old_box(2),&

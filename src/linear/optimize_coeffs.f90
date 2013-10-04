@@ -36,7 +36,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   call f_routine(id='optimize_coeffs')
 
   ! factor for scaling gradient
-  factor=0.1d0
+  factor=1.0d0!0.1d0
 
   if (ldiis_coeff%idsx == 0 .and. sd_fit_curve) then
      ! calculate initial energy for SD line fitting and printing (maybe don't need to (re)calculate kernel here?)
@@ -79,7 +79,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         end do
      end if
      call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-     fnrm=2.0_gp*tt!*factor**2
+     fnrm=2.0_gp*tt
 
      !scale the gradient (not sure if we always want this or just fragments/constrained!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
      if (present(num_extra)) then
@@ -183,6 +183,12 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
         call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
      end if
+     !!!!!!!!!!!!!!!!!!!!!!!!
+     !can't put coeffs directly in ksorbs%eval as intent in, so change after - problem with orthonormality of coeffs so adding extra
+     !call find_eval_from_coeffs(iproc, nproc, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, &
+     !     tmb%coeff, tmb%orbs%eval, .true., .true.)
+     !call order_coeffs_by_energy(orbs%norb,tmb%orbs%norb,tmb%coeff,tmb%orbs%eval)
+     !!!!!!!!!!!!!!!!!!!!!!!!
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energy,&
           tmb%coeff,orbs,tmb%orbs,.true.)
@@ -224,6 +230,259 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   call f_release_routine()
 
 end subroutine optimize_coeffs
+
+! subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
+! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
+subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
+  use module_base
+  use module_types
+  use module_interfaces
+  use module_fragments
+  use constrained_dft
+  implicit none
+
+  ! Calling arguments
+  integer, intent(in) :: iproc, nproc
+  type(orbitals_data), intent(in) :: ksorbs
+  type(dft_wavefunction), intent(inout) :: tmb
+  type(input_variables),intent(in) :: input
+  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+
+  integer :: iorb, jorb, istat, iall, ierr, itmb, jtmb, ifrag
+  integer, dimension(2) :: ifrag_charged
+  real(kind=8), dimension(:,:,:), allocatable :: weight_coeff
+  type(sparseMatrix) :: weight_matrix
+  character(len=256) :: subname='coeff_weight_analysis'
+
+  call nullify_sparsematrix(weight_matrix)
+  call sparse_copy_pattern(tmb%linmat%ham, weight_matrix, iproc, subname)
+  allocate(weight_matrix%matrix_compr(weight_matrix%nvctr), stat=istat)
+  call memocc(istat, weight_matrix%matrix_compr, 'weight_matrix%matrix_compr', subname)
+
+  allocate(weight_coeff(ksorbs%norb,ksorbs%norb,input%frag%nfrag), stat=istat)
+  call memocc(istat, weight_coeff, 'weight_coeff', subname)
+
+  do ifrag=1,input%frag%nfrag
+     ifrag_charged(1)=ifrag
+     call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,.false.)
+     allocate(weight_matrix%matrix(weight_matrix%full_dim1,weight_matrix%full_dim1), stat=istat)
+     call memocc(istat, weight_matrix%matrix, 'weight_matrix%matrix', subname)
+     call uncompressmatrix(iproc,weight_matrix)
+     call calculate_coeffMatcoeff(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
+     iall=-product(shape(weight_matrix%matrix))*kind(weight_matrix%matrix)
+     deallocate(weight_matrix%matrix,stat=istat)
+     call memocc(istat,iall,'weight_matrix%matrix',subname)
+  end do
+
+  if (iproc==0) write(*,*) 'Weight analysis:'
+  if (iproc==0) write(*,*) 'coeff, occ, eval, frac for each frag'
+  ! only care about diagonal elements
+  do iorb=1,ksorbs%norb
+     if (iproc==0) write(*,'(i4,2x,f6.4,1x,f10.6,2x)',ADVANCE='no') iorb,KSorbs%occup(iorb),tmb%orbs%eval(iorb)
+     do ifrag=1,input%frag%nfrag
+        if (iproc==0) write(*,'(f6.4,2x)',ADVANCE='no') weight_coeff(iorb,iorb,ifrag)
+     end do
+     if (iproc==0) write(*,*) ''
+  end do
+
+  call deallocate_sparseMatrix(weight_matrix, subname)
+
+  iall=-product(shape(weight_coeff))*kind(weight_coeff)
+  deallocate(weight_coeff,stat=istat)
+  call memocc(istat,iall,'weight_coeff',subname)
+
+end subroutine coeff_weight_analysis
+
+
+! subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
+! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
+subroutine find_eval_from_coeffs(iproc, nproc, ksorbs, basis_orbs, ham, ovrlp, coeff, eval, calc_overlap, diag)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+
+  ! Calling arguments
+  integer, intent(in) :: iproc, nproc
+  type(orbitals_data), intent(in) :: basis_orbs, ksorbs
+  type(sparseMatrix),intent(in) :: ham, ovrlp
+  real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
+  real(kind=8),dimension(ksorbs%norb),intent(inout) :: eval
+  logical, intent(in) :: diag, calc_overlap
+
+  integer :: iorb, jorb, istat, iall, ierr, itmb, jtmb
+  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ham_coeff,  ovrlp_coeff
+  real(kind=8) :: offdiagsum, offdiagsum2, coeff_orthog_threshold
+  character(len=256) :: subname='reordering_coeffs'
+
+  coeff_orthog_threshold=1.0d-3
+
+  allocate(ham_coeff(ksorbs%norb,ksorbs%norb), stat=istat)
+  call memocc(istat, ham_coeff, 'ham_coeff', subname)
+
+  call calculate_coeffMatcoeff(ham%matrix,basis_orbs,ksorbs,coeff,ham_coeff)
+
+  if (calc_overlap) then
+     allocate(ovrlp_coeff(ksorbs%norb,ksorbs%norb), stat=istat)
+     call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+     call calculate_coeffMatcoeff(ovrlp%matrix,basis_orbs,ksorbs,coeff,ovrlp_coeff)
+  end if
+
+  ! above is overkill, actually just want diagonal elements but print off as a test out of curiosity
+  offdiagsum=0.0d0
+  offdiagsum2=0.0d0
+  do iorb=1,ksorbs%norb
+     do jorb=1,ksorbs%norb
+        if (iorb==jorb) then
+           eval(iorb)=ham_coeff(iorb,iorb)
+        else
+           offdiagsum=offdiagsum+abs(ham_coeff(iorb,jorb))
+           if (calc_overlap) offdiagsum2=offdiagsum2+abs(ovrlp_coeff(iorb,jorb))
+        end if
+     end do
+  end do
+  offdiagsum=offdiagsum/(ksorbs%norb**2-ksorbs%norb)
+  if (calc_overlap) offdiagsum2=offdiagsum2/(ksorbs%norb**2-ksorbs%norb)
+  if (iproc==0) print*,''
+  if (calc_overlap) then
+     if (iproc==0) print*,'offdiagsum (ham,ovrlp):',offdiagsum,offdiagsum2
+  else
+     if (iproc==0) print*,'offdiagsum (ham):',offdiagsum
+  end if
+
+  ! if coeffs are too far from orthogonality
+  if (calc_overlap .and. offdiagsum2>coeff_orthog_threshold) then
+     call reorthonormalize_coeff(iproc, nproc, ksorbs%norb, -8, -8, 0, basis_orbs, ovrlp, coeff, ksorbs)
+  end if
+
+  if (diag.or.offdiagsum>1.0d-2) then
+     ! diagonalize within the space of occ+extra
+     if (.not.calc_overlap) then
+        ! assume ovrlp_coeff is orthgonal for now
+        allocate(ovrlp_coeff(ksorbs%norb,ksorbs%norb), stat=istat)
+        call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+        call calculate_coeffMatcoeff(ovrlp%matrix,basis_orbs,ksorbs,coeff,ovrlp_coeff)
+        do iorb=1,ksorbs%norb
+           do jorb=1,ksorbs%norb
+              if (iorb==jorb) then
+                 ovrlp_coeff(iorb,jorb)=1.0d0
+              else
+                 ovrlp_coeff(iorb,jorb)=0.0d0
+              end if
+           end do
+        end do
+     end if
+     ! diagonalize within the space of occ+extra
+     call diagonalizeHamiltonian2(iproc, ksorbs%norb, ham_coeff, ovrlp_coeff, eval)
+     coeff_tmp=f_malloc((/basis_orbs%norb,ksorbs%norb/),id='coeff_tmp')
+
+     ! multiply new eigenvectors by coeffs
+     call dgemm('n', 'n', basis_orbs%norb, ksorbs%norb, ksorbs%norb, 1.d0, coeff(1,1), &
+          basis_orbs%norb, ham_coeff, ksorbs%norb, 0.d0, coeff_tmp, basis_orbs%norb)
+ 
+     call dcopy(basis_orbs%norb*(ksorbs%norb),coeff_tmp(1,1),1,coeff(1,1),1)
+     call f_free(coeff_tmp)
+  end if
+
+  if (calc_overlap.or.diag) then
+     iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
+     deallocate(ovrlp_coeff,stat=istat)
+     call memocc(istat,iall,'ovrlp_coeff',subname)
+  end if
+
+  iall=-product(shape(ham_coeff))*kind(ham_coeff)
+  deallocate(ham_coeff,stat=istat)
+  call memocc(istat,iall,'ham_coeff',subname)
+
+end subroutine find_eval_from_coeffs
+
+
+subroutine calculate_coeffMatcoeff(matrix,basis_orbs,ksorbs,coeff,mat_coeff)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(orbitals_data), intent(in) :: basis_orbs, ksorbs
+  real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(in) :: matrix
+  real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
+  real(kind=8),dimension(ksorbs%norb,ksorbs%norb),intent(inout) :: mat_coeff
+
+  integer :: iall, istat, ierr
+  real(kind=8), dimension(:,:), allocatable :: coeff_tmp
+  character(len=256) :: subname='calculate_coeffMatcoeff'
+
+  allocate(coeff_tmp(basis_orbs%norbp,ksorbs%norb), stat=istat)
+  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+
+  if (basis_orbs%norbp>0) then
+     call dgemm('n', 'n', basis_orbs%norbp, ksorbs%norb, basis_orbs%norb, 1.d0, matrix(basis_orbs%isorb+1,1), &
+          basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
+     call dgemm('t', 'n', ksorbs%norb, ksorbs%norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
+          basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, mat_coeff, ksorbs%norb)
+  else
+     call to_zero(ksorbs%norb**2, mat_coeff(1,1))
+  end if
+
+  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
+  deallocate(coeff_tmp,stat=istat)
+  call memocc(istat,iall,'coeff_tmp',subname)
+
+  if (bigdft_mpi%nproc>1) then
+      call mpiallred(mat_coeff(1,1), ksorbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+end subroutine calculate_coeffMatcoeff
+
+
+ 
+  ! not really fragment related so prob should be moved - reorders coeffs by eval
+  subroutine order_coeffs_by_energy(nstate,ntmb,coeff,eval)
+    use module_base
+    use module_types
+    implicit none
+    integer, intent(in) :: nstate, ntmb
+    real(kind=gp), dimension(ntmb,nstate), intent(inout) :: coeff
+    real(kind=gp), dimension(nstate), intent(inout) :: eval
+
+    integer :: itmb, jorb
+    integer, allocatable, dimension(:) :: ipiv
+    real(gp), dimension(:), allocatable :: tmp_array
+    real(gp), dimension(:,:), allocatable :: tmp_array2
+
+    ipiv=f_malloc(nstate,id='coeff_final')
+    tmp_array=f_malloc(nstate,id='tmp_array')
+
+    do itmb=1,nstate
+       tmp_array(itmb)=-eval(itmb)
+    end do
+
+    call sort_positions(nstate,tmp_array,ipiv)
+
+    do itmb=1,nstate
+       eval(itmb)=-tmp_array(ipiv(itmb))
+    end do
+
+    call f_free(tmp_array)
+
+    tmp_array2=f_malloc((/ntmb,nstate/),id='tmp_array2')
+
+    do jorb=1,nstate
+       do itmb=1,ntmb
+          tmp_array2(itmb,jorb)=coeff(itmb,jorb)
+       end do
+    end do
+
+    do jorb=1,nstate
+       do itmb=1,ntmb
+          coeff(itmb,jorb)=tmp_array2(itmb,ipiv(jorb))
+       end do
+    end do
+
+    call f_free(tmp_array2)
+    call f_free(ipiv)
+
+  end subroutine order_coeffs_by_energy
 
 ! experimental - for num_extra see if extra states are actually lower in energy and reorder (either by sorting or diagonalization)
 ! could improve efficiency by only calculating cSc or cHc up to norb (i.e. ksorbs%norb+extra)

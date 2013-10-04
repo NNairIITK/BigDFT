@@ -2768,7 +2768,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! this is overkill as we are recalculating the kernel anyway - fix at some point
      ! or just put into fragment structure to save recalculating for CDFT
      if (in%lin%fragment_calculation) then
-        call fragment_coeffs_to_kernel(iproc,in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,nstates_max)
+        call fragment_coeffs_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
+             nstates_max,in%lin%constrained_dft)
         if (in%lin%calc_transfer_integrals.and.in%lin%constrained_dft) then
            call f_free_ptr(in_frag_charge)
         else
@@ -2846,7 +2847,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            call calculate_weight_matrix_using_density(cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
-           call calculate_weight_matrix_lowdin(cdft,tmb,in,ref_frags,.false.)
+           call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,.false.)
            ! debug
            !call plot_density(iproc,nproc,'initial_density.cube', &
            !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
