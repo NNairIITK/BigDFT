@@ -21,7 +21,8 @@ EXTRA_TESTDIRS = water \
 	reformat \
 	paracetamol \
 	rotate \
-	rotate2
+	rotate2 \
+	noortho
 
 
 EXTRA_DIST = 

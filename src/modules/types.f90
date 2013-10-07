@@ -318,6 +318,9 @@ module module_types
 
      !> linear scaling: perform a check of sumrho (no check, light check or full check)
      integer :: check_sumrho
+
+     !>linear scaling: activate the experimental mode
+     logical :: experimental_mode
   end type input_variables
 
   !> Contains all energy terms

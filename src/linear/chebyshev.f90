@@ -55,24 +55,18 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
       call determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
     
     
-      allocate(ham_compr_seq(nseq), stat=istat)
-      call memocc(istat, ham_compr_seq, 'ham_compr_seq', subname)
-      allocate(ovrlp_compr_seq(nseq), stat=istat)
-      call memocc(istat, ovrlp_compr_seq, 'ovrlp_compr_seq', subname)
-      allocate(istindexarr(nmaxvalk,nmaxsegk,norbp), stat=istat)
-      call memocc(istat, istindexarr, 'istindexarr', subname)
-      allocate(ivectorindex(nseq), stat=istat)
-      call memocc(istat, ivectorindex, 'ivectorindex', subname)
+      ham_compr_seq = f_malloc(nseq,id='ham_compr_seq')
+      ovrlp_compr_seq = f_malloc(nseq,id='ovrlp_compr_seq')
+      istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
+      ivectorindex = f_malloc(nseq,id='ivectorindex')
     
       call get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk, &
            istindexarr, ivectorindex)
     
     
       if (number_of_matmuls==one) then
-          allocate(matrix(orbs%norb,orbs%norbp), stat=istat)
-          call memocc(istat, matrix, 'matrix', subname)
-          allocate(SHS_seq(nseq), stat=istat)
-          call memocc(istat, SHS_seq, 'SHS_seq', subname)
+          matrix = f_malloc((/ orbs%norb, orbs%norbp /),id='matrix')
+          SHS_seq = f_malloc(nseq,id='SHS_seq')
     
           if (norbp>0) then
               call to_zero(norb*norbp, matrix(1,1))
@@ -103,8 +97,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
       call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
            ovrlp_compr_seq)
     
-      allocate(vectors(norb,norbp,4), stat=istat)
-      call memocc(istat, vectors, 'vectors', subname)
+      vectors = f_malloc((/ norb, norbp, 4 /),id='vectors')
       if (norbp>0) then
           call to_zero(norb*norbp, vectors(1,1,1))
       end if
@@ -191,12 +184,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
           call to_zero(norbp*norb, fermi(1,1))
           call to_zero(2*norb*norbp, penalty_ev(1,1,1))
           call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,4), chebyshev_polynomials(1,1))
-          !write(*,*) 'ipl, first element', 1, vectors(1,1,4)
           call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
           call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
           call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
           call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
-          !write(*,*) 'ipl, first element', 2, vectors(1,1,2)
           call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
           call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
           call axpy_kernel_vectors(norbp, norb, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
@@ -218,7 +209,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
               call axbyz_kernel_vectors(norbp, norb, nout, onedimindices, 2.d0, vectors(1,1,2), &
                    -1.d0, vectors(1,1,4), vectors(1,1,3))
               call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,3), chebyshev_polynomials(1,ipl))
-          !write(*,*) 'ipl, first element', ipl, vectors(1,1,3)
               call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
               call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
          
@@ -237,35 +227,16 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
 
  
     
-      iall=-product(shape(vectors))*kind(vectors)
-      deallocate(vectors, stat=istat)
-      call memocc(istat, iall, 'vectors', subname)
-    
-    
-      iall=-product(shape(ham_compr_seq))*kind(ham_compr_seq)
-      deallocate(ham_compr_seq, stat=istat)
-      call memocc(istat, iall, 'ham_compr_seq', subname)
-      iall=-product(shape(ovrlp_compr_seq))*kind(ovrlp_compr_seq)
-      deallocate(ovrlp_compr_seq, stat=istat)
-      call memocc(istat, iall, 'ovrlp_compr_seq', subname)
-      iall=-product(shape(istindexarr))*kind(istindexarr)
-      deallocate(istindexarr, stat=istat)
-      call memocc(istat, iall, 'istindexarr', subname)
-      iall=-product(shape(ivectorindex))*kind(ivectorindex)
-      deallocate(ivectorindex, stat=istat)
-      call memocc(istat, iall, 'ivectorindex', subname)
-    
-      iall=-product(shape(onedimindices))*kind(onedimindices)
-      deallocate(onedimindices, stat=istat)
-      call memocc(istat, iall, 'onedimindices', subname)
+      call f_free(vectors)
+      call f_free(ham_compr_seq)
+      call f_free(ovrlp_compr_seq)
+      call f_free(istindexarr)
+      call f_free(ivectorindex)
+      call f_free_ptr(onedimindices)
     
       if (number_of_matmuls==one) then
-          iall=-product(shape(matrix))*kind(matrix)
-          deallocate(matrix, stat=istat)
-          call memocc(istat, iall, 'matrix', subname)
-          iall=-product(shape(SHS_seq))*kind(SHS_seq)
-          deallocate(SHS_seq, stat=istat)
-          call memocc(istat, iall, 'SHS_seq', subname)
+          call f_free(matrix)
+          call f_free(SHS_seq)
       end if
 
   end if
@@ -508,8 +479,8 @@ subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindi
       end do
   end do
 
-  allocate(onedimindices(4,nout), stat=istat)
-  call memocc(istat, onedimindices, 'onedimindices', subname)
+! allocate(onedimindices(4,nout), stat=istat)
+  onedimindices = f_malloc_ptr((/ 4, nout /),id='onedimindices')
 
   ii=0
   itot=1
@@ -631,8 +602,8 @@ subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_p
 
 
   if (nsize_polynomial>0) then
-      allocate(kernel_compressed(nsize_polynomial),stat=istat)
-      call memocc(istat,kernel_compressed,'kernel_compressed',subname)
+!     allocate(kernel_compressed(nsize_polynomial),stat=istat)
+      kernel_compressed = f_malloc(nsize_polynomial,id='kernel_compressed')
 
       call to_zero(nsize_polynomial,kernel_compressed(1))
       !write(*,*) 'ipl, first element', 1, chebyshev_polynomials(1,1)
@@ -645,8 +616,8 @@ subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_p
       call uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, kernel_compressed, kernelp)
 
       iall=-product(shape(kernel_compressed))*kind(kernel_compressed)
-      deallocate(kernel_compressed, stat=istat)
-      call memocc(istat, iall, 'kernel_compressed', subname)
+!     deallocate(kernel_compressed, stat=istat)
+      call f_free(kernel_compressed)
   end if
 
 end subroutine chebyshev_fast

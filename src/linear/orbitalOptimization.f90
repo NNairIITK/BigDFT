@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis)
+subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => optimizeDIIS
@@ -21,12 +21,14 @@ type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(npsidim),intent(in):: hphi
 real(8),dimension(npsidim),intent(inout):: phi
 type(localizedDIISParameters),intent(inout):: ldiis
+logical,intent(in) :: experimental_mode                       
+
 
 ! Local variables
 integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, info
-integer:: mj, jj, k, jjst, isthist, iall
+integer:: mj, jj, k, jjst, isthist, iall, ierr
 real(8):: ddot
-real(8),dimension(:,:),allocatable:: mat
+real(8),dimension(:,:),allocatable:: mat, totmat
 real(8),dimension(:),allocatable:: rhs
 integer,dimension(:),allocatable:: ipiv
 character(len=*),parameter:: subname='optimizeDIIS'
@@ -115,6 +117,13 @@ do iorb=1,orbs%norbp
     end do
 end do
 
+! Sum up all partial matrices
+allocate(totmat(ldiis%isx,ldiis%isx))
+totmat=0.d0
+do iorb=1,orbs%norbp
+    totmat(:,:)=totmat(:,:)+ldiis%mat(:,:,iorb)
+end do
+call mpiallred(totmat(1,1), ldiis%isx**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 ist=1
 do iorb=1,orbs%norbp
@@ -124,7 +133,12 @@ do iorb=1,orbs%norbp
         mat(i,min(ldiis%isx,ldiis%is)+1)=1.d0
         rhs(i)=0.d0
         do j=i,min(ldiis%isx,ldiis%is)
-            mat(i,j)=ldiis%mat(i,j,iorb)
+            if (experimental_mode) then
+                if (iproc==0) write(*,*) 'WARNING: TAKING ONE SINGLE MATRIX!!'
+                mat(i,j)=totmat(i,j)
+            else
+                mat(i,j)=ldiis%mat(i,j,iorb)
+            end if
             !if(iproc==0) write(*,'(a,2i8,es14.3)') 'i, j, mat(i,j)', i, j, mat(i,j)
             !!write(*,'(a,3i8,es14.3)') 'proc, i, j, mat(i,j)', iproc, i, j, mat(i,j)
         end do
@@ -132,12 +146,28 @@ do iorb=1,orbs%norbp
     mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
     rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
 
+    !!if (iorb==1) then
+    !!  do i=1,min(ldiis%isx,ldiis%is)
+    !!    do j=1,min(ldiis%isx,ldiis%is)
+    !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
+    !!    end do
+    !!  end do
+    !!  write(*,*) '----------------------'
+    !!end if
+
     !make the matrix symmetric (hermitian) to use DGESV (ZGESV) (no work array, more stable)
     do i=1,min(ldiis%isx,ldiis%is)+1
        do j=1,min(ldiis%isx,ldiis%is)+1
           mat(j,i) = mat(i,j)
        end do
     end do
+    !!if (iorb==1) then
+    !!  do i=1,min(ldiis%isx,ldiis%is)
+    !!    do j=1,min(ldiis%isx,ldiis%is)
+    !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
+    !!    end do
+    !!  end do
+    !!end if
     ! solve linear system, supposing it is general. More stable, no need of work array
     if(ldiis%is>1) then
      call dgesv(min(ldiis%isx,ldiis%is)+1,1,mat(1,1),ldiis%isx+1,  & 
@@ -197,6 +227,7 @@ do iorb=1,orbs%norbp
     ist=ist+ncount
 end do
 
+deallocate(totmat)
 
 iall=-product(shape(mat))*kind(mat)
 deallocate(mat, stat=istat)

@@ -63,7 +63,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
   integer :: matrixindex_in_compressed
   
-  real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp
+  real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp, ifrag, ifrag_charged, ifrag_ref, isforb, itmb
   integer :: dmin_diag_it, dmin_diag_freq
@@ -72,9 +72,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   !!! EXPERIMENTAL ############################################
   type(sparseMatrix) :: denskern_init
-  real(8),dimension(:),allocatable :: rho_init, rho_init_old
-  real(8) :: tt, ddot, tt_old
-  integer :: idens_cons
+  real(8),dimension(:),allocatable :: rho_init, rho_init_old, philarge
+  real(8) :: tt, ddot, tt_old, meanconf_der
+  integer :: idens_cons, ii, sdim, ldim, npsidim_large, ists, istl, nspin, unitname, ilr
+  real(8),dimension(10000) :: meanconf_array
+  character(len=5) :: num
+  character(len=50) :: filename
   !!! #########################################################
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -251,10 +254,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
                convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
-               convcrit_dmin, nitdmin)
+               convcrit_dmin, nitdmin, conv_crit_TMB)
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
           call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
-               target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
+               target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, conv_crit_TMB)
                convcrit_dmin=input%lin%convCritDmin_highaccuracy
                nitdmin=input%lin%nItdmin_highaccuracy
 
@@ -380,23 +383,75 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
                    tmb%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmb%confdatarr(:)%prefac
                else
-                   if (ratio_deltas<=1.d0) then
+                   if (ratio_deltas<=1.d0 .and. ratio_deltas>0.d0) then
                        if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
                        tmb%confdatarr(:)%prefac=ratio_deltas*tmb%confdatarr(:)%prefac
-                   else
+                   else if (ratio_deltas>1.d0) then
                        if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
+                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
+                   else if (ratio_deltas<=0.d0) then
+                       if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
                        if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
                        tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    end if
                end if
                !if (iproc==0) write(*,'(a,es18.8)') 'tmb%confdatarr(1)%prefac',tmb%confdatarr(1)%prefac
+               !if (iproc==0) write(*,*) "WARNING: DON'T LET THE PREFACTOR GO BELOW 1.D-5"
+               !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,2.4d-5)
            end if
 
+           !!if (pnrm_out<5.d-9) then
+           !!    if (iproc==0) write(*,*) 'outswitch off ortho'
+           !!    orthonormalization_on=.false.
+           !!end if
+           !!if (sum(tmb%confdatarr(:)%prefac)==0.d0) then
+           !!    if (iproc==0) write(*,*) 'WARNING: modifi nit_basis'
+           !!    nit_basis=100
+           !!end if
+           !if (iproc==0) write(*,*) 'upper bound for prefac: 1.d-5'
+           !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-5)
+
+           !if (itout<=20) then
+           !    if (iproc==0) write(*,*) 'set ldiis%isx=0)'
+           !    ldiis%isx=0
+           !end if
+           if (input%experimental_mode) then
+               if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
+               orthonormalization_on=.false.
+           end if
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-               ratio_deltas,orthonormalization_on,input%lin%extra_states)
+               ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode)
+
+           !!! WRITE SUPPORT FUNCTIONS TO DISK ############################################
+           !!npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
+           !!allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))                          
+           !!philarge=0.d0
+           !!ists=1                                                                                                          
+           !!istl=1
+           !!do iorb=1,tmb%orbs%norbp
+           !!    ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)                                                           
+           !!    sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                            
+           !!    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                      
+           !!    nspin=1 !this must be modified later
+           !!    call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &              
+           !!         tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))                                                       
+           !!    write(num,'(i5.5)') tmb%orbs%isorb+iorb
+           !!    filename='supfun_'//num
+           !!    unitname=100*iproc+5
+           !!    open(unit=unitname,file=trim(filename))
+           !!    do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+           !!        write(unitname,'(es25.17)') philarge(istl+i-1)
+           !!    end do
+           !!    close(unit=unitname)
+           !!    ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                       
+           !!    istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
+           !!end do
+           !!deallocate(philarge)
+           !!! ############################################################################
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
@@ -515,6 +570,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
+
+             !!! TEMPORARY ##########################################################################
+             !!do ii=1,tmb%linmat%denskern%nvctr
+             !!     iorb = tmb%linmat%denskern%orb_from_index(1,ii)
+             !!     jorb = tmb%linmat%denskern%orb_from_index(2,ii)
+             !!     if (iproc==0) write(*,*) 'iorb, jorb, denskern', iorb, jorb, tmb%linmat%denskern%matrix_compr(ii)
+             !!  end do
+             !!! END TEMPORARY ######################################################################
+
+
              ! Since we do not update the basis functions anymore in this loop
              update_phi = .false.
 
@@ -1189,7 +1254,37 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
        end if
 
+    ! WARNING HACK S.M.
+    if (input%experimental_mode) then
+        meanconf_array(itout)=mean_conf
+        if (itout>=4) then
+            meanconf_der = 11.d0/6.d0*meanconf_array(itout-0) &
+                          -      3.d0*meanconf_array(itout-1) &
+                          + 3.d0/2.d0*meanconf_array(itout-2) &
+                          - 1.d0/3.d0*meanconf_array(itout-3)
+            if (iproc==0) write(*,'(a,es16.5)') 'meanconf_der',meanconf_der
+            if (iproc==0) write(*,'(a,es16.5)') 'abs(meanconf_der)/mean_conf',abs(meanconf_der)/mean_conf
+        end if
+        !if (mean_conf<1.d-15 .and. .false.) then
+        !if (mean_conf<1.d-15) then
+        !if (mean_conf<1.d-10 .and. abs(meanconf_der)<1.d-15) then
+        if (mean_conf<1.d-10 .and. abs(meanconf_der)/mean_conf>1.d0 .and. .false.) then
+        !if (itout>=38) then
+            !if (iproc==0) write(*,*) 'WARNING MODIFY CONF'
+            !tmb%confdatarr(:)%prefac=0.d0
+            if (iproc==0) write(*,*) 'WARNING MODIFY nit_basis'
+            nit_basis=0
+        end if
+        if (mean_conf<2.4d-4 .and..false.) then
+        !if (itout>=13) then
+            if (iproc==0) write(*,*) 'outswitch off ortho'
+            orthonormalization_on=.false.
+        end if
+    end if
+
+
     end subroutine print_info
+
 
 end subroutine linearScaling
 
@@ -1197,7 +1292,7 @@ end subroutine linearScaling
 
 subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
      convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
-     convcrit_dmin, nitdmin)
+     convcrit_dmin, nitdmin, conv_crit_TMB)
   use module_base
   use module_types
   implicit none
@@ -1209,7 +1304,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   type(atoms_data),intent(in) :: at
   integer,dimension(lorbs%norb),intent(in) :: onwhichatom
   type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
-  real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin
+  real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin, conv_crit_TMB
   logical, intent(in) :: lowaccur_converged
   integer, intent(out) :: nit_scc, mix_hist, nitdmin
   real(kind=8), dimension(nlr), intent(out) :: locrad
@@ -1234,6 +1329,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       convCritMix=input%lin%convCritMix_highaccuracy
       convcrit_dmin=input%lin%convCritDmin_highaccuracy
       nitdmin=input%lin%nItdmin_highaccuracy
+      conv_crit_TMB=input%lin%convCrit_lowaccuracy
   else
       do iorb=1,lorbs%norbp
           iiat=onwhichatom(lorbs%isorb+iorb)
@@ -1250,6 +1346,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       convCritMix=input%lin%convCritMix_lowaccuracy
       convcrit_dmin=input%lin%convCritDmin_lowaccuracy
       nitdmin=input%lin%nItdmin_lowaccuracy
+      conv_crit_TMB=input%lin%convCrit_highaccuracy
   end if
 
   !!! new hybrid version... not the best place here
@@ -1737,7 +1834,8 @@ end subroutine pulay_correction
 
 
 subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
-           target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
+           target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
+           conv_crit_TMB)
   use module_base
   use module_types
   implicit none
@@ -1751,7 +1849,7 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
   integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
   real(kind=8),dimension(nlr),intent(out) :: locrad
-  real(kind=8),intent(out) :: alpha_mix, convCritMix
+  real(kind=8),intent(out) :: alpha_mix, convCritMix, conv_crit_TMB
 
   ! Local variables
   integer :: iorb, ilr, iiat
@@ -1771,6 +1869,7 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   end do
   alpha_mix=input%lin%alpha_mix_lowaccuracy
   convCritMix=input%lin%convCritMix_lowaccuracy
+  conv_crit_TMB=input%lin%convCrit_lowaccuracy
 
 end subroutine set_variables_for_hybrid
 
