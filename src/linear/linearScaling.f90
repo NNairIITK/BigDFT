@@ -66,6 +66,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp, ifrag, ifrag_charged, ifrag_ref, isforb, itmb
+  integer :: dmin_diag_it, dmin_diag_freq
+  logical :: reorder
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
   !!! EXPERIMENTAL ############################################
   type(sparseMatrix) :: denskern_init
@@ -115,6 +118,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   reduce_conf=.false.
   ldiis_coeff_changed = .false.
   orthonormalization_on=.true.
+  dmin_diag_it=0
+  dmin_diag_freq=-1
+  reorder=.false.
+  nullify(mom_vec_fake)
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
@@ -137,12 +144,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      end if
   end if
 
-  ! we already have psit in the other case, and in fact the overlap, so eventually could reuse that as well
-  if (.not. (input%lin%constrained_dft .and. trim(cdft%method)=='lowdin')) then
-     tmb%can_use_transposed=.false.
-     nullify(tmb%psit_c)
-     nullify(tmb%psit_f)
-  end if
+  tmb%can_use_transposed=.false.
+  nullify(tmb%psit_c)
+  nullify(tmb%psit_f)
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
@@ -182,7 +186,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
      vgrad_old=ebs-cdft%charge
 
-     if (iproc==0) print*,'Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',ebs,vgrad_old,cdft%lag_mult*(ebs-cdft%charge)
+     if (iproc==0) write(*,'(a,4(ES16.6e3,2x))') 'N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',&
+          cdft%charge,ebs,vgrad_old,cdft%lag_mult*vgrad_old
      vgrad_old=abs(vgrad_old)
      valpha=0.5_gp
 
@@ -221,6 +226,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            exit
         end if
      end do
+  end if
+
+  ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
+  if (input%lin%diag_start .and. input%inputPsiId==INPUT_PSI_DISK_LINEAR) then
+     ! Calculate the charge density.
+     call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+          tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+     ! Calculate the new potential.
+     if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+     call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   end if
 
   call timing(iproc,'linscalinit','OF') !lr408t
@@ -526,6 +541,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          end if
          ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
          kernel_loop : do it_scc=1,nit_scc
+             dmin_diag_it=dmin_diag_it+1
              ! If the hamiltonian is available do not recalculate it
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
@@ -534,24 +550,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
-                        input%lin%curvefit_dmin,ldiis_coeff,cdft)
+                        input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
-                        input%lin%curvefit_dmin,ldiis_coeff)
+                        input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
-                        input%lin%curvefit_dmin,ldiis_coeff,cdft)
+                        input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
-                        input%lin%curvefit_dmin,ldiis_coeff)
+                        input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
 
@@ -566,6 +582,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Since we do not update the basis functions anymore in this loop
              update_phi = .false.
+
+             !EXPERIMENTAL (currently switched off)
+             ! every so often during direct min want to diagonalize - figure out a good way to specify how often...
+             if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION.and.iproc==0.and.dmin_diag_freq>=0) &
+                  print*,'COUNTDOWN',dmin_diag_freq-dmin_diag_it
+             if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION&!.and.(it_scc==nit_scc.or.pnrm<convCritMix)&
+                  .and.dmin_diag_it>=dmin_diag_freq.and.dmin_diag_freq/=-1) then
+                reorder=.true.
+                !call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
+                !     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                !     .true.,ham_small,input%lin%extra_states)
+                ! just diagonalize with optimized states?
+                dmin_diag_it=0
+             !else if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION.and.it_scc==nit_scc.and.dmin_diag_it>=dmin_diag_freq) then
+             !   if (iproc==0) print*,'NOTCOUNTDOWN',pnrm,convcrit_dmin*10.0d0
+             else
+                reorder=.false.
+             end if
+             !END EXPERIMENTAL
 
              ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
              ! Calculate the total energy.
@@ -645,7 +680,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end do
                    call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-                      call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
+                   call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
                      denspot%rhov(1), 1, rhopotOld_out(1), 1)
                 end if
              end if
@@ -653,6 +688,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! Calculate the new potential.
              if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
              call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+             ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
+             ! switch off for FOE at the moment
+             if (input%lin%scf_mode/=LINEAR_FOE) then
+                call dcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+                call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+                if (bigdft_mpi%iproc ==0) then 
+                   call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
+                end if
+             end if
 
              ! Mix the potential
              if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
@@ -677,12 +722,27 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 fix_support_functions=.true.
              end if
 
+             if (input%lin%constrained_dft) then
+                call timing(iproc,'constraineddft','ON')
+                ! CDFT: see how satisfaction of constraint varies as kernel is updated
+                ! CDFT: calculate Tr[Kw]-Nc
+                call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
+                     ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+             end if
+
              ! Write some informations.
              call printSummary()
 
-             if(pnrm<convCritMix) then
+             if (pnrm<convCritMix.and.input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
                  info_scf=it_scc
                  exit
+             else if (pnrm<convCritMix.and.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+                exit
+             !else if (pnrm<convCritMix.and.reorder) then
+             !    exit
+             !else if (pnrm<convCritMix) then
+             !    reorder=.true.
+             !    dmin_diag_it=0
              else
                  info_scf=-1
              end if
@@ -691,10 +751,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
          if (input%lin%constrained_dft) then
             call timing(iproc,'constraineddft','ON')
-            ! CDFT: see how satisfaction of constraint varies as kernel is updated
-            ! CDFT: calculate Tr[Kw]-Nc
-            call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
-                 ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+            !! CDFT: see how satisfaction of constraint varies as kernel is updated
+            !! CDFT: calculate Tr[Kw]-Nc
+            !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
+            !     ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+
             ! reset rhopotold (to zero) to ensure we don't exit immediately if V only changes a little
             !call razero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
@@ -704,6 +765,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  rhopotOld_out(1), 1, denspot%rhov(1), 1) 
             call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
+            ! reset coeffs as well
+            call dcopy(tmb%orbs%norb**2,coeff_tmp(1,1),1,tmb%coeff(1,1),1)
+
             vgrad=ebs-cdft%charge
 
             ! CDFT: update V (maximizing E wrt V)
@@ -712,8 +776,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             ! CDFT: use simplest possible scheme for now
 
             if (iproc==0) write(*,*) ''
-            if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itc, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS',&
-                 cdft_it,ebs,vgrad,cdft%lag_mult*vgrad,cdft%lag_mult,vold,energs%ebs
+            if (iproc==0) write(*,'(a,I4,2x,6(ES12.4e2,2x),2(ES16.6e2,2x))') &
+                 'itc, N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS, energy',&
+                 cdft_it,cdft%charge,ebs,vgrad,cdft%lag_mult*vgrad,cdft%lag_mult,vold,energs%ebs,energy
 
             if (.false.) then ! diis
                vdiis%mids=mod(vdiis%ids,vdiis%idsx)+1
@@ -745,8 +810,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                vold=vold_tmp
             end if
 
-            call dcopy(tmb%orbs%norb**2,coeff_tmp(1,1),1,tmb%coeff(1,1),1)
-            !if (abs(abs(vgrad)-abs(vgrad_old))>0.1d0) call dcopy(tmb%orbs%norb**2,coeff_tmp(1,1),1,tmb%coeff(1,1),1)
             vgrad_old=vgrad
 
             call timing(iproc,'constraineddft','OF')
@@ -790,11 +853,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
   if ((input%lin%scf_mode==LINEAR_FOE.or.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION)& 
-       .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE)) then
+       .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE&
+       .or. input%lin%diag_end)) then
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+           .true.,ham_small,input%lin%extra_states)
+  end if
+
+  if (input%lin%fragment_calculation .and. input%frag%nfrag>1) then
+     call coeff_weight_analysis(iproc, nproc, input, KSwfn%orbs, tmb, ref_frags)
   end if
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
@@ -1049,16 +1117,29 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           else
               write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
           end if
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-                   it_SCC, pnrm, energy, energyDiff
-          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
-                   it_SCC, pnrm, energy, energyDiff
-          else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-                   it_SCC, pnrm, energy, energyDiff
-          end if
+          if (input%lin%constrained_dft) then
+             if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
+                      it_SCC, pnrm, energy, energyDiff, ebs
+             else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta POT, energy, energyDiff, Tr[KW]', &
+                      it_SCC, pnrm, energy, energyDiff, ebs
+             else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
+                      it_SCC, pnrm, energy, energyDiff, ebs
+             end if
+          else
+             if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
+                      it_SCC, pnrm, energy, energyDiff
+             else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
+                      it_SCC, pnrm, energy, energyDiff
+             else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
+                      it_SCC, pnrm, energy, energyDiff
+             end if
+          end if     
           write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
       end if
 

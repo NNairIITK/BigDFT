@@ -2047,7 +2047,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
+         calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
       use module_base
       use module_types
       use constrained_dft
@@ -2076,6 +2076,7 @@ module module_interfaces
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
       logical, intent(in), optional :: curvefit_dmin ! for dmin only
       type(cdft_data),intent(inout),optional :: cdft
+      logical, optional, intent(in) :: reorder
       integer, intent(in) :: extra_states
     end subroutine get_coeff
 
@@ -4912,6 +4913,35 @@ module module_interfaces
           logical,intent(inout):: overlap_calculated
         end subroutine purify_kernel
 
+        subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
+               sd_fit_curve, reorder, num_extra)
+          use module_base
+          use module_types
+          use diis_sd_optimization
+          implicit none
+          integer,intent(in):: iproc, nproc, itmax
+          type(orbitals_data),intent(in):: orbs
+          type(DFT_wavefunction),intent(inout):: tmb
+          type(DIIS_obj), intent(inout) :: ldiis_coeff
+          real(kind=gp),intent(in):: fnrm_crit
+          real(kind=gp),intent(out):: fnrm
+          real(kind=gp), intent(inout) :: energy
+          logical, intent(in) :: sd_fit_curve
+          integer, optional, intent(in) :: num_extra
+          logical, optional, intent(in) :: reorder
+        end subroutine optimize_coeffs
+
+        subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
+          use module_base
+          use module_types
+          implicit none
+
+          ! Calling arguments
+          integer, intent(in) :: iproc, nproc, num_extra
+          type(dft_wavefunction), intent(in) :: tmb
+          type(orbitals_data), intent(in) :: ksorbs
+          real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
+        end subroutine calculate_residue_ks
   
   end interface
 END MODULE module_interfaces

@@ -1193,17 +1193,19 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 
   !we should define the transformation order
   !traditional case, for testing
-!!$  ixp=1
-!!$  iyp=2
-!!$  izp=3
+!if (any(hgridsh/=hgridsh_old)) then
+!  ixp=1
+!  iyp=2
+! izp=3
 !!$  print *,'final case',(/ixp,iyp,izp/)
-
+!endif
   call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
        sint,cost,onemc,(/ixp,iyp,izp/),&
        hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
-!!$
-!!$  call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
-!!$     sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+  call yaml_map('Centre old',centre_old,fmt='(1pg20.12)')
+  call yaml_map('Centre new',centre_new,fmt='(1pg20.12)')
+  !call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
+  !   sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
 
   if (size(frag_trans%discrete_operations)>0) then
@@ -1952,9 +1954,9 @@ contains
     !doubts about that
     t0_l=(dt-t0_l)/hgrids_old
     !identify shift
-    dt(1)=(real(istart(1),gp)+t0_l(1))-real(j1,gp)
-    dt(2)=(real(istart(2),gp)+t0_l(2))-real(j2,gp)
-    dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)
+    dt(1)=(real(istart(1),gp)+t0_l(1))-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
+    dt(2)=(real(istart(2),gp)+t0_l(2))-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
+    dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
     !end of doubts
 
     !identify shift
@@ -2260,21 +2262,30 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       
       !identify shift
       !dt=(real(istart,gp)+t0_l)-real(jcoords(ntr),gp)
+      !select case(ntr)
+      !case(1)
+      !   dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j1,gp)*hgrids_new(1))/hgrids_old(ntr)
+      !case(2)
+      !   if (istep >=2) then
+      !      dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_new(2))/hgrids_old(ntr)
+      !   else
+      !      dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_old(i2))/hgrids_old(ntr)
+      !   end if
+      !case(3)
+      !   if (istep ==3) then
+      !      dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_new(3))/hgrids_old(ntr)
+      !   else
+      !      dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_old(i3))/hgrids_old(ntr)
+      !   end if
+      !end select
+
       select case(ntr)
       case(1)
-         dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j1,gp)*hgrids_new(1))/hgrids_old(ntr)
+         dt=(real(istart,gp)+t0_l)-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
       case(2)
-         if (istep >=2) then
-            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_new(2))/hgrids_old(ntr)
-         else
-            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_old(i2))/hgrids_old(ntr)
-         end if
+         dt=(real(istart,gp)+t0_l)-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
       case(3)
-         if (istep ==3) then
-            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_new(3))/hgrids_old(ntr)
-         else
-            dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_old(i3))/hgrids_old(ntr)
-         end if
+         dt=(real(istart,gp)+t0_l)-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
       end select
 
     end subroutine shift_and_start

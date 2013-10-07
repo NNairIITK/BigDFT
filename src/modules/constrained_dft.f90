@@ -38,13 +38,26 @@ module constrained_dft
          real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
+
+       subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+                   blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, plusminus, orbs)
+          use module_base
+          use module_types
+          implicit none
+  
+          integer,intent(in) :: iproc, nproc, norb, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm
+          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
+          real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
+          logical, intent(in) :: plusminus
+          type(orbitals_data), optional, intent(in) :: orbs
+       end subroutine overlapPowerPlusMinusOneHalf_old
   end interface
 
   type, public :: cdft_data
      real(wp), dimension(:), pointer :: weight_function ! the weight function defining the constraint
      type(sparseMatrix) :: weight_matrix ! matrix elements of the weight function between tmbs
      integer :: ndim_dens ! the dimension of the weight function
-     integer :: charge ! defines the value of the charge which is to be constrained
+     real(gp) :: charge ! defines the value of the charge which is to be constrained
      real(gp) :: lag_mult ! the Lagrange multiplier used to enforce the constraint
      character(len=100) :: method
      integer, dimension(2) :: ifrag_charged ! make it allocatable eventually to allow for more charged fragments
@@ -52,7 +65,8 @@ module constrained_dft
   end type cdft_data
 
   public :: nullify_cdft_data, cdft_data_allocate, cdft_data_free, cdft_data_init
-  public :: calculate_weight_function, calculate_weight_matrix_using_density, calculate_weight_matrix_lowdin
+  public :: calculate_weight_function, calculate_weight_matrix_using_density
+  public :: calculate_weight_matrix_lowdin,  calculate_weight_matrix_lowdin_wrapper
 
 contains
 
@@ -60,7 +74,7 @@ contains
   ! CDFT: and P is a projector matrix onto the tmbs of the desired fragment
   ! CDFT: for standalone CDFT calculations, assuming one charged fragment, for transfer integrals assuming two fragments
   ! CDFT: where we constrain the difference - should later generalize this
-  subroutine calculate_weight_matrix_lowdin(cdft,tmb,input,ref_frags,calculate_overlap_matrix)
+  subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calculate_overlap_matrix)
     use module_fragments
     implicit none
     type(cdft_data), intent(inout) :: cdft
@@ -68,6 +82,39 @@ contains
     type(dft_wavefunction), intent(inout) :: tmb
     logical, intent(in) :: calculate_overlap_matrix
     type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+
+    integer :: iall, iorb, jorb, istat, ifrag, ifrag_ref, isforb, nfrag_charged
+    real(kind=gp), allocatable, dimension(:,:) :: proj_mat, ovrlp_half, proj_ovrlp_half, inv_ovrlp_half
+    character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
+
+    ! wrapper here so we can modify charge and avoid restructuring the code as much whilst still using the routine elsewhere
+    if (.not. input%lin%calc_transfer_integrals) then
+       cdft%charge=ref_frags(input%frag%frag_index(cdft%ifrag_charged(1)))%nelec-input%frag%charge(cdft%ifrag_charged(1))
+    end if
+
+    if (input%lin%calc_transfer_integrals) then
+       nfrag_charged=2
+    else
+       nfrag_charged=1
+    end if
+
+    call calculate_weight_matrix_lowdin(cdft%weight_matrix,nfrag_charged,cdft%ifrag_charged,tmb,input,&
+         ref_frags,calculate_overlap_matrix)
+
+  end subroutine calculate_weight_matrix_lowdin_wrapper
+
+
+  subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,calculate_overlap_matrix)
+    use module_fragments
+    implicit none
+    type(sparseMatrix), intent(inout) :: weight_matrix
+    type(input_variables),intent(in) :: input
+    type(dft_wavefunction), intent(inout) :: tmb
+    logical, intent(in) :: calculate_overlap_matrix
+    type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+    integer, intent(in) :: nfrag_charged
+    integer, dimension(2), intent(in) :: ifrag_charged
+
 
     integer :: iall, iorb, jorb, istat, ifrag, ifrag_ref, isforb
     real(kind=gp), allocatable, dimension(:,:) :: proj_mat, ovrlp_half, proj_ovrlp_half, inv_ovrlp_half
@@ -77,10 +124,6 @@ contains
     ! re-use overlap matrix if possible either before or after
 
     call f_routine(id='calculate_weight_matrix_lowdin')
-
-    if (.not. input%lin%calc_transfer_integrals) then
-       cdft%charge=ref_frags(cdft%ifrag_charged(1))%nelec-input%frag%charge(cdft%ifrag_charged(1))
-    end if
 
     if (calculate_overlap_matrix) then
        if(.not.tmb%can_use_transposed) then
@@ -143,13 +186,13 @@ contains
     isforb=0
     do ifrag=1,input%frag%nfrag
        ifrag_ref=input%frag%frag_index(ifrag)
-       if (ifrag==cdft%ifrag_charged(1)) then
+       if (ifrag==ifrag_charged(1)) then
           do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
              proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
           end do
        end if
-       if (input%lin%calc_transfer_integrals) then
-          if (ifrag==cdft%ifrag_charged(2)) then
+       if (nfrag_charged==2) then
+          if (ifrag==ifrag_charged(2)) then
              do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
                 proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
              end do
@@ -167,13 +210,13 @@ contains
            proj_ovrlp_half(1,1), tmb%orbs%norb)
 
     call f_free(proj_mat)
-    cdft%weight_matrix%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='cdft%weight_matrix%matrix')
+    weight_matrix%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix%matrix')
 
     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, & 
          tmb%orbs%norb, 1.d0, &
          ovrlp_half(1,1), tmb%orbs%norb, &
          proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
-         cdft%weight_matrix%matrix(1,1), tmb%orbs%norb)
+         weight_matrix%matrix(1,1), tmb%orbs%norb)
 
     call f_free(ovrlp_half)
     call f_free(proj_ovrlp_half)
@@ -181,18 +224,19 @@ contains
     ! debug
     !do iorb=1,tmb%orbs%norb
     !   do jorb=1,tmb%orbs%norb
-    !      write(86,*) iorb,jorb,cdft%weight_matrix%matrix(iorb,jorb)
+    !      write(86,*) iorb,jorb,weight_matrix%matrix(iorb,jorb)
     !   end do
     !end do
     ! debug
 
-    call compress_matrix_for_allreduce(bigdft_mpi%iproc,cdft%weight_matrix)
+    call compress_matrix_for_allreduce(bigdft_mpi%iproc,weight_matrix)
 
-    call f_free_ptr(cdft%weight_matrix%matrix)
+    call f_free_ptr(weight_matrix%matrix)
 
     call f_release_routine()
 
   end subroutine calculate_weight_matrix_lowdin
+
 
 
   ! CDFT: calculates the weight matrix w_ab given w(r)
@@ -309,7 +353,7 @@ contains
     real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz ! just for plotting
     type(DFT_local_fields), intent(in) :: denspot ! just for plotting
 
-    integer :: ifrag, ifrag_charged, iorb_start, ipt
+    integer :: ifrag, ifrag_charged, ref_frag_charged, iorb_start, ipt
 
     ! unecessary recalculation here, but needs generalizing anyway
     iorb_start=1
@@ -320,6 +364,7 @@ contains
        end if
        iorb_start=iorb_start+ref_frags(in%frag%frag_index(ifrag))%fbasis%forbs%norb
     end do
+    ref_frag_charged=in%frag%frag_index(ifrag_charged)
 
     ! check both densities are the same size (for now calculating fragment density in global box)
     if (ndimrho_all_fragments /= cdft%ndim_dens) stop 'Fragment density dimension does not match global density dimension'
@@ -327,25 +372,26 @@ contains
     ! only need to calculate the fragment density for the fragment with a charge (stored in frag%fbasis%density)
     ! ideally would use already calculated kernel here, but charges could vary so would need an actual fragment
     ! rather than a reference fragment - could point to original fragment but modify nks...
-    call calculate_fragment_density(ref_frags(ifrag_charged),ndimrho_all_fragments,tmb,iorb_start,&
-         in%frag%charge(ifrag_charged),atoms,rxyz,denspot)
+    ! also converting input charge to integer which might not be the case
+    call calculate_fragment_density(ref_frags(ref_frag_charged),ndimrho_all_fragments,tmb,iorb_start,&
+         int(in%frag%charge(ifrag_charged)),atoms,rxyz,denspot)
 
     ! the weight function becomes the fragment density of ifrag_charged divided by the sum of all fragment densities
     ! using a cutoff of 1.e-6 for fragment density and 1.e-12 for denominator
     do ipt=1,ndimrho_all_fragments
         if (denspot%rhov(ipt) >= 1.0e-12) then
-           cdft%weight_function(ipt)=ref_frags(ifrag_charged)%fbasis%density(ipt)/denspot%rhov(ipt)
+           cdft%weight_function(ipt)=ref_frags(ref_frag_charged)%fbasis%density(ipt)/denspot%rhov(ipt)
         else
            cdft%weight_function(ipt)=0.0_gp
         end if
     end do
 
     ! COME BACK TO THIS
-    cdft%charge=ref_frags(ifrag_charged)%nelec-in%frag%charge(ifrag_charged)
+    cdft%charge=ref_frags(ref_frag_charged)%nelec-in%frag%charge(ref_frag_charged)
 
     ! plot the weight function, fragment density and initial total density (the denominator) to check
     call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'fragment_density.cube', &
-         atoms,rxyz,denspot%dpbox,1,ref_frags(ifrag_charged)%fbasis%density)
+         atoms,rxyz,denspot%dpbox,1,ref_frags(ref_frag_charged)%fbasis%density)
 
     call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'weight_function.cube', &
          atoms,rxyz,denspot%dpbox,1,cdft%weight_function)
@@ -354,7 +400,7 @@ contains
          atoms,rxyz,denspot%dpbox,1,denspot%rhov)
 
     ! deallocate fragment density here as we don't need it any more
-    if (associated(ref_frags(ifrag_charged)%fbasis%density)) call f_free_ptr(ref_frags(ifrag_charged)%fbasis%density)
+    if (associated(ref_frags(ref_frag_charged)%fbasis%density)) call f_free_ptr(ref_frags(ref_frag_charged)%fbasis%density)
 
   end subroutine calculate_weight_function
 
@@ -440,7 +486,7 @@ contains
     if (cdft%nfrag_charged==2) then
        if (input_frag%charge(cdft%ifrag_charged(1))/=input_frag%charge(cdft%ifrag_charged(2))) then
           call f_err_throw('Error in constrained DFT, both fragments should have the same charge, '//& 
-               'which is interpreted as the charge difference between then two')
+               'which is interpreted as the charge difference between the two')
           return
        end if
     end if
@@ -462,27 +508,5 @@ contains
 
 
 
-
-!linearscaling
-
-  ! CDFT: calculate w_ab here given Nc and some scheme for calculating w(r)
-  ! CDFT: also define some initial guess for V
-
-          ! CDFT: need to pass V*w_ab to get_coeff so that it can be added to H_ab and the correct KS eqn can therefore be solved
-          ! CDFT: for the first iteration this will be some initial guess for V (or from the previous outer loop)
-          ! CDFT: all this will be in some extra CDFT loop
-
-             ! CDFT: update V
-             ! CDFT: we updated the kernel in get_coeff so 1st deriv of W wrt V becomes:
-             ! CDFT: Tr[Kw]-Nc as in CONQUEST
-             ! CDFT: 2nd deriv more problematic?
-
-             ! CDFT: exit when W is converged wrt both V and rho
-
-          ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
-
-!getcoeff
-
-  ! CDFT: add V*w_ab to Hamiltonian here
 
 end module constrained_dft

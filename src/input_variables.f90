@@ -945,10 +945,13 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-           'calculate dipole ; pulay correction'
+           'calculate dipole ; pulay correction; diagonalization at the end (dmin, FOE)'
   call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
-  call input_var(in%lin%pulay_correction,'T',comment=comments)
+  call input_var(in%lin%pulay_correction,'T')
+  call input_var(in%lin%diag_end,'F',comment=comments)
+  ! not sure whether to actually make this an input variable or not so just set to false for now
+  in%lin%diag_start=.false.
 
   !fragment calculation and transfer integrals: true or false
   comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
@@ -1719,10 +1722,11 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
   character(len=*), parameter :: subname='fragment_input_variables'
   character(len=256) :: comments
   integer :: ifrag, frag_num, ierr
+  real :: charge
 
   !Linear input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters')  
-  if (exists) in%files = in%files + INPUTS_FRAG
+  call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 
+  if (exists .and. dump) in%files = in%files + INPUTS_FRAG
 
   if (.not. exists .and. in%lin%fragment_calculation) then ! we should be doing a fragment calculation, so this is a problem
      write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' is missing and fragment calculation was specified"
@@ -1783,7 +1787,8 @@ subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
        stop
     end if
     call input_var(in%frag%frag_index(frag_num),'1',ranges=(/0,100000/))
-    call input_var(in%frag%charge(frag_num),'1',ranges=(/-500,500/),comment=comments)
+    call input_var(charge,'0.0',ranges=(/-500.0,500.0/),comment=comments)
+    in%frag%charge(frag_num)=charge
   end do
 
   call input_free((iproc == 0) .and. dump)

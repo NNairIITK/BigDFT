@@ -9,7 +9,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
+    calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -41,6 +41,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical, intent(in), optional :: curvefit_dmin ! for dmin only
   type(cdft_data),intent(inout),optional :: cdft
   integer, intent(in) :: extra_states
+  logical, optional, intent(in) :: reorder
 
 
   ! Local variables 
@@ -263,7 +264,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   if (.true.) then
       if(tmb%orthpar%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
-          call diagonalizeHamiltonian2(iproc, tmb%orbs, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
+          call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
       else
           if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
           call dsygv_parallel(iproc, nproc, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
@@ -349,12 +350,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, iall, 'matrixElements', subname)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
      if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
-     ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on if extra states are required
+     ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
      if (extra_states>0) then
-        call optimize_coeffs_extra(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
-             curvefit_dmin, extra_states)
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
+             curvefit_dmin, reorder, extra_states)
      else
-        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, curvefit_dmin)
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, curvefit_dmin, reorder)
      end if
   end if
 
@@ -1335,7 +1336,7 @@ end subroutine my_geocode_buffers
 
 
 
-subroutine diagonalizeHamiltonian2(iproc, orbs, HamSmall, ovrlp, eval)
+subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   !
   ! Purpose:
   ! ========
@@ -1361,11 +1362,10 @@ subroutine diagonalizeHamiltonian2(iproc, orbs, HamSmall, ovrlp, eval)
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc
-  type(orbitals_data), intent(inout) :: orbs
-  real(kind=8),dimension(orbs%norb, orbs%norb),intent(inout) :: HamSmall
-  real(kind=8),dimension(orbs%norb, orbs%norb),intent(in) :: ovrlp
-  real(kind=8),dimension(orbs%norb),intent(out) :: eval
+  integer, intent(in) :: iproc, norb
+  real(kind=8),dimension(norb, norb),intent(inout) :: HamSmall
+  real(kind=8),dimension(norb, norb),intent(in) :: ovrlp
+  real(kind=8),dimension(norb),intent(out) :: eval
 
   ! Local variables
   integer :: lwork, info, istat, iall
@@ -1395,7 +1395,7 @@ subroutine diagonalizeHamiltonian2(iproc, orbs, HamSmall, ovrlp, eval)
   lwork=-1 
   allocate(work(100), stat=istat)
   call memocc(istat, work, 'work', subname)
-  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
   lwork=int(work(1))
 
   ! Deallocate the work array and reallocate it with the optimal size
@@ -1406,9 +1406,9 @@ subroutine diagonalizeHamiltonian2(iproc, orbs, HamSmall, ovrlp, eval)
   call memocc(istat, work, 'work', subname)
 
   ! Diagonalize the Hamiltonian
-  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
   if(info/=0)then
-    write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',orbs%norb
+    write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',norb
   end if
 
   iall=-product(shape(work))*kind(work)

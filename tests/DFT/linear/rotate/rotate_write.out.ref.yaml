@@ -28,14 +28,14 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-07-05 20:01:47.127
+ Timestamp of this run                 : 2013-09-03 11:52:53.411
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
  MPI tasks of root process node        :  6
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Configure arguments                 : " 'FC=mpif90'"
    Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
@@ -140,8 +140,8 @@
  #|4              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|1 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|F F F          fragment calculation; calculate transfer_integrals; constrained DFT calcula
+ #|1 F F F        Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|C 4 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  #|H 1 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
  # ==== WARNING: the following lines have not been processed by the parser ====
@@ -395,7 +395,52 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  7.120E-01,  7.110E-01 ]}
+ -  {Process:  0, Timing:  [  3.400E-01,  3.390E-01 ]}
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 9.207123000010E-06, -7.731298909900E-02, -0.411298600929]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 4.458940799879E-05, -3.137055587200E-02, -0.178358392151]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.375056279999E-04, -1.371446512000E-02, -0.335950614381]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.375056279999E-04, -1.371446512000E-02, -0.335950614381]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-3.375056279999E-04, -1.371446512000E-02, -0.335950614381]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -409,33 +454,33 @@
  Raw forces norm (Ha/Bohr): {maxval:  6.260741075020E-02, fnrm2:  2.546882830051E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [-3.060524702926E-04,  2.213301874007E-02,  3.514707402607E-03]} # 0001
- -  {C: [-3.073837903985E-04,  9.728266371076E-03,  2.205146288037E-02]} # 0002
- -  {C: [-4.501995351344E-04, -1.219169882606E-02,  1.820006403271E-02]} # 0003
- -  {C: [-3.214721523140E-04, -1.945882844567E-02, -4.056369834229E-03]} # 0004
- -  {C: [-4.288758711291E-04, -4.668886174895E-03, -2.339481553521E-02]} # 0005
- -  {C: [-3.306044414521E-04,  1.650354811967E-02, -1.712710664129E-02]} # 0006
- -  {H: [ 3.020003465672E-04,  5.788936131495E-02,  1.016638293568E-02]} # 0007
- -  {H: [ 3.653781726229E-04,  2.055142114670E-02,  5.628241454848E-02]} # 0008
- -  {H: [ 3.731002210038E-04, -4.079964874521E-02,  4.768448892585E-02]} # 0009
- -  {H: [ 3.644524582173E-04, -6.318370920657E-02, -1.042410697354E-02]} # 0010
- -  {H: [ 3.787957565011E-04, -2.339125609970E-02, -5.684508929033E-02]} # 0011
- -  {H: [ 3.608613058084E-04,  3.688841180564E-02, -4.605203245110E-02]} # 0012
+ -  {C: [-3.060524702919E-04,  2.213301874007E-02,  3.514707402596E-03]} # 0001
+ -  {C: [-3.073837904004E-04,  9.728266371067E-03,  2.205146288037E-02]} # 0002
+ -  {C: [-4.501995351333E-04, -1.219169882606E-02,  1.820006403270E-02]} # 0003
+ -  {C: [-3.214721523121E-04, -1.945882844567E-02, -4.056369834226E-03]} # 0004
+ -  {C: [-4.288758711287E-04, -4.668886174892E-03, -2.339481553520E-02]} # 0005
+ -  {C: [-3.306044414512E-04,  1.650354811967E-02, -1.712710664129E-02]} # 0006
+ -  {H: [ 3.020003465662E-04,  5.788936131496E-02,  1.016638293569E-02]} # 0007
+ -  {H: [ 3.653781726234E-04,  2.055142114670E-02,  5.628241454848E-02]} # 0008
+ -  {H: [ 3.731002210035E-04, -4.079964874521E-02,  4.768448892585E-02]} # 0009
+ -  {H: [ 3.644524582159E-04, -6.318370920657E-02, -1.042410697353E-02]} # 0010
+ -  {H: [ 3.787957565001E-04, -2.339125609970E-02, -5.684508929033E-02]} # 0011
+ -  {H: [ 3.608613058085E-04,  3.688841180564E-02, -4.605203245110E-02]} # 0012
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  37.52
-   Elapsed time (s)                    :  37.65
+   CPU time (s)                        :  31.48
+   Elapsed time (s)                    :  31.62
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-07-05 20:01:47.126
+     2013-09-03 11:52:53.410
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  6576
-   Tot. No. of Deallocations           :  6576
+   Tot. No. of Allocations             :  6578
+   Tot. No. of Deallocations           :  6578
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  301

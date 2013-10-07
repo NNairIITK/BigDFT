@@ -392,6 +392,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%linmat%ham, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
        overlap_calculated, experimental_mode)
 
+  !!EXPERIMENTAL
+  !!call calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
+  !call calculate_residue_ks(iproc, nproc, 0, tmb%orbs, tmb, hpsit_c, hpsit_f)
+  !!END EXPERIMENTAL
+
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)
 
@@ -794,6 +799,116 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 end subroutine calculate_energy_and_gradient_linear
+
+subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer, intent(in) :: iproc, nproc, num_extra
+  type(dft_wavefunction), intent(in) :: tmb
+  type(orbitals_data), intent(in) :: ksorbs
+  real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
+
+  integer :: iorb, jorb, istat, iall, ierr
+  real(kind=8) :: ksres_sum
+  real(kind=8), dimension(:), allocatable :: ksres
+  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, grad_coeff
+  type(sparseMatrix) :: grad_ovrlp
+  character(len=256) :: subname='calculate_residue_ks'
+
+
+  ! want to calculate the residue of the KS states here, not just the tmbs
+  ! for now just occupied, eventually would want occupied+num_extra
+  ! probably better to calculate c_i^a|g_a> first but copying and pasting for now (INEFFICIENT but just testing)
+  !!if(associated(hpsit_c)) then
+  !!    iall=-product(shape(hpsit_c))*kind(hpsit_c)
+  !!    deallocate(hpsit_c, stat=istat)
+  !!    call memocc(istat, iall, 'hpsit_c', subname)
+  !!end if
+  !!if(associated(hpsit_f)) then
+  !!    iall=-product(shape(hpsit_f))*kind(hpsit_f)
+  !!    deallocate(hpsit_f, stat=istat)
+  !!    call memocc(istat, iall, 'hpsit_f', subname)
+  !!end if
+  !!allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+  !!call memocc(istat, hpsit_c, 'hpsit_c', subname)
+  !!allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+  !!call memocc(istat, hpsit_f, 'hpsit_f', subname)
+
+  ! should already be done in orthoconstraintnonorthogonal so can use directly
+  !call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+  !     tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+  !!can_use_transposed=.true.
+
+  call nullify_sparsematrix(grad_ovrlp)
+  call sparse_copy_pattern(tmb%linmat%ham, grad_ovrlp, iproc, subname)
+  allocate(grad_ovrlp%matrix_compr(grad_ovrlp%nvctr), stat=istat)
+  call memocc(istat, grad_ovrlp%matrix_compr, 'grad_ovrlp%matrix_compr', subname)
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, hpsit_c, hpsit_c, &
+       hpsit_f, hpsit_f, grad_ovrlp)
+
+  allocate(grad_coeff(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, grad_coeff, 'grad_coeff', subname)
+
+  allocate(coeff_tmp(tmb%orbs%norbp,max(tmb%orbs%norb,1)), stat=istat)
+  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+
+  allocate(grad_ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, grad_ovrlp%matrix, 'grad_ovrlp%matrix', subname)
+  call uncompressMatrix(iproc,grad_ovrlp)
+
+  ! can change this so only go up to ksorbs%norb...
+  if (tmb%orbs%norbp>0) then
+     call dgemm('n', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, 1.d0, grad_ovrlp%matrix(tmb%orbs%isorb+1,1), &
+          tmb%orbs%norb, tmb%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp, tmb%orbs%norbp)
+     call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norbp, 1.d0, tmb%coeff(tmb%orbs%isorb+1,1), &
+          tmb%orbs%norb, coeff_tmp, tmb%orbs%norbp, 0.d0, grad_coeff, tmb%orbs%norb)
+  else
+     call to_zero(tmb%orbs%norb**2, grad_coeff(1,1))
+  end if
+
+  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
+  deallocate(coeff_tmp,stat=istat)
+  call memocc(istat,iall,'coeff_tmp',subname)
+
+  if (nproc>1) then
+      call mpiallred(grad_coeff(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  end if
+
+  ! now calculate sqrt(<g_i|g_i>) and mean value
+  allocate(ksres(ksorbs%norb+num_extra), stat=istat)
+  call memocc(istat, ksres, 'ksres', subname)
+  
+  ksres_sum=0.0d0
+  do iorb=1,ksorbs%norb+num_extra
+    ksres(iorb)=dsqrt(grad_coeff(iorb,iorb))
+    ksres_sum=ksres_sum+ksres(iorb)
+    if (iproc==0) write(*,*) 'KS residue',iorb,ksres(iorb)!,tmb%orbs%occup(iorb)
+  end do
+  if (iproc==0) write(*,*) 'Average KS residue',ksres_sum/real(ksorbs%norb+num_extra,gp)
+
+
+  !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+  !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
+  ! calculate Tr[Kg]  (not recalculating kernel as don't have the correct occs here)
+  !call calculate_kernel_and_energy(iproc,nproc,denskern,grad_coeff,ksres_sum,tmb%coeff,orbs,tmb%orbs,.true.)
+  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,grad_ovrlp,ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+  if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
+
+  call deallocate_sparseMatrix(grad_ovrlp, subname)
+
+  iall=-product(shape(grad_coeff))*kind(grad_coeff)
+  deallocate(grad_coeff,stat=istat)
+  call memocc(istat,iall,'grad_coeff',subname)
+
+  iall=-product(shape(ksres))*kind(ksres)
+  deallocate(ksres,stat=istat)
+  call memocc(istat,iall,'ksres',subname)
+
+
+end subroutine calculate_residue_ks
 
 
 

@@ -28,14 +28,14 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-07-05 19:04:39.097
+ Timestamp of this run                 : 2013-09-03 10:39:01.257
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
  MPI tasks of root process node        :  6
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
+   Configure arguments                 : " 'FC=mpif90'"
    Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
@@ -140,8 +140,8 @@
  #|4              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|1 F F          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|F F F          fragment calculation; calculate transfer_integrals; constrained DFT calcula
+ #|1 F F F        Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|Si 4 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, pref
  #|H  1 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0 Atom name, number of basis functions per atom, prefa
  # ==== WARNING: the following lines have not been processed by the parser ====
@@ -384,7 +384,16 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.040E-01,  1.080E-01 ]}
+ -  {Process:  0, Timing:  [  2.080E-01,  2.080E-01 ]}
+
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-0.180000000000, -0.180000000000,  0.180000000000]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -394,30 +403,30 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.25022268E-03, y: -1.27870689E-03, z:  5.17500229E-04, 
                     total:  1.86170743E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.553250211387E-02, fnrm2:  3.973488334471E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.553250211387E-02, fnrm2:  3.973488334472E-03}
  Raw forces norm (Ha/Bohr): {maxval:  3.564007144389E-02, fnrm2:  3.976978981381E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [-9.079078889428E-03,  9.139532421873E-03, -9.513767216543E-03]} # 0001
- -  {H: [ 1.714532608711E-02,  2.557847955365E-02,  1.772957651953E-02]} # 0002
+ -  {Si: [-9.079078889428E-03,  9.139532421873E-03, -9.513767216544E-03]} # 0001
+ -  {H: [ 1.714532608711E-02,  2.557847955366E-02,  1.772957651953E-02]} # 0002
  -  {H: [-2.501377616836E-02, -1.717555285333E-02,  1.716487313424E-02]} # 0003
- -  {H: [ 1.694752897068E-02, -1.754245912219E-02, -2.538068243722E-02]} # 0004
+ -  {H: [ 1.694752897068E-02, -1.754245912220E-02, -2.538068243722E-02]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  5.93
-   Elapsed time (s)                    :  5.95
+   CPU time (s)                        :  7.42
+   Elapsed time (s)                    :  7.45
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
  - Do not call check_communications in the linear scaling version!
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-07-05 19:04:39.095
+     2013-09-03 10:39:01.256
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3225
-   Tot. No. of Deallocations           :  3225
+   Tot. No. of Allocations             :  3227
+   Tot. No. of Deallocations           :  3227
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  111

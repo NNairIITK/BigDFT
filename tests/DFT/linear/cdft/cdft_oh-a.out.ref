@@ -683,7 +683,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.654648E+01    2.03E-01
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 8 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   5    6.31E-13   -1.65389091477980017E+01
    > energy difference to last iteration: -7.348696E-02
  ############################################################################################
@@ -795,7 +795,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.654845E+01    1.07E-01
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 7 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   6    2.17E-12   -1.65483261370868853E+01
    > energy difference to last iteration: -9.416989E-03
  ############################################################################################
@@ -907,7 +907,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655125E+01    6.28E-02
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 7 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   7    2.08E-12   -1.65512049347574006E+01
    > energy difference to last iteration: -2.878798E-03
  ############################################################################################
@@ -1019,7 +1019,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655219E+01    3.46E-02
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 7 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   8    1.51E-12   -1.65521750492987927E+01
    > energy difference to last iteration: -9.701145E-04
  ############################################################################################
@@ -1131,7 +1131,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655249E+01    1.77E-02
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 7 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   9    3.88E-13   -1.65524879005311014E+01
    > energy difference to last iteration: -3.128512E-04
  ############################################################################################
@@ -1231,7 +1231,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655258E+01    8.57E-03
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 6 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   10    1.60E-11   -1.65525837384599619E+01
    > energy difference to last iteration: -9.583793E-05
  #############################################################################################
@@ -1331,7 +1331,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655261E+01    4.03E-03
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 6 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   11    4.01E-13   -1.65526125203552681E+01
    > energy difference to last iteration: -2.878190E-05
  #############################################################################################
@@ -1407,7 +1407,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655262E+01    2.11E-03
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 4 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   12    5.70E-13   -1.65526216265588317E+01
    > energy difference to last iteration: -9.106204E-06
  #############################################################################################
@@ -1483,7 +1483,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655262E+01    1.20E-03
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 4 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   13    1.97E-11   -1.65526239251361460E+01
    > energy difference to last iteration: -2.298577E-06
  #############################################################################################
@@ -1559,7 +1559,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655263E+01    8.90E-04
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 4 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   14    4.00E-11   -1.65526252144559329E+01
    > energy difference to last iteration: -1.289320E-06
  #############################################################################################
@@ -1635,7 +1635,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655263E+01    6.87E-04
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 4 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   15    3.56E-11   -1.65526260738641895E+01
    > energy difference to last iteration: -8.594083E-07
  #############################################################################################
@@ -1711,7 +1711,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655263E+01    5.51E-04
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 4 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   16    2.94E-11   -1.65526266691302126E+01
    > energy difference to last iteration: -5.952660E-07
  #############################################################################################
@@ -1787,7 +1787,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655263E+01    4.68E-04
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 4 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   17    2.04E-11   -1.65526270732198526E+01
    > energy difference to last iteration: -4.040896E-07
  #############################################################################################
@@ -1851,7 +1851,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655263E+01    4.15E-04
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 3 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   18    7.97E-11   -1.65526273189946842E+01
    > energy difference to last iteration: -2.457748E-07
  #############################################################################################
@@ -1915,7 +1915,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655263E+01    3.89E-04
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 3 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   19    8.88E-11   -1.65526275461772094E+01
    > energy difference to last iteration: -2.271825E-07
  #############################################################################################
@@ -1979,7 +1979,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655263E+01    3.71E-04
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 3 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   20    9.74E-11   -1.65526277621572433E+01
    > energy difference to last iteration: -2.159800E-07
  #############################################################################################
@@ -2043,7 +2043,7 @@ Calculating charge density... done.
      Final values: target function, fnrm  -1.655263E+01    3.52E-04
    > density optimization:
      - using direct minimization.
-     - density optimization converged in 3 iterations.
+     - WARNING: density optimization not converged!
      FINAL values: it, Delta DENS, energy   21    8.72E-11   -1.65526279361103583E+01
    > energy difference to last iteration: -1.739531E-07
  #############################################################################################
