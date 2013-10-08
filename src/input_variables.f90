@@ -894,9 +894,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%lowaccuracy_conv_crit,'1.d-8',ranges=(/0.d0,1.d0/))
   call input_var(in%lin%highaccuracy_conv_crit,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'basis convergence (low, high)'
+  comments = 'basis convergence (low, high) ; early stop TMB optimization (experimental mode only)'
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%lin%early_stop,'1.d-4',ranges=(/0.0_gp,1.0_gp/),comment=comments)
   
   comments = 'multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode'
   call input_var(in%lin%deltaenergy_multiplier_TMBexit,'1.d0',ranges=(/1.d-5,1.d1/))

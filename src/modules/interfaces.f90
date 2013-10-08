@@ -1970,7 +1970,7 @@ module module_interfaces
           fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
           reduce_conf, fix_supportfunctions,nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix,&
-          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode)
+          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
         use module_base
         use module_types
         implicit none
@@ -1999,7 +1999,7 @@ module module_interfaces
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
-        real(kind=8),intent(in) :: conv_crit
+        real(kind=8),intent(in) :: conv_crit, early_stop
         logical,intent(in) :: experimental_mode
       end subroutine getLocalizedBasis
 
