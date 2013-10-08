@@ -401,7 +401,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
     reduce_conf,fix_supportfunctions,nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit,deltaenergy_multiplier_TMBfix,&
-    ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode)
+    ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
   !
   ! Purpose:
   ! ========
@@ -439,7 +439,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical, intent(inout) :: ortho_on
   integer, intent(in) :: extra_states
   integer,intent(in) :: itout
-  real(kind=8),intent(in) :: conv_crit
+  real(kind=8),intent(in) :: conv_crit, early_stop
   logical,intent(in) :: experimental_mode
  
   ! Local variables
@@ -752,7 +752,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
           if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
                                                 trH, energy_first, (trH-energy_first)/energy_first
-          if ((trH-energy_first)/energy_first>1.d-4 .and. itout>0) then
+          if ((trH-energy_first)/energy_first>early_stop .and. itout>0) then
               stop_optimization=.true.
               if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
                                                     trH, energy_first, (trH-energy_first)/energy_first

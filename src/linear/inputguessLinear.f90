@@ -563,7 +563,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
          reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
          50,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-         ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode)
+         ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop)
      call deallocateDIIS(ldiis)
      ! END NEW ############################################################################
  end if
