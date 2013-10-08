@@ -468,11 +468,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical :: stop_optimization, energy_increased_previous
 
 
-
-  allocate(psi_old(size(tmb%psi),3))
-  allocate(psi_tmp(size(tmb%psi)))
+  !!allocate(psi_old(size(tmb%psi),3))
+  !!write(*,*) 'init1.1'
+  !!allocate(psi_tmp(size(tmb%psi)))
+  !!write(*,*) 'init1.2'
   allocate(delta_energy_arr(nit_basis))
-  psi_old(:,1)=tmb%psi
+  !!write(*,*) 'init1.3'
+  !!write(*,*) 'size(psi_old,1), size(tmb%psi)', size(psi_old,1), size(tmb%psi)
+  !!psi_old(:,1)=tmb%psi
+  !!write(*,*) 'init1.4'
   if (itout==1) then
       isatur_out=0
       d2e_arr_out=0
@@ -1100,16 +1104,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   !!if (itout>=12) then
   !!    if (iproc==0) write(*,*) 'WARNING: NO UPDATE OF KERNEL'
   !!else
+
+  ! Only need to reconstruct the kernel if it is actually used.
+  if (target_function/=TARGET_FUNCTION_IS_TRACE) then
       if(scf_mode/=LINEAR_FOE) then
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, overlap_calculated)
-           else if (experimental_mode) then
+      else if (experimental_mode) then
           call purify_kernel(iproc, nproc, tmb, overlap_calculated)
       end if
   !!end if
       if(iproc==0) then
           write(*,'(a)') 'done.'
       end if
+  end if
 
   end do iterLoop
 
@@ -1820,6 +1828,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   if (dense) then
      ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
      if (basis_orbs%norbp>0) then
+         coeff_tmp=0.d0
          call dgemm('n', 'n', basis_orbs%norbp, norb, basis_orbs%norb, 1.d0, basis_overlap%matrix(basis_orbs%isorb+1,1), &
               basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
          call dgemm('t', 'n', norb, norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
