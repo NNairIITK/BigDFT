@@ -1202,8 +1202,8 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
        sint,cost,onemc,(/ixp,iyp,izp/),&
        hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
-  call yaml_map('Centre old',centre_old,fmt='(1pg20.12)')
-  call yaml_map('Centre new',centre_new,fmt='(1pg20.12)')
+  call yaml_map('Centre old',centre_old,fmt='(1pg18.10)')
+  call yaml_map('Centre new',centre_new,fmt='(1pg18.10)')
   !call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
   !   sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
@@ -2015,7 +2015,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   integer, dimension(3), intent(in) :: iorder
   real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
   real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
-  real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
+  real(gp), dimension(3), intent(inout) :: centre_old,centre_new !<centre of rotation
   real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
   integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
   real(gp), dimension(n_phi), intent(in) :: phi_ISF
@@ -2052,7 +2052,10 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            do i=1,ndims_new(1)
               call shift_and_start(iorder(1),1,2,3,i,j,k,&
                    dt,k1,ms,me)
-              
+!if (i==ndims_new(1)/2) then
+!                            print *,'value fouund',dt,k1,j,ms,me
+!stop
+!end if
               call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
               
               !work(j,k+(i-1)*ndims_old(3))
@@ -2220,7 +2223,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
     end function ind2
 
     
-    pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
+    !pure 
+subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
          dt,istart,ms,me)
       use module_base
       implicit none
@@ -2230,11 +2234,11 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       integer, intent(out) :: istart,ms,me
       real(gp), intent(out) :: dt
       !local variables
-      integer :: ivars!,istep,i1,i2,i3
+      integer :: ivars,istart_shift!,istep,i1,i2,i3
       real(gp), dimension(3) :: t
       real(gp) :: t0_l
 
-      !define the coordinates in the reference frame, which depends of the transformed variables
+      !define the coordinates in the reference frame, which depends on the transformed variables
       t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
       if (istep >=2) then
          t(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
@@ -2253,32 +2257,23 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       !define the value of the shift of the variable we are going to transform
 !      t0_l=(t(ntr)-x_xpyz(theta,newz,t(1),t(2),t(3))+shift(ntr))/hgrids_old(ntr)
       t0_l=(t(ntr)-coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))+da(ntr))/hgrids_old(ntr)
+
+
+	   !old case for istart definition	   
       istart=min(max(1,nint((&
            coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr)+centre_old(ntr)+hgrids_old(ntr))&
            /hgrids_old(ntr))),ndims_old(ntr))
-            !identify extremes for the convolution
-      ms=-min(m_isf,istart-1)
-      me=min(m_isf,ndims_old(ntr)-istart)
-      
-      !identify shift
-      !dt=(real(istart,gp)+t0_l)-real(jcoords(ntr),gp)
-      !select case(ntr)
-      !case(1)
-      !   dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j1,gp)*hgrids_new(1))/hgrids_old(ntr)
-      !case(2)
-      !   if (istep >=2) then
-      !      dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_new(2))/hgrids_old(ntr)
-      !   else
-      !      dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j2,gp)*hgrids_old(i2))/hgrids_old(ntr)
-      !   end if
-      !case(3)
-      !   if (istep ==3) then
-      !      dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_new(3))/hgrids_old(ntr)
-      !   else
-      !      dt=((real(istart,gp)+t0_l)*hgrids_old(ntr)-real(j3,gp)*hgrids_old(i3))/hgrids_old(ntr)
-      !   end if
-      !end select
 
+
+  
+
+!print *,'new',t
+!print *,'old',coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))
+!print *,'da',da
+!print *,'centre_old',centre_old
+!print *,'ntr',ntr
+
+      !old case of evaluating dt
       select case(ntr)
       case(1)
          dt=(real(istart,gp)+t0_l)-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
@@ -2288,6 +2283,18 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
          dt=(real(istart,gp)+t0_l)-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
       end select
 
+
+	!post-treat shift and starting point so that multiples of hgrids are included in the convolution
+   istart_shift=nint(dt)
+	!print *,'test',dt,centre_old(ntr)-centre_new(ntr)-hgrids_old(ntr)+hgrids_new(ntr),istart,istart_shift
+	dt=dt-real(istart_shift,gp)
+   istart=istart-istart_shift
+
+
+         !identify extremes for the convolution
+      ms=-min(m_isf,istart-1)
+      me=min(m_isf,ndims_old(ntr)-istart)
+      
     end subroutine shift_and_start
 
     pure function coord(icrd,ivars,u,C,S,onemc,x,y,z)
@@ -2547,6 +2554,7 @@ subroutine interpolate_yp_from_y(nx,ny,nz,cx,cy,cz,cy_new,hx,hy,hz,hy_new,&
   real(gp) :: x,y,z,tt,dt,t0_l,diff
   !to be removed
   !real(gp), dimension(ny_old) :: ty
+
 
   m_isf=nrange/2
  

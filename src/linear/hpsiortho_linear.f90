@@ -576,11 +576,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   fnrm_tot=0.d0
   fnrmOld_tot=0.d0
   do iorb=1,tmb%orbs%norbp
-      fnrmOvrlp_tot=fnrmOvrlp_tot+fnrmOvrlpArr(iorb)
+      if (it>1) fnrmOvrlp_tot=fnrmOvrlp_tot+fnrmOvrlpArr(iorb)
       fnrm_tot=fnrm_tot+fnrmArr(iorb)
       fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
   end do
-  call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   ! ###########################################

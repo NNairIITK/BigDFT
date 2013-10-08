@@ -83,9 +83,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
      !scale the gradient (not sure if we always want this or just fragments/constrained!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
      if (present(num_extra)) then
-        call dscal(tmb%orbs%norb*tmb%orbs%norbp,factor,grad(1,1),1)
+        call dscal(tmb%orbs%norb*tmb%orbs%norbp,factor,grad,1)
      else
-        call dscal(tmb%orbs%norb*orbs%norbp,factor,grad(1,1),1)
+        call dscal(tmb%orbs%norb*orbs%norbp,factor,grad,1)
      end if
 
      if (ldiis_coeff%idsx > 0) then !do DIIS
@@ -94,15 +94,15 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         ldiis_coeff%ids=ldiis_coeff%ids+1
 
         if (present(num_extra)) then
-           call dcopy(tmb%orbs%norb*tmb%orbs%norbp,tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
+           call dcopy(tmb%orbs%norb*tmb%orbs%norbp,tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp,1)
 
            call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%orbs%norb*tmb%orbs%norbp/),tmb%orbs%norb*tmb%orbs%norbp,&
-                grad_cov_or_coeffp(1,1),grad(1,1),ldiis_coeff) 
+                grad_cov_or_coeffp,grad,ldiis_coeff) 
         else
-           call dcopy(tmb%orbs%norb*orbs%norbp,tmb%coeff(1,orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
+           call dcopy(tmb%orbs%norb*orbs%norbp,tmb%coeff(1,orbs%isorb+1),1,grad_cov_or_coeffp,1)
 
            call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
-                grad_cov_or_coeffp,grad(1,1),ldiis_coeff) 
+                grad_cov_or_coeffp,grad,ldiis_coeff) 
         end if
      else  !steepest descent with curve fitting for line minimization
         call timing(iproc,'dirmin_sddiis','OF')
@@ -809,7 +809,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   ! coeffs and therefore kernel will change, so no need to keep it
   call f_free_ptr(tmb%linmat%denskern%matrix)
 
-  skhp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='skhp')
+  skhp=f_malloc((/tmb%orbs%norb,max(tmb%orbs%norbp,1)/), id='skhp')
 
   ! multiply by H to get (I_ab - S_ag K^gb) H_bd, or in this case the transpose of the above
   if (tmb%orbs%norbp>0) then
