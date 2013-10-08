@@ -134,7 +134,7 @@ do iorb=1,orbs%norbp
         rhs(i)=0.d0
         do j=i,min(ldiis%isx,ldiis%is)
             if (experimental_mode) then
-                if (iproc==0) write(*,*) 'WARNING: TAKING ONE SINGLE MATRIX!!'
+                !if (iproc==0) write(*,*) 'WARNING: TAKING ONE SINGLE MATRIX!!'
                 mat(i,j)=totmat(i,j)
             else
                 mat(i,j)=ldiis%mat(i,j,iorb)
