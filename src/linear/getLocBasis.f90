@@ -1116,7 +1116,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   !!else
 
   ! Only need to reconstruct the kernel if it is actually used.
-  if (target_function/=TARGET_FUNCTION_IS_TRACE) then
+  if (target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
       if(scf_mode/=LINEAR_FOE) then
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, overlap_calculated)
