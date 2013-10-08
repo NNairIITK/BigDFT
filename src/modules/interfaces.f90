@@ -4914,7 +4914,7 @@ module module_interfaces
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
-               sd_fit_curve, reorder, num_extra)
+               sd_fit_curve, factor, reorder, num_extra)
           use module_base
           use module_types
           use diis_sd_optimization
@@ -4927,6 +4927,7 @@ module module_interfaces
           real(kind=gp),intent(out):: fnrm
           real(kind=gp), intent(inout) :: energy
           logical, intent(in) :: sd_fit_curve
+          real(kind=gp), intent(in) :: factor
           integer, optional, intent(in) :: num_extra
           logical, optional, intent(in) :: reorder
         end subroutine optimize_coeffs

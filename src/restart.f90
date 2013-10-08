@@ -3089,8 +3089,13 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   da(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new_box(2),centre_old_box(2))
   da(3)=mindist(per(3),at%astruct%cell_dim(3),centre_new_box(3),centre_old_box(3))
 
-print*,'nb, ns, centre, centrebox (old)',nb,ns_old,frag_trans%rot_center,centre_old_box
-print*,'nb, ns, centre, centrebox (new)',nb,ns,frag_trans%rot_center_new,centre_new_box
+  !centre_new_box(1)=mindist(per(1),at%astruct%cell_dim(1),frag_trans%rot_center_new(1),hgrids(1)*(ns_old(1)-0.5_dp*nb(1)))
+  !centre_new_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center_new(2),hgrids(2)*(ns_old(2)-0.5_dp*nb(2)))
+  !centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns_old(3)-0.5_dp*nb(3)))
+
+
+!print*,'nb, ns, centre, centrebox (old)',nb,ns_old,frag_trans%rot_center,centre_old_box
+!print*,'nb, ns, centre, centrebox (new)',nb,ns,frag_trans%rot_center_new,centre_new_box
 
   !print*,'reformat check',frag_trans%rot_center(2),ns_old(2),centre_old_box(2),&
   !     frag_trans%rot_center_new(2),ns(2),centre_new_box(2),da(2)

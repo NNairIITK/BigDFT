@@ -53,11 +53,20 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(energy_terms) :: energs
 
   character(len=*),parameter :: subname='get_coeff'
-  real(kind=gp) :: tmprtr
+  real(kind=gp) :: tmprtr, factor
   real(kind=gp),dimension(:,:),allocatable :: coeff_orig
   real(kind=8) :: deviation
   integer :: iat, iiorb, jjorb, lwork
 
+  ! should eventually make this an input variable
+  if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+     if (present(cdft)) then
+        ! factor for scaling gradient
+        factor=0.1d0
+     else
+        factor=1.0d0
+     end if
+  end if
 
   if(calculate_ham) then
       call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
@@ -353,9 +362,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
      ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
      if (extra_states>0) then
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
-             curvefit_dmin, reorder, extra_states)
+             curvefit_dmin, factor, reorder, extra_states)
      else
-        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, curvefit_dmin, reorder)
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
+             curvefit_dmin, factor, reorder)
      end if
   end if
 
