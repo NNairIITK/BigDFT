@@ -10,10 +10,11 @@ TESTDIRS = Locreg \
 	   geopt \
 	   testforces \
 	   fructose \
-    rotatesmall2 \
-      rotatesmall \
-      cdft \
-	  hybrid-directmin
+       rotatesmall2 \
+       rotatesmall \
+       cdft \
+       hybrid-directmin \
+       experimentalmode
 
 EXTRA_TESTDIRS = water \
 	molecule \
@@ -22,8 +23,7 @@ EXTRA_TESTDIRS = water \
 	paracetamol \
 	rotate \
 	rotate2 \
-	noortho \
-	experimentalmode
+	noortho
 
 
 EXTRA_DIST = 
@@ -131,6 +131,7 @@ cdft_oh-.out.post-out:
 	  rotatesmall.out*)           prec="1.1e-8" ;; \
 	  test.testforces.out*)       prec="1.1e-9" ;; \
 	  hybrid-directmin.out*)      prec="1.3e-9" ;; \
+	  experimentalmode.out*)      prec="1.0e-6" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
