@@ -9,7 +9,8 @@
 !! NOTES: Coefficients are defined for Ntmb KS orbitals so as to maximize the number
 !!        of orthonormality constraints. This should speedup the convergence by
 !!        reducing the effective number of degrees of freedom.
-subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, reorder, num_extra)
+subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, &
+    factor, reorder, num_extra)
   use module_base
   use module_types
   use module_interfaces
@@ -25,18 +26,16 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   real(kind=gp),intent(out):: fnrm
   real(kind=gp), intent(inout) :: energy
   logical, intent(in) :: sd_fit_curve
+  real(kind=gp), intent(in) :: factor
   integer, optional, intent(in) :: num_extra
   logical, optional, intent(in) :: reorder
 
   ! Local variables
   integer:: iorb, jorb, istat, iall, info, iiorb, ierr, it
   real(kind=gp),dimension(:,:),allocatable:: grad, grad_cov_or_coeffp !coeffp, grad_cov
-  real(kind=gp) :: tt, ddot, energy0, pred_e, factor
+  real(kind=gp) :: tt, ddot, energy0, pred_e
 
   call f_routine(id='optimize_coeffs')
-
-  ! factor for scaling gradient
-  factor=1.0d0!0.1d0
 
   if (ldiis_coeff%idsx == 0 .and. sd_fit_curve) then
      ! calculate initial energy for SD line fitting and printing (maybe don't need to (re)calculate kernel here?)

@@ -2015,7 +2015,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   integer, dimension(3), intent(in) :: iorder
   real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
   real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
-  real(gp), dimension(3), intent(inout) :: centre_old,centre_new !<centre of rotation
+  real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
   real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
   integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
   real(gp), dimension(n_phi), intent(in) :: phi_ISF
