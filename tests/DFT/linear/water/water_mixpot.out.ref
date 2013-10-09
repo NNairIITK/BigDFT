@@ -19,9 +19,17 @@ WARNING: locrad for atom type H is too small; minimal value is   4.84E+00
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   6.95E+00   3.000E+00
 V3prb    1.6463E+01
  Processes from 0 to 5 treat 12 inguess orbitals 
+ eks   166.49043687693734     
+ eks, energs%ekin   166.49043687693734        176.61884701648870     
+ conv crit:  0.14067236304932448     
+ Processes from 0 to 5 treat 12 inguess orbitals 
+ WARNING: use mapping for occupation numbers!
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599995583257E+01
+ calling orthonormalizeLocalized (exact)
+max dev from unity    7.266733E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.17189863E+02    0.00000000E+00   -2.44391461E+02    1.71078720E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -56,21 +64,21 @@ Calculating charge density... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.142520E-01    2.081999E-01    3.142583E-03
  iter, fnrm, fnrmMax, trace, diff     1  7.1059514E-01  1.0472737E+00  -163.8814096249  -1.6388E+02
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.217797E-02    6.779416E-02    8.327520E-03
  iter, fnrm, fnrmMax, trace, diff     2  2.6522762E-01  4.0187750E-01  -167.5861031506  -3.7047E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=3
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.135825E-02    4.519609E-02    2.225809E-02
  iter, fnrm, fnrmMax, trace, diff     3  1.3988325E-01  3.5225913E-01  -168.5293996511  -9.4330E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.3988325E-01  3.5225913E-01   -168.5293997
  ============================= Basis functions created. =============================
+max dev from unity    5.244136E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.12965444E+02    0.00000000E+00   -2.42544410E+02    1.84087099E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -102,7 +110,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.135825E-02    4.519609E-02    2.225809E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  2.3248098E-05   -2.01417200835214999E+02   -2.0142E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.244136E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.12965444E+02    0.00000000E+00   -2.42867237E+02    1.84087099E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -134,7 +144,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.135825E-02    4.519609E-02    2.225809E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  9.3710093E-06   -2.00267989795719359E+02    1.1492E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.244136E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.12965444E+02    0.00000000E+00   -2.41910687E+02    1.84087099E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -186,21 +198,21 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.135825E-02    4.519609E-02    2.225809E
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.340793E-02    4.726321E-02    2.354907E-02
  iter, fnrm, fnrmMax, trace, diff     1  1.4036915E-01  3.5334846E-01  -167.3008850776   2.8522E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.795911E-02    4.387123E-02    2.483584E-02
  iter, fnrm, fnrmMax, trace, diff     2  1.2504202E-01  3.6057561E-01  -167.6050785924  -3.0419E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=3
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.308624E-02    4.553551E-02    2.060760E-02
  iter, fnrm, fnrmMax, trace, diff     3  1.2473738E-01  3.7351518E-01  -167.9225336932  -3.1746E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.2473738E-01  3.7351518E-01   -167.9225337
  ============================= Basis functions created. =============================
+max dev from unity    5.446465E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07507363E+02    0.00000000E+00   -2.36887094E+02    1.78431897E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -232,7 +244,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.308624E-02    4.553551E-02    2.060760E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  1.4094149E-06   -2.02014433520398029E+02    3.3065E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.446465E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07507363E+02    0.00000000E+00   -2.36574513E+02    1.78431897E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -264,7 +278,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.308624E-02    4.553551E-02    2.060760E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  7.7800749E-07   -2.01654349389343679E+02    3.6008E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.446465E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07507363E+02    0.00000000E+00   -2.36485847E+02    1.78431897E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -310,7 +326,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.308624E-02    4.553551E-02    2.060760E
      FINAL values: it, Delta POT, energy   2    4.74E-07   -2.01312007328564619E+02
    > energy difference to last iteration:  1.033075E+00
  ############################################################################################
+max dev from unity    5.446465E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07507363E+02    0.00000000E+00   -2.36440014E+02    1.78431897E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -354,6 +372,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.780524E-02    7.293118E-02    2.592740E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.2204433E-01  2.5346187E-01   -202.9395228
  ============================= Basis functions created. =============================
+max dev from unity    4.668249E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -386,7 +405,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.780524E-02    7.293118E-02    2.592740E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  1.2195271E-05   -2.02956776980613995E+02   -1.6448E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.668249E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.95690460E+02    0.00000000E+00   -2.28539165E+02    1.67418481E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -418,7 +439,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.780524E-02    7.293118E-02    2.592740E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  5.8235209E-06   -1.95901626249745505E+02    7.0552E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.668249E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.95690460E+02    0.00000000E+00   -2.29833610E+02    1.67418481E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -450,7 +473,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.780524E-02    7.293118E-02    2.592740E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  3.7611126E-06   -2.00707659145287494E+02   -4.8060E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.668249E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.95690460E+02    0.00000000E+00   -2.30383187E+02    1.67418481E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -482,7 +507,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.780524E-02    7.293118E-02    2.592740E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  2.3262021E-06   -2.01832209154516818E+02   -1.1246E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.668249E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.95690460E+02    0.00000000E+00   -2.30669518E+02    1.67418481E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -548,6 +575,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.311189E-02    2.918561E-02    3.287472E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   7.4427838E-02  2.5261582E-01   -202.5494945
  ============================= Basis functions created. =============================
+max dev from unity    2.991109E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -580,7 +608,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.311189E-02    2.918561E-02    3.287472E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  3.1700881E-06   -2.02553334070525807E+02   -3.3383E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.991109E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99506639E+02    0.00000000E+00   -2.33857302E+02    1.71297852E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -612,7 +642,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.311189E-02    2.918561E-02    3.287472E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  9.6177004E-07   -2.04492137750092752E+02   -1.9388E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.991109E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99506639E+02    0.00000000E+00   -2.33547638E+02    1.71297852E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -644,7 +676,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.311189E-02    2.918561E-02    3.287472E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  5.7277572E-07   -2.03235179485616641E+02    1.2570E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.991109E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99506639E+02    0.00000000E+00   -2.33425163E+02    1.71297852E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -676,7 +710,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.311189E-02    2.918561E-02    3.287472E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  3.5123113E-07   -2.02950765614995248E+02    2.8441E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.991109E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99506639E+02    0.00000000E+00   -2.33363835E+02    1.71297852E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -742,6 +778,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    8.283360E-03    2.972630E-02    3.323392E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.8836420E-02  2.4756017E-01   -202.8395816
  ============================= Basis functions created. =============================
+max dev from unity    2.939188E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -774,7 +811,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    8.283360E-03    2.972630E-02    3.323392E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  6.2942884E-07   -2.02840895887243164E+02    1.9280E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.939188E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00147603E+02    0.00000000E+00   -2.33548057E+02    1.69761204E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -806,7 +845,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    8.283360E-03    2.972630E-02    3.323392E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  2.9050632E-07   -2.03059068522695270E+02   -2.1817E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.939188E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00147603E+02    0.00000000E+00   -2.33481176E+02    1.69761204E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -838,7 +879,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    8.283360E-03    2.972630E-02    3.323392E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  1.6798723E-07   -2.02892491852397256E+02    1.6658E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.939188E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00147603E+02    0.00000000E+00   -2.33447306E+02    1.69761204E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -870,7 +913,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    8.283360E-03    2.972630E-02    3.323392E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  1.0000648E-07   -2.02842393246263896E+02    5.0099E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.939188E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00147603E+02    0.00000000E+00   -2.33428089E+02    1.69761204E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -936,6 +981,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.699467E-03    2.782308E-02    3.439504E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.2012292E-02  2.3128896E-01   -202.8189056
  ============================= Basis functions created. =============================
+max dev from unity    3.056741E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -968,7 +1014,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.699467E-03    2.782308E-02    3.439504E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  3.4577487E-07   -2.02819594031928432E+02    8.2018E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.056741E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00271170E+02    0.00000000E+00   -2.33378065E+02    1.69274836E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1000,7 +1048,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.699467E-03    2.782308E-02    3.439504E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  1.8092406E-07   -2.02899101127700192E+02   -7.9507E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.056741E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00271170E+02    0.00000000E+00   -2.33350134E+02    1.69274836E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1032,7 +1082,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.699467E-03    2.782308E-02    3.439504E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  1.0489820E-07   -2.02845228813691165E+02    5.3872E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.056741E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00271170E+02    0.00000000E+00   -2.33335182E+02    1.69274836E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1064,7 +1116,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.699467E-03    2.782308E-02    3.439504E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  6.2336147E-08   -2.02825445672897217E+02    1.9783E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.056741E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00271170E+02    0.00000000E+00   -2.33326571E+02    1.69274836E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1130,6 +1184,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.705584E-03    2.561530E-02    3.669766E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.6469138E-02  2.1455580E-01   -202.8172812
  ============================= Basis functions created. =============================
+max dev from unity    3.236420E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -1162,7 +1217,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.705584E-03    2.561530E-02    3.669766E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  2.0908650E-07   -2.02817699647900213E+02   -1.8794E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.236420E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00276351E+02    0.00000000E+00   -2.33250333E+02    1.69019819E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1194,7 +1251,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.705584E-03    2.561530E-02    3.669766E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  1.1032533E-07   -2.02858954897112881E+02   -4.1255E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.236420E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00276351E+02    0.00000000E+00   -2.33235015E+02    1.69019819E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1226,7 +1285,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.705584E-03    2.561530E-02    3.669766E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  6.4342061E-08   -2.02833293384654098E+02    2.5662E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.236420E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00276351E+02    0.00000000E+00   -2.33226604E+02    1.69019819E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1258,7 +1319,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.705584E-03    2.561530E-02    3.669766E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  3.8289727E-08   -2.02822778061978624E+02    1.0515E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.236420E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00276351E+02    0.00000000E+00   -2.33221725E+02    1.69019819E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1334,7 +1397,9 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    Calculation finished. TOTAL CHARGE =   9.599996354361E+01
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
+max dev from unity    3.236420E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52515193E+02    0.00000000E+00   -1.67975540E+02    8.91248426E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1378,6 +1443,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.703843E-03    2.166256E-02    4.308428E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   3.8940428E-02  1.8657105E-01   -202.8176172
  ============================= Basis functions created. =============================
+max dev from unity    3.734234E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -1410,7 +1476,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.703843E-03    2.166256E-02    4.308428E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  1.5006730E-07   -2.02817902738145449E+02   -2.0282E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.734234E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52500659E+02    0.00000000E+00   -1.67933942E+02    8.90870200E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1442,7 +1510,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.703843E-03    2.166256E-02    4.308428E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  6.1947640E-08   -2.02828018862191925E+02   -1.0116E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.734234E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52500659E+02    0.00000000E+00   -1.67929379E+02    8.90870200E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1474,7 +1544,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.703843E-03    2.166256E-02    4.308428E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  3.5415894E-08   -2.02826789320547164E+02    1.2295E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.734234E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52500659E+02    0.00000000E+00   -1.67926553E+02    8.90870200E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1506,7 +1578,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.703843E-03    2.166256E-02    4.308428E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  2.1018026E-08   -2.02823539895996419E+02    3.2494E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.734234E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52500659E+02    0.00000000E+00   -1.67924854E+02    8.90870200E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1613,6 +1687,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.975299E-03    1.433625E-02    6.194338E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   2.5828646E-02  1.2703566E-01   -202.8284127
  ============================= Basis functions created. =============================
+max dev from unity    5.360358E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -1645,7 +1720,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.975299E-03    1.433625E-02    6.194338E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  1.5485373E-07   -2.02828626919860312E+02   -7.3180E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.360358E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52455767E+02    0.00000000E+00   -1.67896980E+02    8.89068245E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1677,7 +1754,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.975299E-03    1.433625E-02    6.194338E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  4.5266021E-08   -2.02814135479576407E+02    1.4491E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.360358E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52455767E+02    0.00000000E+00   -1.67897119E+02    8.89068245E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1709,7 +1788,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.975299E-03    1.433625E-02    6.194338E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  2.2530320E-08   -2.02825592650401632E+02   -1.1457E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.360358E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52455767E+02    0.00000000E+00   -1.67896866E+02    8.89068245E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1741,7 +1822,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.975299E-03    1.433625E-02    6.194338E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  1.2270196E-08   -2.02826886245065452E+02   -1.2936E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.360358E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52455767E+02    0.00000000E+00   -1.67896658E+02    8.89068245E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1807,6 +1890,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.104405E-03    9.742897E-03    9.933324E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.7153434E-02  8.3617576E-02   -202.8317609
  ============================= Basis functions created. =============================
+max dev from unity    6.647798E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -1839,7 +1923,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.104405E-03    9.742897E-03    9.933324E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  9.9874598E-08   -2.02831906565559166E+02   -5.0026E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    6.647798E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52404771E+02    0.00000000E+00   -1.67850507E+02    8.88471354E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1871,7 +1957,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.104405E-03    9.742897E-03    9.933324E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  3.0350252E-08   -2.02831625409995354E+02    2.8116E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    6.647798E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52404771E+02    0.00000000E+00   -1.67848729E+02    8.88471354E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1903,7 +1991,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.104405E-03    9.742897E-03    9.933324E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  1.5010664E-08   -2.02834710327023231E+02   -3.0849E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    6.647798E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52404771E+02    0.00000000E+00   -1.67847509E+02    8.88471354E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -1935,7 +2025,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.104405E-03    9.742897E-03    9.933324E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  8.4220543E-09   -2.02833920037608891E+02    7.9029E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    6.647798E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52404771E+02    0.00000000E+00   -1.67846752E+02    8.88471354E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2001,6 +2093,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.580045E-03    6.304154E-03    1.808065E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.1016953E-02  5.1382342E-02   -202.8353688
  ============================= Basis functions created. =============================
+max dev from unity    7.596538E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -2033,7 +2126,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.580045E-03    6.304154E-03    1.808065E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  6.5063893E-08   -2.02835499345183734E+02   -2.4120E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    7.596538E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52356032E+02    0.00000000E+00   -1.67801638E+02    8.88186467E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2065,7 +2160,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.580045E-03    6.304154E-03    1.808065E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  2.1989404E-08   -2.02832951166347470E+02    2.5482E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    7.596538E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52356032E+02    0.00000000E+00   -1.67800599E+02    8.88186467E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2097,7 +2194,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.580045E-03    6.304154E-03    1.808065E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  1.1582674E-08   -2.02836369883618545E+02   -3.4187E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    7.596538E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52356032E+02    0.00000000E+00   -1.67799815E+02    8.88186467E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2129,7 +2228,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.580045E-03    6.304154E-03    1.808065E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  6.7302694E-09   -2.02836094192797873E+02    2.7569E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    7.596538E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52356032E+02    0.00000000E+00   -1.67799317E+02    8.88186467E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2195,6 +2296,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.325507E-03    4.013954E-03    3.400648E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   7.3577311E-03  3.5866898E-02   -202.8367247
  ============================= Basis functions created. =============================
+max dev from unity    8.213643E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -2227,7 +2329,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.325507E-03    4.013954E-03    3.400648E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  4.4237535E-08   -2.02836857295030541E+02   -1.2758E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.213643E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52313833E+02    0.00000000E+00   -1.67762766E+02    8.88222457E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2259,7 +2363,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.325507E-03    4.013954E-03    3.400648E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  1.7760403E-08   -2.02834666296683849E+02    2.1910E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.213643E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52313833E+02    0.00000000E+00   -1.67762202E+02    8.88222457E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2291,7 +2397,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.325507E-03    4.013954E-03    3.400648E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  9.8058772E-09   -2.02837168262498722E+02   -2.5020E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.213643E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52313833E+02    0.00000000E+00   -1.67761751E+02    8.88222457E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2323,7 +2431,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.325507E-03    4.013954E-03    3.400648E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  5.7603466E-09   -2.02837102323865452E+02    6.5939E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.213643E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52313833E+02    0.00000000E+00   -1.67761462E+02    8.88222457E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2373,18 +2483,18 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.325507E-03    4.013954E-03    3.400648E
    itoutH, Delta POTOUT, energy energyDiff   5   1.25E-08   -2.02836820471620058E+02    0.0000E+00   FINAL
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599996354730E+01
-  #WARNING: support function, value: 25 9.984758306E-01
-  #WARNING: support function, value: 49 9.987712587E-01
-  #WARNING: support function, value: 50 9.977073062E-01
   #WARNING: support function, value: 17 9.955176875E-01
   #WARNING: support function, value: 18 9.989705956E-01
+  #WARNING: support function, value: 49 9.987712587E-01
+  #WARNING: support function, value: 50 9.977073062E-01
+  #WARNING: support function, value: 70 9.988576456E-01
+  #WARNING: support function, value: 71 9.988709374E-01
+  #WARNING: support function, value: 60 9.986871329E-01
+  #WARNING: support function, value: 25 9.984758306E-01
   #WARNING: support function, value: 40 9.987710070E-01
   #WARNING: support function, value: 41 9.975031983E-01
   #WARNING: support function, value: 30 9.975336851E-01
-  #WARNING: support function, value: 60 9.986871329E-01
   #WARNING: support function, value: 43 9.986291496E-01
-  #WARNING: support function, value: 70 9.988576456E-01
-  #WARNING: support function, value: 71 9.988709374E-01
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 5 treat 12 orbitals. |
@@ -2398,486 +2508,6 @@ sparsity: 86.07%
 total elements: 5184
 non-zero elements: 3946
 sparsity: 23.88%
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.004182130005E-03, -0.360699269033,  0.253393670549]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.628163896615E-02,  1.601452799609E-02, -0.211078854422]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 4.937710205150E-02,  6.692750009013E-02, -0.211156704584]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.170680287075E-02,  1.410880608831E-02,  0.232170575984]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 6.484236825811E-03,  1.010311016008E-02,  0.213665885480]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.004182130005E-03, -0.360699269033,  0.253393670549]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.077613965996E-02,  2.510992255888E-02,  0.221153508377]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.170680287075E-02,  1.410880608831E-02,  0.232170575984]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 4.937710205150E-02,  6.692750009013E-02, -0.211156704584]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 5.411717976085E-02,  2.962304226591E-02,  0.227080559665]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.004182130005E-03, -0.360699269033,  0.253393670549]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 9.404420899578E-03,  6.057193990425E-02,  0.236955398815]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 3.993974947868E-03, -0.409427815100,  0.205601852661]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 4.937710205150E-02,  6.692750009013E-02, -0.211156704584]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 5.411717976085E-02,  2.962304226591E-02,  0.227080559665]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.215753977064E-02,  2.664869788897E-02, -0.207728410232]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 9.404420899578E-03,  6.057193990425E-02,  0.236955398815]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.004182130005E-03, -0.360699269033,  0.253393670549]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 4.937710205150E-02,  6.692750009013E-02, -0.211156704584]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 5.411717976085E-02,  2.962304226591E-02,  0.227080559665]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.413348985781,  2.375088275390E-02,  0.228434590990]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 9.404420899578E-03,  6.057193990425E-02,  0.236955398815]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.407167458336,  6.448342611616E-03,  0.211466977668]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 5.411717976085E-02,  2.962304226591E-02,  0.227080559665]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 4.537807477022E-02,  2.584818348089E-02,  0.248304188286]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-1.713438845341E-03, -0.415128231650,  0.234648242302]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 9.404420899578E-03,  6.057193990425E-02,  0.236955398815]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-4.821007100315E-03,  8.390227289706E-03, -0.214605812739]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.693395353457E-02,  2.528720487771E-02,  0.217213160814]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.279178928712E-02,  3.252897146578E-02, -0.199832068566]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.536063638011E-02,  5.361141381606E-03, -0.214218370122]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 4.537807477022E-02,  2.584818348089E-02,  0.248304188286]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.431425499244,  1.231730050378E-02,  0.212786839186]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.316525882516E-02,  2.593436057002E-02,  0.233095307852]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 3.361336837330E-02, -3.308159605423E-03,  0.248087242788]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.807783150501E-02,  2.350404269419E-02,  0.232959249475]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 4.537807477022E-02,  2.584818348089E-02,  0.248304188286]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.100637883929E-02,  6.834493771230E-02, -0.170555398975]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.316525882516E-02,  2.593436057002E-02,  0.233095307852]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 3.361336837330E-02, -3.308159605423E-03,  0.248087242788]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.807783150501E-02,  2.350404269419E-02,  0.232959249475]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.100637883929E-02,  6.834493771230E-02, -0.170555398975]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.316525882516E-02,  2.593436057002E-02,  0.233095307852]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 4.537807477022E-02,  2.584818348089E-02,  0.248304188286]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 3.361336837330E-02, -3.308159605423E-03,  0.248087242788]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.807783150501E-02,  2.350404269419E-02,  0.232959249475]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.100637883929E-02,  6.834493771230E-02, -0.170555398975]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.316525882516E-02,  2.593436057002E-02,  0.233095307852]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.108017553746E-02,  3.601602622172E-03, -0.229794883393]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 3.361336837330E-02, -3.308159605423E-03,  0.248087242788]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.807783150501E-02,  2.350404269419E-02,  0.232959249475]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 2.100637883929E-02,  6.834493771230E-02, -0.170555398975]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.170680287075E-02,  1.410880608831E-02,  0.232170575984]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.411798544555,  2.974064429529E-02, -0.222563634283]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.410422510733E-02, -0.403969801008,  0.224070986588]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.032531920138E-02,  3.696490167970E-02, -0.226250238815]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 9.698666243166E-03,  2.592947969022E-02,  0.222250940891]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.170680287075E-02,  1.410880608831E-02,  0.232170575984]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 4.824792170792E-02, -5.361141381611E-03,  0.222533645224]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-1.387719681937E-03,  1.811378812997E-02,  0.210228510316]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 0
    - Grid spacing has changed: 0
@@ -2891,7 +2521,9 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    Calculation finished. TOTAL CHARGE =   9.599995606656E+01
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
+max dev from unity    7.983901E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.55801026E+02    0.00000000E+00   -1.68952954E+02    1.13069861E+01    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2935,6 +2567,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.443755E-02    1.137406E-01    4.524577E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   3.6933447E-01  9.4929704E-01   -203.1067262
  ============================= Basis functions created. =============================
+max dev from unity    4.005503E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -2967,7 +2600,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.443755E-02    1.137406E-01    4.524577E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  4.4608572E-05   -2.03156501271474099E+02   -2.0316E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.005503E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.50539804E+02    0.00000000E+00   -1.66003710E+02    9.69402245E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -2999,7 +2634,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.443755E-02    1.137406E-01    4.524577E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  2.3236482E-05   -2.00239265732497756E+02    2.9172E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.005503E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.50539804E+02    0.00000000E+00   -1.66373983E+02    9.69402245E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3031,7 +2668,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.443755E-02    1.137406E-01    4.524577E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  1.2716690E-05   -2.01670893104537754E+02   -1.4316E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.005503E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.50539804E+02    0.00000000E+00   -1.66547508E+02    9.69402245E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3063,7 +2702,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.443755E-02    1.137406E-01    4.524577E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  7.1045581E-06   -2.01949172887638269E+02   -2.7828E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.005503E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.50539804E+02    0.00000000E+00   -1.66646547E+02    9.69402245E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3129,6 +2770,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.956408E-02    4.338742E-02    2.514471E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   1.0395377E-01  2.5744718E-01   -202.7963581
  ============================= Basis functions created. =============================
+max dev from unity    3.094679E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -3161,7 +2803,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.956408E-02    4.338742E-02    2.514471E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  7.9242892E-06   -2.02819284057786149E+02   -7.9676E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.094679E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52782763E+02    0.00000000E+00   -1.68126161E+02    9.46775668E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3193,7 +2837,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.956408E-02    4.338742E-02    2.514471E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  4.1748109E-06   -2.04568684058190115E+02   -1.7494E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.094679E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52782763E+02    0.00000000E+00   -1.67860560E+02    9.46775668E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3225,7 +2871,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.956408E-02    4.338742E-02    2.514471E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  2.3350776E-06   -2.03350753201757584E+02    1.2179E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.094679E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52782763E+02    0.00000000E+00   -1.67752341E+02    9.46775668E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3257,7 +2905,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.956408E-02    4.338742E-02    2.514471E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  1.3212592E-06   -2.03024650332431861E+02    3.2610E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.094679E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.52782763E+02    0.00000000E+00   -1.67699405E+02    9.46775668E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3323,6 +2973,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.622724E-03    2.853720E-02    2.826224E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   6.1204806E-02  2.4468297E-01   -202.9104598
  ============================= Basis functions created. =============================
+max dev from unity    2.944364E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -3355,7 +3006,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.622724E-03    2.853720E-02    2.826224E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  1.9282891E-06   -2.02912042158205509E+02    8.3391E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.944364E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53558542E+02    0.00000000E+00   -1.68118438E+02    9.37182601E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3387,7 +3040,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.622724E-03    2.853720E-02    2.826224E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  1.0564650E-06   -2.03171409260716018E+02   -2.5937E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.944364E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53558542E+02    0.00000000E+00   -1.68058885E+02    9.37182601E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3419,7 +3074,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.622724E-03    2.853720E-02    2.826224E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  6.0034992E-07   -2.02973459629096510E+02    1.9795E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.944364E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53558542E+02    0.00000000E+00   -1.68030397E+02    9.37182601E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3451,7 +3108,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.622724E-03    2.853720E-02    2.826224E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  3.4476340E-07   -2.02912389691224689E+02    6.1070E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.944364E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53558542E+02    0.00000000E+00   -1.68015020E+02    9.37182601E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3517,6 +3176,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.138504E-03    2.717826E-02    3.038536E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.2970348E-02  2.3338125E-01   -202.8848735
  ============================= Basis functions created. =============================
+max dev from unity    2.995933E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -3549,7 +3209,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.138504E-03    2.717826E-02    3.038536E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  3.7201143E-07   -2.02885450539014300E+02    3.2626E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.995933E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53791964E+02    0.00000000E+00   -1.68112168E+02    9.34730464E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3581,7 +3243,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.138504E-03    2.717826E-02    3.038536E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  1.7908097E-07   -2.02973696906947794E+02   -8.8246E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.995933E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53791964E+02    0.00000000E+00   -1.68094002E+02    9.34730464E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3613,7 +3277,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.138504E-03    2.717826E-02    3.038536E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  9.9688036E-08   -2.02908704565890162E+02    6.4992E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.995933E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53791964E+02    0.00000000E+00   -1.68085393E+02    9.34730464E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3645,7 +3311,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.138504E-03    2.717826E-02    3.038536E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  5.8235397E-08   -2.02888109494325818E+02    2.0595E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.995933E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53791964E+02    0.00000000E+00   -1.68080754E+02    9.34730464E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3711,6 +3379,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.496154E-03    2.521725E-02    3.276290E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.8269415E-02  2.1986052E-01   -202.8808416
  ============================= Basis functions created. =============================
+max dev from unity    3.135701E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -3743,7 +3412,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.496154E-03    2.521725E-02    3.276290E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   1  2.0386896E-07   -2.02881122358203811E+02   -1.2085E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.135701E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53859058E+02    0.00000000E+00   -1.68085792E+02    9.34013525E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3775,7 +3446,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.496154E-03    2.521725E-02    3.276290E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   2  1.0765284E-07   -2.02918221504305507E+02   -3.7099E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.135701E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53859058E+02    0.00000000E+00   -1.68076858E+02    9.34013525E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3807,7 +3480,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.496154E-03    2.521725E-02    3.276290E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   3  6.2031243E-08   -2.02894350921062710E+02    2.3871E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.135701E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53859058E+02    0.00000000E+00   -1.68072200E+02    9.34013525E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -3839,7 +3514,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.496154E-03    2.521725E-02    3.276290E
    coefficients / kernel obtained by diagonalization.
    it, Delta POT, energy, energyDiff   4  3.6721723E-08   -2.02885359376940073E+02    8.9915E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.135701E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.53859058E+02    0.00000000E+00   -1.68069570E+02    9.34013525E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------

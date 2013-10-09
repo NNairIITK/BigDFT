@@ -1,4 +1,5 @@
  <BigDFT> log of the run will be written in logfile: ./log-read.yaml
+ <BigDFT> Logfile existing, renamed into: ./logfiles/log-read.15:49:56.704.yaml
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 0 treat 2 orbitals,       |
@@ -13,53 +14,6 @@ sparsity:  0.00%
 total elements: 49
 non-zero elements: 49
 sparsity:  0.00%
-ifrag,iorb,rot_axis,theta  1   4     0.707107     0.707107    -0.000000   145.000000
-ifrag,iorb,rot_axis,theta  1   7     0.707107     0.707107    -0.000000   145.000000
-ifrag,iorb,rot_axis,theta  1   5     0.707107     0.707107    -0.000000   145.000000
-ifrag,iorb,rot_axis,theta  1   3     0.707107     0.707107    -0.000000   145.000000
-ifrag,iorb,rot_axis,theta  1   6     0.707107     0.707107    -0.000000   145.000000
-ifrag,iorb,rot_axis,theta  1   1     0.707107     0.707107     0.000000   145.000000
-ifrag,iorb,rot_axis,theta  1   2     0.707107     0.707107    -0.000000   145.000000
- Rotation axis: [ 0.707106781187,  0.707106781187, -9.678073873536E-17]
- Rotation angle (deg)                  :  145.000000000
- Translation vector: [ 7.851315587400E-02, -7.851315587400E-02,  0.00000000000]
- Rotation matrix elements:
- -  [  9.042397785553E-02,  0.909576022144,  0.405579787673 ]
- -  [  0.909576022144,  9.042397785553E-02, -0.405579787673 ]
- -  [ -0.405579787673,  0.405579787673, -0.819152044289 ]
- Suggested order for the transformation:  [  2,  1,  3 ]
- Rotation axis: [ 0.707106781187,  0.707106781187, -9.678073873536E-17]
- Rotation angle (deg)                  :  145.000000000
- Translation vector: [ 7.851315587400E-02, -7.851315587400E-02,  0.00000000000]
- Rotation matrix elements:
- -  [  9.042397785553E-02,  0.909576022144,  0.405579787673 ]
- -  [  0.909576022144,  9.042397785553E-02, -0.405579787673 ]
- -  [ -0.405579787673,  0.405579787673, -0.819152044289 ]
- Suggested order for the transformation:  [  2,  1,  3 ]
- Rotation axis: [ 0.707106781187,  0.707106781187, -1.935614774707E-16]
- Rotation angle (deg)                  :  145.000000000
- Translation vector: [ 7.444758809600E-02, -7.444758809600E-02, -0.167052200311]
- Rotation matrix elements:
- -  [  9.042397785551E-02,  0.909576022144,  0.405579787673 ]
- -  [  0.909576022144,  9.042397785551E-02, -0.405579787673 ]
- -  [ -0.405579787673,  0.405579787673, -0.819152044289 ]
- Suggested order for the transformation:  [  2,  1,  3 ]
- Rotation axis: [ 0.707106781187 Rotation axis: [ 0.707106781187,  0.707106781187,  0.707106781187, -9.678073873536E-17]
-, -1.006519682848E-14]
- Rotation angle (deg)                  :  145.000000000
- Translation vector: [ Rotation angle (deg)                  :  145.000000000
- Translation vector: [ 0.285552411904,  0.164447588096 7.851315587400E-02, -7.851315587400E-02,  0.00000000000,  0.202973688252]
-]
- Rotation matrix elements:
- Rotation matrix elements:
- -  [  9.042397785557E-02,  0.909576022144,  0.405579787673 ]
- -  [  9.042397785553E-02,  0.909576022144,  0.405579787673 ]
- -  [  0.909576022144,  9.042397785549E-02, -0.405579787673 ]
- -  [  0.909576022144,  9.042397785553E-02, -0.405579787673 ]
- -  [ -0.405579787673,  0.405579787673, -0.819152044289 ]
- -  [ -0.405579787673,  0.405579787673, -0.819152044289 ]
- Suggested order for the transformation:  [  2,  1,  3 ]
- Suggested order for the transformation:  [  2,  1,  3 ]
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 0
    - Grid spacing has changed: 0
@@ -69,7 +23,8 @@ ifrag,iorb,rot_axis,theta  1   2     0.707107     0.707107    -0.000000   145.00
    - Molecule was shifted: 7
    - Molecule was rotated: 7
    - Discrete operations: 0
-coeff renormalization... -------------------------------------------------
+coeff renormalization... nstates_max:           4           4           7
+ -------------------------------------------------
  some selected eigenvalues:
    eval(1)=  -4.394246225847E-01
    eval(2)=  -2.696744289519E-01
@@ -81,63 +36,66 @@ coeff renormalization... -------------------------------------------------
  -------------------------------------------------
  lowest, highest ev: -4.3942462258468951E-01  1.9376080229511869E-01
 coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   6.999999904050E+00
+   Calculation finished. TOTAL CHARGE =   6.999999949755E+00
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
+max dev from unity    2.062511E-05
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    5.62540441E+00    0.00000000E+00   -7.94274806E+00    1.82245965E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.332843E-002     0.000000E+000    -1.824302E+000     1.000000E-001
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.410272E-002     0.000000E+000    -2.003323E+000     1.000000E-001
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.830093E-01    2.194309E-01    5.916793E-02
- iter, fnrm, fnrmMax, ebs, diff     1  6.6472869E-01  8.3067924E-01    -5.2624665953  -5.2625E+00
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.195071E-01    1.353969E-01    7.699111E-01
+ iter, fnrm, fnrmMax, ebs, diff     1  2.0660325E-01  2.3595051E-01    -5.4826764730  -5.4827E+00
  WARNING: not converged within 1 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   6.6472869E-01  8.3067924E-01     -5.2624666
+ Final values for fnrm, fnrmMax, ebs:   2.0660325E-01  2.3595051E-01     -5.4826765
  ============================= Basis functions created. =============================
+max dev from unity    2.062511E-05
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.532839E-002    -1.824302E+000    -3.042833E-003     2.000000E-001
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.997307E-002    -2.003323E+000    -1.158592E-003     2.000000E-001
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   6.999999905185E+00
+   Calculation finished. TOTAL CHARGE =   6.999999948526E+00
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  8.5031053E-08   -5.26550942786862919E+00   -5.2655E+00
+   it, Delta DENS, energy, energyDiff   1  5.8031102E-08   -5.48383506529120801E+00   -5.4838E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.827344571862E+00  9.054987615417E+00 -2.186675065999E+00 -2.853841964642E+00  0.000000000000E+00  4.931397161762E+00  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   8.50E-08   -5.26550942786862919E+00   -5.2655E+00
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.004481271471E+00  9.061996072477E+00 -2.187381736032E+00 -2.854773672415E+00  0.000000000000E+00  4.931397161762E+00  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   5.80E-08   -5.48383506529120801E+00   -5.4838E+00
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
      - target function is energy
      - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -5.262467E+00    6.65E-01
+     Final values: target function, fnrm  -5.482676E+00    2.07E-01
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    8.50E-08   -5.26550942786862919E+00
-   > energy difference to last iteration: -5.265509E+00
+     FINAL values: it, Delta DENS, energy   1    5.80E-08   -5.48383506529120801E+00
+   > energy difference to last iteration: -5.483835E+00
  ############################################################################################
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.827344571862E+00  9.054987615417E+00 -2.186675065999E+00 -2.853841964642E+00  0.000000000000E+00  4.931397161762E+00  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   8.50E-08   -5.26550942786862919E+00    0.0000E+00   FINAL
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.004481271471E+00  9.061996072477E+00 -2.187381736032E+00 -2.854773672415E+00  0.000000000000E+00  4.931397161762E+00  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   5.80E-08   -5.48383506529120801E+00    0.0000E+00   FINAL
 Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   6.999999905185E+00
+   Calculation finished. TOTAL CHARGE =   6.999999948526E+00
 coeff renormalization...-------------------------------------------------------------------------------------------------
  Site energies:
  state, energy, orthog energy, frag eval, overlap, orthog overlap, occ
 sih3  1
-  HOMO-3      -0.405822406535      -0.408576232270      -0.439424622585       1.001664869224       1.000000000000  2.00
-  HOMO-2      -0.236356706285      -0.236668907461      -0.269674428952       1.007435890955       1.000000000000  2.00
-  HOMO-1      -0.228910519869      -0.231158939849      -0.268796504403       0.994972488041       1.000000000000  2.00
-    HOMO      -0.069248566314      -0.069694183999      -0.095708928397       0.990227086372       1.000000000000  1.00
-    LUMO       0.174432100102       0.174239802293       0.179989692899       1.012222575834       1.000000000000  0.00
-  LUMO+1       0.193043248229       0.199964060441       0.193190860767       0.974243255329       1.000000000000  0.00
-  LUMO+2       0.222699745842       0.219079962471       0.193760802295       1.019233829084       1.000000000000  0.00
-              -1.811427831691      -1.822502343158      -2.051500040277
+  HOMO-3      -0.431526451666      -0.431532155435      -0.439424622585       0.999987096163       1.000000000000  2.00
+  HOMO-2      -0.267102971720      -0.267096146241      -0.269674428952       1.000025295286       1.000000000000  2.00
+  HOMO-1      -0.269550247314      -0.269544739547      -0.268796504403       1.000020119449       1.000000000000  2.00
+    HOMO      -0.066234682208      -0.066234756927      -0.095708928397       1.000000579197       1.000000000000  1.00
+    LUMO       0.173221142615       0.173225423674       0.179989692899       0.999975215519       1.000000000000  0.00
+  LUMO+1       0.207233450968       0.207234581419       0.193190860767       0.999995074938       1.000000000000  0.00
+  LUMO+2       0.203654899419       0.203655696020       0.193760802295       0.999996619852       1.000000000000  0.00
+              -2.002594023607      -2.002580839374      -2.051500040277
 -------------------------------------------------------------------------------------------------
-              -1.811427831691      -1.822502343158      -2.051500040277
+              -2.002594023607      -2.002580839374      -2.051500040277
 -------------------------------------------------------------------------------------------------
