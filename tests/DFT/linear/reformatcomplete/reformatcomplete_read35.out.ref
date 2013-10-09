@@ -1,0 +1,327 @@
+ <BigDFT> log of the run will be written in logfile: ./log-read35.yaml
+ ------------------------------------------------------------------------------------
+ >>>> Partition of the basis functions among the processes.
+    | Processes from 0 to 5 treat 4 orbitals. |
+ -----------------------------------------------
+total elements: 576
+non-zero elements: 576
+sparsity:  0.00%
+total elements: 576
+non-zero elements: 576
+sparsity:  0.00%
+total elements: 576
+non-zero elements: 576
+sparsity:  0.00%
+ifrag,ifrag_ref,rot_axis,theta  1   1     0.577350    -0.577350    -0.577350     0.000000
+ifrag,ifrag_ref,rot_axis,theta  2   1     1.000000     0.000000     0.000000    31.000000
+ifrag,ifrag_ref,rot_axis,theta  3   1    -0.507093    -0.169031    -0.845154    95.127500
+ifrag,ifrag_ref,rot_axis,theta  4   1    -0.000000     0.707107     0.707107    99.875200
+ifrag,ifrag_ref,rot_axis,theta  2   1     1.000000     0.000000     0.000000    31.000000
+ifrag,ifrag_ref,rot_axis,theta  1   1     0.577350    -0.577350    -0.577350     0.000000
+ifrag,ifrag_ref,rot_axis,theta  4   1    -0.000000     0.707107     0.707107    99.875200
+ifrag,ifrag_ref,rot_axis,theta  3   1    -0.507093    -0.169031    -0.845154    95.127500
+ Rotation axis: [ 0.577350269190, -0.577350269190, -0.577350269190]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 0.407692459555,  7.082313804544E-02,  0.113480202276]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000, -0.00000000000 ]
+ -  [ -0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+ Rotation axis: [-0.507092552837, -0.169030850945, -0.845154254729]
+ Rotation angle (deg)                  :  95.1275000000
+ Translation vector: [ 1.43361648451,  8.006281380095E-02, -1.00657973284]
+ Rotation matrix elements:
+ -  [  0.190751967086,  0.935146960864,  0.298519427577 ]
+ -  [ -0.748397414807, -5.824742765768E-02,  0.660687934415 ]
+ -  [  0.635228302710, -0.349438690987,  0.688750756571 ]
+ Suggested order for the transformation:  [  2,  1,  3 ]
+ Rotation axis: [ 1.00000000000,  3.461119838038E-13,  7.395161080298E-13]
+ Rotation angle (deg)                  :  31.0000000000
+ Translation vector: [ 1.48714470954, -0.567610636138,  0.101541416627]
+ Rotation matrix elements:
+ -  [  1.00000000000, -3.314428437387E-13,  2.838879317259E-13 ]
+ -  [  4.303150615508E-13,  0.857167300702, -0.515038074910 ]
+ -  [ -7.263376795742E-14,  0.515038074910,  0.857167300702 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+ Rotation axis: [-1.110016063598E-13,  0.707106781186,  0.707106781187]
+ Rotation angle (deg)                  :  99.8752000000
+ Translation vector: [ 1.33771854058, -0.119989313869, -7.139203332535E-02]
+ Rotation matrix elements:
+ -  [ -0.171502687837, -0.696630041007,  0.696630041006 ]
+ -  [  0.696630041007,  0.414248656081,  0.585751343919 ]
+ -  [ -0.696630041006,  0.585751343918,  0.414248656082 ]
+ Suggested order for the transformation:  [  2,  3,  1 ]
+ Rotation axis: [-0.507092552837, -0.169030850945, -0.845154254729]
+ Rotation angle (deg)                  :  95.1275000000
+ Translation vector: [-0.640840467226,  0.638707141135,  0.126365572731]
+ Rotation matrix elements:
+ -  [  0.190751967086,  0.935146960864,  0.298519427577 ]
+ -  [ -0.748397414807, -5.824742765768E-02,  0.660687934415 ]
+ -  [  0.635228302710, -0.349438690987,  0.688750756571 ]
+ Suggested order for the transformation:  [  2,  1,  3 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  7.872220292,  9.038434177,  8.998660416 ]
+ Rotation axis: [ 0.577350269190, -0.577350269190, -0.577350269190]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 0.107692459556,  7.082313804539E-02,  0.113480202277]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000, -0.00000000000 ]
+ -  [ -0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.951672542,  8.400000403,  8.986721630 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.802246373,  8.847621725,  8.813788180 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.898144317,  9.047673853,  7.878600481 ]
+ Centre old                            :  [  8.869161403,  8.268959182,  8.232418648 ]
+ Centre new                            :  [  8.228320936,  8.907666323,  8.358784221 ]
+ Rotation axis: [-1.110016063598E-13,  0.707106781186,  0.707106781187]
+ Rotation angle (deg)                  :  99.8752000000
+ Translation vector: [ 1.33771854058, -0.119989313869, -7.139203332535E-02]
+ Rotation matrix elements:
+ -  [ -0.171502687837, -0.696630041007,  0.696630041006 ]
+ -  [  0.696630041007,  0.414248656081,  0.585751343919 ]
+ -  [ -0.696630041006,  0.585751343918,  0.414248656082 ]
+ Suggested order for the transformation:  [  2,  3,  1 ]
+ Rotation axis: [-0.507092552837, -0.169030850945, -0.845154254729]
+ Rotation angle (deg)                  :  95.1275000000
+ Translation vector: [ 0.769925582268, -2.193523543746E-02, -4.796558165001E-02]
+ Rotation matrix elements:
+ -  [  0.190751967086,  0.935146960864,  0.298519427577 ]
+ -  [ -0.748397414807, -5.824742765768E-02,  0.660687934415 ]
+ -  [  0.635228302710, -0.349438690987,  0.688750756571 ]
+ Suggested order for the transformation:  [  2,  1,  3 ]
+ Rotation axis: [ 1.00000000000,  3.461119838038E-13,  7.395161080298E-13]
+ Rotation angle (deg)                  :  31.0000000000
+ Translation vector: [ 1.48714470954, -0.567610636138,  0.101541416627]
+ Rotation matrix elements:
+ -  [  1.00000000000, -3.314428437387E-13,  2.838879317259E-13 ]
+ -  [  4.303150615508E-13,  0.857167300702, -0.515038074910 ]
+ -  [ -7.263376795742E-14,  0.515038074910,  0.857167300702 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+ Rotation axis: [-0.507092552837, -0.169030850945, -0.845154254729]
+ Rotation angle (deg)                  :  95.1275000000
+ Translation vector: [ 1.43361648451,  8.006281380095E-02, -1.00657973284]
+ Rotation matrix elements:
+ -  [  0.190751967086,  0.935146960864,  0.298519427577 ]
+ -  [ -0.748397414807, -5.824742765768E-02,  0.660687934415 ]
+ -  [  0.635228302710, -0.349438690987,  0.688750756571 ]
+ Suggested order for the transformation:  [  2,  1,  3 ]
+ Centre old                            :  [  8.230838597,  8.831040818,  8.867581352 ]
+ Centre new                            :  [  8.338531057,  8.901863956,  8.981061554 ]
+ Rotation axis: [ 1.00000000000,  3.461119838038E-13,  7.395161080298E-13]
+ Rotation angle (deg)                  :  31.0000000000
+ Translation vector: [-1.285529045723E-02,  2.288817672765E-02,  0.177794615232]
+ Rotation matrix elements:
+ -  [  1.00000000000, -3.314428437387E-13,  2.838879317259E-13 ]
+ -  [  4.303150615508E-13,  0.857167300702, -0.515038074910 ]
+ -  [ -7.263376795742E-14,  0.515038074910,  0.857167300702 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.802246373,  8.847621725,  8.813788180 ]
+ Rotation axis: [-1.110016063598E-13,  0.707106781186,  0.707106781187]
+ Rotation angle (deg)                  :  99.8752000000
+ Translation vector: [ 1.33771854058, -0.119989313869, -7.139203332535E-02]
+ Rotation matrix elements:
+ -  [ -0.171502687837, -0.696630041007,  0.696630041006 ]
+ -  [  0.696630041007,  0.414248656081,  0.585751343919 ]
+ -  [ -0.696630041006,  0.585751343918,  0.414248656082 ]
+ Suggested order for the transformation:  [  2,  3,  1 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.951672542,  8.400000403,  8.986721630 ]
+ Centre old                            :  [  8.230838597,  8.831040818,  8.867581352 ]
+ Centre new                            :  [  9.000764179,  8.809105583,  8.819615770 ]
+ Rotation axis: [ 1.00000000000,  3.461119838038E-13,  7.395161080298E-13]
+ Rotation angle (deg)                  :  31.0000000000
+ Translation vector: [ 1.48714470954, -0.567610636138,  0.101541416627]
+ Rotation matrix elements:
+ -  [  1.00000000000, -3.314428437387E-13,  2.838879317259E-13 ]
+ -  [  4.303150615508E-13,  0.857167300702, -0.515038074910 ]
+ -  [ -7.263376795742E-14,  0.515038074910,  0.857167300702 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+ Rotation axis: [-1.110016063598E-13,  0.707106781186,  0.707106781187]
+ Rotation angle (deg)                  :  99.8752000000
+ Translation vector: [ 0.115166081093,  0.709675525084,  0.598943127722]
+ Rotation matrix elements:
+ -  [ -0.171502687837, -0.696630041007,  0.696630041006 ]
+ -  [  0.696630041007,  0.414248656081,  0.585751343919 ]
+ -  [ -0.696630041006,  0.585751343918,  0.414248656082 ]
+ Suggested order for the transformation:  [  2,  3,  1 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.898144317,  9.047673853,  7.878600481 ]
+ Rotation axis: [-0.507092552837, -0.169030850945, -0.845154254729]
+ Rotation angle (deg)                  :  95.1275000000
+ Translation vector: [ 1.43361648451,  8.006281380095E-02, -1.00657973284]
+ Rotation matrix elements:
+ -  [  0.190751967086,  0.935146960864,  0.298519427577 ]
+ -  [ -0.748397414807, -5.824742765768E-02,  0.660687934415 ]
+ -  [  0.635228302710, -0.349438690987,  0.688750756571 ]
+ Suggested order for the transformation:  [  2,  1,  3 ]
+ Centre old                            :  [  8.869161403,  8.268959182,  8.232418648 ]
+ Centre new                            :  [  8.856306112,  8.291847359,  8.410213264 ]
+ Rotation axis: [ 1.00000000000,  3.461119838038E-13,  7.395161080298E-13]
+ Rotation angle (deg)                  :  31.0000000000
+ Translation vector: [ 1.48714470954, -0.567610636138,  0.101541416627]
+ Rotation matrix elements:
+ -  [  1.00000000000, -3.314428437387E-13,  2.838879317259E-13 ]
+ -  [  4.303150615508E-13,  0.857167300702, -0.515038074910 ]
+ -  [ -7.263376795742E-14,  0.515038074910,  0.857167300702 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.802246373,  8.847621725,  8.813788180 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.951672542,  8.400000403,  8.986721630 ]
+ Rotation axis: [-1.110016063598E-13,  0.707106781186,  0.707106781187]
+ Rotation angle (deg)                  :  99.8752000000
+ Translation vector: [ 0.640840467226, -6.501577446244E-02,  0.173634427269]
+ Rotation matrix elements:
+ -  [ -0.171502687837, -0.696630041007,  0.696630041006 ]
+ -  [  0.696630041007,  0.414248656081,  0.585751343919 ]
+ -  [ -0.696630041006,  0.585751343918,  0.414248656082 ]
+ Suggested order for the transformation:  [  2,  3,  1 ]
+ Rotation axis: [ 1.00000000000,  3.461119838038E-13,  7.395161080298E-13]
+ Rotation angle (deg)                  :  31.0000000000
+ Translation vector: [ 0.587144709543, -0.540146400611, -1.699853568212E-02]
+ Rotation matrix elements:
+ -  [  1.00000000000, -3.314428437387E-13,  2.838879317259E-13 ]
+ -  [  4.303150615508E-13,  0.857167300702, -0.515038074910 ]
+ -  [ -7.263376795742E-14,  0.515038074910,  0.857167300702 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+ Centre old                            :  [  8.869161403,  8.268959182,  8.232418648 ]
+ Centre new                            :  [  8.984327484,  8.978634707,  8.831361776 ]
+ Rotation axis: [-1.110016063598E-13,  0.707106781186,  0.707106781187]
+ Rotation angle (deg)                  :  99.8752000000
+ Translation vector: [ 1.33771854058, -0.119989313869, -7.139203332535E-02]
+ Rotation matrix elements:
+ -  [ -0.171502687837, -0.696630041007,  0.696630041006 ]
+ -  [  0.696630041007,  0.414248656081,  0.585751343919 ]
+ -  [ -0.696630041006,  0.585751343918,  0.414248656082 ]
+ Suggested order for the transformation:  [  2,  3,  1 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.898144317,  9.047673853,  7.878600481 ]
+ Rotation axis: [-0.507092552837, -0.169030850945, -0.845154254729]
+ Rotation angle (deg)                  :  95.1275000000
+ Translation vector: [ 1.43361648451,  8.006281380095E-02, -1.00657973284]
+ Rotation matrix elements:
+ -  [  0.190751967086,  0.935146960864,  0.298519427577 ]
+ -  [ -0.748397414807, -5.824742765768E-02,  0.660687934415 ]
+ -  [  0.635228302710, -0.349438690987,  0.688750756571 ]
+ Suggested order for the transformation:  [  2,  1,  3 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.951672542,  8.400000403,  8.986721630 ]
+ Centre old                            :  [  8.230838597,  8.831040818,  8.867581352 ]
+ Centre new                            :  [  8.871679064,  8.766025044,  9.041215779 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.802246373,  8.847621725,  8.813788180 ]
+ Centre old                            :  [  8.230838597,  8.831040818,  8.867581352 ]
+ Centre new                            :  [  8.817983307,  8.290894417,  8.850582816 ]
+ Centre old                            :  [  7.464527832,  8.967611039,  8.885180213 ]
+ Centre new                            :  [  8.898144317,  9.047673853,  7.878600481 ]
+ Overview of the reformatting (several categories may apply):
+   - No reformatting required: 0
+   - Grid spacing has changed: 0
+   - Number of coarse grid points has changed: 24
+   - Number of fine grid points has changed: 24
+   - Box size has changed: 24
+   - Molecule was shifted: 24
+   - Molecule was rotated: 18
+   - Discrete operations: 0
+coeff renormalization...coeff renormalization...coeff renormalization...coeff renormalization... nstates_max:          16          16          24
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=  -9.212793564483E-01
+   eval(2)=  -9.212793564483E-01
+   eval(3)=  -9.212793564483E-01
+   eval(4)=  -9.212793564483E-01
+   eval(5)=  -4.823929093162E-01
+   eval(6)=  -4.823929093162E-01
+   eval(7)=  -4.823929093162E-01
+   eval(8)=  -4.823929093162E-01
+   eval(9)=  -3.417921811586E-01
+   eval(10)=  -3.417921811586E-01
+   eval(11)=  -3.417921811586E-01
+   eval(12)=  -3.417921811586E-01
+   eval(13)=  -2.698785943401E-01
+   eval(14)=  -2.698785943401E-01
+   eval(15)=  -2.698785943401E-01
+   eval(16)=  -2.698785943401E-01  <-- last occupied orbital
+   eval(17)=   1.527459848654E-02  <-- first virtual orbital
+   eval(18)=   1.527459848654E-02
+   eval(19)=   1.527459848654E-02
+   eval(20)=   1.527459848654E-02
+   eval(21)=   1.030959275758E-01
+   eval(22)=   1.030959275758E-01
+   eval(23)=   1.030959275758E-01
+   eval(24)=   1.030959275758E-01
+ -------------------------------------------------
+ lowest, highest ev: -9.2127935644832970E-01  1.0309592757580870E-01
+coeff renormalization... calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   3.199999979099E+01
+ ************************************************************************************
+ ****************************** LINEAR SCALING VERSION ******************************
+max dev from unity    2.184007E-01
+ ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    5.03703787E+01    0.00000000E+00   -6.52968580E+01    4.20026345E+00    0.00000000E+00
+ Hamiltonian application done.
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.295959E-002     0.000000E+000    -1.624085E+001     1.000000E-001
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.058646E-01    2.771576E-01    5.803568E-02
+ iter, fnrm, fnrmMax, ebs, diff     1  4.3330181E-01  8.0893672E-01   -68.6163722758  -6.8616E+01
+ WARNING: not converged within 1 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   4.3330181E-01  8.0893672E-01    -68.6163723
+ ============================= Basis functions created. =============================
+max dev from unity    2.184007E-01
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.027033E-002    -1.624085E+001    -2.697384E-003     2.000000E-001
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   3.199999979182E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   1  4.2795113E-08   -6.86190696595716361E+01   -6.8619E+01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.624354263557E+01  1.421510768206E+02 -1.648041875815E+01 -2.160366388532E+01  0.000000000000E+00  8.478410831474E+01  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   4.28E-08   -6.86190696595716361E+01   -6.8619E+01
+ ############################################################################################
+ at iteration 1 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -6.861637E+01    4.33E-01
+   > density optimization:
+     - using direct minimization.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   1    4.28E-08   -6.86190696595716361E+01
+   > energy difference to last iteration: -6.861907E+01
+ ############################################################################################
+ Weight analysis:
+ coeff, occ, eval, frac for each frag
+   1  2.0000  -0.921279  0.9897  0.0003  0.0099  0.0002   
+   2  2.0000  -0.921279  0.0059  0.9940  0.0000  0.0001   
+   3  2.0000  -0.921279  0.0004  0.0000  0.9994  0.0002   
+   4  2.0000  -0.921279  0.0003  0.0001  0.0002  0.9994   
+   5  2.0000  -0.482393  0.9998  0.0002  0.0001  0.0000   
+   6  2.0000  -0.482393  0.0015  0.9985  0.0000  0.0000   
+   7  2.0000  -0.482393  0.0003  0.0000  0.9995  0.0002   
+   8  2.0000  -0.482393  0.0005  0.0001  0.0002  0.9992   
+   9  2.0000  -0.341792  0.9975  0.0004  0.0014  0.0007   
+  10  2.0000  -0.341792  0.0089  0.9911  0.0000  0.0000   
+  11  2.0000  -0.341792  0.0010  0.0000  0.9982  0.0007   
+  12  2.0000  -0.341792  0.0001  0.0006  0.0008  0.9985   
+  13  2.0000  -0.269879  0.9786  0.0004  0.0209  0.0002   
+  14  2.0000  -0.269879  0.0061  0.9934  0.0000  0.0006   
+  15  2.0000  -0.269879  0.0002  0.0000  0.9995  0.0003   
+  16  2.0000  -0.269879  0.0021  0.0000  0.0005  0.9974   
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.624354263557E+01  1.421510768206E+02 -1.648041875815E+01 -2.160366388532E+01  0.000000000000E+00  8.478410831474E+01  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   4.28E-08   -6.86190696595716361E+01    0.0000E+00   FINAL
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   3.199999979182E+01

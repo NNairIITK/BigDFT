@@ -1199,6 +1199,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 ! izp=3
 !!$  print *,'final case',(/ixp,iyp,izp/)
 !endif
+
   call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
        sint,cost,onemc,(/ixp,iyp,izp/),&
        hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
@@ -2222,80 +2223,87 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
 
     end function ind2
 
-    
-    !pure 
-subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
-         dt,istart,ms,me)
-      use module_base
-      implicit none
-      integer, intent(in) :: ntr !< id of the dimension to be transformed
-      integer, intent(in) :: istep,i2,i3
-      integer, intent(in) :: j1,j2,j3
-      integer, intent(out) :: istart,ms,me
-      real(gp), intent(out) :: dt
-      !local variables
-      integer :: ivars,istart_shift!,istep,i1,i2,i3
-      real(gp), dimension(3) :: t
-      real(gp) :: t0_l
+ 
+     pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
+          dt,istart,ms,me)
+       use module_base
+       implicit none
+       integer, intent(in) :: ntr !< id of the dimension to be transformed
+       integer, intent(in) :: istep,i2,i3
+       integer, intent(in) :: j1,j2,j3
+       integer, intent(out) :: istart,ms,me
+       real(gp), intent(out) :: dt
+       !local variables
+       integer :: ivars,istart_shift!,istep,i1,i2,i3
+       real(gp), dimension(3) :: t
+       real(gp) :: t0_l,coord_old
 
-      !define the coordinates in the reference frame, which depends on the transformed variables
-      t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
-      if (istep >=2) then
-         t(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
-      else
-         t(2)=-centre_old(i2)+real(j2-1,gp)*hgrids_old(i2)
-      end if
-      if (istep ==3) then
-         t(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
-      else
-         t(3)=-centre_old(i3)+real(j3-1,gp)*hgrids_old(i3)
-      end if
+       !define the coordinates in the reference frame, which depends on the transformed variables
+       t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
+       if (istep >=2) then
+          t(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
+       else
+          t(2)=-centre_old(i2)+real(j2-1,gp)*hgrids_old(i2)
+       end if
+       if (istep ==3) then
+          t(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
+       else
+          t(3)=-centre_old(i3)+real(j3-1,gp)*hgrids_old(i3)
+       end if
 
-      !code for the coords
-      ivars=1000*istep+100+10*i2+i3
+       !code for the coords
+       ivars=1000*istep+100+10*i2+i3
 
-      !define the value of the shift of the variable we are going to transform
-!      t0_l=(t(ntr)-x_xpyz(theta,newz,t(1),t(2),t(3))+shift(ntr))/hgrids_old(ntr)
-      t0_l=(t(ntr)-coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))+da(ntr))/hgrids_old(ntr)
+       !define the value of the shift of the variable we are going to transform
+       !coordinate that has to be found in the old box, including the shift 
+       coord_old=coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr)
 
+       !central point of the convolution rounded to the grid points
+       istart=min(max(1,nint((coord_old+centre_old(ntr)+hgrids_old(ntr))&
+            /hgrids_old(ntr))),ndims_old(ntr))
 
-	   !old case for istart definition	   
-      istart=min(max(1,nint((&
-           coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr)+centre_old(ntr)+hgrids_old(ntr))&
-           /hgrids_old(ntr))),ndims_old(ntr))
+       !this shift brings the old point in the new reference frame
+       dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
 
+!!$      select case(ntr)
+!!$      case(1)
+!!$dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
+!!$      case(2)
+!!$         if (istep >=2) then
+!!$dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
+!!$         else
+!!$dt=real(istart,gp)-(coord_old+centre_old(i2)+hgrids_old(i2))/hgrids_old(ntr)
+!!$         end if
+!!$      case(3)
+!!$         if (istep ==3) then
+!!$dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
+!!$         else
+!!$dt=real(istart,gp)-(coord_old+centre_old(i3)+hgrids_old(i3))/hgrids_old(ntr)
+!!$         end if
+!!$      end select
 
-  
+       !old case, seems working only for the 123 scenario
+!!$            t0_l=(t(ntr)-coord_old)/hgrids_old(ntr)
+!!$      select case(ntr)
+!!$      case(1)
+!!$ dt=(real(istart,gp)+t0_l)-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
+!!$      case(2)
+!!$ dt=(real(istart,gp)+t0_l)-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
+!!$      case(3)
+!!$ dt=(real(istart,gp)+t0_l)-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
+!!$      end select
 
-!print *,'new',t
-!print *,'old',coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))
-!print *,'da',da
-!print *,'centre_old',centre_old
-!print *,'ntr',ntr
+       !purify the shift to be a inferior than multiple of the grid spacing
+       istart_shift=nint(dt)
+       dt=dt-real(istart_shift,gp)
+       istart=istart-istart_shift
 
-      !old case of evaluating dt
-      select case(ntr)
-      case(1)
-         dt=(real(istart,gp)+t0_l)-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
-      case(2)
-         dt=(real(istart,gp)+t0_l)-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
-      case(3)
-         dt=(real(istart,gp)+t0_l)-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
-      end select
+       !identify extremes for the convolution
+       ms=-min(m_isf,istart-1)
+       me=min(m_isf,ndims_old(ntr)-istart)
 
+     end subroutine shift_and_start
 
-	!post-treat shift and starting point so that multiples of hgrids are included in the convolution
-   istart_shift=nint(dt)
-	!print *,'test',dt,centre_old(ntr)-centre_new(ntr)-hgrids_old(ntr)+hgrids_new(ntr),istart,istart_shift
-	dt=dt-real(istart_shift,gp)
-   istart=istart-istart_shift
-
-
-         !identify extremes for the convolution
-      ms=-min(m_isf,istart-1)
-      me=min(m_isf,ndims_old(ntr)-istart)
-      
-    end subroutine shift_and_start
 
     pure function coord(icrd,ivars,u,C,S,onemc,x,y,z)
       use module_base, only: gp
