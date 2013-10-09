@@ -2462,31 +2462,31 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   deallocate(phi_array_old,stat=i_stat)
   call deallocate_local_zone_descriptors(lzd_old,subname)
 
-  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
-  ind=1
-  allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
-  call memocc(i_stat,gpsi,'gpsi',subname)
-  do iorbp=1,tmb%orbs%norbp
-     iiorb=iorbp+tmb%orbs%isorb
-     ilr = tmb%orbs%inwhichlocreg(iiorb)
-  
-     call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-  
-     write(orbname,*) iiorb
-     call plot_wf(trim(dir_output)//trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%glr,&
-          tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
-     !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
-     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
-   
-     ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  i_all=-product(shape(gpsi))*kind(gpsi)
-  deallocate(gpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'gpsi',subname)
-  ! END DEBUG 
+  !! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+  !ind=1
+  !allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
+  !call memocc(i_stat,gpsi,'gpsi',subname)
+  !do iorbp=1,tmb%orbs%norbp
+  !   iiorb=iorbp+tmb%orbs%isorb
+  !   ilr = tmb%orbs%inwhichlocreg(iiorb)
+  !
+  !   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+  !   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+  ! 
+  !   write(orbname,*) iiorb
+  !   call plot_wf(trim(dir_output)//trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%glr,&
+  !        tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+  !   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
+  !   !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
+  ! 
+  !   ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+  !end do
+  !i_all=-product(shape(gpsi))*kind(gpsi)
+  !deallocate(gpsi,stat=i_stat)
+  !call memocc(i_stat,i_all,'gpsi',subname)
+  !! END DEBUG 
 
 
   ! Read the coefficient file for each fragment and assemble total coeffs
@@ -3009,11 +3009,11 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
           !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
           !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
 
-call timing(iproc,'Reformatting ','ON')
+          call timing(iproc,'Reformatting ','ON')
           call reformat_one_supportfunction(tmb%lzd%llr(ilr)%wfd,tmb%lzd%llr(ilr)%geocode,lzd_old%hgrids,&
                n_old,phigold,tmb%lzd%hgrids,n,centre_old_box,centre_new_box,da,&
                frag_trans(iorb),tmb%psi(jstart))
-call timing(iproc,'Reformatting ','OF')
+          call timing(iproc,'Reformatting ','OF')
           jstart=jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 
           if (present(phi_array_old)) then   
@@ -3085,17 +3085,10 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
 
   !Calculate the shift of the atom to be used in reformat
-  da(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new_box(1),centre_old_box(1))
-  da(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new_box(2),centre_old_box(2))
-  da(3)=mindist(per(3),at%astruct%cell_dim(3),centre_new_box(3),centre_old_box(3))
-
-  !centre_new_box(1)=mindist(per(1),at%astruct%cell_dim(1),frag_trans%rot_center_new(1),hgrids(1)*(ns_old(1)-0.5_dp*nb(1)))
-  !centre_new_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center_new(2),hgrids(2)*(ns_old(2)-0.5_dp*nb(2)))
-  !centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns_old(3)-0.5_dp*nb(3)))
-
-
-!print*,'nb, ns, centre, centrebox (old)',nb,ns_old,frag_trans%rot_center,centre_old_box
-!print*,'nb, ns, centre, centrebox (new)',nb,ns,frag_trans%rot_center_new,centre_new_box
+  !da(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new_box(1),centre_old_box(1))
+  !da(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new_box(2),centre_old_box(2))
+  !da(3)=mindist(per(3),at%astruct%cell_dim(3),centre_new_box(3),centre_old_box(3))
+  da=centre_new_box-centre_old_box-(hgrids_old-hgrids)*0.5d0
 
   !print*,'reformat check',frag_trans%rot_center(2),ns_old(2),centre_old_box(2),&
   !     frag_trans%rot_center_new(2),ns(2),centre_new_box(2),da(2)
