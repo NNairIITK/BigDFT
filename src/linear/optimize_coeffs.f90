@@ -13,7 +13,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
     factor, reorder, num_extra)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => optimize_coeffs
   use diis_sd_optimization
   implicit none
 
