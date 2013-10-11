@@ -1792,7 +1792,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
-  type(collective_comms),intent(in) :: collcom_sr
+  type(collective_comms),intent(inout) :: collcom_sr
   type(DFT_local_fields),intent(in) :: denspot
   type(sparseMatrix),intent(inout) :: denskern
   integer,intent(in) :: check_sumrho

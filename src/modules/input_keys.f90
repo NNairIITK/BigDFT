@@ -125,6 +125,7 @@ module module_input_keys
   character(len = *), parameter, public :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
   character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter, public :: CHECK_SUMRHO = "check_sumrho"
+  character(len = *), parameter, public :: EXPERIMENTAL_MODE = "experimental_mode"
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0

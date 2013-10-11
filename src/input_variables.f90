@@ -395,12 +395,6 @@ subroutine sic_input_variables_default(in)
 
 END SUBROUTINE sic_input_variables_default
 
-
-  call input_var(in%lin%early_stop,'1.d-4',ranges=(/0.0_gp,1.0_gp/),comment=comments)
-  ! not sure whether to actually make this an input variable or not so just set to false for now
-  in%lin%diag_start=.false.
-
-
 !> Assign default values for TDDFT variables
 subroutine tddft_input_variables_default(in)
   use module_base
@@ -412,9 +406,6 @@ subroutine tddft_input_variables_default(in)
 
 END SUBROUTINE tddft_input_variables_default
 
-  call input_var("experimental_mode", .false., "linear scaling: activate the experimental mode", in%experimental_mode)
-  real :: charge
-    in%frag%charge(frag_num)=charge
   subroutine allocateInputFragArrays(input_frag)
     use module_types
     implicit none
@@ -1362,5 +1353,6 @@ subroutine perf_input_analyse(iproc,in,dict)
 
   in%check_sumrho = dict // CHECK_SUMRHO
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+  in%experimental_mode = dict//EXPERIMENTAL_MODE
 END SUBROUTINE perf_input_analyse
 

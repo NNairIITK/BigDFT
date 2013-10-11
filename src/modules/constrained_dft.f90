@@ -125,8 +125,8 @@ contains
     type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
     integer, intent(in) :: nfrag_charged
     integer, dimension(2), intent(in) :: ifrag_charged
-
-
+    !local variables
+    integer :: ifrag,iorb,ifrag_ref,isforb,istat
     real(kind=gp), allocatable, dimension(:,:) :: proj_mat, ovrlp_half, proj_ovrlp_half, inv_ovrlp_half
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
 

@@ -55,7 +55,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
   real(kind=8) :: deviation
-  integer :: iat, iiorb, jjorb, lwork
+  integer :: iat, iiorb, jjorb, lwork,jorb
 
   ! should eventually make this an input variable
   if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
