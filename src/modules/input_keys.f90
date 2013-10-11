@@ -229,7 +229,8 @@ contains
 
     call dict_free(parameters)
   END SUBROUTINE input_keys_finalize
-  
+
+  !this function is going to disappear as soon as the input is hard-coded in yaml format
   function get_dft_parameters()
     use dictionaries
     implicit none
@@ -940,14 +941,14 @@ contains
     use yaml_output
     implicit none
     character(len = *), intent(in) :: fname
-    character(len = *), intent(in), optional :: file
+    character(len = *), intent(in), optional :: file !<subsection of the input to be printed (old input.file)
     !local variables
     integer, parameter :: unt=789159 !to be sure is not opened
     integer :: iunit_def, ierr
 
     ! Switch YAML output stream
     call yaml_get_default_stream(iunit_def)
-    call yaml_set_stream(unit=unt,filename=trim(fname),tabbing=0,record_length=100)
+    call yaml_set_stream(unit=unt,filename=trim(fname),tabbing=0,record_length=100,istat=ierr)
 
     if (ierr == 0) then
        call input_keys_init()

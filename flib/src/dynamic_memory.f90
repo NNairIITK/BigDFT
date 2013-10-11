@@ -8,459 +8,6 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module used by the module to manage the memory allocations
-module metadata_interfaces
-
-  implicit none
-
-  private
-
-  integer, parameter :: longsize=20              !<could be lower
-  character(len=*), parameter :: fmtlong='(i20)' !< conversion of long integer
-
-  interface
-     subroutine geti1(array,iadd)
-       implicit none
-       integer, dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine geti1
-
-     subroutine geti2(array,iadd)
-       implicit none
-       integer, dimension(:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine geti2
-
-     subroutine geti3(array,iadd)
-       implicit none
-       integer, dimension(:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine geti3
-
-     subroutine geti4(array,iadd)
-       implicit none
-       integer, dimension(:,:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine geti4
-
-     subroutine getc1(array,iadd)
-       implicit none
-       character(len=*), dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getc1
-
-     subroutine getl1(array,iadd)
-       implicit none
-       logical, dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getl1
-
-     subroutine getl2(array,iadd)
-       implicit none
-       logical, dimension(:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getl2
-
-     subroutine getdp1(array,iadd)
-       implicit none
-       double precision, dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getdp1
-
-     subroutine getdp2(array,iadd)
-       implicit none
-       double precision, dimension(:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getdp2
-
-     subroutine getdp3(array,iadd)
-       implicit none
-       double precision, dimension(:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getdp3
-
-     subroutine getdp4(array,iadd)
-       implicit none
-       double precision, dimension(:,:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getdp4
-
-     subroutine getdp1ptr(array,iadd)
-       implicit none
-       double precision, dimension(:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getdp1ptr
-
-     subroutine getdp2ptr(array,iadd)
-       implicit none
-       double precision, dimension(:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getdp2ptr
-
-     subroutine getdp3ptr(array,iadd)
-       implicit none
-       double precision, dimension(:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getdp3ptr
-
-     subroutine getdp4ptr(array,iadd)
-       implicit none
-       double precision, dimension(:,:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getdp4ptr
-
-     subroutine getdp5ptr(array,iadd)
-       implicit none
-       double precision, dimension(:,:,:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine getdp5ptr
-
-     subroutine geti1ptr(array,iadd)
-       implicit none
-       integer, dimension(:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine geti1ptr
-
-     subroutine geti2ptr(array,iadd)
-       implicit none
-       integer, dimension(:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
-     end subroutine geti2ptr
-
-  end interface
-
-interface pad_array
-  module procedure pad_i1,pad_i2,pad_i3,pad_i4
-  module procedure pad_c1
-  module procedure pad_l1,pad_l2
-  module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
-end interface
-
-public :: pad_array,geti1,geti2,geti3,geti4
-public :: getc1
-public :: getl1,getl2
-public :: getdp1,getdp2,getdp3,getdp4!,getlongaddress
-public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr,geti2ptr
-public :: address_toi,long_toa
-
-contains
-
-  subroutine pad_i1(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
-    integer, dimension(shp(1)+ndebug), intent(out) :: array
-    
-    call pad_integer(array,init_to_zero,shp(1),shp(1)+ndebug)
-
-  end subroutine pad_i1
-
-  subroutine pad_i2(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
-    integer, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
-    
-    call pad_integer(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
-
-  end subroutine pad_i2
-
-  subroutine pad_i3(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
-    integer, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
-    
-    call pad_integer(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
-
-  end subroutine pad_i3
-
-  subroutine pad_i4(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
-    integer, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
-    
-    call pad_integer(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
-
-  end subroutine pad_i4
-
-  subroutine pad_c1(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
-    character(len=*), dimension(shp(1)+ndebug), intent(out) :: array
-    
-    call pad_character(array,init_to_zero,shp(1),shp(1)+ndebug)
-
-  end subroutine pad_c1
-
-  subroutine pad_l1(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
-    logical, dimension(shp(1)+ndebug), intent(out) :: array
-    
-    call pad_logical(array,init_to_zero,shp(1),shp(1)+ndebug)
-
-  end subroutine pad_l1
-
-  subroutine pad_l2(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
-    logical, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
-    
-    call pad_logical(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
-
-  end subroutine pad_l2
-
-  subroutine pad_dp1(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
-    double precision, dimension(shp(1)+ndebug), intent(out) :: array
-    
-    call pad_double(array,init_to_zero,shp(1),shp(1)+ndebug)
-
-  end subroutine pad_dp1
-
-  subroutine pad_dp2(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
-    double precision, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
-    
-    call pad_double(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
-
-  end subroutine pad_dp2
-
-  subroutine pad_dp3(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
-    double precision, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
-    
-    call pad_double(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
-
-  end subroutine pad_dp3
-
-  subroutine pad_dp4(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
-    double precision, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
-    
-    call pad_double(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
-
-  end subroutine pad_dp4
-
-  subroutine pad_dp5(array,init_to_zero,shp,ndebug)
-    implicit none
-    logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(5), intent(in) :: shp
-    double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5)+ndebug), intent(out) :: array
-    
-    call pad_double(array,init_to_zero,product(shp),product(shp(1:4))*(shp(5)+ndebug))
-
-  end subroutine pad_dp5
-
-
-  subroutine pad_double(array,init,ndim_tot,ndim_extra)
-    implicit none
-    logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
-    double precision, dimension(ndim_extra), intent(out) :: array
-    !local variables
-    integer :: i
-
-    if (init) call razero(ndim_tot,array)
-    do i=ndim_tot+1,ndim_extra
-       array(i)=d_nan()
-    end do
-  end subroutine pad_double
-
-  subroutine pad_simple(array,init,ndim_tot,ndim_extra)
-    implicit none
-    logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
-    real, dimension(ndim_extra), intent(out) :: array
-    !local variables
-    integer :: i,i_nan
-    real :: r_nan1
-    equivalence (r_nan1,i_nan)
-
-    if (init) call razero_simple(ndim_tot,array)
-    do i=ndim_tot+1,ndim_extra
-       array(i)=r_nan()
-    end do
-  end subroutine pad_simple
-
-  subroutine pad_logical(array,init,ndim_tot,ndim_extra)
-    implicit none
-    logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
-    logical, dimension(ndim_extra), intent(out) :: array
-    !local variables
-    integer :: i
-
-    if (init) then
-       do i=1,ndim_tot
-          array(i)=.false.
-       end do
-    end if
-    do i=ndim_tot+1,ndim_extra
-       array(i)=.true.
-    end do
-  end subroutine pad_logical
-
-  subroutine pad_integer(array,init,ndim_tot,ndim_extra)
-    implicit none
-    logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
-    integer, dimension(ndim_extra), intent(out) :: array
-    !local variables
-    integer :: i
-
-    if (init) call razero_integer(ndim_tot,array)
-    do i=ndim_tot+1,ndim_extra
-       array(i)= 2147483647 !i_nan
-    end do
-  end subroutine pad_integer
-
-  subroutine pad_character(array,init,ndim_tot,ndim_extra)
-    implicit none
-    logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
-    character(len=*), dimension(ndim_extra), intent(out) :: array
-    !local variables
-    integer :: i
-
-    if (init) then
-       do i=1,ndim_tot
-          array(i)=repeat(' ',len(array(1)))
-       end do
-    end if
-    do i=ndim_tot+1,ndim_extra
-       array(i)=repeat('X',len(array(1)))
-    end do
-  end subroutine pad_character
-
-  !> Function which specify NaN according to IEEE specifications
-  function d_nan()
-   implicit none
-   double precision :: d_nan
-   !local variables
-   double precision :: dnan
-   integer, dimension(2) :: inan
-   equivalence (dnan, inan)
-   ! This first assignment is for big-endian machines
-   inan(1) = 2147483647
-   ! The second assignment is for little-endian machines
-   inan(2) = 2147483647
-   d_nan = dnan
-  end function d_nan
-
-  !> Function which specify NaN according to IEEE specifications
-  function r_nan()
-   implicit none
-   real :: r_nan
-   !local variables
-   real :: rnan
-   integer :: inan
-   equivalence (rnan, inan)
-   inan = 2147483647
-   r_nan = rnan
-  end function r_nan
-
-  function exa_toi(a)
-    character(len=1), intent(in) :: a
-    integer :: exa_toi
-    select case(a)
-    case('0')
-       exa_toi=0
-    case('1')
-       exa_toi=1
-    case('2')
-       exa_toi=2
-    case('3')
-       exa_toi=3
-    case('4')
-       exa_toi=4
-    case('5')
-       exa_toi=5
-    case('6')
-       exa_toi=6
-    case('7')
-       exa_toi=7
-    case('8')
-       exa_toi=8
-    case('9')
-       exa_toi=9
-    case('a')
-       exa_toi=10
-    case('b')
-       exa_toi=11
-    case('c')
-       exa_toi=12
-    case('d')
-       exa_toi=13
-    case('e')
-       exa_toi=14
-    case('f')
-       exa_toi=15
-    case default
-       !raise an error
-       print *,'a: ',a
-       stop 'undefined value'
-    end select
-    
-  end function exa_toi
-
-  function address_toi(address)
-    character(len=*), intent(in) ::  address
-    integer(kind=8) :: address_toi
-    !local variables
-    integer :: i,l
-    integer(kind=8) :: j
-    character(len=1) :: a
-
-    l=len_trim(address)
-    address_toi=0
-    do i=l-2,1,-1
-       a=address(i+2:i+2)
-       j=int(16**(l-2-i),kind=8)*int(exa_toi(a),kind=8)
-       !print *,'i,a',i,a,exa_toi(a)
-       address_toi=address_toi+j
-    end do
-    
-  end function address_toi
-
-  pure function long_toa(iadd)
-    use yaml_strings
-    implicit none 
-    integer(kind=8), intent(in) :: iadd
-    character(len=longsize) :: long_toa
-    
-    long_toa=adjustl(yaml_toa(iadd,fmt=fmtlong))
-
-  end function long_toa
-
-end module metadata_interfaces
-
-
 !> Module used to manage memory allocations and de-allocations
 module dynamic_memory
 
@@ -535,6 +82,21 @@ module dynamic_memory
      character(len=namelen) :: routine_id    !< label the routine
   end type malloc_information_all
 
+  !> Structure needed to allocate an allocatable array of string of implicit length (for non-2003 complilers)
+  type, public :: malloc_information_str_all
+     logical :: pin                          !< flag to control the pinning of the address
+     logical :: profile                      !< activate profiling for this allocation
+     logical :: put_to_zero                  !< initialize to zero after allocation
+     integer :: rank                         !< rank of the array
+     integer :: len                          !< length of the character
+     integer, dimension(max_rank) :: shape   !< shape of the structure 
+     integer, dimension(max_rank) :: lbounds !< lower bounds
+     integer, dimension(max_rank) :: ubounds !< upper bounds
+     integer(kind=8) :: metadata_add         !< physical address of the fortran metadata
+     character(len=namelen) :: array_id      !< label the array
+     character(len=namelen) :: routine_id    !< label the routine
+  end type malloc_information_str_all
+
   !> Structure needed to allocate a pointer
   type, public :: malloc_information_ptr
      logical :: ptr                          !< just to make the structures different, to see if needed
@@ -550,6 +112,22 @@ module dynamic_memory
      character(len=namelen) :: routine_id    !< label the routine
   end type malloc_information_ptr
 
+  !> Structure needed to allocate a pointer of string of implicit length (for non-2003 complilers)
+  type, public :: malloc_information_str_ptr
+     logical :: ptr                          !< just to make the structures different, to see if needed
+     logical :: pin                          !< flag to control the pinning of the address
+     logical :: profile                      !< activate profiling for this allocation
+     logical :: put_to_zero                  !< initialize to zero after allocation
+     integer :: rank                         !< rank of the pointer
+     integer :: len                          !< length of the character
+     integer, dimension(max_rank) :: shape   !< shape of the structure 
+     integer, dimension(max_rank) :: lbounds !< lower bounds
+     integer, dimension(max_rank) :: ubounds !< upper bounds
+     integer(kind=8) :: metadata_add         !< physical address of the fortran metadata
+     character(len=namelen) :: array_id      !< label the array
+     character(len=namelen) :: routine_id    !< label the routine
+  end type malloc_information_str_ptr
+
   type, public :: array_bounds
      integer :: nlow  !<lower bounds
      integer :: nhigh !<higher bounds
@@ -558,7 +136,11 @@ module dynamic_memory
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all
-     module procedure c1_all
+     module procedure c1_all!,c1_2_all!,c1_3_all,c1_4_all,c1_5_all,c1_6_all,c1_7_all
+  !   module procedure c1_8_all,c1_9_all,c1_10_all,c1_11_all,c1_12_all,c1_13_all,c1_14_all,c1_15_all 
+  !   module procedure c1_16_all,c1_17_all,c1_18_all,c1_19_all,c1_20_all,c1_21_all,c1_22_all,c1_23_all
+  !   module procedure c1_24_all,c1_25_all,c1_26_all,c1_27_all,c1_28_all,c1_29_all,c1_30_all,c1_31_all
+!     module procedure c1_32_all,c1_33_all,c1_34_all,c1_35_all,c1_36_all,c1_37_all,c1_38_all,c1_39_all,c1_40_all
      module procedure d1_all,d2_all,d3_all,d4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
      module procedure i1_ptr,i2_ptr
@@ -570,7 +152,11 @@ module dynamic_memory
 
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
-     module procedure c1_all_free
+     module procedure c1_all_free!,c1_2_all_free!,c1_3_all_free,c1_4_all_free,c1_5_all_free,c1_6_all_free,c1_7_all_free
+ !    module procedure c1_8_all_free,c1_9_all_free,c1_10_all_free,c1_11_all_free,c1_12_all_free,c1_13_all_free,c1_14_all_free,c1_15_all_free 
+ !    module procedure c1_16_all_free,c1_17_all_free,c1_18_all_free,c1_19_all_free,c1_20_all_free,c1_21_all_free,c1_22_all_free,c1_23_all_free
+ !    module procedure c1_24_all_free,c1_25_all_free,c1_26_all_free,c1_27_all_free,c1_28_all_free,c1_29_all_free,c1_30_all_free,c1_31_all_free
+!     module procedure c1_32_all_free,c1_33_all_free,c1_34_all_free,c1_35_all_free,c1_36_all_free,c1_37_all_free,c1_38_all_free,c1_39_all_free,c1_40_all_free
      module procedure l1_all_free,l2_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free
   end interface
@@ -580,26 +166,27 @@ module dynamic_memory
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
   end interface
 
-!!$  interface pad_with_nan
-!!$     module procedure i_padding,dp_padding,c_padding,l_padding,sp_padding,dp_padding2,dp_padding3
-!!$  end interface
-
   interface f_malloc
      module procedure f_malloc,f_malloc_simple,f_malloc_bounds,f_malloc_bound
+     !module procedure f_malloc_str,f_malloc_str_simple,f_malloc_str_bounds,f_malloc_str_bound
   end interface
 
   interface f_malloc0
      module procedure f_malloc0,f_malloc0_simple,f_malloc0_bounds,f_malloc0_bound
+     !module procedure f_malloc0_str,f_malloc0_str_simple,f_malloc0_str_bounds,f_malloc0_str_bound
   end interface
 
   interface f_malloc_ptr
      module procedure f_malloc_ptr,f_malloc_ptr_simple,f_malloc_ptr_bounds,f_malloc_ptr_bound
+     !module procedure f_malloc_str_ptr,f_malloc_str_ptr_simple,f_malloc_str_ptr_bounds,f_malloc_str_ptr_bound
   end interface
 
   interface f_malloc0_ptr
      module procedure f_malloc0_ptr,f_malloc0_ptr_simple,f_malloc0_ptr_bounds,f_malloc0_ptr_bound
+     !module procedure f_malloc0_str_ptr,f_malloc0_str_ptr_simple,f_malloc0_str_ptr_bounds,f_malloc0_str_ptr_bound
   end interface
 
+  !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
   interface
      pure subroutine nanosec(itime)
        implicit none

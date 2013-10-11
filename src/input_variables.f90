@@ -734,7 +734,7 @@ subroutine dft_input_analyse(iproc, in, dict_dft)
   type(input_variables), intent(inout) :: in
   type(dictionary), pointer :: dict_dft
 
-  !grid spacings
+  !grid spacings (here the profiles can be used is we already read PSPs)
   in%hx = dict_dft//HGRIDS//0
   in%hy = dict_dft//HGRIDS//1
   in%hz = dict_dft//HGRIDS//2

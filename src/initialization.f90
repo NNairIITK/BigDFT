@@ -328,4 +328,5 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      !deallocate(nodename,stat=i_stat)
      !call memocc(i_stat,i_all,'nodename',subname)
   end if
+  call f_release_routine()
 END SUBROUTINE processor_id_per_node

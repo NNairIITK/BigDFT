@@ -1324,7 +1324,7 @@ subroutine e1xb(x,e1)
   real(kind=8), intent(out) :: e1 !< E1 --- E1(x)  ( x > 0 )
   !Local variables
   real(kind=8), parameter :: ga=0.5772156649015328d0 !< EulerGamma
-  real(kind=8) :: r,t0
+  real(kind=8) :: r,t0,t
   integer :: k,m
 
   if (x.eq.0.0) then

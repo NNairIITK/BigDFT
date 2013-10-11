@@ -96,12 +96,12 @@ module yaml_output
   type, private :: doc
      integer:: unit !< unit of the yaml_stream to be used for output. 
                     !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
-     character(len=*) :: mapname !<key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
+     character(len=1) :: mapname !<key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
      logical :: flow !< logical variable controlling the flow of the output. Default is .false..
                      !! When .true., the output is written in compact yaml flow style. See yaml specifications in
                      !! http://www.yaml.org/spec/1.2/spec.html#id2759963 . Of course also nested field inside will be written
                      !! in compact flow style, until the mapping or sequencing is closed.
-     character(len=*) :: label !< define a anchor of the mapping, which can be used to deepcopy its value in another mapping
+     character(len=1) :: label !< define a anchor of the mapping, which can be used to deepcopy its value in another mapping
      !! see http://www.yaml.org/spec/1.2/spec.html#id2760395.
 
      !> define whether the i/o should be advancing (advance='yes') or not (advance='no').
@@ -111,11 +111,11 @@ module yaml_output
      !! (See @link yaml_newline @endlink for add a line in a output of a flow mapping).
      !! Otherwise, if absent, the output is always advancing.
      !! non-advancing i/o is useful for example when one wants to leave a comment after the end of a mapping.
-     character(len=*) :: advance 
-     character(len=*) :: tag !< tag description. Unused and should be probably removed
+     character(len=1) :: advance 
+     character(len=1) :: tag !< tag description. Unused and should be probably removed
      !> scalar value of the mapping may be of any scalar type
      !! it is internally converted to character with the usage of @link yaml_toa @endlink function
-     character(len=*), intent(in) :: mapvalue           
+     character(len=1) :: mapvalue           
   end type doc
 
 
