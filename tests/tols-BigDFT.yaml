@@ -297,6 +297,9 @@ directmin:
  - Wavefunction written
  Epsilon: 3.5e-10
 
+experimentalmode:
+ Epsilon: 1.e-9
+
 restartdisk_charge:
  Patterns to ignore:
  - Wavefunction written
