@@ -1702,17 +1702,6 @@ ekin, eh, epot, eproj, eex    1.29614886E+01    0.00000000E+00   -1.72264572E+01
  lowest, highest ev: -9.2127935644832970E-01  1.0309592757580870E-01
  calculate density kernel...    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -4.030686082526E+00  2.131249649520E+01 -4.112848189772E+00 -5.391429373785E+00  0.000000000000E+00  6.882045680031E+00  0.000000000000E+00
    itoutH, Delta DENSOUT, energy, energyDiff   15   4.42E-11   -1.71825557136148355E+01    0.0000E+00   FINAL
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.766310764862,  0.136570221030,  1.759886188677E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Centre old                            :  [  8.230838597,  8.831040818,  8.867581352 ]
- Centre new                            :  [  7.464527832,  8.967611039,  8.885180213 ]
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 4
    - Grid spacing has changed: 0

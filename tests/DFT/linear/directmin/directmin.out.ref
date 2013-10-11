@@ -1,5 +1,5 @@
  <BigDFT> log of the run will be written in logfile: ./log.yaml
- <BigDFT> Logfile existing, renamed into: ./logfiles/log.13:39:36.825.yaml
+ <BigDFT> Logfile existing, renamed into: ./logfiles/log.14:51:25.922.yaml
  ------------------------------------------------------------------------------------
  >>>> Partition of the basis functions among the processes.
     | Processes from 0 to 5 treat 4 orbitals. |
@@ -19,9 +19,17 @@ V3prb    2.2925E+03
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   7.69E+00   6.000E+00
 V3prb    1.0975E+01
  Processes from 0 to 5 treat 4 inguess orbitals 
+ eks   8.8253293465727545     
+ eks, energs%ekin   8.8253293465727545        9.0915869797836280     
+ conv crit:  1.10940680504530622E-002
+ Processes from 0 to 5 treat 4 inguess orbitals 
+ WARNING: use mapping for occupation numbers!
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   1.599999978372E+01
+ calling orthonormalizeLocalized (exact)
+max dev from unity    1.354739E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.28094258E+01    0.00000000E+00   -1.39474964E+01    2.96533301E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -69,7 +77,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.448958E-02    2.249905E-02    7.493877E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.6948715E-01  3.2945169E-01     11.7337350
  ============================= Basis functions created. =============================
+max dev from unity    2.600723E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.11643798E+01    0.00000000E+00   -2.03124991E+01    2.54646658E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     2.321808E-001     0.000000E+000    -3.202434E+000
@@ -91,7 +101,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   1  1.5390758E-06   -8.17760274023902056E+00   -8.1776E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.600723E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.11643798E+01    0.00000000E+00   -1.99665737E+01    2.54646658E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     8.964138E-002    -3.223881E+000    -9.491416E-002
@@ -113,7 +125,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   2  8.0444687E-07   -8.16474498301922225E+00    1.2858E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.600723E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.11643798E+01    0.00000000E+00   -2.07600316E+01    2.54646658E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     7.969740E-002    -3.357123E+000    -2.495044E-001
@@ -135,7 +149,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   3  7.2615140E-07   -8.16018052805408800E+00    4.5645E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.600723E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.11643798E+01    0.00000000E+00   -2.00289458E+01    2.54646658E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     7.651703E-002    -3.620731E+000     2.413232E-001
@@ -181,7 +197,9 @@ sparsity:  0.35%
 total elements: 576
 non-zero elements: 576
 sparsity:  0.00%
+max dev from unity    2.600723E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.11643798E+01    0.00000000E+00   -2.07068088E+01    2.54646658E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     7.059525E-002    -3.406181E+000    -1.539887E-001
@@ -215,6 +233,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.858360E-02    9.318094E-02    6.233956E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   7.8965849E-02  1.4697861E-01     -9.2062544
  ============================= Basis functions created. =============================
+max dev from unity    1.163963E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
@@ -237,7 +256,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   1  1.9194236E-06   -9.07216112790843354E+00   -9.1247E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.163963E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.89684517E+01    0.00000000E+00   -1.95621237E+01    2.24810153E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     8.536873E-002    -4.495717E+000    -8.450308E-001
@@ -259,7 +280,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   2  5.8207349E-07   -9.04446588510268512E+00    2.7695E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.163963E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.89684517E+01    0.00000000E+00   -2.01665119E+01    2.24810153E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     4.779910E-002    -5.371007E+000    -1.983905E-001
@@ -279,7 +302,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   3  3.2728660E-07   -9.03695153653859862E+00    7.5143E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.163963E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.89684517E+01    0.00000000E+00   -1.98326358E+01    2.24810153E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     2.826857E-002    -5.574704E+000     1.019347E-001
@@ -299,7 +324,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   4  1.8767441E-07   -9.03474534196401535E+00    2.2062E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.163963E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.89684517E+01    0.00000000E+00   -2.00265536E+01    2.24810153E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.667223E-002    -5.475480E+000    -4.753101E-002
@@ -319,7 +346,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   5  1.0888714E-07   -9.03397380695396279E+00    7.7154E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.163963E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.89684517E+01    0.00000000E+00   -1.99172613E+01    2.24810153E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.012212E-002    -5.523848E+000     2.297437E-002
@@ -373,6 +402,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.574316E-02    6.306880E-02    9.880721E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.0875041E-02  1.1343561E-01     -9.3749942
  ============================= Basis functions created. =============================
+max dev from unity    1.029813E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
@@ -389,7 +419,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   1  1.2472285E-07   -9.04371015412296586E+00   -9.9888E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.029813E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.88521899E+01    0.00000000E+00   -1.98179769E+01    2.22852952E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.686482E-003    -5.521371E+000     7.906895E-002
@@ -405,7 +437,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   2  6.8970392E-09   -9.04347429366314159E+00    2.3586E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.029813E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.88521899E+01    0.00000000E+00   -1.98147877E+01    2.22852952E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     6.819415E-004    -5.442310E+000    -2.651012E-003
@@ -417,7 +451,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   3  1.1840271E-09   -9.04347255886846213E+00    1.7348E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.029813E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.88521899E+01    0.00000000E+00   -1.98150806E+01    2.22852952E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     3.559450E-004    -5.444961E+000     4.777114E-004
@@ -429,7 +465,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   4  1.2392350E-09   -9.04347286849364806E+00   -3.0963E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.029813E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.88521899E+01    0.00000000E+00   -1.98155614E+01    2.22852952E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     5.122660E-005    -5.444483E+000     4.660086E-004
@@ -441,7 +479,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   5  3.2513893E-10   -9.04347278440119240E+00    8.4092E-08
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.029813E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.88521899E+01    0.00000000E+00   -1.98155010E+01    2.22852952E+00    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     6.247867E-005    -5.444017E+000     1.456847E-004
@@ -467,7 +507,9 @@ Calculating charge density... done.
      FINAL values: it, Delta DENS, energy   3    2.02E-10   -9.04347278801288113E+00
    > energy difference to last iteration: -9.751482E-03
  ############################################################################################
+max dev from unity    1.029813E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.88521899E+01    0.00000000E+00   -1.98154774E+01    2.22852952E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -506,253 +548,6 @@ iat, fpulay   10   -1.535379E-03   -8.342238E-04    1.377794E-03
 iat, fpulay   11    1.235051E-03    7.418579E-04   -7.908124E-04
 iat, fpulay   12    1.750477E-05    9.263970E-05   -1.647394E-04
  done.
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 0.207957719925, -0.887539236057,  8.379138631630E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.192856531076, -1.23505943602, -1.754508064559E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.156806220116, -0.740405164218, -9.815839134830E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 0.933945605579, -1.16954436773, -2.796988435735E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.221697545772, -0.834173435598,  3.208509527158E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Centre old                            :  [  8.13799379666,  8.17776705219,  8.34599115339 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.53880804766,  8.52528725215,  8.44732762036 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.50275773670,  8.03063298035,  8.52794093106 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  7.41200591101,  8.45977218387,  8.45775242407 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.02637124586, -0.167743933710,  7.891925842849E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 1.08459673206, -6.959156993353E-02,  8.760562045358E-03]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.156806220116, -0.740405164218, -9.815839134830E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.192856531076, -1.23505943602, -1.754508064559E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Centre old                            :  [  8.56764906236,  8.12440125173,  8.39769744444 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.221697545772, -0.834173435598,  3.208509527158E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Centre old                            :  [  7.31958027073,  7.45797174984,  8.35086328128 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  7.26135478453,  7.35981938607,  8.42102197767 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.50275773670,  8.03063298035,  8.52794093106 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.53880804766,  8.52528725215,  8.44732762036 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.142693698887, -1.10068228780,  2.713892870198E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-8.660682696324E-02, -1.00426863665, -5.246320801830E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.156806220116, -0.740405164218, -9.815839134830E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.192856531076, -1.23505943602, -1.754508064559E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Centre old                            :  [  8.56764906236,  8.12440125173,  8.39769744444 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.48864521547,  8.39091010393,  8.40264361101 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.43255834355,  8.29449645278,  8.48224574773 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.53880804766,  8.52528725215,  8.44732762036 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.50275773670,  8.03063298035,  8.52794093106 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.221697545772, -0.834173435598,  3.208509527158E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.156806220116, -0.740405164218, -9.815839134830E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.221697545772, -0.834173435598,  3.208509527158E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 0.319356975512, -0.712059299376,  6.979573987109E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-0.192856531076, -1.23505943602, -1.754508064559E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
-
- Centre old                            :  [  8.56764906236,  8.12440125173,  8.39769744444 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.02659454107,  8.00228711551,  8.35998679984 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.50275773670,  8.03063298035,  8.52794093106 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.53880804766,  8.52528725215,  8.44732762036 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
-
- Centre old                            :  [  8.56764906236,  8.12440125173,  8.39769744444 ]
-
- Centre new                            :  [  8.34595151659,  7.29022781613,  8.42978253971 ]
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 1
    - Grid spacing has changed: 0
