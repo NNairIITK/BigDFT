@@ -90,7 +90,7 @@ subroutine c1_all(array,m)
   implicit none
   type(malloc_information_all), intent(in) :: m
   character, dimension(:), allocatable, intent(inout) :: array
-  include 'allocate-inc-profile.f90' 
+  include 'allocate-profile-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
@@ -100,7 +100,7 @@ subroutine c1_all_free(array)
   use metadata_interfaces, metadata_address => getc1
   implicit none
   character, dimension(:), allocatable, intent(inout) :: array
-  include 'deallocate-inc-profile.f90' 
+  include 'deallocate-profile-inc.f90' 
   include 'deallocate-inc.f90' 
 end subroutine c1_all_free
 
