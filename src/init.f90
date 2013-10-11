@@ -2424,8 +2424,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(paw_objects)::paw
   logical :: overlap_calculated, perx,pery,perz
   real(gp) :: tx,ty,tz,displ,mindist
-  integer, dimension(:), pointer :: in_frag_charge
-
+  real(gp), dimension(:), pointer :: in_frag_charge
+  integer :: infoCoeff, iorb, nstates_max
+  real(kind=8) :: pnrm
+  type(sparseMatrix) :: ham_small
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
@@ -2741,7 +2743,20 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
            ! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
            in_frag_charge(cdft%ifrag_charged(2))=in%ncharge - in_frag_charge(cdft%ifrag_charged(1))
-           cdft%charge=cdft%ifrag_charged(1)-cdft%ifrag_charged(2)
+           ! want the difference in number of electrons here, rather than explicitly the charge
+           ! actually need this to be more general - perhaps change constraint to be charge rather than number of electrons
+           cdft%charge=ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec-in_frag_charge(cdft%ifrag_charged(1))&
+                -(ref_frags(in%frag%frag_index(cdft%ifrag_charged(2)))%nelec-in_frag_charge(cdft%ifrag_charged(2)))
+           !DEBUG
+           if (iproc==0) then
+              print*,'???????????????????????????????????????????????????????'
+              print*,'ifrag_charged1&2,in_frag_charge1&2,ncharge,cdft%charge',cdft%ifrag_charged(1:2),&
+              in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),in%ncharge,cdft%charge
+              print*,'??',ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec,in_frag_charge(cdft%ifrag_charged(1)),&
+                              ref_frags(in%frag%frag_index(cdft%ifrag_charged(2)))%nelec,in_frag_charge(cdft%ifrag_charged(2))
+              print*,'???????????????????????????????????????????????????????'
+           end if
+           !END DEBUG
         else
            in_frag_charge=>in%frag%charge
         end if
@@ -2753,7 +2768,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! this is overkill as we are recalculating the kernel anyway - fix at some point
      ! or just put into fragment structure to save recalculating for CDFT
      if (in%lin%fragment_calculation) then
-        call fragment_coeffs_to_kernel(iproc,in%frag,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated)
+        call fragment_coeffs_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
+             nstates_max,in%lin%constrained_dft)
         if (in%lin%calc_transfer_integrals.and.in%lin%constrained_dft) then
            call f_free_ptr(in_frag_charge)
         else
@@ -2766,9 +2782,15 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         if (associated(ref_frags(1)%eval)) call f_free_ptr(ref_frags(1)%eval)
      end if
 
-     call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-          KSwfn%orbs, tmb, overlap_calculated)     
-
+     ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
+     ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
+     if (in%lin%diag_start) then
+        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+             tmb%orbs, tmb, overlap_calculated)  
+     else
+        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+             KSwfn%orbs, tmb, overlap_calculated)     
+     end if
      !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
      !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
      !!ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
@@ -2818,13 +2840,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call cdft_data_allocate(cdft,tmb%linmat%ham)
         if (trim(cdft%method)=='fragment_density') then ! fragment density approach
            if (in%lin%calc_transfer_integrals) stop 'Must use Lowdin for CDFT transfer integral calculations for now'
+           if (in%lin%diag_start) stop 'Diag at start probably not working for fragment_density'
            cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
            call calculate_weight_function(in,ref_frags,cdft,&
                 KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,atoms,rxyz,denspot)
            call calculate_weight_matrix_using_density(cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
-           call calculate_weight_matrix_lowdin(cdft,tmb,in,ref_frags,.false.)
+           call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,.false.)
            ! debug
            !call plot_density(iproc,nproc,'initial_density.cube', &
            !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
@@ -2842,6 +2865,47 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
      call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+
+     !! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
+     if (in%lin%diag_start) then
+        !if (iproc==0) then
+        !print*,'coeffs before extra diag:'
+        !do iorb=1,KSwfn%orbs%norb
+        !write(*,'(I4,3(F8.2,2x),4(F8.4,2x),2x,4(F8.4,2x))') iorb,KSwfn%orbs%occup(iorb),tmb%orbs%occup(iorb),&
+        !tmb%orbs%eval(iorb),tmb%coeff(1:4,iorb),tmb%coeff(5:8,iorb)
+        !end do
+        !do iorb=KSwfn%orbs%norb+1,tmb%orbs%norb
+        !write(*,'(I4,3(F8.2,2x),4(F8.4,2x),2x,4(F8.4,2x))') iorb,0.d0,tmb%orbs%occup(iorb),tmb%orbs%eval(iorb),&
+        !tmb%coeff(1:4,iorb),tmb%coeff(5:8,iorb)
+        !end do
+        !end if
+        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
+             infoCoeff,energs%ebs,nlpspd,proj,in%SIC,tmb,pnrm,.false.,.false.,&
+             .true.,ham_small,0) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+
+        !if (iproc==0) then
+        !print*,'coeffs after extra diag:'
+        !do iorb=1,KSwfn%orbs%norb
+        !write(*,'(I4,3(F8.2,2x),4(F8.4,2x),2x,4(F8.4,2x))') iorb,KSwfn%orbs%occup(iorb),tmb%orbs%occup(iorb),tmb%orbs%eval(iorb),&
+        !tmb%coeff(1:4,iorb),tmb%coeff(5:8,iorb)
+        !end do
+        !do iorb=KSwfn%orbs%norb+1,tmb%orbs%norb
+        !write(*,'(I4,3(F8.2,2x),4(F8.4,2x),2x,4(F8.4,2x))') iorb,0.d0,tmb%orbs%occup(iorb),tmb%orbs%eval(iorb),&
+        !tmb%coeff(1:4,iorb),tmb%coeff(5:8,iorb)
+        !end do
+        !end if
+
+        !reset occ
+        call razero(tmb%orbs%norb,tmb%orbs%occup(1))
+        do iorb=1,kswfn%orbs%norb
+          tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
+        end do
+
+        ! use the coeffs from the more balanced kernel to get the correctly occupied kernel (maybe reconstruct not needed?)
+        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+            KSwfn%orbs, tmb, overlap_calculated)     
+        !then redo density and potential with correct charge? - for ease doing in linear scaling
+     end if
 
   case default
      !     if (iproc == 0) then

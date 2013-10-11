@@ -1953,10 +1953,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! First determine how many orbitals one has for each grid point in the current slice
       ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
       ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
-!      weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
       weight=f_malloc0((/lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,ii3s/),id='weight')
-      !allocate(weight(1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
-      !call memocc(istat, weight, 'weight', subname)
 
       if (denspot%dpbox%nscatterarr(iproc,1)>0) then
           call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
@@ -1989,10 +1986,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! The array orbital_id contains the IDs of the orbitals touching a given gridpoint
       nmax=maxval(weight)
 
-!      orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
       orbital_id=f_malloc((/nmax,lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,1,ii3s/),id='orbital_id')
-      !allocate(orbital_id(1:nmax,1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
-      !call memocc(istat, orbital_id, 'orbital_id', subname)
 
       if (denspot%dpbox%nscatterarr(iproc,1)>0) then
           call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
@@ -2015,9 +2009,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               !$omp do reduction(min:iorbmin) reduction(max:iorbmax)
               do i2=is2,ie2
                   do i1=is1,ie1
-	                   jj=weight(i1,i2,i3)+1
-!                      weight(i1,i2,i3) = weight(i1,i2,i3)+1
-!                      orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
+                      jj=weight(i1,i2,i3)+1
+                      !weight(i1,i2,i3) = weight(i1,i2,i3)+1
+                      !orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
                       orbital_id(jj,i1,i2,i3) = iorb
                       if (iorb<iorbmin) iorbmin=iorb
                       if (iorb>iorbmax) iorbmax=iorb
@@ -2147,13 +2141,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       call f_free(weight)
       call f_free(orbital_id)
-      !iall=-product(shape(weight))*kind(weight)
-      !deallocate(weight, stat=istat)
-      !call memocc(istat, iall, 'weight', subname)
-      !iall=-product(shape(orbital_id))*kind(orbital_id)
-      !deallocate(orbital_id, stat=istat)
-      !call memocc(istat, iall, 'orbital_id', subname)
-
       call f_free(rho_check)
       call f_free(rho)
 
@@ -2246,7 +2233,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8),parameter :: inv87178291200=1.14707455977297247139d-11
 
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
-!      x=mod(xx,pi2)-pi
+      !x=mod(xx,pi2)-pi
       x=xx/pi2
       x=real(int(x),kind=8)*pi2
       x=xx-x-pi

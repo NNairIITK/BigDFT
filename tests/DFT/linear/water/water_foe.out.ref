@@ -19,9 +19,17 @@ WARNING: locrad for atom type H is too small; minimal value is   4.84E+00
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   6.95E+00   3.000E+00
 V3prb    1.6463E+01
  Processes from 0 to 5 treat 12 inguess orbitals 
+ eks   166.49043687693734     
+ eks, energs%ekin   166.49043687693734        176.61884701648870     
+ conv crit:  0.14067236304932448     
+ Processes from 0 to 5 treat 12 inguess orbitals 
+ WARNING: use mapping for occupation numbers!
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599995583257E+01
+ calling orthonormalizeLocalized (exact)
+max dev from unity    7.266733E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.17189863E+02    0.00000000E+00   -2.44391461E+02    1.71078720E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.000000000E-01   420
@@ -129,21 +137,21 @@ Calculating charge density... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    9.374998E-02    1.456253E-01    2.584077E-03
  iter, fnrm, fnrmMax, trace, diff     1  7.0985000E-01  1.0465505E+00  -164.4676982757  -1.6447E+02
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.913011E-02    6.790342E-02    1.008955E-02
  iter, fnrm, fnrmMax, trace, diff     2  2.3208833E-01  3.7978248E-01  -168.0311137056  -3.5634E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=3
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.794078E-02    4.235791E-02    2.281885E-02
  iter, fnrm, fnrmMax, trace, diff     3  1.3040858E-01  3.4233603E-01  -168.9446941086  -9.1358E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.3040858E-01  3.4233603E-01   -168.9446941
  ============================= Basis functions created. =============================
+max dev from unity    5.186018E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.14954300E+02    0.00000000E+00   -2.46962653E+02    1.88057640E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.342207404E-01   420
@@ -227,7 +235,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  3.3745613E-06   -2.01333232087876240E+02   -2.0133E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.186018E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.14954300E+02    0.00000000E+00   -2.45146749E+02    1.88057640E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   9.083572613E-03   420
@@ -342,7 +352,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  1.7843209E-06   -2.01104835569163811E+02    2.2840E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.186018E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.14954300E+02    0.00000000E+00   -2.44006459E+02    1.88057640E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -2.001697102E-02   420
@@ -450,21 +462,21 @@ Calculating charge density... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.011849E-02    4.429513E-02    2.374006E-02
  iter, fnrm, fnrmMax, trace, diff     1  1.3274234E-01  3.4865878E-01  -166.3198900838   1.7112E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.577799E-02    4.254095E-02    2.504068E-02
  iter, fnrm, fnrmMax, trace, diff     2  1.1957359E-01  3.5697644E-01  -166.6371987142  -3.1731E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=3
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.069659E-02    4.300350E-02    1.953355E-02
  iter, fnrm, fnrmMax, trace, diff     3  1.2130888E-01  3.7062072E-01  -167.0322817026  -3.9508E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.2130888E-01  3.7062072E-01   -167.0322817
  ============================= Basis functions created. =============================
+max dev from unity    5.486867E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07540499E+02    0.00000000E+00   -2.36810642E+02    1.78288600E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -5.221603866E-03   420
@@ -552,7 +564,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  5.6147531E-07   -2.01293046553424801E+02   -2.4288E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.486867E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07540499E+02    0.00000000E+00   -2.36723831E+02    1.78288600E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.989647418E-03   420
@@ -640,7 +654,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  3.0511352E-07   -2.01291516028817568E+02    1.5305E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.486867E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07540499E+02    0.00000000E+00   -2.36618597E+02    1.78288600E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.107674490E-02   420
@@ -742,7 +758,9 @@ Calculating charge density... done.
      FINAL values: it, Delta DENS, energy   2    2.14E-07   -2.01290273767718531E+02
    > energy difference to last iteration: -2.401069E-01
  ############################################################################################
+max dev from unity    5.486867E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07540499E+02    0.00000000E+00   -2.36582049E+02    1.78288600E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.590838074E-02   420
@@ -833,6 +851,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.603030E-02    2.891032E-02    2.486129E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   9.4633030E-02  2.2981846E-01   -202.9065431
  ============================= Basis functions created. =============================
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -903,7 +922,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  3.6852847E-06   -2.02927935020554514E+02   -1.6377E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96066983E+02    0.00000000E+00   -2.28826091E+02    1.66032220E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.768307644E-02   420
@@ -1024,7 +1045,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  1.9309634E-06   -2.02736075184181232E+02    1.9186E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96066983E+02    0.00000000E+00   -2.30142544E+02    1.66032220E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -3.525366584E-02   420
@@ -1103,7 +1126,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  1.1615765E-06   -2.02700975993097813E+02    3.5099E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96066983E+02    0.00000000E+00   -2.30714520E+02    1.66032220E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -4.472843454E-02   420
@@ -1191,7 +1216,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  7.0062627E-07   -2.02689597972050592E+02    1.1378E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96066983E+02    0.00000000E+00   -2.31011952E+02    1.66032220E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -4.655327012E-02   420
@@ -1304,6 +1331,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.137455E-02    2.885221E-02    3.454700E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   6.7623195E-02  2.4827261E-01   -202.8030898
  ============================= Basis functions created. =============================
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -1383,7 +1411,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  9.3897665E-07   -2.02807428258913205E+02   -1.2179E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99997976E+02    0.00000000E+00   -2.34310621E+02    1.71682318E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -4.578098602E-02   420
@@ -1463,7 +1493,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  4.4897343E-07   -2.02794030363710817E+02    1.3398E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99997976E+02    0.00000000E+00   -2.33931278E+02    1.71682318E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -3.014645234E-02   420
@@ -1533,7 +1565,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  2.6839504E-07   -2.02792247604391832E+02    1.7828E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99997976E+02    0.00000000E+00   -2.33769637E+02    1.71682318E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -2.473397631E-02   420
@@ -1612,7 +1646,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  1.6197614E-07   -2.02791705491355742E+02    5.4211E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99997976E+02    0.00000000E+00   -2.33685163E+02    1.71682318E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -2.217601447E-02   420
@@ -1725,6 +1761,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.657517E-03    2.848458E-02    3.509503E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.5049695E-02  2.4025016E-01   -202.8094824
  ============================= Basis functions created. =============================
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -1795,7 +1832,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  1.0891978E-07   -2.02811323445994049E+02   -1.9808E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00229010E+02    0.00000000E+00   -2.33514385E+02    1.69940885E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.760226406E-02   420
@@ -1865,7 +1904,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  6.6829343E-08   -2.02811374646767490E+02   -5.1201E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00229010E+02    0.00000000E+00   -2.33476612E+02    1.69940885E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.573521039E-02   420
@@ -1935,7 +1976,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  4.0351988E-08   -2.02811397227219345E+02   -2.2580E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00229010E+02    0.00000000E+00   -2.33454647E+02    1.69940885E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.466403247E-02   420
@@ -2005,7 +2048,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  2.4238093E-08   -2.02811406104041453E+02   -8.8768E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00229010E+02    0.00000000E+00   -2.33441503E+02    1.69940885E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.394985858E-02   420
@@ -2109,6 +2154,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.224302E-03    2.649568E-02    3.640169E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.8732458E-02  2.2326200E-01   -202.8202179
  ============================= Basis functions created. =============================
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -2170,7 +2216,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  5.3593500E-08   -2.02821051807867093E+02   -9.6422E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00341177E+02    0.00000000E+00   -2.33383444E+02    1.69596147E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.231509607E-02   420
@@ -2231,7 +2279,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  3.3197026E-08   -2.02821057429632219E+02   -5.6218E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00341177E+02    0.00000000E+00   -2.33353062E+02    1.69596147E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.117127265E-02   420
@@ -2292,7 +2342,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  2.0529489E-08   -2.02821064320443156E+02   -6.8908E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00341177E+02    0.00000000E+00   -2.33337137E+02    1.69596147E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.062472339E-02   420
@@ -2353,7 +2405,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  1.2469402E-08   -2.02821067149722467E+02   -2.8293E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00341177E+02    0.00000000E+00   -2.33328036E+02    1.69596147E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.029413780E-02   420
@@ -2448,6 +2502,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.336345E-03    2.431791E-02    3.892794E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.3633993E-02  2.0614625E-01   -202.8272295
  ============================= Basis functions created. =============================
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -2509,7 +2564,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  3.0008115E-08   -2.02827573634735131E+02   -6.5053E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00318455E+02    0.00000000E+00   -2.33229269E+02    1.69356690E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -9.935086733E-03   420
@@ -2570,7 +2627,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  1.7395032E-08   -2.02827573361743134E+02    2.7299E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00318455E+02    0.00000000E+00   -2.33215456E+02    1.69356690E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -9.571942129E-03   420
@@ -2631,7 +2690,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  1.0542503E-08   -2.02827575730513900E+02   -2.3688E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00318455E+02    0.00000000E+00   -2.33207697E+02    1.69356690E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -9.355784270E-03   420
@@ -2692,7 +2753,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  6.3589194E-09   -2.02827576939226788E+02   -1.2087E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00318455E+02    0.00000000E+00   -2.33203157E+02    1.69356690E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -9.215900457E-03   420
@@ -2791,9 +2854,17 @@ WARNING: locrad for atom type H is too small; minimal value is   4.84E+00
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   6.95E+00   3.000E+00
 V3prb    1.6463E+01
  Processes from 0 to 5 treat 12 inguess orbitals 
+ eks   166.49043687693734     
+ eks, energs%ekin   166.49043687693734        176.61884701648870     
+ conv crit:  0.14067236304932448     
+ Processes from 0 to 5 treat 12 inguess orbitals 
+ WARNING: use mapping for occupation numbers!
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599995583257E+01
+ calling orthonormalizeLocalized (exact)
+max dev from unity    7.266733E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.17189863E+02    0.00000000E+00   -2.44391461E+02    1.71078720E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.000000000E-01   420
@@ -2901,21 +2972,21 @@ Calculating charge density... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    9.374998E-02    1.456253E-01    2.584077E-03
  iter, fnrm, fnrmMax, trace, diff     1  7.0985000E-01  1.0465505E+00  -164.4676982757  -1.6447E+02
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.913011E-02    6.790342E-02    1.008955E-02
  iter, fnrm, fnrmMax, trace, diff     2  2.3208833E-01  3.7978248E-01  -168.0311137056  -3.5634E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=3
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.794078E-02    4.235791E-02    2.281885E-02
  iter, fnrm, fnrmMax, trace, diff     3  1.3040858E-01  3.4233603E-01  -168.9446941086  -9.1358E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.3040858E-01  3.4233603E-01   -168.9446941
  ============================= Basis functions created. =============================
+max dev from unity    5.186018E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.14954300E+02    0.00000000E+00   -2.46962653E+02    1.88057640E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.342207404E-01   420
@@ -2999,7 +3070,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  3.3745613E-06   -2.01333232087876240E+02   -2.0133E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.186018E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.14954300E+02    0.00000000E+00   -2.45146749E+02    1.88057640E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   9.083572613E-03   420
@@ -3114,7 +3187,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  1.7843209E-06   -2.01104835569163811E+02    2.2840E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.186018E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.14954300E+02    0.00000000E+00   -2.44006459E+02    1.88057640E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -2.001697102E-02   420
@@ -3222,21 +3297,21 @@ Calculating charge density... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.011849E-02    4.429513E-02    2.374006E-02
  iter, fnrm, fnrmMax, trace, diff     1  1.3274234E-01  3.4865878E-01  -166.3198900838   1.7112E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.577799E-02    4.254095E-02    2.504068E-02
  iter, fnrm, fnrmMax, trace, diff     2  1.1957359E-01  3.5697644E-01  -166.6371987142  -3.1731E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=3
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.069659E-02    4.300350E-02    1.953355E-02
  iter, fnrm, fnrmMax, trace, diff     3  1.2130888E-01  3.7062072E-01  -167.0322817026  -3.9508E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.2130888E-01  3.7062072E-01   -167.0322817
  ============================= Basis functions created. =============================
+max dev from unity    5.486867E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07540499E+02    0.00000000E+00   -2.36810642E+02    1.78288600E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -5.221603866E-03   420
@@ -3324,7 +3399,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  5.6147531E-07   -2.01293046553424801E+02   -2.4288E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.486867E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07540499E+02    0.00000000E+00   -2.36723831E+02    1.78288600E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.989647418E-03   420
@@ -3412,7 +3489,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  3.0511352E-07   -2.01291516028817568E+02    1.5305E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.486867E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07540499E+02    0.00000000E+00   -2.36618597E+02    1.78288600E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.107674490E-02   420
@@ -3514,7 +3593,9 @@ Calculating charge density... done.
      FINAL values: it, Delta DENS, energy   2    2.14E-07   -2.01290273767718531E+02
    > energy difference to last iteration: -2.401069E-01
  ############################################################################################
+max dev from unity    5.486867E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07540499E+02    0.00000000E+00   -2.36582049E+02    1.78288600E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.590838074E-02   420
@@ -3605,6 +3686,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.603030E-02    2.891032E-02    2.486129E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   9.4633030E-02  2.2981846E-01   -202.9065431
  ============================= Basis functions created. =============================
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -3675,7 +3757,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  3.6852847E-06   -2.02927935020554514E+02   -1.6377E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96066983E+02    0.00000000E+00   -2.28826091E+02    1.66032220E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.768307644E-02   420
@@ -3796,7 +3880,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  1.9309634E-06   -2.02736075184181232E+02    1.9186E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96066983E+02    0.00000000E+00   -2.30142544E+02    1.66032220E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -3.525366584E-02   420
@@ -3875,7 +3961,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  1.1615765E-06   -2.02700975993097813E+02    3.5099E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96066983E+02    0.00000000E+00   -2.30714520E+02    1.66032220E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -4.472843454E-02   420
@@ -3963,7 +4051,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  7.0062627E-07   -2.02689597972050592E+02    1.1378E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.658513E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96066983E+02    0.00000000E+00   -2.31011952E+02    1.66032220E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -4.655327012E-02   420
@@ -4076,6 +4166,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.137455E-02    2.885221E-02    3.454700E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   6.7623195E-02  2.4827261E-01   -202.8030898
  ============================= Basis functions created. =============================
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -4155,7 +4246,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  9.3897665E-07   -2.02807428258913205E+02   -1.2179E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99997976E+02    0.00000000E+00   -2.34310621E+02    1.71682318E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -4.578098602E-02   420
@@ -4235,7 +4328,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  4.4897343E-07   -2.02794030363710817E+02    1.3398E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99997976E+02    0.00000000E+00   -2.33931278E+02    1.71682318E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -3.014645234E-02   420
@@ -4305,7 +4400,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  2.6839504E-07   -2.02792247604391832E+02    1.7828E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99997976E+02    0.00000000E+00   -2.33769637E+02    1.71682318E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -2.473397631E-02   420
@@ -4384,7 +4481,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  1.6197614E-07   -2.02791705491355742E+02    5.4211E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.969863E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.99997976E+02    0.00000000E+00   -2.33685163E+02    1.71682318E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -2.217601447E-02   420
@@ -4497,6 +4596,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.657517E-03    2.848458E-02    3.509503E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.5049695E-02  2.4025016E-01   -202.8094824
  ============================= Basis functions created. =============================
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -4567,7 +4667,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  1.0891978E-07   -2.02811323445994049E+02   -1.9808E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00229010E+02    0.00000000E+00   -2.33514385E+02    1.69940885E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.760226406E-02   420
@@ -4637,7 +4739,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  6.6829343E-08   -2.02811374646767490E+02   -5.1201E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00229010E+02    0.00000000E+00   -2.33476612E+02    1.69940885E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.573521039E-02   420
@@ -4707,7 +4811,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  4.0351988E-08   -2.02811397227219345E+02   -2.2580E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00229010E+02    0.00000000E+00   -2.33454647E+02    1.69940885E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.466403247E-02   420
@@ -4777,7 +4883,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  2.4238093E-08   -2.02811406104041453E+02   -8.8768E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.983294E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00229010E+02    0.00000000E+00   -2.33441503E+02    1.69940885E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.394985858E-02   420
@@ -4881,6 +4989,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.224302E-03    2.649568E-02    3.640169E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.8732458E-02  2.2326200E-01   -202.8202179
  ============================= Basis functions created. =============================
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -4942,7 +5051,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  5.3593500E-08   -2.02821051807867093E+02   -9.6422E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00341177E+02    0.00000000E+00   -2.33383444E+02    1.69596147E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.231509607E-02   420
@@ -5003,7 +5114,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  3.3197026E-08   -2.02821057429632219E+02   -5.6218E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00341177E+02    0.00000000E+00   -2.33353062E+02    1.69596147E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.117127265E-02   420
@@ -5064,7 +5177,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  2.0529489E-08   -2.02821064320443156E+02   -6.8908E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00341177E+02    0.00000000E+00   -2.33337137E+02    1.69596147E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.062472339E-02   420
@@ -5125,7 +5240,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  1.2469402E-08   -2.02821067149722467E+02   -2.8293E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.150857E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00341177E+02    0.00000000E+00   -2.33328036E+02    1.69596147E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.029413780E-02   420
@@ -5220,6 +5337,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.336345E-03    2.431791E-02    3.892794E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.3633993E-02  2.0614625E-01   -202.8272295
  ============================= Basis functions created. =============================
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -5281,7 +5399,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  3.0008115E-08   -2.02827573634735131E+02   -6.5053E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00318455E+02    0.00000000E+00   -2.33229269E+02    1.69356690E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -9.935086733E-03   420
@@ -5342,7 +5462,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  1.7395032E-08   -2.02827573361743134E+02    2.7299E-07
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00318455E+02    0.00000000E+00   -2.33215456E+02    1.69356690E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -9.571942129E-03   420
@@ -5403,7 +5525,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  1.0542503E-08   -2.02827575730513900E+02   -2.3688E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00318455E+02    0.00000000E+00   -2.33207697E+02    1.69356690E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -9.355784270E-03   420
@@ -5464,7 +5588,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  6.3589194E-09   -2.02827576939226788E+02   -1.2087E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.493047E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00318455E+02    0.00000000E+00   -2.33203157E+02    1.69356690E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -9.215900457E-03   420
@@ -5563,9 +5689,17 @@ WARNING: locrad for atom type H is too small; minimal value is   4.84E+00
 type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)H   4.84E+00   6.95E+00   3.000E+00
 V3prb    1.6463E+01
  Processes from 0 to 5 treat 12 inguess orbitals 
+ eks   166.49043687693734     
+ eks, energs%ekin   166.49043687693734        176.59440591858981     
+ conv crit:  0.14033290335628440     
+ Processes from 0 to 5 treat 12 inguess orbitals 
+ WARNING: use mapping for occupation numbers!
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   9.599995565045E+01
+ calling orthonormalizeLocalized (exact)
+max dev from unity    7.267981E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.17770767E+02    0.00000000E+00   -2.44849745E+02    1.71336191E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.000000000E-01   420
@@ -5673,21 +5807,21 @@ Calculating charge density... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    9.439266E-02    1.483849E-01    2.585923E-03
  iter, fnrm, fnrmMax, trace, diff     1  7.1202469E-01  1.0336045E+00  -164.0188338303  -1.6402E+02
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.929718E-02    6.763143E-02    1.033960E-02
  iter, fnrm, fnrmMax, trace, diff     2  2.2975373E-01  3.8555173E-01  -167.6433456302  -3.6245E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=3
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.792217E-02    4.172560E-02    2.361581E-02
  iter, fnrm, fnrmMax, trace, diff     3  1.2814655E-01  3.4804030E-01  -168.5674913937  -9.2415E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.2814655E-01  3.4804030E-01   -168.5674914
  ============================= Basis functions created. =============================
+max dev from unity    5.438541E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.15263021E+02    0.00000000E+00   -2.47015264E+02    1.88306837E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.355280876E-01   420
@@ -5771,7 +5905,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  3.2037366E-06   -2.01370801411779212E+02   -2.0137E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.438541E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.15263021E+02    0.00000000E+00   -2.45243584E+02    1.88306837E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   5.945629255E-03   420
@@ -5868,7 +6004,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  1.7294883E-06   -2.01176118381634069E+02    1.9468E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.438541E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.15263021E+02    0.00000000E+00   -2.44150871E+02    1.88306837E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -2.035760692E-02   420
@@ -5976,21 +6114,21 @@ Calculating charge density... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.993176E-02    4.367927E-02    2.448609E-02
  iter, fnrm, fnrmMax, trace, diff     1  1.3029871E-01  3.5222486E-01  -166.0363768560   1.6070E+00
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.566978E-02    4.179419E-02    2.572295E-02
  iter, fnrm, fnrmMax, trace, diff     2  1.1772927E-01  3.6028945E-01  -166.3528424538  -3.1647E-01
  DIIS informations: history length=5, consecutive failures=0, total failures=0
- Orthonormalization... done.
- ----------------------------------------------------------------------------- iter=3
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=3
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.049086E-02    4.352439E-02    2.032129E-02
  iter, fnrm, fnrmMax, trace, diff     3  1.1834179E-01  3.7322827E-01  -166.7519741924  -3.9913E-01
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   1.1834179E-01  3.7322827E-01   -166.7519742
  ============================= Basis functions created. =============================
+max dev from unity    5.757984E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07658721E+02    0.00000000E+00   -2.36822957E+02    1.78280845E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -5.571174752E-03   420
@@ -6078,7 +6216,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  4.9484639E-07   -2.01367680596388254E+02   -2.4279E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.757984E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07658721E+02    0.00000000E+00   -2.36772762E+02    1.78280845E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   2.101517299E-03   420
@@ -6166,7 +6306,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  2.8398925E-07   -2.01366742710806875E+02    9.3789E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    5.757984E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07658721E+02    0.00000000E+00   -2.36688078E+02    1.78280845E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.029245168E-02   420
@@ -6268,7 +6410,9 @@ Calculating charge density... done.
      FINAL values: it, Delta DENS, energy   2    1.97E-07   -2.01365872223371639E+02
    > energy difference to last iteration: -2.409819E-01
  ############################################################################################
+max dev from unity    5.757984E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.07658721E+02    0.00000000E+00   -2.36647410E+02    1.78280845E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.527333526E-02   420
@@ -6359,6 +6503,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.610558E-02    3.708860E-02    2.483211E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   9.4910688E-02  2.7094073E-01   -202.9656385
  ============================= Basis functions created. =============================
+max dev from unity    4.252185E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -6429,7 +6574,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  3.7142800E-06   -2.02987005420072819E+02   -1.6211E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.252185E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96247536E+02    0.00000000E+00   -2.28969148E+02    1.66475954E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00   1.669939009E-02   420
@@ -6541,7 +6688,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  1.9461904E-06   -2.02796452033794480E+02    1.9055E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.252185E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96247536E+02    0.00000000E+00   -2.30300925E+02    1.66475954E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -3.612472555E-02   420
@@ -6620,7 +6769,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  1.1711127E-06   -2.02762006832616180E+02    3.4445E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.252185E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96247536E+02    0.00000000E+00   -2.30868498E+02    1.66475954E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -4.587330346E-02   420
@@ -6708,7 +6859,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  7.0700109E-07   -2.02750967157136529E+02    1.1040E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    4.252185E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.96247536E+02    0.00000000E+00   -2.31159764E+02    1.66475954E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -4.773529528E-02   420
@@ -6821,6 +6974,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.135311E-02    3.069912E-02    3.494540E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   6.7173217E-02  2.5187145E-01   -202.8678560
  ============================= Basis functions created. =============================
+max dev from unity    2.880049E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -6900,7 +7054,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  9.3386581E-07   -2.02871854711837614E+02   -1.2473E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.880049E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00118428E+02    0.00000000E+00   -2.34405308E+02    1.72019054E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -4.733254463E-02   420
@@ -6989,7 +7145,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  4.4701684E-07   -2.02858839060254013E+02    1.3016E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.880049E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00118428E+02    0.00000000E+00   -2.34020126E+02    1.72019054E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -3.216082573E-02   420
@@ -7059,7 +7217,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  2.6691858E-07   -2.02857105739462895E+02    1.7333E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.880049E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00118428E+02    0.00000000E+00   -2.33857757E+02    1.72019054E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -2.668853525E-02   420
@@ -7138,7 +7298,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  1.6122295E-07   -2.02856586913383239E+02    5.1883E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.880049E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00118428E+02    0.00000000E+00   -2.33773829E+02    1.72019054E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -2.410475003E-02   420
@@ -7251,6 +7413,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    7.456436E-03    2.840144E-02    3.511469E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.4306897E-02  2.3533174E-01   -202.8748515
  ============================= Basis functions created. =============================
+max dev from unity    2.889640E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -7321,7 +7484,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  1.1162605E-07   -2.02876693221514415E+02   -2.0289E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.889640E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00394690E+02    0.00000000E+00   -2.33638805E+02    1.70324193E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.959563567E-02   420
@@ -7391,7 +7556,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  6.9353961E-08   -2.02876741473538232E+02   -4.8252E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.889640E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00394690E+02    0.00000000E+00   -2.33596406E+02    1.70324193E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.758937590E-02   420
@@ -7461,7 +7628,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  4.2157389E-08   -2.02876763312251114E+02   -2.1839E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.889640E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00394690E+02    0.00000000E+00   -2.33572618E+02    1.70324193E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.649356086E-02   420
@@ -7531,7 +7700,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  2.5389972E-08   -2.02876771906636918E+02   -8.5944E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    2.889640E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00394690E+02    0.00000000E+00   -2.33558600E+02    1.70324193E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.577279510E-02   420
@@ -7635,6 +7806,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.967894E-03    2.563782E-02    3.623151E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.7830081E-02  2.2125838E-01   -202.8856625
  ============================= Basis functions created. =============================
+max dev from unity    3.190225E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -7705,7 +7877,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  5.5112333E-08   -2.02886475884049787E+02   -9.7006E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.190225E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00513663E+02    0.00000000E+00   -2.33502850E+02    1.69981411E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.416736686E-02   420
@@ -7766,7 +7940,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  3.4244573E-08   -2.02886484337500974E+02   -8.4535E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.190225E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00513663E+02    0.00000000E+00   -2.33471336E+02    1.69981411E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.301056132E-02   420
@@ -7827,7 +8003,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  2.1204264E-08   -2.02886492082022073E+02   -7.7445E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.190225E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00513663E+02    0.00000000E+00   -2.33454878E+02    1.69981411E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.245938300E-02   420
@@ -7888,7 +8066,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  1.2891116E-08   -2.02886495304173764E+02   -3.2222E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.190225E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00513663E+02    0.00000000E+00   -2.33445509E+02    1.69981411E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.212796686E-02   420
@@ -7983,6 +8163,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.101611E-03    2.333585E-02    3.851416E
  WARNING: not converged within 3 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   4.2892087E-02  2.0603515E-01   -202.8921810
  ============================= Basis functions created. =============================
+max dev from unity    3.527751E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  --------------------------------------------------------------------------- FOE it=1
@@ -8044,7 +8225,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   1  3.0287587E-08   -2.02892517817056955E+02   -6.0212E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.527751E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00500953E+02    0.00000000E+00   -2.33354280E+02    1.69761403E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.166143557E-02   420
@@ -8105,7 +8288,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   2  1.7868901E-08   -2.02892519848597431E+02   -2.0315E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.527751E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00500953E+02    0.00000000E+00   -2.33339716E+02    1.69761403E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.125583858E-02   420
@@ -8166,7 +8351,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   3  1.0859795E-08   -2.02892522526486118E+02   -2.6779E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.527751E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00500953E+02    0.00000000E+00   -2.33331668E+02    1.69761403E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.103324904E-02   420
@@ -8227,7 +8414,9 @@ Calculating charge density... done.
    kernel obtained by Fermi Operator Expansion
    it, Delta DENS, energy, energyDiff   4  6.5599763E-09   -2.02892523797708918E+02   -1.2712E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    3.527751E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    2.00500953E+02    0.00000000E+00   -2.33326991E+02    1.69761403E+01    0.00000000E+00
  Hamiltonian application done.
  --------------------------------------------------------------------------- FOE it=1
  FOE: it, evlow, evhigh, efermi, npl  1  -2.200E+00   2.000E+00  -1.089390149E-02   420

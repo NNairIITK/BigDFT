@@ -1160,19 +1160,19 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   uy=frag_trans%rot_axis(2)
   uz=frag_trans%rot_axis(3)
 
-  !write some output on the screen
-  !print matrix elements, to be moved at the moment of identification of the transformation
-  call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
-  call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
-  call yaml_map('Translation vector',da,fmt='(1pg20.12)')
-  call yaml_open_sequence('Rotation matrix elements')
-  call yaml_sequence(trim(yaml_toa((/&
-       cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
-  call yaml_sequence(trim(yaml_toa((/&
-       ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
-  call yaml_sequence(trim(yaml_toa((/&
-       ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
-  call yaml_close_sequence()
+  !!write some output on the screen
+  !!print matrix elements, to be moved at the moment of identification of the transformation
+  !call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
+  !call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
+  !call yaml_map('Translation vector',da,fmt='(1pg20.12)')
+  !call yaml_open_sequence('Rotation matrix elements')
+  !call yaml_sequence(trim(yaml_toa((/&
+  !     cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
+  !call yaml_sequence(trim(yaml_toa((/&
+  !     ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
+  !call yaml_sequence(trim(yaml_toa((/&
+  !     ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
+  !call yaml_close_sequence()
   !determine ideal sequence for rotation
   !pay attention to what happens if two values are identical  
   !from where xp should be determined
@@ -1189,22 +1189,25 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   rrow(izp)=0.d0
   iyp=maxloc(rrow,1)
 
-  !print the suggested order
-  call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
+  !!print the suggested order
+  !call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
 
   !we should define the transformation order
   !traditional case, for testing
-  ixp=1
-  iyp=2
-  izp=3
+!if (any(hgridsh/=hgridsh_old)) then
+!  ixp=1
+!  iyp=2
+! izp=3
 !!$  print *,'final case',(/ixp,iyp,izp/)
+!endif
 
-!!$  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
-!!$       sint,cost,onemc,(/ixp,iyp,izp/),&
-!!$       hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
-
-  call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
-     sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
+      sint,cost,onemc,(/ixp,iyp,izp/),&
+      hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+  !call yaml_map('Centre old',centre_old,fmt='(1pg18.10)')
+  !call yaml_map('Centre new',centre_new,fmt='(1pg18.10)')
+  !call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
+  !   sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
 
   if (size(frag_trans%discrete_operations)>0) then
@@ -2053,7 +2056,10 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            do i=1,ndims_new(1)
               call shift_and_start(iorder(1),1,2,3,i,j,k,&
                    dt,k1,ms,me)
-              
+!if (i==ndims_new(1)/2) then
+!                            print *,'value fouund',dt,k1,j,ms,me
+!stop
+!end if
               call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
               
               !work(j,k+(i-1)*ndims_old(3))
@@ -2220,44 +2226,44 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
 
     end function ind2
 
-    
-    pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
-         dt,istart,ms,me)
-      use module_base
-      implicit none
-      integer, intent(in) :: ntr !< id of the dimension to be transformed
-      integer, intent(in) :: istep,i2,i3
-      integer, intent(in) :: j1,j2,j3
-      integer, intent(out) :: istart,ms,me
-      real(gp), intent(out) :: dt
-      !local variables
+ 
+     pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
+          dt,istart,ms,me)
+       use module_base
+       implicit none
+       integer, intent(in) :: ntr !< id of the dimension to be transformed
+       integer, intent(in) :: istep,i2,i3
+       integer, intent(in) :: j1,j2,j3
+       integer, intent(out) :: istart,ms,me
+       real(gp), intent(out) :: dt
+       !local variables
       integer :: ivars,istart_shift!,istep,i1,i2,i3
-      real(gp), dimension(3) :: t
+       real(gp), dimension(3) :: t
       real(gp) :: t0_l,coord_old
 
-      !define the coordinates in the reference frame, which depends of the transformed variables
-      t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
-      if (istep >=2) then
-         t(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
-      else
-         t(2)=-centre_old(i2)+real(j2-1,gp)*hgrids_old(i2)
-      end if
-      if (istep ==3) then
-         t(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
-      else
-         t(3)=-centre_old(i3)+real(j3-1,gp)*hgrids_old(i3)
-      end if
+       !define the coordinates in the reference frame, which depends on the transformed variables
+       t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
+       if (istep >=2) then
+          t(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
+       else
+          t(2)=-centre_old(i2)+real(j2-1,gp)*hgrids_old(i2)
+       end if
+       if (istep ==3) then
+          t(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
+       else
+          t(3)=-centre_old(i3)+real(j3-1,gp)*hgrids_old(i3)
+       end if
 
-      !code for the coords
-      ivars=1000*istep+100+10*i2+i3
+       !code for the coords
+       ivars=1000*istep+100+10*i2+i3
 
-      !define the value of the shift of the variable we are going to transform
+       !define the value of the shift of the variable we are going to transform
       !coordinate that has to be found in the old box, including the shift
       coord_old=coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr) 
 
       !central point of the convolution rounded to the grid points
       istart=min(max(1,nint((coord_old+centre_old(ntr)+hgrids_old(ntr))&
-           /hgrids_old(ntr))),ndims_old(ntr))
+            /hgrids_old(ntr))),ndims_old(ntr))
       
       !this shift brings the old point in the new reference frame
       dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
@@ -2296,10 +2302,11 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       istart=istart-istart_shift
 
       !identify extremes for the convolution
-      ms=-min(m_isf,istart-1)
-      me=min(m_isf,ndims_old(ntr)-istart)
+       ms=-min(m_isf,istart-1)
+       me=min(m_isf,ndims_old(ntr)-istart)
 
-    end subroutine shift_and_start
+     end subroutine shift_and_start
+
 
     pure function coord(icrd,ivars,u,C,S,onemc,x,y,z)
       use module_base, only: gp
@@ -2558,6 +2565,7 @@ subroutine interpolate_yp_from_y(nx,ny,nz,cx,cy,cz,cy_new,hx,hy,hz,hy_new,&
   real(gp) :: x,y,z,tt,dt,t0_l,diff
   !to be removed
   !real(gp), dimension(ny_old) :: ty
+
 
   m_isf=nrange/2
  

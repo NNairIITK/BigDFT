@@ -13,733 +13,89 @@ total elements: 7056
 non-zero elements: 6416
 sparsity:  9.07%
  Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
-ifrag,iorb,rot_axis,theta  1  71    -0.000000     1.000000    -0.000000     9.999997
  Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
-ifrag,iorb,rot_axis,theta  1  72    -0.000000     1.000000    -0.000000     9.999997
  Error, Wahba's cost function is too big  0.25527541221505418        9.9999996454517142     
-ifrag,iorb,rot_axis,theta  1  73     0.000000     1.000000    -0.000000    10.000000
  Error, Wahba's cost function is too big  0.25527541221505418        9.9999996454517142     
-ifrag,iorb,rot_axis,theta  1  74     0.000000     1.000000    -0.000000    10.000000
  Error, Wahba's cost function is too big  0.25527541221505418        9.9999996454517142     
-ifrag,iorb,rot_axis,theta  1  75     0.000000     1.000000    -0.000000    10.000000
  Error, Wahba's cost function is too big  0.25527541221505418        9.9999996454517142     
-ifrag,iorb,rot_axis,theta  1  76     0.000000     1.000000    -0.000000    10.000000
  Error, Wahba's cost function is too big  0.38251281446107871        9.9999978596057879     
-ifrag,iorb,rot_axis,theta  1  77    -0.000000     1.000000    -0.000000     9.999998
  Error, Wahba's cost function is too big  0.12984355714338419        10.000009915160437     
-ifrag,iorb,rot_axis,theta  1  78     0.000000     1.000000     0.000000    10.000010
  Error, Wahba's cost function is too big  0.12984355714338419        10.000009915160437     
-ifrag,iorb,rot_axis,theta  1  79     0.000000     1.000000     0.000000    10.000010
  Error, Wahba's cost function is too big  0.12984355714338419        10.000009915160437     
-ifrag,iorb,rot_axis,theta  1  80     0.000000     1.000000     0.000000    10.000010
  Error, Wahba's cost function is too big  0.12984355714338419        10.000009915160437     
-ifrag,iorb,rot_axis,theta  1  81     0.000000     1.000000     0.000000    10.000010
  Error, Wahba's cost function is too big  0.27219957181376647        10.000003319769219     
-ifrag,iorb,rot_axis,theta  1  82     0.000000     1.000000     0.000001    10.000003
  Error, Wahba's cost function is too big  0.26464854521481107        10.000015808021576     
-ifrag,iorb,rot_axis,theta  1  83    -0.000000     1.000000     0.000001    10.000016
  Error, Wahba's cost function is too big  0.26862312617645506        10.000008393746594     
-ifrag,iorb,rot_axis,theta  1  84     0.000000     1.000000     0.000002    10.000008
+ Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
+ Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
+ Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
+ Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
+ Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
+ Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
+ Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
+ Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
+ Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
+ Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
+ Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
+ Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
+ Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
+ Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
+ Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
+ Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
+ Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
+ Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
+ Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
+ Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
+ Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
+ Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
+ Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
+ Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
+ Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
+ Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
+ Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
+ Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
+ Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
+ Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
+ Error, Wahba's cost function is too big  0.45841045245317397        10.000000177773400     
+ Error, Wahba's cost function is too big  0.45841045245317397        10.000000177773400     
+ Error, Wahba's cost function is too big  0.45841045245317397        10.000000177773400     
+ Error, Wahba's cost function is too big  0.45841045245317397        10.000000177773400     
+ Error, Wahba's cost function is too big  0.24563209340435616        9.9999999806472015     
+ Error, Wahba's cost function is too big  0.24563209340435616        9.9999999806472015     
+ Error, Wahba's cost function is too big  0.24563209340435616        9.9999999806472015     
+ Error, Wahba's cost function is too big  0.24563209340435616        9.9999999806472015     
+ Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
+ Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
+ Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
+ Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
  Error, Wahba's cost function is too big  0.26862388268415044        10.000006873864697     
-ifrag,iorb,rot_axis,theta  1   1    -0.000000     1.000000    -0.000001    10.000007
  Error, Wahba's cost function is too big  0.26464901095506710        10.000009157697503     
-ifrag,iorb,rot_axis,theta  1   2    -0.000000     1.000000    -0.000001    10.000009
  Error, Wahba's cost function is too big  0.27220012689222650        10.000005456049557     
-ifrag,iorb,rot_axis,theta  1   3    -0.000000     1.000000    -0.000001    10.000005
  Error, Wahba's cost function is too big  0.12984461865058827        10.000005289387198     
-ifrag,iorb,rot_axis,theta  1   4    -0.000000     1.000000    -0.000001    10.000005
  Error, Wahba's cost function is too big  0.12984461865058827        10.000005289387198     
-ifrag,iorb,rot_axis,theta  1   5    -0.000000     1.000000    -0.000001    10.000005
  Error, Wahba's cost function is too big  0.12984461865058827        10.000005289387198     
-ifrag,iorb,rot_axis,theta  1   6    -0.000000     1.000000    -0.000001    10.000005
  Error, Wahba's cost function is too big  0.12984461865058827        10.000005289387198     
-ifrag,iorb,rot_axis,theta  1   7    -0.000000     1.000000    -0.000001    10.000005
  Error, Wahba's cost function is too big  0.38251277284027058        10.000000164560177     
-ifrag,iorb,rot_axis,theta  1   8    -0.000000     1.000000    -0.000000    10.000000
  Error, Wahba's cost function is too big  0.25527481828447374        10.000000706480121     
-ifrag,iorb,rot_axis,theta  1   9    -0.000000     1.000000     0.000000    10.000001
  Error, Wahba's cost function is too big  0.25527481828447374        10.000000706480121     
-ifrag,iorb,rot_axis,theta  1  10    -0.000000     1.000000     0.000000    10.000001
  Error, Wahba's cost function is too big  0.25527481828447374        10.000000706480121     
-ifrag,iorb,rot_axis,theta  1  11    -0.000000     1.000000     0.000000    10.000001
  Error, Wahba's cost function is too big  0.25527481828447374        10.000000706480121     
-ifrag,iorb,rot_axis,theta  1  12    -0.000000     1.000000     0.000000    10.000001
  Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
-ifrag,iorb,rot_axis,theta  1  13     0.000000     1.000000     0.000000    10.000000
  Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
-ifrag,iorb,rot_axis,theta  1  14     0.000000     1.000000     0.000000    10.000000
- Rotation axis: [-1.863425558076E-07,  1.00000000000, -3.958395791465E-07]
- Rotation angle (deg)                  :  9.99999725541
- Translation vector: [ 0.115963935678,  0.322648687716,  0.162162327442]
- Rotation matrix elements:
- -  [  0.984807761330,  6.590584231159E-08,  0.173648130492 ]
- -  [ -7.156776347588E-08,  1.00000000000,  2.634434708589E-08 ]
- -  [ -0.173648130492, -3.837172580848E-08,  0.984807761330 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
-ifrag,iorb,rot_axis,theta  1  15     0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
-ifrag,iorb,rot_axis,theta  1  16     0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.45841045245317397        10.000000177773400     
-ifrag,iorb,rot_axis,theta  1  17    -0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.45841045245317397        10.000000177773400     
-ifrag,iorb,rot_axis,theta  1  18    -0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.45841045245317397        10.000000177773400     
-ifrag,iorb,rot_axis,theta  1  19    -0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.45841045245317397        10.000000177773400     
-ifrag,iorb,rot_axis,theta  1  20    -0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563209340435616        9.9999999806472015     
-ifrag,iorb,rot_axis,theta  1  21     0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563209340435616        9.9999999806472015     
-ifrag,iorb,rot_axis,theta  1  22     0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563209340435616        9.9999999806472015     
-ifrag,iorb,rot_axis,theta  1  23     0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563209340435616        9.9999999806472015     
-ifrag,iorb,rot_axis,theta  1  24     0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
-ifrag,iorb,rot_axis,theta  1  25    -0.000000     1.000000    -0.000000     9.999999
- Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
-ifrag,iorb,rot_axis,theta  1  26    -0.000000     1.000000    -0.000000     9.999999
- Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
-ifrag,iorb,rot_axis,theta  1  27    -0.000000     1.000000    -0.000000     9.999999
- Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
-ifrag,iorb,rot_axis,theta  1  28    -0.000000     1.000000    -0.000000     9.999999
- Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
-ifrag,iorb,rot_axis,theta  1  57    -0.000000     1.000000    -0.000000    10.000001
- Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
-ifrag,iorb,rot_axis,theta  1  58    -0.000000     1.000000    -0.000000    10.000001
- Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
-ifrag,iorb,rot_axis,theta  1  59    -0.000000     1.000000    -0.000000    10.000001
- Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
-ifrag,iorb,rot_axis,theta  1  60    -0.000000     1.000000    -0.000000    10.000001
- Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
-ifrag,iorb,rot_axis,theta  1  61    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
-ifrag,iorb,rot_axis,theta  1  62    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
-ifrag,iorb,rot_axis,theta  1  63    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
-ifrag,iorb,rot_axis,theta  1  64    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
-ifrag,iorb,rot_axis,theta  1  65     0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
-ifrag,iorb,rot_axis,theta  1  66     0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
-ifrag,iorb,rot_axis,theta  1  67     0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
-ifrag,iorb,rot_axis,theta  1  68     0.000000     1.000000    -0.000000    10.000000
- Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
-ifrag,iorb,rot_axis,theta  1  69    -0.000000     1.000000    -0.000000     9.999997
- Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
-ifrag,iorb,rot_axis,theta  1  70    -0.000000     1.000000    -0.000000     9.999997
- Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
-ifrag,iorb,rot_axis,theta  1  29    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
-ifrag,iorb,rot_axis,theta  1  30    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
-ifrag,iorb,rot_axis,theta  1  31    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
-ifrag,iorb,rot_axis,theta  1  32    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
-ifrag,iorb,rot_axis,theta  1  33    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
-ifrag,iorb,rot_axis,theta  1  34    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
-ifrag,iorb,rot_axis,theta  1  35    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
-ifrag,iorb,rot_axis,theta  1  36    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
-ifrag,iorb,rot_axis,theta  1  37    -0.000000     1.000000     0.000000    10.000001
- Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
-ifrag,iorb,rot_axis,theta  1  38    -0.000000     1.000000     0.000000    10.000001
- Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
-ifrag,iorb,rot_axis,theta  1  39    -0.000000     1.000000     0.000000    10.000001
- Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
-ifrag,iorb,rot_axis,theta  1  40    -0.000000     1.000000     0.000000    10.000001
  Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
-ifrag,iorb,rot_axis,theta  1  41    -0.000000     1.000000     0.000000    10.000000
  Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
-ifrag,iorb,rot_axis,theta  1  42    -0.000000     1.000000     0.000000    10.000000
- Rotation axis: [ 3.385260165695E-10,  1.00000000000,  8.835621814303E-08]
- Rotation angle (deg)                  :  10.0000001347
- Translation vector: [-0.115962133494,  0.322648687716, -0.153876437867]
- Rotation matrix elements:
- -  [  0.984807752604, -1.533775349959E-08,  0.173648179981 ]
- -  [  1.534803944158E-08,  1.00000000000,  1.283545098342E-09 ]
- -  [ -0.173648179981,  1.401113951649E-09,  0.984807752604 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.879629836049E-07,  1.00000000000, -3.674670511233E-08]
- Rotation angle (deg)                  :  10.0000013581
- Translation vector: [ 0.213069191230, -0.322648596198,  5.681589649254E-02]
- Rotation matrix elements:
- -  [  0.984807748896,  3.525418390655E-09,  0.173648201010 ]
- -  [ -9.236580080936E-09,  1.00000000000,  3.208116878813E-08 ]
- -  [ -0.173648201010, -3.319769913073E-08,  0.984807748896 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
-ifrag,iorb,rot_axis,theta  1  43    -0.000000     1.000000     0.000000    10.000000
- Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
-ifrag,iorb,rot_axis,theta  1  44    -0.000000     1.000000     0.000000    10.000000
  Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
-ifrag,iorb,rot_axis,theta  1  45    -0.000000     1.000000    -0.000000    10.000000
  Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
-ifrag,iorb,rot_axis,theta  1  46    -0.000000     1.000000    -0.000000    10.000000
  Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
-ifrag,iorb,rot_axis,theta  1  47    -0.000000     1.000000    -0.000000    10.000000
  Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
-ifrag,iorb,rot_axis,theta  1  48    -0.000000     1.000000    -0.000000    10.000000
  Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
-ifrag,iorb,rot_axis,theta  1  49    -0.000000     1.000000     0.000000     9.999999
  Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
-ifrag,iorb,rot_axis,theta  1  50    -0.000000     1.000000     0.000000     9.999999
  Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
-ifrag,iorb,rot_axis,theta  1  51    -0.000000     1.000000     0.000000     9.999999
  Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
-ifrag,iorb,rot_axis,theta  1  52    -0.000000     1.000000     0.000000     9.999999
  Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
-ifrag,iorb,rot_axis,theta  1  53     0.000000     1.000000     0.000000    10.000001
  Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
-ifrag,iorb,rot_axis,theta  1  54     0.000000     1.000000     0.000000    10.000001
  Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
-ifrag,iorb,rot_axis,theta  1  55     0.000000     1.000000     0.000000    10.000001
  Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
-ifrag,iorb,rot_axis,theta  1  56     0.000000     1.000000     0.000000    10.000001
- Rotation axis: [-2.326410727296E-08,  1.00000000000,  5.777690395202E-08]
- Rotation angle (deg)                  :  9.99999981576
- Translation vector: [-0.102893392810, -0.249083491673,  9.879645047987E-02]
- Rotation matrix elements:
- -  [  0.984807753571, -1.038628795019E-08,  0.173648174500 ]
- -  [  9.679419848890E-09,  1.00000000000,  4.917530722094E-09 ]
- -  [ -0.173648174500, -3.162008796559E-09,  0.984807753571 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-3.103189379184E-08,  1.00000000000,  2.410937837113E-07]
- Rotation angle (deg)                  :  10.0000003140
- Translation vector: [ 0.200000675819,  0.249083491673,  0.204142994066]
- Rotation matrix elements:
- -  [  0.984807752061, -4.233694171386E-08,  0.173648183063 ]
- -  [  4.139405326483E-08,  1.00000000000,  9.051388512743E-09 ]
- -  [ -0.173648183063, -1.725875435196E-09,  0.984807752061 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.863425558076E-07,  1.00000000000, -3.958395791465E-07]
- Rotation angle (deg)                  :  9.99999725541
- Translation vector: [ 0.115963935678,  0.322648687716,  0.162162327442]
- Rotation matrix elements:
- -  [  0.984807761330,  6.590584231159E-08,  0.173648130492 ]
- -  [ -7.156776347588E-08,  1.00000000000,  2.634434708589E-08 ]
- -  [ -0.173648130492, -3.837172580848E-08,  0.984807761330 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 3.385260165695E-10,  1.00000000000,  8.835621814303E-08]
- Rotation angle (deg)                  :  10.0000001347
- Translation vector: [-0.115962133494,  0.322648687716, -0.153876437867]
- Rotation matrix elements:
- -  [  0.984807752604, -1.533775349959E-08,  0.173648179981 ]
- -  [  1.534803944158E-08,  1.00000000000,  1.283545098342E-09 ]
- -  [ -0.173648179981,  1.401113951649E-09,  0.984807752604 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.879629836049E-07,  1.00000000000, -3.674670511233E-08]
- Rotation angle (deg)                  :  10.0000013581
- Translation vector: [ 0.213069191230, -0.322648596198,  5.681589649254E-02]
- Rotation matrix elements:
- -  [  0.984807748896,  3.525418390655E-09,  0.173648201010 ]
- -  [ -9.236580080936E-09,  1.00000000000,  3.208116878813E-08 ]
- -  [ -0.173648201010, -3.319769913073E-08,  0.984807748896 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.326410727296E-08,  1.00000000000,  5.777690395202E-08]
- Rotation angle (deg)                  :  9.99999981576
- Translation vector: [-0.102893392810, -0.249083491673,  9.879645047987E-02]
- Rotation matrix elements:
- -  [  0.984807753571, -1.038628795019E-08,  0.173648174500 ]
- -  [  9.679419848890E-09,  1.00000000000,  4.917530722094E-09 ]
- -  [ -0.173648174500, -3.162008796559E-09,  0.984807753571 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-3.103189379184E-08,  1.00000000000,  2.410937837113E-07]
- Rotation angle (deg)                  :  10.0000003140
- Translation vector: [ 0.200000675819,  0.249083491673,  0.204142994066]
- Rotation matrix elements:
- -  [  0.984807752061, -4.233694171386E-08,  0.173648183063 ]
- -  [  4.139405326483E-08,  1.00000000000,  9.051388512743E-09 ]
- -  [ -0.173648183063, -1.725875435196E-09,  0.984807752061 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.167511290008E-07,  1.00000000000, -2.793427460929E-07]
- Rotation angle (deg)                  :  9.99999964545
- Translation vector: [ 0.201082853724,  8.577165458690E-02, -3.305038968580E-02]
- Rotation matrix elements:
- -  [  0.984807754087,  5.028106896363E-08,  0.173648171573 ]
- -  [ -4.673364523877E-08,  1.00000000000, -2.451746377279E-08 ]
- -  [ -0.173648171573,  1.602977638734E-08,  0.984807754087 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.879629836049E-07,  1.00000000000, -3.674670511233E-08]
- Rotation angle (deg)                  :  10.0000013581
- Translation vector: [ 0.213069191230, -0.322648596198,  5.681589649254E-02]
- Rotation matrix elements:
- -  [  0.984807748896,  3.525418390655E-09,  0.173648201010 ]
- -  [ -9.236580080936E-09,  1.00000000000,  3.208116878813E-08 ]
- -  [ -0.173648201010, -3.319769913073E-08,  0.984807748896 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-3.549730788334E-10,  1.00000000000, -5.631851267977E-08]
- Rotation angle (deg)                  :  10.0000001778
- Translation vector: [-5.787348802397E-03,  0.249083491673, -6.550012148658E-03]
- Rotation matrix elements:
- -  [  0.984807752473,  9.774214428962E-09,  0.173648180723 ]
- -  [ -9.785000106720E-09,  1.00000000000, -7.939643556148E-10 ]
- -  [ -0.173648180723, -9.172452143046E-10,  0.984807752473 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.326410727296E-08,  1.00000000000,  5.777690395202E-08]
- Rotation angle (deg)                  :  9.99999981576
- Translation vector: [-0.102893392810, -0.249083491673,  9.879645047987E-02]
- Rotation matrix elements:
- -  [  0.984807753571, -1.038628795019E-08,  0.173648174500 ]
- -  [  9.679419848890E-09,  1.00000000000,  4.917530722094E-09 ]
- -  [ -0.173648174500, -3.162008796559E-09,  0.984807753571 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-4.164536290781E-08,  1.00000000000, -4.327516446503E-08]
- Rotation angle (deg)                  :  9.99999999325
- Translation vector: [-8.982465212569E-02,  0.322648687716, -4.853064709344E-02]
- Rotation matrix elements:
- -  [  0.984807753033,  6.881966804232E-09,  0.173648177551 ]
- -  [ -8.147340080913E-09,  1.00000000000,  6.574194386286E-09 ]
- -  [ -0.173648177551, -7.889088358496E-09,  0.984807753033 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.167511290008E-07,  1.00000000000, -2.793427460929E-07]
- Rotation angle (deg)                  :  9.99999964545
- Translation vector: [ 0.201082853724,  8.577165458690E-02, -3.305038968580E-02]
- Rotation matrix elements:
- -  [  0.984807754087,  5.028106896363E-08,  0.173648171573 ]
- -  [ -4.673364523877E-08,  1.00000000000, -2.451746377279E-08 ]
- -  [ -0.173648171573,  1.602977638734E-08,  0.984807754087 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.879629836049E-07,  1.00000000000, -3.674670511233E-08]
- Rotation angle (deg)                  :  10.0000013581
- Translation vector: [ 0.213069191230, -0.322648596198,  5.681589649254E-02]
- Rotation matrix elements:
- -  [  0.984807748896,  3.525418390655E-09,  0.173648201010 ]
- -  [ -9.236580080936E-09,  1.00000000000,  3.208116878813E-08 ]
- -  [ -0.173648201010, -3.319769913073E-08,  0.984807748896 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-3.549730788334E-10,  1.00000000000, -5.631851267977E-08]
- Rotation angle (deg)                  :  10.0000001778
- Translation vector: [-5.787348802397E-03,  0.249083491673, -6.550012148658E-03]
- Rotation matrix elements:
- -  [  0.984807752473,  9.774214428962E-09,  0.173648180723 ]
- -  [ -9.785000106720E-09,  1.00000000000, -7.939643556148E-10 ]
- -  [ -0.173648180723, -9.172452143046E-10,  0.984807752473 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.326410727296E-08,  1.00000000000,  5.777690395202E-08]
- Rotation angle (deg)                  :  9.99999981576
- Translation vector: [-0.102893392810, -0.249083491673,  9.879645047987E-02]
- Rotation matrix elements:
- -  [  0.984807753571, -1.038628795019E-08,  0.173648174500 ]
- -  [  9.679419848890E-09,  1.00000000000,  4.917530722094E-09 ]
- -  [ -0.173648174500, -3.162008796559E-09,  0.984807753571 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-4.164536290781E-08,  1.00000000000, -4.327516446503E-08]
- Rotation angle (deg)                  :  9.99999999325
- Translation vector: [-8.982465212569E-02,  0.322648687716, -4.853064709344E-02]
- Rotation matrix elements:
- -  [  0.984807753033,  6.881966804232E-09,  0.173648177551 ]
- -  [ -8.147340080913E-09,  1.00000000000,  6.574194386286E-09 ]
- -  [ -0.173648177551, -7.889088358496E-09,  0.984807753033 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.167511290008E-07,  1.00000000000, -2.793427460929E-07]
- Rotation angle (deg)                  :  9.99999964545
- Translation vector: [ 0.201082853724,  8.577165458690E-02, -3.305038968580E-02]
- Rotation matrix elements:
- -  [  0.984807754087,  5.028106896363E-08,  0.173648171573 ]
- -  [ -4.673364523877E-08,  1.00000000000, -2.451746377279E-08 ]
- -  [ -0.173648171573,  1.602977638734E-08,  0.984807754087 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.407440757677E-07,  1.00000000000,  4.255135890456E-09]
- Rotation angle (deg)                  :  9.99999964837
- Translation vector: [-0.104386309525,  0.322648687716, -0.132490615512]
- Rotation matrix elements:
- -  [  0.984807754078, -2.877115178526E-09,  0.173648171623 ]
- -  [ -1.399322043755E-09,  1.00000000000,  2.450459649471E-08 ]
- -  [ -0.173648171623, -2.437530635295E-08,  0.984807754078 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-3.549730788334E-10,  1.00000000000, -5.631851267977E-08]
- Rotation angle (deg)                  :  10.0000001778
- Translation vector: [-5.787348802397E-03,  0.249083491673, -6.550012148658E-03]
- Rotation matrix elements:
- -  [  0.984807752473,  9.774214428962E-09,  0.173648180723 ]
- -  [ -9.785000106720E-09,  1.00000000000, -7.939643556148E-10 ]
- -  [ -0.173648180723, -9.172452143046E-10,  0.984807752473 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.338391437489E-08,  1.00000000000,  2.358032849532E-07]
- Rotation angle (deg)                  :  9.99999969501
- Translation vector: [ 7.281504518435E-03, -0.322648596198, -0.153877078043]
- Rotation matrix elements:
- -  [  0.984807753937, -4.130206366497E-08,  0.173648172425 ]
- -  [  4.059155530275E-08,  1.00000000000,  7.642955522912E-09 ]
- -  [ -0.173648172425, -4.781924677585E-10,  0.984807753937 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.167511290008E-07,  1.00000000000, -2.793427460929E-07]
- Rotation angle (deg)                  :  9.99999964545
- Translation vector: [ 0.201082853724,  8.577165458690E-02, -3.305038968580E-02]
- Rotation matrix elements:
- -  [  0.984807754087,  5.028106896363E-08,  0.173648171573 ]
- -  [ -4.673364523877E-08,  1.00000000000, -2.451746377279E-08 ]
- -  [ -0.173648171573,  1.602977638734E-08,  0.984807754087 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-4.164536290781E-08,  1.00000000000, -4.327516446503E-08]
- Rotation angle (deg)                  :  9.99999999325
- Translation vector: [-8.982465212569E-02,  0.322648687716, -4.853064709344E-02]
- Rotation matrix elements:
- -  [  0.984807753033,  6.881966804232E-09,  0.173648177551 ]
- -  [ -8.147340080913E-09,  1.00000000000,  6.574194386286E-09 ]
- -  [ -0.173648177551, -7.889088358496E-09,  0.984807753033 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.407440757677E-07,  1.00000000000,  4.255135890456E-09]
- Rotation angle (deg)                  :  9.99999964837
- Translation vector: [-0.104386309525,  0.322648687716, -0.132490615512]
- Rotation matrix elements:
- -  [  0.984807754078, -2.877115178526E-09,  0.173648171623 ]
- -  [ -1.399322043755E-09,  1.00000000000,  2.450459649471E-08 ]
- -  [ -0.173648171623, -2.437530635295E-08,  0.984807754078 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-3.549730788334E-10,  1.00000000000, -5.631851267977E-08]
- Rotation angle (deg)                  :  10.0000001778
- Translation vector: [-5.787348802397E-03,  0.249083491673, -6.550012148658E-03]
- Rotation matrix elements:
- -  [  0.984807752473,  9.774214428962E-09,  0.173648180723 ]
- -  [ -9.785000106720E-09,  1.00000000000, -7.939643556148E-10 ]
- -  [ -0.173648180723, -9.172452143046E-10,  0.984807752473 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.338391437489E-08,  1.00000000000,  2.358032849532E-07]
- Rotation angle (deg)                  :  9.99999969501
- Translation vector: [ 7.281504518435E-03, -0.322648596198, -0.153877078043]
- Rotation matrix elements:
- -  [  0.984807753937, -4.130206366497E-08,  0.173648172425 ]
- -  [  4.059155530275E-08,  1.00000000000,  7.642955522912E-09 ]
- -  [ -0.173648172425, -4.781924677585E-10,  0.984807753937 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.536445023958E-07,  1.00000000000, -1.060089407173E-07]
- Rotation angle (deg)                  :  9.99999785961
- Translation vector: [ 0.212184302670,  9.343215591312E-02, -5.850960747452E-02]
- Rotation matrix elements:
- -  [  0.984807759499,  1.455482718985E-08,  0.173648140878 ]
- -  [ -2.226168375407E-08,  1.00000000000,  4.243438296222E-08 ]
- -  [ -0.173648140878, -4.565540960745E-08,  0.984807759499 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-4.164536290781E-08,  1.00000000000, -4.327516446503E-08]
- Rotation angle (deg)                  :  9.99999999325
- Translation vector: [-8.982465212569E-02,  0.322648687716, -4.853064709344E-02]
- Rotation matrix elements:
- -  [  0.984807753033,  6.881966804232E-09,  0.173648177551 ]
- -  [ -8.147340080913E-09,  1.00000000000,  6.574194386286E-09 ]
- -  [ -0.173648177551, -7.889088358496E-09,  0.984807753033 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.407440757677E-07,  1.00000000000,  4.255135890456E-09]
- Rotation angle (deg)                  :  9.99999964837
- Translation vector: [-0.104386309525,  0.322648687716, -0.132490615512]
- Rotation matrix elements:
- -  [  0.984807754078, -2.877115178526E-09,  0.173648171623 ]
- -  [ -1.399322043755E-09,  1.00000000000,  2.450459649471E-08 ]
- -  [ -0.173648171623, -2.437530635295E-08,  0.984807754078 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 2.297730447365E-09,  1.00000000000, -8.486281259603E-08]
- Rotation angle (deg)                  :  9.99999998065
- Translation vector: [ 0.104387464049,  0.322648687716,  0.140776406530]
- Rotation matrix elements:
- -  [  0.984807753071,  1.477118041909E-08,  0.173648177334 ]
- -  [ -1.470136504243E-08,  1.00000000000, -1.688253508250E-09 ]
- -  [ -0.173648177334, -8.902600998697E-10,  0.984807753071 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.338391437489E-08,  1.00000000000,  2.358032849532E-07]
- Rotation angle (deg)                  :  9.99999969501
- Translation vector: [ 7.281504518435E-03, -0.322648596198, -0.153877078043]
- Rotation matrix elements:
- -  [  0.984807753937, -4.130206366497E-08,  0.173648172425 ]
- -  [  4.059155530275E-08,  1.00000000000,  7.642955522912E-09 ]
- -  [ -0.173648172425, -4.781924677585E-10,  0.984807753937 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.575351116466E-07,  1.00000000000,  3.617544563800E-07]
- Rotation angle (deg)                  :  10.0000099152
- Translation vector: [ 3.282740265447E-02,  1.482533105207E-02, -0.144823842200]
- Rotation matrix elements:
- -  [  0.984807722962, -6.042474670525E-08,  0.173648348090 ]
- -  [  6.521138082395E-08,  1.00000000000, -2.185983798256E-08 ]
- -  [ -0.173648348090,  3.285158582467E-08,  0.984807722962 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-9.565535427788E-08,  1.00000000000,  2.231710950202E-08]
- Rotation angle (deg)                  :  9.99999901536
- Translation vector: [-7.280152880984E-03, -0.322648596198,  0.162162953538]
- Rotation matrix elements:
- -  [  0.984807755996, -5.328544500565E-09,  0.173648160743 ]
- -  [  2.422105535680E-09,  1.00000000000,  1.694942330857E-08 ]
- -  [ -0.173648160743, -1.627132936255E-08,  0.984807755996 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.407440757677E-07,  1.00000000000,  4.255135890456E-09]
- Rotation angle (deg)                  :  9.99999964837
- Translation vector: [-0.104386309525,  0.322648687716, -0.132490615512]
- Rotation matrix elements:
- -  [  0.984807754078, -2.877115178526E-09,  0.173648171623 ]
- -  [ -1.399322043755E-09,  1.00000000000,  2.450459649471E-08 ]
- -  [ -0.173648171623, -2.437530635295E-08,  0.984807754078 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 2.297730447365E-09,  1.00000000000, -8.486281259603E-08]
- Rotation angle (deg)                  :  9.99999998065
- Translation vector: [ 0.104387464049,  0.322648687716,  0.140776406530]
- Rotation matrix elements:
- -  [  0.984807753071,  1.477118041909E-08,  0.173648177334 ]
- -  [ -1.470136504243E-08,  1.00000000000, -1.688253508250E-09 ]
- -  [ -0.173648177334, -8.902600998697E-10,  0.984807753071 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.338391437489E-08,  1.00000000000,  2.358032849532E-07]
- Rotation angle (deg)                  :  9.99999969501
- Translation vector: [ 7.281504518435E-03, -0.322648596198, -0.153877078043]
- Rotation matrix elements:
- -  [  0.984807753937, -4.130206366497E-08,  0.173648172425 ]
- -  [  4.059155530275E-08,  1.00000000000,  7.642955522912E-09 ]
- -  [ -0.173648172425, -4.781924677585E-10,  0.984807753937 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.575351116466E-07,  1.00000000000,  3.617544563800E-07]
- Rotation angle (deg)                  :  10.0000099152
- Translation vector: [ 3.282740265447E-02,  1.482533105207E-02, -0.144823842200]
- Rotation matrix elements:
- -  [  0.984807722962, -6.042474670525E-08,  0.173648348090 ]
- -  [  6.521138082395E-08,  1.00000000000, -2.185983798256E-08 ]
- -  [ -0.173648348090,  3.285158582467E-08,  0.984807722962 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-9.565535427788E-08,  1.00000000000,  2.231710950202E-08]
- Rotation angle (deg)                  :  9.99999901536
- Translation vector: [-7.280152880984E-03, -0.322648596198,  0.162162953538]
- Rotation matrix elements:
- -  [  0.984807755996, -5.328544500565E-09,  0.173648160743 ]
- -  [  2.422105535680E-09,  1.00000000000,  1.694942330857E-08 ]
- -  [ -0.173648160743, -1.627132936255E-08,  0.984807755996 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.414950535657E-07,  1.00000000000, -4.728475327430E-07]
- Rotation angle (deg)                  :  9.99999999006
- Translation vector: [ 5.788362530492E-03,  0.249083491673,  1.483585596491E-02]
- Rotation matrix elements:
- -  [  0.984807753042,  8.425874009138E-08,  0.173648177496 ]
- -  [ -7.995948449726E-08,  1.00000000000, -3.175397466714E-08 ]
- -  [ -0.173648177496,  1.738674168564E-08,  0.984807753042 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 2.297730447365E-09,  1.00000000000, -8.486281259603E-08]
- Rotation angle (deg)                  :  9.99999998065
- Translation vector: [ 0.104387464049,  0.322648687716,  0.140776406530]
- Rotation matrix elements:
- -  [  0.984807753071,  1.477118041909E-08,  0.173648177334 ]
- -  [ -1.470136504243E-08,  1.00000000000, -1.688253508250E-09 ]
- -  [ -0.173648177334, -8.902600998697E-10,  0.984807753071 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-5.069322476358E-08,  1.00000000000,  1.627668014316E-07]
- Rotation angle (deg)                  :  10.0000005147
- Translation vector: [ 8.982555321733E-02,  0.322648687716,  5.681652258869E-02]
- Rotation matrix elements:
- -  [  0.984807751452, -2.903430396363E-08,  0.173648186514 ]
- -  [  2.749401582304E-08,  1.00000000000,  1.127558025144E-08 ]
- -  [ -0.173648186514, -6.329992846075E-09,  0.984807751452 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.575351116466E-07,  1.00000000000,  3.617544563800E-07]
- Rotation angle (deg)                  :  10.0000099152
- Translation vector: [ 3.282740265447E-02,  1.482533105207E-02, -0.144823842200]
- Rotation matrix elements:
- -  [  0.984807722962, -6.042474670525E-08,  0.173648348090 ]
- -  [  6.521138082395E-08,  1.00000000000, -2.185983798256E-08 ]
- -  [ -0.173648348090,  3.285158582467E-08,  0.984807722962 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.414950535657E-07,  1.00000000000, -4.728475327430E-07]
- Rotation angle (deg)                  :  9.99999999006
- Translation vector: [ 5.788362530492E-03,  0.249083491673,  1.483585596491E-02]
- Rotation matrix elements:
- -  [  0.984807753042,  8.425874009138E-08,  0.173648177496 ]
- -  [ -7.995948449726E-08,  1.00000000000, -3.175397466714E-08 ]
- -  [ -0.173648177496,  1.738674168564E-08,  0.984807753042 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 2.297730447365E-09,  1.00000000000, -8.486281259603E-08]
- Rotation angle (deg)                  :  9.99999998065
- Translation vector: [ 0.104387464049,  0.322648687716,  0.140776406530]
- Rotation matrix elements:
- -  [  0.984807753071,  1.477118041909E-08,  0.173648177334 ]
- -  [ -1.470136504243E-08,  1.00000000000, -1.688253508250E-09 ]
- -  [ -0.173648177334, -8.902600998697E-10,  0.984807753071 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-9.565535427788E-08,  1.00000000000,  2.231710950202E-08]
- Rotation angle (deg)                  :  9.99999901536
- Translation vector: [-7.280152880984E-03, -0.322648596198,  0.162162953538]
- Rotation matrix elements:
- -  [  0.984807755996, -5.328544500565E-09,  0.173648160743 ]
- -  [  2.422105535680E-09,  1.00000000000,  1.694942330857E-08 ]
- -  [ -0.173648160743, -1.627132936255E-08,  0.984807755996 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.575351116466E-07,  1.00000000000,  3.617544563800E-07]
- Rotation angle (deg)                  :  10.0000099152
- Translation vector: [ 3.282740265447E-02,  1.482533105207E-02, -0.144823842200]
- Rotation matrix elements:
- -  [  0.984807722962, -6.042474670525E-08,  0.173648348090 ]
- -  [  6.521138082395E-08,  1.00000000000, -2.185983798256E-08 ]
- -  [ -0.173648348090,  3.285158582467E-08,  0.984807722962 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-5.069322476358E-08,  1.00000000000,  1.627668014316E-07]
- Rotation angle (deg)                  :  10.0000005147
- Translation vector: [ 8.982555321733E-02,  0.322648687716,  5.681652258869E-02]
- Rotation matrix elements:
- -  [  0.984807751452, -2.903430396363E-08,  0.173648186514 ]
- -  [  2.749401582304E-08,  1.00000000000,  1.127558025144E-08 ]
- -  [ -0.173648186514, -6.329992846075E-09,  0.984807751452 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.084889695337E-08,  1.00000000000, -5.721159486337E-08]
- Rotation angle (deg)                  :  9.99999944609
- Translation vector: [-0.213068177502, -0.322648596198, -4.852996467906E-02]
- Rotation matrix elements:
- -  [  0.984807754691,  9.617947087814E-09,  0.173648168146 ]
- -  [ -1.025143020169E-08,  1.00000000000,  2.751200180137E-09 ]
- -  [ -0.173648168146, -4.489545347509E-09,  0.984807754691 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.414950535657E-07,  1.00000000000, -4.728475327430E-07]
- Rotation angle (deg)                  :  9.99999999006
- Translation vector: [ 5.788362530492E-03,  0.249083491673,  1.483585596491E-02]
- Rotation matrix elements:
- -  [  0.984807753042,  8.425874009138E-08,  0.173648177496 ]
- -  [ -7.995948449726E-08,  1.00000000000, -3.175397466714E-08 ]
- -  [ -0.173648177496,  1.738674168564E-08,  0.984807753042 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-9.565535427788E-08,  1.00000000000,  2.231710950202E-08]
- Rotation angle (deg)                  :  9.99999901536
- Translation vector: [-7.280152880984E-03, -0.322648596198,  0.162162953538]
- Rotation matrix elements:
- -  [  0.984807755996, -5.328544500565E-09,  0.173648160743 ]
- -  [  2.422105535680E-09,  1.00000000000,  1.694942330857E-08 ]
- -  [ -0.173648160743, -1.627132936255E-08,  0.984807755996 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-5.069322476358E-08,  1.00000000000,  1.627668014316E-07]
- Rotation angle (deg)                  :  10.0000005147
- Translation vector: [ 8.982555321733E-02,  0.322648687716,  5.681652258869E-02]
- Rotation matrix elements:
- -  [  0.984807751452, -2.903430396363E-08,  0.173648186514 ]
- -  [  2.749401582304E-08,  1.00000000000,  1.127558025144E-08 ]
- -  [ -0.173648186514, -6.329992846075E-09,  0.984807751452 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 2.745552472790E-07,  0.999999999999,  1.023430676437E-06]
- Rotation angle (deg)                  :  10.0000033198
- Translation vector: [-8.747179785686E-03, -0.101274469051, -9.858496555820E-02]
- Rotation matrix elements:
- -  [  0.984807742951, -1.735458164385E-07,  0.173648234727 ]
- -  [  1.818880442202E-07,  1.00000000000, -3.212781211681E-08 ]
- -  [ -0.173648234727,  6.322425593358E-08,  0.984807742951 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.084889695337E-08,  1.00000000000, -5.721159486337E-08]
- Rotation angle (deg)                  :  9.99999944609
- Translation vector: [-0.213068177502, -0.322648596198, -4.852996467906E-02]
- Rotation matrix elements:
- -  [  0.984807754691,  9.617947087814E-09,  0.173648168146 ]
- -  [ -1.025143020169E-08,  1.00000000000,  2.751200180137E-09 ]
- -  [ -0.173648168146, -4.489545347509E-09,  0.984807754691 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 1.414950535657E-07,  1.00000000000, -4.728475327430E-07]
- Rotation angle (deg)                  :  9.99999999006
- Translation vector: [ 5.788362530492E-03,  0.249083491673,  1.483585596491E-02]
- Rotation matrix elements:
- -  [  0.984807753042,  8.425874009138E-08,  0.173648177496 ]
- -  [ -7.995948449726E-08,  1.00000000000, -3.175397466714E-08 ]
- -  [ -0.173648177496,  1.738674168564E-08,  0.984807753042 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 4.354246306618E-08,  1.00000000000,  3.166943361598E-10]
- Rotation angle (deg)                  :  10.0000014605
- Translation vector: [ 0.102894519175, -0.249083491673, -9.051057498462E-02]
- Rotation matrix elements:
- -  [  0.984807748586,  6.065146437907E-10,  0.173648202770 ]
- -  [  7.165014483939E-10,  1.00000000000, -7.556259155645E-09 ]
- -  [ -0.173648202770,  7.565881755597E-09,  0.984807748586 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-5.069322476358E-08,  1.00000000000,  1.627668014316E-07]
- Rotation angle (deg)                  :  10.0000005147
- Translation vector: [ 8.982555321733E-02,  0.322648687716,  5.681652258869E-02]
- Rotation matrix elements:
- -  [  0.984807751452, -2.903430396363E-08,  0.173648186514 ]
- -  [  2.749401582304E-08,  1.00000000000,  1.127558025144E-08 ]
- -  [ -0.173648186514, -6.329992846075E-09,  0.984807751452 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.376677985250E-08,  0.999999999999,  1.003649392041E-06]
- Rotation angle (deg)                  :  10.0000158080
- Translation vector: [ 0.157086153543, -9.356517956577E-02,  9.420795505596E-03]
- Rotation matrix elements:
- -  [  0.984807705102, -1.746432325748E-07,  0.173648449377 ]
- -  [  1.739210887182E-07,  1.00000000000,  1.937480200588E-08 ]
- -  [ -0.173648449377,  1.112067306972E-08,  0.984807705102 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.863425558076E-07,  1.00000000000, -3.958395791465E-07]
- Rotation angle (deg)                  :  9.99999725541
- Translation vector: [ 0.115963935678,  0.322648687716,  0.162162327442]
- Rotation matrix elements:
- -  [  0.984807761330,  6.590584231159E-08,  0.173648130492 ]
- -  [ -7.156776347588E-08,  1.00000000000,  2.634434708589E-08 ]
- -  [ -0.173648130492, -3.837172580848E-08,  0.984807761330 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.084889695337E-08,  1.00000000000, -5.721159486337E-08]
- Rotation angle (deg)                  :  9.99999944609
- Translation vector: [-0.213068177502, -0.322648596198, -4.852996467906E-02]
- Rotation matrix elements:
- -  [  0.984807754691,  9.617947087814E-09,  0.173648168146 ]
- -  [ -1.025143020169E-08,  1.00000000000,  2.751200180137E-09 ]
- -  [ -0.173648168146, -4.489545347509E-09,  0.984807754691 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 4.354246306618E-08,  1.00000000000,  3.166943361598E-10]
- Rotation angle (deg)                  :  10.0000014605
- Translation vector: [ 0.102894519175, -0.249083491673, -9.051057498462E-02]
- Rotation matrix elements:
- -  [  0.984807748586,  6.065146437907E-10,  0.173648202770 ]
- -  [  7.165014483939E-10,  1.00000000000, -7.556259155645E-09 ]
- -  [ -0.173648202770,  7.565881755597E-09,  0.984807748586 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-3.103189379184E-08,  1.00000000000,  2.410937837113E-07]
- Rotation angle (deg)                  :  10.0000003140
- Translation vector: [ 0.200000675819,  0.249083491673,  0.204142994066]
- Rotation matrix elements:
- -  [  0.984807752061, -4.233694171386E-08,  0.173648183063 ]
- -  [  4.139405326483E-08,  1.00000000000,  9.051388512743E-09 ]
- -  [ -0.173648183063, -1.725875435196E-09,  0.984807752061 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 4.843747562279E-07,  0.999999999997,  2.498612019988E-06]
- Rotation angle (deg)                  :  10.0000083937
- Translation vector: [-0.276614690189, -0.213933242046,  2.778188921074E-02]
- Rotation matrix elements:
- -  [  0.984807727573, -4.265210311961E-07,  0.173648321939 ]
- -  [  4.412385377028E-07,  1.00000000000, -4.615126911206E-08 ]
- -  [ -0.173648321939,  1.220704581059E-07,  0.984807727573 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-1.863425558076E-07,  1.00000000000, -3.958395791465E-07]
- Rotation angle (deg)                  :  9.99999725541
- Translation vector: [ 0.115963935678,  0.322648687716,  0.162162327442]
- Rotation matrix elements:
- -  [  0.984807761330,  6.590584231159E-08,  0.173648130492 ]
- -  [ -7.156776347588E-08,  1.00000000000,  2.634434708589E-08 ]
- -  [ -0.173648130492, -3.837172580848E-08,  0.984807761330 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-2.084889695337E-08,  1.00000000000, -5.721159486337E-08]
- Rotation angle (deg)                  :  9.99999944609
- Translation vector: [-0.213068177502, -0.322648596198, -4.852996467906E-02]
- Rotation matrix elements:
- -  [  0.984807754691,  9.617947087814E-09,  0.173648168146 ]
- -  [ -1.025143020169E-08,  1.00000000000,  2.751200180137E-09 ]
- -  [ -0.173648168146, -4.489545347509E-09,  0.984807754691 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 4.354246306618E-08,  1.00000000000,  3.166943361598E-10]
- Rotation angle (deg)                  :  10.0000014605
- Translation vector: [ 0.102894519175, -0.249083491673, -9.051057498462E-02]
- Rotation matrix elements:
- -  [  0.984807748586,  6.065146437907E-10,  0.173648202770 ]
- -  [  7.165014483939E-10,  1.00000000000, -7.556259155645E-09 ]
- -  [ -0.173648202770,  7.565881755597E-09,  0.984807748586 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [-3.103189379184E-08,  1.00000000000,  2.410937837113E-07]
- Rotation angle (deg)                  :  10.0000003140
- Translation vector: [ 0.200000675819,  0.249083491673,  0.204142994066]
- Rotation matrix elements:
- -  [  0.984807752061, -4.233694171386E-08,  0.173648183063 ]
- -  [  4.139405326483E-08,  1.00000000000,  9.051388512743E-09 ]
- -  [ -0.173648183063, -1.725875435196E-09,  0.984807752061 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis: [ 4.354246306618E-08,  1.00000000000,  3.166943361598E-10]
- Rotation angle (deg)                  :  10.0000014605
- Translation vector: [ 0.102894519175, -0.249083491673, -9.051057498462E-02]
- Rotation matrix elements:
- -  [  0.984807748586,  6.065146437907E-10,  0.173648202770 ]
- -  [  7.165014483939E-10,  1.00000000000, -7.556259155645E-09 ]
- -  [ -0.173648202770,  7.565881755597E-09,  0.984807748586 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
  Overview of the reformatting (several categories may apply):
    - No reformatting required: 0
    - Grid spacing has changed: 0
@@ -753,7 +109,9 @@ coeff renormalization... calculate density kernel... Calculating charge density.
    Calculation finished. TOTAL CHARGE =   9.199999939640E+01
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.55168529E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     8.067101E-002     0.000000E+000    -6.386167E+001
@@ -765,6 +123,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.298978E-01    3.993872E-01    8.015085E
  WARNING: not converged within 1 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   5.8435081E-01  9.6632601E-01   -132.5309310
  ============================= Basis functions created. =============================
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
@@ -777,7 +136,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   1  2.6454123E-07   -1.32551365932558042E+02   -1.3255E+02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54018823E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     6.523601E-002    -6.388210E+001     1.544005E+000
@@ -789,7 +150,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   2  9.1593477E-08   -1.32508065372054489E+02    4.3301E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54019732E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     2.534423E-002    -6.233810E+001    -4.580492E-002
@@ -801,7 +164,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   3  4.2764894E-08   -1.32505714983291796E+02    2.3504E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54002977E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.808327E-002    -6.238390E+001    -3.190054E-002
@@ -813,7 +178,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   4  4.0111070E-08   -1.32507540006859927E+02   -1.8250E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54145934E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     5.902495E-003    -6.241580E+001    -1.576225E-001
@@ -825,7 +192,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   5  1.4107874E-08   -1.32506666462617432E+02    8.7354E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54121760E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.831913E-003    -6.257343E+001     2.436379E-002
@@ -837,7 +206,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   6  4.6975406E-09   -1.32506543758539578E+02    1.2270E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54086362E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.175948E-003    -6.254906E+001     3.594828E-002
@@ -849,7 +220,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   7  2.8170997E-09   -1.32506554728995411E+02   -1.0970E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54107085E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     8.552540E-004    -6.251312E+001    -2.170109E-002
@@ -861,7 +234,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   8  2.0604242E-09   -1.32506572479169790E+02   -1.7750E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54099301E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     6.997830E-004    -6.253482E+001     8.662703E-003
@@ -873,7 +248,9 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   9  1.7910535E-09   -1.32506593585270480E+02   -2.1106E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    8.845605E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54081486E+02    1.50085031E+01    0.00000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     5.223824E-004    -6.252615E+001     1.909619E-002

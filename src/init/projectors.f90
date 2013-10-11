@@ -933,46 +933,47 @@ subroutine crtproj(geocode,nterm,lr, &
 
 !!  call system_clock(ncount0,ncount_rate,ncount_max)
 
-  !$omp parallel default(shared) private(iterm,work,ml1,mu1,ml2,mu2,ml3,mu3) &
-  !$omp private(ithread,ichunk,factor,n_gau)
+  ! OpenMP commented here as doesn't work on Vesta
+  !!$omp parallel default(shared) private(iterm,work,ml1,mu1,ml2,mu2,ml3,mu3) &
+  !!$omp private(ithread,ichunk,factor,n_gau)
 
-  !$omp critical
+  !!$omp critical
     allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
     call memocc(i_stat,work,'work',subname)
-  !$omp end critical
+  !!$omp end critical
 
-  !$ ithread=omp_get_thread_num()
-  !$ nthread=omp_get_num_threads() 
-  !$ ichunk=0
+  !!$ ithread=omp_get_thread_num()
+  !!$ nthread=omp_get_num_threads() 
+  !!$ ichunk=0
   do iterm=1,nterm
-     !$ ichunk=ichunk+1
-     !$ if (mod(ichunk,nthread).eq.ithread) then
+     !!$ ichunk=ichunk+1
+     !!$ if (mod(ichunk,nthread).eq.ithread) then
      factor(:)=fac_arr(:,iterm)
      n_gau=lx(iterm) 
      call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
           wprojx(1,0,1,iterm),work,nw,perx) 
-     !$ endif
+     !!$ endif
 
-     !$ ichunk=ichunk+1
-     !$ if (mod(ichunk,nthread).eq.ithread) then
+     !!$ ichunk=ichunk+1
+     !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
      call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
           wprojy(1,0,1,iterm),work,nw,pery) 
-     !$ endif
+     !!$ endif
 
-     !$ ichunk=ichunk+1
-     !$ if (mod(ichunk,nthread).eq.ithread) then
+     !!$ ichunk=ichunk+1
+     !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
      call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
           wprojz(1,0,1,iterm),work,nw,perz)
-     !$ endif
+     !!$ endif
   end do
-  !$omp critical
+  !!$omp critical
     i_all=-product(shape(work))*kind(work)
     deallocate(work,stat=i_stat)
     call memocc(i_stat,i_all,'work',subname)
-  !$omp end critical
-  !$omp end parallel
+  !!$omp end critical
+  !!$omp end parallel
 
   !the filling of the projector should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
