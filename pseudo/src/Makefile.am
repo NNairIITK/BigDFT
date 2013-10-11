@@ -88,15 +88,17 @@ cuda_level =
 endif
 
 
-CLEANFILES = mpif.h
+CLEANFILES = mpif.h *.@MODULE_EXT@
 
 # Dependencies
 atom.o: xcfunction.o driveXC.o
-penalty.o: $(mpi_include)
+penalty.o: $(mpi_include) pseudo.o
 pseudo.o: $(mpi_include)
 amoeba.o: $(mpi_include)
 ekin_gauss_wvlt.cublas.o: $(mpi_include)
 ekin_gauss_wvlt.o: $(mpi_include)
+gatom.o: pseudo.o
+ppack.o: pseudo.o
 
 #Fake mpif.h for serial compilation
 mpif.h:

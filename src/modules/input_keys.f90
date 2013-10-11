@@ -947,7 +947,7 @@ contains
 
     ! Switch YAML output stream
     call yaml_get_default_stream(iunit_def)
-    call yaml_set_stream(unit=unt,filename=trim(fname),tabbing=0,record_length=100)
+    call yaml_set_stream(unit=unt,filename=trim(fname),tabbing=0,record_length=100,istat=ierr)
 
     if (ierr == 0) then
        call input_keys_init()
