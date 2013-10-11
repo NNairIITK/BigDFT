@@ -141,7 +141,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
 
-      if (iproc==0) write(*,'(a,5es18.8)') 'ekin, eh, epot, eproj, eex', &
+      if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
                     energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
       !DEBUG

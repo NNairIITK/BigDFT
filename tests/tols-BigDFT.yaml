@@ -26,6 +26,7 @@ Keys to ignore:
  - Version Number
  - Root process Hostname
  - Input ixc parameter corresponds to XC
+ - Wavefunction written No.
 Patterns to ignore:
  - Timestamp
  - memory
@@ -154,7 +155,7 @@ scalability:
  EKS: 2.0e-10
  Total electronic charge: 1.9e-11
 
-ElecField:
+GElecField:
  Epsilon: 1.1e-10 
 
 FeHyb:
@@ -333,3 +334,6 @@ molecule_dmin:
 
 hybrid-directmin:
  Epsilon: 1.4e-11
+
+cdft_ohoh:
+ Epsilon: 7.1e-10

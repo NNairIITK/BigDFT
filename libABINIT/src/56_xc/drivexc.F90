@@ -407,8 +407,13 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
      end if
    else if ((ixc >= 11 .and. ixc <= 15) .or. (ixc==23)) then
      if (order**2 <= 1) then
-       call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,dvxcdgr=vxcgr,exexch=exexch,&
+         if (present(exexch)) then
+          call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,dvxcdgr=vxcgr,exexch=exexch,&
 &       grho2_updn=grho2_updn)
+         else
+          call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,dvxcdgr=vxcgr,&
+&       grho2_updn=grho2_updn)
+         end if
      else if (order /=3) then
        if(ixc == 12 .and. ndvxc /=8  .or. ixc/=12 .and. ndvxc /= 15 .or. nvxcdgr /= 3)then
          write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
