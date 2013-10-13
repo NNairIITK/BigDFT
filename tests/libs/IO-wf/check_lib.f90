@@ -24,6 +24,7 @@ program IO_wf_test
   
   real(wp) :: nrm
   integer :: ierr, i, j, k  
+  call f_lib_initialize()
 
   call MPI_INIT(ierr)
   call f_malloc_set_status(memory_limit=0.e0)
@@ -58,7 +59,8 @@ program IO_wf_test
 
   call free_wave_to_isf(psiscf)
 
-  call memocc(0,0,'count','stop')
+  !call memocc(0,0,'count','stop')
 
   call MPI_FINALIZE(ierr)
+  call f_lib_finalize()
 end program IO_wf_test

@@ -925,6 +925,10 @@ contains
          EXCLUSIVE .is. dict_new('0' .is. 'no check',&
                                  '1' .is. 'light check',&
                                  '2' .is. 'full check')))
+    
+    call set(p//EXPERIMENTAL_MODE,dict_new(&
+         COMMENT .is. 'linear scaling: activate the experimental mode', &
+         DEFAULT .is. 'No'))
     !the opportunity of entering this dictionary already in yaml format should be discussed
     !for example the above variable becomes:
     !check_sumrho:
