@@ -1497,7 +1497,7 @@ subroutine winter(nat,at,nid,nlminx,nlmin,en_delta,fp_delta, &
   character(len=50) :: comment
   character(len=5) :: fn5
 
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
+  call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
 
   ! write enarr file
   open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')
