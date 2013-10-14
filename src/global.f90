@@ -99,6 +99,11 @@ program MINHOP
        mdpos,inputs_md,md_atoms)
 !   write(*,*) 'nat=',atoms%astruct%nat
 
+    if ( inputs_opt%inguess_geopt .ne. inputs_md%inguess_geopt) then 
+        write(*,*) "input guess methods in MD and OPT have to be identical"
+        stop
+    endif
+
   !associate the same output directory
   if (inputs_opt%dir_output /= inputs_md%dir_output) then
      call deldir(trim(inputs_md%dir_output),len_trim(inputs_md%dir_output),ierr)
