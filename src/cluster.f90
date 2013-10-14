@@ -1755,7 +1755,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         !exit if the opt%infocode is correct
         if (opt%infocode /= 0) then
            if(iproc==0) then
-              call yaml_warning('Wavefunctions not converged after cycle '// trim(yaml_toa(opt%itrep,fmt='(i0)')))
+              if (opt%itrp == opt%itrpmax .and. opt%gnrm_cv > 0.0_gp) &
+                   call yaml_warning('Wavefunctions not converged after cycle '// trim(yaml_toa(opt%itrep,fmt='(i0)')))
               if (opt%itrep < opt%nrepmax) call yaml_comment('restart after diagonalisation')
               ! write(*,*) ' WARNING: Wavefunctions not converged after cycle',opt%itrep
               ! if (opt%itrep < opt%nrepmax) write(*,*)' restart after diagonalisation'
@@ -1820,7 +1821,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         opt%gnrm =1.d10
         KSwfn%diis%energy_min=1.d10
-        KSwfn%diis%alpha=in%alphadiis
+        ! this line can be commented
+        !KSwfn%diis%alpha=in%alphadiis
      end if
 
      if (iproc == 0) then
