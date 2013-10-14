@@ -1,7 +1,7 @@
 /*> @file 
      Header for the public BigDFT API.
     @author
-     Copyright (C) 2011-2012 BigDFT group 
+     Copyright (C) 2011-2013 BigDFT group 
      This file is distributed under the terms of the
      GNU General Public License, see ~/COPYING file
      or http://www.gnu.org/copyleft/gpl.txt .
@@ -26,6 +26,7 @@ int bigdft_mpi_set_distribution(guint *mpi_iproc, guint *mpi_nproc,
 void bigdft_mpi_force_group(guint igroup, guint ngroup);
 int bigdft_finalize();
 guint bigdft_get_count(GObject *obj);
+
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
