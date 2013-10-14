@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Define all static strings to store input variables
 module module_input_keys
   use dictionaries, only: dictionary
@@ -178,9 +179,9 @@ contains
     use yaml_parse
     implicit none
     !local variables
-    integer :: params_size
-    integer(kind = 8) :: cbuf_add !< address of c buffer
-    character, dimension(:), allocatable :: params
+!!$    integer :: params_size
+!!$    integer(kind = 8) :: cbuf_add !< address of c buffer
+!!$    character, dimension(:), allocatable :: params
 
 !!$    !alternative filling of parameters from hard-coded source file
 !!$    call getstaticinputdef(cbuf_add,params_size)
