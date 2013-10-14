@@ -287,52 +287,53 @@ program frequencies
             eigen_r(i)= sqrt( eigen_r(i))
          end if
       end do
-      call yaml_map('(F) Frequencies (Hartree)',eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
-      call yaml_map('(F) Frequencies (cm-1)',   eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
-      !Build frequencies.xyz in descending order
+      call yaml_map('(F) Frequencies (Hartree)', eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Frequencies (cm-1)',    eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
+      call yaml_map('(F) Frequencies (THz)',     eigen_r(iperm(3*runobj%atoms%astruct%nat:1:-1))*Ha_THz,fmt='(f13.2)')
+      !build frequencies.xyz in descending order
       open(unit=15,file='frequencies.xyz',status="unknown")
-      do i=3*runObj%atoms%astruct%nat,1,-1
-         write(15,'(1x,i0,1x,1pe20.10,a)') runObj%atoms%astruct%nat,eigen_r(iperm(i))
-         write(15,'(1x,a)') 'Frequency'
-         do iat=1,runObj%atoms%astruct%nat
-            ity=runObj%atoms%astruct%iatype(iat)
+      do i=3*runobj%atoms%astruct%nat,1,-1
+         write(15,'(1x,i0,1x,1pe20.10,a)') runobj%atoms%astruct%nat,eigen_r(iperm(i))
+         write(15,'(1x,a)') 'frequency'
+         do iat=1,runobj%atoms%astruct%nat
+            ity=runobj%atoms%astruct%iatype(iat)
             do j=1,3
                write(15,'(1x,a,1x,100(1pe20.10))') &
-                  &   runObj%atoms%astruct%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
+                  &   runobj%atoms%astruct%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
             end do
          end do
-         !Blank line
+         !blank line
          write(15,*)
       end do
       close(unit=15)
-      !Vibrational entropy of the molecule
-      ! See : http://www.codessa-pro.com/descriptors/thermodynamic/entropy.htm)
-      !       http://www.ncsu.edu/chemistry/franzen/public_html/CH795N/lecture/XIV/XIV.html
-      !Zero-point energy
+      !vibrational entropy of the molecule
+      ! see : http://www.codessa-pro.com/descriptors/thermodynamic/entropy.htm)
+      !       http://www.ncsu.edu/chemistry/franzen/public_html/ch795n/lecture/xiv/xiv.html
+      !zero-point energy
       zpenergy = 0.0_gp
       vibrational_energy=0.0_gp
       vibrational_entropy=0.0_gp
       !iperm: ascending order
-      !Remove almost zero frequencies
-      do i=6,3*runObj%atoms%astruct%nat
-         freq_exp=exp(eigen_r(iperm(i))*Ha_K/Temperature)
-         freq2_exp=exp(-eigen_r(iperm(i))*Ha_K/(2.0_gp*Temperature))
+      !remove almost zero frequencies
+      do i=6,3*runobj%atoms%astruct%nat
+         freq_exp=exp(eigen_r(iperm(i))*ha_k/temperature)
+         freq2_exp=exp(-eigen_r(iperm(i))*ha_k/(2.0_gp*temperature))
          zpenergy=zpenergy+0.5_gp*eigen_r(iperm(i))
          vibrational_energy=vibrational_entropy+eigen_r(iperm(i))*(0.5_gp+1.0_gp/(freq_exp-1.0_gp))
          vibrational_entropy=vibrational_entropy + eigen_r(iperm(i))*freq2_exp/(1.0_gp-freq2_exp) - log(1.0_gp-freq2_exp)
       end do
-      !Multiply by 1/kT
-      vibrational_entropy=vibrational_entropy*Ha_K/Temperature
+      !multiply by 1/kt
+      vibrational_entropy=vibrational_entropy*ha_k/temperature
       total_energy=energies(1,0)+vibrational_energy
-      call yaml_map('(F) Zero-point energy (cm-1 and Hartree)', (/ zpenergy*Ha_cmm1, zpenergy /),fmt='(1pe20.10)')
-      call yaml_map('(F) Considered Temperature (Kelvin)',      Temperature,fmt='(f5.1)')
-      call yaml_map('(F) Vibrational entropy =',                vibrational_entropy,fmt='(1pe22.10)')
-      call yaml_map('(F) Vibrational Energy (cm-1 and Hartree)', &
-           &                     (/ vibrational_energy*Ha_cmm1, vibrational_energy/),fmt='(1pe20.10)')
-      call yaml_map('(F) Total Energy (Hartree)',               total_energy,fmt='(1pe22.10)')
+      call yaml_map('(F) zero-point energy (cm-1 and hartree)', (/ zpenergy*ha_cmm1, zpenergy /),fmt='(1pe20.10)')
+      call yaml_map('(F) considered temperature (kelvin)',      temperature,fmt='(f5.1)')
+      call yaml_map('(F) vibrational entropy =',                vibrational_entropy,fmt='(1pe22.10)')
+      call yaml_map('(F) vibrational energy (cm-1 and hartree)', &
+           &                     (/ vibrational_energy*ha_cmm1, vibrational_energy/),fmt='(1pe20.10)')
+      call yaml_map('(F) total energy (hartree)',               total_energy,fmt='(1pe22.10)')
    end if
 
-   ! De-allocations
+   ! de-allocations
    call f_free(rxyz0)
 
    call deallocate_global_output(outs)
@@ -352,20 +353,22 @@ program frequencies
 
    call f_release_routine()
 
-   call run_objects_free(runObj, subname)
+   call run_objects_free(runobj, subname)
 
    call bigdft_finalize(ierr)
 
    call f_lib_finalize()
-   contains
 
 
+contains
+
+   !> solve the dynamical matrix
    subroutine solve(hessian,n,eigen_r,eigen_i,vector_l,vector_r)
       implicit none
       integer, intent(in) :: n
       real(gp), intent(inout) :: hessian(n,n)
       real(gp), intent(out) :: eigen_r(n),eigen_i(n),vector_l(n,n),vector_r(n,n)
-      !Local variables
+      !local variables
       character(len=*), parameter :: subname = "solve"
       integer :: info,lwork
       real(gp), dimension(:), allocatable :: work
@@ -374,57 +377,57 @@ program frequencies
       lwork=6*n
       work=f_malloc(lwork+ndebug,id='work')
 
-      call dgeev('V','V',n,hessian,n,eigen_r,eigen_i,vector_l,n,vector_r,n,work,lwork,info)
+      call dgeev('v','v',n,hessian,n,eigen_r,eigen_i,vector_l,n,vector_r,n,work,lwork,info)
 
       if (info /= 0) then
-         call yaml_warning('(F) Error from the routine dgeev: info=' // trim(yaml_toa(info)))
+         call yaml_warning('(f) error from the routine dgeev: info=' // trim(yaml_toa(info)))
       end if
 
-      !De-allocation
+      !de-allocation
       call f_free(work)
 
-   END SUBROUTINE solve
+   end subroutine solve
 
 
-   !> Check the restart file
+   !> check the restart file
    subroutine frequencies_check_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
       implicit none
-      !Arguments
-      integer, intent(in) :: nat     !< Number of atoms
-      integer, intent(in) :: n_order !< Order of the finite difference
-      logical, dimension(n_order,0:3*nat), intent(out) :: moves            !< Contains moves already done
-      real(gp), dimension(n_order,0:3*nat), intent(out) :: energies        !< Energies of the already moves
-      real(gp), dimension(3*nat,n_order,0:3*nat), intent(out) :: forces    !< Forces of the already moves
-      real(gp), dimension(3), intent(in) :: freq_step     !< Frequency step in each direction
-      integer, intent(out) :: imoves                      !< Number of frequency already calculated   
-      real(gp), dimension(:), intent(out) :: amu          !< Atomic masses
+      !arguments
+      integer, intent(in) :: nat     !< number of atoms
+      integer, intent(in) :: n_order !< order of the finite difference
+      logical, dimension(n_order,0:3*nat), intent(out) :: moves            !< contains moves already done
+      real(gp), dimension(n_order,0:3*nat), intent(out) :: energies        !< energies of the already moves
+      real(gp), dimension(3*nat,n_order,0:3*nat), intent(out) :: forces    !< forces of the already moves
+      real(gp), dimension(3), intent(in) :: freq_step     !< frequency step in each direction
+      integer, intent(out) :: imoves                      !< number of frequency already calculated   
+      real(gp), dimension(:), intent(out) :: amu          !< atomic masses
       integer, intent(out) :: ierror                      !< 0 means all calculations are done
-      !Local variables
+      !local variables
       character(len=*), parameter :: subname = "frequencies_check_restart"
-      !We read the file
+      !we read the file
       call frequencies_read_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
       !if (ierror /= 0) then
-      !   !If error, we write a new file
+      !   !if error, we write a new file
       !   call frequencies_write_new_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
       !end if
-      !Check also if all calculations are done.
+      !check also if all calculations are done.
    end subroutine frequencies_check_restart
 
 
-   !> Read the restart file associated to the calculation of the frequencies
+   !> read the restart file associated to the calculation of the frequencies
    subroutine frequencies_read_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
       implicit none
-      !Arguments
-      integer, intent(in) :: nat     !< Number of atoms
-      integer, intent(in) :: n_order !< Order of the finite difference
-      logical, dimension(n_order,0:3*nat), intent(out) :: moves            !< Contains moves already done
-      real(gp), dimension(n_order,0:3*nat), intent(out) :: energies        !< Energies of the already moves
-      real(gp), dimension(3*nat,n_order,0:3*nat), intent(out) :: forces    !< Forces of the already moves
-      real(gp), dimension(3), intent(in) :: freq_step     !< Frequency step in each direction
-      integer, intent(out) :: imoves                      !< Number of frequency already calculated
-      real(gp), dimension(:), intent(out) :: amu          !< Atomic masses
-      integer, intent(out) :: ierror                      !< Error when reading the file
-      !Local variables
+      !arguments
+      integer, intent(in) :: nat     !< number of atoms
+      integer, intent(in) :: n_order !< order of the finite difference
+      logical, dimension(n_order,0:3*nat), intent(out) :: moves            !< contains moves already done
+      real(gp), dimension(n_order,0:3*nat), intent(out) :: energies        !< energies of the already moves
+      real(gp), dimension(3*nat,n_order,0:3*nat), intent(out) :: forces    !< forces of the already moves
+      real(gp), dimension(3), intent(in) :: freq_step     !< frequency step in each direction
+      integer, intent(out) :: imoves                      !< number of frequency already calculated
+      real(gp), dimension(:), intent(out) :: amu          !< atomic masses
+      integer, intent(out) :: ierror                      !< error when reading the file
+      !local variables
       character(len=*), parameter :: subname = "frequencies_read_restart"
       logical :: exists
       integer, parameter :: iunit = 15
@@ -434,61 +437,61 @@ program frequencies
       integer :: km,i,iat,ii,i_order
 
       call f_routine(id=subname)
-      !Initialize by default to false
+      !initialize by default to false
       imoves=0
       moves = .false.
 
-      !Test if the file does exist.
+      !test if the file does exist.
       inquire(file='frequencies.res', exist=exists)
       if (.not.exists) then
-         !There is no restart file.
+         !there is no restart file.
          call razero(n_order*(3*nat+1),energies(1,0))
-         if (bigdft_mpi%iproc == 0) call yaml_map('(F) File "frequencies.res" present',.false.)
-         !Code error non zero
+         if (bigdft_mpi%iproc == 0) call yaml_map('(f) file "frequencies.res" present',.false.)
+         !code error non zero
          ierror = -1
          return
       else
-         if (bigdft_mpi%iproc == 0) call yaml_map('(F) File "frequencies.res" present',.true.)
+         if (bigdft_mpi%iproc == 0) call yaml_map('(f) file "frequencies.res" present',.true.)
       end if
 
-      !We read the file
+      !we read the file
       open(unit=iunit,file='frequencies.res',status='old',form='unformatted',iostat=ierror)
-      !First line is data for coherency of the calculation
+      !first line is data for coherency of the calculation
       read(unit=iunit,iostat=ierror) i_order,steps,amu
       if (ierror /= 0) then
-         !Read error, we exit
+         !read error, we exit
          if (bigdft_mpi%iproc == 0) then
             close(unit=iunit)
-            call yaml_warning('(F) Error when reading the first line of "frequencies.res"')
+            call yaml_warning('(f) error when reading the first line of "frequencies.res"')
          end if
          call f_release_routine()
          return
       else
          if (steps(1) /= freq_step(1) .or. steps(2) /= freq_step(2) .or. steps(3) /= freq_step(3)) then
-            if (bigdft_mpi%iproc == 0) call yaml_warning('(F) The step to calculate frequencies is not the same: stop.')
+            if (bigdft_mpi%iproc == 0) call yaml_warning('(f) the step to calculate frequencies is not the same: stop.')
             stop
          end if
 
          if (i_order > n_order) then
             if (bigdft_mpi%iproc == 0) then 
-               call yaml_warning('(F) The number of points per direction is bigger in the "frequencies.res" file.')
-               call yaml_warning('(F) Increase the order of the finite difference scheme')
+               call yaml_warning('(f) the number of points per direction is bigger in the "frequencies.res" file.')
+               call yaml_warning('(f) increase the order of the finite difference scheme')
             end if
             stop
          end if
       end if
       
-      !Allocations
+      !allocations
       rxyz=f_malloc(3*nat,id='rxyz')
       fxyz=f_malloc(3*nat,id='fxyz')
 
-      !Read the reference state
+      !read the reference state
       read(unit=iunit,iostat=ierror) iat,etot,rxyz,fxyz
       if (ierror /= 0 .or. iat /= 0) then
-         !Read error, we assume that it is not calculated
-         if (bigdft_mpi%iproc == 0) call yaml_map('(F) Reference state calculated in the "frequencies.res" file',.false.)
+         !read error, we assume that it is not calculated
+         if (bigdft_mpi%iproc == 0) call yaml_map('(f) reference state calculated in the "frequencies.res" file',.false.)
       else
-         if (bigdft_mpi%iproc == 0) call yaml_map('(F) Reference state calculated in the "frequencies.res" file',.true.)
+         if (bigdft_mpi%iproc == 0) call yaml_map('(f) reference state calculated in the "frequencies.res" file',.true.)
          energies(:,0) = etot
          forces(:,1,0) = fxyz
          moves(:,0) = .true.
@@ -496,11 +499,11 @@ program frequencies
       do
          read(unit=iunit,iostat=ierror) km,i,iat,rxyz,etot,fxyz
          if (ierror /= 0) then
-            !Read error, we exit
+            !read error, we exit
             if (bigdft_mpi%iproc == 0) then
                close(unit=iunit)
-               !Error if all moves are not read
-               if (imoves < 3*nat+1) call yaml_warning('(F) The file "frequencies.res" is incomplete!')
+               !error if all moves are not read
+               if (imoves < 3*nat+1) call yaml_warning('(f) the file "frequencies.res" is incomplete!')
             end if
             exit
          end if
@@ -512,40 +515,40 @@ program frequencies
       end do
       close(unit=iunit)
 
-      !Deallocations
+      !deallocations
       call f_free(rxyz)
       call f_free(fxyz)
 
       call f_release_routine()
 
-   END SUBROUTINE frequencies_read_restart
+   end subroutine frequencies_read_restart
 
 
-   !> Write the full restart file
+   !> write the full restart file
    subroutine frequencies_write_new_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
       implicit none
-      !Arguments
-      integer, intent(in) :: nat     !< Number of atoms
-      integer, intent(in) :: n_order !< Order of the finite difference
-      logical, dimension(n_order,0:3*nat), intent(in) :: moves         !< Contains moves already done
-      real(gp), dimension(n_order,0:3*nat), intent(in) :: energies     !< Energies of the already moves
-      real(gp), dimension(3*nat,n_order,0:3*nat), intent(in) :: forces !< Forces of the already moves
-      real(gp), dimension(3), intent(in) :: freq_step    !< Frequency step in each direction
-      integer, intent(out) :: imoves                     !< Number of frequency already calculated
-      real(gp), dimension(:), intent(in) :: amu          !< Atomic masses
-      integer, intent(out) :: ierror                     !< Error when reading the file
-      !Local variables
+      !arguments
+      integer, intent(in) :: nat     !< number of atoms
+      integer, intent(in) :: n_order !< order of the finite difference
+      logical, dimension(n_order,0:3*nat), intent(in) :: moves         !< contains moves already done
+      real(gp), dimension(n_order,0:3*nat), intent(in) :: energies     !< energies of the already moves
+      real(gp), dimension(3*nat,n_order,0:3*nat), intent(in) :: forces !< forces of the already moves
+      real(gp), dimension(3), intent(in) :: freq_step    !< frequency step in each direction
+      integer, intent(out) :: imoves                     !< number of frequency already calculated
+      real(gp), dimension(:), intent(in) :: amu          !< atomic masses
+      integer, intent(out) :: ierror                     !< error when reading the file
+      !local variables
       integer, parameter :: iunit = 15
 
       if (bigdft_mpi%iproc ==0 ) then
-         !This file is used as a restart
+         !this file is used as a restart
          open(unit=iunit,file='frequencies.res',status="unknown",form="unformatted")
          write(unit=iunit) n_order,freq_step,amu
 
          write(unit=iunit) 0,outs%energy,rxyz0,outs%fxyz
-         do iat=1,runObj%atoms%astruct%nat
-            if (runObj%atoms%astruct%ifrztyp(iat) == 1) then
-               if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The atom ' // trim(yaml_toa(iat)) // ' is frozen.')
+         do iat=1,runobj%atoms%astruct%nat
+            if (runobj%atoms%astruct%ifrztyp(iat) == 1) then
+               if (bigdft_mpi%iproc == 0) call yaml_comment('(f) the atom ' // trim(yaml_toa(iat)) // ' is frozen.')
                cycle
             end if
             do i=1,3
@@ -561,13 +564,13 @@ program frequencies
          end do
          close(unit=iunit)
       end if
-   END SUBROUTINE frequencies_write_new_restart
+   end subroutine frequencies_write_new_restart
 
 
-   !> Write one move in the file restart (only moves==.true.)
+   !> write one move in the file restart (only moves==.true.)
    subroutine frequencies_write_restart(km,i,iat,rxyz,etot,fxyz,n_order,freq_step,amu)
       implicit none
-      !Arguments
+      !arguments
       integer, intent(in) :: km,i,iat
       real(gp), dimension(:,:), intent(in) :: rxyz
       real(gp), intent(in) :: etot
@@ -575,17 +578,17 @@ program frequencies
       integer, intent(in), optional :: n_order
       real(gp), intent(in), optional :: freq_step(3)
       real(gp), dimension(:), intent(in), optional :: amu
-      !Local variables
+      !local variables
       integer, parameter :: iunit = 15
 
       if (km == 0 .and. .not.(present(n_order).and.present(freq_step).and.present(amu))) then
-         if (bigdft_mpi%iproc == 0) write(*,*) "Bug for use of frequencies_write_restart"
-         if (bigdft_mpi%iproc == 0) call yaml_warning("(F) Bug for use of frequencies_write_restart")
+         if (bigdft_mpi%iproc == 0) write(*,*) "bug for use of frequencies_write_restart"
+         if (bigdft_mpi%iproc == 0) call yaml_warning("(f) bug for use of frequencies_write_restart")
          stop
       end if
 
       if (bigdft_mpi%iproc ==0 ) then
-         !This file is used as a restart
+         !this file is used as a restart
          open(unit=iunit,file='frequencies.res',status="unknown",form="unformatted",position="append")
          if (km == 0) then
             write(unit=iunit) n_order,freq_step,amu
@@ -595,7 +598,7 @@ program frequencies
          end if
          close(unit=iunit)
       end if
-   END SUBROUTINE frequencies_write_restart
+   eND SUBROUTINE frequencies_write_restart
 
 
    subroutine restart_inputs(inputs)
