@@ -1,18 +1,19 @@
-! Copyright 2009
-! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
-!
-! Bader is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! A copy of the GNU General Public License is available at
-! http://www.gnu.org/licenses/
+!> @file
+!!  Bader charge density analysis program
+!! @author
+!!  Copyright 2009
+!! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
+!!
+!! Bader is free software: you can redistribute it and/or modify
+!! it under the terms of the GNU General Public License as published by
+!! the Free Software Foundation, either version 3 of the License, or
+!! (at your option) any later version.
+!!
+!! A copy of the GNU General Public License is available at
+!! http://www.gnu.org/licenses/
 
-!-----------------------------------------------------------------------------------!
-! Bader charge density analysis program
-!  Module containing matrix functions
-!-----------------------------------------------------------------------------------!
+
+!> Module containing matrix functions
 MODULE matrix_mod
   USE kind_mod
   IMPLICIT NONE
@@ -24,10 +25,8 @@ MODULE matrix_mod
 
   CONTAINS
 
-!-----------------------------------------------------------------------------------!
-! matrix_mult:  Multiply the matricies A and B and return the product C
-!-----------------------------------------------------------------------------------!
 
+  !> Multiply the matricies A and B and return the product C
   SUBROUTINE matrix_mult(A,B,C)
 
     REAL(q2),INTENT(IN),DIMENSION(:,:) :: A,B
@@ -53,10 +52,8 @@ MODULE matrix_mod
   RETURN
   END SUBROUTINE matrix_mult
 
-!-----------------------------------------------------------------------------------!
-! matrix_vector:  Multiply the matrix M with the vector V and return the product Vp
-!-----------------------------------------------------------------------------------!
 
+  !> Multiply the matrix M with the vector V and return the product Vp
   SUBROUTINE matrix_vector(M,V,Vp)
 
     REAL(q2),INTENT(IN),DIMENSION(:,:) :: M
@@ -80,10 +77,8 @@ MODULE matrix_mod
   RETURN
   END SUBROUTINE matrix_vector
 
-!-----------------------------------------------------------------------------------!
-! vector_matrix:  Multiply the vector V with the matrix M and return the product Vp
-!-----------------------------------------------------------------------------------!
 
+  !> vector_matrix:  Multiply the vector V with the matrix M and return the product Vp
   SUBROUTINE vector_matrix(V,M,Vp)
 
     REAL(q2),INTENT(IN),DIMENSION(:) :: V
@@ -107,10 +102,8 @@ MODULE matrix_mod
   RETURN
   END SUBROUTINE vector_matrix
 
-!-----------------------------------------------------------------------------------!
-! matrix_transpose:  Set matrix B to be the transpose of A
-!-----------------------------------------------------------------------------------!
 
+  !> Set matrix B to be the transpose of A
   SUBROUTINE matrix_transpose(A,B)
 
     REAL(q2),INTENT(IN),DIMENSION(:,:) :: A
@@ -130,10 +123,8 @@ MODULE matrix_mod
   RETURN
   END SUBROUTINE matrix_transpose
 
-!-----------------------------------------------------------------------------------!
-! matrix_3x3_inverse:  Set matrix B to be the inverse of A
-!-----------------------------------------------------------------------------------!
 
+  !> Set matrix B to be the inverse of A
   SUBROUTINE matrix_3x3_inverse(A,B)
 
     REAL(q2),INTENT(IN),DIMENSION(3,3) :: A
@@ -162,10 +153,8 @@ MODULE matrix_mod
   RETURN
   END SUBROUTINE matrix_3x3_inverse
 
-!-----------------------------------------------------------------------------------!
-! matrix_volume: Function returning the triple product of the lattice vectors.
-!-----------------------------------------------------------------------------------!
-    
+
+  !> Function returning the triple product of the lattice vectors.
   FUNCTION matrix_volume(h)
 
     REAL(q2),INTENT(IN),DIMENSION(3,3) :: h
@@ -178,7 +167,6 @@ MODULE matrix_mod
   RETURN
   END FUNCTION matrix_volume
 
-!-----------------------------------------------------------------------------------!
 
 END MODULE matrix_mod
 

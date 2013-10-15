@@ -1,1 +1,41 @@
-tests the functionalities on top of KS calculations
+/*! @file
+@brief README of the non-regression tests for the functionalities on top of KS calculations
+
+@dir ./tests/overDFT
+@brief Directory for the tests about functionalities on top of KS calculations
+
+@page TESTS_OVERDFT Tests the functionalities on top of KS calculations
+@brief Non-regression tests (on top of KS)
+
+Tests the functionalities on top of KS calculations
+
+The command <tt>make check</tt> performs the series of tests:
+- @b BigDFT2Wannier
+- @b GEOPT-BFGS
+- @b GEOPT-LBFGS
+- @b GEOPT-newIG
+- @b H2-freq:     Computes the vibration properties of the H2 molecule using finite differences
+                  (test the 'frequencies' program).
+- @b H2O-slab:    Tests the calculation of the dipolar surfaces.
+- @b IO-wf
+- @b IO-wf-ETSF
+- @b MH_taskgroups
+- @b MINHOP       Example to use the minima hopping method.
+                  The input Files are:
+                  - @b CPUlimit:   CPUlimit in hours
+                  - @b earr.dat:   First line,  # of minima found and # of minima to be found
+                                   Second line, Eref  (Reference energy) stop if less than that
+                                   Third line,  accur Accuracy for rounding
+                  - @b input.dat   Used for the first optimization of geometry
+                  - @b ioput       First line, Ediff (Difference energy) to reject minima or not if > Ediff
+                  - @b poscur.xyz  Initial and current position
+                  - @b rand.inp    Seed of random number
+- @b NEB          Run Nudged-Elastic Band calculations
+- @b NH3          Shows the DIIS geometry relaxation to obtain saddle points
+- @b SPLSAD
+- @b testforces
+- @b Xabsb2B
+- @b XabsCG
+- @b XabsCheb     Tests XANES calculations
+- @b XabsLanc
+*/

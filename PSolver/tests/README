@@ -1,1 +1,4 @@
-tests for the Poisson solver package.
+/*! @file
+@brief Tests for the Poisson Solver package.
+
+*/

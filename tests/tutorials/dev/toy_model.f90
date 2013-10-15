@@ -20,7 +20,6 @@ program wvl
 
   type(input_variables)             :: inputs
   type(atoms_data)                  :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
 
   type(local_zone_descriptors)          :: Lzd
   type(orbitals_data)               :: orbs
@@ -49,6 +48,7 @@ program wvl
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
 
+  call f_lib_initialize()
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
@@ -57,7 +57,7 @@ program wvl
    !just for backward compatibility
    iproc=mpi_info(1)
    nproc=mpi_info(2)
-   call bigdft_set_input('input','posinp',rxyz,inputs,atoms)
+   call bigdft_set_input('input','posinp',inputs,atoms)
 
 !!$  ! Start MPI in parallel version
 !!$  call MPI_INIT(ierr)
@@ -73,22 +73,22 @@ program wvl
 !!$  ! Read all input stuff, variables and atomic coordinates and pseudo.
 !!$  !the arguments of this routine should be changed
 !!$  posinp_name='posinp'
-!!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, rxyz,1,'input',0)
+!!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, atoms%astruct%rxyz,1,'input',0)
 
   allocate(radii_cf(atoms%astruct%ntypes,3))
   call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf)
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
-  call system_size(iproc,atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult, &
+  call system_size(iproc,atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,shift)
 
   ! Setting up the wavefunction representations (descriptors for the
   !  compressed form...).
   call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
-       & atoms,rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
+       & atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
-  call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,rxyz)
+  call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,atoms%astruct%rxyz)
 
   !grid spacings and box of the density
   call dpbox_set(dpcom,Lzd,iproc,nproc,MPI_COMM_WORLD,inputs,atoms%astruct%geocode)
@@ -99,7 +99,7 @@ program wvl
   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   allocate(rxyz_old(3, atoms%astruct%nat))
   call readmywaves(iproc,"data/wavefunction",WF_FORMAT_PLAIN,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
-       & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,rxyz,Lzd%Glr%wfd,psi)
+       & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,atoms%astruct%rxyz,Lzd%Glr%wfd,psi)
   call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
 
@@ -208,14 +208,14 @@ program wvl
   if (iproc == 0) call yaml_map("Number of electrons", sum(rhor))
   deallocate(rhor)
   call density_descriptors(iproc,nproc,inputs%nspin,inputs%crmult,inputs%frmult,atoms,&
-       dpcom,inputs%rho_commun,rxyz,radii_cf,rhodsc)
+       dpcom,inputs%rho_commun,atoms%astruct%rxyz,radii_cf,rhodsc)
 
 !!$  ! Equivalent BigDFT routine.
 !!$  allocate(nscatterarr(0:nproc-1,4))
 !!$  allocate(ngatherarr(0:nproc-1,2))
 !!$  call createDensPotDescriptors(iproc,nproc,atoms,Lzd%Glr%d, &
 !!$       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
-!!$       & rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
+!!$       & atoms%astruct%rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
 !!$       & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
   call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
 
@@ -240,7 +240,7 @@ program wvl
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
   !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
-  call createIonicPotential(atoms%astruct%geocode,iproc,nproc,(iproc==0),atoms,rxyz,&
+  call createIonicPotential(atoms%astruct%geocode,iproc,nproc,(iproc==0),atoms,atoms%astruct%rxyz,&
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
@@ -284,12 +284,11 @@ program wvl
 
   call deallocate_orbs(orbs,"main")
 
-  deallocate(rxyz)
   call deallocate_atoms(atoms,"main") 
   call free_input_variables(inputs)
 
   !wait all processes before finalisation
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call MPI_FINALIZE(ierr)
-
+  call f_lib_finalize()
 end program wvl

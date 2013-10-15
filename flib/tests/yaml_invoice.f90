@@ -7,7 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-!> yaml_invoice example
+
+!> Test yaml part of flib
 subroutine yaml_invoice_example()
   use yaml_output
   implicit none
@@ -55,13 +56,14 @@ subroutine yaml_invoice_example()
 
 end subroutine yaml_invoice_example
 
+
 !> Test yaml and dictionairies
 subroutine yaml_invoice_example_with_dictionaries()
   use yaml_output
   use dictionaries
   implicit none
   real(kind=8) :: price
-  type(dictionary), pointer :: dict,dict_tmp,dictA,dictA2
+  type(dictionary), pointer :: dict,dict_tmp
 
   call yaml_comment('Yaml Invoice Example, using dictionaries',hfill='-')
   !setting the data in the fortran dictionary

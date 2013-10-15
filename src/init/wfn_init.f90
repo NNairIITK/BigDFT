@@ -1,7 +1,7 @@
 !> @file
 !!  Diagonalisation of the input guess in the gaussian basis set
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group (LG)
+!!    Copyright (C) 2008-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -638,6 +638,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
 END SUBROUTINE DiagHam
 
+
 subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory
      orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
@@ -648,8 +649,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
   real(gp), intent(in) :: Tel
-  type(local_zone_descriptors) :: Lzd        !> Information about the locregs after LIG
-  type(local_zone_descriptors) :: Lzde       !> Informtation about the locregs for LIG
+  type(local_zone_descriptors) :: Lzd        !< Information about the locregs after LIG
+  type(local_zone_descriptors) :: Lzde       !< Information about the locregs for LIG
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
   type(orthon_data),intent(inout):: orthpar 
@@ -664,7 +665,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   real(wp), dimension(:), pointer, optional :: psivirt
   !local variables
   character(len=*), parameter :: subname='LDiagHam'
-  real(kind=8), parameter :: eps_mach=1.d-12
+  !real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: ikptp,ikpt,nvctrp,iorb,Gdim!,jproc
   integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0

@@ -220,7 +220,8 @@ def LinearLeastSquaresFit(model0,parameters0,data0,maxiter,
                     newpar[free_index[i]] = 0.0
                     constrains[0][free_index[i]] = CFIXED
                     error = 1
-        if error:continue
+        if error:
+            continue
         for i in range(n_free):
             newpar[free_index[i]] = fittedpar[0,i]
         newpar=array(getparameters(newpar,constrains))

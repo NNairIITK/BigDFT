@@ -13,7 +13,7 @@ endif
 
 AM_FCFLAGS = -I../src
 AM_LDFLAGS = -L$(top_builddir)/flib/src
-LIBS += -lflib -lrt
+LIBS += -lflib -lrt @LIB_YAML_LIBS@
 
 if USE_MPI
 mpi_source =
@@ -24,16 +24,18 @@ endif
 yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 yaml_invoice.f90 $(mpi_source)
 #yaml_test_LDADD = -lrt
 
-CLEANFILES = yaml_test.out.yaml fldiff.report.yaml
+CLEANFILES = yaml_test.out.yaml yaml_test.report.yaml
 
 yaml_test.o: $(top_builddir)/flib/src/libflib.a
 
 yaml_test.out.yaml: yaml_test
 	./yaml_test > yaml_test.out.yaml
 
-check: yaml_test.out.yaml
+yaml_test.report.yaml: $(top_srcdir)/tests/fldiff_yaml.py $(top_srcdir)/tests/tols-BigDFT.yaml $(abs_srcdir)/yaml_test.ref.yaml yaml_test.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py --label yaml_test -t $(top_srcdir)/tests/tols-BigDFT.yaml 	\
-		-r $(abs_srcdir)/yaml_test.ref.yaml -d yaml_test.out.yaml --output fldiff.report.yaml
+		-r $(abs_srcdir)/yaml_test.ref.yaml -d yaml_test.out.yaml --output $@
+
+check: yaml_test.report.yaml
 

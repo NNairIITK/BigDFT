@@ -1,6 +1,6 @@
 !> @file
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
-!! yaml: Yet Another Markeup Language (ML for Human)
+!! yaml: Yet Another Markup Language -> Y Ain't a Markup Language (Human readable ML)
 !! @author
 !!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Define routines used to write yaml
+!> Module defining the routines used to write yaml
 module yaml_output
   use yaml_strings
   use dictionaries
@@ -68,31 +68,89 @@ module yaml_output
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
   integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
 
-  logical :: module_initialized=.false.  !<tells if the module has been already referenced or not
-  !error ids
-  integer :: YAML_STREAM_ALREADY_PRESENT !< trying to create a stream already present
-  integer :: YAML_STREAM_NOT_FOUND       !< trying to seach for a absent unitt
-  integer :: YAML_UNIT_INCONSISTENCY     !< internal error, unit inconsistency
-  integer :: YAML_INVALID                !< invalid action, unit inconsistency
+  logical :: module_initialized=.false.  !< Tells if the module has been already referenced or not
 
-  !> Generic routine
+  ! Error ids
+  integer :: YAML_STREAM_ALREADY_PRESENT !< Trying to create a stream already present
+  integer :: YAML_STREAM_NOT_FOUND       !< Trying to seach for a absent unit
+  integer :: YAML_UNIT_INCONSISTENCY     !< Internal error, unit inconsistency
+  integer :: YAML_INVALID                !< Invalid action, unit inconsistency
+
+  !> Generic routine to create a yaml map as foo: 1
+  !! as call yaml_map('foo',1)
+  !! @ingroup FLIB_YAML
+  !! @param mapname  @copydoc doc::mapname
+  !! @param mapvalue @copydoc doc::mapvalue
+  !! @param label    (optional) @copydoc doc::label
+  !! @param advance  (optional) @copydoc doc::advance
+  !! @param unit     (optional) @copydoc doc::unit
+  !! @param fmt      (optional) format for the value
   interface yaml_map
      module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
   end interface
 
-  !! Public routines (API of the module)
+ 
+  !!here starts the documentation of the code
+  !> fake structure needed to document common arguments of the module
+  !! @param
+  type, private :: doc
+     integer:: unit !< unit of the yaml_stream to be used for output. 
+                    !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
+     character(len=1) :: mapname !<key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
+     logical :: flow !< logical variable controlling the flow of the output. Default is .false..
+                     !! When .true., the output is written in compact yaml flow style. See yaml specifications in
+                     !! http://www.yaml.org/spec/1.2/spec.html#id2759963 . Of course also nested field inside will be written
+                     !! in compact flow style, until the mapping or sequencing is closed.
+     character(len=1) :: label !< define a anchor of the mapping, which can be used to deepcopy its value in another mapping
+     !! see http://www.yaml.org/spec/1.2/spec.html#id2760395.
+
+     !> define whether the i/o should be advancing (advance='yes') or not (advance='no').
+     !! if the mapping (in the case of @link yaml_open_map @endlink) or sequencing @link yaml_open_sequence @endlink)
+     !!has been opened with the value of flow  = .true.
+     !! (or if the flow has been opened at a upper level) the output is always non-advancing
+     !! (See @link yaml_newline @endlink for add a line in a output of a flow mapping).
+     !! Otherwise, if absent, the output is always advancing.
+     !! non-advancing i/o is useful for example when one wants to leave a comment after the end of a mapping.
+     character(len=1) :: advance 
+     character(len=1) :: tag !< tag description. Unused and should be probably removed
+     !> scalar value of the mapping may be of any scalar type
+     !! it is internally converted to character with the usage of @link yaml_toa @endlink function
+     character(len=1) :: mapvalue           
+  end type doc
+
+
+  !> @addtogroup FLIB_YAML
+  !!@{ Public routines (API of the module)
+  !! Here follows the routines which are important for the usage of the yaml_output module
+  !! which is a part of flib library.
+  !! By clicking the links below you should be redirected to the documentation of the important routines
+  !!@endlink, @link yaml_new_document @endlink, @link yaml_release_document
+  !!@endlink, @link yaml_map @endlink, @link yaml_open_map @endlink, @link yaml_close_map
+  !!@endlink, @link yaml_sequence @endlink, @link yaml_open_sequence @endlink, @link yaml_close_sequence
+  !!@endlink, @link yaml_comment @endlink, @link yaml_warning @endlink, @link yaml_scalar @endlink, @link yaml_newline
+  !!@endlink, @link yaml_toa @endlink, @link yaml_date_and_time_toa @endlink, @link yaml_date_toa @endlink, @link yaml_time_toa
+  !!@endlink, there is also yaml_set_stream routine, @link yaml_set_default_stream @endlink, @link yaml_close_stream @endlink, @link yaml_swap_stream
+  !!@endlink, @link yaml_get_default_stream @endlink, @link yaml_stream_attributes @endlink, @link yaml_close_all_streams
+  !!@endlink, @link yaml_dict_dump @endlink, @link yaml_dict_dump_all @endlink
+  !! @} 
+
+ 
+  
+  !all the public routines below should be documented
   public :: yaml_new_document,yaml_release_document
   public :: yaml_map,yaml_open_map,yaml_close_map
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
   public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
-  public :: yaml_set_stream,yaml_set_default_stream,yaml_close_stream
+  public :: yaml_set_stream
+  public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
-  public :: yaml_dict_dump
+  public :: yaml_dict_dump,yaml_dict_dump_all
 
+  !for internal f_lib usage
+  public :: yaml_output_errors
 
 contains
-
 
   !> Initialize the stream to default values
   function stream_null() result(strm)
@@ -122,28 +180,47 @@ contains
     nullify(strm%dict_warning)
   end function stream_null
 
-  !>initialize the variables of the module, like error definitions.
+  !> Initialize the variables of the module, like error definitions.
   !! should be called only once unless the module has been closed by close_all_streams
   subroutine assure_initialization()
-    implicit none
-    if (.not. module_initialized) then
-       module_initialized=.true.
-       !initialize error messages
-       call f_err_define('YAML_INVALID','Generic error of yaml module, invalid operation',&
-            YAML_INVALID)
-       call f_err_define('YAML_STREAM_ALREADY_PRESENT','The stream is already present',&
-            YAML_STREAM_ALREADY_PRESENT)
-       call f_err_define('YAML_STREAM_NOT_FOUND','The stream has not been found',&
-            YAML_STREAM_NOT_FOUND)
-       call f_err_define('YAML_UNIT_INCONSISTENCY',&
-            'The array of the units is not in agreement with the array of the streams',&
-            YAML_UNIT_INCONSISTENCY,&
-            err_action='This is an internal error of yaml_output module, contact developers')
-
-    end if
+     implicit none
+     if (.not. module_initialized) module_initialized=associated(f_get_error_definitions())
+     
+     if (.not. module_initialized) then
+        stop 'yaml_output module not initialized, f_lib_initialize not called'
+        !module_initialized=.true.
+        !call yaml_output_errors()
+     end if
 
   end subroutine assure_initialization
+  
+  !> Set new_unit as the new default unit and return the old default unit.
+  subroutine yaml_swap_stream(new_unit, old_unit, ierr)
+    implicit none
+    integer, intent(in) :: new_unit
+    integer, intent(out) :: old_unit, ierr
 
+    call yaml_get_default_stream(old_unit)
+    call yaml_set_default_stream(new_unit, ierr)
+  end subroutine yaml_swap_stream
+
+  subroutine yaml_output_errors()
+    implicit none
+    !initialize error messages
+    call f_err_define('YAML_INVALID','Generic error of yaml module, invalid operation',&
+         YAML_INVALID)
+    call f_err_define('YAML_STREAM_ALREADY_PRESENT','The stream is already present',&
+         YAML_STREAM_ALREADY_PRESENT)
+    call f_err_define('YAML_STREAM_NOT_FOUND','The stream has not been found',&
+         YAML_STREAM_NOT_FOUND)
+    call f_err_define('YAML_UNIT_INCONSISTENCY',&
+         'The array of the units is not in agreement with the array of the streams',&
+         YAML_UNIT_INCONSISTENCY,&
+         err_action='This is an internal error of yaml_output module, contact developers')
+    !the module is ready for usage
+    module_initialized=.true.
+  end subroutine yaml_output_errors
+  
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
   subroutine yaml_set_default_stream(unit,ierr)
@@ -163,7 +240,7 @@ contains
 
 
   !> Get the default stream unit
-  subroutine yaml_get_default_stream(unit)
+  pure subroutine yaml_get_default_stream(unit)
     implicit none
     integer, intent(out) :: unit
 
@@ -173,17 +250,24 @@ contains
 
 
   !> Set all the output from now on to the file indicated by stdout
-  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length)
+  !! therefore the default stream is now the one indicated by unit
+  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position)
     implicit none
-    integer, optional, intent(in) :: unit              !< File unit (by default 6)
+    integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
+                                                       !! is not 6 and it has already been opened by the processor
     integer, optional, intent(in) :: tabbing           !< Indicate a tabbing for the stream (0 no tabbing, default)
-    integer, optional, intent(in) :: record_length     !< Maximum length of a record
+    integer, optional, intent(in) :: record_length     !< Maximum number of columns of the stream (default @link yaml_stream::tot_max_record_length @endlink)
     character(len=*), optional, intent(in) :: filename !< Filename of the stream
-    integer, optional, intent(out) :: istat            !< Status
+    character(len=*), optional, intent(in) :: position !< specifier of the position while opening the unit (all fortran values of position specifier in open statement are valid)
+    integer, optional, intent(out) :: istat            !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
+                                                       !! it is up the the user to deal with error signals sent by istat
+
     !local variables
     integer, parameter :: NO_ERRORS           = 0
+    logical :: unit_is_open
     integer :: istream,unt,ierr
-    
+    character(len=15) :: pos
+        
     !check that the module has been initialized
     call assure_initialization()
 
@@ -195,6 +279,11 @@ contains
        unt=6
     end if
 
+    if (present(position)) then
+       pos(1:len(pos))=position
+    else
+       pos(1:len(pos))='append'
+    end if
     !check if unit has been already assigned
     do istream=1,active_streams
        if (unt==stream_units(istream)) then
@@ -221,13 +310,25 @@ contains
 
     !open fortran unit if needed
     if (present(filename) .and. unt /= 6) then
-       open(unit=unt,file=trim(filename),status='unknown',position='append',iostat=ierr)
+       !inquire whether unit exists already
+       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
+       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+       if (unit_is_open) then
+          if(present(istat)) then
+             istat=YAML_STREAM_ALREADY_PRESENT
+          else
+             call f_err_throw('The unit '//trim(yaml_toa(unt))//' is already present',&
+                  YAML_STREAM_ALREADY_PRESENT)
+          end if
+       end if
+       
+       open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
        if (present(istat)) then
           istat=ierr
        else
-          if (ierr /=0) then
-             stop 'error in file opening'
-          end if
+          if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
        end if
     end if
 
@@ -348,7 +449,7 @@ contains
   !! In this case, do nothing
   subroutine yaml_new_document(unit)
     implicit none
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
     !local variables
     integer :: unt,strm
 
@@ -370,10 +471,13 @@ contains
   end subroutine yaml_new_document
 
 
-  !> After this routine is called, the new_document will become effective again
+  !> Release the document. if a new_document is opened, the sympol of START_DOCUMENT "---"
+  !! will be displayed on the corresponding unit
+  !! After this routine is called, the new_document will become effective again
+  !! @ingroup FLIB_YAML
   subroutine yaml_release_document(unit)
     implicit none
-    integer, optional, intent(in) :: unit  !< Stream Identity number
+    integer, optional, intent(in) :: unit  !< @copydoc doc::unit
     !local variables
     integer :: unt,strm,unit_prev
 
@@ -401,7 +505,7 @@ contains
   subroutine yaml_close_stream(unit,istat)
     implicit none
     integer, optional, intent(in) :: unit
-    integer, optional, intent(out) :: istat
+    integer, optional, intent(out) :: istat !<error code, zero if suceeded
     !local variables
     integer :: unt,istatus,strm
 
@@ -452,7 +556,8 @@ contains
     
   end subroutine yaml_close_stream
 
-  !> Close all the streams
+  !> Close all the streams of all opened units
+  !! The module will come back to its initial status
   subroutine yaml_close_all_streams()
     implicit none
 
@@ -468,13 +573,14 @@ contains
     stream_units=6
     active_streams=1 !stdout is always kept active
     default_stream=1
+    module_initialized=.false.
   end subroutine yaml_close_all_streams
 
 
-  !> Display a warning (yaml comment starting with '#WARNING: ')
+  !> Display a warning (yaml comment starting with '\#WARNING: ')
   subroutine yaml_warning(message,level,unit)
     implicit none
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
     character(len=*), intent(in) :: message
     integer, optional, intent(in) :: level
     !local variables
@@ -519,8 +625,8 @@ contains
   subroutine yaml_comment(message,advance,unit,hfill,tabbing)
     implicit none
     character(len=*), intent(in) :: message           !< The given comment (without #)
-    character(len=*), optional, intent(in) :: advance !< Advance or not
-    integer, optional, intent(in) :: unit             !< Unit of the stream (by default unit=0)
+    character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
+    integer, optional, intent(in) :: unit             !< @copydoc doc::unit
     character(len=1), optional, intent(in) :: hfill   !< If present fill the line with the given character
     integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
     !Local variables
@@ -627,13 +733,19 @@ contains
   end subroutine yaml_scalar
 
 
-  !> Open a yaml map (dictionary)
-  subroutine yaml_open_map(mapname,label,flow,unit)
+  !> Opens a yaml mapping field.
+  !! Essentially, a mapping field can be thought as a dictionary of mappings.
+  !! See yaml spec at <a href="http://www.yaml.org/spec/1.2/spec.html#id2760395"> this page </a>
+  !! Therefore the yaml_open_map routine is necessary each time that
+  !! the value of a map is another map. See also @link yaml_map @endlink and @link yaml_close_map @endlink routines
+  !! @ingroup FLIB_YAML
+  subroutine yaml_open_map(mapname,label,tag,flow,unit)
     implicit none
-    integer, optional, intent(in) :: unit
-    character(len=*), optional, intent(in) :: mapname
-    logical, optional, intent(in) :: flow
-    character(len=*), optional, intent(in) :: label
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
+    character(len=*), optional, intent(in) :: mapname !< @copydoc doc::mapname
+    logical, optional, intent(in) :: flow !< @copydoc doc::flow
+    character(len=*), optional, intent(in) :: label !< @copydoc doc::label
+    character(len=*), optional, intent(in) :: tag !< @copydoc doc::tag
     !local variables
     logical :: doflow
     integer :: msg_lgt
@@ -656,8 +768,13 @@ contains
        !put the semicolon
        call buffer_string(towrite,len(towrite),':',msg_lgt)
     end if
+    !put the optional tag description
+    if (present(tag) .and. len_trim(tag) > 0) then
+       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
+    end if
     !put the optional name
-    if (present(label)) then
+    if (present(label) .and. len_trim(label) > 0) then
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
@@ -675,11 +792,12 @@ contains
   end subroutine yaml_open_map
 
 
-  !> Close the map
+  !> Close the mapping. The mapping should have been previously opened by @link yaml_open_map @endlink
+  !! @ingroup FLIB_YAML
   subroutine yaml_close_map(advance,unit)
     implicit none
-    integer, optional, intent(in) :: unit
-    character(len=*), optional, intent(in) :: advance
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
+    character(len=*), optional, intent(in) :: advance !<@copydoc doc::advance
     !local variables
     integer :: unt,strm
     character(len=3) :: adv
@@ -705,15 +823,15 @@ contains
 
 
   !> Open a yaml sequence
-  subroutine yaml_open_sequence(mapname,label,flow,advance,unit)
+  subroutine yaml_open_sequence(mapname,label,tag,flow,advance,unit)
     use yaml_strings
     implicit none
-    character(len=*), optional, intent(in) :: mapname !< Key of the sequence
-    character(len=*), optional, intent(in) :: label   !< Add a label to be referenced as &xxx
-    logical, optional, intent(in) :: flow             !< .true.  Add [ and represent the sequence as a stream
-                                                      !! .false. Add a flow level (go to the line and indent)
-    character(len=*), optional, intent(in) :: advance !< Same option as write
-    integer, optional, intent(in) :: unit             !< File unit
+    character(len=*), optional, intent(in) :: mapname !< Key of the sequence. @copydoc doc::mapname
+    character(len=*), optional, intent(in) :: label   !< @copydoc doc::label
+    character(len=*), optional, intent(in) :: tag     !< @copydoc doc::tag
+    logical, optional, intent(in) :: flow             !< @copydoc doc::flow
+    character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
+    integer, optional, intent(in) :: unit             !< @copydoc doc::unit
     !local variables
     logical :: doflow
     integer :: msg_lgt
@@ -735,6 +853,11 @@ contains
        call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
        !put the semicolon
        call buffer_string(towrite,len(towrite),':',msg_lgt)
+    end if
+    !put the optional tag
+    if (present(tag).and. len_trim(tag)>0) then
+       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
     end if
     !put the optional name
     if (present(label).and. len_trim(label)>0) then
@@ -787,9 +910,10 @@ contains
 
   !> Add a new line in the flow
   !! This routine has a effect only if a flow writing is active
+  !! Otherwise its effect is ignored
   subroutine yaml_newline(unit)
     implicit none
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
     !local variables
     integer :: unt,strm
 
@@ -835,14 +959,16 @@ contains
   end subroutine yaml_sequence
 
 
-  !> Do a yaml map
-  subroutine yaml_map(mapname,mapvalue,label,advance,unit)
+  !> Create a yaml map with a scalar value
+  subroutine yaml_map(mapname,mapvalue,label,tag,advance,unit)
     implicit none
-    character(len=*), intent(in) :: mapname             !< key
-    character(len=*), intent(in) :: mapvalue            !< value
-    character(len=*), optional, intent(in) :: label     !< label for reference (&xxx)
-    character(len=*), optional, intent(in) :: advance   !< advance or not
-    integer, optional, intent(in) :: unit               !< unit for strem
+    character(len=*), intent(in) :: mapname             !< @copydoc doc::mapname
+    character(len=*), intent(in) :: mapvalue            !< scalar value of the mapping may be of any scalar type
+                                                        !! it is internally converted to character with the usage of @link yaml_toa @endlink function
+    character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
+    character(len=*), optional, intent(in) :: tag       !< @copydoc doc::tag
+    character(len=*), optional, intent(in) :: advance   !< @copydoc doc::advance
+    integer, optional, intent(in) :: unit               !< @copydoc doc::unit
     !local variables
     logical :: cut,redo_line
     integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck,idbg
@@ -861,17 +987,28 @@ contains
     !put the message
     call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
     !put the semicolon
-    call buffer_string(towrite,len(towrite),': ',msg_lgt)
+    call buffer_string(towrite,len(towrite),':',msg_lgt)
+    !put the optional tag
+    if (present(tag) .and. len_trim(tag) > 0) then
+       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
+    end if
     !put the optional name
-    if (present(label)) then
-       call buffer_string(towrite,len(towrite),'&',msg_lgt)
+    if (present(label) .and. len_trim(label) > 0) then
+       call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
     end if
+    !put a space
+    call buffer_string(towrite,len(towrite),' ',msg_lgt)
 
     !while putting the message verify that the string is not too long
     msg_lgt_ck=msg_lgt
     !print *, 'here'
-    call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
+    if (len_trim(mapvalue) == 0) then
+       call buffer_string(towrite,len(towrite),"~",msg_lgt,istat=ierr)
+    else
+       call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
+    end if
     !print *, 'here2',ierr
     if (ierr ==0) then
        call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING,istat=ierr)
@@ -1697,9 +1834,10 @@ contains
       implicit none
       character(len=*), intent(in) :: val
       if (verb) then
-         call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(adv)//'")')
+         call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(adv)//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
       else
-         call yaml_scalar(trim(val),advance=adv)
+         call yaml_scalar(trim(val),advance=adv,unit=unt)
       end if
     end subroutine scalar
 
@@ -1707,9 +1845,10 @@ contains
       implicit none
       character(len=*), intent(in) :: key,val
       if (verb) then
-         call yaml_comment('call yaml_map("'//trim(key)//'","'//trim(val)//'")')
+         call yaml_comment('call yaml_map("'//trim(key)//'","'//trim(val)//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
       else
-         call yaml_map(trim(key),trim(val))
+         call yaml_map(trim(key),trim(val),unit=unt)
       end if
     end subroutine map
 
@@ -1720,21 +1859,24 @@ contains
       if (present(val) .and. present(adv)) then
          if (verb) then
             call yaml_comment('call yaml_sequence("'//trim(val)//&
-                 '",advance="'//trim(adv)//'")')
+                 '",advance="'//trim(adv)//&
+                 ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
          else
-            call yaml_sequence(trim(val),advance=adv)
+            call yaml_sequence(trim(val),advance=adv,unit=unt)
          end if
       else if (present(adv)) then
          if (verb) then
-            call yaml_comment('call yaml_sequence(advance="'//trim(adv)//'")')
+            call yaml_comment('call yaml_sequence(advance="'//trim(adv)//&
+                 ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
          else
-            call yaml_sequence(advance=adv)
+            call yaml_sequence(advance=adv,unit=unt)
          end if
       else if (present(val)) then
          if (verb) then
-            call yaml_comment('call yaml_sequence("'//trim(val)//'")')
+            call yaml_comment('call yaml_sequence("'//trim(val)//&
+                 ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
          else
-            call yaml_sequence(trim(val))
+            call yaml_sequence(trim(val),unit=unt)
          end if
       end if
     end subroutine sequence
@@ -1744,18 +1886,20 @@ contains
       character(len=*), intent(in) :: key
       if (verb) then
          call yaml_comment('call yaml_open_sequence("'//trim(key)//&
-              '",flow='//trim(flw)//')')
+              '",flow='//trim(flw)//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
-         call yaml_open_sequence(trim(key),flow=flowrite)
+         call yaml_open_sequence(trim(key),flow=flowrite,unit=unt)
       end if
     end subroutine open_seq
 
     subroutine close_seq()
       implicit none
       if (verb) then
-         call yaml_comment('call yaml_close_sequence()')
+         call yaml_comment('call yaml_close_sequence('//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
-         call yaml_close_sequence()
+         call yaml_close_sequence(unit=unt)
       end if
     end subroutine close_seq
 
@@ -1764,21 +1908,59 @@ contains
       character(len=*), intent(in) :: key
       if (verb) then
          call yaml_comment('call yaml_open_map("'//trim(key)//&
-              '",flow='//trim(flw)//')')
+              '",flow='//trim(flw)//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
-         call yaml_open_map(trim(key),flow=flowrite)
+         call yaml_open_map(trim(key),flow=flowrite,unit=unt)
       end if
     end subroutine open_map
 
     subroutine close_map()
       implicit none
       if (verb) then
-         call yaml_comment('call yaml_close_map()')
+         call yaml_comment('call yaml_close_map('//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
-         call yaml_close_map()
+         call yaml_close_map(unit=unt)
       end if
     end subroutine close_map
 
   end subroutine yaml_dict_dump
+
+  !> dump all the documents in the dictionary
+  ! works with a list of documents
+  ! supposes that each element of the list is a separate document
+  subroutine yaml_dict_dump_all(dict,unit,flow,verbatim)
+    implicit none
+    type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
+    logical, intent(in), optional :: flow  !< if .true. inline
+    logical, intent(in), optional :: verbatim  !< if .true. print as comments the calls performed
+    integer, intent(in), optional :: unit   !< unit in which the dump has to be 
+    !local variables
+    logical :: flowrite,verb
+    integer :: unt,idoc
+
+    if (f_err_raise(dict_len(dict) == 0,'The dictionary is not a list',&
+         err_name='YAML_STREAM_NOT_FOUND')) return
+
+    flowrite=.false.
+    if (present(flow)) flowrite=flow
+    unt=0
+    if (present(unit)) unt=unit
+    verb=.false.
+    if (present(verbatim)) verb=verbatim
+
+    do idoc=0,dict_len(dict)-1
+       if (verb) then
+          call yaml_comment('call yaml_new_document('//&
+              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
+       else
+          call yaml_new_document(unit=unt)
+       end if
+       call yaml_dict_dump(dict//idoc,unit=unt,flow=flow,verbatim=verb)
+       call yaml_release_document(unit=unt)
+    end do
+
+  end subroutine yaml_dict_dump_all
 
 end module yaml_output

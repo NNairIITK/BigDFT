@@ -53,6 +53,7 @@ void FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(long long int * 
   return;
 }
 
+//Symbol duplications for fortran interfaces
 
 void FC_FUNC(geti1, GETI1)(void *ptr,long long int *address)
 {
@@ -76,6 +77,13 @@ void FC_FUNC(geti3, GETI3)(void *ptr,long long int *address)
 }
 
 void FC_FUNC(geti4, GETI4)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getc1, GETC1)(void *ptr,long long int *address)
 {
   *address=0;
   *address = (long long int)ptr;

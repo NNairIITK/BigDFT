@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
   if (present(id)) then
      lgt=min(len(id),namelen)
      m%array_id(1:lgt)=id(1:lgt)
@@ -15,7 +16,8 @@
      lgt=min(len(routine_id),namelen)
      m%routine_id(1:lgt)=routine_id(1:lgt)
   else
-     m%routine_id(1:len(m%routine_id))=present_routine
+     m%routine_id(1:len(m%routine_id))=mems(ictrl)%present_routine
   end if
 
   if(present(profile)) m%profile=profile
+

@@ -1,7 +1,7 @@
 !> @file
-!!  Define the fortran types
+!!  Define operations over gaussian functions
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group (LG)
+!!    Copyright (C) 2008-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -207,7 +207,7 @@ contains
 
   end subroutine finalize_real_space_conversion
 
-  !> this function calculates the scalar product between a ISF and a 
+  !> This function calculates the scalar product between a ISF and a 
   !input function, which is a gaussian times a power centered
   ! here pure specifier is redundant
   ! we should add here the threshold from which the 
@@ -408,10 +408,10 @@ contains
 
   END SUBROUTINE kinetic_overlap
 
-  !>   Calculates the scalar product between two shells
-  !!   by considering only the nonzero coefficients
-  !!   actual building block for calculating overlap matrix
-  !!   inserted work arrays for calculation
+  !> Calculates the scalar product between two shells
+  !! by considering only the nonzero coefficients
+  !! actual building block for calculating overlap matrix
+  !! inserted work arrays for calculation
   subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
        niw,nrw,iw,rw,ovrlp)
     implicit none
@@ -444,10 +444,10 @@ contains
 
   END SUBROUTINE gbasovrlp
 
-  !>   Calculates the scalar product between two shells
-  !!   by considering only the nonzero coefficients
-  !!   actual building block for calculating overlap matrix
-  !!   inserted work arrays for calculation
+  !> Calculates the scalar product between two shells
+  !! by considering only the nonzero coefficients
+  !! actual building block for calculating overlap matrix
+  !! inserted work arrays for calculation
   subroutine kineticovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
        niw,nrw,iw,rw,ovrlp)
     implicit none
@@ -480,9 +480,9 @@ contains
 
   END SUBROUTINE kineticovrlp
 
-  !>   Calculates a dot product between two differents gaussians times spherical harmonics
-  !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
-  !!   to be rearranged when only some of them is zero
+  !> Calculates a dot product between two differents gaussians times spherical harmonics
+  !! valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
+  !! to be rearranged when only some of them is zero
   subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
     implicit none
     integer, intent(in) :: l1,l2,m1,m2,niw,nrw 
@@ -872,9 +872,8 @@ contains
 
   END SUBROUTINE kinetic
 
-  !>   Calculates @f$\int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
-  !!   Uses gauint0 if d==0
-  !!
+  !> Calculates @f$\int e^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
+  !! Uses the function gauint0 if d==0.0
   pure function govrlp(a1,a2,d,l1,l2)
     implicit none
     integer, intent(in) :: l1,l2

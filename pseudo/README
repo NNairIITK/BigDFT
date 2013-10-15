@@ -1,24 +1,17 @@
+/*! @file
+@brief README of the pseudo directory (pseudopotential generation program)
 
-________________________
+@dir pseudo
+@brief Contains the pseudopotential generation programs, atom and pseudo
 
-   What is pseudo2.5?
-________________________
+@dir pseudo/src
+@brief Contains the source of the pseudo program
 
+@todo
+- Create a program to merge the capabilities of atom and pseudo.
+- Use this program to add the possibility to generate pseudopotentials with bigdft-tool.
 
-Pseudo is a program to generate accurate, soft and transferable Goedecker-type pseudopotentials. 
-The analytic form of the potentials is optimized using a downhill simplex method for least square
-fitting of some empirical penalty function. Deviations from atomic all electron reference data are
-summed to build that penalty function. These data include eigenvalues, charge integrals and nodes of
-both, occupied and virtual orbitals, as well as excitation energies, i.e. energy differences between
-ground states of different electronic configurations, which may be treated in parallel using MPI.
-To improve the softness of the pseudowavefunctions for particular applications with BigDFTs wavelet
-basis set, the valence orbitals may be transformed to Daubechie wavelets with real space grids of
-various spacings. This allows to add the resulting deviation in the kinetic energy per orbital to
-the penalty function as a systematic measure for softness. 
-Note that this version of pseudo uses the libXC libraries for the exchange correlation functionals,
-supports spin polarized or relativistic LDA and GGA calculations and allows the inclusion of non-
-linear core corrections of a simple analytic form that may be fitted as well.
+@dir pseudo/doc
+@brief Documentation about the generation of pseudopotentials
 
-
-More information is given in the doc and Tutorial subdirectories.
-
+*/

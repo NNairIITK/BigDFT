@@ -1,7 +1,33 @@
-/*!  README for PSolver
+/*! @file 
+@brief README of the source directory of the PSolver library
+
+@dir ./PSolver
+@brief Directory containing the PSolver library
+@details
+This Poisson Solver is part of the BigDFT project but can also be used separately.
+All the source files of this directory
+are delivered under the GNU General Public License; please see the file COPYING 
+for copying conditions.
+
+See the file INSTALL for generic compilation and installation instructions.
+
+This Poisson Solver code is built following the method described in the papers
+
+ L.Genovese, T. Deutsch, S. Goedecker,
+ Journal of Chemical Physics, 127 (5), 054704 (2007).
+ Efficient and accurate three-dimensional Poisson solver for surface problems.
+ http://dx.doi.org/10.1063/1.2754685
+
+ L. Genovese, T. Deutsch, A. Neelov, S. Goedecker, G. Beylkin,
+ Journal of Chemical Physics, 125 (7), 074105 (2006).
+ Efficient solution of Poisson's equation with free boundary conditions
+ http://dx.doi.org/10.1063/1.2335442
+
+Citing of this references is greatly appreciated if the routines are used 
+for scientific work.
 
 <pre>
-	Copyright (C) 2006-2012 BigDFT Group
+	Copyright (C) 2006-2013 BigDFT Group
 
 	This file is part of BigDFT.
 
@@ -21,26 +47,12 @@
 	Boston, MA 02111-1307, USA.
 </pre>
 
-This Poisson Solver is part of the BigDFT project but can also be used separately.
-All the source files of this directory
-are delivered under the GNU General Public License; please see the file COPYING 
-for copying conditions.
+@dir ./PSolver/src
+@brief Directory containing the source of the PSolver library
 
-See the file INSTALL for generic compilation and installation instructions.
+@dir ./PSolver/tests
+@brief Contains some tests for the PSolver library
 
-This Poisson Solver code is built following the method described in the papers
-
- Genovese, L; Deutsch, T; Goedecker, S.
- Journal of Chemical Physics, 127 (5), 054704 (2007).
- Efficient and accurate three-dimensional Poisson solver for surface
- problems.
- http://dx.doi.org/10.1063/1.2754685
-
- Genovese, L; Deutsch, T; Neelov, A; Goedecker, S; Beylkin, G.
- Journal of Chemical Physics, 125 (7), 074105 (2006).
- Efficient solution of Poisson's equation with free boundary conditions
- http://dx.doi.org/10.1063/1.2335442
-
-Citing of this references is greatly appreciated if the routines are used 
-for scientific work.
+@defgroup PSOLVER The PSolver library
+@brief Interpolating scaling function Poisson Solver Library
 */

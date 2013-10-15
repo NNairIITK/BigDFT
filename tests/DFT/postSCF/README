@@ -1,1 +1,13 @@
-Tests for features calculated after obtaining converged wavefunctions.
+/*! @file
+@brief README of the non-regression tests for features after converging wavefunctions
+
+@page TESTS_DFT_POSTSCF Test the features after the self-consistent cycle
+@brief Non-regression tests (features after the SCF)
+
+Tests the features after converging the wavefunctions
+
+The command <tt>make check</tt> performs the series of tests:
+- @b Davidson-SiH4 Tests the Kohn-Sham eigenvalue calculation;
+- @b TDDFT         Tests the Time-Dependent DFT calculation.
+
+*/

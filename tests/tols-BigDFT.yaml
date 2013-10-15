@@ -71,13 +71,13 @@ SiH4:
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2
  Residues per orbital: 2.2e-8
- EH: 1.6e-11
- EXC: 2.9e-11
- Ekin: 1.2e-11
- Enl: 2.3e-11
- Epot: 2.1e-11
+ EH: 2.5e-11
+ EXC: 4.51e-11
+ Ekin: 1.8e-11
+ Enl: 3.7e-11
+ Epot: 3.2e-11
  EvXC: 7.1e-11
- tr(H): 2.52e-11
+ tr(H): 4.1e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -292,6 +292,7 @@ cleanup:
  Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10
+ Orbitals: 4.42e-11
 
 directmin:
  Patterns to ignore:
@@ -323,6 +324,8 @@ rotatesmall_write:
   Keys to ignore:
   - Wavefunction written No.
 
+wrappers.out:
+ EH: 1.1e-10
 rotatesmall_read:
  Epsilon: 2.4e-11
 molecule_dmix:

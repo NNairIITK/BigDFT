@@ -427,7 +427,7 @@ END SUBROUTINE readmywaves
 subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   use module_base
   use module_types
-  use module_interfaces, except_this_one=>verify_file_presence
+  use module_interfaces, except_this_one => verify_file_presence
   implicit none
   integer, intent(in) :: nproc
   character(len=*), intent(in) :: filerad
@@ -496,6 +496,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   iformat=WF_FORMAT_NONE
 
 end subroutine verify_file_presence
+
 
 !> Associate to the absolute value of orbital a filename which depends of the k-point and 
 !! of the spin sign
@@ -695,6 +696,7 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
   end if
 END SUBROUTINE read_wave_to_isf
 
+
 subroutine free_wave_to_isf(psiscf)
   use module_base
   implicit none
@@ -706,6 +708,7 @@ subroutine free_wave_to_isf(psiscf)
   deallocate(psiscf,stat=i_stat)
   call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
 END SUBROUTINE free_wave_to_isf
+
 
 subroutine read_wave_descr(lstat, filename, ln, &
      & norbu, norbd, iorbs, ispins, nkpt, ikpts, nspinor, ispinor)
@@ -910,7 +913,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
 END SUBROUTINE writeLinearCoefficients
 
 
-!write Hamiltonian, overlap and kernel matrices in tmb basis
+!> Write Hamiltonian, overlap and kernel matrices in tmb basis
 subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   use module_types
   use module_base
@@ -1540,9 +1543,6 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
 END SUBROUTINE tmb_overlap_onsite_rotate
 
 
-
-
-
 !> Write all my wavefunctions in files by calling writeonewave
 subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff)
   use module_types
@@ -1770,7 +1770,6 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   !call memocc(i_stat,i_all,'gpsi',subname)
   !! END DEBUG 
 
-
 END SUBROUTINE readonewave_linear
 
 
@@ -1888,6 +1887,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old
     lstat = .true.
 
 END SUBROUTINE io_read_descr_linear
+
 
 subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
        & lstat, error, nat, rxyz_old)
@@ -2032,13 +2032,11 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
      if (j==ntmb+1) stop 'Error finding significant coefficient!'
   end do
 
-
 END SUBROUTINE read_coeff_minbasis
 
 
-
-!> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
-!!  have changed
+!> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
+!! have changed
 subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
        ref_frags,input_frag,frag_calc,orblist)
   use module_base
@@ -2070,7 +2068,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   logical :: lstat
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
-  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, itmb, jtmb, jsforb
+  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
@@ -2080,7 +2078,6 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   integer, dimension(:), allocatable :: ipiv
   logical :: skip
 !!$ integer :: ierr
-
 
   ! DEBUG
   character(len=12) :: orbname
@@ -2873,7 +2870,7 @@ END SUBROUTINE copy_old_inwhichlocreg
 
 
 !> Reformat wavefunctions if the mesh have changed (in a restart)
-!NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
+!! NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
 subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
        frag_trans,psi_old,phi_array_old)
   use module_base
@@ -3039,7 +3036,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
 END SUBROUTINE reformat_supportfunctions
 
 
-!checks whether reformatting is needed based on various criteria and returns final shift and centres needed for reformat
+!> Checks whether reformatting is needed based on various criteria and returns final shift and centres needed for reformat
 subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgrids,nvctr_c_old,nvctr_f_old,&
        nvctr_c,nvctr_f,n_old,n,ns_old,ns,frag_trans,centre_old_box,centre_new_box,da)  
   use module_base
@@ -3131,6 +3128,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
 
 end subroutine reformat_check
 
+
 subroutine print_reformat_summary(iproc,reformat_reason)
   use module_base
   use module_types
@@ -3155,6 +3153,7 @@ subroutine print_reformat_summary(iproc,reformat_reason)
   end if
 
 end subroutine print_reformat_summary
+
 
 subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,psi,psig)
   use module_base
@@ -3214,6 +3213,3 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   end do
 
 end subroutine psi_to_psig
-
-
-

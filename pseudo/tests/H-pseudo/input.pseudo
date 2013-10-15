@@ -1,0 +1,3 @@
+parameters: -plot -ng 20 -rij 2.0 
+-cy 4
+-maxiter 500

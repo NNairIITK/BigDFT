@@ -1,6 +1,0 @@
-tests GPU code (OpenCL)
-
-To use GPU capabilities, you should:
-- use the option --enable-ocl with configure
-- Add a keyword accel in the file input.perf with value:
-OCLGPU this keyword indicates that the special GPU interface is used for convolutions

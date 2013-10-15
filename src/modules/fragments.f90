@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
  
-!> Define important structures and methods to manipulate embedding systems
+!> Module which defines some important structures and methods to manipulate embedding systems
 module module_fragments
   use module_base, only: gp,wp
   use module_types
@@ -274,7 +274,7 @@ contains
     !integer :: norbu, norbd, nlr, ilr, iall, iorb, istat
     !integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
     !real(kind=8),dimension(:,:),allocatable :: locregCenter
-    character(len=*),parameter :: subname='init_minimal_orbitals_data'
+    !character(len=*),parameter :: subname='init_minimal_orbitals_data'
 
     call timing(iproc,'init_orbs_lin ','ON')
  
@@ -666,9 +666,11 @@ contains
     type(fragment_basis) :: basis
     call nullify_fragment_basis(basis)
   end function fragment_basis_null
+
   pure subroutine nullify_fragment_basis(basis)
     implicit none
     type(fragment_basis), intent(out) :: basis
+
     basis%npsidim_orbs=0
     basis%npsidim_comp=0
     call nullify_local_zone_descriptors(basis%lzd)
@@ -708,16 +710,10 @@ contains
     implicit none
     type(system_fragment), intent(inout) :: frag
     character(len=200) :: subname
-    integer :: i_all, i_stat
 
     subname='fragment_free'
 
     call deallocate_atomic_structure(frag%astruct_frg,subname)
-    if (associated(frag%astruct_frg%rxyz)) then
-       i_all=-product(shape(frag%astruct_frg%rxyz))*kind(frag%astruct_frg%rxyz)
-       deallocate(frag%astruct_frg%rxyz,stat=i_stat)
-       call memocc(i_stat,i_all,'frag%astruct_frg%rxyz',subname)
-    end if
     frag%astruct_frg=atomic_structure_null()
     call f_routine(id='fragment_free')
     if (associated(frag%rxyz_env)) call f_free_ptr(frag%rxyz_env)
