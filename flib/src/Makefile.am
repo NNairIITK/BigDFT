@@ -81,7 +81,7 @@ yaml_parse.o : dictionaries.o
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o mem_profiling.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include)
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o
-getadd.o: $(GETADD_INCLUDES)
+getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 
 time.o: $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 

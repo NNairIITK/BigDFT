@@ -292,6 +292,7 @@ cleanup:
  Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10
+ Orbitals: 4.42e-11
 
 directmin:
  Patterns to ignore:
