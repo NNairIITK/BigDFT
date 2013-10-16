@@ -21,7 +21,8 @@ The <tt>tests</tt> directory contains some useful examples and tests.
 
 
 @defgroup FLIB    The Flib library
-@brief
+@brief Low-level library used by BigDFT
+@details
   The flib library is a low-level library used by BigDFT in order to do some low-level operations:
   - Error handling (see @ref FLIB_ERROR)     
   - Define the dictionary type (see @ref FLIB_DICTIONARY)
@@ -49,7 +50,7 @@ There are many examples in the file dicts.f90
 @ingroup FLIB
 @brief Flib yaml output routines
 @details
-flib provides routines to display YAML output.
+The flib library provides routines to display YAML output.
 There are many examples in the files yaml_test.f90 and yaml_invoice.f90.
 
 

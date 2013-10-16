@@ -90,9 +90,7 @@ module yaml_output
   end interface
 
  
-  !!here starts the documentation of the code
-  !> fake structure needed to document common arguments of the module
-  !! @param
+  !> Fake structure needed to document common arguments of the module
   type, private :: doc
      integer:: unit !< unit of the yaml_stream to be used for output. 
                     !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
@@ -120,18 +118,27 @@ module yaml_output
 
 
   !> @addtogroup FLIB_YAML
-  !!@{ Public routines (API of the module)
+  !!@{ Public routines (API of the module).@n
   !! Here follows the routines which are important for the usage of the yaml_output module
-  !! which is a part of flib library.
+  !! which is a part of flib library.@n
   !! By clicking the links below you should be redirected to the documentation of the important routines
-  !!@endlink, @link yaml_new_document @endlink, @link yaml_release_document
-  !!@endlink, @link yaml_map @endlink, @link yaml_open_map @endlink, @link yaml_close_map
-  !!@endlink, @link yaml_sequence @endlink, @link yaml_open_sequence @endlink, @link yaml_close_sequence
-  !!@endlink, @link yaml_comment @endlink, @link yaml_warning @endlink, @link yaml_scalar @endlink, @link yaml_newline
-  !!@endlink, @link yaml_toa @endlink, @link yaml_date_and_time_toa @endlink, @link yaml_date_toa @endlink, @link yaml_time_toa
-  !!@endlink, there is also yaml_set_stream routine, @link yaml_set_default_stream @endlink, @link yaml_close_stream @endlink, @link yaml_swap_stream
-  !!@endlink, @link yaml_get_default_stream @endlink, @link yaml_stream_attributes @endlink, @link yaml_close_all_streams
-  !!@endlink, @link yaml_dict_dump @endlink, @link yaml_dict_dump_all @endlink
+  !! @link yaml_new_document @endlink,  @link yaml_release_document @endlink, 
+  !! @link yaml_map @endlink, 
+  !! @link yaml_open_map @endlink,      @link yaml_close_map @endlink, 
+  !! @link yaml_sequence @endlink, 
+  !! @link yaml_open_sequence @endlink, @link yaml_close_sequence @endlink, 
+  !! @link yaml_comment @endlink, 
+  !! @link yaml_warning @endlink, 
+  !! @link yaml_scalar @endlink, 
+  !! @link yaml_newline @endlink, 
+  !! @link yaml_toa @endlink, 
+  !! @link yaml_date_and_time_toa @endlink, @link yaml_date_toa @endlink, @link yaml_time_toa @endlink.
+  !! @n@n
+  !! There are also @link yaml_set_stream routine @endlink, @link yaml_set_default_stream @endlink, 
+  !!                @link yaml_close_stream @endlink,       @link yaml_swap_stream @endlink, 
+  !!                @link yaml_get_default_stream @endlink, @link yaml_stream_attributes @endlink, 
+  !!                @link yaml_close_all_streams @endlink,  @link yaml_dict_dump @endlink, 
+  !!                @link yaml_dict_dump_all @endlink
   !! @} 
 
  
