@@ -1398,6 +1398,99 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 END SUBROUTINE abscalc
 
+!> Read the input variables needed for the ABSCALC
+!! Every argument should be considered as mandatory
+subroutine abscalc_input_variables(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+  !Arguments
+  type(input_variables), intent(inout) :: in
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  !Local variables
+  integer, parameter :: iunit = 112
+  integer :: ierror,iline, i
+
+  character(len=*), parameter :: subname='abscalc_input_variables'
+  integer :: i_stat
+
+  ! Read the input variables.
+  open(unit=iunit,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+  !x-absorber treatment (in progress)
+
+  read(iunit,*,iostat=ierror) in%iabscalc_type
+  call check()
+
+
+  read(iunit,*,iostat=ierror)  in%iat_absorber
+  call check()
+  read(iunit,*,iostat=ierror)  in%L_absorber
+  call check()
+
+  allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
+  call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
+
+  read(iunit,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
+  call check()
+
+  read(iunit,*,iostat=ierror)  in%potshortcut
+  call check()
+
+  read(iunit,*,iostat=ierror)  in%nsteps
+  call check()
+
+  if( iand( in%potshortcut,4)>0) then
+     read(iunit,'(a100)',iostat=ierror) in%extraOrbital
+  end if
+
+  read(iunit,*,iostat=ierror) in%abscalc_bottomshift
+  if(ierror==0) then
+  else
+     in%abscalc_bottomshift=0
+  endif
+
+
+
+  read(iunit, '(a100)' ,iostat=ierror) in%xabs_res_prefix
+  if(ierror==0) then
+  else
+     in%xabs_res_prefix=""
+  endif
+
+
+  read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+  !!, &
+  !!     in%abscalc_S_do_cg ,in%abscalc_Sinv_do_cg
+  if(ierror==0) then
+  else
+     in%abscalc_alterpot=.false.
+     in%abscalc_eqdiff =.false.
+  endif
+
+
+
+  in%c_absorbtion=.true.
+
+  close(unit=iunit)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE abscalc_input_variables
+
 
 subroutine zero4b2B(n,x)
    implicit none

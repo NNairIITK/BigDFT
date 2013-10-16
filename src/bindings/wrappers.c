@@ -42,6 +42,15 @@ void FC_FUNC_(inquire_address2, INQUIRE_ADDRESS2)(double *add, void *pt)
 }
 
 /**
+ * bigdft_init_f_lib:
+ *
+ */
+void bigdft_init_f_lib()
+{
+  FC_FUNC_(f_lib_initialize, F_LIB_INITIALIZE)();
+}
+
+/**
  * bigdft_init:
  * @mpi_iproc: (out):
  * @mpi_nproc: (out):

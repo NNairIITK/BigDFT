@@ -7,220 +7,9 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
-!> Do all initialisation for all different files of BigDFT. 
-!! Set default values if not any.
-!! Initialize memocc
-!! @todo
-!!   Should be better for debug purpose to read input.perf before
-subroutine bigdft_set_input(radical,posinp,in,atoms)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => bigdft_set_input
-  use module_input_keys
-  use yaml_output
-  use dictionaries, only: dictionary
-  implicit none
-
-  !Arguments
-  character(len=*),intent(in) :: posinp
-  character(len=*),intent(in) :: radical
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(out) :: atoms
-
-  character(len=*), parameter :: subname='bigdft_set_input'
-  type(dictionary), pointer :: dict
-!!$  logical :: exist_list
-
-  atoms=atoms_null()
-  ! Read atomic file
-  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
-
-  ! initialize mpi environment (this shouldn't be done twice)
-!  call mpi_environment_set(bigdft_mpi,iproc,nproc,MPI_COMM_WORLD,nproc)
-  dict => read_input_dict_from_files(trim(radical), bigdft_mpi)
-
-  call standard_inputfile_names(in,trim(radical))
-  call inputs_from_dict(in, atoms, dict, .true.)
-  call dict_free(dict)
-
-  ! Generate the description of input variables.
-  if (bigdft_mpi%iproc == 0) then
-     call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
-  end if
-
-  ! Read associated pseudo files.
-  call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)
-  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
-
-  ! Start the signaling loop in a thread if necessary.
-  if (in%signaling .and. bigdft_mpi%iproc == 0) then
-     call bigdft_signals_init(in%gmainloop, 2, in%domain, len(trim(in%domain)))
-     call bigdft_signals_start(in%gmainloop, in%signalTimeout)
-  end if
-
-  if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(in,atoms)
-     !call write_input_parameters(inputs,atoms)
-  end if
-
-  !if other steps are supposed to be done leave the last_run to minus one
-  !otherwise put it to one
-  if (in%last_run == -1 .and. in%ncount_cluster_x <=1 .or. in%ncount_cluster_x <= 1) then
-     in%last_run = 1
-  end if
-
-END SUBROUTINE bigdft_set_input
-
-!> De-allocate the variable of type input_variables
-subroutine bigdft_free_input(in)
-  use module_base
-  use module_types
-  use yaml_output
-  type(input_variables), intent(inout) :: in
-  
-  call free_input_variables(in)
-  call f_lib_finalize()
-  !free all yaml_streams active
-  call yaml_close_all_streams()
-
-end subroutine bigdft_free_input
-
-
-!> Read the options in the command line using get_command statement
-subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
-  use module_types
-  implicit none
-  integer, intent(out) :: mpi_groupsize
-  character(len=*), intent(out) :: posinp_file !< file for list of radicals
-  character(len=*), intent(out) :: run_id !< file for radical name
-  integer, intent(out) :: ierr !< error code
-  !local variables
-  integer :: ncommands,icommands
-  character(len=256) :: command
-
-  ierr=BIGDFT_SUCCESS
-  posinp_file=repeat(' ',len(posinp_file))
-  run_id=repeat(' ',len(run_id))
-  !traditional scheme
-  !if (ncommands == 0) then
-     run_id='input'
-  !end if
-
-  mpi_groupsize=0
-  
-  !first see how many arguments are present
-  ncommands=COMMAND_ARGUMENT_COUNT()
-
-  do icommands=1,ncommands
-     command=repeat(' ',len(command))
-     call get_command_argument(icommands,value=command,status=ierr)
-     if (ierr /= 0) return
-     !print *,'test',ncommands,icommands,command
-     call find_command()
-     if (ierr /= 0) return
-  end do
-
-
-
-contains
-
-  subroutine find_command()
-    implicit none
-    integer :: ipos
-    integer, external :: bigdft_error_ret
-
-    if (index(command,'--taskgroup-size=') > 0) then
-       if (mpi_groupsize /= 0) then
-          ierr=bigdft_error_ret(BIGDFT_INVALID,'taskgroup size specified twice')
-       end if
-       ipos=index(command,'=')
-       read(command(ipos+1:len(command)),*)mpi_groupsize
-    else if (index(command,'--run-id=') > 0) then
-       if (len_trim(run_id) > 0) then
-          ierr=bigdft_error_ret(BIGDFT_INVALID,'run_id specified twice')
-       end if
-       ipos=index(command,'=')
-       read(command(ipos+1:len(command)),*)run_id
-    else if (index(command,'--runs-file=') > 0) then
-       if (len_trim(posinp_file) > 0 .or. len_trim(run_id) >0) then
-          ierr=bigdft_error_ret(BIGDFT_INVALID,'posinp_file specified twice or run_id already known')
-       end if
-       ipos=index(command,'=')
-       read(command(ipos+1:len(command)),*)posinp_file
-    else if (index(command,'--') > 0 .and. icommands==1) then
-       !help screen
-       call help_screen()
-       stop
-    else if (icommands==1) then
-       read(command,*,iostat=ierr)run_id
-    else
-       call help_screen()
-       stop
-    end if
-  end subroutine find_command
-
-  subroutine help_screen()
-    write(*,*)' Usage of the command line instruction'
-    write(*,*)' --taskgroup-size=<mpi_groupsize>'
-    write(*,*)' --runs-file=<list_posinp filename>'
-    write(*,*)' --run-id=<name of the run>: it can be also specified as unique argument'
-    write(*,*)' --help : prints this help screen'
-  end subroutine help_screen
-
-
-end subroutine command_line_information
-
-
-!> Set and check the input file
-subroutine set_inputfile(filename, radical, ext)
-  implicit none
-  character(len = 100), intent(out) :: filename
-  character(len = *), intent(in) :: radical, ext
-  
-  logical :: exists
-
-  write(filename, "(A)") ""
-  if (trim(radical) == "") then
-     write(filename, "(A,A,A)") "input", ".", trim(ext)
-  else
-     write(filename, "(A,A,A)") trim(radical), ".", trim(ext)
-  end if
-
-  inquire(file=trim(filename),exist=exists)
-  if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
-       & write(filename, "(A,A,A)") "default", ".", trim(ext)
-end subroutine set_inputfile
-
-
-!> Define the name of the input files
-subroutine standard_inputfile_names(in, radical)
-  use module_types
-  use module_base
-  use yaml_output
-  implicit none
-  type(input_variables), intent(inout) :: in
-  character(len = *), intent(in) :: radical
-
-  !set prefix name of the run (as input by defaut for input.dft)
-  in%run_name=repeat(' ',len(in%run_name))
-  if (trim(radical) /= 'input') in%run_name=trim(radical)
-
-  call set_inputfile(in%file_occnum, radical, "occ")
-  call set_inputfile(in%file_igpop, radical,  "occup")
-  call set_inputfile(in%file_lin, radical,    "lin")
-  call set_inputfile(in%file_frag, radical,   "frag")
-
-  if (trim(radical) == "input") then
-     in%dir_output="data" // trim(bigdft_run_id_toa())
-  else
-     in%dir_output="data-"//trim(radical)!//trim(bigdft_run_id_toa())
-  end if
-
-  in%files = INPUTS_NONE
-END SUBROUTINE standard_inputfile_names
-
-
+!> this function returns a dictionary with all the input variables of a BigDFT run filled
+!! this dictionary is constructed from a updated version of the input variables dictionary
+!! following the input files as defined  by the user
 function read_input_dict_from_files(radical, mpi_env) result(dict)
   use dictionaries
   use wrapper_MPI
@@ -228,8 +17,8 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   use module_interfaces, only: merge_input_file_to_dict
   use input_old_text_format
   implicit none
-  character(len = *), intent(in) :: radical
-  type(mpi_environment), intent(in) :: mpi_env
+  character(len = *), intent(in) :: radical !< the name of the run. use "input" if empty
+  type(mpi_environment), intent(in) :: mpi_env !< the environment where the variables have to be updated
 
   integer :: ierr
   type(dictionary), pointer :: dict
@@ -254,7 +43,7 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   inquire(file = trim(fname), exist = exists_user)
   if (exists_user) call merge_input_file_to_dict(dict, trim(fname), mpi_env)
 
-  ! We fallback on the old text format
+  ! We fallback on the old text format (to be eliminated in the future)
   if (.not.exists_default .and. .not. exists_user) then
      ! Parse all files.
      call dict_init(dict)
@@ -285,6 +74,160 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   ! by any issue on the master proc.
   call mpi_barrier(mpi_env%mpi_comm, ierr)
 end function read_input_dict_from_files
+
+!> Routine to read YAML input files and create input dictionary.
+subroutine merge_input_file_to_dict(dict, fname, mpi_env)
+  use module_input_keys
+  use dictionaries
+  use yaml_parse
+  use wrapper_MPI
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: fname
+  type(mpi_environment), intent(in) :: mpi_env
+
+  integer(kind = 8) :: cbuf, cbuf_len
+  integer :: ierr
+  character(len = max_field_length) :: val
+  character, dimension(:), allocatable :: fbuf
+  type(dictionary), pointer :: udict
+  
+  if (mpi_env%iproc == 0) then
+     call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
+     if (mpi_env%nproc > 1) &
+          & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
+  else
+     call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
+  end if
+  allocate(fbuf(cbuf_len))
+  if (mpi_env%iproc == 0) then
+     call copyCBuffer(fbuf(1), cbuf, cbuf_len)
+     call freeCBuffer(cbuf)
+     if (mpi_env%nproc > 1) &
+          & call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+  else
+     call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+  end if
+
+  call f_err_open_try()
+  call yaml_parse_from_char_array(udict, fbuf)
+
+  ! Handle with possible partial dictionary.
+  deallocate(fbuf)
+  call dict_update(dict, udict // 0)
+  call dict_free(udict)
+  
+  ierr = 0
+  if (f_err_check()) ierr = f_get_last_error(val)
+  call f_err_close_try()
+  !in the present implementation f_err_check is not cleaned after the close of the try
+  if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
+end subroutine merge_input_file_to_dict
+
+!> Fill the input_variables structure with the information
+!! contained in the dictionary dict
+!! the dictionary should be completes to fill all the information
+subroutine inputs_from_dict(in, atoms, dict, dump)
+  use module_types
+  use module_defs
+  use yaml_output
+  use module_interfaces, except => inputs_from_dict
+  use dictionaries
+  use module_input_keys
+  implicit none
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(inout) :: atoms
+  type(dictionary), pointer :: dict
+  logical, intent(in) :: dump
+
+  !type(dictionary), pointer :: profs
+  integer :: ierr
+
+  call default_input_variables(in)
+
+  ! To avoid race conditions where procs create the default file and other test its
+  ! presence, we put a barrier here.
+  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+
+  ! Analyse the input dictionary and transfer it to in.
+  call input_keys_fill_all(dict)
+  call perf_input_analyse(bigdft_mpi%iproc, in, dict//PERF_VARIABLES)
+  call dft_input_analyse(bigdft_mpi%iproc, in, dict//DFT_VARIABLES)
+  call geopt_input_analyse(bigdft_mpi%iproc, in, dict//GEOPT_VARIABLES)
+  call mix_input_analyse(bigdft_mpi%iproc, in, dict//MIX_VARIABLES)
+  call sic_input_analyse(bigdft_mpi%iproc, in, dict//SIC_VARIABLES, in%ixc)
+  call tddft_input_analyse(bigdft_mpi%iproc, in, dict//TDDFT_VARIABLES)
+
+  ! Shake atoms, if required.
+  call astruct_set_displacement(atoms%astruct, in%randdis)
+  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+  ! Update atoms with symmetry information
+  call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield)
+
+  call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
+       & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
+  
+  if (bigdft_mpi%iproc == 0 .and. dump) call input_keys_dump(dict)
+
+  if (in%gen_nkpt > 1 .and. in%gaussian_help) then
+     if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+  end if
+  
+  if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
+      DistProjApply=.true.
+  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
+     !only on the fly calculation
+     DistProjApply=.true.
+  end if
+
+  ! Stop the code if it is trying to run GPU with spin=4
+  if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
+     if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+  end if
+
+  ! This should be moved to init_atomic_values, but we can't since
+  ! input.lin needs some arrays allocated here.
+  if (.not. associated(atoms%nzatom)) then
+     call allocate_atoms_nat(atoms, "inputs_from_dict")
+     call allocate_atoms_ntypes(atoms, "inputs_from_dict")
+  end if
+
+  ! Linear scaling (if given)
+  !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
+  call lin_input_variables_new(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
+
+  ! Fragment information (if given)
+  call fragment_input_variables(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+       & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,trim(in%file_frag),in,atoms)
+
+!!$  ! Stop code for unproper input variables combination.
+!!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
+!!$     if (bigdft_mpi%iproc==0) then
+!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+!!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
+!!$     end if
+!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+!!$  end if
+
+!!$  if (bigdft_mpi%iproc == 0) then
+!!$     profs => input_keys_get_profiles("")
+!!$     call yaml_dict_dump(profs)
+!!$     call dict_free(profs)
+!!$  end if
+
+  !check whether a directory name should be associated for the data storage
+  call check_for_data_writing_directory(bigdft_mpi%iproc,in)
+  
+  !check if an error has been found and raise an exception to be handled
+  if (f_err_check()) then
+     call f_err_throw('Error in reading input variables from dictionary',&
+          err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+  end if
+
+end subroutine inputs_from_dict
 
 !> Check the directory of data (create if not present)
 subroutine check_for_data_writing_directory(iproc,in)
@@ -452,237 +395,6 @@ subroutine sic_input_variables_default(in)
 
 END SUBROUTINE sic_input_variables_default
 
-
-!> Read linear input parameters
-subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
-  use module_base
-  use module_types
-  use module_input
-  implicit none
-  integer, intent(in) :: iproc
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
-  logical, intent(in) :: dump
-  !local variables
-  logical :: exists
-  character(len=*), parameter :: subname='lin_input_variables'
-  character(len=256) :: comments
-  logical,dimension(atoms%astruct%ntypes) :: parametersSpecified
-  logical :: found
-  character(len=20):: atomname
-  integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
-  real(gp):: ppao, ppl, pph, lrl, lrh, kco
-  real(gp),dimension(atoms%astruct%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
-
-  !Linear input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
-  if (exists) in%files = in%files + INPUTS_LIN
-
-  ! number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
-  comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
-  call input_var(in%lin%nlevel_accuracy,'2',ranges=(/1,2/),comment=comments)
-
-  ! number of iterations
-  comments = 'outer loop iterations (low, high)'
-  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,100000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,100000/),comment=comments)
-
-  comments = 'basis iterations (low, high)'
-  call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
-  call input_var(in%lin%nItBasis_highaccuracy,'50',ranges=(/0,100000/),comment=comments)
-
-  comments = 'kernel iterations (low, high) - directmin only'
-  call input_var(in%lin%nItdmin_lowaccuracy,'1',ranges=(/0,1000/))
-  call input_var(in%lin%nItdmin_highaccuracy,'1',ranges=(/0,1000/),comment=comments)
-
-  comments = 'density iterations (low, high)'
-  call input_var(in%lin%nItSCCWhenFixed_lowaccuracy,'15',ranges=(/0,1000/))
-  call input_var(in%lin%nItSCCWhenFixed_highaccuracy,'15',ranges=(/0,1000/),comment=comments)
-
-  ! DIIS history lengths
-  comments = 'DIIS history for basis (low, high)'
-  call input_var(in%lin%DIIS_hist_lowaccur,'5',ranges=(/0,100/))
-  call input_var(in%lin%DIIS_hist_highaccur,'0',ranges=(/0,100/),comment=comments)
-
-  comments = 'DIIS history for kernel (low, high) - directmin only'
-  call input_var(in%lin%dmin_hist_lowaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%dmin_hist_highaccuracy,'0',ranges=(/0,100/),comment=comments)
-
-  comments = 'DIIS history for density mixing (low, high)'
-  call input_var(in%lin%mixHist_lowaccuracy,'0',ranges=(/0,100/))
-  call input_var(in%lin%mixHist_highaccuracy,'0',ranges=(/0,100/),comment=comments)
-
-  ! mixing parameters
-  comments = 'density mixing parameter (low, high)'
-  call input_var(in%lin%alpha_mix_lowaccuracy,'.5d0',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%alpha_mix_highaccuracy,'.5d0',ranges=(/0.d0,1.d0/),comment=comments)
-
-  ! Convergence criteria
-  comments = 'outer loop convergence (low, high)'
-  call input_var(in%lin%lowaccuracy_conv_crit,'1.d-8',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%highaccuracy_conv_crit,'1.d-12',ranges=(/0.d0,1.d0/),comment=comments)
-
-  comments = 'basis convergence (low, high)'
-  call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
-  call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/),comment=comments)
-  
-  comments = 'multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode'
-  call input_var(in%lin%deltaenergy_multiplier_TMBexit,'1.d0',ranges=(/1.d-5,1.d1/))
-  call input_var(in%lin%deltaenergy_multiplier_TMBfix,'1.d0',ranges=(/1.d-5,1.d1/),comment=comments)
-
-  comments = 'factor to reduce the confinement. Only used for hybrid mode.'
-  call input_var(in%lin%reduce_confinement_factor,'0.5d0',ranges=(/-1.d100,1.d0/),comment=comments)
-
-  comments = 'kernel convergence (low, high) - directmin only'
-  call input_var(in%lin%convCritdmin_lowaccuracy,'1.d-5',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%convCritdmin_highaccuracy,'1.d-5',ranges=(/0.d0,1.d0/),comment=comments)
-
-  comments = 'density convergence (low, high)'
-  call input_var(in%lin%convCritMix_lowaccuracy,'1.d-13',ranges=(/0.d0,1.d0/))
-  call input_var(in%lin%convCritMix_highaccuracy,'1.d-13',ranges=(/0.d0,1.d0/),comment=comments)
-
-  comments = 'convergence criterion on density to fix TMBS'
-  call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
-
-  ! Miscellaneous
-  comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
-  call input_var(in%lin%scf_mode,'100',ranges=(/100,103/),comment=comments)
-
-  comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
-  call input_var(in%lin%alphaDIIS,'1.d0',ranges=(/0.0_gp,10.0_gp/))
-  call input_var(in%lin%alphaSD,'1.d0',ranges=(/0.0_gp,10.0_gp/),comment=comments)
-
-  comments = 'initial step size for kernel update (SD), curve fitting for alpha update - directmin only'
-  call input_var(in%lin%alphaSD_coeff,'1.d0',ranges=(/0.0_gp,10.0_gp/))
-  call input_var(in%lin%curvefit_dmin,'F',comment=comments)
-
-  comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
-  call input_var(in%lin%evlow,'-.5d0',ranges=(/-10.d0,-1.d-10/))
-  call input_var(in%lin%evhigh,'-.5d0',ranges=(/1.d-10,10.d0/),comment=comments)
-
-  comments='number of iterations in the preconditioner'
-  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment=comments)
-  
-  comments = '0-> exact Loewdin, 1-> taylor expansion; &
-             &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
-  call input_var(in%lin%methTransformOverlap,'1',ranges=(/-1,1/))
-  call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
-
-  comments='fscale: length scale over which complementary error function decays from 1 to 0'
-  call input_var(in%lin%fscale,'1.d-2',ranges=(/0.d0,1.d0/),comment=comments)
-
-  !plot basis functions: true or false
-  comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-           'calculate dipole ; pulay correction; diagonalization at the end (dmin, FOE)'
-  call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
-  call input_var(in%lin%calc_dipole,'F')
-  call input_var(in%lin%pulay_correction,'T')
-  call input_var(in%lin%diag_end,'F',comment=comments)
-
-  !fragment calculation and transfer integrals: true or false
-  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
-  call input_var(in%lin%fragment_calculation,'F')
-  call input_var(in%lin%calc_transfer_integrals,'F')
-  call input_var(in%lin%constrained_dft,'F')
-  call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
-
-  ! Allocate lin pointers and atoms%rloc
-  call nullifyInputLinparameters(in%lin)
-  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
-  
-  ! Now read in the parameters specific for each atom type.
-  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
-             'localization radius, kernel cutoff'
-  parametersSpecified=.false.
-  itype = 1
-  do
-     !Check at the beginning to permit natom=0
-     if (itype > atoms%astruct%ntypes) exit
-     if (exists) then
-        call input_var(atomname,'C',input_iostat=ios)
-        if (ios /= 0) exit
-     else
-        call input_var(atomname,trim(atoms%astruct%atomnames(itype)))
-        itype = itype + 1
-     end if
-     call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
-     call input_var(ppao,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-     call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-     call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-     call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-     call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-     call input_var(kco,'20.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
-     ! The reading was successful. Check whether this atom type is actually present.
-     found=.false.
-     do jtype=1,atoms%astruct%ntypes
-        if(trim(atomname)==trim(atoms%astruct%atomnames(jtype))) then
-           found=.true.
-           parametersSpecified(jtype)=.true.
-           in%lin%norbsPerType(jtype)=npt
-           in%lin%potentialPrefac_ao(jtype)=ppao
-           in%lin%potentialPrefac_lowaccuracy(jtype)=ppl
-           in%lin%potentialPrefac_highaccuracy(jtype)=pph
-           locradType(jtype)=lrl
-           in%lin%locrad_type(jtype)=lrl
-           locradType_lowaccur(jtype)=lrl
-           locradType_highaccur(jtype)=lrh
-           atoms%rloc(jtype,:)=locradType(jtype)
-           in%lin%kernel_cutoff(jtype)=kco
-        end if
-     end do
-     if(.not.found) then
-        if(iproc==0 .and. dump) write(*,'(1x,3a)') "WARNING: you specified informations about the atomtype '",trim(atomname), &
-             "', which is not present in the file containing the atomic coordinates."
-     end if
-  end do
-  found  = .true.
-  do jtype=1,atoms%astruct%ntypes
-     found = found .and. parametersSpecified(jtype)
-  end do
-  if (.not. found) then
-     ! The parameters were not specified for all atom types.
-     if(iproc==0) then
-        write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
-             & for the following atom types:"
-        do jtype=1,atoms%astruct%ntypes
-           if(.not.parametersSpecified(jtype)) write(*,'(1x,a)',advance='no') trim(atoms%astruct%atomnames(jtype))
-        end do
-     end if
-     call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-     stop
-  end if
-
-  nlr=0
-  do iat=1,atoms%astruct%nat
-      itype=atoms%astruct%iatype(iat)
-      nlr=nlr+in%lin%norbsPerType(itype)
-  end do
-  allocate(in%lin%locrad(nlr),stat=istat)
-  call memocc(istat,in%lin%locrad,'in%lin%locrad',subname)
-  allocate(in%lin%locrad_lowaccuracy(nlr),stat=istat)
-  call memocc(istat,in%lin%locrad_lowaccuracy,'in%lin%locrad_lowaccuracy',subname)
-  allocate(in%lin%locrad_highaccuracy(nlr),stat=istat)
-  call memocc(istat,in%lin%locrad_highaccuracy,'in%lin%locrad_highaccuracy',subname)
-
-  
-  ! Assign the localization radius to each atom.
-  iiorb=0
-  do iat=1,atoms%astruct%nat
-      itype=atoms%astruct%iatype(iat)
-      do iorb=1,in%lin%norbsPerType(itype)
-          iiorb=iiorb+1
-          in%lin%locrad(iiorb)=locradType(itype)
-          in%lin%locrad_lowaccuracy(iiorb)=locradType_lowaccur(itype)
-          in%lin%locrad_highaccuracy(iiorb)=locradType_highaccur(itype)
-      end do
-  end do
-  
-
-  call input_free((iproc == 0) .and. dump)
-END SUBROUTINE lin_input_variables_new
-
-
 !> Assign default values for TDDFT variables
 subroutine tddft_input_variables_default(in)
   use module_base
@@ -693,93 +405,6 @@ subroutine tddft_input_variables_default(in)
   in%tddft_approach='NONE'
 
 END SUBROUTINE tddft_input_variables_default
-
-!> Read fragment input parameters
-subroutine fragment_input_variables(iproc,dump,filename,in,atoms)
-  use module_base
-  use module_types
-  use module_input
-  implicit none
-  integer, intent(in) :: iproc
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
-  logical, intent(in) :: dump
-  !local variables
-  !character(len=*), parameter :: subname='fragment_input_variables'
-  logical :: exists
-  character(len=256) :: comments
-  integer :: ifrag, frag_num, ierr
-
-  !Linear input parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 
-  if (exists .and. dump) in%files = in%files + INPUTS_FRAG
-
-  if (.not. exists .and. in%lin%fragment_calculation) then ! we should be doing a fragment calculation, so this is a problem
-     write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' is missing and fragment calculation was specified"
-     call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-     stop
-  end if
-
-  ! number of reference fragments
-  comments='# number of fragments in reference system, number of fragments in current system'
-  call input_var(in%frag%nfrag_ref,'1',ranges=(/1,100000/))
-  call input_var(in%frag%nfrag,'1',ranges=(/1,100000/),comment=comments)
-  
-  ! Allocate fragment pointers
-  call nullifyInputFragParameters(in%frag)
-  call allocateInputFragArrays(in%frag)
-
-  !comments = '# reference fragment number i, number of atoms in reference fragment i, '//&
-  !           'number of atoms in corresponding environment'
-  !do ifrag=1,in%frag%nfrag_ref
-  !  call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag_ref/))
-  !  if (frag_num/=ifrag) then
-  !      write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' has an error when specifying&
-  !           & the reference fragments"
-  !     call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  !     stop
-  !  end if
-  !  call input_var(in%frag%frag_info(frag_num,1),'1',ranges=(/1,100000/))
-  !  call input_var(in%frag%frag_info(frag_num,2),'0',ranges=(/0,100000/),comment=comments)
-  !end do
-
-  ! ADD A SENSIBLE DEFAULT AND ALLOW FOR USER NOT TO SPECIFY FRAGMENT NAMES
-  comments = '#  reference fragment number i, fragment label'
-  do ifrag=1,in%frag%nfrag_ref
-    call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag_ref/))
-    if (frag_num/=ifrag) then
-        write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' has an error when specifying&
-             & the reference fragments"
-       call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-       stop
-    end if
-    call input_var(in%frag%label(frag_num),' ',comment=comments)
-    in%frag%label(frag_num)=trim(in%frag%label(frag_num))
-    ! keep dirname blank if this isn't a fragment calculation
-    if (len(trim(in%frag%label(frag_num)))>=1) then
-       in%frag%dirname(frag_num)='data-'//trim(in%frag%label(frag_num))//'/'
-    else
-       in%frag%dirname(frag_num)=''
-    end if
-  end do
-
-  comments = '# fragment number j, reference fragment i this corresponds to, charge on this fragment'
-  do ifrag=1,in%frag%nfrag
-    call input_var(frag_num,'1',ranges=(/1,in%frag%nfrag/))
-    if (frag_num/=ifrag) then
-        write(*,'(1x,a)',advance='no') "ERROR: the file 'input.frag' has an error when specifying&
-             & the system fragments"
-       call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-       stop
-    end if
-    call input_var(in%frag%frag_index(frag_num),'1',ranges=(/0,100000/))
-    call input_var(in%frag%charge(frag_num),'1',ranges=(/-500,500/),comment=comments)
-  end do
-
-  call input_free((iproc == 0) .and. dump)
-
-END SUBROUTINE fragment_input_variables
 
   subroutine allocateInputFragArrays(input_frag)
     use module_types
@@ -1077,101 +702,6 @@ subroutine abscalc_input_variables_default(in)
   in%abscalc_Sinv_do_cg=.false.
 END SUBROUTINE abscalc_input_variables_default
 
-
-!> Read the input variables needed for the ABSCALC
-!! Every argument should be considered as mandatory
-subroutine abscalc_input_variables(iproc,filename,in)
-  use module_base
-  use module_types
-  implicit none
-  !Arguments
-  type(input_variables), intent(inout) :: in
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  !Local variables
-  integer, parameter :: iunit = 112
-  integer :: ierror,iline, i
-
-  character(len=*), parameter :: subname='abscalc_input_variables'
-  integer :: i_stat
-
-  ! Read the input variables.
-  open(unit=iunit,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-
-  !x-absorber treatment (in progress)
-
-  read(iunit,*,iostat=ierror) in%iabscalc_type
-  call check()
-
-
-  read(iunit,*,iostat=ierror)  in%iat_absorber
-  call check()
-  read(iunit,*,iostat=ierror)  in%L_absorber
-  call check()
-
-  allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
-  call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
-
-  read(iunit,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
-  call check()
-
-  read(iunit,*,iostat=ierror)  in%potshortcut
-  call check()
-  
-  read(iunit,*,iostat=ierror)  in%nsteps
-  call check()
-
-  if( iand( in%potshortcut,4)>0) then
-     read(iunit,'(a100)',iostat=ierror) in%extraOrbital
-  end if
-  
-  read(iunit,*,iostat=ierror) in%abscalc_bottomshift
-  if(ierror==0) then
-  else
-     in%abscalc_bottomshift=0
-  endif
-
- 
-
-  read(iunit, '(a100)' ,iostat=ierror) in%xabs_res_prefix
-  if(ierror==0) then
-  else
-     in%xabs_res_prefix=""
-  endif
-
-
-  read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
-  !!, &
-  !!     in%abscalc_S_do_cg ,in%abscalc_Sinv_do_cg
-  if(ierror==0) then
-  else
-     in%abscalc_alterpot=.false.
-     in%abscalc_eqdiff =.false.
-  endif
-
-
-
-  in%c_absorbtion=.true.
-
-  close(unit=iunit)
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE abscalc_input_variables
-
-
 !> Assign default values for frequencies variables
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
 !!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
@@ -1188,976 +718,6 @@ subroutine frequencies_input_variables_default(in)
 
 END SUBROUTINE frequencies_input_variables_default
 
-
-!> Read the input variables needed for the frequencies calculation.
-!! Every argument should be considered as mandatory.
-subroutine frequencies_input_variables_new(iproc,dump,filename,in)
-  use module_base
-  use module_types
-  use module_input
-  implicit none
-  !Arguments
-  type(input_variables), intent(inout) :: in
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
-  !Local variables
-  logical :: exists
-  !n(c) integer, parameter :: iunit=111
-
-  !Frequencies parameters
-  call input_set_file(iproc,dump,trim(filename),exists,'Frequencies Parameters')  
-  if (exists) in%files = in%files + INPUTS_FREQ
-  !call the variable, its default value, the line ends if there is a comment
-
-  !Read in%freq_alpha (possible 1/64)
-  call input_var(in%freq_alpha,'1/64',ranges=(/0.0_gp,1.0_gp/),&
-       comment="Step size factor (alpha*hgrid)")
-  !Read the order of finite difference scheme
-
-  call input_var(in%freq_order,'2',exclusive=(/-1,1,2,3/),&
-       comment="Order of the difference scheme")
-  !Read the index of the method
-
-  call input_var(in%freq_method,'1',exclusive=(/1/),&
-       comment="Method used (only possible value=1)")
-  call input_free((iproc == 0) .and. dump)
-
-END SUBROUTINE frequencies_input_variables_new
-
-
-!> Fill the arrays occup and spinsgn
-!! if iunit /=0 this means that the file 'input.occ' does exist and it opens
-subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
-  use module_base
-  use module_input
-  use yaml_output
-  implicit none
-  ! Arguments
-  logical, intent(in) :: verb
-  integer, intent(in) :: nelec,nspin,norb,norbu,iunit,norbuempty,norbdempty
-  real(gp), dimension(norb), intent(out) :: occup,spinsgn
-  ! Local variables
-  integer :: iorb,nt,ne,it,ierror,iorb1,i
-  real(gp) :: rocc
-  character(len=20) :: string
-  character(len=100) :: line
-
-  do iorb=1,norb
-     spinsgn(iorb)=1.0_gp
-  end do
-  if (nspin/=1) then
-     do iorb=1,norbu
-        spinsgn(iorb)=1.0_gp
-     end do
-     do iorb=norbu+1,norb
-        spinsgn(iorb)=-1.0_gp
-     end do
-  end if
-  ! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
-
-  ! First fill the occupation numbers by default
-  nt=0
-  if (nspin==1) then
-     ne=(nelec+1)/2
-     do iorb=1,ne
-        it=min(2,nelec-nt)
-        occup(iorb)=real(it,gp)
-        nt=nt+it
-     enddo
-     do iorb=ne+1,norb
-        occup(iorb)=0._gp
-     end do
-  else
-     if (norbuempty+norbdempty == 0) then
-        if (norb > nelec) then
-           do iorb=1,min(norbu,norb/2+1)
-              it=min(1,nelec-nt)
-              occup(iorb)=real(it,gp)
-              nt=nt+it
-           enddo
-           do iorb=min(norbu,norb/2+1)+1,norbu
-              occup(iorb)=0.0_gp
-           end do
-           do iorb=norbu+1,norbu+min(norb-norbu,norb/2+1)
-              it=min(1,nelec-nt)
-              occup(iorb)=real(it,gp)
-              nt=nt+it
-           enddo
-           do iorb=norbu+min(norb-norbu,norb/2+1)+1,norb
-              occup(iorb)=0.0_gp
-           end do
-        else
-           do iorb=1,norb
-              occup(iorb)=1.0_gp
-           end do
-        end if
-     else
-        do iorb=1,norbu-norbuempty
-           occup(iorb)=1.0_gp
-        end do
-        do iorb=norbu-norbuempty+1,norbu
-           occup(iorb)=0.0_gp
-        end do
-        do iorb=1,norb-norbu-norbdempty
-           occup(norbu+iorb)=1.0_gp
-        end do
-        do iorb=norb-norbu-norbdempty+1,norb-norbu
-           occup(norbu+iorb)=0.0_gp
-        end do
-     end if
-  end if
-  ! Then read the file "input.occ" if does exist
-  if (iunit /= 0) then
-     nt=0
-     do
-        read(unit=iunit,fmt='(a100)',iostat=ierror) line
-        if (ierror /= 0) then
-           exit
-        end if
-        !Transform the line in case there are slashes (to ease the parsing)
-        do i=1,len(line)
-           if (line(i:i) == '/') then
-              line(i:i) = ':'
-           end if
-        end do
-        read(line,*,iostat=ierror) iorb,string
-        call read_fraction_string(string,rocc,ierror) 
-        if (ierror /= 0) then
-           exit
-        end if
-
-        if (ierror/=0) then
-           exit
-        else
-           nt=nt+1
-           if (iorb<0 .or. iorb>norb) then
-              !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
-              write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
-              !end if
-              stop
-           elseif (rocc<0._gp .or. rocc>2._gp) then
-              !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
-              write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
-              !end if
-              stop
-           else
-              occup(iorb)=rocc
-           end if
-        end if
-     end do
-     if (verb) then
-        call yaml_comment('('//adjustl(trim(yaml_toa(nt)))//'lines read)')
-        !write(*,'(1x,a,i0,a)') &
-        !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
-     end if
-     close(unit=iunit)
-
-     if (nspin/=1) then
-!!!        !Check if the polarisation is respected (mpol)
-!!!        rup=sum(occup(1:norbu))
-!!!        rdown=sum(occup(norbu+1:norb))
-!!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
-!!!           if (iproc==0) then
-!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "input.occ", the polarization ',rup-rdown,&
-!!!                             ' is not equal to ',norbu-norbd
-!!!           end if
-!!!           stop
-!!!        end if
-        !Fill spinsgn
-        do iorb=1,norbu
-           spinsgn(iorb)=1.0_gp
-        end do
-        do iorb=norbu+1,norb
-           spinsgn(iorb)=-1.0_gp
-        end do
-     end if
-  end if
-  if (verb) then 
-     call yaml_sequence(advance='no')
-     call yaml_open_map('Occupation Numbers',flow=.true.)
-     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
-     iorb1=1
-     rocc=occup(1)
-     do iorb=1,norb
-        if (occup(iorb) /= rocc) then
-           if (iorb1 == iorb-1) then
-              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
-              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
-           else
-           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
-                adjustl(trim(yaml_toa(iorb-1))),rocc,fmt='(f6.4)')
-           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
-           end if
-           rocc=occup(iorb)
-           iorb1=iorb
-        end if
-     enddo
-     if (iorb1 == norb) then
-        call yaml_map('Orbital No.'//trim(yaml_toa(norb)),occup(norb),fmt='(f6.4)')
-        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
-     else
-        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
-             adjustl(trim(yaml_toa(norb))),occup(norb),fmt='(f6.4)')
-        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
-     end if
-     call yaml_close_map()
-  endif
-
-  !Check if sum(occup)=nelec
-  rocc=sum(occup)
-  if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
-     call yaml_warning('ERROR in determining the occupation numbers: the total number of electrons ' &
-        & // trim(yaml_toa(rocc,fmt='(f13.6)')) // ' is not equal to' // trim(yaml_toa(nelec)))
-     !if (iproc==0) then
-     !write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
-     !     ' is not equal to ',nelec
-     !end if
-     stop
-  end if
-
-END SUBROUTINE occupation_input_variables
-
-
-!> Module used for the input variables
-module position_files
-   implicit none
-   contains
-   subroutine directGetLine(line, ifile, eof)
-      !Arguments
-      integer, intent(in) :: ifile
-      character(len=150), intent(out) :: line
-      logical, intent(out) :: eof
-      !Local variables
-      integer :: i_stat
-
-      eof = .false.
-      read(ifile,'(a150)', iostat = i_stat) line
-      if (i_stat /= 0) eof = .true.
-   END SUBROUTINE directGetLine
-
-   subroutine archiveGetLine(line, ifile, eof)
-      !Arguments
-      integer, intent(in) :: ifile
-      character(len=150), intent(out) :: line
-      logical, intent(out) :: eof
-      !Local variables
-      integer :: i_stat
-      !The argument ifile is not used but it is used as argument routine
-      !eof = .false.
-      eof = (ifile /= ifile)
-      call extractNextLine(line, i_stat)
-      if (i_stat /= 0) eof = .true.
-   END SUBROUTINE archiveGetLine
-end module position_files
-
-
-!> Read atomic file
-subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
-   use module_base
-   use module_types
-   use module_interfaces, except_this_one => read_atomic_file
-   use m_ab6_symmetry
-   use position_files
-   implicit none
-   character(len=*), intent(in) :: file
-   integer, intent(in) :: iproc
-   type(atomic_structure), intent(inout) :: astruct
-   integer, intent(out), optional :: status
-   real(gp), intent(out), optional :: energy
-   real(gp), dimension(:,:), pointer, optional :: fxyz
-   character(len = *), intent(out), optional :: comment
-   !Local variables
-   character(len=*), parameter :: subname='read_atomic_file'
-   integer :: l, extract, i_all, i_stat
-   logical :: file_exists, archive
-   character(len = 128) :: filename
-   character(len = 15) :: arFile
-   character(len = 6) :: ext
-   real(gp) :: energy_
-   real(gp), dimension(:,:), pointer :: fxyz_
-   character(len = 1024) :: comment_
-
-   file_exists = .false.
-   archive = .false.
-   if (present(status)) status = 0
-   nullify(fxyz_)
-
-   ! Extract from archive
-   if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
-      write(arFile, "(A)") "posout.tar.bz2"
-      if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
-      inquire(FILE = trim(arFile), EXIST = file_exists)
-      if (file_exists) then
-         !!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
-         !!$          & trim(file), len(trim(file)), extract, ext)
-         call openNextCompress(trim(arFile), len(trim(arFile)), &
-         & trim(file), len(trim(file)), extract, ext)
-         if (extract == 0) then
-            write(*,*) "Can't find '", file, "' in archive."
-            if (present(status)) then
-               status = 1
-               return
-            else
-               stop
-            end if
-         end if
-         archive = .true.
-         write(filename, "(A)") file//'.'//trim(ext)
-         write(astruct%inputfile_format, "(A)") trim(ext)
-      end if
-   end if
-
-   ! Test posinp.xyz
-   if (.not. file_exists) then
-      inquire(FILE = file//'.xyz', EXIST = file_exists)
-      if (file_exists) then
-         write(filename, "(A)") file//'.xyz'!"posinp.xyz"
-         write(astruct%inputfile_format, "(A)") "xyz"
-         open(unit=99,file=trim(filename),status='old')
-      end if
-   end if
-   ! Test posinp.ascii
-   if (.not. file_exists) then
-      inquire(FILE = file//'.ascii', EXIST = file_exists)
-      if (file_exists) then
-         write(filename, "(A)") file//'.ascii'!"posinp.ascii"
-         write(astruct%inputfile_format, "(A)") "ascii"
-         open(unit=99,file=trim(filename),status='old')
-      end if
-   end if
-   ! Test posinp.yaml
-   if (.not. file_exists) then
-      inquire(FILE = file//'.yaml', EXIST = file_exists)
-      if (file_exists) then
-         write(filename, "(A)") file//'.yaml'!"posinp.ascii"
-         write(astruct%inputfile_format, "(A)") "yaml"
-      end if
-   end if
-   ! Test the name directly
-   if (.not. file_exists) then
-      inquire(FILE = file, EXIST = file_exists)
-      if (file_exists) then
-         write(filename, "(A)") file
-         l = len(file)
-         if (file(l-3:l) == ".xyz") then
-            write(astruct%inputfile_format, "(A)") "xyz"
-         else if (file(l-5:l) == ".ascii") then
-            write(astruct%inputfile_format, "(A)") "ascii"
-         else if (file(l-4:l) == ".yaml") then
-            write(astruct%inputfile_format, "(A)") "yaml"
-         else
-            write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
-            write(*,*) " File should be *.yaml, *.ascii or *.xyz."
-            if (present(status)) then
-               status = 1
-               return
-            else
-               stop
-            end if
-         end if
-         if (trim(astruct%inputfile_format) /= "yaml") then
-            open(unit=99,file=trim(filename),status='old')
-         end if
-      end if
-   end if
-
-   if (.not. file_exists) then
-      if (present(status)) then
-         status = 1
-         return
-      else
-         write(*,*) "Atomic input file not found."
-         write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
-         stop 
-      end if
-   end if
-
-   if (astruct%inputfile_format == "xyz") then
-      !read atomic positions
-      if (.not.archive) then
-         call read_xyz_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
-      else
-         call read_xyz_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
-      end if
-   else if (astruct%inputfile_format == "ascii") then
-      i_stat = iproc
-      if (present(status)) i_stat = 1
-      !read atomic positions
-      if (.not.archive) then
-         call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,directGetLine)
-      else
-         call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
-      end if
-   else if (astruct%inputfile_format == "yaml") then
-      !read atomic positions
-      if (.not.archive) then
-         call read_yaml_positions(trim(filename),astruct,comment_,energy_,fxyz_)
-      else
-         write(*,*) "Atomic input file in YAML not yet supported in archive file."
-         stop
-      end if
-   end if
-
-   !Check the number of atoms
-   if (astruct%nat < 0) then
-      if (present(status)) then
-         status = 1
-         return
-      else
-         write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
-              &  "', the number of atoms (",astruct%nat,") < 0 (should be >= 0)."
-         stop 
-      end if
-   end if
-
-   !control atom positions
-   call check_atoms_positions(astruct,(iproc == 0))
-
-   ! We delay the calculation of the symmetries.
-!this should be already in the atoms_null routine
-   astruct%sym=symm_null()
-!   astruct%sym%symObj = -1
-!   nullify(astruct%sym%irrzon)
-!   nullify(astruct%sym%phnons)
-
-   ! close open file.
-   if (.not.archive .and. trim(astruct%inputfile_format) /= "yaml") then
-      close(99)
-      !!$  else
-      !!$     call unlinkExtract(trim(filename), len(trim(filename)))
-   end if
-   
-   ! We transfer optionals.
-   if (present(energy)) then
-      energy = energy_
-   end if
-   if (present(comment)) then
-      write(comment, "(A)") comment_
-   end if
-   if (present(fxyz)) then
-      fxyz => fxyz_
-   else if (associated(fxyz_)) then
-      i_all=-product(shape(fxyz_))*kind(fxyz_)
-      deallocate(fxyz_,stat=i_stat)
-      call memocc(i_stat,i_all,'fxyz_',subname)
-   end if
-END SUBROUTINE read_atomic_file
-
-!> Write an atomic file
-!Yaml output included
-subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
-  use module_base
-  use module_types
-  use yaml_output
-  implicit none
-  character(len=*), intent(in) :: filename,comment
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(in) :: energy
-  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
-  !local variables
-  character(len = 15) :: arFile
-  integer :: iunit
-
-  if (trim(filename) == "stdout") then
-     iunit = 6
-  else
-     open(unit=9,file=trim(filename)//'.'//trim(atoms%astruct%inputfile_format))
-     iunit = 9
-  end if
-  if (atoms%astruct%inputfile_format == "xyz") then
-     call wtxyz(iunit,energy,rxyz,atoms,comment)
-     if (present(forces)) call wtxyz_forces(9,forces,atoms)
-  else if (atoms%astruct%inputfile_format == "ascii") then
-     call wtascii(iunit,energy,rxyz,atoms,comment)
-     if (present(forces)) call wtascii_forces(9,forces,atoms)
-  else if (atoms%astruct%inputfile_format == 'yaml') then
-     if (present(forces)) then
-        call wtyaml(iunit,energy,rxyz,atoms,comment,.true.,forces)
-     else
-        call wtyaml(iunit,energy,rxyz,atoms,comment,.false.,rxyz)
-     end if
-  else
-     write(*,*) "Error, unknown file format."
-     stop
-  end if
-  if (trim(filename) /= "stdout") then
-     close(unit=9)
-  end if
-
-  ! Add to archive
-  if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
-     write(arFile, "(A)") "posout.tar.bz2"
-     if (index(filename, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
-     call addToCompress(trim(arFile), len(trim(arFile)), &
-          & trim(filename)//'.'//trim(atoms%astruct%inputfile_format), &
-          & len(trim(filename)//'.'//trim(atoms%astruct%inputfile_format)))
-  end if
-END SUBROUTINE write_atomic_file
-
-!>Calculate the coefficient for moving atoms following the ifrztyp
-subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
-  use module_base
-  implicit none
-  integer, intent(in) :: ifrztyp,ixyz
-  real(gp), intent(in) :: alpha
-  real(gp), intent(out) :: alphai
-  !local variables
-  logical :: move_this_coordinate
-
-  if (move_this_coordinate(ifrztyp,ixyz)) then
-     alphai=alpha
-  else
-     alphai=0.0_gp
-  end if
- 
-END SUBROUTINE frozen_alpha
-
-!>Routine for moving atomic positions, takes into account the 
-!!   frozen atoms and the size of the cell
-!!   synopsis: rxyz=txyz+alpha*sxyz
-!!   all the shift are inserted into the box if there are periodic directions
-!!   if the atom are frozen they are not moved
-subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
-  use module_base
-  use module_types
-  implicit none
-  real(gp), intent(in) :: alpha
-  type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: txyz,sxyz
-  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-  !local variables
-  integer :: iat
-  real(gp) :: alphax,alphay,alphaz
-
-  do iat=1,atoms%astruct%nat
-     !adjust the moving of the atoms following the frozen direction
-     call frozen_alpha(atoms%astruct%ifrztyp(iat),1,alpha,alphax)
-     call frozen_alpha(atoms%astruct%ifrztyp(iat),2,alpha,alphay)
-     call frozen_alpha(atoms%astruct%ifrztyp(iat),3,alpha,alphaz)
-
-     if (atoms%astruct%geocode == 'P') then
-        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%astruct%cell_dim(1))
-        rxyz(2,iat)=modulo(txyz(2,iat)+alphay*sxyz(2,iat),atoms%astruct%cell_dim(2))
-        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%astruct%cell_dim(3))
-     else if (atoms%astruct%geocode == 'S') then
-        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%astruct%cell_dim(1))
-        rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
-        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%astruct%cell_dim(3))
-     else
-        rxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
-        rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
-        rxyz(3,iat)=txyz(3,iat)+alphaz*sxyz(3,iat)
-     end if
-  end do
-
-END SUBROUTINE atomic_axpy
-
-
-!>Routine for moving atomic positions, takes into account the 
-!!   frozen atoms and the size of the cell
-!!   synopsis: fxyz=txyz+alpha*sxyz
-!!   update the forces taking into account the frozen atoms
-!!   do not apply the modulo operation on forces 
-subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
-  use module_base
-  use module_types
-  implicit none
-  real(gp), intent(in) :: alpha
-  type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: txyz,sxyz
-  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
-  !local variables
-  integer :: iat
-  real(gp) :: alphax,alphay,alphaz
-  
-  do iat=1,atoms%astruct%nat
-     !adjust the moving of the forces following the frozen direction
-     call frozen_alpha(atoms%astruct%ifrztyp(iat),1,alpha,alphax)
-     call frozen_alpha(atoms%astruct%ifrztyp(iat),2,alpha,alphay)
-     call frozen_alpha(atoms%astruct%ifrztyp(iat),3,alpha,alphaz)
-
-     fxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
-     fxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
-     fxyz(3,iat)=txyz(3,iat)+alphaz*sxyz(3,iat)
-  end do
-  
-END SUBROUTINE atomic_axpy_forces
-
-
-!>Calculate the scalar product between atomic positions by considering
-!!   only non-blocked atoms
-subroutine atomic_dot(atoms,x,y,scpr)
-  use module_base
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: x,y
-  real(gp), intent(out) :: scpr
-  !local variables
-  integer :: iat
-  real(gp) :: scpr1,scpr2,scpr3
-  real(gp) :: alphax,alphay,alphaz
-
-  scpr=0.0_gp
-
-  do iat=1,atoms%astruct%nat
-     call frozen_alpha(atoms%astruct%ifrztyp(iat),1,1.0_gp,alphax)
-     call frozen_alpha(atoms%astruct%ifrztyp(iat),2,1.0_gp,alphay)
-     call frozen_alpha(atoms%astruct%ifrztyp(iat),3,1.0_gp,alphaz)
-     scpr1=alphax*x(1,iat)*y(1,iat)
-     scpr2=alphay*x(2,iat)*y(2,iat)
-     scpr3=alphaz*x(3,iat)*y(3,iat)
-     scpr=scpr+scpr1+scpr2+scpr3
-  end do
-  
-END SUBROUTINE atomic_dot
-
-
-!>z=alpha*A*x + beta* y
-subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: m
-  real(gp), intent(in) :: alpha,beta
-  type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: x
-  real(gp), dimension(m), intent(in) :: y
-  real(gp), dimension(m,3,atoms%astruct%nat), intent(in) :: A
-  real(gp), dimension(m), intent(out) :: z
-  !local variables
-  integer :: iat,i,j
-  real(gp) :: mv,alphai
-  
-  do i=1,m
-     mv=0.0_gp
-     do iat=1,atoms%astruct%nat
-        do j=1,3
-           call frozen_alpha(atoms%astruct%ifrztyp(iat),j,A(i,j,iat),alphai)
-           mv=mv+alphai*x(j,iat)
-        end do
-     end do
-     z(i)=alpha*mv+beta*y(i)
-  end do
-
-END SUBROUTINE atomic_gemv
-
-
-!>  The function which controls all the moving positions
-function move_this_coordinate(ifrztyp,ixyz)
-  use module_base
-  implicit none
-  integer, intent(in) :: ixyz,ifrztyp
-  logical :: move_this_coordinate
-  
-  move_this_coordinate= &
-       ifrztyp == 0 .or. &
-       (ifrztyp == 2 .and. ixyz /=2) .or. &
-       (ifrztyp == 3 .and. ixyz ==2)
-       
-END FUNCTION move_this_coordinate
-
-
-!> rxyz=txyz+alpha*sxyz
-subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: ixyz,iat
-  real(gp), intent(in) :: t,alphas
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(out) :: r
-  !local variables
-  logical :: periodize
-  real(gp) :: alat,alphai
-
-  if (ixyz == 1) then
-     alat=atoms%astruct%cell_dim(1)
-  else if (ixyz == 2) then
-     alat=atoms%astruct%cell_dim(2)
-  else if (ixyz == 3) then
-     alat=atoms%astruct%cell_dim(3)
-  else
-     alat = -1
-     write(0,*) "Internal error"
-     stop
-  end if
-  
-  periodize= atoms%astruct%geocode == 'P' .or. &
-       (atoms%astruct%geocode == 'S' .and. ixyz /= 2)
-
-  call frozen_alpha(atoms%astruct%ifrztyp(iat),ixyz,alphas,alphai)
-
-  if (periodize) then
-     r=modulo(t+alphai,alat)
-  else
-     r=t+alphai
-  end if
-
-END SUBROUTINE atomic_coordinate_axpy
-
-
-!> Initialization of acceleration (OpenCL)
-subroutine init_material_acceleration(iproc,matacc,GPU)
-  use module_base
-  use module_types
-  use yaml_output
-  implicit none
-  integer, intent(in):: iproc
-  type(material_acceleration), intent(in) :: matacc
-  type(GPU_pointers), intent(out) :: GPU
-  !local variables
-  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
-
-  if (matacc%iacceleration == 1) then
-     call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
-     !initialize the id_proc per node
-     call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
-     call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
-     if (useGPU == 1) then
-        iconv = 1
-        iblas = 1
-     else
-        iconv = 0
-        iblas = 0
-     end if
-     if (initerror == 1) then
-        call yaml_warning('(iproc=' // trim(yaml_toa(iproc,fmt='(i0)')) // &
-        &    ') S_GPU library init failed, aborting...')
-        !write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
-        call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
-     end if
-
-     if (iconv == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUconv=.true.
-     end if
-     if (iblas == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUblas=.true.
-     end if
-
-     if (iproc == 0) then
-        call yaml_map('Material acceleration','CUDA',advance='no')
-        call yaml_comment('iproc=0')
-       ! write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
-    end if
-
-  else if (matacc%iacceleration >= 2) then
-     ! OpenCL convolutions are activated
-     ! use CUBLAS for the linear algebra for the moment
-     if (.not. OCLconv) then
-        call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
-        !initialize the id_proc per node
-        call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
-        !initialize the opencl context for any process in the node
-        !call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-        !do jproc=0,mproc-1
-        !   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-        !   if (iproc == jproc) then
-        !      print '(a,a,i4,i4)','Initializing for node: ',trim(nodename_local),iproc,GPU%id_proc
-        call init_acceleration_OCL(matacc,GPU)
-        !   end if
-        !end do
-        GPU%ndevices=min(GPU%ndevices,nproc_node)
-        if (iproc == 0) then
-           call yaml_map('Material acceleration','OpenCL',advance='no')
-           call yaml_comment('iproc=0')
-           call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
-           call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
-           call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
-           !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
-           !     min(GPU%ndevices,nproc_node),GPU%ndevices
-           call yaml_close_map()
-        end if
-        !the number of devices is the min between the number of processes per node
-        GPU%ndevices=min(GPU%ndevices,nproc_node)
-        OCLconv=.true.
-     end if
-
-  else
-     if (iproc == 0) then
-        call yaml_map('Material acceleration',.false.,advance='no')
-        call yaml_comment('iproc=0')
-        ! write(*,'(1x,a)') 'No material acceleration (iproc=0)'
-     end if
-  end if
-
-END SUBROUTINE init_material_acceleration
-
-
-subroutine release_material_acceleration(GPU)
-  use module_base
-  use module_types
-  implicit none
-  type(GPU_pointers), intent(out) :: GPU
-  
-  if (GPUconv) then
-     call sg_end()
-  end if
-
-  if (OCLconv) then
-     call release_acceleration_OCL(GPU)
-     OCLconv=.false.
-  end if
-
-END SUBROUTINE release_material_acceleration
-
-
-!> Give the number of MPI processes per node (nproc_node) and before iproc (iproc_node)
-subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  integer, intent(out) :: iproc_node,nproc_node
-  !local variables
-  character(len=*), parameter :: subname='processor_id_per_node'
-  integer :: ierr,namelen,i_stat,i_all,jproc
-  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
-  character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
-
-  if (nproc == 1) then
-     iproc_node=0
-     nproc_node=1
-  else
-     allocate(nodename(0:nproc-1+ndebug),stat=i_stat)
-     call memocc(i_stat,nodename,'nodename',subname)
-     
-     !initalise nodenames
-     do jproc=0,nproc-1
-        nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
-     end do
-
-     call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-
-     !gather the result between all the process
-     call MPI_ALLGATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-          nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-          bigdft_mpi%mpi_comm,ierr)
-
-     !found the processors which belong to the same node
-     !before the processor iproc
-     iproc_node=0
-     do jproc=0,iproc-1
-        if (trim(nodename(jproc)) == trim(nodename(iproc))) then
-           iproc_node=iproc_node+1
-        end if
-     end do
-     nproc_node=iproc_node
-     do jproc=iproc,nproc-1
-        if (trim(nodename(jproc)) == trim(nodename(iproc))) then
-           nproc_node=nproc_node+1
-        end if
-     end do
-     
-     i_all=-product(shape(nodename))*kind(nodename)
-     deallocate(nodename,stat=i_stat)
-     call memocc(i_stat,i_all,'nodename',subname)
-  end if
-END SUBROUTINE processor_id_per_node
-
-
-!> this routine does the same operations as
-!! read_atomic_file but uses inputs from memory
-!! as input positions instead of inputs from file
-!! Useful for QM/MM implementation of BigDFT-ART
-!! @author Written by Laurent K Beland 2011 UdeM
-subroutine initialize_atomic_file(iproc,atoms,rxyz)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => initialize_atomic_file
-  use m_ab6_symmetry
-  use yaml_output
-  implicit none
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
-  !local variables
-  character(len=*), parameter :: subname='initialize_atomic_file'
-  integer :: i_stat
-  integer :: iat,i,ierr
-
-  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
-
-  if (atoms%astruct%geocode=='S') then 
-        atoms%astruct%cell_dim(2)=0.0_gp
-  else if (atoms%astruct%geocode=='F') then !otherwise free bc    
-        atoms%astruct%cell_dim(1)=0.0_gp
-        atoms%astruct%cell_dim(2)=0.0_gp
-        atoms%astruct%cell_dim(3)=0.0_gp
-  else
-        atoms%astruct%cell_dim(1)=0.0_gp
-        atoms%astruct%cell_dim(2)=0.0_gp
-        atoms%astruct%cell_dim(3)=0.0_gp
-  end if
-
-  !reduced coordinates are possible only with periodic units
-  if (atoms%astruct%units == 'reduced' .and. atoms%astruct%geocode == 'F') then
-     if (iproc==0) write(*,'(1x,a)')&
-          'ERROR: Reduced coordinates are not allowed with isolated BC'
-  end if
-
-   !convert the values of the cell sizes in bohr
-  if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then
-     ! if Angstroem convert to Bohr
-     atoms%astruct%cell_dim(1)=atoms%astruct%cell_dim(1)/Bohr_Ang
-     atoms%astruct%cell_dim(2)=atoms%astruct%cell_dim(2)/Bohr_Ang
-     atoms%astruct%cell_dim(3)=atoms%astruct%cell_dim(3)/Bohr_Ang
-  else if (atoms%astruct%units == 'reduced') then
-     !assume that for reduced coordinates cell size is in bohr
-     atoms%astruct%cell_dim(1)=real(atoms%astruct%cell_dim(1),gp)
-     atoms%astruct%cell_dim(2)=real(atoms%astruct%cell_dim(2),gp)
-     atoms%astruct%cell_dim(3)=real(atoms%astruct%cell_dim(3),gp)
-  else
-     call yaml_warning('Length units in input file unrecognized')
-     call yaml_warning('recognized units are angstroem or atomic = bohr')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-  endif
-  
-  do iat=1,atoms%astruct%nat
-     !xyz input file, allow extra information
-     
-     if (atoms%astruct%units == 'reduced') then !add treatment for reduced coordinates
-        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
-        if (atoms%astruct%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
-        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
-     else if (atoms%astruct%geocode == 'P') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%astruct%cell_dim(1))
-        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%astruct%cell_dim(2))
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%astruct%cell_dim(3))
-     else if (atoms%astruct%geocode == 'S') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%astruct%cell_dim(1))
-        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%astruct%cell_dim(3))
-     end if
- 
-     if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then
-        ! if Angstroem convert to Bohr
-        do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/Bohr_Ang
-        enddo
-     else if (atoms%astruct%units == 'reduced') then 
-        rxyz(1,iat)=rxyz(1,iat)*atoms%astruct%cell_dim(1)
-        if (atoms%astruct%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*atoms%astruct%cell_dim(2)
-        rxyz(3,iat)=rxyz(3,iat)*atoms%astruct%cell_dim(3)
-     endif
-  enddo
-
-  !control atom positions
-  call check_atoms_positions(atoms,rxyz,(iproc == 0))
-
-  ! We delay the calculation of the symmetries.
-  atoms%astruct%sym%symObj = -1
-  nullify(atoms%astruct%sym%irrzon)
-  nullify(atoms%astruct%sym%phnons)
-
-END SUBROUTINE initialize_atomic_file
-
 subroutine dft_input_analyse(iproc, in, dict_dft)
   use module_base
   use module_types
@@ -2171,7 +731,7 @@ subroutine dft_input_analyse(iproc, in, dict_dft)
   type(input_variables), intent(inout) :: in
   type(dictionary), pointer :: dict_dft
 
-  !grid spacings
+  !grid spacings (here the profiles can be used is we already read PSPs)
   in%hx = dict_dft//HGRIDS//0
   in%hy = dict_dft//HGRIDS//1
   in%hz = dict_dft//HGRIDS//2
@@ -2248,8 +808,6 @@ subroutine dft_input_analyse(iproc, in, dict_dft)
   in%norbv = dict_dft//NORBV
   in%nvirt = dict_dft//NVIRT
   in%nplot = dict_dft//NPLOT
-!!$  call input_dict_var(in%nvirt, dict_dft//NVIRT, 0, ranges=(/0,abs(in%norbv)/))
-!!$  call input_dict_var(in%nplot, dict_dft//NPLOT, 0, ranges=(/0,abs(in%norbv)/))
 
   ! Line to disable automatic behaviours (currently only symmetries).
   in%disableSym = dict_dft//DISABLE_SYM
@@ -2478,7 +1036,6 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
 END SUBROUTINE kpt_input_analyse
 
-
 !> Read the input variables needed for the geometry optimisation
 !! Every argument should be considered as mandatory
 subroutine geopt_input_analyse(iproc,in,dict)
@@ -2623,12 +1180,6 @@ subroutine sic_input_analyse(iproc,in,dict,ixc_)
   if (input_keys_equal(trim(in%SIC%approach), "NK")) in%SIC%fref = dict // SIC_FREF
   in%SIC%ixc = ixc_
 
-!!$  call yaml_map('Error found',f_err_check())
-!!$  if (f_err_check()) then
-!!$     call f_dump_all_errors()
-!!$  end if
-!!$  stop
-
 END SUBROUTINE sic_input_analyse
 
 subroutine tddft_input_analyse(iproc,in,dict)
@@ -2665,7 +1216,7 @@ subroutine perf_input_analyse(iproc,in,dict)
   integer :: ierr,ipos,i,iproc_node,nproc_node
   character(len = 7) :: val
 
-  ! Performence and setting-up options
+  ! Performance and setting-up options
   ! ----------------------------------
   in%debug = dict // DEBUG
   if (.not. in%debug) then
@@ -2802,5 +1353,6 @@ subroutine perf_input_analyse(iproc,in,dict)
 
   in%check_sumrho = dict // CHECK_SUMRHO
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+  in%experimental_mode = dict//EXPERIMENTAL_MODE
 END SUBROUTINE perf_input_analyse
 

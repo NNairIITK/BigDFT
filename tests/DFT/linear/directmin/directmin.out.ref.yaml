@@ -25,24 +25,32 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-07-12 12:52:10.073
- Root process Hostname                 : moutarde
- Number of MPI tasks                   :  6
- OpenMP parallelization                :  No
- MPI tasks of root process node        :  6
+ Timestamp of this run                 : 2013-10-11 11:15:56.531
+ Root process Hostname                 : girofle
+ Number of MPI tasks                   :  3
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  3
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90'"
-   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Configure arguments:
+     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
+     p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
+     -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
+     -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
+     -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
+ 
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -g -O2
+     FCFLAGS                           : -O2 -openmp
      CXXFLAGS                          : -g -O2
  #... (file:input.perf)..................................................Performance Options
- #|debug T                      Debug option                                                 
+ #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
@@ -67,6 +75,7 @@
  #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
  #|store_index T                linear scaling: store indices or recalculate them            
  #|check_sumrho 2               linear sumrho: 0=no check, 1=light check, 2=full check       
+ #|experimental_mode F          linear scaling: activate the experimental mode               
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
@@ -125,7 +134,7 @@
  #|0              DIIS history for density mixing (low, high)                                
  #|1.d0     1     density mixing parameter (low, high)                                       
  #|1.d-7    1.d-  outer loop convergence (low, high)                                         
- #|4.d-5    4.d   basis convergence (low, high)                                              
+ #|4.d-5    4.d-5    1basis convergence (low, high) ; early stop TMB optimization (experiment
  #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
  #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
  #|1.d-3    1.d   kernel convergence (low, high) - directmin only                            
@@ -138,7 +147,7 @@
  #|5              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|2 T T          Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|2 T T F        Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
  #|F F F 2        fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|Be 4 2.0d-2 2.0d-2 0.0d-4 6.0 7.0 20.d0  Atom name, number of basis functions per atom, pr
  #|H  1 2.0d-2 2.0d-2 0.0d-4 6.0 7.0 20.d0 Atom name, number of basis functions per atom, pre
@@ -263,20 +272,21 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  2.06
-     Kernel (MB)                       :  2.04
+     Density (MB)                      :  4.12
+     Kernel (MB)                       :  4.17
      Full Grid Arrays (MB)             :  11.13
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  93%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  96%
        Kernel:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  94%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  97%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -289,13 +299,14 @@
  Total Number of Electrons             :  16
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 1                     :  2
-   MPI tasks  2- 5                     :  1
+   MPI tasks  0- 0                     :  3
+   MPI tasks  1- 1                     :  2
+   MPI tasks  2- 2                     :  3
  Total Number of Orbitals              :  8
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-8:  2.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 924 KB 368 B
+ Wavefunctions memory occupation for root MPI process:  1 MB 362 KB 552 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  16
@@ -305,17 +316,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 8)
    Single orbital                      : 0.463 #  (Number of Components: 59159)
-   All (distributed) orbitals          : 2.726 #  (Number of Orbitals per MPI task: 2)
-   Wavefunction storage size           : 20.781 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 4.64 #   (Number of Orbitals per MPI task: 3)
+   Wavefunction storage size           : 31.147 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.538
    Full Uncompressed (ISF) grid        : 11.130
    Workspaces storage size             : 0.1023
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 40.74
-   Density Construction                : 58.828
-   Poisson Solver                      : 48.119
-   Hamiltonian application             : 59.834
- Estimated Memory Peak (MB)            :  59
+   Kernel calculation                  : 80.148
+   Density Construction                : 77.490
+   Poisson Solver                      : 85.333
+   Hamiltonian application             : 78.496
+ Estimated Memory Peak (MB)            :  85
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -332,18 +343,24 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  0.000000000000000000E+00
+   calculation check, error sum        :  3.199697841946126540E-14
    Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  0.000000000000000000E+00
+   calculation check, error max        :  6.821210263296961784E-13
  Ion-Ion interaction energy            :  2.45197857631131E+01
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -15.999999146343
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
+   Total No. of Atomic Input Orbitals  :  24
+   Atomic Input Orbital Generation:
+   -  {Atom Type: Be, Electronic configuration: {s: [ 2.00], p: [ 0.00,  0.00,  0.00]}}
+   -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+   Wavelet conversion succeeded        :  Yes
+   Deviation from normalization        :  3.57E-02
    Total No. of Atomic Input Orbitals  :  24
    Atomic Input Orbital Generation:
    -  {Atom Type: Be, Electronic configuration: {s: [ 2.00], p: [ 0.00,  0.00,  0.00]}}
@@ -353,218 +370,377 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  97,  97,  155 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  3
    Poisson Solver:
      BC                                : Free
      Box                               :  [  97,  97,  155 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  3
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  10701,  847 ]
-   Tolerances for this check: [ 2.05200002739713838E-06,  5.32907051820075139E-15]
-   Maxdiff for transpose (checksum)    :  2.32830643653869629E-10
+   Number of coarse and fine DoF (MasterMPI task):  [  14804,  1281 ]
+   Tolerances for this check: [ 2.22657502972796462E-06,  5.32907051820075139E-15]
+   Maxdiff for transpose (checksum)    :  1.74622982740402222E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  10253,  759 ]
-   Tolerances for this check: [ 3.79747505070172908E-06,  5.32907051820075139E-15]
-   Maxdiff for transpose (checksum)    :  3.49245965480804443E-10
+   Number of coarse and fine DoF (MasterMPI task):  [  14750,  1219 ]
+   Tolerances for this check: [ 4.15180005543247521E-06,  5.32907051820075139E-15]
+   Maxdiff for transpose (checksum)    :  2.32830643653869629E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  DIIS weights: [ 1.00E+00,  1.00E+00]
  DIIS weights: [ 2.09E-01,  7.91E-01, -1.11E-02]
- DIIS weights: [-1.64E-02,  9.96E-02,  9.17E-01, -1.06E-03]
- DIIS weights: [-2.16E-02, -3.67E-02,  2.77E-01,  7.81E-01, -1.91E-04]
- DIIS weights: [-1.12E-02, -7.00E-03,  2.37E-01,  7.81E-01, -1.24E-04]
- DIIS weights: [ 2.43E-03,  2.78E-01,  1.20E+00, -4.77E-01, -1.17E-04]
+ DIIS weights: [-1.65E-02,  9.94E-02,  9.17E-01, -1.04E-03]
+ DIIS weights: [-2.19E-02, -3.88E-02,  2.71E-01,  7.90E-01, -1.56E-04]
+ DIIS weights: [-1.70E-02, -6.71E-02,  1.53E-01,  9.31E-01, -4.56E-05]
+ DIIS weights: [-3.07E-02, -1.06E-01,  3.85E-03,  1.13E+00, -2.16E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [ 3.04E-01,  1.22E+00, -5.35E-01,  1.18E-02, -1.12E-04]
- DIIS weights: [ 6.47E-01,  2.59E-01, -6.98E+00,  7.07E+00, -1.03E-04]
- DIIS weights: [ 8.19E-01, -1.04E+01,  1.00E+01,  5.82E-01, -1.09E-04]
- DIIS weights: [-2.76E+01,  2.41E+01,  1.37E+00,  3.18E+00, -9.43E-04]
- DIIS weights: [ 4.01E-01, -9.35E-02, -3.61E-01,  1.05E+00, -2.66E-04]
- DIIS weights: [ 1.45E+00, -1.60E+00,  3.92E-01,  7.55E-01, -1.77E-04]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -2.949928826299E-01, f:  2.0000},  # 00001
+ {e: -2.663591169884E-01, f:  2.0000},  # 00002
+ {e: -2.310501788015E-01, f:  2.0000},  # 00003
+ {e: -1.761610063880E-01, f:  2.0000},  # 00004
+ {e: -1.756087877959E-01, f:  2.0000},  # 00005
+ {e: -1.739961251627E-01, f:  2.0000},  # 00006
+ {e: -1.702441570569E-01, f:  2.0000},  # 00007
+ {e: -1.617862090664E-01, f:  2.0000}] # 00008
+ DIIS weights: [-8.83E-02, -5.37E-02,  1.14E+00, -6.05E-04, -2.28E-05]
+ DIIS weights: [ 5.96E-02,  9.38E-01,  7.45E-01, -7.43E-01, -2.42E-05]
+ DIIS weights: [ 1.01E+00,  1.88E+00,  1.00E+00, -2.89E+00, -2.17E-05]
+ DIIS weights: [ 2.52E+01, -1.30E+02,  1.59E+02, -5.35E+01, -5.87E-03]
+ DIIS weights: [-9.80E+00,  1.88E+01, -8.81E+00,  7.96E-01, -1.61E-03]
+ DIIS weights: [-3.16E+00,  3.18E+00,  1.97E-01,  7.89E-01, -8.38E-04]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [ 1.88E-01,  4.55E-01,  1.77E-01,  1.80E-01, -1.74E-04]
- DIIS weights: [ 4.94E-01,  5.83E-01,  4.31E-01, -5.08E-01, -2.09E-04]
- DIIS weights: [ 1.04E+00,  8.44E-01, -4.96E-01, -3.87E-01, -2.63E-04]
- DIIS weights: [ 1.65E+00,  3.65E+00, -5.04E+00,  7.36E-01, -1.31E-03]
- DIIS weights: [ 2.65E+00, -1.66E+00, -3.75E-01,  3.82E-01, -1.29E-03]
- DIIS weights: [ 1.15E+00, -1.14E+00,  2.32E+00, -1.33E+00, -1.20E-03]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -2.949928826299E-01, f:  2.0000},  # 00001
+ {e: -2.663591169884E-01, f:  2.0000},  # 00002
+ {e: -2.310501788015E-01, f:  2.0000},  # 00003
+ {e: -1.761610063880E-01, f:  2.0000},  # 00004
+ {e: -1.756087877959E-01, f:  2.0000},  # 00005
+ {e: -1.739961251627E-01, f:  2.0000},  # 00006
+ {e: -1.702441570569E-01, f:  2.0000},  # 00007
+ {e: -1.617862090664E-01, f:  2.0000}] # 00008
+ DIIS weights: [ 2.86E-01, -3.85E-02,  4.37E-01,  3.15E-01, -6.80E-04]
+ DIIS weights: [ 7.57E-02,  4.30E-01, -1.23E+00,  1.72E+00, -4.53E-04]
+ DIIS weights: [ 2.52E-01, -1.04E+00,  6.37E-01,  1.15E+00, -2.20E-04]
+ DIIS weights: [ 3.50E-01, -1.07E+00, -7.37E-02,  1.80E+00, -4.89E-05]
+ DIIS weights: [-4.76E-02, -6.41E-02,  2.77E-01,  8.35E-01, -1.50E-05]
+ DIIS weights: [ 5.39E-03, -1.52E-02,  2.61E-01,  7.49E-01, -8.82E-06]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [ 5.19E-01,  1.81E+00, -1.85E+00,  5.23E-01, -6.26E-04]
- DIIS weights: [ 6.96E-01, -2.17E-01, -4.45E-01,  9.66E-01, -4.55E-04]
- DIIS weights: [ 4.17E-01, -4.83E-01,  1.30E+00, -2.38E-01, -4.97E-04]
- DIIS weights: [-5.30E-01,  1.87E+00, -2.54E+00,  2.20E+00, -6.03E-04]
- DIIS weights: [ 1.14E+00, -2.08E+00,  1.14E+00,  7.96E-01, -2.99E-04]
- DIIS weights: [ 1.24E+00, -1.46E+00, -2.32E-01,  1.46E+00, -2.63E-04]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -2.949928826299E-01, f:  2.0000},  # 00001
+ {e: -2.663591169884E-01, f:  2.0000},  # 00002
+ {e: -2.310501788015E-01, f:  2.0000},  # 00003
+ {e: -1.761610063880E-01, f:  2.0000},  # 00004
+ {e: -1.756087877959E-01, f:  2.0000},  # 00005
+ {e: -1.739961251627E-01, f:  2.0000},  # 00006
+ {e: -1.702441570569E-01, f:  2.0000},  # 00007
+ {e: -1.617862090664E-01, f:  2.0000}] # 00008
+ DIIS weights: [-1.19E-03,  2.67E-01,  7.34E-01,  7.80E-04, -8.82E-06]
+ DIIS weights: [ 2.74E-01,  7.29E-01,  5.42E+00, -5.42E+00, -8.70E-06]
+ DIIS weights: [ 9.80E-01, -6.66E+00,  9.55E+00, -2.87E+00, -9.70E-06]
+ DIIS weights: [-5.97E+02,  7.28E+02, -1.28E+02, -1.72E+00, -5.72E-04]
+ DIIS weights: [ 1.80E+00, -3.51E+00,  1.78E+00,  9.23E-01, -6.19E-05]
+ DIIS weights: [-2.90E-01,  3.02E-01, -3.73E-02,  1.03E+00, -3.51E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [-2.48E-01,  2.43E-01,  1.10E+00, -9.06E-02, -3.60E-04]
- DIIS weights: [ 7.40E-02,  8.76E-01,  4.32E-01, -3.81E-01, -3.81E-04]
- DIIS weights: [ 9.80E-01,  3.75E-01, -1.23E-01, -2.32E-01, -3.80E-04]
- DIIS weights: [ 5.66E+00, -1.14E+01, -2.93E+00,  9.70E+00, -1.46E-03]
- DIIS weights: [ 1.51E-01, -6.47E+00,  6.13E+00,  1.19E+00, -1.08E-03]
- DIIS weights: [-6.03E+00,  5.87E+00,  1.10E+00,  6.92E-02, -1.08E-03]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -2.949928826299E-01, f:  2.0000},  # 00001
+ {e: -2.663591169884E-01, f:  2.0000},  # 00002
+ {e: -2.310501788015E-01, f:  2.0000},  # 00003
+ {e: -1.761610063880E-01, f:  2.0000},  # 00004
+ {e: -1.756087877959E-01, f:  2.0000},  # 00005
+ {e: -1.739961251627E-01, f:  2.0000},  # 00006
+ {e: -1.702441570569E-01, f:  2.0000},  # 00007
+ {e: -1.617862090664E-01, f:  2.0000}] # 00008
+ DIIS weights: [ 3.63E-02, -8.04E-02,  1.01E+00,  3.53E-02, -3.40E-05]
+ DIIS weights: [-1.13E-01,  1.02E+00, -2.67E+00,  2.76E+00, -3.05E-05]
+ DIIS weights: [ 8.96E-01, -1.80E+00,  1.08E+00,  8.19E-01, -3.00E-05]
+ DIIS weights: [-4.59E+00, -6.50E+00,  3.93E+00,  8.16E+00, -3.67E-04]
+ DIIS weights: [-2.83E-01, -1.08E+00,  1.43E+00,  9.37E-01, -1.50E-05]
+ DIIS weights: [-3.97E-01,  4.10E-01,  2.51E-01,  7.37E-01, -8.00E-06]
  DIIS weights: [ 1.00E+00,  1.00E+00]
- DIIS weights: [ 1.40E-02,  9.86E-01, -6.31E-04]
- DIIS weights: [-6.38E-02,  2.45E-01,  8.19E-01, -2.07E-04]
- DIIS weights: [-1.44E-02, -2.77E-01,  1.29E-01,  1.16E+00, -7.03E-05]
- DIIS weights: [-1.80E-01, -2.05E-01,  4.27E-01,  9.58E-01, -2.08E-05]
- DIIS weights: [-4.29E-02, -1.34E-01,  6.57E-02,  1.11E+00, -8.72E-06]
+ DIIS weights: [ 3.44E-02,  9.66E-01, -3.71E-04]
+ DIIS weights: [-4.33E-02,  2.82E-01,  7.62E-01, -7.13E-05]
+ DIIS weights: [-1.31E-02, -1.27E-01,  1.24E-01,  1.02E+00, -1.77E-05]
+ DIIS weights: [-1.20E-01, -1.49E-01,  3.68E-01,  9.01E-01, -1.98E-06]
+ DIIS weights: [-2.73E-02, -5.62E-02,  1.23E-01,  9.61E-01, -4.62E-07]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [-1.48E-01, -8.81E-03,  1.16E+00, -5.60E-04, -8.96E-06]
- DIIS weights: [-3.96E-02,  1.04E+00,  2.08E-01, -2.07E-01, -1.05E-05]
- DIIS weights: [ 1.00E+00,  8.98E-01,  2.54E-03, -9.01E-01, -9.59E-06]
- DIIS weights: [ 3.33E+02, -3.37E+02,  1.43E+02, -1.39E+02, -2.28E-02]
- DIIS weights: [ 2.07E+00, -8.29E+00,  6.36E+00,  8.61E-01, -3.40E-03]
- DIIS weights: [-1.23E+01,  1.23E+01,  3.83E-01,  5.91E-01, -3.55E-04]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [-5.79E-02,  6.91E-02,  9.89E-01, -5.10E-04, -5.19E-07]
+ DIIS weights: [ 6.69E-02,  9.34E-01, -5.43E-01,  5.42E-01, -5.88E-07]
+ DIIS weights: [ 1.00E+00, -4.89E-01,  6.83E-01, -1.94E-01, -6.18E-07]
+ DIIS weights: [ 6.08E+02, -3.43E+02, -3.16E+02,  5.21E+01, -1.73E-02]
+ DIIS weights: [-1.97E+02,  4.10E+02, -2.13E+02,  1.02E+00, -4.67E-04]
+ DIIS weights: [-8.10E-01,  7.95E-01,  7.17E-02,  9.43E-01, -8.87E-05]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [ 2.79E-01,  6.40E-02,  1.47E-01,  5.10E-01, -1.93E-04]
- DIIS weights: [ 9.91E-02,  1.62E-01, -7.39E-01,  1.48E+00, -1.26E-04]
- DIIS weights: [ 2.15E-02, -6.16E-01,  8.21E-01,  7.74E-01, -3.82E-05]
- DIIS weights: [ 2.82E-01, -4.96E-01, -2.69E-01,  1.48E+00, -1.53E-05]
- DIIS weights: [ 4.62E-02, -6.34E-02, -3.38E-01,  1.35E+00, -7.31E-06]
- DIIS weights: [ 3.71E-02, -5.90E-01,  5.40E-01,  1.01E+00, -2.28E-06]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [ 1.26E-01,  2.67E-02,  5.98E-01,  2.49E-01, -3.66E-05]
+ DIIS weights: [ 4.40E-02,  6.07E-01, -9.25E-01,  1.27E+00, -5.94E-05]
+ DIIS weights: [ 2.62E-01, -1.57E+00,  7.63E-01,  1.54E+00, -1.59E-05]
+ DIIS weights: [-1.25E-01, -5.48E-01,  2.57E-01,  1.42E+00, -5.97E-06]
+ DIIS weights: [-1.50E-01,  3.79E-03,  4.29E-01,  7.18E-01, -8.55E-07]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [-6.81E-01,  6.80E-01,  1.02E+00, -2.41E-02, -1.78E-06]
- DIIS weights: [ 2.62E-01,  7.54E-01, -7.76E-01,  7.60E-01, -4.30E-06]
- DIIS weights: [ 9.79E-01,  8.98E-01, -5.14E-01, -3.62E-01, -4.49E-06]
- DIIS weights: [ 2.99E+01, -2.37E+01, -1.39E+01,  8.74E+00, -5.89E-05]
- DIIS weights: [-8.04E-01, -1.89E+00,  2.80E+00,  8.89E-01, -2.94E-05]
- DIIS weights: [-1.49E+00,  1.54E+00,  4.33E-01,  5.16E-01, -3.77E-06]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [-4.60E-02,  2.83E-01,  6.91E-01,  7.18E-02, -7.33E-07]
+ DIIS weights: [ 1.97E-01,  6.15E-01, -1.23E+00,  1.41E+00, -4.96E-07]
+ DIIS weights: [ 7.45E-01, -1.24E+00,  2.12E-01,  1.28E+00, -8.40E-07]
+ DIIS weights: [-2.69E+00, -6.35E-01,  8.65E-01,  3.46E+00, -6.16E-06]
+ DIIS weights: [-7.49E-01, -1.18E+00,  2.22E+00,  7.12E-01, -6.94E-07]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [ 1.73E-01,  2.51E-01,  2.81E-01,  2.96E-01, -1.78E-06]
- DIIS weights: [ 2.38E-01,  2.42E-01, -1.24E+00,  1.76E+00, -1.35E-06]
- DIIS weights: [ 7.63E-02, -1.31E+00,  1.04E+00,  1.19E+00, -1.23E-06]
- DIIS weights: [-5.56E-01,  3.56E-01,  5.23E-01,  6.77E-01, -7.64E-07]
- DIIS weights: [-4.26E-02,  2.53E-02,  2.21E-01,  7.97E-01, -4.39E-07]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [-1.63E+00,  1.87E+00,  6.41E-01,  1.19E-01, -5.51E-07]
+ DIIS weights: [ 1.19E-01,  5.17E-01, -1.44E+00,  1.80E+00, -4.57E-07]
+ DIIS weights: [ 4.56E-01, -1.89E+00,  1.37E+00,  1.06E+00, -2.63E-07]
+ DIIS weights: [-6.93E-01, -1.83E-01, -7.03E-03,  1.88E+00, -2.90E-07]
+ DIIS weights: [-2.13E-01, -1.38E-01,  6.03E-01,  7.47E-01, -3.85E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [ 1.39E-01,  1.41E-01,  5.89E-01,  1.30E-01, -3.44E-07]
- DIIS weights: [ 2.82E-01,  4.27E-01, -1.66E+00,  1.95E+00, -2.80E-07]
- DIIS weights: [ 4.01E-01, -2.39E+00,  1.69E+00,  1.30E+00, -1.58E-07]
- DIIS weights: [-1.60E+00,  5.68E-01,  9.37E-01,  1.10E+00, -1.05E-07]
- DIIS weights: [-3.19E-01,  1.43E-01,  4.34E-01,  7.42E-01, -2.14E-08]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [-2.04E-01,  3.28E-01,  8.45E-01,  3.13E-02, -5.39E-08]
+ DIIS weights: [ 8.05E-02,  8.06E-01, -1.52E+00,  1.63E+00, -3.96E-08]
+ DIIS weights: [ 8.19E-01, -2.55E+00,  1.57E+00,  1.16E+00, -2.39E-08]
+ DIIS weights: [-5.45E+00,  8.96E-01,  4.70E-01,  5.09E+00, -1.71E-07]
+ DIIS weights: [-8.06E-01, -5.63E-01,  1.56E+00,  8.08E-01, -4.51E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
  DIIS weights: [ 1.00E+00,  1.00E+00]
- DIIS weights: [ 1.66E-01,  8.34E-01, -2.44E-05]
- DIIS weights: [-1.95E-01,  3.85E-02,  1.16E+00, -3.12E-06]
- DIIS weights: [-9.49E-02, -9.32E-02,  4.35E-01,  7.53E-01, -3.73E-07]
+ DIIS weights: [ 2.44E-01,  7.56E-01, -1.13E-05]
+ DIIS weights: [-9.51E-02,  5.64E-02,  1.04E+00, -2.01E-06]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [-1.15E-01,  1.46E-01,  8.65E-01,  1.04E-01, -7.90E-07]
- DIIS weights: [-7.27E-02,  8.32E-01, -2.13E+00,  2.37E+00, -5.61E-07]
- DIIS weights: [ 6.61E-01, -2.00E+00,  1.58E+00,  7.59E-01, -4.93E-07]
- DIIS weights: [-1.73E+00, -2.01E-01, -6.85E-01,  3.62E+00, -5.42E-07]
- DIIS weights: [-1.08E-01, -1.25E-01,  2.32E-01,  1.00E+00, -1.14E-07]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [-8.97E-02,  1.21E-02,  9.91E-01,  8.72E-02, -1.94E-06]
+ DIIS weights: [-7.67E-02,  2.13E-01, -7.13E+00,  7.99E+00, -8.21E-07]
+ DIIS weights: [-6.53E-02, -2.12E+00,  2.11E+00,  1.07E+00, -1.74E-07]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [-8.37E-03,  3.70E-02,  8.30E-01,  1.42E-01, -8.80E-08]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [-1.15E+00,  1.16E+00,  8.00E-01,  1.86E-01, -1.39E-07]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [ 1.01E-01,  1.17E-01, -1.72E+00,  2.50E+00, -2.22E-08]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [-2.62E-02,  6.49E-02, -1.05E+00,  2.01E+00, -3.01E-08]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [-2.93E-02, -7.30E-01,  8.10E-01,  9.49E-01, -5.05E-09]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [-1.14E-01, -4.19E-01,  6.79E-01,  8.55E-01, -5.04E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
- DIIS weights: [-2.01E-01,  2.28E-01,  3.65E-01,  6.08E-01, -1.14E-09]
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
+ DIIS weights: [ 2.09E-01, -2.65E-01,  1.60E-01,  8.96E-01, -1.63E-09]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -5.000000000000E-01, f:  2.0000},  # 00001
+ {e: -5.000000000000E-01, f:  2.0000},  # 00002
+ {e: -5.000000000000E-01, f:  2.0000},  # 00003
+ {e: -5.000000000000E-01, f:  2.0000},  # 00004
+ {e: -5.000000000000E-01, f:  2.0000},  # 00005
+ {e: -5.000000000000E-01, f:  2.0000},  # 00006
+ {e: -5.000000000000E-01, f:  2.0000},  # 00007
+ {e: -5.000000000000E-01, f:  2.0000}] # 00008
  Write wavefunctions to file           : ./data/minBasis.*
  Wavefunction written No.              :  2
  Wavefunction written No.              :  3
  Wavefunction written No.              :  4
+ Wavefunction written No.              :  5
+ Wavefunction written No.              :  8
+ Wavefunction written No.              :  7
  Wavefunction written No.              :  1
+ Wavefunction written No.              :  6
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  4.400E-02,  4.300E-02 ]}
+ -  {Process:  0, Timing:  [  5.720E-01,  3.751E-01 ]}
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  97,  97,  155 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Electric Dipole Moment (AU):
-   P vector                            :  [ -1.2576E-01,  5.1489E-02,  6.1286E-02 ]
-   norm(P)                             :  1.490737E-01
+   P vector                            :  [ -1.0109E-01,  1.7485E-02,  5.6326E-02 ]
+   norm(P)                             :  1.170329E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -3.1965E-01,  1.3087E-01,  1.5577E-01 ]
-   norm(P)                             :  3.789074E-01
+   P vector                            :  [ -2.5694E-01,  4.4442E-02,  1.4317E-01 ]
+   norm(P)                             :  2.974679E-01
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  2.39079372E-04, y:  8.30752011E-04, z:  7.10275189E-05, 
-                    total:  8.67382706E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.434214130401E-02, fnrm2:  2.468147594682E-03}
- Raw forces norm (Ha/Bohr): {maxval:  3.424883380456E-02, fnrm2:  2.475490556482E-03}
+ Average noise forces: {x: -2.16623077E-03, y:  4.18962845E-03, z:  1.51836784E-04, 
+                    total:  4.71896140E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.441152839055E-02, fnrm2:  2.410210692245E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  3.496087047821E-02, fnrm2:  2.440195336774E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Be: [ 9.102838717633E-03, -3.061748413484E-03, -2.731822873627E-02]} # 0001
- -  {Be: [-5.101852188044E-05,  2.142667887655E-03, -8.479742725327E-03]} # 0002
- -  {Be: [-4.934398519456E-04,  3.922516662848E-04,  1.235668125348E-02]} # 0003
- -  {Be: [ 1.798905634464E-04, -5.699551347847E-04, -1.606800376530E-03]} # 0004
- -  {H: [-5.883251062416E-03, -2.844965338766E-03,  1.802255901057E-04]} # 0005
- -  {H: [-6.910516983918E-03,  3.527349497044E-04,  3.363782101170E-02]} # 0006
- -  {H: [-7.554399833423E-04,  6.826491778125E-04, -2.086747939518E-03]} # 0007
- -  {H: [ 7.499130975280E-04, -4.411575927155E-04, -6.835530613192E-04]} # 0008
- -  {H: [ 4.594392054830E-03,  3.692005953798E-03,  1.445084577505E-03]} # 0009
- -  {H: [ 3.909641056057E-03,  3.043273325155E-03, -1.964690336994E-03]} # 0010
- -  {H: [-5.229927442650E-03, -2.466520051328E-03,  2.418058744001E-03]} # 0011
- -  {H: [ 7.869183566578E-04, -9.212364293316E-04, -7.898108000831E-03]} # 0012
+ -  {Be: [ 8.381871455389E-03, -2.125958522489E-03, -2.757851625602E-02]} # 0001
+ -  {Be: [ 2.496264804158E-04,  1.621068149411E-03, -6.989858601930E-03]} # 0002
+ -  {Be: [-1.927339237118E-04, -2.402046105418E-05,  1.129761325883E-02]} # 0003
+ -  {Be: [-6.602789252545E-05, -1.944019768302E-04, -1.559051712518E-03]} # 0004
+ -  {H: [-5.125617104354E-03, -3.158583820590E-03,  1.493279176853E-04]} # 0005
+ -  {H: [-7.800894796882E-03,  1.634491804492E-03,  3.347577875244E-02]} # 0006
+ -  {H: [-3.681404633037E-04,  2.313548735579E-04, -8.268734242030E-04]} # 0007
+ -  {H: [ 1.429689335207E-03, -1.557855118004E-03, -1.177017951754E-03]} # 0008
+ -  {H: [ 4.531105526127E-03,  3.676216443931E-03,  1.269285295776E-03]} # 0009
+ -  {H: [ 3.906046937988E-03,  2.412440802402E-03, -2.159788658826E-03]} # 0010
+ -  {H: [-5.087129815202E-03, -2.548522499632E-03,  2.284466003924E-03]} # 0011
+ -  {H: [ 1.422042608512E-04,  3.377032480687E-05, -8.185364623410E-03]} # 0012
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  30.75
-   Elapsed time (s)                    :  30.89
+   CPU time (s)                        :  74.26
+   Elapsed time (s)                    :  38.91
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-07-12 12:52:10.071
+     2013-10-11 11:15:56.530
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  17811
-   Tot. No. of Deallocations           :  17811
+   Tot. No. of Allocations             :  29811
+   Tot. No. of Deallocations           :  29811
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  205
+     Peak Value (MB)                   :  352
      for the array                     : psirtwork
      in the routine                    : comm_basis_for_dens_coll

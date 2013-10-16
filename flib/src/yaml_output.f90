@@ -79,23 +79,71 @@ module yaml_output
   !> Generic routine to create a yaml map as foo: 1
   !! as call yaml_map('foo',1)
   !! @ingroup FLIB_YAML
-  !! @param mapname  Key of the map i.e. 'foo'
-  !! @param mapvalue Value of the map i.e. 1
-  !! @param label    (optional) Label (&xxx) to refer to the map
-  !! @param advance  (optional) Advance or not to the line
-  !! @param unit     (optional) Unit of the stream
+  !! @param mapname  @copydoc doc::mapname
+  !! @param mapvalue @copydoc doc::mapvalue
+  !! @param label    (optional) @copydoc doc::label
+  !! @param advance  (optional) @copydoc doc::advance
+  !! @param unit     (optional) @copydoc doc::unit
   !! @param fmt      (optional) format for the value
   interface yaml_map
      module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
   end interface
 
-  !! Public routines (API of the module)
+ 
+  !!here starts the documentation of the code
+  !> fake structure needed to document common arguments of the module
+  !! @param
+  type, private :: doc
+     integer:: unit !< unit of the yaml_stream to be used for output. 
+                    !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
+     character(len=1) :: mapname !<key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
+     logical :: flow !< logical variable controlling the flow of the output. Default is .false..
+                     !! When .true., the output is written in compact yaml flow style. See yaml specifications in
+                     !! http://www.yaml.org/spec/1.2/spec.html#id2759963 . Of course also nested field inside will be written
+                     !! in compact flow style, until the mapping or sequencing is closed.
+     character(len=1) :: label !< define a anchor of the mapping, which can be used to deepcopy its value in another mapping
+     !! see http://www.yaml.org/spec/1.2/spec.html#id2760395.
+
+     !> define whether the i/o should be advancing (advance='yes') or not (advance='no').
+     !! if the mapping (in the case of @link yaml_open_map @endlink) or sequencing @link yaml_open_sequence @endlink)
+     !!has been opened with the value of flow  = .true.
+     !! (or if the flow has been opened at a upper level) the output is always non-advancing
+     !! (See @link yaml_newline @endlink for add a line in a output of a flow mapping).
+     !! Otherwise, if absent, the output is always advancing.
+     !! non-advancing i/o is useful for example when one wants to leave a comment after the end of a mapping.
+     character(len=1) :: advance 
+     character(len=1) :: tag !< tag description. Unused and should be probably removed
+     !> scalar value of the mapping may be of any scalar type
+     !! it is internally converted to character with the usage of @link yaml_toa @endlink function
+     character(len=1) :: mapvalue           
+  end type doc
+
+
+  !> @addtogroup FLIB_YAML
+  !!@{ Public routines (API of the module)
+  !! Here follows the routines which are important for the usage of the yaml_output module
+  !! which is a part of flib library.
+  !! By clicking the links below you should be redirected to the documentation of the important routines
+  !!@endlink, @link yaml_new_document @endlink, @link yaml_release_document
+  !!@endlink, @link yaml_map @endlink, @link yaml_open_map @endlink, @link yaml_close_map
+  !!@endlink, @link yaml_sequence @endlink, @link yaml_open_sequence @endlink, @link yaml_close_sequence
+  !!@endlink, @link yaml_comment @endlink, @link yaml_warning @endlink, @link yaml_scalar @endlink, @link yaml_newline
+  !!@endlink, @link yaml_toa @endlink, @link yaml_date_and_time_toa @endlink, @link yaml_date_toa @endlink, @link yaml_time_toa
+  !!@endlink, there is also yaml_set_stream routine, @link yaml_set_default_stream @endlink, @link yaml_close_stream @endlink, @link yaml_swap_stream
+  !!@endlink, @link yaml_get_default_stream @endlink, @link yaml_stream_attributes @endlink, @link yaml_close_all_streams
+  !!@endlink, @link yaml_dict_dump @endlink, @link yaml_dict_dump_all @endlink
+  !! @} 
+
+ 
+  
+  !all the public routines below should be documented
   public :: yaml_new_document,yaml_release_document
   public :: yaml_map,yaml_open_map,yaml_close_map
   public :: yaml_sequence,yaml_open_sequence,yaml_close_sequence
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
   public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
-  public :: yaml_set_stream,yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
+  public :: yaml_set_stream
+  public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
 
@@ -202,15 +250,15 @@ contains
 
 
   !> Set all the output from now on to the file indicated by stdout
-  !! therefore the default stream is now the one indicated by @unit
+  !! therefore the default stream is now the one indicated by unit
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position)
     implicit none
     integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
                                                        !! is not 6 and it has already been opened by the processor
     integer, optional, intent(in) :: tabbing           !< Indicate a tabbing for the stream (0 no tabbing, default)
-    integer, optional, intent(in) :: record_length     !< Maximum length of a record
+    integer, optional, intent(in) :: record_length     !< Maximum number of columns of the stream (default @link yaml_stream::tot_max_record_length @endlink)
     character(len=*), optional, intent(in) :: filename !< Filename of the stream
-    character(len=*), optional, intent(in) :: position !< specifier of the position while opening the unit
+    character(len=*), optional, intent(in) :: position !< specifier of the position while opening the unit (all fortran values of position specifier in open statement are valid)
     integer, optional, intent(out) :: istat            !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
                                                        !! it is up the the user to deal with error signals sent by istat
 
@@ -399,10 +447,9 @@ contains
   !! Put document_closed to .false.
   !! Check if already used before yaml_release_document by testing document_closed
   !! In this case, do nothing
-  !! @ingroup FLIB_YAML
   subroutine yaml_new_document(unit)
     implicit none
-    integer, optional, intent(in) :: unit !< Unit of the stream
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
     !local variables
     integer :: unt,strm
 
@@ -424,11 +471,13 @@ contains
   end subroutine yaml_new_document
 
 
-  !> After this routine is called, the new_document will become effective again
+  !> Release the document. if a new_document is opened, the sympol of START_DOCUMENT "---"
+  !! will be displayed on the corresponding unit
+  !! After this routine is called, the new_document will become effective again
   !! @ingroup FLIB_YAML
   subroutine yaml_release_document(unit)
     implicit none
-    integer, optional, intent(in) :: unit  !< Stream Identity number
+    integer, optional, intent(in) :: unit  !< @copydoc doc::unit
     !local variables
     integer :: unt,strm,unit_prev
 
@@ -456,7 +505,7 @@ contains
   subroutine yaml_close_stream(unit,istat)
     implicit none
     integer, optional, intent(in) :: unit
-    integer, optional, intent(out) :: istat
+    integer, optional, intent(out) :: istat !<error code, zero if suceeded
     !local variables
     integer :: unt,istatus,strm
 
@@ -507,7 +556,8 @@ contains
     
   end subroutine yaml_close_stream
 
-  !> Close all the streams
+  !> Close all the streams of all opened units
+  !! The module will come back to its initial status
   subroutine yaml_close_all_streams()
     implicit none
 
@@ -530,7 +580,7 @@ contains
   !> Display a warning (yaml comment starting with '\#WARNING: ')
   subroutine yaml_warning(message,level,unit)
     implicit none
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
     character(len=*), intent(in) :: message
     integer, optional, intent(in) :: level
     !local variables
@@ -575,8 +625,8 @@ contains
   subroutine yaml_comment(message,advance,unit,hfill,tabbing)
     implicit none
     character(len=*), intent(in) :: message           !< The given comment (without #)
-    character(len=*), optional, intent(in) :: advance !< Advance or not
-    integer, optional, intent(in) :: unit             !< Unit of the stream (by default unit=0)
+    character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
+    integer, optional, intent(in) :: unit             !< @copydoc doc::unit
     character(len=1), optional, intent(in) :: hfill   !< If present fill the line with the given character
     integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
     !Local variables
@@ -683,15 +733,19 @@ contains
   end subroutine yaml_scalar
 
 
-  !> Open a yaml map (dictionary)
+  !> Opens a yaml mapping field.
+  !! Essentially, a mapping field can be thought as a dictionary of mappings.
+  !! See yaml spec at <a href="http://www.yaml.org/spec/1.2/spec.html#id2760395"> this page </a>
+  !! Therefore the yaml_open_map routine is necessary each time that
+  !! the value of a map is another map. See also @link yaml_map @endlink and @link yaml_close_map @endlink routines
   !! @ingroup FLIB_YAML
   subroutine yaml_open_map(mapname,label,tag,flow,unit)
     implicit none
-    integer, optional, intent(in) :: unit
-    character(len=*), optional, intent(in) :: mapname
-    logical, optional, intent(in) :: flow
-    character(len=*), optional, intent(in) :: label
-    character(len=*), optional, intent(in) :: tag
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
+    character(len=*), optional, intent(in) :: mapname !< @copydoc doc::mapname
+    logical, optional, intent(in) :: flow !< @copydoc doc::flow
+    character(len=*), optional, intent(in) :: label !< @copydoc doc::label
+    character(len=*), optional, intent(in) :: tag !< @copydoc doc::tag
     !local variables
     logical :: doflow
     integer :: msg_lgt
@@ -738,12 +792,12 @@ contains
   end subroutine yaml_open_map
 
 
-  !> Close the map
+  !> Close the mapping. The mapping should have been previously opened by @link yaml_open_map @endlink
   !! @ingroup FLIB_YAML
   subroutine yaml_close_map(advance,unit)
     implicit none
-    integer, optional, intent(in) :: unit
-    character(len=*), optional, intent(in) :: advance
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
+    character(len=*), optional, intent(in) :: advance !<@copydoc doc::advance
     !local variables
     integer :: unt,strm
     character(len=3) :: adv
@@ -772,13 +826,12 @@ contains
   subroutine yaml_open_sequence(mapname,label,tag,flow,advance,unit)
     use yaml_strings
     implicit none
-    character(len=*), optional, intent(in) :: mapname !< Key of the sequence
-    character(len=*), optional, intent(in) :: label   !< Add a label to be referenced as &xxx
-    character(len=*), optional, intent(in) :: tag     !< Add a tag to be referenced as !xxx
-    logical, optional, intent(in) :: flow             !< .true.  Add [ and represent the sequence as a stream
-                                                      !! .false. Add a flow level (go to the line and indent)
-    character(len=*), optional, intent(in) :: advance !< Same option as write
-    integer, optional, intent(in) :: unit             !< File unit
+    character(len=*), optional, intent(in) :: mapname !< Key of the sequence. @copydoc doc::mapname
+    character(len=*), optional, intent(in) :: label   !< @copydoc doc::label
+    character(len=*), optional, intent(in) :: tag     !< @copydoc doc::tag
+    logical, optional, intent(in) :: flow             !< @copydoc doc::flow
+    character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
+    integer, optional, intent(in) :: unit             !< @copydoc doc::unit
     !local variables
     logical :: doflow
     integer :: msg_lgt
@@ -857,9 +910,10 @@ contains
 
   !> Add a new line in the flow
   !! This routine has a effect only if a flow writing is active
+  !! Otherwise its effect is ignored
   subroutine yaml_newline(unit)
     implicit none
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit !< @copydoc doc::unit
     !local variables
     integer :: unt,strm
 
@@ -905,15 +959,16 @@ contains
   end subroutine yaml_sequence
 
 
-  !> Create a yaml map
+  !> Create a yaml map with a scalar value
   subroutine yaml_map(mapname,mapvalue,label,tag,advance,unit)
     implicit none
-    character(len=*), intent(in) :: mapname             !< key
-    character(len=*), intent(in) :: mapvalue            !< value
-    character(len=*), optional, intent(in) :: label     !< label for reference (&xxx)
-    character(len=*), optional, intent(in) :: tag       !< tag for tagging (!xxx)
-    character(len=*), optional, intent(in) :: advance   !< advance or not
-    integer, optional, intent(in) :: unit               !< unit of the stream
+    character(len=*), intent(in) :: mapname             !< @copydoc doc::mapname
+    character(len=*), intent(in) :: mapvalue            !< scalar value of the mapping may be of any scalar type
+                                                        !! it is internally converted to character with the usage of @link yaml_toa @endlink function
+    character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
+    character(len=*), optional, intent(in) :: tag       !< @copydoc doc::tag
+    character(len=*), optional, intent(in) :: advance   !< @copydoc doc::advance
+    integer, optional, intent(in) :: unit               !< @copydoc doc::unit
     !local variables
     logical :: cut,redo_line
     integer :: msg_lgt,strm,unt,icut,istr,ierr,msg_lgt_ck,idbg

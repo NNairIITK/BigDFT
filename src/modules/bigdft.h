@@ -18,6 +18,7 @@ G_BEGIN_DECLS
 /*****************************************************/
 /* Basics definitions with possibly no GLib support. */
 /*****************************************************/
+void bigdft_init_f_lib();
 int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
                 guint mpi_groupsize);
 int bigdft_mpi_set_distribution(guint *mpi_iproc, guint *mpi_nproc,

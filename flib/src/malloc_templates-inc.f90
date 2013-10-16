@@ -85,25 +85,7 @@ subroutine i4_all_free(array)
   include 'deallocate-inc.f90' 
 end subroutine i4_all_free
 
-subroutine c1_all(array,m)
-  use metadata_interfaces, metadata_address => getc1
-  implicit none
-  type(malloc_information_all), intent(in) :: m
-  character, dimension(:), allocatable, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
-  !allocate the array
-  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-  include 'allocate-inc.f90'
-end subroutine c1_all
-
-subroutine c1_all_free(array)
-  use metadata_interfaces, metadata_address => getc1
-  implicit none
-  character, dimension(:), allocatable, intent(inout) :: array
-  include 'deallocate-profile-inc.f90' 
-  include 'deallocate-inc.f90' 
-end subroutine c1_all_free
-
+include 'malloc_templates-c-inc.f90'
 
 subroutine l1_all(array,m)
   use metadata_interfaces, metadata_address => getl1

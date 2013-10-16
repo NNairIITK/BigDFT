@@ -48,12 +48,12 @@ subroutine ana_rot_per(n,ndat,x,y)
   !write(*,*) 'ana_rot_per executed'
 
   call fill_mod_arr(mod_arr,-7,2*n+8,2*n+2)
-
-!dee
-!call system_clock(istart_test,count_rate_test,count_max_test)
-
-!$omp parallel default (private) shared(x,y,cg,ch,ndat,n,mod_arr)
-!$omp do 
+  
+  !dee
+  !call system_clock(istart_test,count_rate_test,count_max_test)
+  
+  !$omp parallel default (private) shared(x,y,cg,ch,ndat,n,mod_arr)
+  !$omp do 
 
   do j=0,ndat/8-1
      do i=0,n

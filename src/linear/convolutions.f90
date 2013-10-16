@@ -104,7 +104,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   real(kind=8) :: tt6a0, tt6b0, tt6c0, tt6e0                     
   real(kind=8) :: tt7a0, tt7b0, tt7c0, tt7e0                     
   logical:: with_confpot
-  real(kind=8) :: ddot
+  !real(kind=8) :: ddot
 
 
   call timing(iproc,'convolQuartic ','ON')

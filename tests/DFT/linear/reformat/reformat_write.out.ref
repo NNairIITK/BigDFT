@@ -14,9 +14,17 @@ non-zero elements: 1800
 sparsity: 50.00%
 WARNING: locrad for atom type C is too small; minimal value is   1.16E+01
  Processes from 0 to 5 treat 10 inguess orbitals 
+ eks   53.551177600673874     
+ eks, energs%ekin   53.551177600673874        53.554449092441459     
+ conv crit:  5.45248627930779647E-005
+ Processes from 0 to 5 treat 10 inguess orbitals 
+ WARNING: use mapping for occupation numbers!
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.999999756001E+01
+ calling orthonormalizeLocalized (exact)
+max dev from unity    3.086969E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    9.14948833E+01    0.00000000E+00   -1.11892531E+02    8.36372720E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -51,14 +59,14 @@ Calculating charge density... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.478635E-01    2.340389E-01    5.863810E-03
  iter, fnrm, fnrmMax, trace, diff     1  6.4828349E-01  8.1684009E-01   -58.7030188484  -5.8703E+01
  SD informations: mean alpha=1.000E-01, max alpha=1.000E-01, consecutive successes=1
- Orthonormalization... coeff renormalization... calculate density kernel... done.
- ----------------------------------------------------------------------------- iter=2
+ Orthonormalization...  ----------------------------------------------------------------------------- iter=2
  Orthoconstraint... Preconditioning... done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.397036E-01    2.158687E-01    6.678231E-03
  iter, fnrm, fnrmMax, trace, diff     2  5.9046941E-01  7.4658717E-01   -59.6936274791  -9.9061E-01
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, trace:   5.9046941E-01  7.4658717E-01    -59.6936275
  ============================= Basis functions created. =============================
+max dev from unity    1.609662E-03
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -91,7 +99,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.397036E-01    2.158687E-01    6.678231E
    coefficients / kernel obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   1  9.2758632E-07   -7.42621178519085561E+01   -7.4262E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.609662E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    9.01470317E+01    0.00000000E+00   -1.08616363E+02    8.76619539E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -123,7 +133,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.397036E-01    2.158687E-01    6.678231E
    coefficients / kernel obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   2  4.5655820E-07   -7.42484104141669832E+01    1.3707E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.609662E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    9.01470317E+01    0.00000000E+00   -1.08913435E+02    8.76619539E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -155,7 +167,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.397036E-01    2.158687E-01    6.678231E
    coefficients / kernel obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   3  2.3810828E-07   -7.42455446054065078E+01    2.8658E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.609662E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    9.01470317E+01    0.00000000E+00   -1.09023887E+02    8.76619539E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -201,7 +215,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.397036E-01    2.158687E-01    6.678231E
      FINAL values: it, Delta DENS, energy   1    1.33E-07   -7.42448899693816315E+01
    > energy difference to last iteration: -7.424489E+01
  ############################################################################################
+max dev from unity    1.609662E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    9.01470317E+01    0.00000000E+00   -1.09058374E+02    8.76619539E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -239,6 +255,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.220693E-01    1.584878E-01    1.419835E
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  Final values for fnrm, fnrmMax, ebs:   3.7853722E-01  4.3008590E-01    -74.6128646
  ============================= Basis functions created. =============================
+max dev from unity    1.489985E-03
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  Diagonalizing the Hamiltonian, sequential version... done.
@@ -271,7 +288,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.220693E-01    1.584878E-01    1.419835E
    coefficients / kernel obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   1  5.2806544E-07   -7.46131917352254277E+01   -3.6830E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.489985E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    9.06704712E+01    0.00000000E+00   -1.08916420E+02    8.53991623E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -303,7 +322,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.220693E-01    1.584878E-01    1.419835E
    coefficients / kernel obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   2  3.7404399E-07   -7.46074806729170064E+01    5.7111E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.489985E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    9.06704712E+01    0.00000000E+00   -1.08582519E+02    8.53991623E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -335,7 +356,9 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.220693E-01    1.584878E-01    1.419835E
    coefficients / kernel obtained by diagonalization.
    it, Delta DENS, energy, energyDiff   3  2.6951500E-07   -7.46052670451672384E+01    2.2136E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+max dev from unity    1.489985E-03
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    9.06704712E+01    0.00000000E+00   -1.08385686E+02    8.53991623E+00    0.00000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------

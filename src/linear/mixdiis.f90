@@ -282,9 +282,9 @@ mixdiis%isx=isx
 mixdiis%is=0
 allocate(mixdiis%mat(mixdiis%isx,mixdiis%isx), stat=istat)
 call memocc(istat, mixdiis%mat, 'mixdiis%mat', subname)
-allocate(mixdiis%rhopotHist(mixdiis%isx*ndimpot), stat=istat)
+allocate(mixdiis%rhopotHist(mixdiis%isx*max(1,ndimpot)), stat=istat)
 call memocc(istat, mixdiis%rhopotHist, 'mixdiis%rhopotHist', subname)
-allocate(mixdiis%rhopotresHist(mixdiis%isx*ndimpot), stat=istat)
+allocate(mixdiis%rhopotresHist(mixdiis%isx*max(1,ndimpot)), stat=istat)
 call memocc(istat, mixdiis%rhopotresHist, 'mixdiis%rhopotresHist', subname)
 
 

@@ -302,7 +302,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   type(sparseMatrix), intent(inout) :: denskern
 
   ! Local variables
-  integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
+  integer :: ierr, sendcount, jproc, iorb, itmb
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
 ! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
   character(len=*),parameter :: subname='calculate_density_kernel'
@@ -758,7 +758,7 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
   real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
 
   ! Local variables
-  integer :: iorb, ilr, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3, istat, iall
+  integer :: iorb, ilr, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3
   real(kind=8) :: tt, zz
   real(kind=8),dimension(:,:),allocatable :: weight_xy
 
@@ -839,8 +839,8 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
   integer,intent(out) :: nptsp
 
   ! Local variables
-  integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr, istat, iall, jproc_out
-  real(kind=8) :: tt, ttt
+  integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr, istat, jproc_out
+  real(kind=8) :: tt
   real(kind=8),dimension(:,:),allocatable :: slicearr
   real(8),dimension(:,:),allocatable :: weights_startend
 
@@ -1792,7 +1792,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
-  type(collective_comms),intent(in) :: collcom_sr
+  type(collective_comms),intent(inout) :: collcom_sr
   type(DFT_local_fields),intent(in) :: denspot
   type(sparseMatrix),intent(inout) :: denskern
   integer,intent(in) :: check_sumrho
@@ -1800,8 +1800,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   ! Local variables
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
   integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel
-  integer :: matrixindex_in_compressed, iorbmin, iorbmax, jorb, iall, istat
-  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, tt1, hxh, hyh, hzh, factor, hx, hy, hz, ref_value
+  integer :: matrixindex_in_compressed, iorbmin, iorbmax, jorb
+  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, hxh, hyh, hzh, factor, ref_value
   real(kind=8) :: diff
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, rho, rho_check
   integer,dimension(:,:,:),allocatable :: weight
@@ -1953,10 +1953,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! First determine how many orbitals one has for each grid point in the current slice
       ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
       ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
-!      weight=f_malloc((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
       weight=f_malloc0((/lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,ii3s/),id='weight')
-      !allocate(weight(1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
-      !call memocc(istat, weight, 'weight', subname)
 
       if (denspot%dpbox%nscatterarr(iproc,1)>0) then
           call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
@@ -1989,10 +1986,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! The array orbital_id contains the IDs of the orbitals touching a given gridpoint
       nmax=maxval(weight)
 
-!      orbital_id=f_malloc((/1.to.nmax,1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='orbital_id')
       orbital_id=f_malloc((/nmax,lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,1,ii3s/),id='orbital_id')
-      !allocate(orbital_id(1:nmax,1:lzd%glr%d%n1i,1:lzd%glr%d%n2i,ii3s:ii3e), stat=istat)
-      !call memocc(istat, orbital_id, 'orbital_id', subname)
 
       if (denspot%dpbox%nscatterarr(iproc,1)>0) then
           call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
@@ -2015,9 +2009,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
               !$omp do reduction(min:iorbmin) reduction(max:iorbmax)
               do i2=is2,ie2
                   do i1=is1,ie1
-	                   jj=weight(i1,i2,i3)+1
-!                      weight(i1,i2,i3) = weight(i1,i2,i3)+1
-!                      orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
+                      jj=weight(i1,i2,i3)+1
+                      !weight(i1,i2,i3) = weight(i1,i2,i3)+1
+                      !orbital_id(weight(i1,i2,i3),i1,i2,i3) = iorb
                       orbital_id(jj,i1,i2,i3) = iorb
                       if (iorb<iorbmin) iorbmin=iorb
                       if (iorb>iorbmax) iorbmax=iorb
@@ -2147,13 +2141,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       call f_free(weight)
       call f_free(orbital_id)
-      !iall=-product(shape(weight))*kind(weight)
-      !deallocate(weight, stat=istat)
-      !call memocc(istat, iall, 'weight', subname)
-      !iall=-product(shape(orbital_id))*kind(orbital_id)
-      !deallocate(orbital_id, stat=istat)
-      !call memocc(istat, iall, 'orbital_id', subname)
-
       call f_free(rho_check)
       call f_free(rho)
 
@@ -2246,7 +2233,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8),parameter :: inv87178291200=1.14707455977297247139d-11
 
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
-!      x=mod(xx,pi2)-pi
+      !x=mod(xx,pi2)-pi
       x=xx/pi2
       x=real(int(x),kind=8)*pi2
       x=xx-x-pi

@@ -101,6 +101,11 @@ program MINHOP
   ! Create the DFT_global_output container.
   call init_global_output(outs, atoms%astruct%nat)
 
+    if ( inputs_opt%inguess_geopt .ne. inputs_md%inguess_geopt) then 
+        write(*,*) "input guess methods in MD and OPT have to be identical"
+        stop
+    endif
+
   !associate the same output directory
   if (inputs_opt%dir_output /= inputs_md%dir_output) then
      call deldir(trim(inputs_md%dir_output),len_trim(inputs_md%dir_output),ierr)
@@ -751,7 +756,8 @@ end do hopping_loop
   call deallocate_global_output(outs)
 
   call free_input_variables(inputs_md)
-  call bigdft_free_input(inputs_opt)
+  call free_input_variables(inputs_opt)
+  !call bigdft_free_input(inputs_opt)
 !!$  call free_input_variables(inputs_opt)
 !!$  call free_input_variables(inputs_md)
 !!$
@@ -1496,7 +1502,7 @@ subroutine winter(nat,at,nid,nlminx,nlmin,en_delta,fp_delta, &
   character(len=50) :: comment
   character(len=5) :: fn5
 
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
+  call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
 
   ! write enarr file
   open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')

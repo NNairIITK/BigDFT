@@ -126,6 +126,7 @@ module module_input_keys
   character(len = *), parameter, public :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
   character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter, public :: CHECK_SUMRHO = "check_sumrho"
+  character(len = *), parameter, public :: EXPERIMENTAL_MODE = "experimental_mode"
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0
@@ -230,7 +231,8 @@ contains
 
     call dict_free(parameters)
   END SUBROUTINE input_keys_finalize
-  
+
+  !this function is going to disappear as soon as the input is hard-coded in yaml format
   function get_dft_parameters()
     use dictionaries
     implicit none
@@ -924,6 +926,10 @@ contains
          EXCLUSIVE .is. dict_new('0' .is. 'no check',&
                                  '1' .is. 'light check',&
                                  '2' .is. 'full check')))
+    
+    call set(p//EXPERIMENTAL_MODE,dict_new(&
+         COMMENT .is. 'linear scaling: activate the experimental mode', &
+         DEFAULT .is. 'No'))
     !the opportunity of entering this dictionary already in yaml format should be discussed
     !for example the above variable becomes:
     !check_sumrho:
@@ -941,7 +947,7 @@ contains
     use yaml_output
     implicit none
     character(len = *), intent(in) :: fname
-    character(len = *), intent(in), optional :: file
+    character(len = *), intent(in), optional :: file !<subsection of the input to be printed (old input.file)
     !local variables
     integer, parameter :: unt=789159 !to be sure is not opened
     integer :: iunit_def, ierr
@@ -1121,7 +1127,7 @@ contains
 
     integer :: i
     type(dictionary), pointer :: ref
-    character(max_field_length), dimension(:), allocatable :: keys
+    character(len=max_field_length), dimension(:), allocatable :: keys
 
     ref => parameters // file
     allocate(keys(dict_size(ref)))
@@ -1393,52 +1399,3 @@ contains
   end subroutine input_keys_dump
 
 end module module_input_keys
-
-!> Routine to read YAML input files and create input dictionary.
-subroutine merge_input_file_to_dict(dict, fname, mpi_env)
-  use module_input_keys
-  use dictionaries
-  use yaml_parse
-  use wrapper_MPI
-  implicit none
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
-  type(mpi_environment), intent(in) :: mpi_env
-
-  integer(kind = 8) :: cbuf, cbuf_len
-  integer :: ierr
-  character(len = max_field_length) :: val
-  character, dimension(:), allocatable :: fbuf
-  type(dictionary), pointer :: udict
-  
-  if (mpi_env%iproc == 0) then
-     call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
-     if (mpi_env%nproc > 1) &
-          & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-  else
-     call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-  end if
-  allocate(fbuf(cbuf_len))
-  if (mpi_env%iproc == 0) then
-     call copyCBuffer(fbuf(1), cbuf, cbuf_len)
-     call freeCBuffer(cbuf)
-     if (mpi_env%nproc > 1) &
-          & call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-  else
-     call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-  end if
-
-  call f_err_open_try()
-  call yaml_parse_from_char_array(udict, fbuf)
-
-  ! Handle with possible partial dictionary.
-  deallocate(fbuf)
-  call dict_update(dict, udict // 0)
-  call dict_free(udict)
-  
-  ierr = 0
-  if (f_err_check()) ierr = f_get_last_error(val)
-  call f_err_close_try()
-  !in the present implementation f_err_check is not cleaned after the close of the try
-  if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
-end subroutine merge_input_file_to_dict

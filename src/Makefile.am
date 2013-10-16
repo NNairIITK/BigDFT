@@ -111,7 +111,9 @@ AM_CFLAGS = @CUDA_INCLUDE@ @LIB_YAML_CFLAGS@
 #objects which depends from module_types
 high_level = cluster.f90 \
 	init.f90 \
+	initialization.f90 \
 	input_variables.f90 \
+	input_variables_old.f90 \
 	sumrho.f90 \
 	hpsiortho.f90 \
 	forces.f90 \

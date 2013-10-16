@@ -26,6 +26,7 @@ Keys to ignore:
  - Version Number
  - Root process Hostname
  - Input ixc parameter corresponds to XC
+ - Wavefunction written No.
 Patterns to ignore:
  - Timestamp
  - memory
@@ -154,7 +155,7 @@ scalability:
  EKS: 2.0e-10
  Total electronic charge: 1.9e-11
 
-ElecField:
+GElecField:
  Epsilon: 1.1e-10 
 
 FeHyb:
@@ -291,11 +292,15 @@ cleanup:
  Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 2.4e-10
+ Orbitals: 4.42e-11
 
 directmin:
  Patterns to ignore:
  - Wavefunction written
  Epsilon: 3.5e-10
+
+experimentalmode:
+ Epsilon: 1.e-9
 
 restartdisk_charge:
  Patterns to ignore:
@@ -332,3 +337,6 @@ molecule_dmin:
 
 hybrid-directmin:
  Epsilon: 1.4e-11
+
+cdft_ohoh:
+ Epsilon: 7.1e-10

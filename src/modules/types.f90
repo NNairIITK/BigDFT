@@ -176,17 +176,18 @@ module module_types
     real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
     real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
+    real(kind=8) :: early_stop
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization
-    logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end
+    logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
     integer :: extra_states
   end type linearInputParameters
 
   type,public:: fragmentInputParameters
     integer :: nfrag_ref, nfrag
     integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
-    integer, dimension(:), pointer :: charge ! array giving the charge on each fragment for constrained DFT calculations
+    real(kind=8), dimension(:), pointer :: charge ! array giving the charge on each fragment for constrained DFT calculations
     !integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
     character(len=100), dimension(:), pointer :: label ! array of fragment names
     character(len=100), dimension(:), pointer :: dirname ! array of fragment directories, blank if not a fragment calculation
@@ -327,6 +328,9 @@ module module_types
 
      !> linear scaling: perform a check of sumrho (no check, light check or full check)
      integer :: check_sumrho
+
+     !>linear scaling: activate the experimental mode
+     logical :: experimental_mode
   end type input_variables
 
   !> Contains all energy terms

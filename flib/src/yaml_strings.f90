@@ -19,17 +19,17 @@ module yaml_strings
 
   integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
-  character(len=*), parameter :: yaml_int_fmt  = '(i0)'       !< Default format for integer
-  character(len=*), parameter :: yaml_real_fmt = '(1pe18.9)' !< Default format for single
+  character(len=*), parameter :: yaml_int_fmt  = '(i0)'                      !< Default format for integer
+  character(len=*), parameter :: yaml_real_fmt = '(1pe18.9)'                 !< Default format for single
   character(len=*), parameter :: yaml_dble_fmt = '(1pg26.17e3)'!'(1pe25.17)' !< Default format for double
-  character(len=*), parameter :: yaml_char_fmt = '(a)' !< Default format for strings
+  character(len=*), parameter :: yaml_char_fmt = '(a)'                       !< Default format for strings
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_ctoa
      module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa
   end interface
 
-  interface cnv_fmt
+  interface cnv_fmt  !< Give the default format corresponding to the nature of the data
      module procedure fmt_i,fmt_r,fmt_d,fmt_a,fmt_li
   end interface
 
@@ -43,6 +43,7 @@ module yaml_strings
   
 
 contains
+
 
   pure function fmt_li(data)
     implicit none
@@ -80,7 +81,7 @@ contains
   end function fmt_a
 
 
-  !write the strings as they were written by write
+  !> Write the strings as they were written by write
   pure subroutine string_assignment(stra,strb)
     implicit none
     character(len=*), intent(out) :: stra
@@ -175,6 +176,7 @@ contains
 
   end subroutine align_message
 
+
   !> Convert integer to character
   pure function yaml_itoa(data,fmt) result(str)
     implicit none
@@ -210,7 +212,11 @@ contains
     character(len=max_value_length) :: yaml_ctoa
     character(len=*), optional, intent(in) :: fmt
 
-    yaml_ctoa(1:max_value_length)=d
+    if (present(fmt)) then
+       write(yaml_ctoa(1:max_value_length),fmt) d
+    else
+       yaml_ctoa(1:max_value_length)=d
+    end if
 
   end function yaml_ctoa
 

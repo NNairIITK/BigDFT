@@ -652,3 +652,39 @@ contains
    END SUBROUTINE integrate_forces
 
 END PROGRAM frequencies
+
+!> Read the input variables needed for the frequencies calculation.
+!! Every argument should be considered as mandatory.
+subroutine frequencies_input_variables_new(iproc,dump,filename,in)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  !Arguments
+  type(input_variables), intent(inout) :: in
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  logical, intent(in) :: dump
+  !Local variables
+  logical :: exists
+  !n(c) integer, parameter :: iunit=111
+
+  !Frequencies parameters
+  call input_set_file(iproc,dump,trim(filename),exists,'Frequencies Parameters')  
+  if (exists) in%files = in%files + INPUTS_FREQ
+  !call the variable, its default value, the line ends if there is a comment
+
+  !Read in%freq_alpha (possible 1/64)
+  call input_var(in%freq_alpha,'1/64',ranges=(/0.0_gp,1.0_gp/),&
+       comment="Step size factor (alpha*hgrid)")
+  !Read the order of finite difference scheme
+
+  call input_var(in%freq_order,'2',exclusive=(/-1,1,2,3/),&
+       comment="Order of the difference scheme")
+  !Read the index of the method
+
+  call input_var(in%freq_method,'1',exclusive=(/1/),&
+       comment="Method used (only possible value=1)")
+  call input_free((iproc == 0) .and. dump)
+
+END SUBROUTINE frequencies_input_variables_new

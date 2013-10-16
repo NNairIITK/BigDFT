@@ -28,7 +28,7 @@ subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom,
   real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
   integer,dimension(:,:),allocatable :: istartend_c, istartend_f
   integer,dimension(:,:,:),allocatable :: index_in_global_c, index_in_global_f
-  integer,dimension(:),allocatable :: npts_par_c, npts_par_f
+  !!integer,dimension(:),allocatable :: npts_par_c, npts_par_f
   character(len=*),parameter :: subname='init_collective_comms'
   
   call timing(iproc,'init_collcomm ','ON')

@@ -2027,7 +2027,7 @@ module module_interfaces
           fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
           reduce_conf, fix_supportfunctions,nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix,&
-          ratio_deltas,ortho_on,extra_states)
+          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
         use module_base
         use module_types
         implicit none
@@ -2055,6 +2055,9 @@ module module_interfaces
         real(kind=8),intent(out) :: ratio_deltas
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
+        integer,intent(in) :: itout
+        real(kind=8),intent(in) :: conv_crit, early_stop
+        logical,intent(in) :: experimental_mode
       end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -2101,7 +2104,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,cdft)
+         calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
       use module_base
       use module_types
       use constrained_dft
@@ -2130,6 +2133,7 @@ module module_interfaces
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
       logical, intent(in), optional :: curvefit_dmin ! for dmin only
       type(cdft_data),intent(inout),optional :: cdft
+      logical, optional, intent(in) :: reorder
       integer, intent(in) :: extra_states
     end subroutine get_coeff
 
@@ -2422,7 +2426,7 @@ module module_interfaces
        logical,intent(inout):: can_use_transposed
      end subroutine orthonormalizeLocalized
 
-     subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis)
+     subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
        use module_base
        use module_types
        implicit none
@@ -2432,6 +2436,7 @@ module module_interfaces
        real(8),dimension(npsidim),intent(in):: hphi
        real(8),dimension(npsidim),intent(inout):: phi
        type(localizedDIISParameters),intent(inout):: ldiis
+       logical,intent(in) :: experimental_mode                       
      end subroutine optimizeDIIS
 
      subroutine initializeCommunicationPotential(iproc, nproc, nscatterarr, orbs, lzd, comgp, onWhichAtomAll, tag)
@@ -2867,7 +2872,7 @@ module module_interfaces
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated)
+           can_use_transposed, overlap_calculated, experimental_mode)
         use module_base
         use module_types
         implicit none
@@ -2883,6 +2888,7 @@ module module_interfaces
         real(8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat
+        logical,intent(in) :: experimental_mode
       end subroutine orthoconstraintNonorthogonal
 
 
@@ -3354,7 +3360,7 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  energy_only, hpsi_small, hpsi_noprecond)
+                  energy_only, hpsi_small, experimental_mode, hpsi_noprecond)
          use module_base
          use module_types
          implicit none
@@ -3371,7 +3377,7 @@ module module_interfaces
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-         logical, intent(in) :: energy_only
+         logical, intent(in) :: energy_only, experimental_mode
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
@@ -3385,7 +3391,7 @@ module module_interfaces
          character(len=*),intent(in):: subname
        end subroutine copy_orthon_data
 
-       subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient)
+       subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient, experimental_mode)
          use module_base
          use module_types
          implicit none
@@ -3394,10 +3400,12 @@ module module_interfaces
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
          real(kind=wp),dimension(max(tmb%npsidim_orbs,tmb%npsidim_comp)),intent(inout) :: gradient
+         logical,intent(in) :: experimental_mode
        end subroutine improveOrbitals
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff)
+                  lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
+                  experimental_mode)
          use module_base
          use module_types
          implicit none
@@ -3409,7 +3417,7 @@ module module_interfaces
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
-         logical, intent(in) :: ortho
+         logical, intent(in) :: ortho, experimental_mode
        end subroutine hpsitopsi_linear
        
        subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
@@ -3476,7 +3484,7 @@ module module_interfaces
 
        subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
                   convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
-                  convcrit_dmin, nitdmin)
+                  convcrit_dmin, nitdmin, conv_crit_TMB)
          use module_base
          use module_types
          implicit none
@@ -3486,7 +3494,7 @@ module module_interfaces
          type(atoms_data),intent(in):: at
          integer,dimension(lorbs%norb),intent(in):: onwhichatom
          type(confpot_data),dimension(lorbs%norbp),intent(inout):: confdatarr
-         real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin
+         real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin, conv_crit_TMB
          logical, intent(in) :: lowaccur_converged
          integer, intent(out) :: nit_scc, mix_hist, nitdmin
          real(kind=8), dimension(nlr), intent(out) :: locrad
@@ -4649,7 +4657,8 @@ module module_interfaces
         end subroutine enable_sequential_acces_vector
 
         subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
-                   target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix)
+                   target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
+                   conv_crit_TMB)
           use module_base
           use module_types
           implicit none
@@ -4661,7 +4670,7 @@ module module_interfaces
           type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
           integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
           real(kind=8),dimension(nlr),intent(out) :: locrad
-          real(kind=8),intent(out) :: alpha_mix, convCritMix
+          real(kind=8),intent(out) :: alpha_mix, convCritMix, conv_crit_TMB
         end subroutine set_variables_for_hybrid
 
         subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
@@ -4971,7 +4980,17 @@ module module_interfaces
           integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
-        subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, num_extra)
+        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(DFT_wavefunction),intent(inout):: tmb
+          logical,intent(inout):: overlap_calculated
+        end subroutine purify_kernel
+
+        subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
+               sd_fit_curve, factor, reorder, num_extra)
           use module_base
           use module_types
           use diis_sd_optimization
@@ -4984,8 +5003,22 @@ module module_interfaces
           real(kind=gp),intent(out):: fnrm
           real(kind=gp), intent(inout) :: energy
           logical, intent(in) :: sd_fit_curve
+          real(kind=gp), intent(in) :: factor
           integer, optional, intent(in) :: num_extra
+          logical, optional, intent(in) :: reorder
         end subroutine optimize_coeffs
+
+        subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
+          use module_base
+          use module_types
+          implicit none
+
+          ! Calling arguments
+          integer, intent(in) :: iproc, nproc, num_extra
+          type(dft_wavefunction), intent(in) :: tmb
+          type(orbitals_data), intent(in) :: ksorbs
+          real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
+        end subroutine calculate_residue_ks
   
   end interface
 END MODULE module_interfaces

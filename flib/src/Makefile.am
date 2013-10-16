@@ -36,8 +36,9 @@ YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90
 STRINGS_INCLUDES = yaml_toa-inc.f90
 ERR_INCLUDES = get_err-inc.f90
 DICT_INCLUDES = error_handling.f90 dict_add-inc.f90
+GEATDD_INCLUDES = getadd-c-inc.f90
 
-EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) $(ERR_INCLUDES) $(DICT_INCLUDES)
+EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) $(ERR_INCLUDES) $(DICT_INCLUDES) $(GETADD_INCLUDES)
 
 # Module files.
 if CAPITALIZE
@@ -77,9 +78,10 @@ dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 yaml_output.o : dictionaries.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
-dynamic_memory.o: yaml_strings.o yaml_output.o mem_profiling.o $(DYN_INCLUDES)
+dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o mem_profiling.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include)
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o
+getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 
 time.o: $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 

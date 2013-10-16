@@ -2124,3 +2124,578 @@ subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
      call memocc(i_stat,sym%phnons,'phnons',subname)
   end if
 END SUBROUTINE symmetry_set_irreductible_zone
+
+!> Module used for the input positions lines variables
+module position_files
+   implicit none
+   contains
+   subroutine directGetLine(line, ifile, eof)
+      !Arguments
+      integer, intent(in) :: ifile
+      character(len=150), intent(out) :: line
+      logical, intent(out) :: eof
+      !Local variables
+      integer :: i_stat
+
+      eof = .false.
+      read(ifile,'(a150)', iostat = i_stat) line
+      if (i_stat /= 0) eof = .true.
+   END SUBROUTINE directGetLine
+
+   subroutine archiveGetLine(line, ifile, eof)
+      !Arguments
+      integer, intent(in) :: ifile
+      character(len=150), intent(out) :: line
+      logical, intent(out) :: eof
+      !Local variables
+      integer :: i_stat
+      !The argument ifile is not used but it is used as argument routine
+      !eof = .false.
+      eof = (ifile /= ifile)
+      call extractNextLine(line, i_stat)
+      if (i_stat /= 0) eof = .true.
+   END SUBROUTINE archiveGetLine
+end module position_files
+
+
+!> Read atomic file
+subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
+   use module_base
+   use module_types
+   use module_interfaces, except_this_one => read_atomic_file
+   use m_ab6_symmetry
+   use position_files
+   implicit none
+   character(len=*), intent(in) :: file
+   integer, intent(in) :: iproc
+   type(atomic_structure), intent(inout) :: astruct
+   integer, intent(out), optional :: status
+   real(gp), intent(out), optional :: energy
+   real(gp), dimension(:,:), pointer, optional :: fxyz
+   character(len = *), intent(out), optional :: comment
+   !Local variables
+   character(len=*), parameter :: subname='read_atomic_file'
+   integer :: l, extract, i_all, i_stat
+   logical :: file_exists, archive
+   character(len = 128) :: filename
+   character(len = 15) :: arFile
+   character(len = 6) :: ext
+   real(gp) :: energy_
+   real(gp), dimension(:,:), pointer :: fxyz_
+   character(len = 1024) :: comment_
+
+   file_exists = .false.
+   archive = .false.
+   if (present(status)) status = 0
+   nullify(fxyz_)
+
+   ! Extract from archive
+   if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
+      write(arFile, "(A)") "posout.tar.bz2"
+      if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+      inquire(FILE = trim(arFile), EXIST = file_exists)
+      if (file_exists) then
+         !!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
+         !!$          & trim(file), len(trim(file)), extract, ext)
+         call openNextCompress(trim(arFile), len(trim(arFile)), &
+         & trim(file), len(trim(file)), extract, ext)
+         if (extract == 0) then
+            write(*,*) "Can't find '", file, "' in archive."
+            if (present(status)) then
+               status = 1
+               return
+            else
+               stop
+            end if
+         end if
+         archive = .true.
+         write(filename, "(A)") file//'.'//trim(ext)
+         write(astruct%inputfile_format, "(A)") trim(ext)
+      end if
+   end if
+
+   ! Test posinp.xyz
+   if (.not. file_exists) then
+      inquire(FILE = file//'.xyz', EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file//'.xyz'!"posinp.xyz"
+         write(astruct%inputfile_format, "(A)") "xyz"
+         open(unit=99,file=trim(filename),status='old')
+      end if
+   end if
+   ! Test posinp.ascii
+   if (.not. file_exists) then
+      inquire(FILE = file//'.ascii', EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file//'.ascii'!"posinp.ascii"
+         write(astruct%inputfile_format, "(A)") "ascii"
+         open(unit=99,file=trim(filename),status='old')
+      end if
+   end if
+   ! Test posinp.yaml
+   if (.not. file_exists) then
+      inquire(FILE = file//'.yaml', EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file//'.yaml'!"posinp.ascii"
+         write(astruct%inputfile_format, "(A)") "yaml"
+      end if
+   end if
+   ! Test the name directly
+   if (.not. file_exists) then
+      inquire(FILE = file, EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file
+         l = len(file)
+         if (file(l-3:l) == ".xyz") then
+            write(astruct%inputfile_format, "(A)") "xyz"
+         else if (file(l-5:l) == ".ascii") then
+            write(astruct%inputfile_format, "(A)") "ascii"
+         else if (file(l-4:l) == ".yaml") then
+            write(astruct%inputfile_format, "(A)") "yaml"
+         else
+            write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
+            write(*,*) " File should be *.yaml, *.ascii or *.xyz."
+            if (present(status)) then
+               status = 1
+               return
+            else
+               stop
+            end if
+         end if
+         if (trim(astruct%inputfile_format) /= "yaml") then
+            open(unit=99,file=trim(filename),status='old')
+         end if
+      end if
+   end if
+
+   if (.not. file_exists) then
+      if (present(status)) then
+         status = 1
+         return
+      else
+         write(*,*) "Atomic input file not found."
+         write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
+         stop 
+      end if
+   end if
+
+   if (astruct%inputfile_format == "xyz") then
+      !read atomic positions
+      if (.not.archive) then
+         call read_xyz_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
+      else
+         call read_xyz_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
+      end if
+   else if (astruct%inputfile_format == "ascii") then
+      i_stat = iproc
+      if (present(status)) i_stat = 1
+      !read atomic positions
+      if (.not.archive) then
+         call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,directGetLine)
+      else
+         call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
+      end if
+   else if (astruct%inputfile_format == "yaml") then
+      !read atomic positions
+      if (.not.archive) then
+         call read_yaml_positions(trim(filename),astruct,comment_,energy_,fxyz_)
+      else
+         write(*,*) "Atomic input file in YAML not yet supported in archive file."
+         stop
+      end if
+   end if
+
+   !Check the number of atoms
+   if (astruct%nat < 0) then
+      if (present(status)) then
+         status = 1
+         return
+      else
+         write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
+              &  "', the number of atoms (",astruct%nat,") < 0 (should be >= 0)."
+         stop 
+      end if
+   end if
+
+   !control atom positions
+   call check_atoms_positions(astruct,(iproc == 0))
+
+   ! We delay the calculation of the symmetries.
+!this should be already in the atoms_null routine
+   astruct%sym=symm_null()
+!   astruct%sym%symObj = -1
+!   nullify(astruct%sym%irrzon)
+!   nullify(astruct%sym%phnons)
+
+   ! close open file.
+   if (.not.archive .and. trim(astruct%inputfile_format) /= "yaml") then
+      close(99)
+      !!$  else
+      !!$     call unlinkExtract(trim(filename), len(trim(filename)))
+   end if
+   
+   ! We transfer optionals.
+   if (present(energy)) then
+      energy = energy_
+   end if
+   if (present(comment)) then
+      write(comment, "(A)") comment_
+   end if
+   if (present(fxyz)) then
+      fxyz => fxyz_
+   else if (associated(fxyz_)) then
+      i_all=-product(shape(fxyz_))*kind(fxyz_)
+      deallocate(fxyz_,stat=i_stat)
+      call memocc(i_stat,i_all,'fxyz_',subname)
+   end if
+END SUBROUTINE read_atomic_file
+
+!> Write an atomic file
+!Yaml output included
+subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
+  use module_base
+  use module_types
+  use yaml_output
+  implicit none
+  character(len=*), intent(in) :: filename,comment
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
+  !local variables
+  character(len = 15) :: arFile
+  integer :: iunit
+
+  if (trim(filename) == "stdout") then
+     iunit = 6
+  else
+     open(unit=9,file=trim(filename)//'.'//trim(atoms%astruct%inputfile_format))
+     iunit = 9
+  end if
+  if (atoms%astruct%inputfile_format == "xyz") then
+     call wtxyz(iunit,energy,rxyz,atoms,comment)
+     if (present(forces)) call wtxyz_forces(9,forces,atoms)
+  else if (atoms%astruct%inputfile_format == "ascii") then
+     call wtascii(iunit,energy,rxyz,atoms,comment)
+     if (present(forces)) call wtascii_forces(9,forces,atoms)
+  else if (atoms%astruct%inputfile_format == 'yaml') then
+     if (present(forces)) then
+        call wtyaml(iunit,energy,rxyz,atoms,comment,.true.,forces)
+     else
+        call wtyaml(iunit,energy,rxyz,atoms,comment,.false.,rxyz)
+     end if
+  else
+     write(*,*) "Error, unknown file format."
+     stop
+  end if
+  if (trim(filename) /= "stdout") then
+     close(unit=9)
+  end if
+
+  ! Add to archive
+  if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
+     write(arFile, "(A)") "posout.tar.bz2"
+     if (index(filename, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+     call addToCompress(trim(arFile), len(trim(arFile)), &
+          & trim(filename)//'.'//trim(atoms%astruct%inputfile_format), &
+          & len(trim(filename)//'.'//trim(atoms%astruct%inputfile_format)))
+  end if
+END SUBROUTINE write_atomic_file
+
+!>Calculate the coefficient for moving atoms following the ifrztyp
+subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
+  use module_base
+  implicit none
+  integer, intent(in) :: ifrztyp,ixyz
+  real(gp), intent(in) :: alpha
+  real(gp), intent(out) :: alphai
+  !local variables
+  logical :: move_this_coordinate
+
+  if (move_this_coordinate(ifrztyp,ixyz)) then
+     alphai=alpha
+  else
+     alphai=0.0_gp
+  end if
+ 
+END SUBROUTINE frozen_alpha
+
+!>Routine for moving atomic positions, takes into account the 
+!!   frozen atoms and the size of the cell
+!!   synopsis: rxyz=txyz+alpha*sxyz
+!!   all the shift are inserted into the box if there are periodic directions
+!!   if the atom are frozen they are not moved
+subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
+  use module_base
+  use module_types
+  implicit none
+  real(gp), intent(in) :: alpha
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: txyz,sxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
+  !local variables
+  integer :: iat
+  real(gp) :: alphax,alphay,alphaz
+
+  do iat=1,atoms%astruct%nat
+     !adjust the moving of the atoms following the frozen direction
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),1,alpha,alphax)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),2,alpha,alphay)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),3,alpha,alphaz)
+
+     if (atoms%astruct%geocode == 'P') then
+        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%astruct%cell_dim(1))
+        rxyz(2,iat)=modulo(txyz(2,iat)+alphay*sxyz(2,iat),atoms%astruct%cell_dim(2))
+        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%astruct%cell_dim(3))
+     else if (atoms%astruct%geocode == 'S') then
+        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),atoms%astruct%cell_dim(1))
+        rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
+        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),atoms%astruct%cell_dim(3))
+     else
+        rxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
+        rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
+        rxyz(3,iat)=txyz(3,iat)+alphaz*sxyz(3,iat)
+     end if
+  end do
+
+END SUBROUTINE atomic_axpy
+
+
+!>Routine for moving atomic positions, takes into account the 
+!!   frozen atoms and the size of the cell
+!!   synopsis: fxyz=txyz+alpha*sxyz
+!!   update the forces taking into account the frozen atoms
+!!   do not apply the modulo operation on forces 
+subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
+  use module_base
+  use module_types
+  implicit none
+  real(gp), intent(in) :: alpha
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: txyz,sxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
+  !local variables
+  integer :: iat
+  real(gp) :: alphax,alphay,alphaz
+  
+  do iat=1,atoms%astruct%nat
+     !adjust the moving of the forces following the frozen direction
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),1,alpha,alphax)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),2,alpha,alphay)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),3,alpha,alphaz)
+
+     fxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
+     fxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
+     fxyz(3,iat)=txyz(3,iat)+alphaz*sxyz(3,iat)
+  end do
+  
+END SUBROUTINE atomic_axpy_forces
+
+
+!>Calculate the scalar product between atomic positions by considering
+!!   only non-blocked atoms
+subroutine atomic_dot(atoms,x,y,scpr)
+  use module_base
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: x,y
+  real(gp), intent(out) :: scpr
+  !local variables
+  integer :: iat
+  real(gp) :: scpr1,scpr2,scpr3
+  real(gp) :: alphax,alphay,alphaz
+
+  scpr=0.0_gp
+
+  do iat=1,atoms%astruct%nat
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),1,1.0_gp,alphax)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),2,1.0_gp,alphay)
+     call frozen_alpha(atoms%astruct%ifrztyp(iat),3,1.0_gp,alphaz)
+     scpr1=alphax*x(1,iat)*y(1,iat)
+     scpr2=alphay*x(2,iat)*y(2,iat)
+     scpr3=alphaz*x(3,iat)*y(3,iat)
+     scpr=scpr+scpr1+scpr2+scpr3
+  end do
+  
+END SUBROUTINE atomic_dot
+
+
+!>z=alpha*A*x + beta* y
+subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: m
+  real(gp), intent(in) :: alpha,beta
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: x
+  real(gp), dimension(m), intent(in) :: y
+  real(gp), dimension(m,3,atoms%astruct%nat), intent(in) :: A
+  real(gp), dimension(m), intent(out) :: z
+  !local variables
+  integer :: iat,i,j
+  real(gp) :: mv,alphai
+  
+  do i=1,m
+     mv=0.0_gp
+     do iat=1,atoms%astruct%nat
+        do j=1,3
+           call frozen_alpha(atoms%astruct%ifrztyp(iat),j,A(i,j,iat),alphai)
+           mv=mv+alphai*x(j,iat)
+        end do
+     end do
+     z(i)=alpha*mv+beta*y(i)
+  end do
+
+END SUBROUTINE atomic_gemv
+
+
+!>  The function which controls all the moving positions
+function move_this_coordinate(ifrztyp,ixyz)
+  use module_base
+  implicit none
+  integer, intent(in) :: ixyz,ifrztyp
+  logical :: move_this_coordinate
+  
+  move_this_coordinate= &
+       ifrztyp == 0 .or. &
+       (ifrztyp == 2 .and. ixyz /=2) .or. &
+       (ifrztyp == 3 .and. ixyz ==2)
+       
+END FUNCTION move_this_coordinate
+
+
+!> rxyz=txyz+alpha*sxyz
+subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ixyz,iat
+  real(gp), intent(in) :: t,alphas
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(out) :: r
+  !local variables
+  logical :: periodize
+  real(gp) :: alat,alphai
+
+  if (ixyz == 1) then
+     alat=atoms%astruct%cell_dim(1)
+  else if (ixyz == 2) then
+     alat=atoms%astruct%cell_dim(2)
+  else if (ixyz == 3) then
+     alat=atoms%astruct%cell_dim(3)
+  else
+     alat = -1
+     write(0,*) "Internal error"
+     stop
+  end if
+  
+  periodize= atoms%astruct%geocode == 'P' .or. &
+       (atoms%astruct%geocode == 'S' .and. ixyz /= 2)
+
+  call frozen_alpha(atoms%astruct%ifrztyp(iat),ixyz,alphas,alphai)
+
+  if (periodize) then
+     r=modulo(t+alphai,alat)
+  else
+     r=t+alphai
+  end if
+
+END SUBROUTINE atomic_coordinate_axpy
+
+!> this routine does the same operations as
+!! read_atomic_file but uses inputs from memory
+!! as input positions instead of inputs from file
+!! Useful for QM/MM implementation of BigDFT-ART
+!! @author Written by Laurent K Beland 2011 UdeM
+subroutine initialize_atomic_file(iproc,atoms,rxyz)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => initialize_atomic_file
+  use m_ab6_symmetry
+  use yaml_output
+  implicit none
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+  !local variables
+  character(len=*), parameter :: subname='initialize_atomic_file'
+  integer :: i_stat
+  integer :: iat,i,ierr
+
+  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+
+  if (atoms%astruct%geocode=='S') then 
+        atoms%astruct%cell_dim(2)=0.0_gp
+  else if (atoms%astruct%geocode=='F') then !otherwise free bc    
+        atoms%astruct%cell_dim(1)=0.0_gp
+        atoms%astruct%cell_dim(2)=0.0_gp
+        atoms%astruct%cell_dim(3)=0.0_gp
+  else
+        atoms%astruct%cell_dim(1)=0.0_gp
+        atoms%astruct%cell_dim(2)=0.0_gp
+        atoms%astruct%cell_dim(3)=0.0_gp
+  end if
+
+  !reduced coordinates are possible only with periodic units
+  if (atoms%astruct%units == 'reduced' .and. atoms%astruct%geocode == 'F') then
+     if (iproc==0) write(*,'(1x,a)')&
+          'ERROR: Reduced coordinates are not allowed with isolated BC'
+  end if
+
+   !convert the values of the cell sizes in bohr
+  if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then
+     ! if Angstroem convert to Bohr
+     atoms%astruct%cell_dim(1)=atoms%astruct%cell_dim(1)/Bohr_Ang
+     atoms%astruct%cell_dim(2)=atoms%astruct%cell_dim(2)/Bohr_Ang
+     atoms%astruct%cell_dim(3)=atoms%astruct%cell_dim(3)/Bohr_Ang
+  else if (atoms%astruct%units == 'reduced') then
+     !assume that for reduced coordinates cell size is in bohr
+     atoms%astruct%cell_dim(1)=real(atoms%astruct%cell_dim(1),gp)
+     atoms%astruct%cell_dim(2)=real(atoms%astruct%cell_dim(2),gp)
+     atoms%astruct%cell_dim(3)=real(atoms%astruct%cell_dim(3),gp)
+  else
+     call yaml_warning('Length units in input file unrecognized')
+     call yaml_warning('recognized units are angstroem or atomic = bohr')
+     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+  endif
+  
+  do iat=1,atoms%astruct%nat
+     !xyz input file, allow extra information
+     
+     if (atoms%astruct%units == 'reduced') then !add treatment for reduced coordinates
+        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
+        if (atoms%astruct%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
+        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
+     else if (atoms%astruct%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%astruct%cell_dim(1))
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%astruct%cell_dim(2))
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%astruct%cell_dim(3))
+     else if (atoms%astruct%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%astruct%cell_dim(1))
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%astruct%cell_dim(3))
+     end if
+ 
+     if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then
+        ! if Angstroem convert to Bohr
+        do i=1,3 
+           rxyz(i,iat)=rxyz(i,iat)/Bohr_Ang
+        enddo
+     else if (atoms%astruct%units == 'reduced') then 
+        rxyz(1,iat)=rxyz(1,iat)*atoms%astruct%cell_dim(1)
+        if (atoms%astruct%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*atoms%astruct%cell_dim(2)
+        rxyz(3,iat)=rxyz(3,iat)*atoms%astruct%cell_dim(3)
+     endif
+  enddo
+
+  !control atom positions
+  call check_atoms_positions(atoms,rxyz,(iproc == 0))
+
+  ! We delay the calculation of the symmetries.
+  atoms%astruct%sym%symObj = -1
+  nullify(atoms%astruct%sym%irrzon)
+  nullify(atoms%astruct%sym%phnons)
+
+END SUBROUTINE initialize_atomic_file

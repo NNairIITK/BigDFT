@@ -54,7 +54,7 @@ program dsygv_test
   allocate(S(n,n), stat=istat) ; if (istat/=0) stop 'ERROR in allocating'
   allocate(A(n,n), stat=istat) ; if (istat/=0) stop 'ERROR in allocating'
   
-  call init_matrices(n, A_init, S_init)
+  call dsygv_init_matrices(n, A_init, S_init)
 
   call dcopy(n**2, A_init(1,1), 1, A(1,1), 1)
   call dcopy(n**2, S_init(1,1), 1, S(1,1), 1)
