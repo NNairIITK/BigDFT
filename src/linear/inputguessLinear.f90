@@ -559,6 +559,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      ldiis%alphaSD=input%lin%alphaSD
      ldiis%alphaDIIS=input%lin%alphaDIIS
      energs%eexctX=0.d0 !temporary fix
+     trace_old=0.d0 !initialization
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
          reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&

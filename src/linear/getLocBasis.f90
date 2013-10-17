@@ -280,6 +280,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                matrixElements(1,1,1), tmb%orbs%norb, matrixElements(1,1,2), tmb%orbs%norb, tmb%orbs%eval, info)
       end if
 
+      ! Make sure that the eigenvectors have the same sign on all MPI tasks.
+      ! To do so, ensure that the first entry is always positive.
+      do iorb=1,tmb%orbs%norb
+          if (matrixElements(1,iorb,1)<0.d0) then
+              call dscal(tmb%orbs%norb, -1.d0, matrixElements(1,iorb,1), 1)
+          end if
+      end do
+
       if(iproc==0) write(*,'(a)') 'done.'
 
       call dcopy(tmb%orbs%norb*tmb%orbs%norb, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
@@ -1809,9 +1817,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt!, tt2, tt3, ddot   !DEBUG
-  logical :: dense
+  !logical :: dense
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer, parameter :: communication_strategy=ALLGATHERV
+  logical,parameter :: dense=.true.
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr) ! to check timings
   call timing(iproc,'renormCoefCom1','ON')
@@ -1832,7 +1841,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       write(*,'(a)',advance='no') 'coeff renormalization...'
   end if
 
-  dense=.true.
+  !dense=.true.
 
   if (dense) then
      ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
