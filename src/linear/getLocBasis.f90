@@ -427,6 +427,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   !   determined by minimizing the trace until the gradient norm is below the convergence criterion.
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
   !  use Poisson_Solver
   !use allocModule
@@ -599,7 +600,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ediff_sum=0.d0
   delta_energy_prev_sum=0.d0
   energy_increased_previous=.false.
-
+ 
+  if (iproc==0) then
+      call yaml_open_sequence('support function optimizations')
+  end if
   isatur_in=0
   iterLoop: do
       it=it+1
@@ -609,9 +613,22 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       fnrmMax=0.d0
       fnrm=0.d0
   
+      !!if (iproc==0) then
+      !!    write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
+      !!endif
       if (iproc==0) then
-          write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
-      endif
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
+          if (target_function==TARGET_FUNCTION_IS_TRACE) then
+              call yaml_map('target function','TRACE')
+          else if (target_function==TARGET_FUNCTION_IS_ENERGY) then
+              call yaml_map('target function','ENERGY')
+          else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+              call yaml_map('target function','HYBRID')
+          end if
+      end if
+
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
@@ -641,6 +658,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
       end if
+      if (iproc==0) then
+          call yaml_map('Hamiltonian Applied',.true.)
+      end if
 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
@@ -656,9 +676,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
-      if(iproc==0) then
-          write(*,'(a)', advance='no') ' Orthoconstraint... '
+      !!if(iproc==0) then
+      !!    write(*,'(a)', advance='no') ' Orthoconstraint... '
+      !!end if
+      if (iproc==0) then
+          call yaml_map('Orthoconstraint',.true.)
       end if
+
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
@@ -1136,7 +1160,19 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
   end if
 
+  if (iproc==0) then
+      !yaml output
+      call yaml_close_map() !iteration
+      call bigdft_utils_flush(unit=6)
+  end if
+
+
   end do iterLoop
+
+  ! Close sequence for the optimization steps
+  if (iproc==0) then
+      call yaml_close_sequence()
+  end if
 
   !if (iproc==0) write(*,'(a,3es16.6)') 'NEW RATIO: ediff_sum, delta_energy_prev_sum, ratio_deltas', &
   !    ediff_sum, delta_energy_prev_sum, ratio_deltas

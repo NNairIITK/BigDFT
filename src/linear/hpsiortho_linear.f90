@@ -15,6 +15,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energy_only, hpsi_small, experimental_mode, hpsi_noprecond)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
   implicit none
 
@@ -637,10 +638,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! rather than calculating the preconditioning for nothing
   if ((energy_increased .or. energy_only) .and. target_function/=TARGET_FUNCTION_IS_HYBRID) return
 
-  ! Precondition the gradient.
-  if(iproc==0) then
-      write(*,'(a)',advance='no') 'Preconditioning... '
-  end if
+  !!! Precondition the gradient.
+  !!if(iproc==0) then
+  !!    write(*,'(a)',advance='no') 'Preconditioning... '
+  !!end if
  
 
   !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -752,6 +753,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
          !deallocate(prefacarr)
      !!end if
   end if
+
+  if (iproc==0) then
+      call yaml_map('Preconditioning',.true.)
+  end if
+
 
   !sum over all the partial residues
   if (nproc > 1) then
@@ -917,6 +923,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
            experimental_mode)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => hpsitopsi_linear
   implicit none
   
@@ -1047,13 +1054,17 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
 
 
   if(.not.ldiis%switchSD.and.ortho) then
-      if(iproc==0) then
-           write(*,'(1x,a)',advance='no') 'Orthonormalization... '
-      end if
+      !!if(iproc==0) then
+      !!     write(*,'(1x,a)',advance='no') 'Orthonormalization... '
+      !!end if
+
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
+      if (iproc == 0) then
+          call yaml_map('Orthogonalization',.true.)
+      end if
   else if (experimental_mode) then
       ! Wasteful to do it transposed...
       if (iproc==0) write(*,*) 'normalize...'
@@ -1078,6 +1089,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
       deallocate(norm)
       call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+      if (iproc == 0) then
+          call yaml_map('Normalization',.true.)
+      end if
   end if
 
   ! Emit that new wavefunctions are ready.
