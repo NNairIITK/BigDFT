@@ -1,7 +1,21 @@
-News
-----
+/*! @file
+@brief News of the BigDFT project
 
-2011/12 Version 1.6
+
+@page NEWS News about BigDFT
+@brief History of the BigDFT project
+
++ 2013/06/26 Version 1.7.0.31
+  Give dev naming and use 1.7.0.31 (nano numebering)
+  - Flib library stabilized
++ 2012/11/22 
+  Creation of the master branch
++ 2012/08/30 
+  Add a 1.7 Version in the file AUTHORS
+ - Linear version is progressing
++ 2012/02 Preliminary version 1.7
+ - Change the notation as 1.7-devxx
++ 2011/12 Version 1.6
  - Add Hartree, Hartree-Fock functionals
  - Add SIC (self-interaction correction) Perdew-Zunger and Non-Koopman correction (PRB82, 115121, 2010)
  - Add Wannier90 interface
@@ -9,29 +23,27 @@ News
  - Splined saddle search method
  - Bader analysis
  - Add non-linear core correction with HGH pseudopotentials
-
-2011/04/22 Version 1.5.3
++ 2011/04/22 Version 1.5.3
  - Correct some bugs mainly with when we combine MPI, OpenMP and OpenCL
-2011/03/25 Version 1.5.2
++ 2011/03/25 Version 1.5.2
  - Correct some bugs
-2011/03/21 Version 1.5.0
++ 2011/03/21 Version 1.5.0
  - Full OpenCL implementaion
  - Fast parallel exat exchange calculation
  - TD-DFT
  - Mixing density for metal systems
-
-2010/06/28 Version 1.4
++ 2010/06/28 Version 1.4
  - GPU (S_GPU library) + OpenCL
  - Exact exchange + hybrid functionals
  - Molecular dynamics (from ABINIT)
  - First spectra of XANES
  - k points and symmetry
  - Vibrational calculations
-
-2008/10/08 Version 1.1.9
-  Many improvements (periodic systems, surfaces)
-
-2006/12/19 This is the first release of the BigDFT project:
-- Electronic structure calculations based on wavelet basis sets with
++ 2008/10/08 Version 1.1.9
+ -  Many improvements (periodic systems, surfaces)
++ 2006/12/19 This is the first release of the BigDFT project:
+ - Electronic structure calculations based on wavelet basis sets with
   two levels of resolution, non-local pseudopotential (GTH), atomic forces
   and all GGA implemented in ABINIT 5.2.
+
+*/

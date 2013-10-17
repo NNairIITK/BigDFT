@@ -1,7 +1,7 @@
 !> @file
 !!    Fake functions for MPI in the case of serial version
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group 
+!!    Copyright (C) 2007-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -62,6 +62,13 @@ subroutine  MPI_GROUP_INCL(GROUP,N,NRANKS,NEWGROUP,ierr)
   NEWGROUP=size(NRANKS)
   ierr=GROUP*0
 END SUBROUTINE MPI_GROUP_INCL
+
+subroutine  MPI_GROUP_FREE(GROUP,ierr)
+  implicit none
+  integer, intent(in) :: GROUP
+  integer, intent(out) :: ierr
+  ierr=GROUP*0
+END SUBROUTINE MPI_GROUP_FREE
 
 subroutine mpi_test(request,flag,MPI_Status)
   implicit none
@@ -308,11 +315,6 @@ subroutine mpi_info_free()
   implicit none
   stop 'MPIFAKE: mpi_info_free'
 END SUBROUTINE  MPI_INFO_FREE
-
-subroutine mpi_group_free()
-  implicit none
-  stop 'MPIFAKE: mpi_group_free'
-END SUBROUTINE  MPI_GROUP_FREE
 
 real(kind=8) function mpi_wtime()
   implicit none

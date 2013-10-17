@@ -1,0 +1,5 @@
+s  1.38      6.00     method, rcov and rprb
+^- suggested header for initial guess of psppar for fitting -^
+Then add the Goedecker psuedopotential (psppar) with the first following line:
+    8   6  20130909                        zatom, zion, date (yymmdd)
+-- you can download pseudopotentials from http://www.abinit.org/downloads/psp-links --

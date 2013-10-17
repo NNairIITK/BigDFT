@@ -715,7 +715,7 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
 
   implicit none
   integer, intent(in) :: iproc,nproc,nspin, n1i, n2i, n3i
-  character(len = 1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   !n(c) integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(dp), dimension(n1i,n2i,n3i,nspin), intent(inout) :: rho
   type(symmetry_data), intent(in) :: sym
@@ -1453,7 +1453,7 @@ END SUBROUTINE rho_segkey
 
 subroutine gridcorrection(nbx,nby,nbz,nl1,nl2,nl3,geocode)
    implicit none
-   character(len=1),intent(in) :: geocode
+   character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    integer,intent(out) :: nbx,nby,nbz,nl1,nl2,nl3
 
    !conditions for periodicity in the three directions

@@ -110,8 +110,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
           !stop
           !END DEBUG
       else
-          call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
-              orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
+          call overlapPowerPlusMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
+              orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half, .false.)
       end if
 
       allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
@@ -152,7 +152,7 @@ end subroutine orthonormalizeLocalized
 ! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated)
+           can_use_transposed, overlap_calculated, experimental_mode)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -161,7 +161,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
   type(local_zone_descriptors),intent(in) :: lzd
-  type(orbitals_Data),intent(in) :: orbs
+  !type(orbitals_Data),intent(in) :: orbs
+  type(orbitals_Data),intent(inout) :: orbs !temporary inout
   type(collective_comms),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   integer,intent(in) :: correction_orthoconstraint
@@ -171,15 +172,18 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
+  logical,intent(in) :: experimental_mode
 
   ! Local variables
-  integer :: istat, iall, iorb, jorb, ii, ii_trans, matrixindex_in_compressed
+  integer :: istat, iall, iorb, jorb, ii, ii_trans, matrixindex_in_compressed, irow, jcol, info, lwork, jj
   !type(SparseMatrix) :: tmp_mat
-  real(kind=8),dimension(:),allocatable :: tmp_mat_compr, lagmat_tmp_compr
+  real(kind=8),dimension(:),allocatable :: tmp_mat_compr, lagmat_tmp_compr, work
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
+  real(kind=8),dimension(:,:),allocatable :: tmp_mat, tmp_mat2, tmp_mat3
+  integer,dimension(:),allocatable :: ipiv
 
   ! removed option for correction orthoconstrain for now
-  if (correction_orthoconstraint==0) stop 'correction_orthoconstraint not working'
+  !if (correction_orthoconstraint==0) stop 'correction_orthoconstraint not working'
 
   if(.not. can_use_transposed) then
       allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
@@ -217,18 +221,77 @@ call timing(iproc,'misc','ON')
      iorb = lagmat%orb_from_index(1,ii)
      jorb = lagmat%orb_from_index(2,ii)
      ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
-
-  !do jorb=1,orbs%norb
-     !do iorb=1,orbs%norb
-          !ii_trans = matrixindex_in_compressed(lagmat,jorb, iorb)
-          !ii = matrixindex_in_compressed(lagmat,iorb, jorb)
-          !if (ii==0.or.ii_trans==0) cycle
-          tmp_mat_compr(ii)=-0.5d0*lagmat%matrix_compr(ii) &
-               -0.5d0*lagmat%matrix_compr(ii_trans)
-          !tmp_mat%matrix_compr(ii)=-0.5d0*lagmat%matrix_compr(ii) &
-          !     -0.5d0*lagmat%matrix_compr(ii_trans)
-      !end do
+     tmp_mat_compr(ii)=-0.5d0*lagmat%matrix_compr(ii)-0.5d0*lagmat%matrix_compr(ii_trans)
+     ! SM: This is a hack, should use another variable
+     !if (.false..or.correction_orthoconstraint==2) then
+     if (.false..and.correction_orthoconstraint==2) then
+         if (iproc==0 .and. ii==1) write(*,*) 'only normalization constraint'
+         if (iorb/=jorb) then
+             tmp_mat_compr(ii)=0.d0
+         end if
+     end if
+     if (experimental_mode) then
+         if (iorb==jorb) then
+             if (iproc==0 .and. iorb==1) write(*,*) 'MODIFY EVAL'
+             orbs%eval(iorb)=lagmat%matrix_compr(ii)
+         end if
+     end if
   end do
+
+  ! NEW: reactivate correction for non-orthogonality ##########
+  if (correction_orthoconstraint==0) then
+      ! WARNING: it is mandatory that the overlap matrix has been calculated before
+      !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
+      if (iproc==0) write(*,*) 'correction orthoconstraint'
+      allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb))
+      call uncompressMatrix(iproc,linmat%ovrlp)
+      allocate(tmp_mat(orbs%norb,orbs%norb))
+      allocate(tmp_mat2(orbs%norb,orbs%norb))
+      call to_zero(orbs%norb**2, tmp_mat(1,1))
+      do ii=1,lagmat%nvctr
+         irow = lagmat%orb_from_index(1,ii)
+         jcol = lagmat%orb_from_index(2,ii)
+         tmp_mat(irow,jcol)=tmp_mat_compr(ii)
+      end do
+      allocate(ipiv(orbs%norb))
+      lwork=10*orbs%norb
+      allocate(work(lwork))
+      allocate(tmp_mat3(orbs%norb,orbs%norb))
+      tmp_mat3=linmat%ovrlp%matrix
+
+      call dgetrf(orbs%norb, orbs%norb, linmat%ovrlp%matrix, orbs%norb, ipiv, info)
+      call dgetri(orbs%norb, linmat%ovrlp%matrix, orbs%norb, ipiv, work, lwork, info)
+
+      !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, tmp_mat3, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+      !!if (iproc==0) then
+      !!  do iorb=1,orbs%norb
+      !!    do jorb=1,orbs%norb
+      !!      write(*,'(a,2i8,es14.5)') 'iorb, jorb, tmp_mat2(iorb,jorb)', iorb, jorb, tmp_mat2(iorb,jorb)
+      !!    end do
+      !!  end do
+      !!end if
+
+      ! This is the original
+      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, &
+           tmp_mat, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+
+      !!! Test
+      !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, tmp_mat, orbs%norb, linmat%ovrlp%matrix, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+
+      do jj=1,lagmat%nvctr
+         irow = lagmat%orb_from_index(1,jj)
+         jcol = lagmat%orb_from_index(2,jj)
+         !!if (iproc==0) write(*,'(a,3i8,2es16.6)') 'jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)', &
+         !!                                          jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)
+         tmp_mat_compr(jj)=tmp_mat2(irow,jcol)
+      end do
+      deallocate(linmat%ovrlp%matrix)
+      deallocate(tmp_mat)
+      deallocate(tmp_mat2)
+      deallocate(ipiv)
+      deallocate(work)
+  end if
+  !! ##########################################################
 
   allocate(lagmat_tmp_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
   call memocc(istat, lagmat_tmp_compr, 'lagmat_tmp_compr', subname)
@@ -243,6 +306,20 @@ call timing(iproc,'misc','ON')
 call timing(iproc,'misc','OF')
   call build_linear_combination_transposed(collcom, lagmat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   !call build_linear_combination_transposed(collcom, tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+
+  !!! TEST ORTHOGONALITY OF GRADIENT AND TMBs ##############################
+  !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, linmat%ovrlp)
+  !!allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb))
+  !!call uncompressMatrix(iproc,linmat%ovrlp)
+  !!if (iproc==0) then
+  !!  do iorb=1,orbs%norb
+  !!    do jorb=1,orbs%norb
+  !!      write(*,'(a,2i8,es16.6)') 'iorb, jorb, linmat%ovrlp%matrix(jorb,iorb)', iorb, jorb, linmat%ovrlp%matrix(jorb,iorb)
+  !!    end do
+  !!  end do
+  !!end if
+  !!deallocate(linmat%ovrlp%matrix)
+  !!! END TEST #############################################################
 
   call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat%matrix_compr(1),1)
 
@@ -623,8 +700,8 @@ end subroutine overlapPowerMinusOne
 
 
 
-subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-           blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half)
+subroutine overlapPowerPlusMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+           blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, plusminus)
   use module_base
   use module_types
   use module_interfaces
@@ -634,6 +711,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
   integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
   type(sparseMatrix),intent(inout) :: ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half
+  logical, intent(in) :: plusminus ! if true S^1/2, if false S^-1/2
 
   ! Local variables
   integer :: lwork, istat, iall, iorb, jorb, info, iiorb, jjorb, ii, ii_inv!, iseg
@@ -723,7 +801,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
           !  lr408 - see if LAPACK is stil to blame for convergence issues
           if(info/=0) then
-              write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+              write(*,'(a,i0,2x,i0)') 'ERROR in dsyev (overlapPowerPlusMinusOneHalf), info, norb=', info, norb
               stop
           end if
           iall=-product(shape(work))*kind(work)
@@ -736,7 +814,11 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
       do iorb=1,norb
           do jorb=1,norb
-              tempArr(jorb,iorb,1)=inv_ovrlp_half%matrix(jorb,iorb)*1.d0/sqrt(abs(eval(iorb)))
+              if (plusminus) then
+                  tempArr(jorb,iorb,1)=inv_ovrlp_half%matrix(jorb,iorb)*sqrt(abs(eval(iorb)))
+              else
+                  tempArr(jorb,iorb,1)=inv_ovrlp_half%matrix(jorb,iorb)*1.d0/sqrt(abs(eval(iorb)))
+              end if
           end do
       end do
       
@@ -768,12 +850,19 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       ! inv_ovrlp_half can be less sparse than ovrlp, so pad with zeros first
       call to_zero(inv_ovrlp_half%nvctr,inv_ovrlp_half%matrix_compr(1))
       ! Taylor expansion up to first order.
-      !ii=0
-      !do iseg=1,ovrlp%nseg
-      !    do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
-      !        ii=ii+1
-      !        iiorb = (jorb-1)/norb + 1
-      !        jjorb = jorb - (iiorb-1)*norb
+      if (plusminus) then
+           do ii=1,ovrlp%nvctr
+              iiorb = ovrlp%orb_from_index(ii,1)
+              jjorb = ovrlp%orb_from_index(ii,2)
+
+              ii_inv = matrixindex_in_compressed(inv_ovrlp_half,iiorb,jjorb) ! double check this order
+              if(iiorb==jjorb) then
+                  inv_ovrlp_half%matrix_compr(ii_inv)=0.5d0+0.5d0*ovrlp%matrix_compr(ii)
+              else
+                  inv_ovrlp_half%matrix_compr(ii_inv)=0.5d0*ovrlp%matrix_compr(ii)
+              end if
+          end do
+      else
            do ii=1,ovrlp%nvctr
               iiorb = ovrlp%orb_from_index(1,ii)
               jjorb = ovrlp%orb_from_index(2,ii)
@@ -785,7 +874,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
                   inv_ovrlp_half%matrix_compr(ii_inv)=-.5d0*ovrlp%matrix_compr(ii)
               end if
           end do
-      !end do
+      end if
   else
       
       stop 'deprecated'
@@ -794,7 +883,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
 
   call timing(iproc,'lovrlp^-1/2   ','OF')
 
-end subroutine overlapPowerMinusOneHalf
+end subroutine overlapPowerPlusMinusOneHalf
 
 
 subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
@@ -925,7 +1014,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, comm, orbs, ovrlp
      !end if
 
      ! Calculate S^-1/2 for the small overlap matrix
-     call overlapPowerMinusOneHalf_old(iproc, nproc, comm, 0, -8, -8, n, ovrlp_tmp, ovrlp_tmp_inv_half)
+     call overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, 0, -8, -8, n, ovrlp_tmp, ovrlp_tmp_inv_half, .false.)
 
      !if (iiorb==orbs%norb) then
      !print*,''
@@ -993,11 +1082,11 @@ end subroutine overlap_power_minus_one_half_parallel
 
 
 ! Should be used if sparsemat is not available... to be cleaned
-subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-           blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, orbs)
+subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+           blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, plusminus, orbs)
   use module_base
   use module_types
-  use module_interfaces, fake_name => overlapPowerMinusOneHalf_old
+  use module_interfaces, fake_name => overlapPowerPlusMinusOneHalf_old
   implicit none
   
   ! Calling arguments
@@ -1005,6 +1094,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
   real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
   real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
   type(orbitals_data), optional, intent(in) :: orbs
+  logical, intent(in) :: plusminus ! if true, calculates S^1/2, if false S^-1/2
   
   ! Local variables
   integer :: lwork, istat, iall, iorb, jorb, info, iiorb, ierr
@@ -1081,7 +1171,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
 
           !  lr408 - see if LAPACK is stil to blame for convergence issues
           if(info/=0) then
-              write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+              write(*,'(a,i0,2x,i0)') 'ERROR in dsyev (overlapPowerPlusMinusOneHalf_old), info, norb=', info, norb
               stop
           end if
           iall=-product(shape(work))*kind(work)
@@ -1094,7 +1184,11 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
       ! matrix and diag(1/sqrt(eval)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
       do iorb=1,norb
           do jorb=1,norb
-              tempArr(jorb,iorb,1)=inv_ovrlp_half(jorb,iorb)/sqrt(abs(eval(iorb)))
+              if (plusminus) then
+                 tempArr(jorb,iorb,1)=inv_ovrlp_half(jorb,iorb)*sqrt(abs(eval(iorb)))
+              else
+                 tempArr(jorb,iorb,1)=inv_ovrlp_half(jorb,iorb)/sqrt(abs(eval(iorb)))
+              end if
           end do
       end do
       
@@ -1126,18 +1220,34 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
         call memocc(istat, inv_ovrlp_halfp, 'inv_ovrlp_halfp', subname)
 
         ! No matrix compression available
-        !!$omp parallel do default(private) shared(inv_ovrlp_half,ovrlp,orbs)
-        do iorb=1,orbs%norbp
-           iiorb=orbs%isorb+iorb
-           do jorb=1,orbs%norb
-              if(iiorb==jorb) then
-                 inv_ovrlp_halfp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iiorb)
-              else
-                 inv_ovrlp_halfp(jorb,iorb)=-.5d0*ovrlp(jorb,iiorb)
-              end if
+        if (plusminus) then
+           !!$omp parallel do default(private) shared(inv_ovrlp_half,ovrlp,orbs)
+           do iorb=1,orbs%norbp
+              iiorb=orbs%isorb+iorb
+              do jorb=1,orbs%norb
+                 if(iiorb==jorb) then
+                    inv_ovrlp_halfp(jorb,iorb)=0.5d0+0.5d0*ovrlp(jorb,iiorb)
+                 else
+                    inv_ovrlp_halfp(jorb,iorb)=0.5d0*ovrlp(jorb,iiorb)
+                 end if
+              end do
            end do
-        end do
-        !!$omp end parallel do
+           !!$omp end parallel do
+        else
+            !!$omp parallel do default(private) shared(inv_ovrlp_half,ovrlp,orbs)
+           do iorb=1,orbs%norbp
+              iiorb=orbs%isorb+iorb
+              do jorb=1,orbs%norb
+                 if(iiorb==jorb) then
+                    inv_ovrlp_halfp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iiorb)
+                 else
+                    inv_ovrlp_halfp(jorb,iorb)=-.5d0*ovrlp(jorb,iiorb)
+                 end if
+              end do
+           end do
+           !!$omp end parallel do
+        end if
+
 
         call timing(iproc,'lovrlp^-1/2old','OF')
         call timing(iproc,'lovrlp^-1/2com','ON')
@@ -1157,18 +1267,33 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
 
      else ! no orbs present, use serial version
         ! No matrix compression available
-        !$omp parallel do default(private) shared(inv_ovrlp_half,ovrlp,norb)
-        do iorb=1,norb
-           do jorb=iorb,norb
-              if(iorb==jorb) then
-                 inv_ovrlp_half(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
-              else
-                 inv_ovrlp_half(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
-                 inv_ovrlp_half(iorb,jorb)=-.5d0*ovrlp(jorb,iorb)
-              end if
+        if (plusminus) then
+           !$omp parallel do default(private) shared(inv_ovrlp_half,ovrlp,norb)
+           do iorb=1,norb
+              do jorb=iorb,norb
+                 if(iorb==jorb) then
+                    inv_ovrlp_half(jorb,iorb)=0.5d0+0.5d0*ovrlp(jorb,iorb)
+                 else
+                    inv_ovrlp_half(jorb,iorb)=0.5d0*ovrlp(jorb,iorb)
+                    inv_ovrlp_half(iorb,jorb)=0.5d0*ovrlp(jorb,iorb)
+                 end if
+              end do
            end do
-        end do
-        !$omp end parallel do
+           !$omp end parallel do
+        else
+           !$omp parallel do default(private) shared(inv_ovrlp_half,ovrlp,norb)
+           do iorb=1,norb
+              do jorb=iorb,norb
+                 if(iorb==jorb) then
+                    inv_ovrlp_half(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
+                 else
+                    inv_ovrlp_half(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
+                    inv_ovrlp_half(iorb,jorb)=-.5d0*ovrlp(jorb,iorb)
+                 end if
+              end do
+           end do
+           !$omp end parallel do
+        end if
      end if
   else
 
@@ -1179,7 +1304,7 @@ subroutine overlapPowerMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, 
 
   call timing(iproc,'lovrlp^-1/2old','OF')
 
-end subroutine overlapPowerMinusOneHalf_old
+end subroutine overlapPowerPlusMinusOneHalf_old
 
 
 
@@ -1294,8 +1419,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       if (methTransformOverlap==-1) then
           call overlap_power_minus_one_half_parallel(iproc, nproc, bigdft_mpi%mpi_comm, orbs, ovrlp, inv_ovrlp_half)
       else
-          call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
-              orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
+          call overlapPowerPlusMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
+              orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half, .false.)
       end if
 
       ! For the "higher" TMBs: delete off-diagonal elements and

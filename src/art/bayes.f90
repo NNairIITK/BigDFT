@@ -1,4 +1,5 @@
 !> @file
+!! Define some module for BigDFT+ART
 !! @author
 !!    Written by Laurent Karim Beland, UdeM 2011!!
 !!    Copyright (C) 2001 Normand Mousseau
@@ -8,7 +9,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> ART Module BAYES 
+!> Module BAYES used by ART (Activation Relaxation Technique)
 module BAYES
 
    implicit none

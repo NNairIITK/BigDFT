@@ -10,17 +10,21 @@ TESTDIRS = Locreg \
 	   geopt \
 	   testforces \
 	   fructose \
-	rotatesmall2  rotatesmall
-#\
-#      cdft
+       rotatesmall2 \
+       rotatesmall \
+       cdft \
+       hybrid-directmin \
+       experimentalmode
 
-EXTRA_TESTDIRS = water \
+EXTRA_TESTDIRS = reformatcomplete \
+   water \
 	molecule \
 	deltascf \
 	reformat \
 	paracetamol \
 	rotate \
-	rotate2
+	rotate2 \
+	noortho
 
 
 EXTRA_DIST = 
@@ -81,19 +85,39 @@ rotate2_write.out.post-out:
 	mv -f data-write data-read/data-benzene
 	cp -f write.xyz data-read/benzene.xyz
 
-cdft_co.out.out : cdft_c.out.out
-cdft_c.out.out : cdft_o.out.out
+cdft_ohoh.out.out : cdft_oh-.out.out
+cdft_oh-.out.out : cdft_oh-a.out.out
 
-cdft_o.out.post-out: 
-	rm -rf data-co/data-o
-	mkdir -p data-co
-	mv -f data-o data-co/data-o
-	cp -f o.xyz data-co/o.xyz
+cdft_oh-a.out.post-out: 
+	rm -rf data-ohoh/data-oh-a
+	mkdir -p data-ohoh
+	mv -f data-oh-a data-ohoh/data-oh-a
+	cp -f oh-a.xyz data-ohoh/oh-a.xyz
 
-cdft_c.out.post-out: 
-	rm -rf data-co/data-c
-	mv -f data-c data-co/data-c
-	cp -f c.xyz data-co/c.xyz
+cdft_oh-.out.post-out: 
+	rm -rf data-ohoh/data-oh-
+	mv -f data-oh- data-ohoh/data-oh-
+	cp -f oh-.xyz data-ohoh/oh-.xyz
+
+reformatcomplete_read36.out.out : reformatcomplete_read45.out.out
+reformatcomplete_read45.out.out : reformatcomplete_read35.out.out
+reformatcomplete_read35.out.out : reformatcomplete_write.out.out
+
+reformatcomplete_read45.out.post-out: 
+	rm -rf data-read36/data-h2o
+	mkdir -p data-read36
+	mv -f data-read45/data-h2o data-read36/data-h2o
+	cp -f write.xyz data-read36/h2o.xyz
+reformatcomplete_read35.out.post-out: 
+	rm -rf data-read45/data-h2o
+	mkdir -p data-read45
+	mv -f data-read35/data-h2o data-read45/data-h2o
+	cp -f write.xyz data-read45/h2o.xyz
+reformatcomplete_write.out.post-out: 
+	rm -rf data-read35/data-h2o
+	mkdir -p data-read35
+	mv -f data-write data-read35/data-h2o
+	cp -f write.xyz data-read35/h2o.xyz
 
 # Define the precision for specific directories.
 %.report: %.ref
@@ -104,7 +128,7 @@ cdft_c.out.post-out:
         case $* in \
 	  base.out*)                  prec="1.e-9" ;; \
       large.out*)                 prec="5.e-10" ;; \
-      directmin.out*)             prec="1.1e-9" ;; \
+      directmin.out*)             prec="2.6e-9" ;; \
 	  standardnew.out*)           prec="2.e-10" ;; \
 	  mixpotential.out*)          prec="1.e-9" ;; \
 	  onlyhigh.out*)              prec="1.1e-9" ;; \
@@ -118,14 +142,17 @@ cdft_c.out.post-out:
 	  water_mixdens.out*)         prec="1.1e-8" ;; \
 	  water_mixpot.out*)          prec="1.1e-8" ;; \
 	  water_foe.out*)             prec="3.e-8" ;; \
-	  molecule_dmin.out*)         prec="1.e-9" ;; \
-	  molecule_dmix.out*)         prec="1.e-9" ;; \
-	  molecule_pmix.out*)         prec="1.1e-9" ;; \
+	  molecule_dmin.out*)         prec="1.1e-8" ;; \
+	  molecule_dmix.out*)         prec="1.1e-8" ;; \
+	  molecule_pmix.out*)         prec="1.1e-8" ;; \
 	  molecule_foe.out*)          prec="5.4e-7" ;; \
 	  foe.out*)                   prec="5.6e-10" ;; \
 	  reformat_write.out*)        prec="3.e-10" ;; \
-	  paracetamol.out*)           prec="2.e-10" ;; \
-	  test.testforces*)           prec="1.e-9" ;; \
+	  paracetamol.out*)           prec="2.1e-10" ;; \
+	  rotatesmall.out*)           prec="1.1e-8" ;; \
+	  test.testforces.out*)       prec="1.1e-9" ;; \
+	  hybrid-directmin.out*)      prec="1.3e-9" ;; \
+	  experimentalmode.out*)      prec="1.0e-6" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

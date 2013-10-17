@@ -7,27 +7,25 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!>  Build the kernel of the Poisson operator with
-!!  surfaces Boundary conditions
-!!  in an interpolating scaling functions basis.
-!!  Beware of the fact that the nonperiodic direction is y!
-!! SYNOPSIS
-!!   @param n1,n2,n3           Dimensions for the FFT
-!!   @param nker1,nker2,nker3  Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
-!!   @param h1,h2,h3           Mesh steps in the three dimensions
-!!   @param itype_scf          Order of the scaling function
-!!   @param iproc,nproc        Number of process, number of processes
-!!   @param karray             output array
+
+!> Build the kernel of the Poisson operator with
+!! surfaces Boundary conditions
+!! in an interpolating scaling functions basis.
+!! @warning Beware of the fact that the nonperiodic direction is y!
 subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha, &
            beta,gamma,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
   use memory_profiling
   implicit none
   !Arguments
-  integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
+  integer, intent(in) :: n1,n2,n3          !< Dimensions for the FFT
+  integer, intent(in) :: nker1,nker2,nker3 !< Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
+  integer, intent(in) :: itype_scf         !< Order of the scaling function
+  integer, intent(in) :: iproc             !< Process Id
+  integer, intent(in) :: nproc             !< Number of processes
   integer, intent(in) :: n3pr1,n3pr2
-  real(dp), intent(in) :: h1,h2,h3
-  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  real(dp), intent(in) :: h1,h2,h3         !< Mesh steps in the three dimensions
+  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray !< output array
   real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
   !Local variables 
   character(len=*), parameter :: subname='Periodic_Kernel'
@@ -272,8 +270,8 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
 END SUBROUTINE Periodic_Kernel
 
 
-!>  Calculate the fourier transform
-!!  Suppose the output symmetric and real
+!> Calculate the fourier transform
+!! Suppose the output symmetric and real
 subroutine fourtrans_isf(n,ftisf)
   use Poisson_Solver, only: dp
   implicit none
@@ -323,7 +321,7 @@ subroutine fourtrans_isf(n,ftisf)
 END SUBROUTINE fourtrans_isf
 
 
-!>   Transform the wavelet filters
+!> Transform the wavelet filters
 subroutine fourtrans(p,htp)
   use Poisson_Solver, only: dp
   implicit none
@@ -347,18 +345,10 @@ subroutine fourtrans(p,htp)
 END SUBROUTINE fourtrans
 
 
-!>    Build the kernel of the Poisson operator with
-!!    surfaces Boundary conditions
-!!    in an interpolating scaling functions basis.
-!!    Beware of the fact that the nonperiodic direction is y!
+!> Build the kernel of the Poisson operator with surfaces Boundary conditions
+!! in an interpolating scaling functions basis.
+!! @warning Beware of the fact that the nonperiodic direction is y!
 !! SYNOPSIS
-!!   @param n1,n2,n3           Dimensions for the FFT
-!!   @param m3                 Actual dimension in non-periodic direction
-!!   @param nker1,nker2,nker3  Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
-!!   @param h1,h2,h3           Mesh steps in the three dimensions
-!!   @param itype_scf          Order of the scaling function
-!!   @param iproc,nproc        Number of process, number of processes
-!!   @param karray             output array
 subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
      h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)!,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
@@ -368,10 +358,15 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   include 'perfdata.inc'
   
   !Arguments
-  integer, intent(in) :: n1,n2,n3,m3,nker1,nker2,nker3,itype_scf
-  integer, intent(in) :: iproc,nproc,mpi_comm,inplane_comm!n3pr1,n3pr2
-  real(dp), intent(in) :: h1,h2,h3
-  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  integer, intent(in) :: n1,n2,n3          !< Dimensions for the FFT
+  integer, intent(in) :: m3                !< Actual dimension in non-periodic direction
+  integer, intent(in) :: nker1,nker2,nker3 !< Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
+  integer, intent(in) :: itype_scf         !< Order of the scaling function
+  integer, intent(in) :: iproc             !< Process Id
+  integer, intent(in) :: nproc             !< Number of processes
+  integer, intent(in) :: mpi_comm,inplane_comm!n3pr1,n3pr2
+  real(dp), intent(in) :: h1,h2,h3         !< Mesh steps in the three dimensions
+  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray !< Output array
   real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
   
   !Local variables 
@@ -815,7 +810,6 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   endif
 
 
-
   !De-allocations
   i_all=-product(shape(kernel))*kind(kernel)
   deallocate(kernel,stat=i_stat)
@@ -1098,10 +1092,10 @@ subroutine indices(nimag,nelem,intrn,extrn,nindex)
 END SUBROUTINE indices
 
 
-!>    Build the kernel of a gaussian function
-!!    for interpolating scaling functions.
-!!    Do the parallel HalFFT of the symmetrized function and stores into
-!!    memory only 1/8 of the grid divided by the number of processes nproc
+!> Build the kernel (karray) of a gaussian function
+!! for interpolating scaling functions.
+!! Do the parallel HalFFT of the symmetrized function and stores into
+!! memory only 1/8 of the grid divided by the number of processes nproc
 !!
 !! SYNOPSIS
 !!    Build the kernel (karray) of a gaussian function
@@ -1827,7 +1821,7 @@ END SUBROUTINE inserthalf
 
 
 !> Calculates the FFT of the distributed kernel
-!!(Based on suitable modifications of S.Goedecker routines)
+!! (Based on suitable modifications of S.Goedecker routines)
 !!
 !! SYNOPSIS
 !!   @param  zf:          Real kernel (input)
@@ -1841,15 +1835,6 @@ END SUBROUTINE inserthalf
 !!                        The detailed table with allowed transform lengths can 
 !!                        be found in subroutine ctrig_sg
 !!   @param  nd1,nd2,nd3: Dimensions of work arrays
-!!
-!! @author
-!!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
-!!     Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
-!!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
-!!     This file is distributed under the terms of the
-!!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!! Author:S
-!!    S. Goedecker, L. Genovese
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,mpi_comm,nproc,iproc,zf,zr)
   use Poisson_Solver, only: dp
   use wrapper_mpi
@@ -2140,250 +2125,250 @@ END SUBROUTINE realcopy
 
 
 subroutine switchPS(nfft,n2,lot,n1,lzt,zt,zw)
-  use Poisson_Solver, only: dp
-  implicit none
-!Arguments
-  integer, intent(in) :: nfft,n2,lot,n1,lzt
-  real(dp) :: zw(2,lot,n2),zt(2,lzt,n1)
-!Local variables
-  integer :: i,j
-
-  do j=1,nfft
-     do i=1,n2
-        zw(1,j,i)=zt(1,i,j)
-        zw(2,j,i)=zt(2,i,j)
-     end do
-  end do
+   use Poisson_Solver, only: dp
+   implicit none
+   !Arguments
+   integer, intent(in) :: nfft,n2,lot,n1,lzt
+   real(dp) :: zw(2,lot,n2),zt(2,lzt,n1)
+   !Local variables
+   integer :: i,j
+   
+   do j=1,nfft
+      do i=1,n2
+         zw(1,j,i)=zt(1,i,j)
+         zw(2,j,i)=zt(2,i,j)
+      end do
+   end do
 
 END SUBROUTINE switchPS
 
 
 subroutine mpiswitchPS(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
-  use Poisson_Solver, only: dp
-  implicit none
-!Arguments
-  integer, intent(in) :: j3,nfft,lot,n1,nd2,nd3,nproc
-  integer, intent(inout) :: Jp2st,J2st
-  real(dp) :: zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
-!Local variables
-  integer :: mfft,Jp2,J2,I1
-  mfft=0
-  do Jp2=Jp2st,nproc
-     do J2=J2st,nd2/nproc
-        mfft=mfft+1
-        if (mfft.gt.nfft) then
-           Jp2st=Jp2
-           J2st=J2
-           return
-        endif
-        do I1=1,n1
-           zw(1,mfft,I1)=zmpi1(1,I1,J2,j3,Jp2)
-           zw(2,mfft,I1)=zmpi1(2,I1,J2,j3,Jp2)
-        end do
-     end do
-     J2st=1
-  end do
+   use Poisson_Solver, only: dp
+   implicit none
+   !Arguments
+   integer, intent(in) :: j3,nfft,lot,n1,nd2,nd3,nproc
+   integer, intent(inout) :: Jp2st,J2st
+   real(dp) :: zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+   !Local variables
+   integer :: mfft,Jp2,J2,I1
+   mfft=0
+   do Jp2=Jp2st,nproc
+      do J2=J2st,nd2/nproc
+         mfft=mfft+1
+         if (mfft.gt.nfft) then
+            Jp2st=Jp2
+            J2st=J2
+            return
+         endif
+         do I1=1,n1
+            zw(1,mfft,I1)=zmpi1(1,I1,J2,j3,Jp2)
+            zw(2,mfft,I1)=zmpi1(2,I1,J2,j3,Jp2)
+         end do
+      end do
+      J2st=1
+   end do
 
 END SUBROUTINE mpiswitchPS
 
 
 !> The conversion from d0 to dp type should be finished
 subroutine gequad(p,w,urange,drange,acc)
+  
+   use Poisson_Solver, only: dp
+   implicit none
  
-  use Poisson_Solver, only: dp
-  implicit none
-
-!Arguments
-  real(dp), intent(out) :: urange,drange,acc
-  real(dp), intent(out) :: p(*),w(*)
-!
-!       range [10^(-9),1] and accuracy ~10^(-8);
-!
-  p(1)=4.96142640560223544d19
-  p(2)=1.37454269147978052d19
-  p(3)=7.58610013441204679d18
-  p(4)=4.42040691347806996d18
-  p(5)=2.61986077948367892d18
-  p(6)=1.56320138155496681d18
-  p(7)=9.35645215863028402d17
-  p(8)=5.60962910452691703d17
-  p(9)=3.3666225119686761d17
-  p(10)=2.0218253197947866d17
-  p(11)=1.21477756091902017d17
-  p(12)=7.3012982513608503d16
-  p(13)=4.38951893556421099d16
-  p(14)=2.63949482512262325d16
-  p(15)=1.58742054072786174d16
-  p(16)=9.54806587737665531d15
-  p(17)=5.74353712364571709d15
-  p(18)=3.455214877389445d15
-  p(19)=2.07871658520326804d15
-  p(20)=1.25064667315629928d15
-  p(21)=7.52469429541933745d14
-  p(22)=4.5274603337253175d14
-  p(23)=2.72414006900059548d14
-  p(24)=1.63912168349216752d14
-  p(25)=9.86275802590865738d13
-  p(26)=5.93457701624974985d13
-  p(27)=3.5709554322296296d13
-  p(28)=2.14872890367310454d13
-  p(29)=1.29294719957726902d13
-  p(30)=7.78003375426361016d12
-  p(31)=4.68148199759876704d12
-  p(32)=2.8169955024829868d12
-  p(33)=1.69507790481958464d12
-  p(34)=1.01998486064607581d12
-  p(35)=6.13759486539856459d11
-  p(36)=3.69320183828682544d11
-  p(37)=2.22232783898905102d11
-  p(38)=1.33725247623668682d11
-  p(39)=8.0467192739036288d10
-  p(40)=4.84199582415144143d10
-  p(41)=2.91360091170559564d10
-  p(42)=1.75321747475309216d10
-  p(43)=1.0549735552210995d10
-  p(44)=6.34815321079006586d9
-  p(45)=3.81991113733594231d9
-  p(46)=2.29857747533101109d9
-  p(47)=1.38313653595483694d9
-  p(48)=8.32282908580025358d8
-  p(49)=5.00814519374587467d8
-  p(50)=3.01358090773319025d8
-  p(51)=1.81337994217503535d8
-  p(52)=1.09117589961086823d8
-  p(53)=6.56599771718640323d7
-  p(54)=3.95099693638497164d7
-  p(55)=2.37745694710665991d7
-  p(56)=1.43060135285912813d7
-  p(57)=8.60844290313506695d6
-  p(58)=5.18000974075383424d6
-  p(59)=3.116998193057466d6
-  p(60)=1.87560993870024029d6
-  p(61)=1.12862197183979562d6
-  p(62)=679132.441326077231_dp
-  p(63)=408658.421279877969_dp
-  p(64)=245904.473450669789_dp
-  p(65)=147969.568088321005_dp
-  p(66)=89038.612357311147_dp
-  p(67)=53577.7362552358895_dp
-  p(68)=32239.6513926914668_dp
-  p(69)=19399.7580852362791_dp
-  p(70)=11673.5323603058634_dp
-  p(71)=7024.38438577707758_dp
-  p(72)=4226.82479307685999_dp
-  p(73)=2543.43254175354295_dp
-  p(74)=1530.47486269122675_dp
-  p(75)=920.941785160749482_dp
-  p(76)=554.163803906291646_dp
-  p(77)=333.46029740785694_dp
-  p(78)=200.6550575335041_dp
-  p(79)=120.741366914147284_dp
-  p(80)=72.6544243200329916_dp
-  p(81)=43.7187810415471025_dp
-  p(82)=26.3071631447061043_dp
-  p(83)=15.8299486353816329_dp
-  p(84)=9.52493152341244004_dp
-  p(85)=5.72200417067776041_dp
-  p(86)=3.36242234070940928_dp
-  p(87)=1.75371394604499472_dp
-  p(88)=0.64705932650658966_dp
-  p(89)=0.072765905943708247_dp
-!
-  w(1)=47.67445484528304247d10
-  w(2)=11.37485774750442175d9
-  w(3)=78.64340976880190239d8
-  w(4)=46.27335788759590498d8
-  w(5)=24.7380464827152951d8
-  w(6)=13.62904116438987719d8
-  w(7)=92.79560029045882433d8
-  w(8)=52.15931216254660251d8
-  w(9)=31.67018011061666244d8
-  w(10)=1.29291036801493046d8
-  w(11)=1.00139319988015862d8
-  w(12)=7.75892350510188341d7
-  w(13)=6.01333567950731271d7
-  w(14)=4.66141178654796875d7
-  w(15)=3.61398903394911448d7
-  w(16)=2.80225846672956389d7
-  w(17)=2.1730509180930247d7
-  w(18)=1.68524482625876965d7
-  w(19)=1.30701489345870338d7
-  w(20)=1.01371784832269282d7
-  w(21)=7.86264116300379329d6
-  w(22)=6.09861667912273717d6
-  w(23)=4.73045784039455683d6
-  w(24)=3.66928949951594161d6
-  w(25)=2.8462050836230259d6
-  w(26)=2.20777394798527011d6
-  w(27)=1.71256191589205524d6
-  w(28)=1.32843556197737076d6
-  w(29)=1.0304731275955989d6
-  w(30)=799345.206572271448_dp
-  w(31)=620059.354143595343_dp
-  w(32)=480986.704107449333_dp
-  w(33)=373107.167700228515_dp
-  w(34)=289424.08337412132_dp
-  w(35)=224510.248231581788_dp
-  w(36)=174155.825690028966_dp
-  w(37)=135095.256919654065_dp
-  w(38)=104795.442776800312_dp
-  w(39)=81291.4458222430418_dp
-  w(40)=63059.0493649328682_dp
-  w(41)=48915.9040455329689_dp
-  w(42)=37944.8484018048756_dp
-  w(43)=29434.4290473253969_dp
-  w(44)=22832.7622054490044_dp
-  w(45)=17711.743950151233_dp
-  w(46)=13739.287867104177_dp
-  w(47)=10657.7895710752585_dp
-  w(48)=8267.42141053961834_dp
-  w(49)=6413.17397520136448_dp
-  w(50)=4974.80402838654277_dp
-  w(51)=3859.03698188553047_dp
-  w(52)=2993.51824493299154_dp
-  w(53)=2322.1211966811754_dp
-  w(54)=1801.30750964719641_dp
-  w(55)=1397.30379659817038_dp
-  w(56)=1083.91149143250697_dp
-  w(57)=840.807939169209188_dp
-  w(58)=652.228524366749422_dp
-  w(59)=505.944376983506128_dp
-  w(60)=392.469362317941064_dp
-  w(61)=304.444930257324312_dp
-  w(62)=236.162932842453601_dp
-  w(63)=183.195466078603525_dp
-  w(64)=142.107732186551471_dp
-  w(65)=110.23530215723992_dp
-  w(66)=85.5113346705382257_dp
-  w(67)=66.3325469806696621_dp
-  w(68)=51.4552463353841373_dp
-  w(69)=39.9146798429449273_dp
-  w(70)=30.9624728409162095_dp
-  w(71)=24.018098812215013_dp
-  w(72)=18.6312338024296588_dp
-  w(73)=14.4525541233150501_dp
-  w(74)=11.2110836519105938_dp
-  w(75)=8.69662175848497178_dp
-  w(76)=6.74611236165731961_dp
-  w(77)=5.23307018057529994_dp
-  w(78)=4.05937850501539556_dp
-  w(79)=3.14892659076635714_dp
-  w(80)=2.44267408211071604_dp
-  w(81)=1.89482240522855261_dp
-  w(82)=1.46984505907050079_dp
-  w(83)=1.14019261330527007_dp
-  w(84)=0.884791217422925293_dp
-  w(85)=0.692686387080616483_dp
-  w(86)=0.585244576897023282_dp
-  w(87)=0.576182522545327589_dp
-  w(88)=0.596688817388997178_dp
-  w(89)=0.607879901151108771_dp
-!
-  urange = 1._dp
-  drange=1d-08
-  acc   =1d-08
-!
+   !Arguments
+   real(dp), intent(out) :: urange,drange,acc
+   real(dp), intent(out) :: p(*),w(*)
+ 
+   ! range [10^(-9),1] and accuracy ~10^(-8);
+   p(1)=4.96142640560223544d19
+   p(2)=1.37454269147978052d19
+   p(3)=7.58610013441204679d18
+   p(4)=4.42040691347806996d18
+   p(5)=2.61986077948367892d18
+   p(6)=1.56320138155496681d18
+   p(7)=9.35645215863028402d17
+   p(8)=5.60962910452691703d17
+   p(9)=3.3666225119686761d17
+   p(10)=2.0218253197947866d17
+   p(11)=1.21477756091902017d17
+   p(12)=7.3012982513608503d16
+   p(13)=4.38951893556421099d16
+   p(14)=2.63949482512262325d16
+   p(15)=1.58742054072786174d16
+   p(16)=9.54806587737665531d15
+   p(17)=5.74353712364571709d15
+   p(18)=3.455214877389445d15
+   p(19)=2.07871658520326804d15
+   p(20)=1.25064667315629928d15
+   p(21)=7.52469429541933745d14
+   p(22)=4.5274603337253175d14
+   p(23)=2.72414006900059548d14
+   p(24)=1.63912168349216752d14
+   p(25)=9.86275802590865738d13
+   p(26)=5.93457701624974985d13
+   p(27)=3.5709554322296296d13
+   p(28)=2.14872890367310454d13
+   p(29)=1.29294719957726902d13
+   p(30)=7.78003375426361016d12
+   p(31)=4.68148199759876704d12
+   p(32)=2.8169955024829868d12
+   p(33)=1.69507790481958464d12
+   p(34)=1.01998486064607581d12
+   p(35)=6.13759486539856459d11
+   p(36)=3.69320183828682544d11
+   p(37)=2.22232783898905102d11
+   p(38)=1.33725247623668682d11
+   p(39)=8.0467192739036288d10
+   p(40)=4.84199582415144143d10
+   p(41)=2.91360091170559564d10
+   p(42)=1.75321747475309216d10
+   p(43)=1.0549735552210995d10
+   p(44)=6.34815321079006586d9
+   p(45)=3.81991113733594231d9
+   p(46)=2.29857747533101109d9
+   p(47)=1.38313653595483694d9
+   p(48)=8.32282908580025358d8
+   p(49)=5.00814519374587467d8
+   p(50)=3.01358090773319025d8
+   p(51)=1.81337994217503535d8
+   p(52)=1.09117589961086823d8
+   p(53)=6.56599771718640323d7
+   p(54)=3.95099693638497164d7
+   p(55)=2.37745694710665991d7
+   p(56)=1.43060135285912813d7
+   p(57)=8.60844290313506695d6
+   p(58)=5.18000974075383424d6
+   p(59)=3.116998193057466d6
+   p(60)=1.87560993870024029d6
+   p(61)=1.12862197183979562d6
+   p(62)=679132.441326077231_dp
+   p(63)=408658.421279877969_dp
+   p(64)=245904.473450669789_dp
+   p(65)=147969.568088321005_dp
+   p(66)=89038.612357311147_dp
+   p(67)=53577.7362552358895_dp
+   p(68)=32239.6513926914668_dp
+   p(69)=19399.7580852362791_dp
+   p(70)=11673.5323603058634_dp
+   p(71)=7024.38438577707758_dp
+   p(72)=4226.82479307685999_dp
+   p(73)=2543.43254175354295_dp
+   p(74)=1530.47486269122675_dp
+   p(75)=920.941785160749482_dp
+   p(76)=554.163803906291646_dp
+   p(77)=333.46029740785694_dp
+   p(78)=200.6550575335041_dp
+   p(79)=120.741366914147284_dp
+   p(80)=72.6544243200329916_dp
+   p(81)=43.7187810415471025_dp
+   p(82)=26.3071631447061043_dp
+   p(83)=15.8299486353816329_dp
+   p(84)=9.52493152341244004_dp
+   p(85)=5.72200417067776041_dp
+   p(86)=3.36242234070940928_dp
+   p(87)=1.75371394604499472_dp
+   p(88)=0.64705932650658966_dp
+   p(89)=0.072765905943708247_dp
+ 
+   w(1)=47.67445484528304247d10
+   w(2)=11.37485774750442175d9
+   w(3)=78.64340976880190239d8
+   w(4)=46.27335788759590498d8
+   w(5)=24.7380464827152951d8
+   w(6)=13.62904116438987719d8
+   w(7)=92.79560029045882433d8
+   w(8)=52.15931216254660251d8
+   w(9)=31.67018011061666244d8
+   w(10)=1.29291036801493046d8
+   w(11)=1.00139319988015862d8
+   w(12)=7.75892350510188341d7
+   w(13)=6.01333567950731271d7
+   w(14)=4.66141178654796875d7
+   w(15)=3.61398903394911448d7
+   w(16)=2.80225846672956389d7
+   w(17)=2.1730509180930247d7
+   w(18)=1.68524482625876965d7
+   w(19)=1.30701489345870338d7
+   w(20)=1.01371784832269282d7
+   w(21)=7.86264116300379329d6
+   w(22)=6.09861667912273717d6
+   w(23)=4.73045784039455683d6
+   w(24)=3.66928949951594161d6
+   w(25)=2.8462050836230259d6
+   w(26)=2.20777394798527011d6
+   w(27)=1.71256191589205524d6
+   w(28)=1.32843556197737076d6
+   w(29)=1.0304731275955989d6
+   w(30)=799345.206572271448_dp
+   w(31)=620059.354143595343_dp
+   w(32)=480986.704107449333_dp
+   w(33)=373107.167700228515_dp
+   w(34)=289424.08337412132_dp
+   w(35)=224510.248231581788_dp
+   w(36)=174155.825690028966_dp
+   w(37)=135095.256919654065_dp
+   w(38)=104795.442776800312_dp
+   w(39)=81291.4458222430418_dp
+   w(40)=63059.0493649328682_dp
+   w(41)=48915.9040455329689_dp
+   w(42)=37944.8484018048756_dp
+   w(43)=29434.4290473253969_dp
+   w(44)=22832.7622054490044_dp
+   w(45)=17711.743950151233_dp
+   w(46)=13739.287867104177_dp
+   w(47)=10657.7895710752585_dp
+   w(48)=8267.42141053961834_dp
+   w(49)=6413.17397520136448_dp
+   w(50)=4974.80402838654277_dp
+   w(51)=3859.03698188553047_dp
+   w(52)=2993.51824493299154_dp
+   w(53)=2322.1211966811754_dp
+   w(54)=1801.30750964719641_dp
+   w(55)=1397.30379659817038_dp
+   w(56)=1083.91149143250697_dp
+   w(57)=840.807939169209188_dp
+   w(58)=652.228524366749422_dp
+   w(59)=505.944376983506128_dp
+   w(60)=392.469362317941064_dp
+   w(61)=304.444930257324312_dp
+   w(62)=236.162932842453601_dp
+   w(63)=183.195466078603525_dp
+   w(64)=142.107732186551471_dp
+   w(65)=110.23530215723992_dp
+   w(66)=85.5113346705382257_dp
+   w(67)=66.3325469806696621_dp
+   w(68)=51.4552463353841373_dp
+   w(69)=39.9146798429449273_dp
+   w(70)=30.9624728409162095_dp
+   w(71)=24.018098812215013_dp
+   w(72)=18.6312338024296588_dp
+   w(73)=14.4525541233150501_dp
+   w(74)=11.2110836519105938_dp
+   w(75)=8.69662175848497178_dp
+   w(76)=6.74611236165731961_dp
+   w(77)=5.23307018057529994_dp
+   w(78)=4.05937850501539556_dp
+   w(79)=3.14892659076635714_dp
+   w(80)=2.44267408211071604_dp
+   w(81)=1.89482240522855261_dp
+   w(82)=1.46984505907050079_dp
+   w(83)=1.14019261330527007_dp
+   w(84)=0.884791217422925293_dp
+   w(85)=0.692686387080616483_dp
+   w(86)=0.585244576897023282_dp
+   w(87)=0.576182522545327589_dp
+   w(88)=0.596688817388997178_dp
+   w(89)=0.607879901151108771_dp
+ 
+   urange = 1._dp
+   drange=1d-08
+   acc   =1d-08
+ 
 END SUBROUTINE gequad
+
 
 subroutine fill_halfft(nreal,n1,n_range,nfft,kernelreal,halfft)
   use Poisson_Solver, only: dp
@@ -2411,6 +2396,7 @@ subroutine fill_halfft(nreal,n1,n_range,nfft,kernelreal,halfft)
 
 END SUBROUTINE fill_halfft
 
+
 subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
   use Poisson_Solver, only: dp
   implicit none
@@ -2426,17 +2412,8 @@ subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
   enddo
 END SUBROUTINE copyreal
 
-!> @file
-!!  Wires BC kernel
-!! @author
-!!    Copyright (C) 2006-2011 BigDFT group (LG)
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
 
-!>  Build the kernel of the Poisson operator with
-!!  wires Boundary conditions
+!>  Build the kernel of the Poisson operator with wires Boundary conditions
 !!  in an interpolating scaling functions basis.
 !!  The periodic direction is z
 !! SYNOPSIS
@@ -2522,7 +2499,6 @@ subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2
         end do
      end do
   end do
-  
 
   ! case i2 != 1 (namely mu != 0)
   ! loads the coefficients alpha(:) and w(:) of the Gaussian fit for -BesselK0
@@ -2570,225 +2546,6 @@ subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2
 END SUBROUTINE Wires_Kernel
 
 
-
-! !! acerioni
-
-! !>    Build the kernel of a gaussian function
-! !!    for interpolating scaling functions.
-! !!    Do the parallel HalFFT of the symmetrized function and stores into
-! !!    memory only 1/8 of the grid divided by the number of processes nproc
-! !!
-! !! SYNOPSIS
-! !!    Build the kernel (karray) of a gaussian function
-! !!    for interpolating scaling functions
-! !!    @f$ K(j) = \sum_k \omega_k \int \int \phi(x) g_k(x'-x) \delta(x'- j) dx dx' @f$
-! !!
-! !!   @param n01,n02,n03        Mesh dimensions of the density
-! !!   @param nfft1,nfft2,nfft3  Dimensions of the FFT grid (HalFFT in the third direction)
-! !!   @param n1k,n2k,n3k        Dimensions of the kernel FFT
-! !!   @param hgrid              Mesh step
-! !!   @param itype_scf          Order of the scaling function (8,14,16)
-! !! MODIFICATION
-! !!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
-! subroutine Helmholtz_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
-!      hx,hy,hz,itype_scf,iproc,nproc,karray)
-!  use module_base
-!  implicit none
-!  !Arguments
-!  integer, intent(in) :: n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,itype_scf,iproc,nproc
-!  real(dp), intent(in) :: hx,hy,hz
-!  real(dp), dimension(n1k,n2k,n3k/nproc), intent(out) :: karray
-!  !Local variables
-!  character(len=*), parameter :: subname='Helmholtz_Kernel'
-!  !Do not touch !!!!
-!  integer, parameter :: n_gauss = 90
-!  !Better if higher (1024 points are enough 10^{-14}: 2*itype_scf*n_points)
-!  integer, parameter :: n_points = 2**6
-!  !Better p_gauss for calculation
-!  !(the support of the exponential should be inside [-n_range/2,n_range/2])
-!  real(dp), dimension(1:n_gauss) :: p_gauss,w_gauss
-!  real(dp), dimension(:), allocatable :: fwork
-!  real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
-!  real(dp) :: ur_gauss,dr_gauss,acc_gauss,pgauss,mu0_screening
-!  real(dp) :: factor,factor2 !n(c) ,dx
-!  real(dp) :: a1,a2,a3
-!  integer :: n_scf,nker2,nker3 !n(c) nker1
-!  integer :: i_gauss,n_range,n_cell,itest
-!  integer :: i1,i2,i3,i_stat,i_all
-!  integer :: i03
-
-!  !Number of integration points : 2*itype_scf*n_points
-!  n_scf=2*itype_scf*n_points
-!  !Set karray
-
-!  !here we must set the dimensions for the fft part, starting from the nfft
-!  !remember that actually nfft2 is associated to n03 and viceversa
- 
-!  !Auxiliary dimensions only for building the FFT part
-!  !n(c) nker1=nfft1
-!  nker2=nfft2
-!  nker3=nfft3/2+1
-
-!  !adjusting the last two dimensions to be multiples of nproc
-!  do
-!     if(modulo(nker2,nproc) == 0) exit
-!     nker2=nker2+1
-!  end do
-!  do
-!     if(modulo(nker3,nproc) == 0) exit
-!     nker3=nker3+1
-!  end do
-
-! !!$ !Allocations
-! !!$ allocate(x_scf(0:n_scf+ndebug),stat=i_stat)
-! !!$ call memocc(i_stat,x_scf,'x_scf',subname)
-! !!$ allocate(y_scf(0:n_scf+ndebug),stat=i_stat)
-! !!$ call memocc(i_stat,y_scf,'y_scf',subname)
-! !!$
-! !!$ !Build the scaling function
-! !!$ call scaling_function(itype_scf,n_scf,n_range,x_scf,y_scf)
-!  n_range=2*itype_scf
-!  !Step grid for the integration
-!  !n(c) dx = real(n_range,dp)/real(n_scf,dp)
-!  !Extend the range (no more calculations because fill in by 0._dp)
-!  n_cell = max(n01,n02,n03)
-!  n_range = max(n_cell,n_range)
-
-!  !Lengths of the box (use box dimension)
-!  a1 = hx * real(n01,dp)
-!  a2 = hy * real(n02,dp)
-!  a3 = hz * real(n03,dp)
-
-!  !Initialization of the gaussian (Beylkin)
-
-!  !! to be updated... ************************************ !!
-!  call Yukawa_gequad(p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
-!  !In order to have a range from a_range=sqrt(a1*a1+a2*a2+a3*a3)
-!  !(biggest length in the cube)
-!  !We divide the p_gauss by a_range**2 and a_gauss by a_range
-!  mu0_screening = 1.e0_dp
-!  !a_range = sqrt(a1*a1+a2*a2+a3*a3)
-!  !factor 
-!  !factor2 = factor*factor
-!  !factor2 = 1._dp/(a1*a1+a2*a2+a3*a3)
-!  do i_gauss=1,n_gauss
-!     p_gauss(i_gauss) = mu0_screening**2*p_gauss(i_gauss)
-!  end do
-!  do i_gauss=1,n_gauss
-!     ! we do not put the 1/(4\pi) factor here because
-!     ! it is already accounted for in 'scal'
-!     w_gauss(i_gauss) = mu0_screening*w_gauss(i_gauss)
-!  end do
-!  !! ***************************************************** !!
-
-
-
-!  allocate(fwork(0:n_range+ndebug),stat=i_stat)
-!  call memocc(i_stat,fwork,'fwork',subname)
-
-!  allocate(fftwork(2,max(nfft1,nfft2,nfft3)*2+ndebug),stat=i_stat)
-!  fftwork(1,1)=0.0d0
-!  call memocc(i_stat,fftwork,'fftwork',subname)
-
-!  do i3=1,n3k/nproc
-!     do i2=1,n2k
-!        do i1=1,n1k
-!           karray(i1,i2,i3) = 0.0_dp
-!        end do
-!     end do
-!  end do
-
-! !!$ allocate(kern_1_scf(-n_range:n_range+ndebug),stat=i_stat)
-! !!$ call memocc(i_stat,kern_1_scf,'kern_1_scf',subname)
-
-
-!  allocate(kernel_scf(max(n1k,n2k,n3k),3+ndebug),stat=i_stat)
-!  call memocc(i_stat,kernel_scf,'kernel_scf',subname)
-! !!$ allocate(kernel_scf(-n_range:n_range,3+ndebug),stat=i_stat)
-! !!$ call memocc(i_stat,kernel_scf,'kernel_scf',subname)
-
-!  do i_gauss=n_gauss,1,-1
-!     !Gaussian
-!     pgauss = p_gauss(i_gauss)
-    
-! !!$    if (i_gauss == 71 .or. .true.) then
-! !!$       print *,'pgauss,wgauss',pgauss,w_gauss(i_gauss)
-! !!$       !take the timings
-! !!$       call cpu_time(t0)
-! !!$       do itimes=1,ntimes
-! !!$          !this routine can be substituted by the wofz calculation
-! !!$          call gauss_conv_scf(itype_scf,pgauss,hx,dx,n_range,n_scf,x_scf,y_scf,&
-! !!$               kernel_scf,kern_1_scf)
-! !!$       end do
-! !!$       call cpu_time(t1)
-! !!$       told=real(t1-t0,dp)/real(ntimes,dp)
-! !!$
-! !!$       !take the timings
-! !!$       call cpu_time(t0)
-! !!$       do itimes=1,ntimes
-! !!$          call analytic_integral(sqrt(pgauss)*hx,n_range,itype_scf,fwork)
-! !!$       end do
-! !!$       call cpu_time(t1)
-! !!$       tnew=real(t1-t0,dp)/real(ntimes,dp)
-! !!$
-! !!$       !calculate maxdiff
-! !!$       maxdiff=0.0_dp
-! !!$       do i=0,n_range
-! !!$          !write(17,*)i,kernel_scf(i,1),kern_1_scf(i)
-! !!$          maxdiff=max(maxdiff,abs(kernel_scf(i,1)-(fwork(i))))
-! !!$       end do
-! !!$
-! !!$       do i=0,n_range
-! !!$          write(18,'(i4,3(1pe25.17))')i,kernel_scf(i,1),fwork(i)
-! !!$       end do
-! !!$       
-! !!$       write(*,'(1x,a,i3,2(1pe12.5),1pe24.17)')'time,i_gauss',i_gauss,told,tnew,maxdiff
-! !!$       !stop
-! !!$    end if
-! !!$    !STOP
-
-! !    fwork = 0.0_dp
-    
-!     call gauconv_ffts(itype_scf,pgauss,hx,hy,hz,nfft1,nfft2,nfft3,n1k,n2k,n3k,n_range,&
-!          fwork,fftwork,kernel_scf)
-
-!     !Add to the kernel (only the local part)
-!     do i3=1,nker3/nproc  
-!        if (iproc*(nker3/nproc)+i3  <= nfft3/2+1) then
-!           i03=iproc*(nker3/nproc)+i3
-!           do i2=1,n2k
-!              do i1=1,n1k
-!                 karray(i1,i2,i3) = karray(i1,i2,i3) + w_gauss(i_gauss)* &
-!                      kernel_scf(i1,1)*kernel_scf(i2,2)*kernel_scf(i03,3)
-!              end do
-!           end do
-!        end if
-!     end do
-! !!$
-!  end do
-! !!$stop
-! !!$
-
-! !!$ !De-allocations
-!  i_all=-product(shape(kernel_scf))*kind(kernel_scf)
-!  deallocate(kernel_scf,stat=i_stat)
-!  call memocc(i_stat,i_all,'kernel_scf',subname)
-!  i_all=-product(shape(fwork))*kind(fwork)
-!  deallocate(fwork,stat=i_stat)
-!  call memocc(i_stat,i_all,'fwork',subname)
-!  i_all=-product(shape(fftwork))*kind(fftwork)
-!  deallocate(fftwork,stat=i_stat)
-!  call memocc(i_stat,i_all,'fftwork',subname)
-
-! !!$ i_all=-product(shape(x_scf))*kind(x_scf)
-! !!$ deallocate(x_scf,stat=i_stat)
-! !!$ call memocc(i_stat,i_all,'x_scf',subname)
-! !!$ i_all=-product(shape(y_scf))*kind(y_scf)
-! !!$ deallocate(y_scf,stat=i_stat)
-! !!$ call memocc(i_stat,i_all,'y_scf',subname)
-
-! END SUBROUTINE Helmholtz_Kernel
-
 !> The conversion from d0 to dp type should be finished
 subroutine Yukawa_gequad(p,w,urange,drange,acc)
  
@@ -2814,54 +2571,53 @@ subroutine Yukawa_gequad(p,w,urange,drange,acc)
 END SUBROUTINE Yukawa_gequad
 
 
-  subroutine test_g2cart(n1,n2,n3,gprimd,g2cart)
-    implicit none
-    integer, intent(in) :: n1,n2,n3
-    real(kind=8), dimension(3,3), intent(in) :: gprimd
-    real(kind=8), dimension(n1*n2*n3), intent(out) :: g2cart
-    !local variables
-    integer :: count, i1,i2,i3,id1,id2,id3,ifft,ig1,ig2,ig3,ii1
-    real(kind=8) :: b11,b12,b13,b21,b22,b23,b31,b32,b33
-    
+subroutine test_g2cart(n1,n2,n3,gprimd,g2cart)
+   implicit none
+   integer, intent(in) :: n1,n2,n3
+   real(kind=8), dimension(3,3), intent(in) :: gprimd
+   real(kind=8), dimension(n1*n2*n3), intent(out) :: g2cart
+   !local variables
+   integer :: count, i1,i2,i3,id1,id2,id3,ifft,ig1,ig2,ig3,ii1
+   real(kind=8) :: b11,b12,b13,b21,b22,b23,b31,b32,b33
+   
 
-    id1=int(n1/2)+2
-    id2=int(n2/2)+2
-    id3=int(n3/2)+2
-    ifft=0
-    count=0
-    do i3=1,n3
-       ifft=(i3-1)*n1*n2
-       ig3=i3-int(i3/id3)*n3-1
-       do i2=1,n2
-          ig2=i2-int(i2/id2)*n2-1
-          ii1=1
-          do i1=ii1,n1
-             ig1=i1-int(i1/id1)*n1-1
-             ifft=ifft+1
+   id1=int(n1/2)+2
+   id2=int(n2/2)+2
+   id3=int(n3/2)+2
+   ifft=0
+   count=0
+   do i3=1,n3
+      ifft=(i3-1)*n1*n2
+      ig3=i3-int(i3/id3)*n3-1
+      do i2=1,n2
+         ig2=i2-int(i2/id2)*n2-1
+         ii1=1
+         do i1=ii1,n1
+            ig1=i1-int(i1/id1)*n1-1
+            ifft=ifft+1
 
-             b11=gprimd(1,1)*real(ig1,kind=8)
-             b21=gprimd(2,1)*real(ig1,kind=8)
-             b31=gprimd(3,1)*real(ig1,kind=8)
-             b12=gprimd(1,2)*real(ig2,kind=8)
-             b22=gprimd(2,2)*real(ig2,kind=8)
-             b32=gprimd(3,2)*real(ig2,kind=8)
-             b13=gprimd(1,3)*real(ig3,kind=8)
-             b23=gprimd(2,3)*real(ig3,kind=8)
-             b33=gprimd(3,3)*real(ig3,kind=8)
+            b11=gprimd(1,1)*real(ig1,kind=8)
+            b21=gprimd(2,1)*real(ig1,kind=8)
+            b31=gprimd(3,1)*real(ig1,kind=8)
+            b12=gprimd(1,2)*real(ig2,kind=8)
+            b22=gprimd(2,2)*real(ig2,kind=8)
+            b32=gprimd(3,2)*real(ig2,kind=8)
+            b13=gprimd(1,3)*real(ig3,kind=8)
+            b23=gprimd(2,3)*real(ig3,kind=8)
+            b33=gprimd(3,3)*real(ig3,kind=8)
 
-             g2cart(ifft)=( &
-                  &     (b11+b12+b13)**2&
-                  &     +(b21+b22+b23)**2&
-                  &     +(b31+b32+b33)**2&
-                  &     )
+            g2cart(ifft)=( &
+                 &     (b11+b12+b13)**2&
+                 &     +(b21+b22+b23)**2&
+                 &     +(b31+b32+b33)**2&
+                 &     )
 !!$     do ifunc=1,nfunc
 !!$!     compute the laplacien in fourrier space
 !!$!     that is * (i x 2pi x G)**2
 !!$      laplacerdfuncg(1,ifft,ifunc) = -rdfuncg(1,ifft,ifunc)*g2cart(ifft)*two_pi*two_pi
 !!$      laplacerdfuncg(2,ifft,ifunc) = -rdfuncg(2,ifft,ifunc)*g2cart(ifft)*two_pi*two_pi
 !!$     end do
-          end do
-       end do
-    end do
-  end subroutine test_g2cart
-
+         end do
+      end do
+   end do
+end subroutine test_g2cart

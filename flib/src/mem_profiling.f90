@@ -1,17 +1,16 @@
-!!****m* ABINIT/m_profiling
-!! NAME
-!! m_profiling
-!!
-!! FUNCTION
-!! This module contains routines to profile the code.
+!> @file
+!! Memory profiling module (flib)
+!! @author
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module which contains routines to profile the code.
 !! Currently only memory occupation are provided here.
 !! Ideally, timab should be incorporated here.
-!!
-!! COPYRIGHT
-!! Copyright (C) 2010 ABINIT group
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
 module memory_profiling
   implicit none
 
@@ -35,14 +34,35 @@ module memory_profiling
   !logical :: memdebug=.true.
   integer :: malloc_level=2
 
-  !interface for the memory allocation control, depends on ndebug
+  !> Interface for the memory allocation control, depends on ndebug
+  !! Control the memory occupation by calculating the overall size of the allocated arrays
+  !!   when allocating allocating an array "stuff" of dimension n in the routine "dosome":
+  !!      allocate(stuff(n),stat=i_stat)
+  !!      call memocc(i_stat,stuff,'stuff','dosome')
+  !!   when deallocating:
+  !!      i_all=-product(shape(stuff))*kind(stuff)
+  !!      deallocate(stuff,stat=i_stat)
+  !!      call memocc(i_stat,i_all,'stuff','dosome')
+  !!   The counters are initialized once by the first allocation
+  !!   and stopped with:
+  !!      call memocc(0,0,'count','stop')
+  !!   At the end of the calculation a short report is printed on the screen,
+  !!   some information can be also written on disk following the needs
+  !!
+  !!   The file malloc.prc is not deleted if the final total memory is not equal
+  !!   to zero.
+  !!   memdebug (parameter)
+  !!     == .true.  verbose format (useful with utils/scripts/memcheck.py)
+  !!                then display a line per allocation or deallocation
+  !!                a routine at the end parses the file
+  !!     == .false. compact format
   interface memocc
      module procedure mo_dp1,mo_dp2,mo_dp3,mo_dp4,mo_dp5,mo_dp6,mo_dp7,&
           mo_sp1,mo_sp2,mo_sp3,mo_sp4,mo_sp5,mo_sp6,mo_sp7,&
           mo_i1,mo_i2,mo_i3,mo_i4,mo_i5,mo_i6,mo_i7,&
           mo_l1,mo_l2,mo_l3,mo_l4,mo_l5,mo_l6,mo_l7,&
           mo_c1, mo_cmpdp1, &
-          memocc_internal  !central routine to be used for deallocation
+          memocc_internal  !< Central routine to be used for deallocation
   end interface
 
   public :: memocc,ndebug
@@ -55,11 +75,11 @@ module memory_profiling
 contains
 
   !> State of malloc.prc file and of counters
-  !!  @param istatus 0 no file malloc.prc is created, only memory allocation counters running
-  !!                 1 file malloc.prc is created in a light version (only current information is written)
-  !!                 2 file malloc.prc is created with full information inside (default state if not specified)
   !! The status can only be downgraded. A stop signal is produced if status is increased
   subroutine memocc_set_state(istatus)
+    !> 0 no file malloc.prc is created, only memory allocation counters running
+    !! 1 file malloc.prc is created in a light version (only current information is written)
+    !! 2 file malloc.prc is created with full information inside (default state if not specified)
     integer, intent(in) :: istatus
     !local variable
     integer :: istat_del
@@ -151,38 +171,6 @@ contains
   end subroutine memocc_set_stdout
 
 
-  !!****f* ABINIT/memory_occupation
-  !! FUNCTION
-  !! Control the memory occupation by calculating the overall size of the allocated arrays
-  !! DESCRIPTION
-  !!   when allocating allocating an array "stuff" of dimension n in the routine "dosome":
-  !!      allocate(stuff(n),stat=i_stat)
-  !!      call memocc(i_stat,stuff,'stuff','dosome')
-  !!   when deallocating:
-  !!      i_all=-product(shape(stuff))*kind(stuff)
-  !!      deallocate(stuff,stat=i_stat)
-  !!      call memocc(i_stat,i_all,'stuff','dosome')
-  !!   The counters are initialized once by the first allocation
-  !!   and stopped with:
-  !!      call memocc(0,0,'count','stop')
-  !!   At the end of the calculation a short report is printed on the screen,
-  !!   some information can be also written on disk following the needs
-  !!
-  !!   The file malloc.prc is not deleted if the final total memory is not equal
-  !!   to zero.
-  !!   memdebug (parameter)
-  !!     == .true.  verbose format (useful with utils/scripts/memcheck.py)
-  !!                then display a line per allocation or deallocation
-  !!                a routine at the end parses the file
-  !!     == .false. compact format
-  !! COPYRIGHT
-  !!    Copyright (C) 2007-2010, BigDFT group (Luigi Genovese)
-  !!    This file is distributed under the terms of the
-  !!    GNU General Public License, see ~/COPYING file
-  !!    or http://www.gnu.org/copyleft/gpl.txt .
-  !!    For the list of contributors, see ~/AUTHORS 
-  !! SOURCE
-  !!
   subroutine memocc_internal(istat,isize,array,routine)
     use yaml_output
     use dictionaries!error_handling
@@ -245,15 +233,7 @@ contains
           call yaml_map('in the routine',trim(memtot%routine))
           call yaml_close_map()
           call yaml_close_map()
-          !write it in Yaml Format without yaml module
-!!$            write(stdout,'(1x,a)')'Memory Consumption Report:'
-!!$            write(stdout,'(1x,a,i0)')'  Tot. No. of Allocations  : ',memalloc
-!!$            write(stdout,'(1x,a,i0)')'  Tot. No. of Deallocations: ',memdealloc
-!!$            write(stdout,'(1x,a,i0)')'  Remaining Memory (B)     : ',memtot%memory
-!!$            write(stdout,'(1x,a)')   '  Memory occupation: '
-!!$            write(stdout,'(1x,a,i0)')'     Peak Value (MB): ',memtot%peak/int(1048576,kind=8)
-!!$            write(stdout,'(1x,a)')   '     for the array: '//trim(memtot%array)       
-!!$            write(stdout,'(1x,a)')   '     in the routine: '//trim(memtot%routine)       
+
           !here we can add a routine which open the malloc.prc file in case of some 
           !memory allocation problem, and which eliminates it for a successful run
           if (malloc_level == 1 .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
@@ -273,27 +253,13 @@ contains
        !control of the allocation/deallocation status (to be removed once f_malloc has been inserted)
        if (istat/=0) then
           if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
-          write(message,'(1x,a)')'subroutine '//trim(routine),', array '//trim(array)//&
+          write(message,'(1x,a)') 'subroutine '//trim(routine)//', array '//trim(array)//&
                ', error code '//trim(yaml_toa(istat))
           if (f_err_raise(isize>=0,trim(message),err_name='ERR_ALLOCATE')) return
           if (f_err_raise(isize< 0,trim(message),err_name='ERR_DEALLOCATE')) return
        end if
-!!$       if (istat/=0) then
-!!$          if (isize>=0) then
-!!$             !here the error handling module should be used
-!!$             
-!!$             write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
-!!$                  ', error code=',istat,' exiting...'
-!!$
-!!$             call MPI_ABORT(MPI_COMM_WORLD,ierr)
-!!$          else if (isize<0) then
-!!$             write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
-!!$                  ', error code=',istat,' exiting...'
-!!$             if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
-!!$             call MPI_ABORT(MPI_COMM_WORLD,ierr)
-!!$          end if
-!!$       end if
-       !total counter, for all the processes
+
+       !Total counter, for all the processes
        memtot%memory=memtot%memory+int(isize,kind=8)
        if (memtot%memory > memtot%peak) then
           memtot%peak=memtot%memory
@@ -308,10 +274,9 @@ contains
        
        if (memorylimit /= 0.e0 .and. &
             memtot%memory > int(real(memorylimit,kind=8)*1073741824.d0,kind=8)) then !memory limit is in GB
-          write(message,'(1x,a,f7.3,2(a,i0),a)')&
+          write(message,'(a,f7.3,2(a,i0),a)')&
                'Limit of ',memorylimit,' GB reached, memproc ',memproc,' total memory is ',memtot%memory,' B. '
-!!$          write(*,'(1x,a)') 'Array '//trim(memtot%array)//', routine '//trim(memtot%routine)
-!!$          call MPI_ABORT(MPI_COMM_WORLD,ierr)
+
           if (f_err_raise(.true.,trim(message)//' Array '//trim(memtot%array)//&
                ', routine '//trim(memtot%routine),err_name='ERR_MEMLIMIT')) return
        end if
@@ -349,14 +314,9 @@ contains
        end select
     end select
   END SUBROUTINE memocc_internal
-  !!***
 
 
-  !!****f* ABINIT/memory_malloc_check
-  !! FUNCTION
-  !!   Check the malloc.prc file (verbose format)
-  !! SOURCE
-  !!
+  !> Check the malloc.prc file (verbose format)
   subroutine memory_malloc_check(nalloc,ndealloc)
     implicit none
     !Arguments
@@ -369,9 +329,9 @@ contains
             trim(filename)//" file"
     end if
   END SUBROUTINE memory_malloc_check
-  !!***
 
-  !to be desactivated
+
+  !> to be desactivated
   subroutine dp_padding(npaddim,nstart,array)
     implicit none
     integer, intent(in) :: npaddim,nstart

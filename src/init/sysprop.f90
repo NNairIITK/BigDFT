@@ -1,7 +1,7 @@
 !> @file
 !!  Routines related to system properties
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -224,10 +224,11 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   use module_types
   use module_xc
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use module_base
   implicit none
   logical, intent(in) :: verb
   integer, intent(in) :: iproc, nproc
-  character, intent(in) :: geocode
+  character, intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   type(input_variables), intent(in) :: in
   type(DFT_local_fields), intent(inout) :: denspot
 
@@ -235,19 +236,21 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
 
   denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
        geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
-
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
+     !this might pose problems when using SIC or exact exchange with taskgroups
      denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
           geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
+
 END SUBROUTINE system_initKernels
 
 subroutine system_createKernels(denspot, verb)
+  use module_base
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
@@ -255,13 +258,12 @@ subroutine system_createKernels(denspot, verb)
   type(DFT_local_fields), intent(inout) :: denspot
 
   call pkernel_set(denspot%pkernel,verb)
-  !create the sequential kernel if pkernelseq is not pkernel
+    !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
      call pkernel_set(denspot%pkernelseq,.false.)
   else
      denspot%pkernelseq = denspot%pkernel
   end if
-  
 
 END SUBROUTINE system_createKernels
 
@@ -324,7 +326,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
      allocate(rhocore(d%n1i,d%n2i,n3d,10+ndebug),stat=i_stat)
      call memocc(i_stat,rhocore,'rhocore',subname)
      !initalise it 
-     if (n3d.gt.0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
+     if (n3d > 0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
@@ -430,6 +432,8 @@ subroutine init_atomic_values(verb, atoms, ixc)
      if(atoms%npspcode(ityp)==12) nlcc_dim=nlcc_dim+1
 
      if (exists) then
+        !ALEX: Count Gaussians for rhocore
+        if(atoms%npspcode(ityp)==12) nlcc_dim=nlcc_dim+1
         !! first time just for dimension ( storeit = . false.)
         call pawpatch_from_file( filename, atoms,ityp,&
              paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
@@ -691,11 +695,13 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   use module_base
   use module_types
   implicit none
+  !Arguments
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: crmult, frmult, projrad
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
-
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4
+  !Local Variables
+  integer, parameter :: nmax=6,lmax=4
+  !integer, parameter :: nelecmax=32
   character(len=2) :: symbol
   integer :: i,ityp,mxpl,mxchg,nsccode
   real(gp) :: rcov,rprb,ehomo,radfine,amu,maxrad
@@ -737,7 +743,6 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   enddo
 END SUBROUTINE read_radii_variables
 
-
 subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   use module_base
   use module_types
@@ -750,8 +755,9 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(inout) :: orbs
   !local variables
-  character(len=*), parameter :: subname='read_orbital_variables'
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  !character(len=*), parameter :: subname='read_orbital_variables'
+  integer, parameter :: nelecmax=32,lmax=4,noccmax=2
+  !integer, parameter :: nmax=6
   logical :: exists
   integer :: iat,iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty,nelec
@@ -760,7 +766,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
   character(len=100) :: radical
-
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
@@ -970,7 +975,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   end if
 
   call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor,&
-       in%nkpt,in%kpt,in%wkpt,orbs,.false.)
+       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
 
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
@@ -1020,6 +1025,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   if (verb .and. iproc == 0) call yaml_close_sequence()
 end subroutine read_orbital_variables
 
+
 subroutine read_atomic_variables(atoms, fileocc, nspin)
   use module_base
   use module_types
@@ -1030,8 +1036,9 @@ subroutine read_atomic_variables(atoms, fileocc, nspin)
   type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: nspin
   !local variables
-  character(len=*), parameter :: subname='read_atomic_variables'
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  !character(len=*), parameter :: subname='read_atomic_variables'
+  integer, parameter :: nelecmax=32,nmax=6,lmax=4
+  !integer, parameter :: noccmax=2
   character(len=2) :: symbol
   integer :: ityp,iat,ierror,mxpl
   integer :: mxchg,nsccode
@@ -1081,9 +1088,9 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
   integer, intent(in) :: ixc
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   !local variables
-  character(len=*), parameter :: subname='print_atomic_variables'
+  !character(len=*), parameter :: subname='print_atomic_variables'
+  !integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   logical :: nonloc
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
   integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
   real(gp) :: minrad
   real(gp), dimension(3,3) :: hij
@@ -1164,12 +1171,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
      end if
      !control whether the grid spacing is too high
      if (hmax > 2.5_gp*minrad) then
-        call yaml_warning('Chosen Grids spacings seem too high for this atom. At you own risk!')
-!!$        write(*,'(1x,a)')&
-!!$             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-!!$        write(*,'(1x,a,f5.2,a)')&
-!!$             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
-!!$             '. At your own risk!'
+        call yaml_warning('Chosen Grid spacings seem too high for this atom. At you own risk!')
      end if
 
      select case(atoms%npspcode(ityp))
@@ -1245,51 +1247,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
      call numb_proj(ityp,atoms%astruct%ntypes,atoms%psppar,atoms%npspcode,mproj)
      call yaml_map('No. of projectors',mproj)
 
-!!$     write(*,'(1x,a)')&
-!!$          'Atom Name    rloc      C1        C2        C3        C4  '
-!!$     do l=0,4
-!!$        if (l==0) then
-!!$           do i=4,0,-1
-!!$              j=i
-!!$              if (atoms%psppar(l,i,ityp) /= 0._gp) exit
-!!$           end do
-!!$           write(*,'(3x,a6,5(1x,f9.5))')&
-!!$                trim(atoms%astruct%atomnames(ityp)),(atoms%psppar(l,i,ityp),i=0,j)
-!!$        else
-!!$           do i=3,0,-1
-!!$              j=i
-!!$              if (atoms%psppar(l,i,ityp) /= 0._gp) exit
-!!$           end do
-!!$           if (j /=0) then
-!!$              write(*,'(1x,a,i0,a)')&
-!!$                   '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
-!!$              hij=0._gp
-!!$              do i=1,j
-!!$                 hij(i,i)=atoms%psppar(l,i,ityp)
-!!$              end do
-!!$              if (atoms%npspcode(ityp) == 3) then !traditional HGH convention
-!!$                 hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
-!!$                 hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
-!!$                 hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
-!!$              else if (atoms%npspcode(ityp) == 10) then !HGH-K convention
-!!$                 hij(1,2)=atoms%psppar(l,4,ityp)
-!!$                 hij(1,3)=atoms%psppar(l,5,ityp)
-!!$                 hij(2,3)=atoms%psppar(l,6,ityp)
-!!$              end if
-!!$              do i=1,j
-!!$                 if (i==1) then
-!!$                    write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
-!!$                    write(*,format)atoms%psppar(l,0,ityp),(hij(i,k),k=i,j)
-!!$                 else
-!!$                    write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
-!!$                    write(*,format)(hij(i,k),k=i,j)
-!!$                 end if
-!!$
-!!$              end do
-!!$           end if
-!!$        end if
-!!$     end do
-!!$     !control if the PSP is calculated with the same XC value
+     !control if the PSP is calculated with the same XC value
      if (atoms%ixcpsp(ityp) < 0) then
         call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_MIXED)
      else
@@ -1303,11 +1261,6 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc)
      call yaml_map('PSP XC','"'//trim(name_xc1)//'"')
      if (trim(name_xc1) /= trim(name_xc2)) then
         call yaml_warning('Input XC is "'//trim(name_xc2) // '"')
-!!$        write(*,'(1x,a)')&
-!!$             'WARNING: The pseudopotential file psppar."'//trim(atoms%astruct%atomnames(ityp))//'"'
-!!$        write(*,'(1x,a,i0,a,i0)')&
-!!$             '         contains a PSP generated with an XC id=',&
-!!$             atoms%ixcpsp(ityp),' while for this run ixc=',ixc
      end if
   end do
   call yaml_close_sequence()

@@ -1,0 +1,119 @@
+ <BigDFT> log of the run will be written in logfile: ./log-read36.yaml
+ ------------------------------------------------------------------------------------
+ >>>> Partition of the basis functions among the processes.
+    | Processes from 0 to 5 treat 4 orbitals. |
+ -----------------------------------------------
+total elements: 576
+non-zero elements: 576
+sparsity:  0.00%
+total elements: 576
+non-zero elements: 576
+sparsity:  0.00%
+total elements: 576
+non-zero elements: 576
+sparsity:  0.00%
+ Overview of the reformatting (several categories may apply):
+   - No reformatting required: 0
+   - Grid spacing has changed: 0
+   - Number of coarse grid points has changed: 24
+   - Number of fine grid points has changed: 24
+   - Box size has changed: 24
+   - Molecule was shifted: 24
+   - Molecule was rotated: 18
+   - Discrete operations: 0
+coeff renormalization...coeff renormalization...coeff renormalization...coeff renormalization... nstates_max:          16          16          24
+ -------------------------------------------------
+ some selected eigenvalues:
+   eval(1)=  -9.212793564483E-01
+   eval(2)=  -9.212793564483E-01
+   eval(3)=  -9.212793564483E-01
+   eval(4)=  -9.212793564483E-01
+   eval(5)=  -4.823929093162E-01
+   eval(6)=  -4.823929093162E-01
+   eval(7)=  -4.823929093162E-01
+   eval(8)=  -4.823929093162E-01
+   eval(9)=  -3.417921811586E-01
+   eval(10)=  -3.417921811586E-01
+   eval(11)=  -3.417921811586E-01
+   eval(12)=  -3.417921811586E-01
+   eval(13)=  -2.698785943401E-01
+   eval(14)=  -2.698785943401E-01
+   eval(15)=  -2.698785943401E-01
+   eval(16)=  -2.698785943401E-01  <-- last occupied orbital
+   eval(17)=   1.527459848654E-02  <-- first virtual orbital
+   eval(18)=   1.527459848654E-02
+   eval(19)=   1.527459848654E-02
+   eval(20)=   1.527459848654E-02
+   eval(21)=   1.030959275758E-01
+   eval(22)=   1.030959275758E-01
+   eval(23)=   1.030959275758E-01
+   eval(24)=   1.030959275758E-01
+ -------------------------------------------------
+ lowest, highest ev: -9.2127935644832970E-01  1.0309592757580870E-01
+coeff renormalization... calculate density kernel... Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   3.199999979099E+01
+ ************************************************************************************
+ ****************************** LINEAR SCALING VERSION ******************************
+max dev from unity    2.184007E-01
+ ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex    5.03703628E+01    0.00000000E+00   -6.52968586E+01    4.20026329E+00    0.00000000E+00
+ Hamiltonian application done.
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.295955E-002     0.000000E+000    -1.624087E+001     1.000000E-001
+ ======================== Creation of the basis functions... ========================
+ ----------------------------------------------------------------------------- iter=1
+ Orthoconstraint... Preconditioning... done.
+AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.061459E-01    2.816664E-01    5.812724E-02
+ iter, fnrm, fnrmMax, ebs, diff     1  4.3342101E-01  8.0898338E-01   -68.6163926940  -6.8616E+01
+ WARNING: not converged within 1 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, ebs:   4.3342101E-01  8.0898338E-01    -68.6163927
+ ============================= Basis functions created. =============================
+max dev from unity    2.184007E-01
+ ----------------------------------- Determination of the orbitals in this new basis.
+ No Hamiltonian application required.
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
+DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.027027E-002    -1.624087E+001    -2.697370E-003     2.000000E-001
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   3.199999979182E+01
+ ---------------------------------------------------------------- Updating potential.
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 1 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   1  3.1163377E-08   -6.86190900644925676E+01   -6.8619E+01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.624356552724E+01  1.421510726216E+02 -1.648041836840E+01 -2.160366337334E+01  0.000000000000E+00  8.478410831474E+01  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   3.12E-08   -6.86190900644925676E+01   -6.8619E+01
+ ############################################################################################
+ at iteration 1 of the outer loop:
+   > basis functions optimization:
+     - target function is energy
+     - WARNING: basis functions not converged!
+     Final values: target function, fnrm  -6.861639E+01    4.33E-01
+   > density optimization:
+     - using direct minimization.
+     - WARNING: density optimization not converged!
+     FINAL values: it, Delta DENS, energy   1    3.12E-08   -6.86190900644925676E+01
+   > energy difference to last iteration: -6.861909E+01
+ ############################################################################################
+ Weight analysis:
+ coeff, occ, eval, frac for each frag
+   1  2.0000  -0.921279  0.9897  0.0003  0.0099  0.0002   
+   2  2.0000  -0.921279  0.0059  0.9940  0.0000  0.0001   
+   3  2.0000  -0.921279  0.0004  0.0000  0.9994  0.0002   
+   4  2.0000  -0.921279  0.0003  0.0001  0.0002  0.9994   
+   5  2.0000  -0.482393  0.9998  0.0002  0.0001  0.0000   
+   6  2.0000  -0.482393  0.0015  0.9985  0.0000  0.0000   
+   7  2.0000  -0.482393  0.0003  0.0000  0.9995  0.0002   
+   8  2.0000  -0.482393  0.0005  0.0001  0.0002  0.9992   
+   9  2.0000  -0.341792  0.9975  0.0004  0.0014  0.0007   
+  10  2.0000  -0.341792  0.0089  0.9911  0.0000  0.0000   
+  11  2.0000  -0.341792  0.0010  0.0000  0.9982  0.0007   
+  12  2.0000  -0.341792  0.0001  0.0006  0.0008  0.9985   
+  13  2.0000  -0.269879  0.9786  0.0004  0.0209  0.0002   
+  14  2.0000  -0.269879  0.0061  0.9934  0.0000  0.0006   
+  15  2.0000  -0.269879  0.0002  0.0000  0.9995  0.0003   
+  16  2.0000  -0.269879  0.0021  0.0000  0.0005  0.9974   
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.624356552724E+01  1.421510726216E+02 -1.648041836840E+01 -2.160366337334E+01  0.000000000000E+00  8.478410831474E+01  0.000000000000E+00
+   itoutH, Delta DENSOUT, energy, energyDiff   1   3.12E-08   -6.86190900644925676E+01    0.0000E+00   FINAL
+Calculating charge density... done.
+   Calculation finished. TOTAL CHARGE =   3.199999979182E+01

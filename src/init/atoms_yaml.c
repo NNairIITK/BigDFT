@@ -597,14 +597,14 @@ static int posinp_yaml_coords(yaml_parser_t *parser, PosinpAtoms *atoms, char **
                 atom_size += ATOM_INC;
                 atoms->rxyz = realloc(atoms->rxyz, sizeof(double) * 3 * atom_size);
                 atoms->atomnames = realloc(atoms->atomnames, sizeof(char*) * atom_size);
-                memset(atoms->atomnames - ATOM_INC, 0, sizeof(char*) * ATOM_INC);
+                memset(atoms->atomnames + atom_size - ATOM_INC, 0, sizeof(char*) * ATOM_INC);
                 atoms->iatype = realloc(atoms->iatype, sizeof(unsigned int) * atom_size);
                 atoms->ifrztyp = realloc(atoms->ifrztyp, sizeof(unsigned int) * atom_size);
-                memset(atoms->ifrztyp - ATOM_INC, 0, sizeof(unsigned int) * ATOM_INC);
+                memset(atoms->ifrztyp + atom_size - ATOM_INC, 0, sizeof(unsigned int) * ATOM_INC);
                 atoms->igspin = realloc(atoms->igspin, sizeof(int) * atom_size);
-                memset(atoms->igspin - ATOM_INC, 0, sizeof(int) * ATOM_INC);
+                memset(atoms->igspin + atom_size - ATOM_INC, 0, sizeof(int) * ATOM_INC);
                 atoms->igchg = realloc(atoms->igchg, sizeof(int) * atom_size);
-                memset(atoms->igchg - ATOM_INC, 0, sizeof(int) * ATOM_INC);
+                memset(atoms->igchg + atom_size - ATOM_INC, 0, sizeof(int) * ATOM_INC);
               }
             break;
           case YAML_SEQUENCE_END_EVENT:

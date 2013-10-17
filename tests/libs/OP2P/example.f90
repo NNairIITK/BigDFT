@@ -1,3 +1,14 @@
+!> @file
+!!  Test of the overlap point to point
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Program to test the OP2P (overlap point to point)
 program example_op2p
   use BigDFT_API
   use overlap_point_to_point

@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 17/11/2011
+# Date: 11/09/2013
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -34,12 +34,15 @@ re_float = re.compile("([- ]?[0-9]+[.][0-9]*([DEde][-+]?[0-9]+)?)")
 
 #Maximum discrepancy between float results (default)
 max_discrepancy = 1.1e-10
+#Use for non-significant discrepancy (float <= min_digits digits)
+min_digits = 5
 
 def usage():
-    print "fldiff.py [--mode=m] [--discrepancy=d] [--help] file1 file2"
-    print "  --mode=[bigdft,neb,psolver] to compare 'bigdft', 'NEB' or 'PS_Check' output files"
-    print "  --discrepancy=%7.1e Maximal discrepancy between results" % max_discrepancy
-    print "  --help   display this message"
+    print "fldiff.py [--mode=m] [--discrepancy=d] [--mindigits=e] [--help] file1 file2"
+    print "  --mode=[bigdft,neb,psolver,pseudo] to compare 'bigdft', 'NEB', 'PS_Check' or pseudo output files"
+    print "  --discrepancy=%7.1e                maximal discrepancy between results" % max_discrepancy
+    print "  --mindigits=%d                        minimal number of digits for relevant float comparison" % min_digits
+    print "  --help                               display this message"
     sys.exit(1)
 
 def n_digits(figure):
@@ -54,7 +57,7 @@ def n_digits(figure):
 
 #Check arguments
 try:
-    optlist, args = getopt.getopt(sys.argv[1:],"md:h",["mode=","discrepancy=","help"])
+    optlist, args = getopt.getopt(sys.argv[1:],"mde:h",["mode=","discrepancy=","mindigits=","help"])
 except getopt.error:
     sys.stderr.write("Error in arguments\n")
     usage()
@@ -62,13 +65,17 @@ except getopt.error:
 bigdft  = False
 neb     = False
 psolver = False
+pseudo  = False
 for opt,arg in optlist:
     if opt == "-m" or opt == "--mode":
         bigdft  = (arg == "bigdft")
         neb     = (arg == "neb")
         psolver = (arg == "psolver")
+        pseudo  = (arg == "pseudo")
     elif opt == "-d" or opt == "--discrepancy":
         max_discrepancy=float(arg)
+    elif opt == "-e" or opt == "--mindigits":
+        min_digits=int(arg)
     elif opt == "-h" or opt == "--help":
         usage()
 if len(args) != 2:
@@ -164,6 +171,14 @@ elif psolver:
             or "Max diff at" in line \
             or "result" in line \
             or "for the array" in line
+elif pseudo:
+    #Remove lines containing the word time
+    def line_junk(line):
+        "True if the line must not be compared"
+        return "time" in line \
+            or "date" in line \
+            or "changes" in line \
+            or "nodes" in line
 else:
     def line_junk(line):
         "Always False except for Hostname"
@@ -187,8 +202,6 @@ except IOError:
     sys.exit(1)
 
 maximum = 0.0
-#Use for non-significant discrepancy (float <= min_digits digits)
-min_digits = 5
 ns_discrepancy = False #Non significant discrepancy.
 context_discrepancy = ""
 context_lines = ""

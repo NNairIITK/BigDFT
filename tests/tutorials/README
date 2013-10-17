@@ -1,1 +1,11 @@
-tests the runs which are executed in the tutorials web pages
+/*! @file
+@brief README of the directory containg the tutorials of BigDFT
+
+@dir
+@brief Contains the BigDFT tutorials
+
+@page TESTS_TUTORIALS Tests the tutorial examples
+@brief Non-regression tests (BigDFT tutorials)
+
+Tests the runs which are executed in the tutorials web pages:
+*/

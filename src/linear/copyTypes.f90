@@ -9,12 +9,13 @@
 
 
 !> Currently incomplete - need to add comms arrays etc
-subroutine copy_tmbs(tmbin, tmbout, subname)
+subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
   use module_base
   use module_types
   use module_interfaces
   implicit none
 
+  integer,intent(in) :: iproc
   type(DFT_wavefunction), intent(in) :: tmbin
   type(DFT_wavefunction), intent(out) :: tmbout
   character(len=*),intent(in):: subname
@@ -22,7 +23,7 @@ subroutine copy_tmbs(tmbin, tmbout, subname)
   call nullify_orbitals_data(tmbout%orbs)
   call copy_orbitals_data(tmbin%orbs, tmbout%orbs, subname)
   call nullify_local_zone_descriptors(tmbout%lzd)
-  call copy_old_supportfunctions(tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
+  call copy_old_supportfunctions(iproc,tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
 
   if (associated(tmbin%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
       call copy_old_coefficients(tmbin%orbs%norb, tmbin%coeff, tmbout%coeff)
@@ -208,7 +209,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   implicit none
   
   ! Calling arguments
-  character(len=1),intent(in) :: geocode
+  character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   type(convolutions_bounds),intent(in):: boundsin
   type(convolutions_bounds),intent(inout):: boundsout
   character(len=*),intent(in):: subname
@@ -255,7 +256,7 @@ use module_types
 implicit none
 
 ! Calling arguments
-character(len=1),intent(in) :: geocode 
+character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode 
 type(kinetic_bounds),intent(in):: kbin
 type(kinetic_bounds),intent(inout):: kbout
 character(len=*),intent(in):: subname
@@ -419,7 +420,7 @@ use module_types
 implicit none
 
 ! Calling arguments
-character(len=1), intent(in) :: geocode
+character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 type(shrink_bounds),intent(in):: sbin
 type(shrink_bounds),intent(inout):: sbout
 character(len=*),intent(in):: subname
@@ -560,7 +561,7 @@ use module_types
 implicit none
 
 ! Calling arguments
-character(len=1),intent(in) :: geocode
+character(len=1),intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 type(grow_bounds),intent(in):: gbin
 type(grow_bounds),intent(inout):: gbout
 character(len=*),intent(in):: subname

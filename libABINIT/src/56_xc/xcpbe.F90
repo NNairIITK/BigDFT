@@ -195,6 +195,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
  real(dp) :: i1fa,i2fa,m1fa,m2fa,n1fa,n2fa
 
  character(len=500) :: message
+ logical :: skip_the_rest
 !arrays
  real(dp),allocatable :: rho_updnm1_3(:,:),rhoarr(:),rhom1_3(:),zetm(:)
  real(dp),allocatable :: zetmm1_3(:),zetp(:),zetpm1_3(:)
@@ -454,6 +455,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 !order^2>1 (with if statements inside distinguishing between order=3 or -2)
 !!!End loop unrolling summary
 
+!skipping variable due to exexch 
+skip_the_rest=present(exexch)
+if (skip_the_rest) skip_the_rest=exexch==1
+        
+
 !we separate different cases, depending on nspden
  if (nspden==1) then
 !  we separate different cases, depending on order
@@ -500,9 +506,10 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 !        If non spin-polarized, treat spin down contribution now, similar to spin up
          exc=exc*2
          exci(ipts)=exc*rhotot_inv
-         if(present(exexch))then
-           if(exexch==1) cycle
-         end if
+         if (skip_the_rest) cycle
+         !if(present(exexch))then
+         !  if(exexch==1) cycle
+         !end if
 !        -----------------------------------------------------------------------------
 !        Then takes care of the LSD correlation part of the functional
 
@@ -693,9 +700,10 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 !        If non spin-polarized, treat spin down contribution now, similar to spin up
          exc=exc*2
          exci(ipts)=exc*rhotot_inv
-         if(present(exexch))then
-           if(exexch==1) cycle
-         end if
+         if(skip_the_rest) cycle
+         !if(present(exexch))then
+         !  if(exexch==1) cycle
+         !end if
 !        -----------------------------------------------------------------------------
 !        Then takes care of the LSD correlation part of the functional
 
@@ -3802,9 +3810,10 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 
        end do
        exci(ipts)=exc*rhotot_inv
-       if(present(exexch)) then
-         if(exexch==1)cycle
-       end if
+       if (skip_the_rest) cycle
+       !if(present(exexch)) then
+       !  if(exexch==1)cycle
+       !end if
 
 !      -----------------------------------------------------------------------------
 !      Then takes care of the LSD correlation part of the functional

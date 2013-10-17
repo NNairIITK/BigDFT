@@ -7,19 +7,19 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Initialization of the Poisson kernel
-!! @param verb   verbosity
-!! @param iproc  proc id
-!! @param nproc  proc number
+!! @ingroup PSOLVER
 function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
-!! @param iproc  proc id
-!! @param nproc  proc number
   use yaml_output
   implicit none
-  logical, intent(in) :: verb
-  integer, intent(in) :: itype_scf,iproc,nproc,igpu
-  character(len=1), intent(in) :: geocode
+  logical, intent(in) :: verb       !< verbosity
+  integer, intent(in) :: itype_scf
+  integer, intent(in) :: iproc      !< Proc Id
+  integer, intent(in) :: nproc      !< Number of processes
+  integer, intent(in) :: igpu
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, dimension(3), intent(in) :: ndims
   real(gp), dimension(3), intent(in) :: hgrids
   real(kind=8), intent(in), optional :: mu0_screening
@@ -106,6 +106,9 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
 
 end function pkernel_init
 
+
+!> Free memory used by the kernerl operation
+!! @ingroup PSOLVER
 subroutine pkernel_free(kernel,subname)
   implicit none
   character(len=*), intent(in) :: subname
@@ -147,21 +150,6 @@ end subroutine pkernel_free
 !! calculating the convolution with the kernel expressed in the interpolating scaling
 !! function basis. The kernel pointer is unallocated on input, allocated on output.
 !! SYNOPSIS
-!!    @param geocode  Indicates the boundary conditions (BC) of the problem:
-!!       - 'F' free BC, isolated systems.
-!!             The program calculates the solution as if the given density is
-!!             "alone" in R^3 space.
-!!       - 'S' surface BC, isolated in y direction, periodic in xz plane                
-!!             The given density is supposed to be periodic in the xz plane,
-!!             so the dimensions in these direction mus be compatible with the FFT
-!!             Beware of the fact that the isolated direction is y!
-!!       - 'P' periodic BC.
-!!             The density is supposed to be periodic in all the three directions,
-!!             then all the dimensions must be compatible with the FFT.
-!!             No need for setting up the kernel.
-!!       - 'W' Wires BC.
-!!             The density is supposed to be periodic in z direction, 
-!!                  which has to be compatible with the FFT.
 !!    @param iproc,nproc number of process, number of processes
 !!    @param n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
 !!    @param itype_scf   order of the interpolating scaling functions used in the decomposition
@@ -179,12 +167,14 @@ end subroutine pkernel_free
 !!    To avoid that, one can properly define the kernel dimensions by adding 
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
+!! @ingroup PSOLVER
 subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   use yaml_output
+  use dynamic_memory
   implicit none
+  !Arguments
   logical, intent(in) :: wrtmsg
   type(coulomb_operator), intent(inout) :: kernel
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !local variables
   logical :: dump
   character(len=*), parameter :: subname='createKernel'
@@ -231,10 +221,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
        allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
      endif
      call memocc(i_stat,kernel%kernel,'kernel',subname)
-
      !!! PSolver n1-n2 plane mpi partitioning !!!   
      call inplane_partitioning(kernel%mpi_env,md2,n2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
-
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
 !!$       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
 !!$       n3pr2=n3/2+1
@@ -357,10 +345,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      endif
 
      call memocc(i_stat,kernel%kernel,'kernel',subname)
-
      !!! PSolver n1-n2 plane mpi partitioning !!!   
      call inplane_partitioning(kernel%mpi_env,md2,n2/2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
- 
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
 !!$       n3pr1=kernel%mpi_env%nproc/(n3/2+1)
 !!$       n3pr2=n3/2+1
@@ -622,6 +608,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
 
 END SUBROUTINE pkernel_set
+
 
 subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mpi,n3pr1,n3pr2)
   use wrapper_mpi

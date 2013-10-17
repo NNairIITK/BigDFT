@@ -1,7 +1,7 @@
 !> @file
-!!  Routines to do atomic analysis configuration
+!!  Program MDanalysis to do atomic analysis configuration
 !! @author
-!!    Copyright (C) 2009-2011 BigDFT group
+!!    Copyright (C) 2009-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -11,7 +11,7 @@
 
 
 !>    Analyse atomic configurations
-program find_angles
+program MDanalysis
  implicit none
  integer, parameter :: ntypes=4,nnmax=15,nseg=1800,nsegr=10000
  real(kind=8), parameter :: rstep=0.005d0!factor=12.82,rad=3.2d0/factor
@@ -234,7 +234,7 @@ program find_angles
 
  !print istogram
  do i=1,nseg
-    write(13,'(f10.4,20(1pe12.4))')180.d0*real(i,kind=8)/real(nseg,kind=8),(nisto(i,j),j=1,nnmax+1)
+    write(13,'(f10.4,20(1pe12.4))')180.d0*real(i,kind=8)/real(nseg,kind=8),(smearing(nseg,nisto(:,j),0.0d0,i),j=1,nnmax+1)!(nisto(i,j),j=1,nnmax+1)
  end do
 
  print *,'Normalisations:'
@@ -271,6 +271,33 @@ program find_angles
  deallocate(iatype,pos)
 
 contains
+
+  !> calculate the smearing of the istogram
+  pure function smearing(nseg,nisto,sigma,i)
+    implicit none
+    integer, intent(in) :: nseg
+    real(kind=8), dimension(nseg), intent(in) :: nisto
+    real(kind=8), intent(in) :: sigma !<gaussian spread in units of tenths of a degree
+    integer, intent(in) :: i !< output point
+    real(kind=8) :: smearing
+    !local variables
+    integer :: j
+    real(kind=8) :: exponent
+
+    if (sigma==0.0d0) then
+       smearing=nisto(i)
+       return
+    end if
+    
+    smearing=0.0d0
+    do j=1,nseg
+       exponent=real(i-nisto(j),kind=8)
+       exponent=exponent/sigma
+       exponent=0.5d0*exponent**2
+       smearing=smearing+exp(-exponent)
+    end do
+
+  end function smearing
 
   subroutine box_features(whichone,contcar,nrep,nat,ntypes,iatype,pos,factor)
     use BigDFT_API
@@ -346,8 +373,6 @@ contains
        !open the first file to check box features
 !print *,'here'
        call read_atomic_file(trim(contcar),0,atoms%astruct)
-       call allocate_atoms_nat(atoms, subname)
-       call allocate_atoms_ntypes(atoms, subname)
        nat=atoms%astruct%nat
 !print *,'nat',nat
        allocate(iatype(nrep**3*nat),pos(3,nrep**3*nat))
@@ -357,7 +382,8 @@ contains
        factor=atoms%astruct%cell_dim(1) * Bohr_Ang
 
        deallocate(atoms%astruct%rxyz)
-       call deallocate_atoms(atoms, "box_features")
+       call deallocate_atomic_structure(atoms%astruct,"box_features") 
+!       call deallocate_atoms(atoms, "box_features")
 
     end if
 
@@ -371,7 +397,7 @@ contains
   END SUBROUTINE box_features
 
 
-end program find_angles
+end program MDanalysis
 
 
 subroutine read_pos(iunit,whichone,nat,pos,nrep)
@@ -426,7 +452,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
         pos(2,iat)=atoms%astruct%rxyz(2,iat)/alat(2)
         pos(3,iat)=atoms%astruct%rxyz(3,iat)/alat(3)
      enddo
-     call deallocate_atoms(atoms, 'distance')
+     call deallocate_atomic_structure(atoms%astruct, 'distance')
   end if
 
   !replica of the atom positions

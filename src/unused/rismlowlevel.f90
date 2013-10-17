@@ -579,7 +579,7 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
   use module_types
   implicit none
   !Arguments---------
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,nat
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(nat), intent(in) :: radii

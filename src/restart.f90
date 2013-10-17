@@ -427,7 +427,7 @@ END SUBROUTINE readmywaves
 subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   use module_base
   use module_types
-  use module_interfaces, except_this_one=>verify_file_presence
+  use module_interfaces, except_this_one => verify_file_presence
   implicit none
   integer, intent(in) :: nproc
   character(len=*), intent(in) :: filerad
@@ -496,6 +496,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   iformat=WF_FORMAT_NONE
 
 end subroutine verify_file_presence
+
 
 !> Associate to the absolute value of orbital a filename which depends of the k-point and 
 !! of the spin sign
@@ -695,6 +696,7 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
   end if
 END SUBROUTINE read_wave_to_isf
 
+
 subroutine free_wave_to_isf(psiscf)
   use module_base
   implicit none
@@ -706,6 +708,7 @@ subroutine free_wave_to_isf(psiscf)
   deallocate(psiscf,stat=i_stat)
   call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
 END SUBROUTINE free_wave_to_isf
+
 
 subroutine read_wave_descr(lstat, filename, ln, &
      & norbu, norbd, iorbs, ispins, nkpt, ikpts, nspinor, ispinor)
@@ -886,6 +889,16 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
 
   ! Now write the coefficients
   do i = 1, ntmb
+     ! first element always positive, for consistency when using for transfer integrals
+     ! unless 1st element below some threshold, in which case first significant element
+     do j=1,ntmb
+        if (abs(coeff(j,i))>1.0e-1) then
+           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+           exit
+        end if
+     end do
+     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+
      do j = 1, ntmb
           tt = coeff(j,i)
           if (useFormattedOutput) then
@@ -900,7 +913,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
 END SUBROUTINE writeLinearCoefficients
 
 
-!write Hamiltonian, overlap and kernel matrices in tmb basis
+!> Write Hamiltonian, overlap and kernel matrices in tmb basis
 subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   use module_types
   use module_base
@@ -1034,6 +1047,8 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      end do
 
   end if
+
+  close(99)
 
   i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
   deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
@@ -1528,17 +1543,14 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
 END SUBROUTINE tmb_overlap_onsite_rotate
 
 
-
-
-
 !> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nksorb,at,rxyz,psi,coeff)
+subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff)
   use module_types
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
   implicit none
-  integer, intent(in) :: iproc,iformat,npsidim,nksorb
+  integer, intent(in) :: iproc,iformat,npsidim,nelec
   !integer, intent(in) :: norb   !< number of orbitals, not basis functions
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
@@ -1606,7 +1618,8 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nksorb,at
       else
          open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
       end if
-      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%astruct%nat,rxyz,orbs%norb,nksorb,coeff,orbs%eval)
+      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%astruct%nat,rxyz,orbs%norb,&
+           nelec,coeff,orbs%eval)
       close(99)
     end if
      call cpu_time(tr1)
@@ -1740,23 +1753,22 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
 
   endif
 
-  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
-  allocate (gpsi(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f),stat=i_stat)
-  call memocc(i_stat,gpsi,'gpsi',subname)
-
-  call to_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
-  call Lpsi_to_global2(iproc, lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
-       1, 1, 1, glr, lr, psi, gpsi)
-
-  write(orbname,*) iorb
-  call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hgrids(1),hgrids(2),hgrids(3),rxyz,gpsi)
-  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
-
-  i_all=-product(shape(gpsi))*kind(gpsi)
-  deallocate(gpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'gpsi',subname)
-  ! END DEBUG 
-
+  !! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+  !allocate (gpsi(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f),stat=i_stat)
+  !call memocc(i_stat,gpsi,'gpsi',subname)
+  !
+  !call to_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
+  !call Lpsi_to_global2(iproc, lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
+  !     1, 1, 1, glr, lr, psi, gpsi)
+  !
+  !write(orbname,*) iorb
+  !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,glr,hgrids(1),hgrids(2),hgrids(3),rxyz,gpsi)
+  !!call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,lr,hx,hy,hz,rxyz,psi)
+  !
+  !i_all=-product(shape(gpsi))*kind(gpsi)
+  !deallocate(gpsi,stat=i_stat)
+  !call memocc(i_stat,i_all,'gpsi',subname)
+  !! END DEBUG 
 
 END SUBROUTINE readonewave_linear
 
@@ -1875,6 +1887,7 @@ subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old
     lstat = .true.
 
 END SUBROUTINE io_read_descr_linear
+
 
 subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
        & lstat, error, nat, rxyz_old)
@@ -2008,13 +2021,22 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
      end do
   end do
 
+  ! rescale so first significant element is +ve
+  do i = 1, ntmb
+     do j = 1, ntmb
+        if (abs(coeff(j,i))>1.0e-1) then
+           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+           exit
+        end if
+     end do
+     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+  end do
 
 END SUBROUTINE read_coeff_minbasis
 
 
-
-!> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell                                                                                                                                                                                                                                                                                                                                   
-!!  have changed
+!> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
+!! have changed
 subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
        ref_frags,input_frag,frag_calc,orblist)
   use module_base
@@ -2046,7 +2068,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   logical :: lstat
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
-  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, itmb, jtmb, jsforb
+  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
@@ -2057,12 +2079,10 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   logical :: skip
 !!$ integer :: ierr
 
-
   ! DEBUG
   character(len=12) :: orbname
   real(wp), dimension(:), allocatable :: gpsi
 
-open(16)
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
@@ -2196,7 +2216,7 @@ open(16)
   ! reformat fragments
   nullify(psi_old)
 
-!if several fragments do this, otherwise find 3 nearest neighbours (use sort in time.f90) and send rxyz arrays with 4 atoms
+  !if several fragments do this, otherwise find 3 nearest neighbours (use sort in time.f90) and send rxyz arrays with 4 atoms
 
   if (input_frag%nfrag>1) then
      ! Find fragment transformations for each fragment, then put in frag_trans array for each orb
@@ -2259,14 +2279,18 @@ open(16)
         deallocate(rxyz_new,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz_new',subname)
 
-        write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,ifrag_ref,rot_axis,theta',&
-             ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+        !write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,ifrag_ref,rot_axis,theta',&
+        !     ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
 
         isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
      end do
 
      allocate(frag_trans_orb(tmb%orbs%norbp))
+     do iorbp=1,tmb%orbs%norbp
+        nullify(frag_trans_orb(iorbp)%discrete_operations)
+     end do
+
      isforb=0
      isfat=0
      do ifrag=1,input_frag%nfrag
@@ -2284,6 +2308,15 @@ open(16)
 
               frag_trans_orb(iorbp)%rot_center=frag_trans_frag(ifrag)%rot_center
               frag_trans_orb(iorbp)%rot_center_new=frag_trans_frag(ifrag)%rot_center_new
+
+              !!!!!!!!!!!!!
+              iiat=tmb%orbs%onwhichatom(iiorb)
+
+              ! use atom position
+              frag_trans_orb(iorbp)%rot_center=rxyz_old(:,iiat)
+              frag_trans_orb(iorbp)%rot_center_new=rxyz(:,iiat)
+              !!!!!!!!!!!!!
+
               frag_trans_orb(iorbp)%rot_axis=(frag_trans_frag(ifrag)%rot_axis)
               frag_trans_orb(iorbp)%theta=frag_trans_frag(ifrag)%theta
               call dcopy(size(frag_trans_frag(ifrag)%discrete_operations),frag_trans_frag(ifrag)%discrete_operations,1,&
@@ -2309,6 +2342,9 @@ open(16)
   else
      ! only 1 'fragment', calculate rotation/shift atom wise, using nearest neighbours
      allocate(frag_trans_orb(tmb%orbs%norbp))
+     do iorbp=1,tmb%orbs%norbp
+        nullify(frag_trans_orb(iorbp)%discrete_operations)
+     end do
 
      allocate(rxyz4_ref(3,min(4,ref_frags(ifrag_ref)%astruct_frg%nat)), stat=i_stat)
      call memocc(i_stat, rxyz4_ref, 'rxyz4_ref', subname)
@@ -2400,10 +2436,17 @@ open(16)
      call memocc(i_stat,i_all,'rxyz4_new',subname)
 
   end if
-close(16)
+
 
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,psi_old,phi_array_old)
 
+  do iorbp=1,tmb%orbs%norbp
+     if (associated(frag_trans_orb(iorbp)%discrete_operations)) then
+        i_all = -product(shape(frag_trans_orb(iorbp)%discrete_operations))*kind(frag_trans_orb(iorbp)%discrete_operations)
+        deallocate(frag_trans_orb(iorbp)%discrete_operations,stat=i_stat)
+        call memocc(i_stat,i_all,'frag_trans_orb(iorbp)%discrete_operations',subname)
+     end if
+  end do
   deallocate(frag_trans_orb)
 
   do iorbp=1,tmb%orbs%norbp
@@ -2416,42 +2459,34 @@ close(16)
   deallocate(phi_array_old,stat=i_stat)
   call deallocate_local_zone_descriptors(lzd_old,subname)
 
-  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
-  ind=1
-  allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
-  call memocc(i_stat,gpsi,'gpsi',subname)
-  do iorbp=1,tmb%orbs%norbp
-     iiorb=iorbp+tmb%orbs%isorb
-     ilr = tmb%orbs%inwhichlocreg(iiorb)
-
-     call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-
-     write(orbname,*) iiorb
-     call plot_wf(trim(dir_output)//trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%glr,&
-          tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
-     !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
-     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
-  
-     ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  i_all=-product(shape(gpsi))*kind(gpsi)
-  deallocate(gpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'gpsi',subname)
-  ! END DEBUG 
+  !! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+  !ind=1
+  !allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
+  !call memocc(i_stat,gpsi,'gpsi',subname)
+  !do iorbp=1,tmb%orbs%norbp
+  !   iiorb=iorbp+tmb%orbs%isorb
+  !   ilr = tmb%orbs%inwhichlocreg(iiorb)
+  !
+  !   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+  !   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+  ! 
+  !   write(orbname,*) iiorb
+  !   call plot_wf(trim(dir_output)//trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%glr,&
+  !        tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+  !   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
+  !   !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
+  ! 
+  !   ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+  !end do
+  !i_all=-product(shape(gpsi))*kind(gpsi)
+  !deallocate(gpsi,stat=i_stat)
+  !call memocc(i_stat,i_all,'gpsi',subname)
+  !! END DEBUG 
 
 
   ! Read the coefficient file for each fragment and assemble total coeffs
-  if(iformat == WF_FORMAT_PLAIN) then
-     open(unitwf,file=filename//'_coeff.bin',status='unknown',form='formatted')
-  else if(iformat == WF_FORMAT_BINARY) then
-     open(unitwf,file=filename//'_coeff.bin',status='unknown',form='unformatted')
-  else
-     stop 'Coefficient format not implemented'
-  end if
-
   ! coeffs should eventually go into ref_frag array and then point? or be copied to (probably copied as will deallocate frag)
   unitwf=99
   isforb=0
@@ -2469,57 +2504,21 @@ close(16)
         stop 'Coefficient format not implemented'
      end if
 
-     call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-          ref_frags(ifrag_ref)%nksorb,ref_frags(ifrag_ref)%coeff,&
-          tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
-          !tmb%orbs%eval(isforb+1)
-
+     !if (input_frag%nfrag>1) then
+        call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
+             !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
+             !tmb%orbs%eval(isforb+1)
+        ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
+     !else
+     !   call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+     !        ref_frags(ifrag_ref)%nelec,tmb%coeff,tmb%orbs%eval)
+     !end if
      close(unitwf)
 
      isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do
 
-  ! copy from coeff fragment to global coeffs - take occupied ones first, then unoccupied
-  ! (ideally reorder these by eval?)
-  isforb=0
-  jsforb=0
-  call to_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
-  do ifrag=1,input_frag%nfrag
-     ! find reference fragment this corresponds to
-     ifrag_ref=input_frag%frag_index(ifrag)
-
-     do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-        do jtmb=1,ref_frags(ifrag_ref)%nksorb
-           tmb%coeff(isforb+itmb,jsforb+jtmb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
-        end do
-     end do
-
-     isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-     jsforb=jsforb+ref_frags(ifrag_ref)%nksorb
-  end do
-
-  isforb=0
-  do ifrag=1,input_frag%nfrag
-     ! find reference fragment this corresponds to
-     ifrag_ref=input_frag%frag_index(ifrag)
-     do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-        do jtmb=ref_frags(ifrag_ref)%nksorb+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-           tmb%coeff(isforb+itmb,jsforb+jtmb-ref_frags(ifrag_ref)%nksorb)=ref_frags(ifrag_ref)%coeff(itmb,jtmb)
-        end do
-     end do
-
-     isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-     jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-ref_frags(ifrag_ref)%nksorb
-  end do
-
-!!$open(10)
-!!$  do itmb=1,tmb%orbs%norb
-!!$     do jtmb=1,tmb%orbs%norb
-!!$        if (iproc==0) write(10,*) jtmb,itmb,tmb%coeff(jtmb,itmb)
-!!$     end do
-!!$  end do
-!!$close(10)
-!!$call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
@@ -2576,7 +2575,6 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
 
   ! to be fixed
   if (present(orblist)) then
-print*,'present(orblist)',present(orblist)
      stop 'orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation'
   end if
 
@@ -2687,10 +2685,12 @@ END SUBROUTINE initialize_linear_from_file
 
 
 !> Copy old support functions from phi to phi_old
-subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
+subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   use module_base
   use module_types
+  use yaml_output
   implicit none
+  integer,intent(in) :: iproc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: lzd
   type(local_zone_descriptors), intent(inout) :: lzd_old
@@ -2785,6 +2785,7 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
   call memocc(i_stat,phi_old,'phi_old',subname)
 
   ! Now copy the suport functions
+  if (iproc==0) call yaml_map('Check the normalization of the support functions, tolerance',1.d-3,fmt='(1es12.4)')
   ind1=0
   do iorb=1,orbs%norbp
       tt=0.d0
@@ -2797,10 +2798,12 @@ subroutine copy_old_supportfunctions(orbs,lzd,phi,lzd_old,phi_old)
       end do
       tt=sqrt(tt)
       if (abs(tt-1.d0) > 1.d-3) then
-         write(*,*)'wrong phi_old',iiorb,tt
+         !write(*,*)'wrong phi_old',iiorb,tt
+         call yaml_warning('support function, value:'//trim(yaml_toa(iiorb,fmt='(i6)'))//trim(yaml_toa(tt,fmt='(1es18.9)')))
          !stop 
       end if
   end do
+!  if (iproc==0) call yaml_close_map()
 
   !!!deallocation
   !!i_all=-product(shape(phi))*kind(phi)
@@ -2867,7 +2870,7 @@ END SUBROUTINE copy_old_inwhichlocreg
 
 
 !> Reformat wavefunctions if the mesh have changed (in a restart)
-!NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
+!! NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
 subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
        frag_trans,psi_old,phi_array_old)
   use module_base
@@ -2936,12 +2939,12 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
       !newz=frag_trans(iorb)%rot_axis!(/1.0_gp,0.0_gp,0.0_gp/)
       !centre_old(:)=frag_trans(iorb)%rot_center(:)!rxyz_old(:,iiat)
       !shift(:)=frag_trans(iorb)%dr(:)!rxyz(:,iiat)
- 
+
       call reformat_check(reformat,reformat_reason,tol,at,lzd_old%hgrids,tmb%lzd%hgrids,&
            lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
            n_old,n,ns_old,ns,frag_trans(iorb),centre_old_box,centre_new_box,da)  
-   
+
       ! just copy psi from old to new as reformat not necessary
       if (.not. reformat) then 
 
@@ -3003,11 +3006,11 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
           !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
           !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
 
-call timing(iproc,'Reformatting ','ON')
+          call timing(iproc,'Reformatting ','ON')
           call reformat_one_supportfunction(tmb%lzd%llr(ilr)%wfd,tmb%lzd%llr(ilr)%geocode,lzd_old%hgrids,&
                n_old,phigold,tmb%lzd%hgrids,n,centre_old_box,centre_new_box,da,&
                frag_trans(iorb),tmb%psi(jstart))
-call timing(iproc,'Reformatting ','OF')
+          call timing(iproc,'Reformatting ','OF')
           jstart=jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 
           if (present(phi_array_old)) then   
@@ -3033,7 +3036,7 @@ call timing(iproc,'Reformatting ','OF')
 END SUBROUTINE reformat_supportfunctions
 
 
-!checks whether reformatting is needed based on various criteria and returns final shift and centres needed for reformat
+!> Checks whether reformatting is needed based on various criteria and returns final shift and centres needed for reformat
 subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgrids,nvctr_c_old,nvctr_f_old,&
        nvctr_c,nvctr_f,n_old,n,ns_old,ns,frag_trans,centre_old_box,centre_new_box,da)  
   use module_base
@@ -3079,10 +3082,10 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
 
   !Calculate the shift of the atom to be used in reformat
-  da(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new_box(1),centre_old_box(1))
-  da(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new_box(2),centre_old_box(2))
-  da(3)=mindist(per(3),at%astruct%cell_dim(3),centre_new_box(3),centre_old_box(3))
-
+  !da(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new_box(1),centre_old_box(1))
+  !da(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new_box(2),centre_old_box(2))
+  !da(3)=mindist(per(3),at%astruct%cell_dim(3),centre_new_box(3),centre_old_box(3))
+  da=centre_new_box-centre_old_box-(hgrids_old-hgrids)*0.5d0
 
   !print*,'reformat check',frag_trans%rot_center(2),ns_old(2),centre_old_box(2),&
   !     frag_trans%rot_center_new(2),ns(2),centre_new_box(2),da(2)
@@ -3125,6 +3128,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
 
 end subroutine reformat_check
 
+
 subroutine print_reformat_summary(iproc,reformat_reason)
   use module_base
   use module_types
@@ -3149,6 +3153,7 @@ subroutine print_reformat_summary(iproc,reformat_reason)
   end if
 
 end subroutine print_reformat_summary
+
 
 subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,psi,psig)
   use module_base
@@ -3208,6 +3213,3 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   end do
 
 end subroutine psi_to_psig
-
-
-

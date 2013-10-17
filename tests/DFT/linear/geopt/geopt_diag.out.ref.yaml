@@ -1,46 +1,54 @@
 ---
  Code logo:
-         TTTT         F       DDDDD
-        T    T               D
-       T     T        F     D
-       T    T         F     D        D
-       TTTTT          F     D         D
-       T    T         F     D         D
-       T     T        F     D         D
-       T      T       F     D         D
-       T     T     FFFF     D         D
-       T TTTT         F      D        D
-       T             F        D      D
-   TTTTTTTTT    FFFFF          DDDDDD
-     gggggg          iiiii    BBBBBBBBB
-    g      g        i             B
-   g        g      i         BBBB B
-   g         g     iiii     B     B
-   g         g     i       B      B
-   g         g     i        B     B
-   g         g     i         B    B
-   g         g     i          BBBBB
-    g        g     i         B    B
-             g     i        B     B
-            g               B    B
-       ggggg       i         BBBB
-
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.28
- Timestamp of this run                 : 2013-04-30 10:40:12.879
- Root process Hostname                 : moutarde
- Number of MPI tasks                   :  6
- OpenMP parallelization                :  No
- MPI tasks of root process node        :  6
+ Version Number                        : 1.7.0.32
+ Timestamp of this run                 : 2013-10-11 11:17:50.451
+ Root process Hostname                 : girofle
+ Number of MPI tasks                   :  3
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  3
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90' '--disable-bindings'"
-   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Configure arguments:
+     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
+     p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
+     -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
+     -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
+     -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
+ 
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -g -O2
+     FCFLAGS                           : -O2 -openmp
      CXXFLAGS                          : -g -O2
-     CPPFLAGS                          : 
  #... (file:diag.perf)...................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -64,6 +72,10 @@
  #|signaling F                  Expose calculation results on Network                        
  #|signalTimeout 0              Time out on startup for signal connection                    
  #|domain                       Domain to add to the hostname to find the IP                 
+ #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
+ #|store_index T                linear scaling: store indices or recalculate them            
+ #|check_sumrho 2               linear sumrho: 0=no check, 1=light check, 2=full check       
+ #|experimental_mode F          linear scaling: activate the experimental mode               
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
@@ -74,6 +86,7 @@
  #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
  #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
  #|mixing_after_inputguess F    mixing step after linear input guess (T/F)                   
+ #|iterative_orthogonalization Fiterative_orthogonalization for input guess orbitals         
  #... (file:diag.dft).............................................DFT Calculation Parameters
  #|0.40 0.40 0.40  hx,hy,hz: grid spacing in the three directions                            
  #|5.0  7.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -109,28 +122,33 @@
  #... (file:default.kpt.. not present)...................Brillouin Zone Sampling Parameters 
  #|manual         K-point sampling method                                                    
  #|1              Number of K-points                                                         
- #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
+ #|0. 0. 0. 1.    K-pt coords, K-pt weight                                                   
  #... (file:diag.lin)......................................................Linear Parameters
  #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|10             outer loop iterations (low, high)                                          
  #|3              basis iterations (low, high)                                               
- #|4              kernel iterations (low, high)                                              
+ #|1              kernel iterations (low, high) - directmin only                             
+ #|4              density iterations (low, high)                                             
  #|5              DIIS history for basis (low, high)                                         
- #|0              DIIS history for kernel (low, high)                                        
+ #|0              DIIS history for kernel (low, high) - directmin only                       
+ #|0              DIIS history for density mixing (low, high)                                
  #|.5d0     .     density mixing parameter (low, high)                                       
  #|1.d-7    1.d-  outer loop convergence (low, high)                                         
- #|4.d-5    4.d   basis convergence (low, high)                                              
+ #|4.d-5    4.d-5    1basis convergence (low, high) ; early stop TMB optimization (experiment
  #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
  #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
- #|1.d-9    1.d   kernel convergence (low, high)                                             
+ #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
+ #|1.d-9    1.d   density convergence (low, high)                                            
  #|1.d-10         convergence criterion on density to fix TMBS                               
  #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|1.d0     1     initial step size for basis optimization (DIIS, SD)                        
+ #|0.2d0          initial step size for kernel update (SD), curve fitting for alpha update - 
  #|-0.5d0   0.5d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
  #|5              number of iterations in the preconditioner                                 
  #|0  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|0  T           Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|0 T T F        Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|O 4 1.2d-3 1.2d-3 0.0d-4 8.0 8.0 20.d0  Atom name, number of basis functions per atom, pre
  #|H 1 1.2d-3 1.2d-3 0.0d-4 8.0 8.0 20.d0  Atom name, number of basis functions per atom, pre
  # ==== WARNING: the following lines have not been processed by the parser ====
@@ -239,20 +257,21 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  1.95
-     Kernel (MB)                       :  1.89
+     Density (MB)                      :  3.90
+     Kernel (MB)                       :  3.89
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  89%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  95%
        Kernel:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  95%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  97%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -265,13 +284,13 @@
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  1
-   MPI tasks  4- 5                     :  0
+   MPI tasks  0- 0                     :  2
+   MPI tasks  1- 2                     :  1
  Total Number of Orbitals              :  4
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 288 KB 48 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 576 KB 96 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -281,17 +300,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.289 #  (Number of Components: 36870)
-   All (distributed) orbitals          : 0.865 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 6.482 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 1.705 #  (Number of Orbitals per MPI task: 2)
+   Wavefunction storage size           : 12.963 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.44
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 37.675
-   Density Construction                : 41.621
-   Poisson Solver                      : 31.895
-   Hamiltonian application             : 42.262
- Estimated Memory Peak (MB)            :  42
+   Kernel calculation                  : 75.325
+   Density Construction                : 55.925
+   Poisson Solver                      : 63.721
+   Hamiltonian application             : 56.566
+ Estimated Memory Peak (MB)            :  75
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -303,15 +322,29 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  1.047639164005202491E-14
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  1.421085471520200372E-13
  Ion-Ion interaction energy            :  6.87555343698636E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000007278
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
+   Total No. of Atomic Input Orbitals  :  6
+   Atomic Input Orbital Generation:
+   -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+   -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+   Wavelet conversion succeeded        :  Yes
+   Deviation from normalization        :  9.66E-06
    Total No. of Atomic Input Orbitals  :  6
    Atomic Input Orbital Generation:
    -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
@@ -321,301 +354,691 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  113,  111,  111 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  3
    Poisson Solver:
      BC                                : Free
      Box                               :  [  113,  111,  111 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  3
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5534,  99 ]
-   Tolerances for this check: [ 3.20920004284741545E-06,  1.33226762955018785E-15]
+   Number of coarse and fine DoF (MasterMPI task):  [  10717,  179 ]
+   Tolerances for this check: [ 3.24240004329068299E-06,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5534,  99 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  11040,  179 ]
    Tolerances for this check: [ 3.68700004922672964E-06,  1.33226762955018785E-15]
-   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.487132723293E-01, f:  2.0000},  # 00001
+ {e: -4.295502085542E-01, f:  2.0000},  # 00002
+ {e: -1.929241107299E-01, f:  2.0000},  # 00003
+ {e: -1.325692697054E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.810387268380E-01, f:  2.0000},  # 00001
+ {e: -5.248806109874E-01, f:  2.0000},  # 00002
+ {e: -3.812189241826E-01, f:  2.0000},  # 00003
+ {e: -3.076591512637E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.595487939668E-01, f:  2.0000},  # 00001
+ {e: -5.065497800413E-01, f:  2.0000},  # 00002
+ {e: -3.817781079222E-01, f:  2.0000},  # 00003
+ {e: -3.027984755913E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.492033610749E-01, f:  2.0000},  # 00001
+ {e: -4.967872201511E-01, f:  2.0000},  # 00002
+ {e: -3.807358760474E-01, f:  2.0000},  # 00003
+ {e: -2.999010559112E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.452703899713E-01, f:  2.0000},  # 00001
+ {e: -4.988916593179E-01, f:  2.0000},  # 00002
+ {e: -3.947141603972E-01, f:  2.0000},  # 00003
+ {e: -3.093831880738E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.621369846244E-01, f:  2.0000},  # 00001
+ {e: -4.301761837518E-01, f:  2.0000},  # 00002
+ {e: -2.925640260207E-01, f:  2.0000},  # 00003
+ {e: -2.067783619896E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.694334847584E-01, f:  2.0000},  # 00001
+ {e: -4.344801533218E-01, f:  2.0000},  # 00002
+ {e: -2.879931540948E-01, f:  2.0000},  # 00003
+ {e: -2.064813372268E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.722842216562E-01, f:  2.0000},  # 00001
+ {e: -4.360669838181E-01, f:  2.0000},  # 00002
+ {e: -2.851737179931E-01, f:  2.0000},  # 00003
+ {e: -2.056109201183E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.765062384616E-01, f:  2.0000},  # 00001
+ {e: -4.386319780392E-01, f:  2.0000},  # 00002
+ {e: -2.884992450373E-01, f:  2.0000},  # 00003
+ {e: -2.116972259261E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.102950958112E-01, f:  2.0000},  # 00001
+ {e: -4.667329106911E-01, f:  2.0000},  # 00002
+ {e: -3.292126141468E-01, f:  2.0000},  # 00003
+ {e: -2.520719496620E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.093615667355E-01, f:  2.0000},  # 00001
+ {e: -4.668061319683E-01, f:  2.0000},  # 00002
+ {e: -3.319331515321E-01, f:  2.0000},  # 00003
+ {e: -2.536255902005E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.090425095560E-01, f:  2.0000},  # 00001
+ {e: -4.668622202831E-01, f:  2.0000},  # 00002
+ {e: -3.332970566501E-01, f:  2.0000},  # 00003
+ {e: -2.544685464415E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.080656854825E-01, f:  2.0000},  # 00001
+ {e: -4.665961403206E-01, f:  2.0000},  # 00002
+ {e: -3.339408460729E-01, f:  2.0000},  # 00003
+ {e: -2.540413278108E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.891739003596E-01, f:  2.0000},  # 00001
+ {e: -4.510873209054E-01, f:  2.0000},  # 00002
+ {e: -3.125957666128E-01, f:  2.0000},  # 00003
+ {e: -2.319399992009E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.899458087894E-01, f:  2.0000},  # 00001
+ {e: -4.514054289495E-01, f:  2.0000},  # 00002
+ {e: -3.118045720398E-01, f:  2.0000},  # 00003
+ {e: -2.315037279591E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.902501613877E-01, f:  2.0000},  # 00001
+ {e: -4.515386563802E-01, f:  2.0000},  # 00002
+ {e: -3.113679257767E-01, f:  2.0000},  # 00003
+ {e: -2.312273641492E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.918543825108E-01, f:  2.0000},  # 00001
+ {e: -4.522955364020E-01, f:  2.0000},  # 00002
+ {e: -3.115780095287E-01, f:  2.0000},  # 00003
+ {e: -2.320808747151E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.011834902846E-01, f:  2.0000},  # 00001
+ {e: -4.597277393229E-01, f:  2.0000},  # 00002
+ {e: -3.222139972471E-01, f:  2.0000},  # 00003
+ {e: -2.433906526953E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.004616035838E-01, f:  2.0000},  # 00001
+ {e: -4.591754996023E-01, f:  2.0000},  # 00002
+ {e: -3.222650700319E-01, f:  2.0000},  # 00003
+ {e: -2.434189610188E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.000989336122E-01, f:  2.0000},  # 00001
+ {e: -4.588722921885E-01, f:  2.0000},  # 00002
+ {e: -3.222666088923E-01, f:  2.0000},  # 00003
+ {e: -2.434137782290E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.990552199470E-01, f:  2.0000},  # 00001
+ {e: -4.582926246990E-01, f:  2.0000},  # 00002
+ {e: -3.221482449827E-01, f:  2.0000},  # 00003
+ {e: -2.430333396247E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.934005676875E-01, f:  2.0000},  # 00001
+ {e: -4.538674105690E-01, f:  2.0000},  # 00002
+ {e: -3.156291983782E-01, f:  2.0000},  # 00003
+ {e: -2.360154284485E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.942108688266E-01, f:  2.0000},  # 00001
+ {e: -4.545406757863E-01, f:  2.0000},  # 00002
+ {e: -3.158909432588E-01, f:  2.0000},  # 00003
+ {e: -2.362776641873E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.946069897050E-01, f:  2.0000},  # 00001
+ {e: -4.548877794807E-01, f:  2.0000},  # 00002
+ {e: -3.160263321330E-01, f:  2.0000},  # 00003
+ {e: -2.364094408378E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.957859098361E-01, f:  2.0000},  # 00001
+ {e: -4.554737828954E-01, f:  2.0000},  # 00002
+ {e: -3.161898436445E-01, f:  2.0000},  # 00003
+ {e: -2.367643127180E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.991670515300E-01, f:  2.0000},  # 00001
+ {e: -4.581191140278E-01, f:  2.0000},  # 00002
+ {e: -3.202560910553E-01, f:  2.0000},  # 00003
+ {e: -2.411663975477E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.985844139477E-01, f:  2.0000},  # 00001
+ {e: -4.576224570662E-01, f:  2.0000},  # 00002
+ {e: -3.200634094363E-01, f:  2.0000},  # 00003
+ {e: -2.409916748649E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.982844199550E-01, f:  2.0000},  # 00001
+ {e: -4.573533569090E-01, f:  2.0000},  # 00002
+ {e: -3.199469640673E-01, f:  2.0000},  # 00003
+ {e: -2.408864601868E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.988217757964E-01, f:  2.0000},  # 00001
+ {e: -4.580848326149E-01, f:  2.0000},  # 00002
+ {e: -3.211569261846E-01, f:  2.0000},  # 00003
+ {e: -2.439768560379E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.306778805362E-01, f:  2.0000},  # 00001
+ {e: -4.839982326627E-01, f:  2.0000},  # 00002
+ {e: -3.524284788432E-01, f:  2.0000},  # 00003
+ {e: -2.770662129559E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.344094577197E-01, f:  2.0000},  # 00001
+ {e: -4.873635295840E-01, f:  2.0000},  # 00002
+ {e: -3.563954795340E-01, f:  2.0000},  # 00003
+ {e: -2.814995160989E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.358226702332E-01, f:  2.0000},  # 00001
+ {e: -4.886739643502E-01, f:  2.0000},  # 00002
+ {e: -3.579395235390E-01, f:  2.0000},  # 00003
+ {e: -2.832577895395E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.364884473923E-01, f:  2.0000},  # 00001
+ {e: -4.892916004311E-01, f:  2.0000},  # 00002
+ {e: -3.586700776911E-01, f:  2.0000},  # 00003
+ {e: -2.840926349820E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.368143185928E-01, f:  2.0000},  # 00001
+ {e: -4.895927655506E-01, f:  2.0000},  # 00002
+ {e: -3.590278257008E-01, f:  2.0000},  # 00003
+ {e: -2.845016401096E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.372875737152E-01, f:  2.0000},  # 00001
+ {e: -4.898766496344E-01, f:  2.0000},  # 00002
+ {e: -3.595873732716E-01, f:  2.0000},  # 00003
+ {e: -2.852440658064E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.240605826850E-01, f:  2.0000},  # 00001
+ {e: -4.789242702279E-01, f:  2.0000},  # 00002
+ {e: -3.462756383681E-01, f:  2.0000},  # 00003
+ {e: -2.714737717104E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.224343388903E-01, f:  2.0000},  # 00001
+ {e: -4.774307302920E-01, f:  2.0000},  # 00002
+ {e: -3.444185250005E-01, f:  2.0000},  # 00003
+ {e: -2.695811320185E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.218813387750E-01, f:  2.0000},  # 00001
+ {e: -4.768955881574E-01, f:  2.0000},  # 00002
+ {e: -3.437406413767E-01, f:  2.0000},  # 00003
+ {e: -2.688984243312E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.216156497681E-01, f:  2.0000},  # 00001
+ {e: -4.766391112978E-01, f:  2.0000},  # 00002
+ {e: -3.434121157046E-01, f:  2.0000},  # 00003
+ {e: -2.685692602881E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.214833637762E-01, f:  2.0000},  # 00001
+ {e: -4.765124571235E-01, f:  2.0000},  # 00002
+ {e: -3.432483041656E-01, f:  2.0000},  # 00003
+ {e: -2.684058340878E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.214305755857E-01, f:  2.0000},  # 00001
+ {e: -4.764582144561E-01, f:  2.0000},  # 00002
+ {e: -3.431800113158E-01, f:  2.0000},  # 00003
+ {e: -2.683352510774E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.235832652842E-01, f:  2.0000},  # 00001
+ {e: -4.782574022548E-01, f:  2.0000},  # 00002
+ {e: -3.452420708603E-01, f:  2.0000},  # 00003
+ {e: -2.704490705314E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.238562132822E-01, f:  2.0000},  # 00001
+ {e: -4.785179827239E-01, f:  2.0000},  # 00002
+ {e: -3.455020417622E-01, f:  2.0000},  # 00003
+ {e: -2.707001466625E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.239560383119E-01, f:  2.0000},  # 00001
+ {e: -4.786180763140E-01, f:  2.0000},  # 00002
+ {e: -3.455981879874E-01, f:  2.0000},  # 00003
+ {e: -2.707888497809E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.240034104248E-01, f:  2.0000},  # 00001
+ {e: -4.786656571234E-01, f:  2.0000},  # 00002
+ {e: -3.456445572666E-01, f:  2.0000},  # 00003
+ {e: -2.708306471638E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.240265986148E-01, f:  2.0000},  # 00001
+ {e: -4.786888716577E-01, f:  2.0000},  # 00002
+ {e: -3.456676327760E-01, f:  2.0000},  # 00003
+ {e: -2.708510572355E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.240382377482E-01, f:  2.0000},  # 00001
+ {e: -4.787007128279E-01, f:  2.0000},  # 00002
+ {e: -3.456803839555E-01, f:  2.0000},  # 00003
+ {e: -2.708633482579E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.230731250504E-01, f:  2.0000},  # 00001
+ {e: -4.778986759135E-01, f:  2.0000},  # 00002
+ {e: -3.447657836553E-01, f:  2.0000},  # 00003
+ {e: -2.698920276999E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.229438170640E-01, f:  2.0000},  # 00001
+ {e: -4.777785800574E-01, f:  2.0000},  # 00002
+ {e: -3.446473607485E-01, f:  2.0000},  # 00003
+ {e: -2.697607911680E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.228955930375E-01, f:  2.0000},  # 00001
+ {e: -4.777319206892E-01, f:  2.0000},  # 00002
+ {e: -3.446031897764E-01, f:  2.0000},  # 00003
+ {e: -2.697116018788E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.228725537343E-01, f:  2.0000},  # 00001
+ {e: -4.777095826223E-01, f:  2.0000},  # 00002
+ {e: -3.445817537148E-01, f:  2.0000},  # 00003
+ {e: -2.696880430434E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.228612380412E-01, f:  2.0000},  # 00001
+ {e: -4.776986299548E-01, f:  2.0000},  # 00002
+ {e: -3.445710471779E-01, f:  2.0000},  # 00003
+ {e: -2.696764446380E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.228557565129E-01, f:  2.0000},  # 00001
+ {e: -4.776933429905E-01, f:  2.0000},  # 00002
+ {e: -3.445658973619E-01, f:  2.0000},  # 00003
+ {e: -2.696708897227E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231829820206E-01, f:  2.0000},  # 00001
+ {e: -4.779649334415E-01, f:  2.0000},  # 00002
+ {e: -3.448739653206E-01, f:  2.0000},  # 00003
+ {e: -2.699960371933E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.232271207959E-01, f:  2.0000},  # 00001
+ {e: -4.780057002177E-01, f:  2.0000},  # 00002
+ {e: -3.449135129809E-01, f:  2.0000},  # 00003
+ {e: -2.700387555580E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.232436301625E-01, f:  2.0000},  # 00001
+ {e: -4.780215345596E-01, f:  2.0000},  # 00002
+ {e: -3.449282513500E-01, f:  2.0000},  # 00003
+ {e: -2.700545642295E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.232514906091E-01, f:  2.0000},  # 00001
+ {e: -4.780290855078E-01, f:  2.0000},  # 00002
+ {e: -3.449353969954E-01, f:  2.0000},  # 00003
+ {e: -2.700620916527E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.232553567317E-01, f:  2.0000},  # 00001
+ {e: -4.780327848169E-01, f:  2.0000},  # 00002
+ {e: -3.449389901883E-01, f:  2.0000},  # 00003
+ {e: -2.700658116411E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231354531696E-01, f:  2.0000},  # 00001
+ {e: -4.779332337228E-01, f:  2.0000},  # 00002
+ {e: -3.448260084732E-01, f:  2.0000},  # 00003
+ {e: -2.699462598321E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231197278075E-01, f:  2.0000},  # 00001
+ {e: -4.779186300824E-01, f:  2.0000},  # 00002
+ {e: -3.448119194578E-01, f:  2.0000},  # 00003
+ {e: -2.699308558545E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231139274886E-01, f:  2.0000},  # 00001
+ {e: -4.779130069953E-01, f:  2.0000},  # 00002
+ {e: -3.448067492371E-01, f:  2.0000},  # 00003
+ {e: -2.699252098320E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231491645646E-01, f:  2.0000},  # 00001
+ {e: -4.779418798307E-01, f:  2.0000},  # 00002
+ {e: -3.448401311015E-01, f:  2.0000},  # 00003
+ {e: -2.699603914158E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231528722662E-01, f:  2.0000},  # 00001
+ {e: -4.779452536519E-01, f:  2.0000},  # 00002
+ {e: -3.448434545067E-01, f:  2.0000},  # 00003
+ {e: -2.699640164214E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231450880041E-01, f:  2.0000},  # 00001
+ {e: -4.779389596992E-01, f:  2.0000},  # 00002
+ {e: -3.448357987887E-01, f:  2.0000},  # 00003
+ {e: -2.699561141234E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231446707954E-01, f:  2.0000},  # 00001
+ {e: -4.779385719711E-01, f:  2.0000},  # 00002
+ {e: -3.448353243474E-01, f:  2.0000},  # 00003
+ {e: -2.699556538741E-01, f:  2.0000}] # 00004
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -6.29994400E-04, y: -8.40587578E-04, z:  5.72505013E-04, 
                     total:  1.19634544E-03}
  Clean forces norm (Ha/Bohr): {maxval:  7.009417842277E-02, fnrm2:  8.953960316164E-03}
- Raw forces norm (Ha/Bohr): {maxval:  6.961152724324E-02, fnrm2:  8.957766970882E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  6.961152724324E-02, fnrm2:  8.957766970881E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 5.016334278449E-02,  3.619001956314E-02,  3.297143268754E-02]} # 0001
- -  {H: [-4.863067333067E-02, -7.023883202509E-03, -5.763802546133E-03]} # 0002
- -  {H: [-1.532669453820E-03, -2.916613636063E-02, -2.720763014140E-02]} # 0003
+ -  {O: [ 5.016334278449E-02,  3.619001956314E-02,  3.297143268753E-02]} # 0001
+ -  {H: [-4.863067333067E-02, -7.023883202509E-03, -5.763802546134E-03]} # 0002
+ -  {H: [-1.532669453819E-03, -2.916613636063E-02, -2.720763014140E-02]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  26.63
-   Elapsed time (s)                    :  26.72
+   CPU time (s)                        :  74.68
+   Elapsed time (s)                    :  37.45
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -652,6 +1075,7 @@
  Post Optimization Parameters:
    Finite-Size Effect estimation:
      Scheduled                         :  No
+ Check the normalization of the support functions, tolerance:  1.0000E-03
   #-------------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
  - Symbol                              : O #Type No.  01
@@ -709,20 +1133,21 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  1.95
-     Kernel (MB)                       :  1.89
+     Density (MB)                      :  3.90
+     Kernel (MB)                       :  3.89
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  89%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  95%
        Kernel:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  95%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  97%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -735,13 +1160,13 @@
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  1
-   MPI tasks  4- 5                     :  0
+   MPI tasks  0- 0                     :  2
+   MPI tasks  1- 2                     :  1
  Total Number of Orbitals              :  4
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 288 KB 48 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 576 KB 96 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -751,17 +1176,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.289 #  (Number of Components: 36870)
-   All (distributed) orbitals          : 0.865 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 6.482 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 1.705 #  (Number of Orbitals per MPI task: 2)
+   Wavefunction storage size           : 12.963 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.44
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 37.675
-   Density Construction                : 41.621
-   Poisson Solver                      : 31.895
-   Hamiltonian application             : 42.262
- Estimated Memory Peak (MB)            :  42
+   Kernel calculation                  : 75.325
+   Density Construction                : 55.925
+   Poisson Solver                      : 63.721
+   Hamiltonian application             : 56.566
+ Estimated Memory Peak (MB)            :  75
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -773,59 +1198,79 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  1.047639164005202491E-14
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  1.421085471520200372E-13
  Ion-Ion interaction energy            :  6.87555343698636E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000007278
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Poisson Solver:
      BC                                : Free
      Box                               :  [  113,  111,  111 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  3
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5534,  99 ]
-
-   Tolerances for this check           :  [  3.20920004284741545E-06,  1.33226762955018785E-15 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  10717,  179 ]
+ 
+   Tolerances for this check           :  [  3.24240004329068299E-06,  1.33226762955018785E-15 ]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5534,  99 ]
-
+   Number of coarse and fine DoF (MasterMPI task):  [  11040,  179 ]
+ 
    Tolerances for this check           :  [  3.68700004922672964E-06,  1.33226762955018785E-15 ]
-   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231445650592E-01, f:  2.0000},  # 00001
+ {e: -4.779384296042E-01, f:  2.0000},  # 00002
+ {e: -3.448351434881E-01, f:  2.0000},  # 00003
+ {e: -2.699555028885E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231469896444E-01, f:  2.0000},  # 00001
+ {e: -4.779404282511E-01, f:  2.0000},  # 00002
+ {e: -3.448376086057E-01, f:  2.0000},  # 00003
+ {e: -2.699580671788E-01, f:  2.0000}] # 00004
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -6.31231086E-04, y: -8.40152768E-04, z:  5.72670694E-04, 
                     total:  1.19677111E-03}
- Clean forces norm (Ha/Bohr): {maxval:  7.009445394113E-02, fnrm2:  8.954031733797E-03}
- Raw forces norm (Ha/Bohr): {maxval:  6.961138051979E-02, fnrm2:  8.957838678927E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  7.009445394112E-02, fnrm2:  8.954031733793E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  6.961138051975E-02, fnrm2:  8.957838678923E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 5.016290752447E-02,  3.619063040344E-02,  3.297201014495E-02]} # 0001
- -  {H: [-4.863062848109E-02, -7.024223195877E-03, -5.764120733509E-03]} # 0002
- -  {H: [-1.532279043386E-03, -2.916640720757E-02, -2.720788941144E-02]} # 0003
+ -  {O: [ 5.016290752448E-02,  3.619063040342E-02,  3.297201014493E-02]} # 0001
+ -  {H: [-4.863062848109E-02, -7.024223195870E-03, -5.764120733502E-03]} # 0002
+ -  {H: [-1.532279043393E-03, -2.916640720755E-02, -2.720788941142E-02]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  2.22
-   Elapsed time (s)                    :  2.22
+   CPU time (s)                        :  7.38
+   Elapsed time (s)                    :  3.70
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -834,7 +1279,7 @@
    Ncount_BigDFT                       :  1
    Iteration                           :  1
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71738878720431E+01, -1.71738878720431E+01 ]
+   etot                                :  [ -1.71738878720440E+01, -1.71738878720440E+01 ]
    Forces                              :  [  7.01E-02,  9.46E-02,  1.20E-03,  1.20E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -868,6 +1313,7 @@
  Post Optimization Parameters:
    Finite-Size Effect estimation:
      Scheduled                         :  No
+ Check the normalization of the support functions, tolerance:  1.0000E-03
   #-------------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
  - Symbol                              : O #Type No.  01
@@ -925,20 +1371,21 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  1.95
-     Kernel (MB)                       :  1.89
+     Density (MB)                      :  3.90
+     Kernel (MB)                       :  3.89
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  89%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  95%
        Kernel:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  95%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  97%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -951,13 +1398,13 @@
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  1
-   MPI tasks  4- 5                     :  0
+   MPI tasks  0- 0                     :  2
+   MPI tasks  1- 2                     :  1
  Total Number of Orbitals              :  4
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 984 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 575 KB 944 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -967,17 +1414,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.288 #  (Number of Components: 36859)
-   All (distributed) orbitals          : 0.864 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 6.480 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 1.704 #  (Number of Orbitals per MPI task: 2)
+   Wavefunction storage size           : 12.959 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.43
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 37.675
-   Density Construction                : 41.619
-   Poisson Solver                      : 31.893
-   Hamiltonian application             : 42.260
- Estimated Memory Peak (MB)            :  42
+   Kernel calculation                  : 75.325
+   Density Construction                : 55.921
+   Poisson Solver                      : 63.717
+   Hamiltonian application             : 56.562
+ Estimated Memory Peak (MB)            :  75
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -989,19 +1436,33 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  6.83629762987941E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  1.047639164005202491E-14
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  1.421085471520200372E-13
+ Ion-Ion interaction energy            :  6.83629762987932E+00
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -8.000000009579
+ Total ionic charge                    : -8.000000009580
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Poisson Solver:
      BC                                : Free
      Box                               :  [  113,  111,  111 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  3
+ Total No. of Atomic Input Orbitals    :  6
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  8.90E-06
  Total No. of Atomic Input Orbitals    :  6
  Atomic Input Orbital Generation:
  -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
@@ -1011,303 +1472,693 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5626,  90 ]
-
-   Tolerances for this check           :  [  3.20630004280869629E-06,  1.33226762955018785E-15 ]
-   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Number of coarse and fine DoF (MasterMPI task):  [  10818,  178 ]
+ 
+   Tolerances for this check           :  [  3.23930004324929355E-06,  1.33226762955018785E-15 ]
+   Maxdiff for transpose (checksum)    :  1.45519152283668518E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5530,  90 ]
-
+   Number of coarse and fine DoF (MasterMPI task):  [  11048,  178 ]
+ 
    Tolerances for this check           :  [  3.68590004921204306E-06,  1.33226762955018785E-15 ]
    Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.439094265598E-01, f:  2.0000},  # 00001
+ {e: -4.289744643056E-01, f:  2.0000},  # 00002
+ {e: -1.934365347120E-01, f:  2.0000},  # 00003
+ {e: -1.321717798429E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.772386802126E-01, f:  2.0000},  # 00001
+ {e: -5.242494989079E-01, f:  2.0000},  # 00002
+ {e: -3.810021597955E-01, f:  2.0000},  # 00003
+ {e: -3.073958927065E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.563304783385E-01, f:  2.0000},  # 00001
+ {e: -5.054012590034E-01, f:  2.0000},  # 00002
+ {e: -3.811165574366E-01, f:  2.0000},  # 00003
+ {e: -3.022354510459E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.460984875297E-01, f:  2.0000},  # 00001
+ {e: -4.954385240202E-01, f:  2.0000},  # 00002
+ {e: -3.797899184004E-01, f:  2.0000},  # 00003
+ {e: -2.991292327145E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.420479481050E-01, f:  2.0000},  # 00001
+ {e: -4.968888916224E-01, f:  2.0000},  # 00002
+ {e: -3.935386251655E-01, f:  2.0000},  # 00003
+ {e: -3.081330961164E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.597730452180E-01, f:  2.0000},  # 00001
+ {e: -4.295660237116E-01, f:  2.0000},  # 00002
+ {e: -2.926518167600E-01, f:  2.0000},  # 00003
+ {e: -2.069454558332E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.668628178217E-01, f:  2.0000},  # 00001
+ {e: -4.342224710974E-01, f:  2.0000},  # 00002
+ {e: -2.884159762523E-01, f:  2.0000},  # 00003
+ {e: -2.069453103492E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.696965688360E-01, f:  2.0000},  # 00001
+ {e: -4.360029762608E-01, f:  2.0000},  # 00002
+ {e: -2.858545642021E-01, f:  2.0000},  # 00003
+ {e: -2.063074153104E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.732854909521E-01, f:  2.0000},  # 00001
+ {e: -4.385158267000E-01, f:  2.0000},  # 00002
+ {e: -2.891833610968E-01, f:  2.0000},  # 00003
+ {e: -2.121954123107E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.064187246561E-01, f:  2.0000},  # 00001
+ {e: -4.655515824999E-01, f:  2.0000},  # 00002
+ {e: -3.285086674215E-01, f:  2.0000},  # 00003
+ {e: -2.511466834774E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.056182453581E-01, f:  2.0000},  # 00001
+ {e: -4.655199760466E-01, f:  2.0000},  # 00002
+ {e: -3.309997916500E-01, f:  2.0000},  # 00003
+ {e: -2.524770826157E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.053786238469E-01, f:  2.0000},  # 00001
+ {e: -4.655726363471E-01, f:  2.0000},  # 00002
+ {e: -3.322791723959E-01, f:  2.0000},  # 00003
+ {e: -2.532440373520E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.047189643552E-01, f:  2.0000},  # 00001
+ {e: -4.651598844246E-01, f:  2.0000},  # 00002
+ {e: -3.328232270938E-01, f:  2.0000},  # 00003
+ {e: -2.527887033848E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.868850929727E-01, f:  2.0000},  # 00001
+ {e: -4.508159022101E-01, f:  2.0000},  # 00002
+ {e: -3.130226776271E-01, f:  2.0000},  # 00003
+ {e: -2.323191321291E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.875106039680E-01, f:  2.0000},  # 00001
+ {e: -4.511918055566E-01, f:  2.0000},  # 00002
+ {e: -3.123949140408E-01, f:  2.0000},  # 00003
+ {e: -2.320332428600E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.877361690717E-01, f:  2.0000},  # 00001
+ {e: -4.513232741715E-01, f:  2.0000},  # 00002
+ {e: -3.120263573545E-01, f:  2.0000},  # 00003
+ {e: -2.318170043129E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.889592941970E-01, f:  2.0000},  # 00001
+ {e: -4.520575444528E-01, f:  2.0000},  # 00002
+ {e: -3.122176568970E-01, f:  2.0000},  # 00003
+ {e: -2.325660952652E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.975076799250E-01, f:  2.0000},  # 00001
+ {e: -4.585546996363E-01, f:  2.0000},  # 00002
+ {e: -3.216637136041E-01, f:  2.0000},  # 00003
+ {e: -2.426449511264E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.968353765181E-01, f:  2.0000},  # 00001
+ {e: -4.579181158730E-01, f:  2.0000},  # 00002
+ {e: -3.215495081974E-01, f:  2.0000},  # 00003
+ {e: -2.425195143134E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.965083046861E-01, f:  2.0000},  # 00001
+ {e: -4.576011326498E-01, f:  2.0000},  # 00002
+ {e: -3.214875042060E-01, f:  2.0000},  # 00003
+ {e: -2.424578183222E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.957589704319E-01, f:  2.0000},  # 00001
+ {e: -4.570080092006E-01, f:  2.0000},  # 00002
+ {e: -3.213428849831E-01, f:  2.0000},  # 00003
+ {e: -2.421033144474E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.909011462138E-01, f:  2.0000},  # 00001
+ {e: -4.534417022297E-01, f:  2.0000},  # 00002
+ {e: -3.159660912365E-01, f:  2.0000},  # 00003
+ {e: -2.362755588705E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.916287581120E-01, f:  2.0000},  # 00001
+ {e: -4.541456507718E-01, f:  2.0000},  # 00002
+ {e: -3.163398445670E-01, f:  2.0000},  # 00003
+ {e: -2.366400648763E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.919705021970E-01, f:  2.0000},  # 00001
+ {e: -4.544819068133E-01, f:  2.0000},  # 00002
+ {e: -3.165123610112E-01, f:  2.0000},  # 00003
+ {e: -2.368037247766E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.928845602665E-01, f:  2.0000},  # 00001
+ {e: -4.550811238214E-01, f:  2.0000},  # 00002
+ {e: -3.166819223713E-01, f:  2.0000},  # 00003
+ {e: -2.371050640510E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.956842787935E-01, f:  2.0000},  # 00001
+ {e: -4.570398181092E-01, f:  2.0000},  # 00002
+ {e: -3.199039764867E-01, f:  2.0000},  # 00003
+ {e: -2.406405410816E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.950982267126E-01, f:  2.0000},  # 00001
+ {e: -4.564531176287E-01, f:  2.0000},  # 00002
+ {e: -3.195710714408E-01, f:  2.0000},  # 00003
+ {e: -2.403351019479E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.948082202615E-01, f:  2.0000},  # 00001
+ {e: -4.561606370121E-01, f:  2.0000},  # 00002
+ {e: -3.194010046250E-01, f:  2.0000},  # 00003
+ {e: -2.401819054270E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.954192799212E-01, f:  2.0000},  # 00001
+ {e: -4.568777731319E-01, f:  2.0000},  # 00002
+ {e: -3.205839820201E-01, f:  2.0000},  # 00003
+ {e: -2.433113935811E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.276308508867E-01, f:  2.0000},  # 00001
+ {e: -4.832504812558E-01, f:  2.0000},  # 00002
+ {e: -3.524548717952E-01, f:  2.0000},  # 00003
+ {e: -2.770170391437E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.313516317570E-01, f:  2.0000},  # 00001
+ {e: -4.866266917047E-01, f:  2.0000},  # 00002
+ {e: -3.564737319678E-01, f:  2.0000},  # 00003
+ {e: -2.815067981394E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.327249345171E-01, f:  2.0000},  # 00001
+ {e: -4.879105227811E-01, f:  2.0000},  # 00002
+ {e: -3.580077437725E-01, f:  2.0000},  # 00003
+ {e: -2.832561480945E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.333671901795E-01, f:  2.0000},  # 00001
+ {e: -4.885108664378E-01, f:  2.0000},  # 00002
+ {e: -3.587293919293E-01, f:  2.0000},  # 00003
+ {e: -2.840824791361E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.336806776359E-01, f:  2.0000},  # 00001
+ {e: -4.888024314437E-01, f:  2.0000},  # 00002
+ {e: -3.590818789877E-01, f:  2.0000},  # 00003
+ {e: -2.844864142366E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.341804443030E-01, f:  2.0000},  # 00001
+ {e: -4.890897098678E-01, f:  2.0000},  # 00002
+ {e: -3.596512350724E-01, f:  2.0000},  # 00003
+ {e: -2.852449106600E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.207629905724E-01, f:  2.0000},  # 00001
+ {e: -4.779266193450E-01, f:  2.0000},  # 00002
+ {e: -3.460689317335E-01, f:  2.0000},  # 00003
+ {e: -2.712008214648E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.191189773985E-01, f:  2.0000},  # 00001
+ {e: -4.764105863546E-01, f:  2.0000},  # 00002
+ {e: -3.441770308250E-01, f:  2.0000},  # 00003
+ {e: -2.692736555157E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.185706212501E-01, f:  2.0000},  # 00001
+ {e: -4.758752575689E-01, f:  2.0000},  # 00002
+ {e: -3.434954725571E-01, f:  2.0000},  # 00003
+ {e: -2.685883072953E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.183075002370E-01, f:  2.0000},  # 00001
+ {e: -4.756186983746E-01, f:  2.0000},  # 00002
+ {e: -3.431651451524E-01, f:  2.0000},  # 00003
+ {e: -2.682580692183E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.181761229588E-01, f:  2.0000},  # 00001
+ {e: -4.754916634746E-01, f:  2.0000},  # 00002
+ {e: -3.429999936715E-01, f:  2.0000},  # 00003
+ {e: -2.680937377329E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.181240638138E-01, f:  2.0000},  # 00001
+ {e: -4.754371291835E-01, f:  2.0000},  # 00002
+ {e: -3.429313229116E-01, f:  2.0000},  # 00003
+ {e: -2.680228571122E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.202845897909E-01, f:  2.0000},  # 00001
+ {e: -4.772406355580E-01, f:  2.0000},  # 00002
+ {e: -3.450080892224E-01, f:  2.0000},  # 00003
+ {e: -2.701493115075E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.205589473574E-01, f:  2.0000},  # 00001
+ {e: -4.774993802353E-01, f:  2.0000},  # 00002
+ {e: -3.452691742519E-01, f:  2.0000},  # 00003
+ {e: -2.704006384328E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.206585565062E-01, f:  2.0000},  # 00001
+ {e: -4.775983026847E-01, f:  2.0000},  # 00002
+ {e: -3.453650726095E-01, f:  2.0000},  # 00003
+ {e: -2.704886140266E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.207060281246E-01, f:  2.0000},  # 00001
+ {e: -4.776456770791E-01, f:  2.0000},  # 00002
+ {e: -3.454116148458E-01, f:  2.0000},  # 00003
+ {e: -2.705303349194E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.207293972357E-01, f:  2.0000},  # 00001
+ {e: -4.776689670065E-01, f:  2.0000},  # 00002
+ {e: -3.454349418795E-01, f:  2.0000},  # 00003
+ {e: -2.705508665424E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.207411706724E-01, f:  2.0000},  # 00001
+ {e: -4.776809090789E-01, f:  2.0000},  # 00002
+ {e: -3.454479096467E-01, f:  2.0000},  # 00003
+ {e: -2.705633148354E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.197804192172E-01, f:  2.0000},  # 00001
+ {e: -4.768852723489E-01, f:  2.0000},  # 00002
+ {e: -3.445370513417E-01, f:  2.0000},  # 00003
+ {e: -2.695950004305E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.196523892328E-01, f:  2.0000},  # 00001
+ {e: -4.767684928152E-01, f:  2.0000},  # 00002
+ {e: -3.444213006741E-01, f:  2.0000},  # 00003
+ {e: -2.694658568475E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.196052492400E-01, f:  2.0000},  # 00001
+ {e: -4.767236085877E-01, f:  2.0000},  # 00002
+ {e: -3.443788597011E-01, f:  2.0000},  # 00003
+ {e: -2.694181043398E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.195827134048E-01, f:  2.0000},  # 00001
+ {e: -4.767020188252E-01, f:  2.0000},  # 00002
+ {e: -3.443582059283E-01, f:  2.0000},  # 00003
+ {e: -2.693951771438E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.195716148906E-01, f:  2.0000},  # 00001
+ {e: -4.766913732698E-01, f:  2.0000},  # 00002
+ {e: -3.443478379780E-01, f:  2.0000},  # 00003
+ {e: -2.693838413168E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.195662227279E-01, f:  2.0000},  # 00001
+ {e: -4.766862158348E-01, f:  2.0000},  # 00002
+ {e: -3.443428395882E-01, f:  2.0000},  # 00003
+ {e: -2.693783891054E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.198871437222E-01, f:  2.0000},  # 00001
+ {e: -4.769512908788E-01, f:  2.0000},  # 00002
+ {e: -3.446444265105E-01, f:  2.0000},  # 00003
+ {e: -2.696971371774E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.199303712890E-01, f:  2.0000},  # 00001
+ {e: -4.769903702591E-01, f:  2.0000},  # 00002
+ {e: -3.446823652304E-01, f:  2.0000},  # 00003
+ {e: -2.697384359512E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.199463913246E-01, f:  2.0000},  # 00001
+ {e: -4.770054386541E-01, f:  2.0000},  # 00002
+ {e: -3.446962898199E-01, f:  2.0000},  # 00003
+ {e: -2.697535311245E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.199540357173E-01, f:  2.0000},  # 00001
+ {e: -4.770126747436E-01, f:  2.0000},  # 00002
+ {e: -3.447030757088E-01, f:  2.0000},  # 00003
+ {e: -2.697607505903E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.199578068276E-01, f:  2.0000},  # 00001
+ {e: -4.770162463150E-01, f:  2.0000},  # 00002
+ {e: -3.447065171322E-01, f:  2.0000},  # 00003
+ {e: -2.697643397885E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.198407791975E-01, f:  2.0000},  # 00001
+ {e: -4.769195106976E-01, f:  2.0000},  # 00002
+ {e: -3.445963685704E-01, f:  2.0000},  # 00003
+ {e: -2.696476121229E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.198254564806E-01, f:  2.0000},  # 00001
+ {e: -4.769055788962E-01, f:  2.0000},  # 00002
+ {e: -3.445828984396E-01, f:  2.0000},  # 00003
+ {e: -2.696327583987E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.198198612974E-01, f:  2.0000},  # 00001
+ {e: -4.769002611585E-01, f:  2.0000},  # 00002
+ {e: -3.445780402220E-01, f:  2.0000},  # 00003
+ {e: -2.696273835012E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.198537081055E-01, f:  2.0000},  # 00001
+ {e: -4.769278948230E-01, f:  2.0000},  # 00002
+ {e: -3.446101244168E-01, f:  2.0000},  # 00003
+ {e: -2.696612040802E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.198572567752E-01, f:  2.0000},  # 00001
+ {e: -4.769310445139E-01, f:  2.0000},  # 00002
+ {e: -3.446132524976E-01, f:  2.0000},  # 00003
+ {e: -2.696646304869E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.198498662288E-01, f:  2.0000},  # 00001
+ {e: -4.769250490807E-01, f:  2.0000},  # 00002
+ {e: -3.446059415034E-01, f:  2.0000},  # 00003
+ {e: -2.696570886981E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.198494639756E-01, f:  2.0000},  # 00001
+ {e: -4.769246792443E-01, f:  2.0000},  # 00002
+ {e: -3.446054820835E-01, f:  2.0000},  # 00003
+ {e: -2.696566425403E-01, f:  2.0000}] # 00004
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.23989665E-03, y:  3.24609198E-03, z:  2.98800710E-03, 
                     total:  4.94797298E-03}
- Clean forces norm (Ha/Bohr): {maxval:  1.212244097605E-02, fnrm2:  2.416183113100E-04}
- Raw forces norm (Ha/Bohr): {maxval:  1.225177265644E-02, fnrm2:  2.742864238504E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.212244097607E-02, fnrm2:  2.416183113107E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.225177265648E-02, fnrm2:  2.742864238513E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-1.109726383719E-02,  3.474378438028E-03,  3.425347429800E-03]} # 0001
- -  {H: [ 8.620549904009E-03, -9.263084921295E-04, -1.005732006272E-03]} # 0002
- -  {H: [ 2.476713933183E-03, -2.548069945898E-03, -2.419615423528E-03]} # 0003
+ -  {O: [-1.109726383720E-02,  3.474378438048E-03,  3.425347429819E-03]} # 0001
+ -  {H: [ 8.620549904006E-03, -9.263084921392E-04, -1.005732006281E-03]} # 0002
+ -  {H: [ 2.476713933195E-03, -2.548069945909E-03, -2.419615423538E-03]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  28.91
-   Elapsed time (s)                    :  29.34
+   CPU time (s)                        :  79.58
+   Elapsed time (s)                    :  40.78
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1316,7 +2167,7 @@
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71780848696594E+01, -4.19699761631875E-03 ]
+   etot                                :  [ -1.71780848696607E+01, -4.19699761663139E-03 ]
    Forces                              :  [  1.21E-02,  1.55E-02,  1.95E-03,  1.95E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1350,6 +2201,7 @@
  Post Optimization Parameters:
    Finite-Size Effect estimation:
      Scheduled                         :  No
+ Check the normalization of the support functions, tolerance:  1.0000E-03
   #-------------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
  - Symbol                              : O #Type No.  01
@@ -1407,20 +2259,21 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  1.95
-     Kernel (MB)                       :  1.89
+     Density (MB)                      :  3.90
+     Kernel (MB)                       :  3.89
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  89%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  95%
        Kernel:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  95%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  97%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -1433,13 +2286,13 @@
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  1
-   MPI tasks  4- 5                     :  0
+   MPI tasks  0- 0                     :  2
+   MPI tasks  1- 2                     :  1
  Total Number of Orbitals              :  4
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 784 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 575 KB 544 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1449,17 +2302,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.288 #  (Number of Components: 36834)
-   All (distributed) orbitals          : 0.864 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 6.475 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 1.703 #  (Number of Orbitals per MPI task: 2)
+   Wavefunction storage size           : 12.950 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.43
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 37.675
-   Density Construction                : 41.614
-   Poisson Solver                      : 31.888
-   Hamiltonian application             : 42.255
- Estimated Memory Peak (MB)            :  42
+   Kernel calculation                  : 75.325
+   Density Construction                : 55.911
+   Poisson Solver                      : 63.708
+   Hamiltonian application             : 56.552
+ Estimated Memory Peak (MB)            :  75
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -1471,19 +2324,33 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  6.88242932265512E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  1.047639164005202491E-14
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  1.421085471520200372E-13
+ Ion-Ion interaction energy            :  6.88242932265510E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000008829
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Poisson Solver:
      BC                                : Free
      Box                               :  [  113,  111,  111 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  3
+ Total No. of Atomic Input Orbitals    :  6
+ Atomic Input Orbital Generation:
+ -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
+ -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
+ Wavelet conversion succeeded          :  Yes
+ Deviation from normalization          :  9.20E-06
  Total No. of Atomic Input Orbitals    :  6
  Atomic Input Orbital Generation:
  -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
@@ -1493,303 +2360,693 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5623,  90 ]
-
-   Tolerances for this check           :  [  3.20550004279801515E-06,  1.33226762955018785E-15 ]
-   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Number of coarse and fine DoF (MasterMPI task):  [  10816,  177 ]
+ 
+   Tolerances for this check           :  [  3.24060004326665041E-06,  1.33226762955018785E-15 ]
+   Maxdiff for transpose (checksum)    :  1.45519152283668518E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5527,  90 ]
-
+   Number of coarse and fine DoF (MasterMPI task):  [  11042,  177 ]
+ 
    Tolerances for this check           :  [  3.68340004917866448E-06,  1.33226762955018785E-15 ]
-   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
+   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.475923187004E-01, f:  2.0000},  # 00001
+ {e: -4.333036686650E-01, f:  2.0000},  # 00002
+ {e: -1.925730750142E-01, f:  2.0000},  # 00003
+ {e: -1.337814776709E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.774368675599E-01, f:  2.0000},  # 00001
+ {e: -5.263528864243E-01, f:  2.0000},  # 00002
+ {e: -3.776917491506E-01, f:  2.0000},  # 00003
+ {e: -3.056075840991E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.581972686050E-01, f:  2.0000},  # 00001
+ {e: -5.087063002968E-01, f:  2.0000},  # 00002
+ {e: -3.798870470301E-01, f:  2.0000},  # 00003
+ {e: -3.023364425093E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.480017750225E-01, f:  2.0000},  # 00001
+ {e: -4.987071296391E-01, f:  2.0000},  # 00002
+ {e: -3.788331423241E-01, f:  2.0000},  # 00003
+ {e: -2.993862867681E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.438277178010E-01, f:  2.0000},  # 00001
+ {e: -5.001028206305E-01, f:  2.0000},  # 00002
+ {e: -3.924796564124E-01, f:  2.0000},  # 00003
+ {e: -3.082257057715E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.623900657086E-01, f:  2.0000},  # 00001
+ {e: -4.332330841813E-01, f:  2.0000},  # 00002
+ {e: -2.920303752885E-01, f:  2.0000},  # 00003
+ {e: -2.079685614906E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.685732606262E-01, f:  2.0000},  # 00001
+ {e: -4.372307847906E-01, f:  2.0000},  # 00002
+ {e: -2.867301002025E-01, f:  2.0000},  # 00003
+ {e: -2.068927399119E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.716135325961E-01, f:  2.0000},  # 00001
+ {e: -4.391898223698E-01, f:  2.0000},  # 00002
+ {e: -2.842750449475E-01, f:  2.0000},  # 00003
+ {e: -2.064204517950E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.753293599787E-01, f:  2.0000},  # 00001
+ {e: -4.417889596267E-01, f:  2.0000},  # 00002
+ {e: -2.876594435675E-01, f:  2.0000},  # 00003
+ {e: -2.123435892383E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.084352406017E-01, f:  2.0000},  # 00001
+ {e: -4.688850149567E-01, f:  2.0000},  # 00002
+ {e: -3.272217211312E-01, f:  2.0000},  # 00003
+ {e: -2.513489384215E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.079038283977E-01, f:  2.0000},  # 00001
+ {e: -4.690503191414E-01, f:  2.0000},  # 00002
+ {e: -3.300834847673E-01, f:  2.0000},  # 00003
+ {e: -2.530282676388E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.075903348235E-01, f:  2.0000},  # 00001
+ {e: -4.690364433391E-01, f:  2.0000},  # 00002
+ {e: -3.313454411486E-01, f:  2.0000},  # 00003
+ {e: -2.537545539609E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.068560458522E-01, f:  2.0000},  # 00001
+ {e: -4.685933466442E-01, f:  2.0000},  # 00002
+ {e: -3.318783392935E-01, f:  2.0000},  # 00003
+ {e: -2.532757579467E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.888156889744E-01, f:  2.0000},  # 00001
+ {e: -4.540327005833E-01, f:  2.0000},  # 00002
+ {e: -3.117223307577E-01, f:  2.0000},  # 00003
+ {e: -2.325293368974E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.892960934168E-01, f:  2.0000},  # 00001
+ {e: -4.542994122428E-01, f:  2.0000},  # 00002
+ {e: -3.108806461947E-01, f:  2.0000},  # 00003
+ {e: -2.320381583119E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.895743862327E-01, f:  2.0000},  # 00001
+ {e: -4.544754280587E-01, f:  2.0000},  # 00002
+ {e: -3.105277811966E-01, f:  2.0000},  # 00003
+ {e: -2.318504747396E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.908778033310E-01, f:  2.0000},  # 00001
+ {e: -4.552559617098E-01, f:  2.0000},  # 00002
+ {e: -3.107372307794E-01, f:  2.0000},  # 00003
+ {e: -2.326351445446E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.996198951146E-01, f:  2.0000},  # 00001
+ {e: -4.619283817699E-01, f:  2.0000},  # 00002
+ {e: -3.204852939823E-01, f:  2.0000},  # 00003
+ {e: -2.429806016821E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.990063593603E-01, f:  2.0000},  # 00001
+ {e: -4.613317495783E-01, f:  2.0000},  # 00002
+ {e: -3.204778825674E-01, f:  2.0000},  # 00003
+ {e: -2.429571775274E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.986455990483E-01, f:  2.0000},  # 00001
+ {e: -4.609840185013E-01, f:  2.0000},  # 00002
+ {e: -3.204066027789E-01, f:  2.0000},  # 00003
+ {e: -2.428802997403E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.978322124039E-01, f:  2.0000},  # 00001
+ {e: -4.603596295780E-01, f:  2.0000},  # 00002
+ {e: -3.202543144048E-01, f:  2.0000},  # 00003
+ {e: -2.425068878438E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.927556844197E-01, f:  2.0000},  # 00001
+ {e: -4.566081537268E-01, f:  2.0000},  # 00002
+ {e: -3.145802710423E-01, f:  2.0000},  # 00003
+ {e: -2.363953115596E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.934608936796E-01, f:  2.0000},  # 00001
+ {e: -4.572998768485E-01, f:  2.0000},  # 00002
+ {e: -3.148921486669E-01, f:  2.0000},  # 00003
+ {e: -2.367007898773E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.938332408610E-01, f:  2.0000},  # 00001
+ {e: -4.576636994851E-01, f:  2.0000},  # 00002
+ {e: -3.150751116875E-01, f:  2.0000},  # 00003
+ {e: -2.368787795647E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.948128521254E-01, f:  2.0000},  # 00001
+ {e: -4.583010979147E-01, f:  2.0000},  # 00002
+ {e: -3.152543500716E-01, f:  2.0000},  # 00003
+ {e: -2.372008036500E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.977818290913E-01, f:  2.0000},  # 00001
+ {e: -4.603979703531E-01, f:  2.0000},  # 00002
+ {e: -3.187112176423E-01, f:  2.0000},  # 00003
+ {e: -2.409636822988E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.972010022417E-01, f:  2.0000},  # 00001
+ {e: -4.598096885382E-01, f:  2.0000},  # 00002
+ {e: -3.184153414685E-01, f:  2.0000},  # 00003
+ {e: -2.406926784373E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.968866229503E-01, f:  2.0000},  # 00001
+ {e: -4.594944146052E-01, f:  2.0000},  # 00002
+ {e: -3.182367262943E-01, f:  2.0000},  # 00003
+ {e: -2.405282081885E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.974724407265E-01, f:  2.0000},  # 00001
+ {e: -4.601782330209E-01, f:  2.0000},  # 00002
+ {e: -3.194319943549E-01, f:  2.0000},  # 00003
+ {e: -2.436293471313E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.297251148136E-01, f:  2.0000},  # 00001
+ {e: -4.866746026544E-01, f:  2.0000},  # 00002
+ {e: -3.514032362955E-01, f:  2.0000},  # 00003
+ {e: -2.773215653391E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.337709846546E-01, f:  2.0000},  # 00001
+ {e: -4.903208540602E-01, f:  2.0000},  # 00002
+ {e: -3.557599765672E-01, f:  2.0000},  # 00003
+ {e: -2.821281879242E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.351839591253E-01, f:  2.0000},  # 00001
+ {e: -4.916404086774E-01, f:  2.0000},  # 00002
+ {e: -3.573441344824E-01, f:  2.0000},  # 00003
+ {e: -2.839154418932E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.358330393711E-01, f:  2.0000},  # 00001
+ {e: -4.922481427376E-01, f:  2.0000},  # 00002
+ {e: -3.580779699857E-01, f:  2.0000},  # 00003
+ {e: -2.847478780655E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.361487723312E-01, f:  2.0000},  # 00001
+ {e: -4.925424589341E-01, f:  2.0000},  # 00002
+ {e: -3.584352411019E-01, f:  2.0000},  # 00003
+ {e: -2.851536735163E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.366473946290E-01, f:  2.0000},  # 00001
+ {e: -4.928316829258E-01, f:  2.0000},  # 00002
+ {e: -3.590155071203E-01, f:  2.0000},  # 00003
+ {e: -2.859207367223E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231094395680E-01, f:  2.0000},  # 00001
+ {e: -4.815401869033E-01, f:  2.0000},  # 00002
+ {e: -3.452723455614E-01, f:  2.0000},  # 00003
+ {e: -2.717574570115E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.213443405343E-01, f:  2.0000},  # 00001
+ {e: -4.799262172150E-01, f:  2.0000},  # 00002
+ {e: -3.432433893578E-01, f:  2.0000},  # 00003
+ {e: -2.697001677469E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.207917019182E-01, f:  2.0000},  # 00001
+ {e: -4.793877379670E-01, f:  2.0000},  # 00002
+ {e: -3.425486017097E-01, f:  2.0000},  # 00003
+ {e: -2.690060465361E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.205326529513E-01, f:  2.0000},  # 00001
+ {e: -4.791346291284E-01, f:  2.0000},  # 00002
+ {e: -3.422180363485E-01, f:  2.0000},  # 00003
+ {e: -2.686777843354E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.204036732184E-01, f:  2.0000},  # 00001
+ {e: -4.790096333961E-01, f:  2.0000},  # 00002
+ {e: -3.420532798821E-01, f:  2.0000},  # 00003
+ {e: -2.685148702641E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.203531089831E-01, f:  2.0000},  # 00001
+ {e: -4.789563493897E-01, f:  2.0000},  # 00002
+ {e: -3.419852069757E-01, f:  2.0000},  # 00003
+ {e: -2.684452189245E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.225688964079E-01, f:  2.0000},  # 00001
+ {e: -4.808099361221E-01, f:  2.0000},  # 00002
+ {e: -3.441266363347E-01, f:  2.0000},  # 00003
+ {e: -2.706316659675E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.228612524272E-01, f:  2.0000},  # 00001
+ {e: -4.810836078286E-01, f:  2.0000},  # 00002
+ {e: -3.444099523598E-01, f:  2.0000},  # 00003
+ {e: -2.709046020651E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.229600771016E-01, f:  2.0000},  # 00001
+ {e: -4.811820066244E-01, f:  2.0000},  # 00002
+ {e: -3.445071988977E-01, f:  2.0000},  # 00003
+ {e: -2.709934955250E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.230062384935E-01, f:  2.0000},  # 00001
+ {e: -4.812283509970E-01, f:  2.0000},  # 00002
+ {e: -3.445534004039E-01, f:  2.0000},  # 00003
+ {e: -2.710347008928E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.230289124990E-01, f:  2.0000},  # 00001
+ {e: -4.812510793693E-01, f:  2.0000},  # 00002
+ {e: -3.445764625425E-01, f:  2.0000},  # 00003
+ {e: -2.710549096400E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.230403634286E-01, f:  2.0000},  # 00001
+ {e: -4.812627560612E-01, f:  2.0000},  # 00002
+ {e: -3.445893558954E-01, f:  2.0000},  # 00003
+ {e: -2.710673020305E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.220521732940E-01, f:  2.0000},  # 00001
+ {e: -4.804418360938E-01, f:  2.0000},  # 00002
+ {e: -3.436478045220E-01, f:  2.0000},  # 00003
+ {e: -2.700706106017E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.219138634346E-01, f:  2.0000},  # 00001
+ {e: -4.803162348541E-01, f:  2.0000},  # 00002
+ {e: -3.435203276186E-01, f:  2.0000},  # 00003
+ {e: -2.699301550345E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.218658589488E-01, f:  2.0000},  # 00001
+ {e: -4.802704285612E-01, f:  2.0000},  # 00002
+ {e: -3.434762730036E-01, f:  2.0000},  # 00003
+ {e: -2.698810658112E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.218432939605E-01, f:  2.0000},  # 00001
+ {e: -4.802487132792E-01, f:  2.0000},  # 00002
+ {e: -3.434552479608E-01, f:  2.0000},  # 00003
+ {e: -2.698578954307E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.218321983993E-01, f:  2.0000},  # 00001
+ {e: -4.802380244919E-01, f:  2.0000},  # 00002
+ {e: -3.434447310853E-01, f:  2.0000},  # 00003
+ {e: -2.698464649852E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.218268088535E-01, f:  2.0000},  # 00001
+ {e: -4.802328490877E-01, f:  2.0000},  # 00002
+ {e: -3.434396765647E-01, f:  2.0000},  # 00003
+ {e: -2.698409800503E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.221612432070E-01, f:  2.0000},  # 00001
+ {e: -4.805098770635E-01, f:  2.0000},  # 00002
+ {e: -3.437558326862E-01, f:  2.0000},  # 00003
+ {e: -2.701737445196E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222081851945E-01, f:  2.0000},  # 00001
+ {e: -4.805521418460E-01, f:  2.0000},  # 00002
+ {e: -3.437980048336E-01, f:  2.0000},  # 00003
+ {e: -2.702191785280E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222245376162E-01, f:  2.0000},  # 00001
+ {e: -4.805675583330E-01, f:  2.0000},  # 00002
+ {e: -3.438125307543E-01, f:  2.0000},  # 00003
+ {e: -2.702347993958E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222322087206E-01, f:  2.0000},  # 00001
+ {e: -4.805748516079E-01, f:  2.0000},  # 00002
+ {e: -3.438194662329E-01, f:  2.0000},  # 00003
+ {e: -2.702421340121E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222359875712E-01, f:  2.0000},  # 00001
+ {e: -4.805784451192E-01, f:  2.0000},  # 00002
+ {e: -3.438229717433E-01, f:  2.0000},  # 00003
+ {e: -2.702457736897E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.221132516835E-01, f:  2.0000},  # 00001
+ {e: -4.804766945522E-01, f:  2.0000},  # 00002
+ {e: -3.437068849385E-01, f:  2.0000},  # 00003
+ {e: -2.701232334696E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.220963922819E-01, f:  2.0000},  # 00001
+ {e: -4.804614399294E-01, f:  2.0000},  # 00002
+ {e: -3.436917539755E-01, f:  2.0000},  # 00003
+ {e: -2.701067273923E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.220906042543E-01, f:  2.0000},  # 00001
+ {e: -4.804559300580E-01, f:  2.0000},  # 00002
+ {e: -3.436866351134E-01, f:  2.0000},  # 00003
+ {e: -2.701011078915E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.221268080397E-01, f:  2.0000},  # 00001
+ {e: -4.804855877120E-01, f:  2.0000},  # 00002
+ {e: -3.437210971857E-01, f:  2.0000},  # 00003
+ {e: -2.701373038087E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.221308958434E-01, f:  2.0000},  # 00001
+ {e: -4.804891982145E-01, f:  2.0000},  # 00002
+ {e: -3.437247881565E-01, f:  2.0000},  # 00003
+ {e: -2.701412981545E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.221228398069E-01, f:  2.0000},  # 00001
+ {e: -4.804826407745E-01, f:  2.0000},  # 00002
+ {e: -3.437168244961E-01, f:  2.0000},  # 00003
+ {e: -2.701330981141E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.221223033084E-01, f:  2.0000},  # 00001
+ {e: -4.804821583936E-01, f:  2.0000},  # 00002
+ {e: -3.437162317596E-01, f:  2.0000},  # 00003
+ {e: -2.701325163389E-01, f:  2.0000}] # 00004
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.37349792E-03, y:  3.31984195E-03, z:  2.67168865E-03, 
                     total:  4.87778261E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.036533462822E-03, fnrm2:  1.753252667672E-05}
- Raw forces norm (Ha/Bohr): {maxval:  5.337892152429E-03, fnrm2:  4.919707025563E-05}
+ Clean forces norm (Ha/Bohr): {maxval:  3.036533462794E-03, fnrm2:  1.753252667647E-05}
+ Raw forces norm (Ha/Bohr): {maxval:  5.337892152380E-03, fnrm2:  4.919707025517E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-2.119839541062E-03,  1.571725047478E-03,  1.502163827989E-03]} # 0001
- -  {H: [ 8.700692782672E-05, -1.488804568692E-03, -1.391530832465E-03]} # 0002
- -  {H: [ 2.032832613235E-03, -8.292047878618E-05, -1.106329955233E-04]} # 0003
+ -  {O: [-2.119839541059E-03,  1.571725047452E-03,  1.502163827964E-03]} # 0001
+ -  {H: [ 8.700692783061E-05, -1.488804568685E-03, -1.391530832459E-03]} # 0002
+ -  {H: [ 2.032832613228E-03, -8.292047876712E-05, -1.106329955053E-04]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  28.69
-   Elapsed time (s)                    :  28.94
+   CPU time (s)                        :  79.46
+   Elapsed time (s)                    :  40.61
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1798,7 +3055,7 @@
    Ncount_BigDFT                       :  3
    Iteration                           :  3
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71782172209405E+01, -1.32351281095566E-04 ]
+   etot                                :  [ -1.71782172209417E+01, -1.32351280988985E-04 ]
    Forces                              :  [  3.04E-03,  4.19E-03,  2.53E-03,  2.53E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1832,6 +3089,7 @@
  Post Optimization Parameters:
    Finite-Size Effect estimation:
      Scheduled                         :  No
+ Check the normalization of the support functions, tolerance:  1.0000E-03
   #-------------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
  - Symbol                              : O #Type No.  01
@@ -1889,20 +3147,21 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  1.95
-     Kernel (MB)                       :  1.89
+     Density (MB)                      :  3.90
+     Kernel (MB)                       :  3.89
      Full Grid Arrays (MB)             :  10.62
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  89%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  95%
        Kernel:
-         MPI tasks 0- 4                : 100%
-         MPI task 5                    :  95%
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  97%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -1915,13 +3174,13 @@
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  1
-   MPI tasks  4- 5                     :  0
+   MPI tasks  0- 0                     :  2
+   MPI tasks  1- 2                     :  1
  Total Number of Orbitals              :  4
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
- Wavefunctions memory occupation for root MPI process:  0 MB 287 KB 760 B
+ Wavefunctions memory occupation for root MPI process:  0 MB 575 KB 496 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -1931,17 +3190,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.288 #  (Number of Components: 36831)
-   All (distributed) orbitals          : 0.864 #  (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 6.475 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 1.703 #  (Number of Orbitals per MPI task: 2)
+   Wavefunction storage size           : 12.949 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.43
    Full Uncompressed (ISF) grid        : 10.638
    Workspaces storage size             : 0.855
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 37.675
-   Density Construction                : 41.614
-   Poisson Solver                      : 31.888
-   Hamiltonian application             : 42.255
- Estimated Memory Peak (MB)            :  42
+   Kernel calculation                  : 75.325
+   Density Construction                : 55.910
+   Poisson Solver                      : 63.707
+   Hamiltonian application             : 56.551
+ Estimated Memory Peak (MB)            :  75
   #WARNING: Do not call check_communications in the linear scaling version!
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
@@ -1953,251 +3212,559 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  6.88826973932638E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  1.047639164005202491E-14
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  1.421085471520200372E-13
+ Ion-Ion interaction energy            :  6.88826973932626E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000009216
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Poisson Solver:
      BC                                : Free
      Box                               :  [  113,  111,  111 ]
-     MPI tasks                         :  6
+     MPI tasks                         :  3
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5623,  90 ]
-
-   Tolerances for this check           :  [  3.20470004278733400E-06,  1.33226762955018785E-15 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  10821,  177 ]
+ 
+   Tolerances for this check           :  [  3.24090004327065584E-06,  1.33226762955018785E-15 ]
    Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  5527,  90 ]
-
+   Number of coarse and fine DoF (MasterMPI task):  [  11043,  177 ]
+ 
    Tolerances for this check           :  [  3.68310004917465905E-06,  1.33226762955018785E-15 ]
-   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222680006705E-01, f:  2.0000},  # 00001
+ {e: -4.811195232797E-01, f:  2.0000},  # 00002
+ {e: -3.418403798277E-01, f:  2.0000},  # 00003
+ {e: -2.681368138717E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.941501135499E-01, f:  2.0000},  # 00001
+ {e: -4.583297917706E-01, f:  2.0000},  # 00002
+ {e: -3.142769570718E-01, f:  2.0000},  # 00003
+ {e: -2.378463151250E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.920034416050E-01, f:  2.0000},  # 00001
+ {e: -4.564357340392E-01, f:  2.0000},  # 00002
+ {e: -3.120696909566E-01, f:  2.0000},  # 00003
+ {e: -2.350173316243E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.911884789818E-01, f:  2.0000},  # 00001
+ {e: -4.556927623900E-01, f:  2.0000},  # 00002
+ {e: -3.112110394965E-01, f:  2.0000},  # 00003
+ {e: -2.338708172827E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.908197731758E-01, f:  2.0000},  # 00001
+ {e: -4.551302702028E-01, f:  2.0000},  # 00002
+ {e: -3.110668375275E-01, f:  2.0000},  # 00003
+ {e: -2.337318073337E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.972371175118E-01, f:  2.0000},  # 00001
+ {e: -4.605560519659E-01, f:  2.0000},  # 00002
+ {e: -3.175258237507E-01, f:  2.0000},  # 00003
+ {e: -2.403935376022E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.979311478806E-01, f:  2.0000},  # 00001
+ {e: -4.612695448374E-01, f:  2.0000},  # 00002
+ {e: -3.183253844511E-01, f:  2.0000},  # 00003
+ {e: -2.411288588736E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.982409356558E-01, f:  2.0000},  # 00001
+ {e: -4.615938411194E-01, f:  2.0000},  # 00002
+ {e: -3.186901863731E-01, f:  2.0000},  # 00003
+ {e: -2.414569555951E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.987181927845E-01, f:  2.0000},  # 00001
+ {e: -4.619398264621E-01, f:  2.0000},  # 00002
+ {e: -3.187900354134E-01, f:  2.0000},  # 00003
+ {e: -2.414241065191E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.963952475731E-01, f:  2.0000},  # 00001
+ {e: -4.598842000342E-01, f:  2.0000},  # 00002
+ {e: -3.166997641617E-01, f:  2.0000},  # 00003
+ {e: -2.392505830100E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.958716781511E-01, f:  2.0000},  # 00001
+ {e: -4.593628546322E-01, f:  2.0000},  # 00002
+ {e: -3.162641006702E-01, f:  2.0000},  # 00003
+ {e: -2.388206852580E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.956246256166E-01, f:  2.0000},  # 00001
+ {e: -4.591137491309E-01, f:  2.0000},  # 00002
+ {e: -3.160563768125E-01, f:  2.0000},  # 00003
+ {e: -2.386197917615E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -8.963306066614E-01, f:  2.0000},  # 00001
+ {e: -4.600911312846E-01, f:  2.0000},  # 00002
+ {e: -3.173774627554E-01, f:  2.0000},  # 00003
+ {e: -2.419607478876E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.321065004477E-01, f:  2.0000},  # 00001
+ {e: -4.893297891570E-01, f:  2.0000},  # 00002
+ {e: -3.529942894348E-01, f:  2.0000},  # 00003
+ {e: -2.793457311073E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.363291531650E-01, f:  2.0000},  # 00001
+ {e: -4.930906825280E-01, f:  2.0000},  # 00002
+ {e: -3.576718505094E-01, f:  2.0000},  # 00003
+ {e: -2.844830913679E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.376524210302E-01, f:  2.0000},  # 00001
+ {e: -4.943219831278E-01, f:  2.0000},  # 00002
+ {e: -3.592427707421E-01, f:  2.0000},  # 00003
+ {e: -2.862612117826E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.382328799941E-01, f:  2.0000},  # 00001
+ {e: -4.948652713251E-01, f:  2.0000},  # 00002
+ {e: -3.599452641877E-01, f:  2.0000},  # 00003
+ {e: -2.870648499713E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.385108957071E-01, f:  2.0000},  # 00001
+ {e: -4.951240956485E-01, f:  2.0000},  # 00002
+ {e: -3.602826701691E-01, f:  2.0000},  # 00003
+ {e: -2.874524133966E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.389761468405E-01, f:  2.0000},  # 00001
+ {e: -4.954321175094E-01, f:  2.0000},  # 00002
+ {e: -3.609667075885E-01, f:  2.0000},  # 00003
+ {e: -2.883898426339E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.232142880495E-01, f:  2.0000},  # 00001
+ {e: -4.822793074134E-01, f:  2.0000},  # 00002
+ {e: -3.449103247062E-01, f:  2.0000},  # 00003
+ {e: -2.718735729041E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.211490296000E-01, f:  2.0000},  # 00001
+ {e: -4.804027030097E-01, f:  2.0000},  # 00002
+ {e: -3.425039613028E-01, f:  2.0000},  # 00003
+ {e: -2.694373417574E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.205602399520E-01, f:  2.0000},  # 00001
+ {e: -4.798257049934E-01, f:  2.0000},  # 00002
+ {e: -3.417320692300E-01, f:  2.0000},  # 00003
+ {e: -2.686681638566E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.202916748239E-01, f:  2.0000},  # 00001
+ {e: -4.795606881695E-01, f:  2.0000},  # 00002
+ {e: -3.413721268060E-01, f:  2.0000},  # 00003
+ {e: -2.683114528537E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.201579804733E-01, f:  2.0000},  # 00001
+ {e: -4.794300118907E-01, f:  2.0000},  # 00002
+ {e: -3.411931438276E-01, f:  2.0000},  # 00003
+ {e: -2.681346062754E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.201101007765E-01, f:  2.0000},  # 00001
+ {e: -4.793772315434E-01, f:  2.0000},  # 00002
+ {e: -3.411234626659E-01, f:  2.0000},  # 00003
+ {e: -2.680622747973E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.228263307559E-01, f:  2.0000},  # 00001
+ {e: -4.816533916052E-01, f:  2.0000},  # 00002
+ {e: -3.437573832995E-01, f:  2.0000},  # 00003
+ {e: -2.707502906010E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.231917226074E-01, f:  2.0000},  # 00001
+ {e: -4.819949740970E-01, f:  2.0000},  # 00002
+ {e: -3.441165832778E-01, f:  2.0000},  # 00003
+ {e: -2.710983568501E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.233087026231E-01, f:  2.0000},  # 00001
+ {e: -4.821123495538E-01, f:  2.0000},  # 00002
+ {e: -3.442340010366E-01, f:  2.0000},  # 00003
+ {e: -2.712064157423E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.233623259235E-01, f:  2.0000},  # 00001
+ {e: -4.821667931776E-01, f:  2.0000},  # 00002
+ {e: -3.442887059114E-01, f:  2.0000},  # 00003
+ {e: -2.712555377828E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.233886119945E-01, f:  2.0000},  # 00001
+ {e: -4.821934336843E-01, f:  2.0000},  # 00002
+ {e: -3.443158993001E-01, f:  2.0000},  # 00003
+ {e: -2.712795623691E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.234019813842E-01, f:  2.0000},  # 00001
+ {e: -4.822072708579E-01, f:  2.0000},  # 00002
+ {e: -3.443314118877E-01, f:  2.0000},  # 00003
+ {e: -2.712949463495E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222047169082E-01, f:  2.0000},  # 00001
+ {e: -4.812132846524E-01, f:  2.0000},  # 00002
+ {e: -3.431874129169E-01, f:  2.0000},  # 00003
+ {e: -2.700857181526E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.220369185356E-01, f:  2.0000},  # 00001
+ {e: -4.810619601725E-01, f:  2.0000},  # 00002
+ {e: -3.430307232304E-01, f:  2.0000},  # 00003
+ {e: -2.699134203346E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.219823086755E-01, f:  2.0000},  # 00001
+ {e: -4.810098855100E-01, f:  2.0000},  # 00002
+ {e: -3.429798502673E-01, f:  2.0000},  # 00003
+ {e: -2.698565423127E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.219571410633E-01, f:  2.0000},  # 00001
+ {e: -4.809856184876E-01, f:  2.0000},  # 00002
+ {e: -3.429560604123E-01, f:  2.0000},  # 00003
+ {e: -2.698301830957E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.219447960052E-01, f:  2.0000},  # 00001
+ {e: -4.809737051503E-01, f:  2.0000},  # 00002
+ {e: -3.429441948986E-01, f:  2.0000},  # 00003
+ {e: -2.698172122971E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.219388302830E-01, f:  2.0000},  # 00001
+ {e: -4.809679789749E-01, f:  2.0000},  # 00002
+ {e: -3.429385861564E-01, f:  2.0000},  # 00003
+ {e: -2.698110540953E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.223534649624E-01, f:  2.0000},  # 00001
+ {e: -4.813114604490E-01, f:  2.0000},  # 00002
+ {e: -3.433321965982E-01, f:  2.0000},  # 00003
+ {e: -2.702247005537E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.224119073132E-01, f:  2.0000},  # 00001
+ {e: -4.813638179198E-01, f:  2.0000},  # 00002
+ {e: -3.433856454693E-01, f:  2.0000},  # 00003
+ {e: -2.702821737783E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.224310739118E-01, f:  2.0000},  # 00001
+ {e: -4.813818998720E-01, f:  2.0000},  # 00002
+ {e: -3.434030048923E-01, f:  2.0000},  # 00003
+ {e: -2.703008807771E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.224398966330E-01, f:  2.0000},  # 00001
+ {e: -4.813903122503E-01, f:  2.0000},  # 00002
+ {e: -3.434111243724E-01, f:  2.0000},  # 00003
+ {e: -2.703095014231E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.224442322935E-01, f:  2.0000},  # 00001
+ {e: -4.813944517275E-01, f:  2.0000},  # 00002
+ {e: -3.434152328489E-01, f:  2.0000},  # 00003
+ {e: -2.703137797316E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222904768378E-01, f:  2.0000},  # 00001
+ {e: -4.812670121107E-01, f:  2.0000},  # 00002
+ {e: -3.432694259701E-01, f:  2.0000},  # 00003
+ {e: -2.701600109744E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222691976846E-01, f:  2.0000},  # 00001
+ {e: -4.812478797409E-01, f:  2.0000},  # 00002
+ {e: -3.432500759834E-01, f:  2.0000},  # 00003
+ {e: -2.701389073934E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222623226604E-01, f:  2.0000},  # 00001
+ {e: -4.812413427754E-01, f:  2.0000},  # 00002
+ {e: -3.432439139734E-01, f:  2.0000},  # 00003
+ {e: -2.701321117367E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.222591676522E-01, f:  2.0000},  # 00001
+ {e: -4.812383088782E-01, f:  2.0000},  # 00002
+ {e: -3.432410620964E-01, f:  2.0000},  # 00003
+ {e: -2.701289900638E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.223094556478E-01, f:  2.0000},  # 00001
+ {e: -4.812797994584E-01, f:  2.0000},  # 00002
+ {e: -3.432888620217E-01, f:  2.0000},  # 00003
+ {e: -2.701792160888E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.223160503065E-01, f:  2.0000},  # 00001
+ {e: -4.812856694016E-01, f:  2.0000},  # 00002
+ {e: -3.432948909275E-01, f:  2.0000},  # 00003
+ {e: -2.701857166859E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.223037485985E-01, f:  2.0000},  # 00001
+ {e: -4.812756831763E-01, f:  2.0000},  # 00002
+ {e: -3.432829273820E-01, f:  2.0000},  # 00003
+ {e: -2.701733137788E-01, f:  2.0000}] # 00004
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
+  #Eigenvalues and New Occupation Numbers
+ Orbitals: [
+ {e: -9.223053283699E-01, f:  2.0000},  # 00001
+ {e: -4.812769641074E-01, f:  2.0000},  # 00002
+ {e: -3.432844789940E-01, f:  2.0000},  # 00003
+ {e: -2.701749395542E-01, f:  2.0000}] # 00004
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  111,  111 ]
-   MPI tasks                           :  6
+   MPI tasks                           :  3
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.32218635E-03, y:  3.36356395E-03, z:  2.52497006E-03, 
                     total:  4.80432989E-03}
- Clean forces norm (Ha/Bohr): {maxval:  1.945463734205E-03, fnrm2:  9.846341065660E-06}
- Raw forces norm (Ha/Bohr): {maxval:  4.350576597229E-03, fnrm2:  4.064204719556E-05}
+ Clean forces norm (Ha/Bohr): {maxval:  1.945463734186E-03, fnrm2:  9.846341065747E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  4.350576597200E-03, fnrm2:  4.064204719605E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-1.271335994970E-03,  7.123710490643E-04,  6.859161100108E-04]} # 0001
- -  {H: [-4.996586510526E-04, -1.315162873266E-03, -1.219816027170E-03]} # 0002
- -  {H: [ 1.770994646023E-03,  6.027918242018E-04,  5.338999171589E-04]} # 0003
+ -  {O: [-1.271335994962E-03,  7.123710491120E-04,  6.859161100552E-04]} # 0001
+ -  {H: [-4.996586510647E-04, -1.315162873274E-03, -1.219816027177E-03]} # 0002
+ -  {H: [ 1.770994646027E-03,  6.027918241620E-04,  5.338999171217E-04]} # 0003
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  21.45
-   Elapsed time (s)                    :  21.53
+   CPU time (s)                        :  59.30
+   Elapsed time (s)                    :  30.64
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2206,17 +3773,17 @@
    Ncount_BigDFT                       :  4
    Iteration                           :  4
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -1.71782307999903E+01, -1.35790497886035E-05 ]
+   etot                                :  [ -1.71782307999916E+01, -1.35790499022903E-05 ]
    Forces                              :  [  1.95E-03,  3.14E-03,  2.99E-03,  2.99E-03 ]
    b/b0                                :  1.00E+0
    nsat                                :  1
    FORCES norm(Ha/Bohr): { maxval:  1.94546E-03, fnrm2:  9.84634E-06, fluct:  2.98740E-03}
  End of minimization using             : SDCG
  Memory Consumption Report:
-   Tot. No. of Allocations  : 51997
-   Tot. No. of Deallocations: 51997
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 122
-      for the array: wz
-      in the routine: gaussians_to_wavelets_orb
+   Tot. No. of Allocations             :  74886
+   Tot. No. of Deallocations           :  74886
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  171
+     for the array                     : wz
+     in the routine                    : gaussians_to_wavelets_orb

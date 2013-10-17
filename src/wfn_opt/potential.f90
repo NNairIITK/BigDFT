@@ -25,8 +25,8 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
   real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout) :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
   real(gp), intent(out) :: econf
   !local variables
-  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3
-  real(wp) :: tt11,tt11_noconf,cp,r2
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3,potorder_half
+  real(wp) :: tt11,tt11_noconf,cp,r2,z2,y2
   real(wp) :: psir1,pot1,pot1_noconf,x,y,z
   real(gp) :: epot_p,econf_p!,ierr
 
@@ -45,9 +45,11 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
   i1s=max(1,ishift(1)+1)
   i1e=min(n1i,n1ip+ishift(1))
 
+  potorder_half=confdata%potorder/2
+
   !$omp parallel default(private)&
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf,econf,confdata)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,psir_noconf,econf,confdata,potorder_half)&
   !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et,pot1_noconf,tt11_noconf,econf_p)&
   !$omp private(tt11,psir1,pot1,ii1,ii2,ii3)
 
@@ -115,11 +117,15 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
 
   !important part of the array
   do ispinor=1,nspinor
-     !$omp do
+     !$omp do reduction(+:epot,econf)
      do i3=i3s,i3e
         z=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3)
+        z2=z**2
+        ii3=i3-ishift(3)
         do i2=i2s,i2e
            y=confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2)
+           y2=y**2
+           ii2=i2-ishift(2)
 
            i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
            i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
@@ -127,23 +133,21 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
            !no need of setting up to zero values outside wavefunction bounds
            do i1=i1st,i1et
               x=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-              r2=x**2+y**2+z**2
-              cp=confdata%prefac*r2**(confdata%potorder/2)
+              r2=x**2+y2+z2
+              cp=confdata%prefac*r2**potorder_half
 
               psir1=psir(i1,i2,i3,ispinor)
               !the local potential is always real (npot=1) + confining term
               ii1=i1-ishift(1)
-              ii2=i2-ishift(2)
-              ii3=i3-ishift(3)
               pot1=pot(ii1,ii2,ii3,1)+cp
               tt11=pot1*psir1
 
-              pot1_noconf=pot(i1-ishift(1),i2-ishift(2),i3-ishift(3),1)
+              pot1_noconf=pot(ii1,ii2,ii3,1)
               tt11_noconf=pot1_noconf*psir1
               psir_noconf(i1,i2,i3,ispinor) = tt11_noconf
-              econf_p=econf_p+real(cp*psir1*psir1,wp)
+              econf=econf+real(cp*psir1*psir1,wp)
 
-              epot_p=epot_p+real(tt11*psir1,wp)
+              epot=epot+real(tt11*psir1,wp)
               psir(i1,i2,i3,ispinor)=tt11
            end do
         end do
@@ -151,11 +155,11 @@ subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n
      !$omp end do
   end do
   
-  !$omp critical
-  epot=epot+epot_p
-  
-  econf=econf+econf_p
-  !$omp end critical
+  !!!$omp critical
+  !!epot=epot+epot_p
+  !!
+  !!econf=econf+econf_p
+  !!!$omp end critical
   
   !$omp end parallel
 
@@ -176,8 +180,8 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
   integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in) :: ibyyzz_r !< bounds in lr
   real(gp), intent(out) :: epot
   !local variables
-  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3
-  real(wp) :: tt11,cp,r2
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,i1st,i1et,ii1,ii2,ii3,potorder_half
+  real(wp) :: tt11,cp,r2,z2,y2
   real(wp) :: psir1,pot1,x,y,z
   real(gp) :: epot_p!,ierr
 
@@ -196,9 +200,11 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
   i1s=max(1,ishift(1)+1)
   i1e=min(n1i,n1ip+ishift(1))
 
+  potorder_half=confdata%potorder/2
+
   !$omp parallel default(private)&
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,ibyyzz_r,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,potorder_half)&
   !$omp private(ispinor,i1,i2,i3,epot_p,i1st,i1et)&
   !$omp private(tt11,psir1,pot1,ii1,ii2,ii3)
 
@@ -265,11 +271,15 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
 
   !important part of the array
   do ispinor=1,nspinor
-     !$omp do
+     !$omp do reduction(+:epot)
      do i3=i3s,i3e
         z=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3)
+        z2=z**2
+        ii3=i3-ishift(3)
         do i2=i2s,i2e
            y=confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2)
+           y2=y**2
+           ii2=i2-ishift(2)
 
            i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
            i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
@@ -277,18 +287,16 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
            !no need of setting up to zero values outside wavefunction bounds
            do i1=i1st,i1et
               x=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-              r2=x**2+y**2+z**2
-              cp=confdata%prefac*r2**(confdata%potorder/2)
+              r2=x**2+y2+z2
+              cp=confdata%prefac*r2**potorder_half
 
               psir1=psir(i1,i2,i3,ispinor)
               !the local potential is always real (npot=1) + confining term
               ii1=i1-ishift(1)
-              ii2=i2-ishift(2)
-              ii3=i3-ishift(3)
               pot1=pot(ii1,ii2,ii3,1)+cp
               tt11=pot1*psir1
 
-              epot_p=epot_p+real(tt11*psir1,wp)
+              epot=epot+real(tt11*psir1,wp)
               psir(i1,i2,i3,ispinor)=tt11
            end do
         end do
@@ -296,9 +304,9 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
      !$omp end do
   end do
   
-  !$omp critical
-  epot=epot+epot_p
-  !$omp end critical
+  !!!$omp critical
+  !!epot=epot+epot_p
+  !!!$omp end critical
   
   !$omp end parallel
 
@@ -318,9 +326,9 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
   type(confpot_data), intent(in) :: confdata !< data for the confining potential
   real(gp), intent(out) :: epot
   !local variables
-  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,ii1,ii2,ii3
+  integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,ii1,ii2,ii3,potorder_half
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,r2
-  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,x,y,z,cp
+  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,x,y,z,cp,z2,y2
   real(gp) :: epot_p!,ierr
 
   epot=0.0_wp
@@ -335,10 +343,11 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
   i1s=max(1,ishift(1)+1)
   i1e=min(n1i,n1ip+ishift(1))
 
+  potorder_half=confdata%potorder/2
 
   !$omp parallel default(private)&
   !$omp shared(pot,psir,n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,epot,nspinor)&
-  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata)&
+  !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,potorder_half)&
   !$omp private(ispinor,i1,i2,i3,epot_p)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
   !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3)
@@ -406,18 +415,20 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
 
   !important part of the array
   if (nspinor==4) then
-     !$omp do
+     !$omp do reduction(+:epot)
      do i3=i3s,i3e
         z=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3)
+        z2=z**2
         do i2=i2s,i2e
            y=confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2)
+           y2=y**2
            !thanks to the optional argument the conditional is done at compile time
 
            !no need of setting up to zero values outside wavefunction bounds
            do i1=i1s,i1e
               x=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-              r2=x**2+y**2+z**2
-              cp=confdata%prefac*r2**(confdata%potorder/2)
+              r2=x**2+y2+z2
+              cp=confdata%prefac*r2**potorder_half
 
               !wavefunctions
               psir1=psir(i1,i2,i3,1)
@@ -453,7 +464,7 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
               tt42=pot3*psir1 !p4
 
               !value of the potential energy
-              epot_p=epot_p+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+              epot=epot+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
                    2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
 
               !wavefunction update
@@ -472,27 +483,29 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
 
   else !case with nspinor /=4
      do ispinor=1,nspinor
-        !$omp do
+        !$omp do reduction(+:epot)
         do i3=i3s,i3e
            z=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3)
+           z2=z**2
+           ii3=i3-ishift(3)
            do i2=i2s,i2e
               y=confdata%hh(2)*real(i2+confdata%ioffset(2),wp)-confdata%rxyzConf(2)
+              y2=y**2
+              ii2=i2-ishift(2)
               !thanks to the optional argument the conditional is done at compile time
               !no need of setting up to zero values outside wavefunction bounds
               do i1=i1s,i1e
                  x=confdata%hh(1)*real(i1+confdata%ioffset(1),wp)-confdata%rxyzConf(1)
-                 r2=x**2+y**2+z**2
-                 cp=confdata%prefac*r2**(confdata%potorder/2)
+                 r2=x**2+y2+z2
+                 cp=confdata%prefac*r2**potorder_half
 
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
                  ii1=i1-ishift(1)
-                 ii2=i2-ishift(2)
-                 ii3=i3-ishift(3)
                  pot1=pot(ii1,ii2,ii3,1)+cp
                  tt11=pot1*psir1
 
-                 epot_p=epot_p+real(tt11*psir1,wp)
+                 epot=epot+real(tt11*psir1,wp)
                  psir(i1,i2,i3,ispinor)=tt11
               end do
            end do
@@ -501,9 +514,9 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
      end do
   end if
   
-  !$omp critical
-  epot=epot+epot_p
-  !$omp end critical
+  !!!$omp critical
+  !!epot=epot+epot_p
+  !!!$omp end critical
   
   !$omp end parallel
 
@@ -608,7 +621,7 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
 
   !important part of the array
   if (nspinor==4) then
-     !$omp do
+     !$omp do reduction(+:epot)
      do i3=i3s,i3e
         do i2=i2s,i2e
            !thanks to the optional argument the conditional is done at compile time
@@ -650,7 +663,7 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
               tt42=pot3*psir1 !p4
 
               !value of the potential energy
-              epot_p=epot_p+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+              epot=epot+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
                    2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
 
               !wavefunction update
@@ -669,9 +682,11 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
 
   else !case with nspinor /=4
      do ispinor=1,nspinor
-        !$omp do
+        !$omp do reduction(+:epot)
         do i3=i3s,i3e
+           ii3=i3-ishift(3)
            do i2=i2s,i2e
+              ii2=i2-ishift(2)
               !thanks to the optional argument the conditional is done at compile time
               !no need of setting up to zero values outside wavefunction bounds
               do i1=i1s,i1e
@@ -679,12 +694,10 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
                  ii1=i1-ishift(1)
-                 ii2=i2-ishift(2)
-                 ii3=i3-ishift(3)
                  pot1=pot(ii1,ii2,ii3,1)
                  tt11=pot1*psir1
 
-                 epot_p=epot_p+real(tt11*psir1,wp)
+                 epot=epot+real(tt11*psir1,wp)
                  psir(i1,i2,i3,ispinor)=tt11
               end do
            end do
@@ -693,9 +706,9 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
      end do
   end if
   
-  !$omp critical
-  epot=epot+epot_p
-  !$omp end critical
+  !!!$omp critical
+  !!epot=epot+epot_p
+  !!!$omp end critical
   
   !$omp end parallel
 
@@ -801,7 +814,7 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
 
   !important part of the array
   if (nspinor==4) then
-     !$omp do
+     !$omp do reduction(+:epot)
      do i3=i3s,i3e
         do i2=i2s,i2e
            !thanks to the optional argument the conditional is done at compile time
@@ -845,7 +858,7 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
               tt42=pot3*psir1 !p4
 
               !value of the potential energy
-              epot_p=epot_p+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+              epot=epot+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
                    2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
 
               !wavefunction update
@@ -864,23 +877,22 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
 
   else !case with nspinor /=4
      do ispinor=1,nspinor
-        !$omp do
+        !$omp do reduction(+:epot)
         do i3=i3s,i3e
+           ii3=i3-ishift(3)
            do i2=i2s,i2e
+              ii2=i2-ishift(2)
               i1st=max(i1s,ibyyzz_r(1,i2-15,i3-15)+1) !in bounds coordinates
               i1et=min(i1e,ibyyzz_r(2,i2-15,i3-15)+1) !in bounds coordinates
               !no need of setting up to zero values outside wavefunction bounds
               do i1=i1st,i1et
-
                  psir1=psir(i1,i2,i3,ispinor)
                  !the local potential is always real (npot=1) + confining term
                  ii1=i1-ishift(1)
-                 ii2=i2-ishift(2)
-                 ii3=i3-ishift(3)
                  pot1=pot(ii1,ii2,ii3,1)
                  tt11=pot1*psir1
 
-                 epot_p=epot_p+real(tt11*psir1,wp)
+                 epot=epot+real(tt11*psir1,wp)
                  psir(i1,i2,i3,ispinor)=tt11
               end do
            end do
@@ -889,9 +901,9 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
      end do
   end if
   
-  !$omp critical
-  epot=epot+epot_p
-  !$omp end critical
+  !!!$omp critical
+  !!epot=epot+epot_p
+  !!!$omp end critical
   
   !$omp end parallel
 

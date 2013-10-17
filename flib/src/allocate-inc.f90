@@ -1,5 +1,6 @@
 !> @file
 !! Include fortran file for allocation template
+!! 
 !! @author
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -54,8 +55,8 @@ contains
     !end do
 
     !create the dictionary array
-    if (.not. associated(dict_routine)) then
-       call dict_init(dict_routine)
+    if (.not. associated(mems(ictrl)%dict_routine)) then
+       call dict_init(mems(ictrl)%dict_routine)
     end if
     !add the array to the routine
     !call dict_array(m%routine_id,m%array_id,ilsize,dict_tmp)
@@ -67,7 +68,7 @@ contains
     call set(dict_tmp//firstadd,trim(address))
 
     !call set(dict_routine//trim(address),dict_tmp)
-    call set(dict_routine//trim(long_toa(iadd)),dict_tmp)
+    call set(mems(ictrl)%dict_routine//trim(long_toa(iadd)),dict_tmp)
 
     !call check_for_errors(ierror,m%try)
     call memocc(ierror,product(m%shape(1:m%rank))*sizeof,m%array_id,m%routine_id)
