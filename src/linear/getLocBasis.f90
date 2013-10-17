@@ -1051,6 +1051,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_HYBRID) &
           write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, hybrid, diff', &
           it, fnrm, fnrmMax, trH, ediff
+
+      ! information on the progress of the optimization
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_map('iter',it,fmt='(i6)')
+          call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+          call yaml_map('Omega',trH,fmt='(es24.17)')
+          call yaml_map('D',ediff,fmt='(es10.3)')
+      end if
+
       !!if(it>=nit_basis .or. it_tot>=3*nit_basis .or. reduce_conf) then
       !!    if(it>=nit_basis .and. .not.energy_increased) then
       !if(it>=nit_basis .or. it_tot>=3*nit_basis) then
