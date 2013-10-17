@@ -1,13 +1,24 @@
+!> @file
+!! Test the dictionaries of flib
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed oneder the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Routine testing the dictionary object of flib
 subroutine test_dictionaries0()
   use yaml_output
   use dictionaries
   implicit none
   type(dictionary), pointer :: dict1,dict2,dict3
   !local variables
-  integer :: ival,nval
-  character(len=2) :: val
+  integer :: ival!,nval
+!!$  character(len=2) :: val
   character(len=30) :: val2
-  type(dictionary), pointer :: list,dict_tmp
+  type(dictionary), pointer :: dict_tmp
   !finding operations
 !!$  print *,' Filling a linked list' 
 !!$  call dict_init(list)
@@ -402,3 +413,46 @@ subroutine test_dictionaries1()
    call dict_free(dictA)
 
  end subroutine test_dictionaries1
+
+ subroutine test_copy_merge()
+   use dictionaries
+   use yaml_output
+   implicit none
+
+   type(dictionary), pointer :: dict, cpy, subd
+
+   dict => dict_new( (/ &
+         & "__comment__" .is. 'Grid shifts', &
+         & "__cond__"    .is. dict_new((/ "__master_key__" .is. "kpt_method", &
+         &                                "__when__" .is. list_new((/ .item. "MPGrid" /)) /)), &
+         & "__default__" .is. list_new((/ .item."0.", .item."0.", .item."0." /)) /) )
+
+   call yaml_open_map("test dict_copy")
+   call yaml_open_map("original")
+   call yaml_dict_dump(dict)
+   call yaml_close_map()
+   nullify(cpy)
+   call dict_copy(cpy, dict)
+   call yaml_open_map("copy")
+   call yaml_dict_dump(cpy)
+   call yaml_close_map()
+   call dict_free(cpy)
+   call yaml_close_map()
+
+   subd => dict_new( (/ &
+         & "__exclusive__" .is. dict_new((/ "123" .is. "operation 123", &
+         &                                  "456" .is. "operation 456" /)), &
+         & "__default__"   .is. list_new((/ .item."1.", .item."2.", .item."3." /)) /) )
+   call yaml_open_map("test dict_update")
+   call dict_update(dict, subd)
+   call yaml_open_map("additional")
+   call yaml_dict_dump(subd)
+   call yaml_close_map()
+   call yaml_open_map("after merge")
+   call yaml_dict_dump(dict)
+   call yaml_close_map()
+   call yaml_close_map()
+   call dict_free(subd)
+
+   call dict_free(dict)
+ end subroutine test_copy_merge

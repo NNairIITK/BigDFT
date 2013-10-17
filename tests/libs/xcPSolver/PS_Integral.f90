@@ -6,6 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Program using the integral form for the Poisson solver
 program PS_Integral
 
   use Poisson_Solver
@@ -30,7 +33,6 @@ program PS_Integral
   real(dp), dimension(:,:,:), allocatable :: multiple_naive, analytic_integral_result, timings
   !local variables
   character(len=*), parameter :: subname='PS_Integral'
-  real(dp), parameter :: p0_ref = 1.0_dp
   integer :: i,i_stat,j,k!,n_iter,_kern
   !real(dp) :: p0_cell,p0gauss,absci,kern,moment
   character(len=64) :: chain

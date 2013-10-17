@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Self-Consistent Loop API
+!> Module determining the Self-Consistent Loop API
 module scfloop_API
 
   use module_base
@@ -20,24 +20,18 @@ module scfloop_API
   ! Storage of required variables for a SCF loop calculation.
   logical :: scfloop_initialised = .false.
   integer :: scfloop_nproc, itime_shift_for_restart
-  type(atoms_data), pointer :: scfloop_at
-  type(input_variables), pointer :: scfloop_in
-  type(restart_objects), pointer :: scfloop_rst
+  type(run_objects), pointer :: scfloop_obj
 
   public :: scfloop_init
 !!!  public :: scfloop_finalise
 contains
 
-  subroutine scfloop_init(nproc_, at_, in_, rst_)
-    integer, intent(in) :: nproc_
-    type(atoms_data), intent(in), target :: at_
-    type(input_variables), intent(in), target :: in_
-    type(restart_objects), intent(in), target :: rst_
+  subroutine scfloop_init(nproc, obj)
+    integer, intent(in) :: nproc
+    type(run_objects), intent(in), target :: obj
 
-    scfloop_nproc = nproc_
-    scfloop_at => at_
-    scfloop_in => in_
-    scfloop_rst => rst_
+    scfloop_nproc = nproc
+    scfloop_obj => obj
 
     scfloop_initialised = .true.
   END SUBROUTINE scfloop_init
@@ -59,14 +53,13 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   real(dp), intent(out) :: epot
   real(dp), intent(in) :: acell(3)
   real(dp), intent(in) :: rprimd(3,3), xred(3,natom)
-  real(dp), intent(out) :: fcart(3, natom), grad(3, natom)
+  real(dp), intent(out) :: grad(3, natom)
+  real(dp), intent(out), target :: fcart(3, natom)
 
   character(len=*), parameter :: subname='scfloop_main'
-  integer :: infocode, i, i_stat, i_all,j
-  real(gp) :: fnoise
+  integer :: infocode, i, j
   real(dp) :: favg(3)
-  real(gp), dimension(6) :: strten
-  real(dp), allocatable :: xcart(:,:)
+  type(DFT_global_output) :: outs
 
   if (.not. scfloop_initialised) then
      write(0,*) "No previous call to scfloop_init(). On strike, refuse to work."
@@ -79,41 +72,37 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   end if
 
   ! We transfer acell into at
-  scfloop_at%astruct%cell_dim(1) = acell(1)
-  scfloop_at%astruct%cell_dim(2) = rprimd(2,2)
-  scfloop_at%astruct%cell_dim(3) = acell(3)
+  scfloop_obj%atoms%astruct%cell_dim(1) = acell(1)
+  scfloop_obj%atoms%astruct%cell_dim(2)= rprimd(2,2)
+  scfloop_obj%atoms%astruct%cell_dim(3)= acell(3)
 
-  scfloop_in%inputPsiId=1
+  scfloop_obj%inputs%inputPsiId=1
   ! need to transform xred into xcart
-  allocate(xcart(3, scfloop_at%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,xcart,'xcart',subname)
-  do i = 1, scfloop_at%astruct%nat, 1
+  do i = 1, scfloop_obj%atoms%astruct%nat, 1
      do j=1,3
-        xcart(j,i)=modulo(xred(j,i),1._gp)*acell(j)
+        scfloop_obj%atoms%astruct%rxyz(j,i)=modulo(xred(j,i),1._gp)*acell(j)
      end do
   end do
 
 !!$  open(100+me)
 !!$  write(100+me,*)xcart
 !!$  close(100+me)
-
-  scfloop_in%inputPsiId = 1
-  call call_bigdft(scfloop_nproc,me,scfloop_at,xcart,scfloop_in,epot,grad,strten,fnoise,scfloop_rst,infocode)
+  outs%fxyz => fcart
+  scfloop_obj%inputs%inputPsiId = 1
+  call call_bigdft(scfloop_obj,outs,scfloop_nproc,me,infocode)
+  epot = outs%energy
+  nullify(outs%fxyz)
+  call deallocate_global_output(outs)
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
-  do i = 1, scfloop_at%astruct%nat, 1
-     fcart(:, i) = grad(:, i)
+  do i = 1, scfloop_obj%atoms%astruct%nat, 1
      favg(:) = favg(:) + fcart(:, i) / real(natom, dp)
-     grad(:, i) = -grad(:, i) / acell(:)
+     grad(:, i) = -fcart(:, i) / acell(:)
   end do
-  do i = 1, scfloop_at%astruct%nat, 1
+  do i = 1, scfloop_obj%atoms%astruct%nat, 1
      fcart(:, i) = fcart(:, i) - favg(:)
   end do
-
-  i_all=-product(shape(xcart))*kind(xcart)
-  deallocate(xcart,stat=i_stat)
-  call memocc(i_stat,i_all,'xcart',subname)
 END SUBROUTINE scfloop_main
 
 
@@ -143,12 +132,12 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   fnrm = real(0, dp)
   ! need to transform xred into xcart
-  allocate(xcart(3, scfloop_at%astruct%nat+ndebug),stat=i_stat)
+  allocate(xcart(3, natom+ndebug),stat=i_stat)
   call memocc(i_stat,xcart,'xcart',subname)
-  allocate(fcart(3, scfloop_at%astruct%nat+ndebug),stat=i_stat)
+  allocate(fcart(3, natom+ndebug),stat=i_stat)
   call memocc(i_stat,fcart,'fcart',subname)
 
-  do i = 1, scfloop_at%astruct%nat
+  do i = 1, natom
      xcart(:, i) = xred(:, i) * acell(:)
      fnrm = fnrm + real(fred(1, i) * acell(1) * fred(1, i) * acell(1) + &
           & fred(2, i) * acell(2) * fred(2, i) * acell(2) + &
@@ -158,11 +147,12 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   write(fn5,'(i5.5)') itime+itime_shift_for_restart
   write(comment,'(a,1pe10.3)')'AB6MD:fnrm= ', sqrt(fnrm)
-  call write_atomic_file(trim(scfloop_in%dir_output)//'posmd_'//fn5, epot + ekin, xcart, scfloop_at, trim(comment),forces=fcart)
+  call write_atomic_file(trim(scfloop_obj%inputs%dir_output)//'posmd_'//fn5, &
+       & epot + ekin, xcart, scfloop_obj%atoms, trim(comment),forces=fcart)
 
   !write velocities
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart
-  call wtvel('velocities.xyz',vel,scfloop_at,comment)
+  call wtvel('velocities.xyz',vel,scfloop_obj%atoms,comment)
 
   i_all=-product(shape(xcart))*kind(xcart)
   deallocate(xcart,stat=i_stat)

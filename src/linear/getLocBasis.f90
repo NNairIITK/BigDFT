@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
@@ -43,10 +44,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   integer, intent(in) :: extra_states
   logical, optional, intent(in) :: reorder
 
-
   ! Local variables 
-  integer :: istat, iall, iorb, jorb, info, ind_ham, ind_denskern
-  integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie, matrixindex_in_compressed
+  integer :: istat, iall, iorb, info
+  integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, evalsmall, work
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -54,9 +54,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
-  real(kind=gp),dimension(:,:),allocatable :: coeff_orig
   real(kind=8) :: deviation
-  integer :: iat, iiorb, jjorb, lwork
+  integer :: iat, iiorb, jjorb, lwork,jorb
 
   ! should eventually make this an input variable
   if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
@@ -141,7 +140,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
 
-      if (iproc==0) write(*,'(a,5es18.8)') 'ekin, eh, epot, eproj, eex', &
+      if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
                     energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
       !DEBUG
@@ -280,6 +279,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                bigdft_mpi%mpi_comm, 1, 'v', 'l',tmb%orbs%norb, &
                matrixElements(1,1,1), tmb%orbs%norb, matrixElements(1,1,2), tmb%orbs%norb, tmb%orbs%eval, info)
       end if
+
+      ! Make sure that the eigenvectors have the same sign on all MPI tasks.
+      ! To do so, ensure that the first entry is always positive.
+      do iorb=1,tmb%orbs%norb
+          if (matrixElements(1,iorb,1)<0.d0) then
+              call dscal(tmb%orbs%norb, -1.d0, matrixElements(1,iorb,1), 1)
+          end if
+      end do
 
       if(iproc==0) write(*,'(a)') 'done.'
 
@@ -1336,7 +1343,7 @@ end subroutine improveOrbitals
 subroutine my_geocode_buffers(geocode,nl1,nl2,nl3)
   implicit none
   integer, intent(out) :: nl1,nl2,nl3
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   !local variables
   logical :: perx,pery,perz
   integer :: nr1,nr2,nr3
@@ -1810,9 +1817,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt!, tt2, tt3, ddot   !DEBUG
-  logical :: dense
+  !logical :: dense
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer, parameter :: communication_strategy=ALLGATHERV
+  logical,parameter :: dense=.true.
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr) ! to check timings
   call timing(iproc,'renormCoefCom1','ON')
@@ -1833,7 +1841,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       write(*,'(a)',advance='no') 'coeff renormalization...'
   end if
 
-  dense=.true.
+  !dense=.true.
 
   if (dense) then
      ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.

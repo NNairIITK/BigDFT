@@ -1,7 +1,7 @@
 !> @file
-!!  Routines to do atomic analysis configuration
+!!  Program MDanalysis to do atomic analysis configuration
 !! @author
-!!    Copyright (C) 2009-2011 BigDFT group
+!!    Copyright (C) 2009-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -11,7 +11,7 @@
 
 
 !>    Analyse atomic configurations
-program find_angles
+program MDanalysis
  implicit none
  integer, parameter :: ntypes=4,nnmax=15,nseg=1800,nsegr=10000
  real(kind=8), parameter :: rstep=0.005d0!factor=12.82,rad=3.2d0/factor
@@ -373,8 +373,6 @@ contains
        !open the first file to check box features
 !print *,'here'
        call read_atomic_file(trim(contcar),0,atoms%astruct)
-       call allocate_atoms_nat(atoms, subname)
-       call allocate_atoms_ntypes(atoms, subname)
        nat=atoms%astruct%nat
 !print *,'nat',nat
        allocate(iatype(nrep**3*nat),pos(3,nrep**3*nat))
@@ -399,7 +397,7 @@ contains
   END SUBROUTINE box_features
 
 
-end program find_angles
+end program MDanalysis
 
 
 subroutine read_pos(iunit,whichone,nat,pos,nrep)

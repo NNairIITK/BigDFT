@@ -389,9 +389,12 @@ contains
        if (present(dvxci)) dvxci=real(0,dp)
 
        !Loop over points
-       !$omp parallel do default(private) &
-       !$omp & shared(npts,rho,grho2,nspden) &
-       !$omp & shared(xc,vxc,exc,vxcgr,dvxci) 
+       !$omp parallel do default(shared) &
+       !!$omp shared(npts,rho,grho2,nspden) &
+       !!$omp shared(xc,vxc,exc,vxcgr,dvxci) &
+       !$omp private(ipts,ipte,nb,sigma,j,rhotmp,v2rho2,v2rhosigma,v2sigma2) &
+       !$omp private(vsigma,i,exctmp,vxctmp)
+       
        do ipts = 1, npts, n_blocks
           ipte = min(ipts + n_blocks - 1, npts)
           nb = ipte - ipts + 1

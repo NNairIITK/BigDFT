@@ -1,5 +1,6 @@
-
+/*!
 This subdirectory contains the cudafortran sources for GPU acceleration
 of the wavelet part. I don't know how to properly include a Makefile input
 for use with libtools/autotools, so I just provide a sample of a possible
 Makefile.
+*/

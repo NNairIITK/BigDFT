@@ -1,4 +1,13 @@
-!> piece of routine to identify the errors, consider two optional arguments err_id and err_name
+!> @file
+!! Include fortran file used by the error handling
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!> Piece of routine to identify the errors, consider two optional arguments err_id and err_name
 !! included in error_handling.f90
   !local variables
   integer :: get_error 

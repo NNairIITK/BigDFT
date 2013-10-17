@@ -31,7 +31,7 @@ Calculating charge density... done.
  calling orthonormalizeLocalized (exact)
 max dev from unity    1.215203E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.43860110E+01    0.00000000E+00   -1.83474002E+01    1.36122697E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.438601100673E+01  0.000000000000E+00 -1.834740022678E+01  1.361226969076E+00  0.000000000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------
@@ -76,7 +76,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.663275E-02    8.148558E-02    8.285690E
  ============================= Basis functions created. =============================
 max dev from unity    7.739087E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    8.86224177E+00    0.00000000E+00   -7.90646675E+00    1.01030137E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  8.862241769008E+00  0.000000000000E+00 -7.906466752989E+00  1.010301365687E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.338811E-001     0.000000E+000     2.031492E+000     2.000000E-001
@@ -90,7 +90,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.739087E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    8.86224177E+00    0.00000000E+00   -1.16104779E+01    1.01030137E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  8.862241769008E+00  0.000000000000E+00 -1.161047790218E+01  1.010301365687E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.109437E-001     2.031492E+000    -4.441764E+000     2.000000E-001
@@ -106,7 +106,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.739087E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    8.86224177E+00    0.00000000E+00   -1.14582797E+01    1.01030137E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  8.862241769008E+00  0.000000000000E+00 -1.145827969285E+01  1.010301365687E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.167697E-001    -2.410272E+000     1.797948E-001     1.000000E-001
@@ -122,7 +122,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.739087E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    8.86224177E+00    0.00000000E+00   -1.14186971E+01    1.01030137E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  8.862241769008E+00  0.000000000000E+00 -1.141869705323E+01  1.010301365687E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.213031E-002    -2.230477E+000     4.500864E-002     1.100000E-001
@@ -138,7 +138,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.739087E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    8.86224177E+00    0.00000000E+00   -1.13854121E+01    1.01030137E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  8.862241769008E+00  0.000000000000E+00 -1.138541213294E+01  1.010301365687E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.142521E-002    -2.185468E+000     3.872047E-002     1.210000E-001
@@ -154,7 +154,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.739087E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    8.86224177E+00    0.00000000E+00   -1.13579023E+01    1.01030137E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  8.862241769008E+00  0.000000000000E+00 -1.135790225181E+01  1.010301365687E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.442660E-002    -2.146748E+000     3.262383E-002     1.331000E-001
@@ -210,7 +210,7 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.966453E-02    3.513629E-02    5.337953E
  ============================= Basis functions created. =============================
 max dev from unity    1.842314E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.40720621E+01    0.00000000E+00   -1.76214831E+01    1.56709134E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.407206205450E+01  0.000000000000E+00 -1.762148314072E+01  1.567091338102E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.021814E-001    -2.114124E+000    -6.336173E-001     2.000000E-001
@@ -224,7 +224,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.842314E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.40720621E+01    0.00000000E+00   -1.20819141E+01    1.56709134E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.407206205450E+01  0.000000000000E+00 -1.208191405519E+01  1.567091338102E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.053387E-001    -2.747741E+000     6.781679E+000     2.000000E-001
@@ -240,7 +240,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.842314E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.40720621E+01    0.00000000E+00   -1.25877490E+01    1.56709134E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.407206205450E+01  0.000000000000E+00 -1.258774898442E+01  1.567091338102E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.907598E-001     4.033937E+000    -6.448643E-001     1.000000E-001
@@ -256,7 +256,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.842314E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.40720621E+01    0.00000000E+00   -1.27789954E+01    1.56709134E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.407206205450E+01  0.000000000000E+00 -1.277899542428E+01  1.567091338102E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.454940E-001     3.389073E+000    -2.558185E-001     1.100000E-001
@@ -272,7 +272,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.842314E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.40720621E+01    0.00000000E+00   -1.29576083E+01    1.56709134E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.407206205450E+01  0.000000000000E+00 -1.295760833755E+01  1.567091338102E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.032420E-001     3.133254E+000    -2.325432E-001     1.210000E-001
@@ -288,7 +288,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.842314E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.40720621E+01    0.00000000E+00   -1.31181813E+01    1.56709134E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.407206205450E+01  0.000000000000E+00 -1.311818131153E+01  1.567091338102E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.658039E-001     2.900711E+000    -2.044955E-001     1.331000E-001
@@ -318,7 +318,7 @@ Calculating charge density... done.
  ############################################################################################
 max dev from unity    1.842314E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.40720621E+01    0.00000000E+00   -1.32576176E+01    1.56709134E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.407206205450E+01  0.000000000000E+00 -1.325761759141E+01  1.567091338102E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.338838E-001     2.696216E+000    -1.745195E-001     1.464100E-001
@@ -351,7 +351,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.780329E-05
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    9.83801440E+00    0.00000000E+00   -1.26338916E+01    8.31069919E-01    0.00000000E+00
+ekin, eh, epot, eproj, eex  9.838014403919E+00  0.000000000000E+00 -1.263389157417E+01  8.310699191200E-01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.823884E-001     1.744074E+000    -4.297617E+000     2.000000E-001
@@ -367,7 +367,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.780329E-05
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    9.83801440E+00    0.00000000E+00   -1.22513236E+01    8.31069919E-01    0.00000000E+00
+ekin, eh, epot, eproj, eex  9.838014403919E+00  0.000000000000E+00 -1.225132357687E+01  8.310699191200E-01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.415285E-001    -2.553544E+000     4.181465E-001     1.000000E-001
@@ -383,7 +383,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.780329E-05
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    9.83801440E+00    0.00000000E+00   -1.21343681E+01    8.31069919E-01    0.00000000E+00
+ekin, eh, epot, eproj, eex  9.838014403919E+00  0.000000000000E+00 -1.213436809742E+01  8.310699191200E-01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.973130E-001    -2.135397E+000     1.201735E-001     1.100000E-001
@@ -399,7 +399,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.780329E-05
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    9.83801440E+00    0.00000000E+00   -1.20319313E+01    8.31069919E-01    0.00000000E+00
+ekin, eh, epot, eproj, eex  9.838014403919E+00  0.000000000000E+00 -1.203193126008E+01  8.310699191200E-01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.582945E-001    -2.015224E+000     1.093788E-001     1.210000E-001
@@ -415,7 +415,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.780329E-05
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    9.83801440E+00    0.00000000E+00   -1.19442516E+01    8.31069919E-01    0.00000000E+00
+ekin, eh, epot, eproj, eex  9.838014403919E+00  0.000000000000E+00 -1.194425156764E+01  8.310699191200E-01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.248550E-001    -1.905845E+000     9.664086E-002     1.331000E-001
@@ -431,7 +431,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.780329E-05
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    9.83801440E+00    0.00000000E+00   -1.18708441E+01    8.31069919E-01    0.00000000E+00
+ekin, eh, epot, eproj, eex  9.838014403919E+00  0.000000000000E+00 -1.187084409194E+01  8.310699191200E-01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.694381E-002    -1.809204E+000     8.303401E-002     1.464100E-001
@@ -447,7 +447,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.780329E-05
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    9.83801440E+00    0.00000000E+00   -1.18106997E+01    8.31069919E-01    0.00000000E+00
+ekin, eh, epot, eproj, eex  9.838014403919E+00  0.000000000000E+00 -1.181069968696E+01  8.310699191200E-01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.418151E-002    -1.726170E+000     6.947195E-002     1.610510E-001
@@ -463,7 +463,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.780329E-05
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    9.83801440E+00    0.00000000E+00   -1.17624724E+01    8.31069919E-01    0.00000000E+00
+ekin, eh, epot, eproj, eex  9.838014403919E+00  0.000000000000E+00 -1.176247240785E+01  8.310699191200E-01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.597818E-002    -1.656698E+000     5.665263E-002     1.771561E-001
@@ -479,7 +479,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.780329E-05
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    9.83801440E+00    0.00000000E+00   -1.17246352E+01    8.31069919E-01    0.00000000E+00
+ekin, eh, epot, eproj, eex  9.838014403919E+00  0.000000000000E+00 -1.172463521629E+01  8.310699191200E-01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.164580E-002    -1.600046E+000     4.505323E-002     1.948717E-001
@@ -536,7 +536,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.303516E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12285705E+01    0.00000000E+00   -1.23633861E+01    1.45728102E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122857050363E+01  0.000000000000E+00 -1.236338610587E+01  1.457281017993E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.298085E-001    -1.823265E+000     1.884646E+000     2.000000E-001
@@ -552,7 +552,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.303516E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12285705E+01    0.00000000E+00   -1.24972687E+01    1.45728102E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122857050363E+01  0.000000000000E+00 -1.249726872154E+01  1.457281017993E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.079825E-002     6.138054E-002    -1.633569E-001     1.000000E-001
@@ -568,7 +568,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.303516E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12285705E+01    0.00000000E+00   -1.25403155E+01    1.45728102E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122857050363E+01  0.000000000000E+00 -1.254031553445E+01  1.457281017993E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.572871E-002    -1.019764E-001    -5.349097E-002     1.100000E-001
@@ -584,7 +584,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.303516E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12285705E+01    0.00000000E+00   -1.25791434E+01    1.45728102E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122857050363E+01  0.000000000000E+00 -1.257914341972E+01  1.457281017993E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.244131E-002    -1.554674E-001    -4.779302E-002     1.210000E-001
@@ -600,7 +600,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.303516E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12285705E+01    0.00000000E+00   -1.26132706E+01    1.45728102E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122857050363E+01  0.000000000000E+00 -1.261327057638E+01  1.457281017993E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.105899E-002    -2.032604E-001    -4.169547E-002     1.331000E-001
@@ -616,7 +616,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.303516E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12285705E+01    0.00000000E+00   -1.26424598E+01    1.45728102E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122857050363E+01  0.000000000000E+00 -1.264245978855E+01  1.457281017993E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.158769E-002    -2.449558E-001    -3.546751E-002     1.464100E-001
@@ -632,7 +632,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.303516E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12285705E+01    0.00000000E+00   -1.26667259E+01    1.45728102E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122857050363E+01  0.000000000000E+00 -1.266672591847E+01  1.457281017993E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.392016E-002    -2.804234E-001    -2.937763E-002     1.610510E-001
@@ -648,7 +648,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.303516E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12285705E+01    0.00000000E+00   -1.26863159E+01    1.45728102E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122857050363E+01  0.000000000000E+00 -1.268631592450E+01  1.457281017993E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.785741E-002    -3.098010E-001    -2.366807E-002     1.771561E-001
@@ -664,7 +664,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.303516E-06
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12285705E+01    0.00000000E+00   -1.27016647E+01    1.45728102E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122857050363E+01  0.000000000000E+00 -1.270166468485E+01  1.457281017993E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.314596E-002    -3.334691E-001    -1.853192E-002     1.948717E-001
@@ -721,7 +721,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.582542E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.11904242E+01    0.00000000E+00   -1.27319955E+01    1.34284343E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.119042421736E+01  0.000000000000E+00 -1.273199547553E+01  1.342843425743E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.121704E-002    -3.763222E-001    -1.923503E-001     2.000000E-001
@@ -737,7 +737,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.582542E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.11904242E+01    0.00000000E+00   -1.27212860E+01    1.34284343E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.119042421736E+01  0.000000000000E+00 -1.272128595761E+01  1.342843425743E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.159970E-003    -5.686725E-001     1.251659E-002     1.000000E-001
@@ -753,7 +753,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.582542E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.11904242E+01    0.00000000E+00   -1.27183431E+01    1.34284343E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.119042421736E+01  0.000000000000E+00 -1.271834306128E+01  1.342843425743E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.774073E-003    -5.561559E-001     3.435511E-003     1.100000E-001
@@ -769,7 +769,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.582542E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.11904242E+01    0.00000000E+00   -1.27158328E+01    1.34284343E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.119042421736E+01  0.000000000000E+00 -1.271583277198E+01  1.342843425743E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.593540E-003    -5.527204E-001     2.933551E-003     1.210000E-001
@@ -785,7 +785,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.582542E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.11904242E+01    0.00000000E+00   -1.27137518E+01    1.34284343E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.119042421736E+01  0.000000000000E+00 -1.271375184287E+01  1.342843425743E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.616802E-003    -5.497869E-001     2.433929E-003     1.331000E-001
@@ -801,7 +801,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.582542E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.11904242E+01    0.00000000E+00   -1.27120818E+01    1.34284343E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.119042421736E+01  0.000000000000E+00 -1.271208178329E+01  1.342843425743E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.834979E-003    -5.473529E-001     1.954793E-003     1.464100E-001
@@ -817,7 +817,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.582542E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.11904242E+01    0.00000000E+00   -1.27107899E+01    1.34284343E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.119042421736E+01  0.000000000000E+00 -1.271078986550E+01  1.342843425743E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.232367E-003    -5.453981E-001     1.513120E-003     1.610510E-001
@@ -833,7 +833,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.582542E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.11904242E+01    0.00000000E+00   -1.27098315E+01    1.34284343E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.119042421736E+01  0.000000000000E+00 -1.270983149654E+01  1.342843425743E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.875917E-004    -5.438850E-001     1.123082E-003     1.771561E-001
@@ -849,7 +849,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.582542E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.11904242E+01    0.00000000E+00   -1.27091538E+01    1.34284343E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.119042421736E+01  0.000000000000E+00 -1.270915383364E+01  1.342843425743E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.753526E-004    -5.427619E-001     7.945610E-004     1.948717E-001
@@ -906,7 +906,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.454434E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12029321E+01    0.00000000E+00   -1.27458870E+01    1.31135673E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.120293210838E+01  0.000000000000E+00 -1.274588701945E+01  1.311356729962E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.267302E-003    -5.439827E-001    -6.430387E-002     2.000000E-001
@@ -922,7 +922,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.454434E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12029321E+01    0.00000000E+00   -1.27413331E+01    1.31135673E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.120293210838E+01  0.000000000000E+00 -1.274133309893E+01  1.311356729962E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.465626E-003    -6.082866E-001     5.377484E-003     1.000000E-001
@@ -938,7 +938,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.454434E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12029321E+01    0.00000000E+00   -1.27399999E+01    1.31135673E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.120293210838E+01  0.000000000000E+00 -1.273999993492E+01  1.311356729962E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.962587E-003    -6.029091E-001     1.577246E-003     1.100000E-001
@@ -954,7 +954,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.454434E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12029321E+01    0.00000000E+00   -1.27388303E+01    1.31135673E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.120293210838E+01  0.000000000000E+00 -1.273883027691E+01  1.311356729962E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.531204E-003    -6.013318E-001     1.385706E-003     1.210000E-001
@@ -970,7 +970,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.454434E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12029321E+01    0.00000000E+00   -1.27378270E+01    1.31135673E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.120293210838E+01  0.000000000000E+00 -1.273782703226E+01  1.311356729962E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.170829E-003    -5.999461E-001     1.190350E-003     1.331000E-001
@@ -986,7 +986,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.454434E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12029321E+01    0.00000000E+00   -1.27369874E+01    1.31135673E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.120293210838E+01  0.000000000000E+00 -1.273698741847E+01  1.311356729962E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.780632E-004    -5.987558E-001     9.978906E-004     1.464100E-001
@@ -1002,7 +1002,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.454434E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12029321E+01    0.00000000E+00   -1.27363031E+01    1.31135673E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.120293210838E+01  0.000000000000E+00 -1.273630312282E+01  1.311356729962E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.469329E-004    -5.977579E-001     8.148679E-004     1.610510E-001
@@ -1018,7 +1018,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.454434E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12029321E+01    0.00000000E+00   -1.27357610E+01    1.31135673E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.120293210838E+01  0.000000000000E+00 -1.273576095685E+01  1.311356729962E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.693795E-004    -5.969430E-001     6.470638E-004     1.771561E-001
@@ -1034,7 +1034,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.454434E-07
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12029321E+01    0.00000000E+00   -1.27353440E+01    1.31135673E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.120293210838E+01  0.000000000000E+00 -1.273534397683E+01  1.311356729962E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.360847E-004    -5.962959E-001     4.989519E-004     1.948717E-001
@@ -1091,7 +1091,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.914174E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12154724E+01    0.00000000E+00   -1.27697122E+01    1.30504373E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.121547244963E+01  0.000000000000E+00 -1.276971224536E+01  1.305043730430E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.103666E-003    -5.964098E-001    -3.315976E-002     2.000000E-001
@@ -1107,7 +1107,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.914174E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12154724E+01    0.00000000E+00   -1.27674453E+01    1.30504373E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.121547244963E+01  0.000000000000E+00 -1.276744529949E+01  1.305043730430E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.264252E-003    -6.295695E-001     2.687208E-003     1.000000E-001
@@ -1123,7 +1123,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.914174E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12154724E+01    0.00000000E+00   -1.27667669E+01    1.30504373E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.121547244963E+01  0.000000000000E+00 -1.276676689727E+01  1.305043730430E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.025124E-003    -6.268823E-001     8.062721E-004     1.100000E-001
@@ -1139,7 +1139,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.914174E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12154724E+01    0.00000000E+00   -1.27661661E+01    1.30504373E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.121547244963E+01  0.000000000000E+00 -1.276616612958E+01  1.305043730430E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.180708E-004    -6.260760E-001     7.149922E-004     1.210000E-001
@@ -1155,7 +1155,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.914174E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12154724E+01    0.00000000E+00   -1.27656452E+01    1.30504373E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.121547244963E+01  0.000000000000E+00 -1.276564518560E+01  1.305043730430E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.426884E-004    -6.253610E-001     6.209599E-004     1.331000E-001
@@ -1171,7 +1171,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.914174E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12154724E+01    0.00000000E+00   -1.27652036E+01    1.30504373E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.121547244963E+01  0.000000000000E+00 -1.276520358224E+01  1.305043730430E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.973483E-004    -6.247401E-001     5.273220E-004     1.464100E-001
@@ -1187,7 +1187,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.914174E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12154724E+01    0.00000000E+00   -1.27648382E+01    1.30504373E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.121547244963E+01  0.000000000000E+00 -1.276483819607E+01  1.305043730430E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.793467E-004    -6.242128E-001     4.371959E-004     1.610510E-001
@@ -1203,7 +1203,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.914174E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12154724E+01    0.00000000E+00   -1.27645435E+01    1.30504373E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.121547244963E+01  0.000000000000E+00 -1.276454352344E+01  1.305043730430E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.852124E-004    -6.237756E-001     3.534014E-004     1.771561E-001
@@ -1219,7 +1219,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.914174E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12154724E+01    0.00000000E+00   -1.27643122E+01    1.30504373E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.121547244963E+01  0.000000000000E+00 -1.276431215900E+01  1.305043730430E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.111386E-004    -6.234222E-001     2.782031E-004     1.948717E-001
@@ -1276,7 +1276,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    6.049470E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12226090E+01    0.00000000E+00   -1.27888971E+01    1.30524162E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122260895401E+01  0.000000000000E+00 -1.278889707100E+01  1.305241615440E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.389136E-003    -6.233482E-001    -2.063541E-002     2.000000E-001
@@ -1292,7 +1292,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    6.049470E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12226090E+01    0.00000000E+00   -1.27874107E+01    1.30524162E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122260895401E+01  0.000000000000E+00 -1.278741071159E+01  1.305241615440E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.678972E-004    -6.439836E-001     1.767309E-003     1.000000E-001
@@ -1308,7 +1308,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    6.049470E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12226090E+01    0.00000000E+00   -1.27869576E+01    1.30524162E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122260895401E+01  0.000000000000E+00 -1.278695761009E+01  1.305241615440E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.154533E-004    -6.422163E-001     5.403659E-004     1.100000E-001
@@ -1324,7 +1324,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    6.049470E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12226090E+01    0.00000000E+00   -1.27865533E+01    1.30524162E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122260895401E+01  0.000000000000E+00 -1.278655325775E+01  1.305241615440E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.817501E-004    -6.416760E-001     4.829176E-004     1.210000E-001
@@ -1340,7 +1340,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    6.049470E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12226090E+01    0.00000000E+00   -1.27861995E+01    1.30524162E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122260895401E+01  0.000000000000E+00 -1.278619949063E+01  1.305241615440E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.665615E-004    -6.411930E-001     4.231851E-004     1.331000E-001
@@ -1356,7 +1356,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    6.049470E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12226090E+01    0.00000000E+00   -1.27858965E+01    1.30524162E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122260895401E+01  0.000000000000E+00 -1.278589649293E+01  1.305241615440E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.690000E-004    -6.407699E-001     3.631134E-004     1.464100E-001
@@ -1372,7 +1372,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    6.049470E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12226090E+01    0.00000000E+00   -1.27856428E+01    1.30524162E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122260895401E+01  0.000000000000E+00 -1.278564279115E+01  1.305241615440E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.876359E-004    -6.404067E-001     3.046606E-004     1.610510E-001
@@ -1388,7 +1388,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    6.049470E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12226090E+01    0.00000000E+00   -1.27854354E+01    1.30524162E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122260895401E+01  0.000000000000E+00 -1.278543538624E+01  1.305241615440E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.206919E-004    -6.401021E-001     2.496358E-004     1.771561E-001
@@ -1404,7 +1404,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    6.049470E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12226090E+01    0.00000000E+00   -1.27852700E+01    1.30524162E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122260895401E+01  0.000000000000E+00 -1.278527002020E+01  1.305241615440E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.662715E-004    -6.398525E-001     1.995413E-004     1.948717E-001
@@ -1461,7 +1461,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.659312E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250257E+01    0.00000000E+00   -1.28005886E+01    1.30622365E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122502568245E+01  0.000000000000E+00 -1.280058860725E+01  1.306223645955E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.085033E-003    -6.396724E-001    -1.441082E-002     2.000000E-001
@@ -1477,7 +1477,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.659312E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250257E+01    0.00000000E+00   -1.27994405E+01    1.30622365E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122502568245E+01  0.000000000000E+00 -1.279944052705E+01  1.306223645955E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.918213E-004    -6.540832E-001     1.367276E-003     1.000000E-001
@@ -1493,7 +1493,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.659312E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250257E+01    0.00000000E+00   -1.27990873E+01    1.30622365E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122502568245E+01  0.000000000000E+00 -1.279908726663E+01  1.306223645955E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.749112E-004    -6.527159E-001     4.220380E-004     1.100000E-001
@@ -1509,7 +1509,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.659312E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250257E+01    0.00000000E+00   -1.27987708E+01    1.30622365E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122502568245E+01  0.000000000000E+00 -1.279877080509E+01  1.306223645955E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.715791E-004    -6.522939E-001     3.786195E-004     1.210000E-001
@@ -1525,7 +1525,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.659312E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250257E+01    0.00000000E+00   -1.27984927E+01    1.30622365E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122502568245E+01  0.000000000000E+00 -1.279849271772E+01  1.306223645955E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.817040E-004    -6.519152E-001     3.332473E-004     1.331000E-001
@@ -1541,7 +1541,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.659312E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250257E+01    0.00000000E+00   -1.27982533E+01    1.30622365E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122502568245E+01  0.000000000000E+00 -1.279825334434E+01  1.306223645955E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.047152E-004    -6.515820E-001     2.873764E-004     1.464100E-001
@@ -1557,7 +1557,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.659312E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250257E+01    0.00000000E+00   -1.27980518E+01    1.30622365E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122502568245E+01  0.000000000000E+00 -1.279805177418E+01  1.306223645955E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.396832E-004    -6.512946E-001     2.424847E-004     1.610510E-001
@@ -1573,7 +1573,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.659312E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250257E+01    0.00000000E+00   -1.27978859E+01    1.30622365E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122502568245E+01  0.000000000000E+00 -1.279788593278E+01  1.306223645955E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.854551E-004    -6.510521E-001     1.999533E-004     1.771561E-001
@@ -1589,7 +1589,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.659312E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250257E+01    0.00000000E+00   -1.27977528E+01    1.30622365E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122502568245E+01  0.000000000000E+00 -1.279775276906E+01  1.306223645955E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.408019E-004    -6.508522E-001     1.609489E-004     1.948717E-001
@@ -1646,7 +1646,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.140536E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250181E+01    0.00000000E+00   -1.28065028E+01    1.30703388E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122501810267E+01  0.000000000000E+00 -1.280650282910E+01  1.307033876837E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.183071E-004    -6.506346E-001    -9.691012E-003     2.000000E-001
@@ -1662,7 +1662,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.140536E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250181E+01    0.00000000E+00   -1.28056427E+01    1.30703388E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122501810267E+01  0.000000000000E+00 -1.280564270590E+01  1.307033876837E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.257388E-004    -6.603256E-001     1.025005E-003     1.000000E-001
@@ -1678,7 +1678,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.140536E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250181E+01    0.00000000E+00   -1.28053772E+01    1.30703388E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122501810267E+01  0.000000000000E+00 -1.280537718401E+01  1.307033876837E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.382239E-004    -6.593006E-001     3.174474E-004     1.100000E-001
@@ -1694,7 +1694,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.140536E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250181E+01    0.00000000E+00   -1.28051390E+01    1.30703388E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122501810267E+01  0.000000000000E+00 -1.280513900542E+01  1.307033876837E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.606634E-004    -6.589831E-001     2.851642E-004     1.210000E-001
@@ -1710,7 +1710,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.140536E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250181E+01    0.00000000E+00   -1.28049294E+01    1.30703388E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122501810267E+01  0.000000000000E+00 -1.280492939231E+01  1.307033876837E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.929849E-004    -6.586980E-001     2.513679E-004     1.331000E-001
@@ -1726,7 +1726,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.140536E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250181E+01    0.00000000E+00   -1.28047487E+01    1.30703388E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122501810267E+01  0.000000000000E+00 -1.280474865162E+01  1.307033876837E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.347939E-004    -6.584466E-001     2.171361E-004     1.464100E-001
@@ -1742,7 +1742,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.140536E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250181E+01    0.00000000E+00   -1.28045962E+01    1.30703388E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122501810267E+01  0.000000000000E+00 -1.280459616101E+01  1.307033876837E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.854413E-004    -6.582295E-001     1.835672E-004     1.610510E-001
@@ -1758,7 +1758,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.140536E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250181E+01    0.00000000E+00   -1.28044704E+01    1.30703388E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122501810267E+01  0.000000000000E+00 -1.280447042997E+01  1.307033876837E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.441204E-004    -6.580459E-001     1.516918E-004     1.771561E-001
@@ -1774,7 +1774,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    5.140536E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12250181E+01    0.00000000E+00   -1.28043692E+01    1.30703388E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122501810267E+01  0.000000000000E+00 -1.280436923513E+01  1.307033876837E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.099699E-004    -6.578942E-001     1.223855E-004     1.948717E-001
@@ -1831,7 +1831,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.644932E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12240450E+01    0.00000000E+00   -1.28090556E+01    1.30763352E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122404504874E+01  0.000000000000E+00 -1.280905555309E+01  1.307633524445E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.830028E-004    -6.577019E-001    -6.210351E-003     2.000000E-001
@@ -1847,7 +1847,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.644932E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12240450E+01    0.00000000E+00   -1.28084436E+01    1.30763352E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122404504874E+01  0.000000000000E+00 -1.280844362948E+01  1.307633524445E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.741054E-004    -6.639123E-001     7.291754E-004     1.000000E-001
@@ -1863,7 +1863,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.644932E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12240450E+01    0.00000000E+00   -1.28082550E+01    1.30763352E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122404504874E+01  0.000000000000E+00 -1.280825495685E+01  1.307633524445E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.117838E-004    -6.631831E-001     2.255599E-004     1.100000E-001
@@ -1879,7 +1879,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.644932E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12240450E+01    0.00000000E+00   -1.28080858E+01    1.30763352E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122404504874E+01  0.000000000000E+00 -1.280808579742E+01  1.307633524445E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.566257E-004    -6.629576E-001     2.025170E-004     1.210000E-001
@@ -1895,7 +1895,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.644932E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12240450E+01    0.00000000E+00   -1.28079370E+01    1.30763352E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122404504874E+01  0.000000000000E+00 -1.280793701051E+01  1.307633524445E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.085729E-004    -6.627550E-001     1.784112E-004     1.331000E-001
@@ -1911,7 +1911,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.644932E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12240450E+01    0.00000000E+00   -1.28078088E+01    1.30763352E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122404504874E+01  0.000000000000E+00 -1.280780880108E+01  1.307633524445E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.673326E-004    -6.625766E-001     1.540129E-004     1.464100E-001
@@ -1927,7 +1927,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.644932E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12240450E+01    0.00000000E+00   -1.28077007E+01    1.30763352E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122404504874E+01  0.000000000000E+00 -1.280770071044E+01  1.307633524445E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.324265E-004    -6.624226E-001     1.301064E-004     1.610510E-001
@@ -1943,7 +1943,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.644932E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12240450E+01    0.00000000E+00   -1.28076117E+01    1.30763352E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122404504874E+01  0.000000000000E+00 -1.280761166093E+01  1.307633524445E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.032619E-004    -6.622925E-001     1.074260E-004     1.771561E-001
@@ -1959,7 +1959,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.644932E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12240450E+01    0.00000000E+00   -1.28075401E+01    1.30763352E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122404504874E+01  0.000000000000E+00 -1.280754005363E+01  1.307633524445E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.920743E-005    -6.621851E-001     8.659443E-005     1.948717E-001
@@ -2016,7 +2016,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    3.477927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12231611E+01    0.00000000E+00   -1.28094189E+01    1.30797965E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122316108898E+01  0.000000000000E+00 -1.280941886523E+01  1.307979646472E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.206912E-004    -6.620386E-001    -2.994308E-003     2.000000E-001
@@ -2032,7 +2032,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    3.477927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12231611E+01    0.00000000E+00   -1.28090825E+01    1.30797965E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122316108898E+01  0.000000000000E+00 -1.280908251325E+01  1.307979646472E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     2.049870E-004    -6.650329E-001     4.006269E-004     1.000000E-001
@@ -2048,7 +2048,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    3.477927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12231611E+01    0.00000000E+00   -1.28089792E+01    1.30797965E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122316108898E+01  0.000000000000E+00 -1.280897916318E+01  1.307979646472E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.707139E-004    -6.646323E-001     1.235028E-004     1.100000E-001
@@ -2064,7 +2064,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    3.477927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12231611E+01    0.00000000E+00   -1.28088866E+01    1.30797965E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122316108898E+01  0.000000000000E+00 -1.280888663258E+01  1.307979646472E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.404916E-004    -6.645088E-001     1.107264E-004     1.210000E-001
@@ -2080,7 +2080,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    3.477927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12231611E+01    0.00000000E+00   -1.28088054E+01    1.30797965E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122316108898E+01  0.000000000000E+00 -1.280880537750E+01  1.307979646472E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.142784E-004    -6.643981E-001     9.738643E-005     1.331000E-001
@@ -2096,7 +2096,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    3.477927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12231611E+01    0.00000000E+00   -1.28087355E+01    1.30797965E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122316108898E+01  0.000000000000E+00 -1.280873548952E+01  1.307979646472E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.189532E-005    -6.643007E-001     8.391196E-005     1.464100E-001
@@ -2112,7 +2112,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    3.477927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12231611E+01    0.00000000E+00   -1.28086767E+01    1.30797965E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122316108898E+01  0.000000000000E+00 -1.280867669182E+01  1.307979646472E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.305463E-005    -6.642168E-001     7.073804E-005     1.610510E-001
@@ -2128,7 +2128,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    3.477927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12231611E+01    0.00000000E+00   -1.28086284E+01    1.30797965E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122316108898E+01  0.000000000000E+00 -1.280862836547E+01  1.307979646472E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.740083E-005    -6.641460E-001     5.827039E-005     1.771561E-001
@@ -2185,7 +2185,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.698202E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12225372E+01    0.00000000E+00   -1.28094830E+01    1.30818435E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122253724966E+01  0.000000000000E+00 -1.280948295647E+01  1.308184348714E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.904953E-004    -6.640440E-001    -1.587049E-003     2.000000E-001
@@ -2201,7 +2201,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.698202E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12225372E+01    0.00000000E+00   -1.28092831E+01    1.30818435E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122253724966E+01  0.000000000000E+00 -1.280928313534E+01  1.308184348714E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.205060E-004    -6.656311E-001     2.377440E-004     1.000000E-001
@@ -2217,7 +2217,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.698202E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12225372E+01    0.00000000E+00   -1.28092222E+01    1.30818435E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122253724966E+01  0.000000000000E+00 -1.280922219811E+01  1.308184348714E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.000733E-004    -6.653933E-001     7.273386E-005     1.100000E-001
@@ -2233,7 +2233,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.698202E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12225372E+01    0.00000000E+00   -1.28091678E+01    1.30818435E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122253724966E+01  0.000000000000E+00 -1.280916780958E+01  1.308184348714E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     8.219053E-005    -6.653206E-001     6.500473E-005     1.210000E-001
@@ -2290,7 +2290,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.731927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12221042E+01    0.00000000E+00   -1.28096154E+01    1.30834975E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122210420782E+01  0.000000000000E+00 -1.280961539085E+01  1.308349748601E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.462406E-004    -6.652002E-001    -9.220639E-004     2.000000E-001
@@ -2306,7 +2306,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.731927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12221042E+01    0.00000000E+00   -1.28094628E+01    1.30834975E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122210420782E+01  0.000000000000E+00 -1.280946280773E+01  1.308349748601E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     9.168039E-005    -6.661223E-001     1.813046E-004     2.200000E-001
@@ -2322,7 +2322,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.731927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12221042E+01    0.00000000E+00   -1.28093613E+01    1.30834975E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122210420782E+01  0.000000000000E+00 -1.280936132049E+01  1.308349748601E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.794089E-005    -6.659410E-001     1.209655E-004     2.420000E-001
@@ -2338,7 +2338,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.731927E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12221042E+01    0.00000000E+00   -1.28092967E+01    1.30834975E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122210420782E+01  0.000000000000E+00 -1.280929672185E+01  1.308349748601E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.784517E-005    -6.658200E-001     7.730292E-005     2.662000E-001
@@ -2395,7 +2395,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.594945E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12216182E+01    0.00000000E+00   -1.28095545E+01    1.30843689E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122161818837E+01  0.000000000000E+00 -1.280955449735E+01  1.308436889352E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     1.126740E-004    -6.656960E-001    -8.250461E-004     2.000000E-001
@@ -2411,7 +2411,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.594945E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12216182E+01    0.00000000E+00   -1.28094386E+01    1.30843689E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122161818837E+01  0.000000000000E+00 -1.280943862496E+01  1.308436889352E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.739736E-005    -6.665211E-001     1.371300E-004     1.000000E-001
@@ -2468,7 +2468,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.272862E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12214651E+01    0.00000000E+00   -1.28094597E+01    1.30851658E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122146512513E+01  0.000000000000E+00 -1.280945972421E+01  1.308516575384E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.734458E-005    -6.663438E-001    -1.459612E-004     2.000000E-001
@@ -2484,7 +2484,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.272862E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12214651E+01    0.00000000E+00   -1.28093977E+01    1.30851658E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122146512513E+01  0.000000000000E+00 -1.280939773420E+01  1.308516575384E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     4.028483E-005    -6.664898E-001     7.292059E-005     2.200000E-001
@@ -2541,7 +2541,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.860320E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12212509E+01    0.00000000E+00   -1.28093727E+01    1.30853116E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122125086615E+01  0.000000000000E+00 -1.280937266926E+01  1.308531161975E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.624415E-005    -6.663717E-001    -2.368619E-004     2.000000E-001
@@ -2557,7 +2557,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.860320E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12212509E+01    0.00000000E+00   -1.28093276E+01    1.30853116E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122125086615E+01  0.000000000000E+00 -1.280932763227E+01  1.308531161975E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     3.351503E-005    -6.666086E-001     5.260935E-005     2.200000E-001
@@ -2614,7 +2614,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.001620E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12211059E+01    0.00000000E+00   -1.28093000E+01    1.30855659E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122110591930E+01  0.000000000000E+00 -1.280930001676E+01  1.308556589219E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.103808E-005    -6.665251E-001    -1.190614E-004     2.000000E-001
@@ -2671,7 +2671,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.168269E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12209940E+01    0.00000000E+00   -1.28092362E+01    1.30857043E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122099402950E+01  0.000000000000E+00 -1.280923619467E+01  1.308570433948E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.796602E-005    -6.666126E-001    -4.851118E-005     2.000000E-001
@@ -2728,7 +2728,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.902794E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12209062E+01    0.00000000E+00   -1.28091804E+01    1.30857407E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122090621883E+01  0.000000000000E+00 -1.280918036107E+01  1.308574066279E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.921638E-005    -6.666428E-001    -2.886010E-005     2.000000E-001
@@ -2785,7 +2785,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.064498E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12208294E+01    0.00000000E+00   -1.28091337E+01    1.30857556E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122082940122E+01  0.000000000000E+00 -1.280913365466E+01  1.308575558619E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     6.550679E-005    -6.666658E-001    -1.222243E-005     2.000000E-001
@@ -2842,7 +2842,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.241880E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12207608E+01    0.00000000E+00   -1.28090907E+01    1.30857400E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122076075367E+01  0.000000000000E+00 -1.280909067020E+01  1.308574004586E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     7.309734E-005    -6.666806E-001     1.955253E-006     2.000000E-001
@@ -2858,7 +2858,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    2.241880E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12207608E+01    0.00000000E+00   -1.28090971E+01    1.30857400E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122076075367E+01  0.000000000000E+00 -1.280909709654E+01  1.308574004586E+00  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
 DminSD: it, fnrm, ebs, ebsdiff, alpha   1     5.198655E-005    -6.666786E-001    -9.592098E-006     2.200000E-001
@@ -2888,7 +2888,7 @@ Calculating charge density... done.
  #############################################################################################
 max dev from unity    2.241880E-08
  ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.12207608E+01    0.00000000E+00   -1.28091086E+01    1.30857400E+00    0.00000000E+00
+ekin, eh, epot, eproj, eex  1.122076075367E+01  0.000000000000E+00 -1.280910859848E+01  1.308574004586E+00  0.000000000000E+00
  Hamiltonian application done.
  Diagonalizing the Hamiltonian, sequential version... done.
  -------------------------------------------------

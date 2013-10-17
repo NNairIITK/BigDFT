@@ -1,20 +1,21 @@
 !> @file
+!! Routines used by ART
 !! @author
 !!    Copyright (C) Normand Mousseau, June 2001
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> ART saddle_converge
-!!   This subroutine brings the configuration to a saddle point. It does that
-!!   by first pushing the configuration outside of the harmonic well, using
-!!   the initial direction selected in find_saddle. Once outside the harmonic
-!!   well, as defined by the appearance of a negative eigenvalue (or
-!!   reasonnable size) the configuration follows the direction corresponding
-!!   to this eigenvalue until the force components parallel and perpendicular
-!!   to the eigendirection become close to zero.
+
+!> This subroutine brings the configuration to a saddle point. It does that
+!! by first pushing the configuration outside of the harmonic well, using
+!! the initial direction selected in find_saddle. Once outside the harmonic
+!! well, as defined by the appearance of a negative eigenvalue (or
+!! reasonnable size) the configuration follows the direction corresponding
+!! to this eigenvalue until the force components parallel and perpendicular
+!! to the eigendirection become close to zero.
 subroutine saddle_converge( ret, saddle_energy )
 
    use defs

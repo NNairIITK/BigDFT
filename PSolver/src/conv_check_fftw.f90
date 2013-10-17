@@ -1,23 +1,18 @@
-!!****p* OpenCL/conv_check
-!! FUNCTION
-!!    Program test for the convolution in GPU
+!> @file
+!! Program test for the convolution in GPU
 !!
-!! AUTHOR
-!!    Luigi Genovese
+!! @author
+!!   Copyright (C) 2008-2013 BigDFT group (LG)
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
 !!
-!! COPYRIGHT
-!!    Copyright (C) 2008 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! CREATION DATE
-!!    Septembre 2008
-!!
-!! SOURCE
-!!
+!! @date
+!!   Septembre 2008
 
+
+!> Check fft on GPU
 program conv_check_fft
   use module_base
   use module_types
@@ -557,7 +552,7 @@ contains
     implicit none
     integer, intent(in) :: offset
     integer, dimension(3), intent(in) :: n0
-    character(len=*), intent(in) :: geocode
+    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     real(dp), dimension(*), intent(in) :: pkernel
     real(dp), dimension(:), pointer :: pkernel2
     !local variables
@@ -610,7 +605,7 @@ contains
     implicit none
     integer, intent(in) :: offset
     integer, dimension(3), intent(in) :: n0
-    character(len=*), intent(in) :: geocode
+    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     real(dp), dimension(*), intent(in) :: pkernel
     real(dp), dimension(:), pointer :: pkernel2
     !local variables
@@ -658,6 +653,3 @@ contains
   end subroutine transpose_kernel_forGPU_cufft3D
 
 end program conv_check_fft
-
-
-!!***

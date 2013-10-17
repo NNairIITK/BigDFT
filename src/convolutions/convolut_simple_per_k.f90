@@ -1,7 +1,7 @@
 !> @file
 !!  Simple routine of convolutions
 !! @author
-!!    Copyright (C) 2005-2011 BigDFT group 
+!!    Copyright (C) 2005-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -41,7 +41,8 @@ subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(2,0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
-  integer, parameter :: lowfil=-14,lupfil=14
+  !integer, parameter :: lowfil=-14
+  integer, parameter :: lupfil=14
   integer :: i1,i2,i3,l,j1,j2
   real(wp) :: tt1,tt2,tt3,tt4,c
   real(wp) :: tt1_2,tt2_2,tt3_2,tt4_2
@@ -433,7 +434,8 @@ subroutine convolut_kinetic_per_c_k_notranspose(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3
   real(wp), dimension(0:n1,0:n2,0:n3,2), intent(in) :: x
   real(wp), dimension(0:n1,0:n2,0:n3,2), intent(out) :: y
   !local variables
-  integer, parameter :: lowfil=-14,lupfil=14
+  !integer, parameter :: lowfil=-14
+  integer, parameter :: lupfil=14
   integer :: i1,i2,i3,l,j1,j2
   real(wp) :: tt1,tt2,tt3,tt4,c
   real(wp) :: tt1_2,tt2_2,tt3_2,tt4_2

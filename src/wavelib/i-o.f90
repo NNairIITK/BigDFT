@@ -256,6 +256,7 @@ subroutine ext_buffers_coarse(periodic,nb)
 END SUBROUTINE ext_buffers_coarse
 
 
+!> Module used by the linear scaling version
 module internal_io
   implicit none
 
@@ -1053,7 +1054,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
   type(wavefunctions_descriptors), intent(in) :: wfd
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   real(gp), dimension(3), intent(inout) :: centre_old,centre_new,da
   type(fragment_transformation), intent(in) :: frag_trans
   real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
@@ -1201,8 +1202,8 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 !endif
 
   call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
-       sint,cost,onemc,(/ixp,iyp,izp/),&
-       hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+      sint,cost,onemc,(/ixp,iyp,izp/),&
+      hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
   !call yaml_map('Centre old',centre_old,fmt='(1pg18.10)')
   !call yaml_map('Centre new',centre_new,fmt='(1pg18.10)')
   !call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
@@ -1278,7 +1279,7 @@ subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi
  real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
  !local variables
  character(len=*), parameter :: subname='morph_and_transpose'
- real(gp), parameter  :: tol=1.e-14_gp
+!!$ real(gp), parameter  :: tol=1.e-14_gp
  integer :: i_all,i_stat,nunit,m_isf,i,j,l,ms,me,k1
  real(gp) :: dt,tt,t0_l,diff
  real(gp), dimension(:), allocatable :: shf !< shift filter
@@ -1855,8 +1856,7 @@ subroutine field_rototranslation3D_interpolation(da,newz,centre_old,centre_new,&
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
   !local variables
-  integer :: k1,i,j,k,l,it
-  real(gp) :: ux,uy,uz
+  integer :: i,j,k,it
   real(gp), dimension(3) :: dt
   real(gp), dimension(27) :: coeffs
 
@@ -1935,7 +1935,7 @@ contains
     real(gp), dimension(-1:1,-1:1,-1:1), intent(out) :: fijk
     real(gp), dimension(3), intent(out) :: dt
     !local variables
-    integer :: ix,iy,iz,i
+    integer :: ix,iy,iz
     integer, dimension(3) :: istart
     real(gp), dimension(3) :: t0_l
 
@@ -1952,13 +1952,16 @@ contains
     !   istart(i)=min(max(istart(i),1),ndims_old(i))
     !end do
     
-    !doubts about that
-    t0_l=(dt-t0_l)/hgrids_old
-    !identify shift
-    dt(1)=(real(istart(1),gp)+t0_l(1))-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
-    dt(2)=(real(istart(2),gp)+t0_l(2))-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
-    dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
-    !end of doubts
+!!$    !doubts about that
+!!$    t0_l=(dt-t0_l)/hgrids_old
+!!$    !identify shift
+!!$    dt(1)=(real(istart(1),gp)+t0_l(1))-real(j1,gp)
+!!$    dt(2)=(real(istart(2),gp)+t0_l(2))-real(j2,gp)
+!!$    dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)
+!!$    !end of doubts
+
+      !this shift brings the old point in the new reference frame
+    dt=real(istart,gp)-(t0_l+centre_new+hgrids_new)/hgrids_old
 
     !identify shift
     !dt=t0_l-(-centre_old+istart*hgrids_old)
@@ -2023,8 +2026,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
   !local variables
-  integer :: m_isf,k1,i,j,k,me,ms,l
-  real(gp) :: ux,uy,uz,dt
+  integer :: m_isf,k1,i,j,k,me,ms
+  real(gp) :: dt
   real(gp), dimension(:), allocatable :: shf
   real(gp), dimension(:), allocatable :: work,work2
 
@@ -2234,9 +2237,9 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
        integer, intent(out) :: istart,ms,me
        real(gp), intent(out) :: dt
        !local variables
-       integer :: ivars,istart_shift!,istep,i1,i2,i3
+      integer :: ivars,istart_shift!,istep,i1,i2,i3
        real(gp), dimension(3) :: t
-       real(gp) :: t0_l,coord_old
+      real(gp) :: t0_l,coord_old
 
        !define the coordinates in the reference frame, which depends on the transformed variables
        t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
@@ -2255,50 +2258,50 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
        ivars=1000*istep+100+10*i2+i3
 
        !define the value of the shift of the variable we are going to transform
-       !coordinate that has to be found in the old box, including the shift 
-       coord_old=coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr)
+      !coordinate that has to be found in the old box, including the shift
+      coord_old=coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr) 
 
-       !central point of the convolution rounded to the grid points
-       istart=min(max(1,nint((coord_old+centre_old(ntr)+hgrids_old(ntr))&
+      !central point of the convolution rounded to the grid points
+      istart=min(max(1,nint((coord_old+centre_old(ntr)+hgrids_old(ntr))&
             /hgrids_old(ntr))),ndims_old(ntr))
-
-       !this shift brings the old point in the new reference frame
-       dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
+      
+      !this shift brings the old point in the new reference frame
+      dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
 
 !!$      select case(ntr)
 !!$      case(1)
-!!$dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
+!!$         dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
 !!$      case(2)
 !!$         if (istep >=2) then
-!!$dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
+!!$            dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
 !!$         else
-!!$dt=real(istart,gp)-(coord_old+centre_old(i2)+hgrids_old(i2))/hgrids_old(ntr)
+!!$            dt=real(istart,gp)-(coord_old+centre_old(i2)+hgrids_old(i2))/hgrids_old(ntr)
 !!$         end if
 !!$      case(3)
 !!$         if (istep ==3) then
-!!$dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
+!!$            dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
 !!$         else
-!!$dt=real(istart,gp)-(coord_old+centre_old(i3)+hgrids_old(i3))/hgrids_old(ntr)
+!!$            dt=real(istart,gp)-(coord_old+centre_old(i3)+hgrids_old(i3))/hgrids_old(ntr)
 !!$         end if
 !!$      end select
 
-       !old case, seems working only for the 123 scenario
+      !old case, seems working only for the 123 scenario
 !!$            t0_l=(t(ntr)-coord_old)/hgrids_old(ntr)
 !!$      select case(ntr)
 !!$      case(1)
-!!$ dt=(real(istart,gp)+t0_l)-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
+!!$         dt=(real(istart,gp)+t0_l)-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
 !!$      case(2)
-!!$ dt=(real(istart,gp)+t0_l)-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
+!!$         dt=(real(istart,gp)+t0_l)-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
 !!$      case(3)
-!!$ dt=(real(istart,gp)+t0_l)-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
+!!$         dt=(real(istart,gp)+t0_l)-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
 !!$      end select
 
-       !purify the shift to be a inferior than multiple of the grid spacing
-       istart_shift=nint(dt)
-       dt=dt-real(istart_shift,gp)
-       istart=istart-istart_shift
+      !purify the shift to be a inferior than multiple of the grid spacing
+      istart_shift=nint(dt)
+      dt=dt-real(istart_shift,gp)
+      istart=istart-istart_shift
 
-       !identify extremes for the convolution
+      !identify extremes for the convolution
        ms=-min(m_isf,istart-1)
        me=min(m_isf,ndims_old(ntr)-istart)
 
@@ -2309,7 +2312,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       use module_base, only: gp
       implicit none
       integer, intent(in) :: icrd !<id of the old coordinate to be retrieved
-      integer, intent(in) :: ivars !< order of the variables in terms of 1000+istep+first*100+second*10+third
+      integer, intent(in) :: ivars !< order of the variables in terms of 1000*istep+first*100+second*10+third
       real(gp), intent(in) :: C,S,onemc !<trigonometric functions of the theta angle
       real(gp), intent(in) :: x,y,z !<coordinates to be used for the mapping
       
@@ -2342,7 +2345,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
             coord=-(S*u(3)*x) + (C + onemc*u(2)**2)*y + onemc*u(2)*u(3)*z + u(1)*(u(2)*onemc*x + S*z)
             !wrong one S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
          end select
-      case(3)
+     case(3) !z coordinate
          select case(ivars)
          case(1112)!'xnxoyo')
             coord=(-(u(1)**2*y) + C*(-1 + u(1)**2)*y + x - u(1)*u(2)*z + C*u(1)*u(2)*z + S*u(3)*z)/(S*u(2) + onemc*u(1)*u(3))
@@ -2461,7 +2464,7 @@ subroutine interpolate_xp_from_x(nx,ny,nz,cx,cy,cz,cx_new,hx,hy,hz,hx_new,&
   real(gp), dimension(ny,nz,nx), intent(out) :: psi_out 
   !local variables
   integer :: i,j,k,ms,me,l,m_isf,k1
-  real(gp) :: x,y,z,tt,dt,t0_l,diff
+  real(gp) :: x,y,z,tt,dt,t0_l
   !to be removed
   !real(gp), dimension(nx_old) :: tx
 

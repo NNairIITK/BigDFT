@@ -1,44 +1,54 @@
-      module oldpsppar
-!     A module to replace the former save block
-!     This is the reason ppack has been portet to f90
-      real*8 orloc,ogpot(4),orl(4),ohsep(6,4,2)
-      real*8 orcore,ogcore(4)
-      end module 
+!> @file
+!! Module for the pseudo program
+!! @author
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
+!> Module to replace the former save block
+!! This is the reason ppack has been portet to f90
+module oldpsppar
+   implicit none
+   real(kind=8) :: orloc,ogpot(4),orl(4),ohsep(6,4,2)
+   real(kind=8) :: orcore,ogcore(4)
+end module 
 
+
+!> pack the fittingparameters into one array for amoeba
+!! and vice versa
+!! if nstring = 'init'   -> initialisation + packing
+!! if nstring = 'pack'   -> packing
+!! if nstring = 'unpack' -> unpacking
+!!
+!! Modifications:
+!!               fitting of frozen core charge,
+!!               spin polarization
+!!               moved save block of old psppar to a module
+!!
+!! let us define a new integer nso for spin orbit,
+!! the PSP spin components. If nso=1, all kij=0.
+!!
+!! it widely replaces npsin here, which is the number of
+!! spin channels for the wavefunctions.
+!!
+!! The number of spin channels for charge and XC is
+!! nspol, which equals 2 for polarized DFT calculations
+!! and 1 otherwise. Thus, nspin = max(nspol,nso).
+!!
+!! For now, relativistic polarized DFT with
+!! nspol=nso=nspin=2 is not supported.
+!!
+!! NOTE: Many lines of this routine are here only
+!!       to perform rather meaningless transformations
+!!       of the hij and kij for given l. These can
+!!       be eliminated, but are still here for testing.
       subroutine ppack (verbose,rloc,gpot,hsep,r_l,pp,&
            lpx,lpmx,nspin,pol,nsmx,maxdim,nfit,nstring,&
            avgl1,avgl2,avgl3,ortprj,litprj,&
            rcore,gcore,znuc,zion)
-!     pack the fittingparameters into one array for amoeba
-!     and vice versa
-!     if nstring = 'init'   -> initialisation + packing
-!     if nstring = 'pack'   -> packing
-!     if nstring = 'unpack' -> unpacking
-
-!     Modifications:
-!                   fitting of frozen core charge,
-!                   spin polarization
-!                   moved save block of old psppar to a module
-
-!     let us define a new integer nso for spin orbit,
-!     the PSP spin components. If nso=1, all kij=0.
-
-!     it widely replaces npsin here, which is the number of
-!     spin channels for the wavefunctions.
-
-!     The number of spin channels for charge and XC is
-!     nspol, which equals 2 for polarized DFT calculations
-!     and 1 otherwise. Thus, nspin = max(nspol,nso).
-
-!     For now, relativistic polarized DFT with
-!     nspol=nso=nspin=2 is not supported.
-
-!     NOTE: Many lines of this routine are here only
-!           to perform rather meaningless transformations
-!           of the hij and kij for given l. These can
-!           be eliminated, but are still here for testing.
 
       use oldpsppar
       implicit none

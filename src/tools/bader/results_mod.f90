@@ -1,19 +1,19 @@
-! Copyright 2009
-! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
-!
-! Bader is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! A copy of the GNU General Public License is available at
-! http://www.gnu.org/licenses/
+!> @file
+!!  Bader charge density analysis program
+!! @author
+!!  Copyright 2009
+!! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
+!!
+!! Bader is free software: you can redistribute it and/or modify
+!! it under the terms of the GNU General Public License as published by
+!! the Free Software Foundation, either version 3 of the License, or
+!! (at your option) any later version.
+!!
+!! A copy of the GNU General Public License is available at
+!! http://www.gnu.org/licenses/
 
-!-----------------------------------------------------------------------------------!
-! Bader charge density analysis program
-!  Module for writing results
-!-----------------------------------------------------------------------------------!
 
+!> Module for writing results (Bader charge density analysis)
 MODULE results_mod
   USE kind_mod , ONLY : q1,q2
   USE matrix_mod
@@ -29,16 +29,17 @@ MODULE results_mod
   PRIVATE
   PUBLIC :: output
 
-  CONTAINS 
-!------------------------------------------------------------------------------------!
-! output: Write out a summary of the bader analysis.
-!         AtomVolumes.dat: Stores the 'significant' Bader volumes associated with
-!                          each atom.
-!         ACF.dat        : Stores the main output to the screen.
-!         BCF.dat        : Stores 'significant' Bader volumes, their coordinates and
-!                          charge, atom associated and distance to it. 
-!------------------------------------------------------------------------------------!
 
+  CONTAINS 
+
+  
+
+  !> Write out a summary of the bader analysis.
+  !!   AtomVolumes.dat: Stores the 'significant' Bader volumes associated with
+  !!                    each atom.
+  !!   ACF.dat        : Stores the main output to the screen.
+  !!   BCF.dat        : Stores 'significant' Bader volumes, their coordinates and
+  !!                    charge, atom associated and distance to it. 
   SUBROUTINE output(bdr,vor,ions,chg)
 
     TYPE(bader_obj) :: bdr

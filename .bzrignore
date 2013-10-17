@@ -50,6 +50,10 @@ libxc-2.0.x/configure.bak
 libxc-2.0.x/compile
 libxc-2.0.x/depcomp
 libxc-2.0.x/xc_version.h
+libxc-2.0.x/INSTALL
+libxc-2.0.x/install-sh
+libxc-2.0.x/missing
+libxc-2.0.x/test-driver
 libxc-2.0.x/m4/*
 libxc-2.0.x/ltmain.sh
 libxc-2.0.x/build/*
@@ -138,3 +142,10 @@ NK.occup
 NK.out.ref
 NK.sic
 NK.xyz
+TAGS
+src/test.f90
+PSolver/src/test.f90
+PSolver/tests/PS_Integral.f90.moved
+doc/Manual/test.txt
+src/convolutions/.directory
+src/wavelib/scalar_product.f90

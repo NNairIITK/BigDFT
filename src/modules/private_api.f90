@@ -1,3 +1,14 @@
+!> @file
+!!  Define interface for private API
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module defining the inetrfaces for a private API
 module module_private_api
 
   implicit none
@@ -57,7 +68,7 @@ module module_private_api
        implicit none
        type(atoms_data), intent(inout) :: atoms
        real(gp), intent(in) :: alat1, alat2, alat3
-       character, intent(in) :: geocode(1)
+       character(len=1), intent(in) :: geocode
        character, intent(in) :: format(5)
        character, intent(in) :: units(20)
      END SUBROUTINE atoms_sync
@@ -192,7 +203,7 @@ module module_private_api
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
-       character, intent(out) :: geocode(1)
+       character(len=1), intent(out) :: geocode !< @copydoc poisson_solver::doc::geocode
        character, intent(out) :: format(5)
        character, intent(out) :: units(20)
      END SUBROUTINE atoms_copy_geometry_data

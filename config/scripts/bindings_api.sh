@@ -1,4 +1,6 @@
 #!/bin/bash
+# To be called with:
+#  config/scripts/bindings_api.sh src/bindings | tee src/bindings/bindings_api.h
 
 omit=`dirname $0`/bindings_api.omit
 API=`grep -rh "^ *FC_FUNC[^#]*$" $1 | cut -d'(' -f2 | cut -d',' -f1 | sort -u | grep -vf $omit`

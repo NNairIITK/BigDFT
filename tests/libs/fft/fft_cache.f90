@@ -1,14 +1,15 @@
-!!****p* BigDFT/fft_cache
-!!
-!! DESCRIPTION
-!!   Check the best cache size
-!!
-!! COPYRIGHT
+!> @file
+!!   Calculate the optimal cache parameter for the FFT routine.
+!! @copyright
 !!   Copyright (C) Stefan Goedecker, CEA Grenoble, 2002, Basel University, 2009
+!!   Copyright (C) 2009-2013 BigDFT group
 !!   This file is distributed under the terms of the
-!!   GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! SYNOPSIS
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS
+
+
+!>   Check the best cache size
 !!   3-dimensional complex-complex FFT routine: 
 !!   When compared to the best vendor implementations on RISC architectures 
 !!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
@@ -18,14 +19,11 @@
 !!   was significantly faster than the vendor routines
 !!
 !!  The theoretical background is described in :
-!!  1) S. Goedecker: Rotating a three-dimensional array in optimal
+!!  S. Goedecker: Rotating a three-dimensional array in optimal
 !!  positions for vector processing: Case study for a three-dimensional Fast
-!!  Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
+!!  Fourier Transform, Comp. Phys. Commun. 76, 294 (1993)
 !!  Citing of this reference is greatly appreciated if the routines are used 
 !!  for scientific work.
-!!
-!! SOURCE
-!!
 program fft_cache
 
    use module_fft_sg
@@ -36,22 +34,21 @@ program fft_cache
    integer :: ip,jp,n3,ndat,ntime
    real(kind=8) :: time,tela
 
-! Get arguments
-
-  call getarg(1,tatonam)
-
-  if(trim(tatonam)=='') then
-     write(*,'(1x,a)')&
-          'Usage: ./fft_cache <cache_size>'
-     write(*,'(1x,a)')&
-          'Indicate the cache size in kB for FFT test'
-     stop
-  else
-     !Read the cache size
-     read(unit=tatonam,fmt=*) ncache
-     ncache = ncache*1024
-     write(unit=6,fmt="(a,i0,a)",advance="no") "Cache size=",ncache,":"
-  end if
+   ! Get arguments
+   call getarg(1,tatonam)
+   
+   if(trim(tatonam)=='') then
+      write(*,'(1x,a)')&
+           'Usage: ./fft_cache <cache_size>'
+      write(*,'(1x,a)')&
+           'Indicate the cache size in kB for FFT test'
+      stop
+   else
+      !Read the cache size
+      read(unit=tatonam,fmt=*) ncache
+      ncache = ncache*1024
+      write(unit=6,fmt="(a,i0,a)",advance="no") "Cache size=",ncache,":"
+   end if
 
    open(unit=iunit,file="fft_cache.dat",status="unknown",position="append")
    do ip=1,ndata,10
@@ -137,7 +134,7 @@ contains
       end do
    end subroutine init
 
-   !Do one basic FFT (transform along Z)
+   !> Do one basic FFT (transform along Z)
    subroutine fft1(ndat,n3,nddat,nd3,z,i_sign,inzee)
 
       use module_fft_sg
@@ -274,5 +271,3 @@ contains
 
 
 end program fft_cache
-!!***
-

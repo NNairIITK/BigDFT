@@ -166,3 +166,39 @@ void FC_FUNC(movefile, MOVEFILE)(const char *oldfile, int *lgoldfile, const char
   free(oldpath);
   free(newpath);
 }
+
+void FC_FUNC(getfilecontent, GETFILECONTENT)(void **pt, long *pt_len, const char *fname, int *ln)
+{
+  FILE *f;
+  char *buf, *fname_;
+  long s;
+
+  fname_ = strndup(fname, (size_t)*ln);
+  f = fopen(fname_, "rb");
+  free(fname_);
+
+  fseek(f, 0L, SEEK_END);
+  s = ftell(f);
+  rewind(f);
+
+  buf = malloc(sizeof(char) * (s + 1));
+  fread(buf, s, 1, f);
+  buf[s] = '\0';
+
+  fclose(f);
+
+  *pt = (void*)buf;
+  *pt_len = s;
+}
+
+void FC_FUNC(copycbuffer, COPYCBUFFER)(char *to, void **cbuf, int *ln)
+{
+  char *from = (char*)*cbuf;
+
+  memcpy(to, from, sizeof(char) * *ln);
+}
+
+void FC_FUNC(freecbuffer, FREECBUFFER)(void **buf)
+{
+  free(*buf);
+}
