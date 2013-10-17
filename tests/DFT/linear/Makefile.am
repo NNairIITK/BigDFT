@@ -152,7 +152,7 @@ reformatcomplete_write.out.post-out:
 	  rotatesmall.out*)           prec="1.1e-8" ;; \
 	  test.testforces.out*)       prec="1.1e-9" ;; \
 	  hybrid-directmin.out*)      prec="1.3e-9" ;; \
-	  experimentalmode.out*)      prec="1.0e-6" ;; \
+	  experimentalmode.out*)      prec="1.6e-6" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
