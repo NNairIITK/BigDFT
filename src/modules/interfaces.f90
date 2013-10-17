@@ -2104,7 +2104,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
+         calculate_ham,ham_small,extra_states,itout,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
       use module_base
       use module_types
       use constrained_dft
@@ -2112,7 +2112,7 @@ module module_interfaces
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, scf_mode
+      integer,intent(in) :: iproc, nproc, scf_mode, itout
       type(orbitals_data),intent(inout) :: orbs
       type(atoms_data),intent(in) :: at
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -4489,11 +4489,11 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, orbs, foe_obj, &
-                   tmprtr, mode, ham, ovrlp, fermi, ebs)
+                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc
+          integer,intent(in) :: iproc, nproc, itout
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(inout) :: foe_obj
           real(kind=8),intent(inout) :: tmprtr
@@ -4990,12 +4990,12 @@ module module_interfaces
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
-               sd_fit_curve, factor, reorder, num_extra)
+               sd_fit_curve, factor, itout, reorder, num_extra)
           use module_base
           use module_types
           use diis_sd_optimization
           implicit none
-          integer,intent(in):: iproc, nproc, itmax
+          integer,intent(in):: iproc, nproc, itmax, itout
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           type(DIIS_obj), intent(inout) :: ldiis_coeff
@@ -5019,6 +5019,18 @@ module module_interfaces
           type(orbitals_data), intent(in) :: ksorbs
           real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
         end subroutine calculate_residue_ks
+
+        subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
+          use module_base
+          use module_types
+          use yaml_output
+          implicit none
+          integer, intent(in) :: iter,iscf
+          type(energy_terms), intent(in) :: energs
+          real(gp), intent(in) :: gnrm,gnrm_zero
+          character(len=*), intent(in) :: comment
+          logical,intent(in),optional :: only_energies
+        end subroutine write_energies
   
   end interface
 END MODULE module_interfaces

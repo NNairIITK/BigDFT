@@ -1643,6 +1643,7 @@ end subroutine transpose_unswitch_psir
 subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
   use module_base
   use module_types
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -1739,12 +1740,16 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
+  if (iproc==0 .and. print_local) then
+      call yaml_map('Total charge',total_charge*hxh*hyh*hzh,fmt='(es20.12)')
+  end if
   
   call timing(iproc,'sumrho_allred','OF')
 
   iall=-product(shape(rho_local))*kind(rho_local)
   deallocate(rho_local, stat=istat)
   call memocc(istat, iall, 'rho_local', subname)
+
 
 end subroutine sumrho_for_TMBs
 

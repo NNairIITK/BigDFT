@@ -287,6 +287,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if(lowaccur_converged) cur_it_highaccuracy=cur_it_highaccuracy+1
 
       if(cur_it_highaccuracy==1) then
+          if (iproc==0) then
+              call yaml_comment('Adjustments for high accuracy',hfill='=')
+          end if
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                at, input, rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
@@ -313,7 +316,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (.not. input%lin%constrained_dft) then
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                     .true.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
 
@@ -420,6 +423,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
                orthonormalization_on=.false.
            end if
+           call yaml_comment('support function optimization',hfill='=')
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
@@ -541,33 +545,43 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             end if
          end if
          ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
+         call yaml_comment('kernel optimization',hfill='=')
+         if (iproc==0) then
+             call yaml_open_sequence('kernel optimization',label=&
+                  'itrp'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+         end if
          kernel_loop : do it_scc=1,nit_scc
              dmin_diag_it=dmin_diag_it+1
              ! If the hamiltonian is available do not recalculate it
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
+             if (iproc==0) then
+                call yaml_sequence(advance='no')
+                call yaml_open_map(flow=.true.)
+                call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
+             end if
              if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        .false.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        .false.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        .true.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        .true.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
@@ -671,6 +685,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Mix the density.
              if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+                if (iproc==0) then
+                    call yaml_map('density mixing; history',mix_hist)
+                end if
                 call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
                      denspot, mixdiis, rhopotold, pnrm)
                 if ((pnrm<convCritMix .or. it_scc==nit_scc) .and. (.not. input%lin%constrained_dft)) then
@@ -688,6 +705,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Calculate the new potential.
              if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+             if (iproc==0) then
+                 call yaml_map('update potential',.true.)
+                 call yaml_newline()
+             end if
              call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
              ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
@@ -702,6 +723,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Mix the potential
              if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+                if (iproc==0) then
+                    call yaml_map('potential mixing; history',mix_hist)
+                end if
                 call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
                      denspot, mixdiis, rhopotold, pnrm)
                 if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then
@@ -748,7 +772,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  info_scf=-1
              end if
 
+             if (iproc==0) then
+                 !yaml output
+                 call yaml_close_map() !iteration
+                 call bigdft_utils_flush(unit=6)
+             end if
+
          end do kernel_loop
+
+          ! Close sequence for the optimization steps
+          if (iproc==0) then
+              call yaml_close_sequence()
+          end if
 
          if (input%lin%constrained_dft) then
             call timing(iproc,'constraineddft','ON')
@@ -859,7 +894,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,input%lin%extra_states)
+           .true.,ham_small,input%lin%extra_states,itout)
   end if
 
   if (input%lin%fragment_calculation .and. input%frag%nfrag>1) then
@@ -1113,11 +1148,23 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
               write(*,'(3x,a)') 'coefficients / kernel obtained by direct minimization.'
+              call yaml_map('kernel optimization','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
               write(*,'(3x,a)') 'kernel obtained by Fermi Operator Expansion'
+              call yaml_map('kernel optimization','FOE')
           else
               write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
+              call yaml_map('kernel optimization','DIAG')
           end if
+
+          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or.  input%lin%scf_mode==LINEAR_FOE &
+              .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+              call yaml_map('mixing quantity','DENS')
+          else if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+              call yaml_map('mixing quantity','POT')
+          end if
+
+
           if (input%lin%constrained_dft) then
              if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
                  write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
@@ -1129,6 +1176,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
                       it_SCC, pnrm, energy, energyDiff, ebs
              end if
+             if (iproc==0) then
+                 call yaml_newline()
+                 call yaml_map('iter',it_scc,fmt='(i6)')
+                 call yaml_map('delta',pnrm,fmt='(es9.2)')
+                 call yaml_map('energy',energy,fmt='(es24.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_map('Tr[KW]',ebs,fmt='(es14.4)')
+             end if
           else
              if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
                  write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
@@ -1139,6 +1194,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
                  write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
                       it_SCC, pnrm, energy, energyDiff
+             end if
+             if (iproc==0) then
+                 call yaml_newline()
+                 call yaml_map('iter',it_scc,fmt='(i6)')
+                 call yaml_map('delta',pnrm,fmt='(es9.2)')
+                 call yaml_map('energy',energy,fmt='(es24.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
              end if
           end if     
           write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
@@ -1168,6 +1230,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0.and.(.not.final)) then
 
+          call yaml_comment('Summary of both steps',hfill='=')
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          call yaml_map('iter',itout)
+          ! Use this subroutine to write the energies, with some fake
+          ! number to prevent it from writing too much
+          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+
           !Before convergence
           write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
               energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
@@ -1176,19 +1246,29 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                       'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
                       energyDiff
+                 call yaml_map('iter low',itout)
              else
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                       'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
                       energyDiff
+                 call yaml_map('iter high',itout)
              end if
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                       'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
+                 call yaml_map('iter low',itout)
              else
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
                       'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
+                 call yaml_map('iter high',itout)
              end if
+             call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+             call yaml_map('energy',energy,fmt='(es27.17)')
+             call yaml_map('D',energyDiff,fmt='(es10.3)')
           end if
 
           !when convergence is reached, use this block
@@ -1282,6 +1362,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             orthonormalization_on=.false.
         end if
     end if
+
+    call yaml_close_map() !iteration
+    call bigdft_utils_flush(unit=6)
+    call yaml_close_sequence()
 
 
     end subroutine print_info

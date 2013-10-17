@@ -10,14 +10,15 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
-           ham, ovrlp, fermi, ebs)
+           ham, ovrlp, fermi, ebs, itout)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
+  use yaml_output
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc,itout
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(inout) :: foe_obj
   real(kind=8),intent(inout) :: tmprtr
@@ -143,11 +144,25 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           call to_zero(orbs%norb*orbs%norbp, fermip(1,1))
       end if
 
+      if (iproc==0) then
+          call yaml_open_sequence('FOE to determine density kernel',label=&
+               'itrp'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+      end if
+
+
+
       it=0
       it_solver=0
       main_loop: do 
           
           it=it+1
+
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_sequence(advance='no')
+              call yaml_open_map(flow=.true.)
+              call yaml_comment('it FOE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
+          end if
           
           if (adjust_lower_bound) then
               foe_obj%ef=efarr(1)
@@ -195,6 +210,12 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', &
                                                             it, foe_obj%evlow, foe_obj%evhigh, foe_obj%ef, npl
               write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
+              call yaml_map('lower bisection bound',efarr(1),fmt='(es10.3)')
+              call yaml_map('upper bisection bound',efarr(1),fmt='(es10.3)')
+              call yaml_map('lower eigenvalue bound',foe_obj%evlow,fmt='(es10.3)')
+              call yaml_map('upper eigenvalue bound',foe_obj%evhigh,fmt='(es10.3)')
+              call yaml_map('polynomial degree',npl)
+              call yaml_map('Fermi energy',foe_obj%ef,fmt='(es19.12)')
           end if
 
 
@@ -239,11 +260,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           if (calculate_SHS) then
               ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
               if (iproc==0) write(*,*) 'Need to recalculate the Chebyshev polynomials.'
+              if (iproc==0) call yaml_map('Chebyshev polynomials','recalculated')
               call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, fermi, hamscal_compr, &
                    ovrlpeff_compr, calculate_SHS, nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
           else
               ! The Chebyshev polynomials are already available
               if (iproc==0) write(*,*) 'Can use the Chebyshev polynomials from memory.'
+              if (iproc==0) call yaml_map('Chebyshev polynomials','from memory')
               call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, fermip)
           end if 
 
@@ -517,16 +540,26 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', foe_obj%ef
           end if
 
+          if (iproc==0) then
+              call yaml_close_map()
+              call bigdft_utils_flush(unit=6)
+          end if
+
           if (abs(charge_diff)<charge_tolerance) then
               exit
           end if
-        
+
 
       end do main_loop
 
       if (iproc==0) then
           write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
       end if
+
+      if (iproc==0) then
+          call yaml_close_sequence()
+      end if
+
 
 
 

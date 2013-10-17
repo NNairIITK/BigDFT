@@ -652,7 +652,7 @@ subroutine write_input_parameters(in)!,atoms)
 end subroutine write_input_parameters
 
 
-subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
+subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
   use module_base
   use module_types
   use yaml_output
@@ -661,9 +661,17 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   type(energy_terms), intent(in) :: energs
   real(gp), intent(in) :: gnrm,gnrm_zero
   character(len=*), intent(in) :: comment
+  logical,intent(in),optional :: only_energies
   !local variables
+  logical :: write_only_energies
 
-  if (len(trim(comment)) > 0) then
+  if (present(only_energies)) then
+      write_only_energies=only_energies
+  else
+      write_only_energies=.false.
+  end if
+
+  if (len(trim(comment)) > 0 .and. .not.write_only_energies) then
      if (verbose >0) call yaml_newline()
      call write_iter()
      if (verbose >0) call yaml_comment(trim(comment))    
@@ -680,15 +688,15 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
           call yaml_map('Epot',energs%epot,fmt='(1pe18.11)')
      if (energs%eproj /= 0.0_gp)&
           call yaml_map('Enl',energs%eproj,fmt='(1pe18.11)')
-     if (energs%eh  /= 0.0_gp)&
+     if (energs%eh /= 0.0_gp)&
           call yaml_map('EH',energs%eh,fmt='(1pe18.11)')
-     if (energs%exc  /= 0.0_gp)&
-     call yaml_map('EXC',energs%exc,fmt='(1pe18.11)')
-     if (energs%evxc  /= 0.0_gp)&
+     if (energs%exc /= 0.0_gp)&
+          call yaml_map('EXC',energs%exc,fmt='(1pe18.11)')
+     if (energs%evxc /= 0.0_gp)&
           call yaml_map('EvXC',energs%evxc,fmt='(1pe18.11)')
-     if (energs%eexctX  /= 0.0_gp)&
+     if (energs%eexctX /= 0.0_gp)&
           call yaml_map('EexctX',energs%eexctX,fmt='(1pe18.11)')
-     if (energs%evsic  /= 0.0_gp)&
+     if (energs%evsic /= 0.0_gp)&
           call yaml_map('EvSIC',energs%evsic,fmt='(1pe18.11)')
      if (len(trim(comment)) > 0) then
         if (energs%eion /= 0.0_gp)&
@@ -705,11 +713,13 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
      call yaml_newline()
   end if
 
-  if (len(trim(comment)) == 0) then
-     call write_iter()
-     if (verbose >0) call yaml_newline()
-  else if (verbose > 1) then
-     call yaml_map('SCF criterion',iscf,fmt='(i6)')
+  if (.not.write_only_energies) then
+     if (len(trim(comment)) == 0) then
+        call write_iter()
+        if (verbose >0) call yaml_newline()
+     else if (verbose > 1) then
+        call yaml_map('SCF criterion',iscf,fmt='(i6)')
+     end if
   end if
 
 

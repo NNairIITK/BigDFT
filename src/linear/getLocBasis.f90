@@ -10,17 +10,18 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
+    calculate_ham,ham_small,extra_states,itout,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use constrained_dft
   use diis_sd_optimization
+  use yaml_output
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, scf_mode
+  integer,intent(in) :: iproc, nproc, scf_mode, itout
   type(orbitals_data),intent(inout) :: orbs
   type(atoms_data),intent(in) :: at
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -113,6 +114,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(calculate_ham) then
+
+      if (iproc==0) then
+          call yaml_map('Hamiltonian application required',.true.)
+      end if
+
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
@@ -139,6 +145,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
+
+
+      ! Use this subroutine to write the energies, with some fake number
+      ! to prevent it from writing too much
+      call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+
 
       if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
                     energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
@@ -246,6 +258,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   else
       if(iproc==0) write(*,*) 'No Hamiltonian application required.'
+      if (iproc==0) then
+          call yaml_map('Hamiltonian application required',.false.)
+      end if
   end if
 
   ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
@@ -369,10 +384,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
      ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
      if (extra_states>0) then
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
-             curvefit_dmin, factor, reorder, extra_states)
+             curvefit_dmin, factor, itout, reorder, extra_states)
      else
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
-             curvefit_dmin, factor, reorder)
+             curvefit_dmin, factor, itout, reorder)
      end if
   end if
 
@@ -386,9 +401,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,ebs,tmb%coeff,orbs,tmb%orbs,.true.)
+         if (iproc==0) call yaml_map('calculate density kernel',.true.)
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,ebs,tmb%coeff,orbs,tmb%orbs,.false.)
+         if (iproc==0) call yaml_map('calculate density kernel',.true.)
       end if
       call timing(iproc,'getlocbasinit','OF') !lr408t
 
@@ -403,7 +420,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
-           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, ebs)
+           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, ebs, &
+       itout)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
@@ -602,8 +620,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   energy_increased_previous=.false.
  
   if (iproc==0) then
-      call yaml_open_sequence('support function optimizations')
+      call yaml_open_sequence('support function optimization',label=&
+           'itrp'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
   end if
+
   isatur_in=0
   iterLoop: do
       it=it+1
@@ -658,9 +678,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
                energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
       end if
-      if (iproc==0) then
-          call yaml_map('Hamiltonian Applied',.true.)
-      end if
 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
@@ -671,6 +688,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF')
+
+      if (iproc==0) then
+          call yaml_map('Hamiltonian Applied',.true.)
+      end if
+
+      ! Use this subroutine to write the energies, with some fake number
+      ! to prevent it from writing too much
+      call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
 
       !if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
       !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
@@ -1074,6 +1099,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=0
+              if(iproc==0) call yaml_map('exit criterion','net number of iterations')
           else if(it_tot>=3*nit_basis) then
               if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: there seem to be some problems, exiting now...'
               if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
@@ -1081,11 +1107,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
+              if (iproc==0) call yaml_map('exit criterion','total number of iterations')
           else if (stop_optimization) then
               if (iproc==0) then
                   write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=0
+              if (iproc==0) call yaml_map('exit criterion','energy difference')
           !!else if (reduce_conf) then
           !!    if (iproc==0) then
           !!        write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
@@ -1094,10 +1122,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !else if (fnrm<2.3d-4) then
           else if (fnrm<conv_crit .and. experimental_mode) then
               if (iproc==0) write(*,* ) 'converged!'
+              if (iproc==0) call yaml_map('exit criterion','gradient')
               infoBasisFunctions=0
           else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0) then
               if (iproc==0) write(*,*) 'extended input guess converged!'
               infoBasisFunctions=0
+              if (iproc==0) call yaml_map('exit criterion','extended input guess')
           end if
           if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           if (infoBasisFunctions>=0) then
@@ -1105,6 +1135,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! iteration of get_coeff.
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, tmb%linmat%ham)
+          end if
+
+          if (iproc==0) then
+              !yaml output
+              call yaml_close_map() !iteration
+              call bigdft_utils_flush(unit=6)
           end if
 
           exit iterLoop
@@ -1161,8 +1197,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(scf_mode/=LINEAR_FOE) then
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, overlap_calculated)
+          call yaml_map('reconstruct kernel',.true.)
       else if (experimental_mode) then
           call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+          call yaml_map('purify kernel',.true.)
       end if
   !!end if
       if(iproc==0) then
@@ -1182,6 +1220,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ! Close sequence for the optimization steps
   if (iproc==0) then
       call yaml_close_sequence()
+  end if
+  if (iproc==0) then
+      call yaml_comment('Support functions created')
   end if
 
   !if (iproc==0) write(*,'(a,3es16.6)') 'NEW RATIO: ediff_sum, delta_energy_prev_sum, ratio_deltas', &

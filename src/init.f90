@@ -2881,7 +2881,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs%ebs,nlpspd,proj,in%SIC,tmb,pnrm,.false.,.false.,&
-             .true.,ham_small,0) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             .true.,ham_small,0,0) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then
         !print*,'coeffs after extra diag:'
