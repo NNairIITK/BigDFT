@@ -1311,26 +1311,49 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
           write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
       else if (iproc==0.and.final) then
-          !Before convergence
+          call yaml_comment('final results',hfill='=')
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          !at convergence
+          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
           write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
               energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
-          if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
                       'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
                       energyDiff,'FINAL'
+                 call yaml_map('iter low',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
              else
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
                       'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
                       energyDiff,'FINAL'
+                 call yaml_map('iter high',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
              end if
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
                       'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 call yaml_map('iter low',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
              else
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
                       'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 call yaml_map('iter high',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
              end if
           end if
        end if

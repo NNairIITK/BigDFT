@@ -1,6 +1,1 @@
-WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will be run on the current machine only.
  <BigDFT> log of the run will be written in logfile: ./log.yaml
- 1th wavefunction written
- 2th wavefunction written
- 4th wavefunction written
- 3th wavefunction written
