@@ -478,9 +478,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               else
                   if (iproc==0) call yaml_map('interpol possible',.true.)
               end if
+              if (iproc==0) call yaml_close_map()
+              if (iproc==0) call yaml_newline()
           end if
-          if (iproc==0) call yaml_close_map()
-          if (iproc==0) call yaml_newline()
           if (.not.interpolation_possible) then
               ! Set the history for the interpolation to zero.
               it_solver=0
