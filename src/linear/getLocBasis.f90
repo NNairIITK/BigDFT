@@ -620,8 +620,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   energy_increased_previous=.false.
  
   if (iproc==0) then
-      call yaml_open_sequence('support function optimization',label=&
-           'itrp'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+      call yaml_sequence(advance='no')
+      call yaml_open_map('support function optimization',label=&
+           'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
   end if
 
   isatur_in=0
@@ -637,7 +638,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!    write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       !!endif
       if (iproc==0) then
-          call yaml_sequence(advance='no')
+          if (it>=nit_basis) then
+              call yaml_sequence(label='final_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+          else
+              call yaml_sequence(advance='no')
+          end if
           call yaml_open_map(flow=.true.)
           call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
           if (target_function==TARGET_FUNCTION_IS_TRACE) then

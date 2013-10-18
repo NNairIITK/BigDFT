@@ -245,6 +245,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   infocode=0 !default value
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
+  if (iproc==0) then
+      call yaml_comment('Self-Consistent Cycle',hfill='-')
+      call yaml_open_sequence('Ground State Optimization')
+  end if
   outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
 
       if (input%lin%nlevel_accuracy==2) then
@@ -547,8 +551,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
          call yaml_comment('kernel optimization',hfill='=')
          if (iproc==0) then
-             call yaml_open_sequence('kernel optimization',label=&
-                  'itrp'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+             call yaml_sequence(advance='no')
+             call yaml_open_map('kernel optimization',label=&
+                  'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
          end if
          kernel_loop : do it_scc=1,nit_scc
              dmin_diag_it=dmin_diag_it+1
@@ -556,7 +561,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
              if (iproc==0) then
-                call yaml_sequence(advance='no')
+                if (it_scc==nit_scc) then
+                   call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+                else
+                   call yaml_sequence(advance='no')
+                end if
                 call yaml_open_map(flow=.true.)
                 call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
@@ -914,6 +923,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! print the final summary
   call print_info(.true.)
 
+  if (iproc==0) call yaml_close_sequence()
+
   ! Deallocate everything that is not needed any more.
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call DIIS_free(ldiis_coeff)!call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)
@@ -1232,6 +1243,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
           call yaml_comment('Summary of both steps',hfill='=')
           call yaml_sequence(advance='no')
+          !call yaml_open_map(flow=.true.)
+          call yaml_open_map('self consistency summary',label=&
+              'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+          call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           call yaml_map('iter',itout)
           ! Use this subroutine to write the energies, with some fake
@@ -1313,8 +1328,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       else if (iproc==0.and.final) then
           call yaml_comment('final results',hfill='=')
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          !call yaml_open_map(flow=.true.)
           !at convergence
+          !call yaml_open_map('self consistency summary',label=&
+          !    'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+          call yaml_open_map('self consistency summary')
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          call yaml_map('iter',itout)
           call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
           write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
               energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
@@ -1386,7 +1407,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         end if
     end if
 
-    call yaml_close_map() !iteration
+    call yaml_close_map()
     call bigdft_utils_flush(unit=6)
     call yaml_close_sequence()
 
