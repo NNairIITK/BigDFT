@@ -638,11 +638,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!    write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       !!endif
       if (iproc==0) then
-          if (it>=nit_basis) then
-              call yaml_sequence(label='final_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
-          else
+          !if (it>=nit_basis) then
+          !    call yaml_sequence(label='final_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+          !else
               call yaml_sequence(advance='no')
-          end if
+          !end if
           call yaml_open_map(flow=.true.)
           call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
           if (target_function==TARGET_FUNCTION_IS_TRACE) then
@@ -1221,6 +1221,29 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
   end do iterLoop
+
+  ! Write the final results
+  if (iproc==0) then
+      call yaml_sequence(label='final_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+      call yaml_open_map(flow=.true.)
+      call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
+      if (target_function==TARGET_FUNCTION_IS_TRACE) then
+          call yaml_map('target function','TRACE')
+      else if (target_function==TARGET_FUNCTION_IS_ENERGY) then
+          call yaml_map('target function','ENERGY')
+      else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          call yaml_map('target function','HYBRID')
+      end if
+      call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      call yaml_newline()
+      call yaml_map('iter',it,fmt='(i6)')
+      call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+      call yaml_map('Omega',trH,fmt='(es24.17)')
+      call yaml_map('D',ediff,fmt='(es10.3)')
+      call yaml_close_map() !iteration
+      call bigdft_utils_flush(unit=6)
+  end if
+
 
   ! Close sequence for the optimization steps
   if (iproc==0) then

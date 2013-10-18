@@ -561,11 +561,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
              if (iproc==0) then
-                if (it_scc==nit_scc) then
-                   call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
-                else
+                !if (it_scc==nit_scc) then
+                !   call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+                !else
                    call yaml_sequence(advance='no')
-                end if
+                !end if
                 call yaml_open_map(flow=.true.)
                 call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
@@ -769,8 +769,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              if (pnrm<convCritMix.and.input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
                  info_scf=it_scc
+                 if (iproc==0) then
+                     !yaml output
+                     call yaml_close_map() !iteration
+                     call bigdft_utils_flush(unit=6)
+                 end if
                  exit
              else if (pnrm<convCritMix.and.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+                 if (iproc==0) then
+                     !yaml output
+                     call yaml_close_map() !iteration
+                     call bigdft_utils_flush(unit=6)
+                 end if
                 exit
              !else if (pnrm<convCritMix.and.reorder) then
              !    exit
@@ -788,6 +798,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
 
          end do kernel_loop
+
+         ! Write the final results
+         if (iproc==0) then
+            call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+            call yaml_open_map(flow=.true.)
+            call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
+            call printSummary()
+            call yaml_close_map() !iteration
+            call bigdft_utils_flush(unit=6)
+         end if
 
           ! Close sequence for the optimization steps
           if (iproc==0) then
@@ -893,6 +913,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       end if
 
   end do outerLoop
+
 
 
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
@@ -1285,6 +1306,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call yaml_map('energy',energy,fmt='(es27.17)')
              call yaml_map('D',energyDiff,fmt='(es10.3)')
           end if
+          call yaml_close_map()
 
           !when convergence is reached, use this block
           write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
@@ -1349,6 +1371,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('energy',energy,fmt='(es27.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
                  call yaml_comment('FINAL')
+                 call yaml_close_map()
              else
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
                       'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
@@ -1358,6 +1381,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('energy',energy,fmt='(es27.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
                  call yaml_comment('FINAL')
+                 call yaml_close_map()
              end if
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
@@ -1367,6 +1391,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
+                 call yaml_close_map()
              else
                  write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
                       'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
@@ -1375,6 +1401,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('energy',energy,fmt='(es27.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
                  call yaml_comment('FINAL')
+                 call yaml_close_map()
              end if
           end if
        end if
@@ -1407,7 +1434,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         end if
     end if
 
-    call yaml_close_map()
     call bigdft_utils_flush(unit=6)
     call yaml_close_sequence()
 
