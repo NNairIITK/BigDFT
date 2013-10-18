@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-10-18 08:55:55.746
+ Timestamp of this run                 : 2013-10-18 16:18:11.655
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -390,18 +390,24 @@
    Tolerances for this check: [ 2.57455003437392915E-06,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
-  #=========================================================== support function optimization
- support function optimization: &itrp001
- -  { #---------------------------------------------------------------------------- iter: 1
+  #------------------------------------------------------------------- Self-Consistent Cycle
+ Ground State Optimization:
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun001
+   -  { #-------------------------------------------------------------------------- iter: 1
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.80353618235E+01, Epot: -2.44551031358E+01, Enl:  1.43407672553E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
  iter:  1, fnrm:  4.65E-01, Omega: -1.60914618512199112E+01, D: -1.609E+01, 
  exit criterion: net number of iterations}
-  #Support functions created
-  #===================================================================== kernel optimization
- kernel optimization: &itrp001
- -  { #---------------------------------------------------------------------------- iter: 1
+   -  &final_supfun001  { #-------------------------------------------------------- iter: 1
+ target function: TRACE, 
+ Energies: {Ekin:  1.80353618235E+01, Epot: -2.44551031358E+01, Enl:  1.43407672553E+00}, 
+ iter:  1, fnrm:  4.65E-01, Omega: -1.60914618512199112E+01, D: -1.609E+01}
+    #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel001
+   -  { #-------------------------------------------------------------------------- iter: 1
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.80353618235E+01, Epot: -2.56624580435E+01, Enl:  1.43407672553E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999995859524E+00, 
@@ -414,8 +420,8 @@
  {e: -7.870404790542E-01, f:  2.0000},  # 00003
  {e: -7.866525642578E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  8.89E-06, energy: -1.65558416480853730E+01, D: -1.656E+01}
- -  { #---------------------------------------------------------------------------- iter: 2
+ iter:  1, delta:  8.89E-06, energy: -1.65558416480853765E+01, D: -1.656E+01}
+   -  { #-------------------------------------------------------------------------- iter: 2
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.80353618235E+01, Epot: -2.48460307058E+01, Enl:  1.43407672553E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996312894E+00, 
@@ -428,8 +434,8 @@
  {e: -7.095234127859E-01, f:  2.0000},  # 00003
  {e: -6.340842941397E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  4.00E-06, energy: -1.65276064646070147E+01, D:  2.824E-02}
- -  { #---------------------------------------------------------------------------- iter: 3
+ iter:  2, delta:  4.00E-06, energy: -1.65276064646070040E+01, D:  2.824E-02}
+   -  { #-------------------------------------------------------------------------- iter: 3
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.80353618235E+01, Epot: -2.48681427511E+01, Enl:  1.43407672553E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996313120E+00, 
@@ -442,8 +448,8 @@
  {e: -6.902974711315E-01, f:  2.0000},  # 00003
  {e: -6.473153380078E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  3, delta:  1.90E-06, energy: -1.65150455027587881E+01, D:  1.256E-02}
- -  { #---------------------------------------------------------------------------- iter: 4
+ iter:  3, delta:  1.90E-06, energy: -1.65150455027587739E+01, D:  1.256E-02}
+   -  { #-------------------------------------------------------------------------- iter: 4
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.80353618235E+01, Epot: -2.48783088836E+01, Enl:  1.43407672553E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996314137E+00, 
@@ -456,40 +462,48 @@
  {e: -6.807609840529E-01, f:  2.0000},  # 00003
  {e: -6.534900745066E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  9.35E-07, energy: -1.65122772627152550E+01, D:  2.768E-03}
-  #=================================================================== Summary of both steps
--  {iter:  1, 
+ iter:  4, delta:  9.35E-07, energy: -1.65122772627152514E+01, D:  2.768E-03}
+   -  &final_kernel001  { #-------------------------------------------------------- iter: 5
+ kernel optimization: DIAG, mixing quantity: DENS, 
+ iter:  5, delta:  9.35E-07, energy: -1.65122772627152514E+01, D:  2.768E-03}
+    #================================================================= Summary of both steps
+ - self consistency summary: &it_sc001
+   -  {iter:  1, 
  Energies: {Ekin:  1.38796460639E+01, EH:  1.81104973671E+01, EXC: -3.81942931794E+00, 
             EvXC: -5.00834288312E+00}, 
- iter low:  1, delta out:  1.260E-06, energy: -1.65122772627152550E+01, D: -1.651E+01}
- #=========================================================== Adjustments for high accuracy
-Hamiltonian application required       :  Yes
-Energies: {Ekin:  1.80353618235E+01, Epot: -2.48832165775E+01, Enl:  1.43407672553E+00}
-calculate density kernel               :  Yes
- #=========================================================== support function optimization
-support function optimization: &itrp002
--  { #----------------------------------------------------------------------------- iter: 1
+ iter low:  1, delta out:  1.260E-06, energy: -1.65122772627152514E+01, D: -1.651E+01}
+    #========================================================= Adjustments for high accuracy
+   Hamiltonian application required    :  Yes
+   Energies: {Ekin:  1.80353618235E+01, Epot: -2.48832165775E+01, Enl:  1.43407672553E+00}
+   calculate density kernel            :  Yes
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun002
+   -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.80353618235E+01, Epot: -2.48832165775E+01, Enl:  1.43407672553E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  3.81E-01, Omega: -1.65116416867701012E+01, D: -1.651E+01, 
+ iter:  1, fnrm:  3.81E-01, Omega: -1.65116416867701048E+01, D: -1.651E+01, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 2
+   -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.72274952570E+01, Epot: -2.40619344433E+01, Enl:  1.32185512097E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  2.52E-01, Omega: -1.66293536613400761E+01, D: -1.177E-01, 
+ iter:  2, fnrm:  2.52E-01, Omega: -1.66293536613400903E+01, D: -1.177E-01, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 3
+   -  { #-------------------------------------------------------------------------- iter: 3
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.72205293001E+01, Epot: -2.41350256786E+01, Enl:  1.36077048605E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  9.56E-02, Omega: -1.66731488267254271E+01, D: -4.380E-02, 
+ iter:  3, fnrm:  9.56E-02, Omega: -1.66731488267254377E+01, D: -4.380E-02, 
  exit criterion: net number of iterations}
- #Support functions created
- #===================================================================== kernel optimization
-kernel optimization: &itrp002
--  { #----------------------------------------------------------------------------- iter: 1
+   -  &final_supfun002  { #-------------------------------------------------------- iter: 3
+ target function: ENERGY, 
+ Energies: {Ekin:  1.72205293001E+01, Epot: -2.41350256786E+01, Enl:  1.36077048605E+00}, 
+ iter:  3, fnrm:  9.56E-02, Omega: -1.66731488267254377E+01, D: -4.380E-02}
+    #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel002
+   -  { #-------------------------------------------------------------------------- iter: 1
  Hamiltonian application required:  No, calculate density kernel:  Yes, 
                      Total charge:  6.999996420351E+00, density mixing; history:  0, 
                  update potential:  Yes, 
@@ -501,8 +515,8 @@ kernel optimization: &itrp002
  {e: -7.129775910290E-01, f:  2.0000},  # 00003
  {e: -6.932577476062E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  3.13E-06, energy: -1.66733041963325732E+01, D: -1.610E-01}
--  { #----------------------------------------------------------------------------- iter: 2
+ iter:  1, delta:  3.13E-06, energy: -1.66733041963325874E+01, D: -1.610E-01}
+   -  { #-------------------------------------------------------------------------- iter: 2
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72205293001E+01, Epot: -2.44911850319E+01, Enl:  1.36077048605E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996290054E+00, 
@@ -515,8 +529,8 @@ kernel optimization: &itrp002
  {e: -7.803407712108E-01, f:  2.0000},  # 00003
  {e: -7.521280613006E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  1.62E-06, energy: -1.66572822855062341E+01, D:  1.602E-02}
--  { #----------------------------------------------------------------------------- iter: 3
+ iter:  2, delta:  1.62E-06, energy: -1.66572822855062412E+01, D:  1.602E-02}
+   -  { #-------------------------------------------------------------------------- iter: 3
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72205293001E+01, Epot: -2.45400667286E+01, Enl:  1.36077048605E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996281926E+00, 
@@ -529,8 +543,8 @@ kernel optimization: &itrp002
  {e: -7.941841721881E-01, f:  2.0000},  # 00003
  {e: -7.612774557339E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  3, delta:  8.14E-07, energy: -1.66550670858473246E+01, D:  2.215E-03}
--  { #----------------------------------------------------------------------------- iter: 4
+ iter:  3, delta:  8.14E-07, energy: -1.66550670858473389E+01, D:  2.215E-03}
+   -  { #-------------------------------------------------------------------------- iter: 4
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72205293001E+01, Epot: -2.45583553743E+01, Enl:  1.36077048605E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996281177E+00, 
@@ -544,7 +558,7 @@ kernel optimization: &itrp002
  {e: -7.649188383096E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  4, delta:  4.08E-07, energy: -1.66545640872722345E+01, D:  5.030E-04}
--  { #----------------------------------------------------------------------------- iter: 5
+   -  { #-------------------------------------------------------------------------- iter: 5
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72205293001E+01, Epot: -2.45664878650E+01, Enl:  1.36077048605E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996280986E+00, 
@@ -557,8 +571,8 @@ kernel optimization: &itrp002
  {e: -8.025008803194E-01, f:  2.0000},  # 00003
  {e: -7.665825903221E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  2.01E-07, energy: -1.66544501037217927E+01, D:  1.140E-04}
--  { #----------------------------------------------------------------------------- iter: 6
+ iter:  5, delta:  2.01E-07, energy: -1.66544501037218069E+01, D:  1.140E-04}
+   -  { #-------------------------------------------------------------------------- iter: 6
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72205293001E+01, Epot: -2.45707904372E+01, Enl:  1.36077048605E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996280921E+00, 
@@ -571,36 +585,44 @@ kernel optimization: &itrp002
  {e: -8.037897786132E-01, f:  2.0000},  # 00003
  {e: -7.674519903726E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  6, delta:  1.01E-07, energy: -1.66544241709290191E+01, D:  2.593E-05}
- #=================================================================== Summary of both steps
--  {iter:  2, 
+ iter:  6, delta:  1.01E-07, energy: -1.66544241709290262E+01, D:  2.593E-05}
+   -  &final_kernel002  { #-------------------------------------------------------- iter: 7
+ kernel optimization: DIAG, mixing quantity: DENS, 
+ iter:  7, delta:  1.01E-07, energy: -1.66544241709290262E+01, D:  2.593E-05}
+    #================================================================= Summary of both steps
+ - self consistency summary: &it_sc002
+   -  {iter:  2, 
  Energies: {Ekin:  1.38796460639E+01, EH:  1.76388016773E+01, EXC: -3.71448191548E+00, 
             EvXC: -4.87001681359E+00}, 
- iter high:  2, delta out:  1.486E-06, energy: -1.66544241709290191E+01, D: -1.421E-01}
- #=========================================================== support function optimization
-support function optimization: &itrp003
--  { #----------------------------------------------------------------------------- iter: 1
+ iter high:  2, delta out:  1.486E-06, energy: -1.66544241709290262E+01, D: -1.421E-01}
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun003
+   -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.72205293001E+01, Epot: -2.45728932906E+01, Enl:  1.36077048605E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
  iter:  1, fnrm:  1.12E-01, Omega: -1.66544181142134988E+01, D: -2.506E-02, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 2
+   -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.72730534254E+01, Epot: -2.46526317630E+01, Enl:  1.38048433774E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  5.15E-02, Omega: -1.66637290019987816E+01, D: -9.311E-03, 
+ iter:  2, fnrm:  5.15E-02, Omega: -1.66637290019987780E+01, D: -9.311E-03, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 3
+   -  { #-------------------------------------------------------------------------- iter: 3
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.73150340001E+01, Epot: -2.47064303310E+01, Enl:  1.39044562710E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
  iter:  3, fnrm:  3.04E-02, Omega: -1.66655875669042643E+01, D: -1.859E-03, 
  exit criterion: net number of iterations}
- #Support functions created
- #===================================================================== kernel optimization
-kernel optimization: &itrp003
--  { #----------------------------------------------------------------------------- iter: 1
+   -  &final_supfun003  { #-------------------------------------------------------- iter: 3
+ target function: ENERGY, 
+ Energies: {Ekin:  1.73150340001E+01, Epot: -2.47064303310E+01, Enl:  1.39044562710E+00}, 
+ iter:  3, fnrm:  3.04E-02, Omega: -1.66655875669042643E+01, D: -1.859E-03}
+    #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel003
+   -  { #-------------------------------------------------------------------------- iter: 1
  Hamiltonian application required:  No, calculate density kernel:  Yes, 
                      Total charge:  6.999996236322E+00, density mixing; history:  0, 
                  update potential:  Yes, 
@@ -613,7 +635,7 @@ kernel optimization: &itrp003
  {e: -7.683995888939E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  1, delta:  6.75E-07, energy: -1.66656102875147525E+01, D: -1.119E-02}
--  { #----------------------------------------------------------------------------- iter: 2
+   -  { #-------------------------------------------------------------------------- iter: 2
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73150340001E+01, Epot: -2.46766438166E+01, Enl:  1.39044562710E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996251195E+00, 
@@ -627,7 +649,7 @@ kernel optimization: &itrp003
  {e: -7.634472135603E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  2, delta:  3.19E-07, energy: -1.66650485549744580E+01, D:  5.617E-04}
--  { #----------------------------------------------------------------------------- iter: 3
+   -  { #-------------------------------------------------------------------------- iter: 3
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73150340001E+01, Epot: -2.46752364923E+01, Enl:  1.39044562710E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996252294E+00, 
@@ -640,8 +662,8 @@ kernel optimization: &itrp003
  {e: -7.975312753735E-01, f:  2.0000},  # 00003
  {e: -7.630581738580E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  3, delta:  1.57E-07, energy: -1.66649457039653619E+01, D:  1.029E-04}
--  { #----------------------------------------------------------------------------- iter: 4
+ iter:  3, delta:  1.57E-07, energy: -1.66649457039653655E+01, D:  1.029E-04}
+   -  { #-------------------------------------------------------------------------- iter: 4
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73150340001E+01, Epot: -2.46754254516E+01, Enl:  1.39044562710E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996252457E+00, 
@@ -654,8 +676,8 @@ kernel optimization: &itrp003
  {e: -7.968239097882E-01, f:  2.0000},  # 00003
  {e: -7.630056054933E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  7.59E-08, energy: -1.66649229751851919E+01, D:  2.273E-05}
--  { #----------------------------------------------------------------------------- iter: 5
+ iter:  4, delta:  7.59E-08, energy: -1.66649229751852026E+01, D:  2.273E-05}
+   -  { #-------------------------------------------------------------------------- iter: 5
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73150340001E+01, Epot: -2.46755018970E+01, Enl:  1.39044562710E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996252482E+00, 
@@ -668,8 +690,8 @@ kernel optimization: &itrp003
  {e: -7.964874753205E-01, f:  2.0000},  # 00003
  {e: -7.629779339285E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  3.74E-08, energy: -1.66649178846365871E+01, D:  5.091E-06}
--  { #----------------------------------------------------------------------------- iter: 6
+ iter:  5, delta:  3.74E-08, energy: -1.66649178846365942E+01, D:  5.091E-06}
+   -  { #-------------------------------------------------------------------------- iter: 6
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73150340001E+01, Epot: -2.46755221804E+01, Enl:  1.39044562710E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996252500E+00, 
@@ -682,36 +704,44 @@ kernel optimization: &itrp003
  {e: -7.963264476677E-01, f:  2.0000},  # 00003
  {e: -7.629619966724E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  6, delta:  1.83E-08, energy: -1.66649167344297773E+01, D:  1.150E-06}
- #=================================================================== Summary of both steps
--  {iter:  3, 
+ iter:  6, delta:  1.83E-08, energy: -1.66649167344297702E+01, D:  1.150E-06}
+   -  &final_kernel003  { #-------------------------------------------------------- iter: 7
+ kernel optimization: DIAG, mixing quantity: DENS, 
+ iter:  7, delta:  1.83E-08, energy: -1.66649167344297702E+01, D:  1.150E-06}
+    #================================================================= Summary of both steps
+ - self consistency summary: &it_sc003
+   -  {iter:  3, 
  Energies: {Ekin:  1.38796460639E+01, EH:  1.76735685400E+01, EXC: -3.72420728547E+00, 
             EvXC: -4.88290165846E+00}, 
- iter high:  3, delta out:  3.135E-07, energy: -1.66649167344297773E+01, D: -1.049E-02}
- #=========================================================== support function optimization
-support function optimization: &itrp004
--  { #----------------------------------------------------------------------------- iter: 1
+ iter high:  3, delta out:  3.135E-07, energy: -1.66649167344297702E+01, D: -1.049E-02}
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun004
+   -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.73150340001E+01, Epot: -2.46755158851E+01, Enl:  1.39044562710E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  2.17E-02, Omega: -1.66649164680894124E+01, D: -1.187E-03, 
+ iter:  1, fnrm:  2.17E-02, Omega: -1.66649164680894089E+01, D: -1.187E-03, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 2
+   -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.73210188312E+01, Epot: -2.46800750671E+01, Enl:  1.38875019873E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  1.30E-02, Omega: -1.66652450910513430E+01, D: -3.286E-04, 
+ iter:  2, fnrm:  1.30E-02, Omega: -1.66652450910513465E+01, D: -3.286E-04, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 3
+   -  { #-------------------------------------------------------------------------- iter: 3
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.73208769627E+01, Epot: -2.46810463614E+01, Enl:  1.38967850822E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  8.33E-03, Omega: -1.66653957961194514E+01, D: -1.507E-04, 
+ iter:  3, fnrm:  8.33E-03, Omega: -1.66653957961194550E+01, D: -1.507E-04, 
  exit criterion: net number of iterations}
- #Support functions created
- #===================================================================== kernel optimization
-kernel optimization: &itrp004
--  { #----------------------------------------------------------------------------- iter: 1
+   -  &final_supfun004  { #-------------------------------------------------------- iter: 3
+ target function: ENERGY, 
+ Energies: {Ekin:  1.73208769627E+01, Epot: -2.46810463614E+01, Enl:  1.38967850822E+00}, 
+ iter:  3, fnrm:  8.33E-03, Omega: -1.66653957961194550E+01, D: -1.507E-04}
+    #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel004
+   -  { #-------------------------------------------------------------------------- iter: 1
  Hamiltonian application required:  No, calculate density kernel:  Yes, 
                      Total charge:  6.999996224585E+00, density mixing; history:  0, 
                  update potential:  Yes, 
@@ -723,8 +753,8 @@ kernel optimization: &itrp004
  {e: -7.963445725596E-01, f:  2.0000},  # 00003
  {e: -7.631867115189E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  1.32E-07, energy: -1.66653959573392960E+01, D: -4.792E-04}
--  { #----------------------------------------------------------------------------- iter: 2
+ iter:  1, delta:  1.32E-07, energy: -1.66653959573392996E+01, D: -4.792E-04}
+   -  { #-------------------------------------------------------------------------- iter: 2
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73208769627E+01, Epot: -2.46764080831E+01, Enl:  1.38967850822E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996226444E+00, 
@@ -738,7 +768,7 @@ kernel optimization: &itrp004
  {e: -7.625208372472E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  2, delta:  6.38E-08, energy: -1.66653834191537555E+01, D:  1.254E-05}
--  { #----------------------------------------------------------------------------- iter: 3
+   -  { #-------------------------------------------------------------------------- iter: 3
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73208769627E+01, Epot: -2.46758057296E+01, Enl:  1.38967850822E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996226563E+00, 
@@ -751,8 +781,8 @@ kernel optimization: &itrp004
  {e: -7.948609851767E-01, f:  2.0000},  # 00003
  {e: -7.624517494366E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  3, delta:  3.18E-08, energy: -1.66653809298177364E+01, D:  2.489E-06}
--  { #----------------------------------------------------------------------------- iter: 4
+ iter:  3, delta:  3.18E-08, energy: -1.66653809298177293E+01, D:  2.489E-06}
+   -  { #-------------------------------------------------------------------------- iter: 4
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73208769627E+01, Epot: -2.46756051151E+01, Enl:  1.38967850822E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996226581E+00, 
@@ -765,8 +795,8 @@ kernel optimization: &itrp004
  {e: -7.947214666072E-01, f:  2.0000},  # 00003
  {e: -7.624329153401E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  1.55E-08, energy: -1.66653803655979509E+01, D:  5.642E-07}
--  { #----------------------------------------------------------------------------- iter: 5
+ iter:  4, delta:  1.55E-08, energy: -1.66653803655979544E+01, D:  5.642E-07}
+   -  { #-------------------------------------------------------------------------- iter: 5
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73208769627E+01, Epot: -2.46755025915E+01, Enl:  1.38967850822E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996226582E+00, 
@@ -779,8 +809,8 @@ kernel optimization: &itrp004
  {e: -7.946544505031E-01, f:  2.0000},  # 00003
  {e: -7.624232496548E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  7.76E-09, energy: -1.66653802361412069E+01, D:  1.295E-07}
--  { #----------------------------------------------------------------------------- iter: 6
+ iter:  5, delta:  7.76E-09, energy: -1.66653802361411998E+01, D:  1.295E-07}
+   -  { #-------------------------------------------------------------------------- iter: 6
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73208769627E+01, Epot: -2.46754481238E+01, Enl:  1.38967850822E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996226584E+00, 
@@ -793,36 +823,44 @@ kernel optimization: &itrp004
  {e: -7.946219271985E-01, f:  2.0000},  # 00003
  {e: -7.624179719729E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  6, delta:  3.81E-09, energy: -1.66653802061750049E+01, D:  2.997E-08}
- #=================================================================== Summary of both steps
--  {iter:  4, 
+ iter:  6, delta:  3.81E-09, energy: -1.66653802061750085E+01, D:  2.997E-08}
+   -  &final_kernel004  { #-------------------------------------------------------- iter: 7
+ kernel optimization: DIAG, mixing quantity: DENS, 
+ iter:  7, delta:  3.81E-09, energy: -1.66653802061750085E+01, D:  2.997E-08}
+    #================================================================= Summary of both steps
+ - self consistency summary: &it_sc004
+   -  {iter:  4, 
  Energies: {Ekin:  1.38796460639E+01, EH:  1.76798363946E+01, EXC: -3.72606705159E+00, 
             EvXC: -4.88536452600E+00}, 
- iter high:  4, delta out:  6.325E-08, energy: -1.66653802061750049E+01, D: -4.635E-04}
- #=========================================================== support function optimization
-support function optimization: &itrp005
--  { #----------------------------------------------------------------------------- iter: 1
+ iter high:  4, delta out:  6.325E-08, energy: -1.66653802061750085E+01, D: -4.635E-04}
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun005
+   -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.73208769627E+01, Epot: -2.46754188249E+01, Enl:  1.38967850822E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  8.08E-03, Omega: -1.66653801990960169E+01, D: -1.351E-04, 
+ iter:  1, fnrm:  8.08E-03, Omega: -1.66653801990960204E+01, D: -1.351E-04, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 2
+   -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.73133355003E+01, Epot: -2.46670856781E+01, Enl:  1.38880316385E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  5.44E-03, Omega: -1.66654514720993561E+01, D: -7.127E-05, 
+ iter:  2, fnrm:  5.44E-03, Omega: -1.66654514720993632E+01, D: -7.127E-05, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 3
+   -  { #-------------------------------------------------------------------------- iter: 3
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.73060658678E+01, Epot: -2.46600687605E+01, Enl:  1.38900064195E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  3.91E-03, Omega: -1.66654892174497640E+01, D: -3.775E-05, 
+ iter:  3, fnrm:  3.91E-03, Omega: -1.66654892174497675E+01, D: -3.775E-05, 
  exit criterion: net number of iterations}
- #Support functions created
- #===================================================================== kernel optimization
-kernel optimization: &itrp005
--  { #----------------------------------------------------------------------------- iter: 1
+   -  &final_supfun005  { #-------------------------------------------------------- iter: 3
+ target function: ENERGY, 
+ Energies: {Ekin:  1.73060658678E+01, Epot: -2.46600687605E+01, Enl:  1.38900064195E+00}, 
+ iter:  3, fnrm:  3.91E-03, Omega: -1.66654892174497675E+01, D: -3.775E-05}
+    #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel005
+   -  { #-------------------------------------------------------------------------- iter: 1
  Hamiltonian application required:  No, calculate density kernel:  Yes, 
                      Total charge:  6.999996219074E+00, density mixing; history:  0, 
                  update potential:  Yes, 
@@ -834,8 +872,8 @@ kernel optimization: &itrp005
  {e: -7.946126362893E-01, f:  2.0000},  # 00003
  {e: -7.625072164135E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  4.05E-08, energy: -1.66654892629591345E+01, D: -1.091E-04}
--  { #----------------------------------------------------------------------------- iter: 2
+ iter:  1, delta:  4.05E-08, energy: -1.66654892629591416E+01, D: -1.091E-04}
+   -  { #-------------------------------------------------------------------------- iter: 2
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73060658678E+01, Epot: -2.46633998254E+01, Enl:  1.38900064195E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217968E+00, 
@@ -848,8 +886,8 @@ kernel optimization: &itrp005
  {e: -7.950522591438E-01, f:  2.0000},  # 00003
  {e: -7.630235475656E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  2.02E-08, energy: -1.66654887858294813E+01, D:  4.771E-07}
--  { #----------------------------------------------------------------------------- iter: 3
+ iter:  2, delta:  2.02E-08, energy: -1.66654887858294884E+01, D:  4.771E-07}
+   -  { #-------------------------------------------------------------------------- iter: 3
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73060658678E+01, Epot: -2.46639751946E+01, Enl:  1.38900064195E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217884E+00, 
@@ -862,8 +900,8 @@ kernel optimization: &itrp005
  {e: -7.951157640309E-01, f:  2.0000},  # 00003
  {e: -7.631150417728E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  3, delta:  1.04E-08, energy: -1.66654888074969811E+01, D: -2.167E-08}
--  { #----------------------------------------------------------------------------- iter: 4
+ iter:  3, delta:  1.04E-08, energy: -1.66654888074969776E+01, D: -2.167E-08}
+   -  { #-------------------------------------------------------------------------- iter: 4
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73060658678E+01, Epot: -2.46641902963E+01, Enl:  1.38900064195E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217882E+00, 
@@ -877,7 +915,7 @@ kernel optimization: &itrp005
  {e: -7.631496671389E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  4, delta:  5.11E-09, energy: -1.66654888137991257E+01, D: -6.302E-09}
--  { #----------------------------------------------------------------------------- iter: 5
+   -  { #-------------------------------------------------------------------------- iter: 5
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73060658678E+01, Epot: -2.46642926267E+01, Enl:  1.38900064195E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217880E+00, 
@@ -891,7 +929,7 @@ kernel optimization: &itrp005
  {e: -7.631661583997E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  5, delta:  2.60E-09, energy: -1.66654888154263574E+01, D: -1.627E-09}
--  { #----------------------------------------------------------------------------- iter: 6
+   -  { #-------------------------------------------------------------------------- iter: 6
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.73060658678E+01, Epot: -2.46643434382E+01, Enl:  1.38900064195E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217880E+00, 
@@ -904,36 +942,44 @@ kernel optimization: &itrp005
  {e: -7.951524370590E-01, f:  2.0000},  # 00003
  {e: -7.631743432588E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  6, delta:  1.28E-09, energy: -1.66654888158427354E+01, D: -4.164E-10}
- #=================================================================== Summary of both steps
--  {iter:  5, 
+ iter:  6, delta:  1.28E-09, energy: -1.66654888158427212E+01, D: -4.164E-10}
+   -  &final_kernel005  { #-------------------------------------------------------- iter: 7
+ kernel optimization: DIAG, mixing quantity: DENS, 
+ iter:  7, delta:  1.28E-09, energy: -1.66654888158427212E+01, D: -4.164E-10}
+    #================================================================= Summary of both steps
+ - self consistency summary: &it_sc005
+   -  {iter:  5, 
  Energies: {Ekin:  1.38796460639E+01, EH:  1.76756677507E+01, EXC: -3.72525836754E+00, 
             EvXC: -4.88429911085E+00}, 
- iter high:  5, delta out:  1.957E-08, energy: -1.66654888158427354E+01, D: -1.086E-04}
- #=========================================================== support function optimization
-support function optimization: &itrp006
--  { #----------------------------------------------------------------------------- iter: 1
+ iter high:  5, delta out:  1.957E-08, energy: -1.66654888158427212E+01, D: -1.086E-04}
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun006
+   -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.73060658678E+01, Epot: -2.46643687404E+01, Enl:  1.38900064195E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  3.92E-03, Omega: -1.66654888159455723E+01, D: -3.734E-05, 
+ iter:  1, fnrm:  3.92E-03, Omega: -1.66654888159455687E+01, D: -3.734E-05, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 2
+   -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.73010889789E+01, Epot: -2.46596639940E+01, Enl:  1.38923964673E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  2.87E-03, Omega: -1.66655068366674683E+01, D: -1.802E-05, 
+ iter:  2, fnrm:  2.87E-03, Omega: -1.66655068366674719E+01, D: -1.802E-05, 
                 Orthogonalization:  Yes, reconstruct kernel:  Yes}
--  { #----------------------------------------------------------------------------- iter: 3
+   -  { #-------------------------------------------------------------------------- iter: 3
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.72962836856E+01, Epot: -2.46548423722E+01, Enl:  1.38921791082E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  2.12E-03, Omega: -1.66655165071917608E+01, D: -9.671E-06, 
+ iter:  3, fnrm:  2.12E-03, Omega: -1.66655165071917679E+01, D: -9.671E-06, 
  exit criterion: net number of iterations}
- #Support functions created
- #===================================================================== kernel optimization
-kernel optimization: &itrp006
--  { #----------------------------------------------------------------------------- iter: 1
+   -  &final_supfun006  { #-------------------------------------------------------- iter: 3
+ target function: ENERGY, 
+ Energies: {Ekin:  1.72962836856E+01, Epot: -2.46548423722E+01, Enl:  1.38921791082E+00}, 
+ iter:  3, fnrm:  2.12E-03, Omega: -1.66655165071917679E+01, D: -9.671E-06}
+    #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel006
+   -  { #-------------------------------------------------------------------------- iter: 1
  Hamiltonian application required:  No, calculate density kernel:  Yes, 
                      Total charge:  6.999996218524E+00, density mixing; history:  0, 
                  update potential:  Yes, 
@@ -945,8 +991,8 @@ kernel optimization: &itrp006
  {e: -7.951559621816E-01, f:  2.0000},  # 00003
  {e: -7.632036740586E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  2.21E-08, energy: -1.66655165162735699E+01, D: -2.770E-05}
--  { #----------------------------------------------------------------------------- iter: 2
+ iter:  1, delta:  2.21E-08, energy: -1.66655165162735663E+01, D: -2.770E-05}
+   -  { #-------------------------------------------------------------------------- iter: 2
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72962836856E+01, Epot: -2.46566020611E+01, Enl:  1.38921791082E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217882E+00, 
@@ -959,8 +1005,8 @@ kernel optimization: &itrp006
  {e: -7.954096478131E-01, f:  2.0000},  # 00003
  {e: -7.634827253508E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  1.11E-08, energy: -1.66655163279610044E+01, D:  1.883E-07}
--  { #----------------------------------------------------------------------------- iter: 3
+ iter:  2, delta:  1.11E-08, energy: -1.66655163279610008E+01, D:  1.883E-07}
+   -  { #-------------------------------------------------------------------------- iter: 3
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72962836856E+01, Epot: -2.46568483854E+01, Enl:  1.38921791082E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217833E+00, 
@@ -974,7 +1020,7 @@ kernel optimization: &itrp006
  {e: -7.635256283968E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  3, delta:  5.76E-09, energy: -1.66655163289026120E+01, D: -9.416E-10}
--  { #----------------------------------------------------------------------------- iter: 4
+   -  { #-------------------------------------------------------------------------- iter: 4
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72962836856E+01, Epot: -2.46569296600E+01, Enl:  1.38921791082E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217832E+00, 
@@ -987,8 +1033,8 @@ kernel optimization: &itrp006
  {e: -7.954566128226E-01, f:  2.0000},  # 00003
  {e: -7.635406777863E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  2.82E-09, energy: -1.66655163294502273E+01, D: -5.476E-10}
--  { #----------------------------------------------------------------------------- iter: 5
+ iter:  4, delta:  2.82E-09, energy: -1.66655163294502238E+01, D: -5.476E-10}
+   -  { #-------------------------------------------------------------------------- iter: 5
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72962836856E+01, Epot: -2.46569676533E+01, Enl:  1.38921791082E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217830E+00, 
@@ -1001,8 +1047,8 @@ kernel optimization: &itrp006
  {e: -7.954619506116E-01, f:  2.0000},  # 00003
  {e: -7.635477861664E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  1.44E-09, energy: -1.66655163296062909E+01, D: -1.561E-10}
--  { #----------------------------------------------------------------------------- iter: 6
+ iter:  5, delta:  1.44E-09, energy: -1.66655163296062838E+01, D: -1.561E-10}
+   -  { #-------------------------------------------------------------------------- iter: 6
  Hamiltonian application required:  Yes, 
  Energies: {Ekin:  1.72962836856E+01, Epot: -2.46569865449E+01, Enl:  1.38921791082E+00}, 
  calculate density kernel:  Yes, Total charge:  6.999996217831E+00, 
@@ -1015,55 +1061,60 @@ kernel optimization: &itrp006
  {e: -7.954645816295E-01, f:  2.0000},  # 00003
  {e: -7.635513207463E-01, f:  1.0000}],  # 00004
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  6, delta:  7.07E-10, energy: -1.66655163296486180E+01, D: -4.233E-11]
-   #================================================================== Summary of both steps
--  {iter:  6, 
+ iter:  6, delta:  7.07E-10, energy: -1.66655163296486073E+01, D: -4.232E-11}
+   -  &final_kernel006  { #-------------------------------------------------------- iter: 6
+ kernel optimization: DIAG, mixing quantity: DENS, 
+ iter:  6, delta:  7.07E-10, energy: -1.66655163296486073E+01, D: -4.232E-11}
+    #================================================================= Summary of both steps
+ - self consistency summary: &it_sc006
+   -  {iter:  6, 
  Energies: {Ekin:  1.38796460639E+01, EH:  1.76735588113E+01, EXC: -3.72484364198E+00, 
             EvXC: -4.88375232026E+00}, 
- iter high:  6, delta out:  1.067E-08, energy: -1.66655163296486180E+01, D: -2.751E-05}
- #=========================================================================== final results
--  {
+ iter high:  6, delta out:  1.067E-08, energy: -1.66655163296486073E+01, D: -2.751E-05}
+    #========================================================================= final results
+ - self consistency summary:
+   -  {iter:  6, 
  Energies: {Ekin:  1.38796460639E+01, EH:  1.76735588113E+01, EXC: -3.72484364198E+00, 
             EvXC: -4.88375232026E+00}, 
- iter high:  6, delta out:  1.067E-08, energy: -1.66655163296486180E+01, D:  0.000E+00,  #FINAL
+ iter high:  6, delta out:  1.067E-08, energy: -1.66655163296486073E+01, D:  0.000E+00,  #FINAL
  }
-Write wavefunctions to file            : ./data-charge/minBasis.*
-Wavefunction written No.               :  2
-Wavefunction written No.               :  1
-Wavefunction coefficients written      :  Yes
-Write Waves Time:
--  {Process:  0, Timing:  [  2.000E-01,  9.960E-02 ]}
-Total charge                           :  6.999996217831E+00
- #---------------------------------------------------------------------- Forces Calculation
-Poisson Solver:
-  BC                                   : Free
-  Box                                  :  [  103,  103,  101 ]
-  MPI tasks                            :  3
-Electric Dipole Moment (AU):
-  P vector                             :  [  8.1339E+00,  8.0770E+00,  7.8515E+00 ]
-  norm(P)                              :  1.389403E+01
-Electric Dipole Moment (Debye):
-  P vector                             :  [  2.0674E+01,  2.0530E+01,  1.9956E+01 ]
-  norm(P)                              :  3.531510E+01
-Calculate local forces: {Leaked force:  0.00000E+00}
-Calculate Non Local forces             :  Yes
-Average noise forces: {x: -1.63201297E-02, y: -1.07537118E-02, z: -6.85581900E-03, 
-                   total:  2.07121029E-02}
-Clean forces norm (Ha/Bohr): {maxval:  5.526020903550E-02, fnrm2:  5.663032045209E-03}
-Raw forces norm (Ha/Bohr): {maxval:  4.981560175005E-02, fnrm2:  6.234041514101E-03}
- #--------------------------------------------------------------------------- Atomic Forces
-Atomic Forces (Ha/Bohr):
--  {O: [ 1.265044941250E-02, -2.825215756351E-02, -2.781764262815E-02]} # 0001
--  {H: [-2.611882756733E-02, -1.058295131009E-02, -9.116458299065E-03]} # 0002
--  {H: [ 1.346837815483E-02,  3.883510887360E-02,  3.693410092721E-02]} # 0003
- #----------------------------------------------------------------- Timing for root process
-Timings for root process:
-  CPU time (s)                         :  30.20
-  Elapsed time (s)                     :  15.47
- #-------------------------------- Warnings obtained during the run, check their relevance!
-WARNINGS:
-- Odd number of electrons, no closed shell system
-- Do not call check_communications in the linear scaling version!
+ Write wavefunctions to file           : ./data-charge/minBasis.*
+ Wavefunction written No.              :  2
+ Wavefunction written No.              :  1
+ Wavefunction coefficients written     :  Yes
+ Write Waves Time:
+ -  {Process:  0, Timing:  [  2.560E-01,  1.269E-01 ]}
+ Total charge                          :  6.999996217831E+00
+  #---------------------------------------------------------------------- Forces Calculation
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  103,  103,  101 ]
+   MPI tasks                           :  3
+ Electric Dipole Moment (AU):
+   P vector                            :  [  8.1339E+00,  8.0770E+00,  7.8515E+00 ]
+   norm(P)                             :  1.389403E+01
+ Electric Dipole Moment (Debye):
+   P vector                            :  [  2.0674E+01,  2.0530E+01,  1.9956E+01 ]
+   norm(P)                             :  3.531510E+01
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x: -1.63201297E-02, y: -1.07537118E-02, z: -6.85581900E-03, 
+                    total:  2.07121029E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  5.526020903551E-02, fnrm2:  5.663032045209E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  4.981560175006E-02, fnrm2:  6.234041514102E-03}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O: [ 1.265044941250E-02, -2.825215756351E-02, -2.781764262815E-02]} # 0001
+ -  {H: [-2.611882756733E-02, -1.058295131009E-02, -9.116458299063E-03]} # 0002
+ -  {H: [ 1.346837815483E-02,  3.883510887360E-02,  3.693410092721E-02]} # 0003
+  #----------------------------------------------------------------- Timing for root process
+ Timings for root process:
+   CPU time (s)                        :  30.15
+   Elapsed time (s)                    :  15.38
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Odd number of electrons, no closed shell system
+ - Do not call check_communications in the linear scaling version!
  Memory Consumption Report:
    Tot. No. of Allocations             :  9194
    Tot. No. of Deallocations           :  9194
