@@ -427,7 +427,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
                orthonormalization_on=.false.
            end if
-           call yaml_comment('support function optimization',hfill='=')
+           if (iproc==0) then
+               call yaml_comment('support function optimization',hfill='=')
+           end if
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
@@ -549,8 +551,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             end if
          end if
          ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
-         call yaml_comment('kernel optimization',hfill='=')
          if (iproc==0) then
+             call yaml_comment('kernel optimization',hfill='=')
              call yaml_sequence(advance='no')
              call yaml_open_map('kernel optimization',label=&
                   'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
@@ -1179,13 +1181,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           !!else if(infoCoeff>0) then
           !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(3x,a)') 'coefficients / kernel obtained by direct minimization.'
+              !!write(*,'(3x,a)') 'coefficients / kernel obtained by direct minimization.'
               call yaml_map('kernel optimization','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(3x,a)') 'kernel obtained by Fermi Operator Expansion'
+              !!write(*,'(3x,a)') 'kernel obtained by Fermi Operator Expansion'
               call yaml_map('kernel optimization','FOE')
           else
-              write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
+              !!write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
               call yaml_map('kernel optimization','DIAG')
           end if
 
@@ -1198,16 +1200,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
           if (input%lin%constrained_dft) then
-             if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
-                      it_SCC, pnrm, energy, energyDiff, ebs
-             else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta POT, energy, energyDiff, Tr[KW]', &
-                      it_SCC, pnrm, energy, energyDiff, ebs
-             else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
-                      it_SCC, pnrm, energy, energyDiff, ebs
-             end if
+             !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
+             !!         it_SCC, pnrm, energy, energyDiff, ebs
+             !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta POT, energy, energyDiff, Tr[KW]', &
+             !!         it_SCC, pnrm, energy, energyDiff, ebs
+             !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
+             !!         it_SCC, pnrm, energy, energyDiff, ebs
+             !!end if
              if (iproc==0) then
                  call yaml_newline()
                  call yaml_map('iter',it_scc,fmt='(i6)')
@@ -1217,16 +1219,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('Tr[KW]',ebs,fmt='(es14.4)')
              end if
           else
-             if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-                      it_SCC, pnrm, energy, energyDiff
-             else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
-                      it_SCC, pnrm, energy, energyDiff
-             else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-                      it_SCC, pnrm, energy, energyDiff
-             end if
+             !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
+             !!         it_SCC, pnrm, energy, energyDiff
+             !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
+             !!         it_SCC, pnrm, energy, energyDiff
+             !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
+             !!         it_SCC, pnrm, energy, energyDiff
+             !!end if
              if (iproc==0) then
                  call yaml_newline()
                  call yaml_map('iter',it_scc,fmt='(i6)')
@@ -1275,18 +1277,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
 
           !Before convergence
-          write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
+          !!write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
+          !!    energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                 !!     'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                 !!     energyDiff
                  call yaml_map('iter low',itout)
              else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                 !!     'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                 !!     energyDiff
                  call yaml_map('iter high',itout)
              end if
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
@@ -1294,12 +1296,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                 !!     'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
                  call yaml_map('iter low',itout)
              else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                 !!     'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
                  call yaml_map('iter high',itout)
              end if
              call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
@@ -1359,13 +1361,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call yaml_open_map(flow=.true.)
           call yaml_map('iter',itout)
           call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
-          write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
+          !!write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
+          !!    energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff,'FINAL'
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                 !!     'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                 !!     energyDiff,'FINAL'
                  call yaml_map('iter low',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
@@ -1373,9 +1375,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_comment('FINAL')
                  call yaml_close_map()
              else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff,'FINAL'
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                 !!     'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                 !!     energyDiff,'FINAL'
                  call yaml_map('iter high',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
@@ -1385,8 +1387,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                 !!     'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
                  call yaml_map('iter low',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
@@ -1394,8 +1396,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_comment('FINAL')
                  call yaml_close_map()
              else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                 !!     'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
                  call yaml_map('iter high',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')

@@ -149,11 +149,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       ! Use this subroutine to write the energies, with some fake number
       ! to prevent it from writing too much
-      call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      if (iproc==0) then
+          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      end if
 
 
-      if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
-                    energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
+      !!if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
+      !!              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
       !DEBUG
       !if(iproc==0) then
@@ -355,22 +357,22 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       infoCoeff=0
   end if
 
-      ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
-      if(iproc==0) then
-          write(*,'(1x,a)') '-------------------------------------------------'
-          write(*,'(1x,a)') 'some selected eigenvalues:'
-          do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmb%orbs%norb)
-              if(iorb==orbs%norb) then
-                  write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
-              else if(iorb==orbs%norb+1) then
-                  write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- first virtual orbital'
-              else
-                  write(*,'(3x,a,i0,a,es20.12)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb)
-              end if
-          end do
-          write(*,'(1x,a)') '-------------------------------------------------'
-          write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
-      end if
+      !!! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
+      !!if(iproc==0) then
+      !!    write(*,'(1x,a)') '-------------------------------------------------'
+      !!    write(*,'(1x,a)') 'some selected eigenvalues:'
+      !!    do iorb=max(orbs%norb-8,1),min(orbs%norb+8,tmb%orbs%norb)
+      !!        if(iorb==orbs%norb) then
+      !!            write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
+      !!        else if(iorb==orbs%norb+1) then
+      !!            write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- first virtual orbital'
+      !!        else
+      !!            write(*,'(3x,a,i0,a,es20.12)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb)
+      !!        end if
+      !!    end do
+      !!    write(*,'(1x,a)') '-------------------------------------------------'
+      !!    write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
+      !!end if
 
       ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
       ! instead just use -0.5 everywhere
@@ -700,7 +702,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! Use this subroutine to write the energies, with some fake number
       ! to prevent it from writing too much
-      call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      if (iproc==0) then
+          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      end if
 
       !if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
       !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
@@ -1081,17 +1085,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if 
 
 
-      !if (iproc==0) write(*,*) 'conv_Crit', conv_crit
       ! Write some information to the screen.
-      if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, trace, diff', &
-          it, fnrm, fnrmMax, trH, ediff
-      if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, ebs, diff', &
-          it, fnrm, fnrmMax, trH, ediff
-      if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_HYBRID) &
-          write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, hybrid, diff', &
-          it, fnrm, fnrmMax, trH, ediff
+      !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
+      !!    write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, trace, diff', &
+      !!    it, fnrm, fnrmMax, trH, ediff
+      !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
+      !!    write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, ebs, diff', &
+      !!    it, fnrm, fnrmMax, trH, ediff
+      !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_HYBRID) &
+      !!    write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, hybrid, diff', &
+      !!    it, fnrm, fnrmMax, trH, ediff
 
       ! information on the progress of the optimization
       if (iproc==0) then
@@ -1108,26 +1111,26 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or. (fnrm<conv_crit .and. experimental_mode) .or. &
           (itout==0 .and. it>1 .and. ratio_deltas<0.1d0)) then
           if(it>=nit_basis) then
-              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
-                  ' iterations! Exiting loop due to limitations of iterations.'
-              if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
-                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-              if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
-                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+              !!if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
+              !!    ' iterations! Exiting loop due to limitations of iterations.'
+              !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
+              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
+              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=0
               if(iproc==0) call yaml_map('exit criterion','net number of iterations')
           else if(it_tot>=3*nit_basis) then
-              if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: there seem to be some problems, exiting now...'
-              if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
-                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-              if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
-                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
+              !!if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: there seem to be some problems, exiting now...'
+              !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
+              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
+              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
               if (iproc==0) call yaml_map('exit criterion','total number of iterations')
           else if (stop_optimization) then
-              if (iproc==0) then
-                  write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
-              end if
+              !!if (iproc==0) then
+              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
+              !!end if
               infoBasisFunctions=0
               if (iproc==0) call yaml_map('exit criterion','energy difference')
           !!else if (reduce_conf) then
@@ -1137,11 +1140,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!    infoBasisFunctions=0
           !else if (fnrm<2.3d-4) then
           else if (fnrm<conv_crit .and. experimental_mode) then
-              if (iproc==0) write(*,* ) 'converged!'
+              !!if (iproc==0) write(*,* ) 'converged!'
               if (iproc==0) call yaml_map('exit criterion','gradient')
               infoBasisFunctions=0
           else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0) then
-              if (iproc==0) write(*,*) 'extended input guess converged!'
+              !!if (iproc==0) write(*,*) 'extended input guess converged!'
               infoBasisFunctions=0
               if (iproc==0) call yaml_map('exit criterion','extended input guess')
           end if

@@ -800,7 +800,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
-  if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
+  !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
   call timing(iproc,'eglincomms','OF')
 
 
