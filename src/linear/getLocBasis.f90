@@ -1034,6 +1034,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (energy_increased) then
           if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
+          if (iproc==0) call yaml_warning('The target function increased, D='&
+                        //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
           tmb%ham_descr%can_use_transposed=.false.
           call dcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           if (scf_mode/=LINEAR_FOE) then
@@ -1059,7 +1061,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           ! print info here anyway for debugging
           if (iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
           it, fnrm, fnrmMax, trH, ediff,noise
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_map('iter',it,fmt='(i6)')
+              call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+              call yaml_map('Omega',trH,fmt='(es24.17)')
+              call yaml_map('D',ediff,fmt='(es10.3)')
+          end if
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
+              call yaml_close_map()
+              call bigdft_utils_flush(unit=6)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              !if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'

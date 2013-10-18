@@ -60,7 +60,7 @@ ekin, eh, epot, eproj, eex  1.094991106714E+02  0.000000000000E+00 -1.1758920108
    eval(34)=   5.586215657483E-01
    eval(35)=   5.809455222129E-01
  -------------------------------------------------
- lowest, highest ev: -6.9697424733139235E-01  7.7253464013804862E-01
+ lowest, highest ev: -6.9697424733139146E-01  7.7253464013804907E-01
  calculate density kernel... Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399995555499E+01
  ------------------------------------------------------------- Input guess generated.
@@ -74,14 +74,14 @@ ekin, eh, epot, eproj, eex  1.094991106714E+02  0.000000000000E+00 -1.1758920108
  Energies: {Ekin:  1.09499110671E+02, Epot: -1.12063097696E+02, Enl:  1.10244670723E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.462053E-01    4.144396E-01    1.607244E-02
- ediff, delta_energy_prev  -90.8538246107335       1.000000000000000E+100
- ratio_deltas -9.085382461073345E-099
+ ediff, delta_energy_prev  -90.8538246107336       1.000000000000000E+100
+ ratio_deltas -9.085382461073363E-099
  iter, fnrm, fnrmMax, hybrid, diff     1  7.4946156E-01  1.1093158E+00   -90.8538246107  -9.0854E+01
  SD informations: mean alpha=5.000E-01, max alpha=5.000E-01, consecutive successes=1
  delta_energy  -10.7353932500001     
+ reconstruct kernel                    :  Yes
+ reconstruct kernel                    :  Yes
 coeff renormalization... calculate density kernel... done.
- reconstruct kernel                    :  Yes
- reconstruct kernel                    :  Yes
  econf, econf/tmb%orbs%norb   9.69339712789015       0.210726024519351     
  Energies: {Ekin:  1.10685368688E+02, Epot: -1.14549116360E+02, Enl:  1.10957928795E+01}
  Energies: {Ekin:  1.10685368688E+02, Epot: -1.14549116360E+02, Enl:  1.10957928795E+01}
@@ -99,16 +99,16 @@ max dev from unity    1.114093E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  method                                : DminDIIS
+ method                                : DminDIIS
+ iter                                  :  1
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     2.985737E-001     0.000000E+000    -1.642044E+001
+ fnrm                                  :  2.99E-01
  iter                                  :  1
  fnrm                                  :  2.99E-01
- method                                : DminDIIS
  eBS                                   :  0.00000000000000000E+00
  D                                     : -1.642E+01
- iter                                  :  1
- fnrm                                  :  2.99E-01
  eBS                                   :  0.00000000000000000E+00
  D                                     : -1.642E+01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
@@ -118,24 +118,24 @@ DminDIIS: it, fnrm, ebs, ebsdiff   2     2.656206E-001    -1.642044E+001    -4.0
  iter                                  :  2
  fnrm                                  :  2.66E-01
  method                                : DminDIIS
- eBS                                   : -1.64204402061626631E+01
- D                                     : -4.054E-01
  iter                                  :  2
  fnrm                                  :  2.66E-01
- eBS                                   : -1.64204402061626631E+01
+ eBS                                   : -1.64204402061628372E+01
  D                                     : -4.054E-01
- method                                : DminDIIS
- iter                                  :  3
- fnrm                                  :  7.40E-02
+ eBS                                   : -1.64204402061628372E+01
+ D                                     : -4.054E-01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     7.396861E-002    -1.682587E+001    -2.693848E-002
  method                                : DminDIIS
- eBS                                   : -1.68258695866558199E+01
- D                                     : -2.694E-02
  iter                                  :  3
  fnrm                                  :  7.40E-02
- eBS                                   : -1.68258695866558199E+01
+ method                                : DminDIIS
+ iter                                  :  3
+ eBS                                   : -1.68258695866560046E+01
+ D                                     : -2.694E-02
+ fnrm                                  :  7.40E-02
+ eBS                                   : -1.68258695866560046E+01
  D                                     : -2.694E-02
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399994462889E+01
@@ -143,52 +143,52 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  4.7838513E-06   -9.63217262270380274E+01   -9.6322E+01
+   it, Delta DENS, energy, energyDiff   1  4.7838513E-06   -9.63217262270379706E+01   -9.6322E+01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.114093E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  Energies: {Ekin:  1.10685368688E+02, Epot: -1.19339982589E+02, Enl:  1.10957928795E+01}
- Energies: {Ekin:  1.10685368688E+02, Epot: -1.19339982589E+02, Enl:  1.10957928795E+01}
 ekin, eh, epot, eproj, eex  1.106853686877E+02  0.000000000000E+00 -1.193399825890E+02  1.109579287947E+01  0.000000000000E+00
+ Energies: {Ekin:  1.10685368688E+02, Epot: -1.19339982589E+02, Enl:  1.10957928795E+01}
  Hamiltonian application done.
+ method                                : DminDIIS
+ iter                                  :  1
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     4.777418E-001    -1.685281E+001     5.471890E+000
  method                                : DminDIIS
  iter                                  :  1
  fnrm                                  :  4.78E-01
- eBS                                   : -1.68528080689661728E+01
- method                                : DminDIIS
- iter                                  :  1
  fnrm                                  :  4.78E-01
- eBS                                   : -1.68528080689661728E+01
+ eBS                                   : -1.68528080689663540E+01
+ eBS                                   : -1.68528080689663540E+01
  D                                     :  5.472E+00
  D                                     :  5.472E+00
+ method                                : DminDIIS
+ iter                                  :  2
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     4.486378E-001    -1.138092E+001    -2.814582E-001
  method                                : DminDIIS
  iter                                  :  2
  fnrm                                  :  4.49E-01
- method                                : DminDIIS
- iter                                  :  2
+ eBS                                   : -1.13809180523338807E+01
  fnrm                                  :  4.49E-01
- eBS                                   : -1.13809180523338558E+01
+ eBS                                   : -1.13809180523338807E+01
  D                                     : -2.815E-01
- eBS                                   : -1.13809180523338558E+01
  D                                     : -2.815E-01
  method                                : DminDIIS
  iter                                  :  3
- fnrm                                  :  4.13E-01
  method                                : DminDIIS
  iter                                  :  3
- fnrm                                  :  4.13E-01
- eBS                                   : -1.16623762177139341E+01
- D                                     : -5.583E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     4.132142E-001    -1.166238E+001    -5.583192E-002
- eBS                                   : -1.16623762177139341E+01
+ fnrm                                  :  4.13E-01
+ eBS                                   : -1.16623762177140264E+01
+ fnrm                                  :  4.13E-01
+ eBS                                   : -1.16623762177140264E+01
+ D                                     : -5.583E-02
  D                                     : -5.583E-02
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399994291333E+01
@@ -196,46 +196,51 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.2461298E-06   -9.56373835022344565E+01    6.8434E-01
+   it, Delta DENS, energy, energyDiff   2  1.2461298E-06   -9.56373835022345133E+01    6.8434E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  1.2461298E-06   -9.56373835022345133E+01    6.8434E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -1.171820814076E+01  3.733738411510E+02 -2.768930912222E+01 -3.628658637874E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   1   3.63E-06   -9.56373835022344565E+01   -9.5637E+01
+   itoutL, Delta DENSOUT, energy, energyDiff   1   3.63E-06   -9.56373835022345133E+01   -9.5637E+01
  ############################################################################################
  at iteration 1 of the outer loop:
    > basis functions optimization:
      - target function is hybrid; mean confinement prefactor = 4.90E-02
- #=========================================================== support function optimization
      - WARNING: basis functions not converged!
      Final values: target function, fnrm  -9.289232E+01    7.30E-01
- #=========================================================== support function optimization
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    1.25E-06   -9.56373835022344565E+01
+     FINAL values: it, Delta DENS, energy   1    1.25E-06   -9.56373835022345133E+01
    > energy difference to last iteration: -9.563738E+01
  ############################################################################################
+ #=========================================================== support function optimization
+ #=========================================================== support function optimization
  Multiply the confinement prefactor by 1.9E-01
  ======================== Creation of the basis functions... ========================
- econf, econf/tmb%orbs%norb   1.84063438661338       4.001379101333446E-002
 Energies: {Ekin:  1.10685368688E+02, Epot: -1.18424754936E+02, Enl:  1.10957928795E+01}
 Energies: {Ekin:  1.10685368688E+02, Epot: -1.18424754936E+02, Enl:  1.10957928795E+01}
+ econf, econf/tmb%orbs%norb   1.84063438661338       4.001379101333442E-002
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.444902E-01    4.152694E-01    3.515365E-02
- ediff, delta_energy_prev  -13.7787382193477       1.000000000000000E+100
- ratio_deltas -1.377873821934770E-099
+ ediff, delta_energy_prev  -13.7787382193475       1.000000000000000E+100
+ ratio_deltas -1.377873821934747E-099
  iter, fnrm, fnrmMax, hybrid, diff     1  4.5211868E-01  8.2996174E-01  -104.6325628301  -1.3779E+01
  SD informations: mean alpha=3.000E-01, max alpha=3.000E-01, consecutive successes=1
- delta_energy  -3.98248636247079     
+ delta_energy  -3.98248636247078     
 reconstruct kernel                     :  Yes
 reconstruct kernel                     :  Yes
 coeff renormalization... calculate density kernel... done.
- econf, econf/tmb%orbs%norb   2.07516294457660       4.511223792557829E-002
+ econf, econf/tmb%orbs%norb   2.07516294457660       4.511223792557830E-002
 Energies: {Ekin:  1.07127516892E+02, Epot: -1.15582323076E+02, Enl:  1.10622793039E+01}
 Energies: {Ekin:  1.07127516892E+02, Epot: -1.15582323076E+02, Enl:  1.10622793039E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.029595E-01    1.484482E-01    5.237062E-02
- ediff, delta_energy_prev  -2.60303827098647       -3.98248636247079     
- ratio_deltas  0.653621389772071     
+ ediff, delta_energy_prev  -2.60303827098642       -3.98248636247078     
+ ratio_deltas  0.653621389772058     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  2.2314836E-01  3.6123014E-01  -107.2356011011  -2.6030E+00
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
@@ -247,42 +252,42 @@ max dev from unity    4.268034E-03
  No Hamiltonian application required.
 method                                 : DminDIIS
 iter                                   :  1
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  2.44E-01
-eBS                                    : -1.17182081407553227E+01
-D                                      : -2.840E+00
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     2.440459E-001    -1.171821E+001    -2.839811E+000
+method                                 : DminDIIS
+iter                                   :  1
 fnrm                                   :  2.44E-01
-eBS                                    : -1.17182081407553227E+01
+fnrm                                   :  2.44E-01
+eBS                                    : -1.17182081407553653E+01
+D                                      : -2.840E+00
+eBS                                    : -1.17182081407553653E+01
 D                                      : -2.840E+00
 method                                 : DminDIIS
-iter                                   :  2
 method                                 : DminDIIS
 iter                                   :  2
-fnrm                                   :  1.75E-01
-eBS                                    : -1.45580195776584276E+01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     1.749303E-001    -1.455802E+001    -2.001664E-001
 fnrm                                   :  1.75E-01
-eBS                                    : -1.45580195776584276E+01
+eBS                                    : -1.45580195776584489E+01
 D                                      : -2.002E-01
+iter                                   :  2
+fnrm                                   :  1.75E-01
+eBS                                    : -1.45580195776584489E+01
 D                                      : -2.002E-01
-method                                 : DminDIIS
-iter                                   :  3
-method                                 : DminDIIS
-iter                                   :  3
-fnrm                                   :  5.31E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
-DminDIIS: it, fnrm, ebs, ebsdiff   3     5.307788E-002    -1.475819E+001    -1.260396E-002
-eBS                                    : -1.47581859585268056E+01
-D                                      : -1.260E-02
+method                                 : DminDIIS
+iter                                   :  3
+method                                 : DminDIIS
+iter                                   :  3
 fnrm                                   :  5.31E-02
-eBS                                    : -1.47581859585268056E+01
+DminDIIS: it, fnrm, ebs, ebsdiff   3     5.307788E-002    -1.475819E+001    -1.260396E-002
+fnrm                                   :  5.31E-02
+eBS                                    : -1.47581859585268198E+01
+eBS                                    : -1.47581859585268198E+01
+D                                      : -1.260E-02
 D                                      : -1.260E-02
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399995836541E+01
@@ -290,7 +295,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  3.9283463E-06   -9.76083659629637737E+01   -1.9710E+00
+   it, Delta DENS, energy, energyDiff   1  3.9283463E-06   -9.76083659629636031E+01   -1.9710E+00
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    4.268034E-03
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -298,44 +303,44 @@ Energies: {Ekin:  1.07127516892E+02, Epot: -1.25117892966E+02, Enl:  1.106227930
 Energies: {Ekin:  1.07127516892E+02, Epot: -1.25117892966E+02, Enl:  1.10622793039E+01}
 ekin, eh, epot, eproj, eex  1.071275168923E+02  0.000000000000E+00 -1.251178929656E+02  1.106227930393E+01  0.000000000000E+00
  Hamiltonian application done.
+method                                 : DminDIIS
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  3.47E-01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     3.472908E-001    -1.477079E+001    -5.933484E+000
-method                                 : DminDIIS
 iter                                   :  1
 fnrm                                   :  3.47E-01
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  3.47E-01
-eBS                                    : -1.47707899233606241E+01
+eBS                                    : -1.47707899233606348E+01
 D                                      : -5.933E+00
-eBS                                    : -1.47707899233606241E+01
+eBS                                    : -1.47707899233606348E+01
 D                                      : -5.933E+00
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
+method                                 : DminDIIS
+iter                                   :  2
+method                                 : DminDIIS
+iter                                   :  2
 DminDIIS: it, fnrm, ebs, ebsdiff   2     3.426700E-001    -2.070427E+001    -4.877375E-001
-method                                 : DminDIIS
-iter                                   :  2
-method                                 : DminDIIS
-iter                                   :  2
 fnrm                                   :  3.43E-01
-eBS                                    : -2.07042735579394446E+01
+eBS                                    : -2.07042735579395156E+01
+fnrm                                   :  3.43E-01
+eBS                                    : -2.07042735579395156E+01
 D                                      : -4.877E-01
-fnrm                                   :  3.43E-01
-eBS                                    : -2.07042735579394446E+01
 D                                      : -4.877E-01
 method                                 : DminDIIS
-iter                                   :  3
 method                                 : DminDIIS
 iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     2.568940E-001    -2.119201E+001    -8.471037E-002
+iter                                   :  3
 fnrm                                   :  2.57E-01
-eBS                                    : -2.11920110372001176E+01
+eBS                                    : -2.11920110371999044E+01
+fnrm                                   :  2.57E-01
+eBS                                    : -2.11920110371999044E+01
 D                                      : -8.471E-02
-fnrm                                   :  2.57E-01
-eBS                                    : -2.11920110372001176E+01
 D                                      : -8.471E-02
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996188656E+01
@@ -343,46 +348,51 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.8109975E-06   -9.73398630267681142E+01    2.6850E-01
+   it, Delta DENS, energy, energyDiff   2  1.8109975E-06   -9.73398630267680574E+01    2.6850E-01
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  1.8109975E-06   -9.73398630267680574E+01    2.6850E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.127672140408E+01  3.678656900723E+02 -2.718117730082E+01 -3.561660596113E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   2   2.28E-06   -9.73398630267681142E+01   -1.7025E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   2   2.28E-06   -9.73398630267680574E+01   -1.7025E+00
  ############################################################################################
  at iteration 2 of the outer loop:
    > basis functions optimization:
- #=========================================================== support function optimization
- #=========================================================== support function optimization
      - target function is hybrid; mean confinement prefactor = 9.30E-03
      - WARNING: basis functions not converged!
      Final values: target function, fnrm  -1.072356E+02    2.23E-01
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   2    1.81E-06   -9.73398630267681142E+01
+ #=========================================================== support function optimization
+     FINAL values: it, Delta DENS, energy   2    1.81E-06   -9.73398630267680574E+01
    > energy difference to last iteration: -1.702480E+00
+ #=========================================================== support function optimization
  ############################################################################################
  Multiply the confinement prefactor by 6.5E-01
  ======================== Creation of the basis functions... ========================
- econf, econf/tmb%orbs%norb   1.35637088783766       2.948632364864485E-002
+ econf, econf/tmb%orbs%norb   1.35637088783764       2.948632364864426E-002
 Energies: {Ekin:  1.07127516892E+02, Epot: -1.21881026935E+02, Enl:  1.10622793039E+01}
 Energies: {Ekin:  1.07127516892E+02, Epot: -1.21881026935E+02, Enl:  1.10622793039E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.152777E-01    1.921861E-01    6.168544E-02
- ediff, delta_energy_prev  -9.54367391261871       1.000000000000000E+100
- ratio_deltas -9.543673912618715E-100
+ ediff, delta_energy_prev  -9.54367391261894       1.000000000000000E+100
+ ratio_deltas -9.543673912618943E-100
  iter, fnrm, fnrmMax, hybrid, diff     1  2.1384027E-01  3.4468973E-01  -114.1762367427  -9.5437E+00
  SD informations: mean alpha=3.235E-01, max alpha=3.235E-01, consecutive successes=1
- delta_energy -0.927351881166425     
+ delta_energy -0.927351881166430     
 reconstruct kernel                     :  Yes
 reconstruct kernel                     :  Yes
 coeff renormalization... calculate density kernel... done.
- econf, econf/tmb%orbs%norb   1.51209635837278       3.287165996462572E-002
+ econf, econf/tmb%orbs%norb   1.51209635837276       3.287165996462511E-002
 Energies: {Ekin:  1.04890452270E+02, Epot: -1.19760921402E+02, Enl:  1.09566142824E+01}
 Energies: {Ekin:  1.04890452270E+02, Epot: -1.19760921402E+02, Enl:  1.09566142824E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    5.484959E-02    9.042269E-02    7.367731E-02
- ediff, delta_energy_prev -0.632515307264498      -0.927351881166425     
- ratio_deltas  0.682066128413865     
+ ediff, delta_energy_prev -0.632515307264441      -0.927351881166430     
+ ratio_deltas  0.682066128413800     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  1.3208984E-01  1.8637813E-01  -114.8087520500  -6.3252E-01
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
@@ -397,39 +407,39 @@ iter                                   :  1
 method                                 : DminDIIS
 iter                                   :  1
 fnrm                                   :  6.23E-02
-eBS                                    : -2.12767214040849311E+01
-D                                      :  1.082E+00
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     6.233499E-002    -2.127672E+001     1.082273E+000
 fnrm                                   :  6.23E-02
-eBS                                    : -2.12767214040849311E+01
+eBS                                    : -2.12767214040849773E+01
+eBS                                    : -2.12767214040849773E+01
+D                                      :  1.082E+00
 D                                      :  1.082E+00
 method                                 : DminDIIS
 iter                                   :  2
+fnrm                                   :  4.19E-02
+eBS                                    : -2.01944486436893307E+01
+D                                      : -1.148E-02
 method                                 : DminDIIS
 iter                                   :  2
+fnrm                                   :  4.19E-02
+eBS                                    : -2.01944486436893307E+01
+D                                      : -1.148E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     4.185610E-002    -2.019445E+001    -1.148218E-002
-fnrm                                   :  4.19E-02
-eBS                                    : -2.01944486436892241E+01
-fnrm                                   :  4.19E-02
-eBS                                    : -2.01944486436892241E+01
-D                                      : -1.148E-02
-D                                      : -1.148E-02
+method                                 : DminDIIS
+iter                                   :  3
+method                                 : DminDIIS
+iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     1.365502E-002    -2.020593E+001    -9.876377E-004
-method                                 : DminDIIS
-iter                                   :  3
-method                                 : DminDIIS
-iter                                   :  3
 fnrm                                   :  1.37E-02
-eBS                                    : -2.02059308206902273E+01
+fnrm                                   :  1.37E-02
+eBS                                    : -2.02059308206903196E+01
+eBS                                    : -2.02059308206903196E+01
 D                                      : -9.876E-04
-fnrm                                   :  1.37E-02
-eBS                                    : -2.02059308206902273E+01
 D                                      : -9.876E-04
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996464641E+01
@@ -447,42 +457,42 @@ ekin, eh, epot, eproj, eex  1.048904522702E+02  0.000000000000E+00 -1.2176267923
  Hamiltonian application done.
 method                                 : DminDIIS
 iter                                   :  1
+fnrm                                   :  1.26E-01
+eBS                                    : -2.02069184583794090E+01
 method                                 : DminDIIS
 iter                                   :  1
 fnrm                                   :  1.26E-01
-eBS                                    : -2.02069184583793167E+01
+eBS                                    : -2.02069184583794090E+01
 D                                      : -5.103E-01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.262063E-001    -2.020692E+001    -5.103061E-001
-fnrm                                   :  1.26E-01
-eBS                                    : -2.02069184583793167E+01
 D                                      : -5.103E-01
-method                                 : DminDIIS
-iter                                   :  2
-fnrm                                   :  1.22E-01
-eBS                                    : -2.07172246079322697E+01
-D                                      : -1.996E-02
-method                                 : DminDIIS
-iter                                   :  3
-fnrm                                   :  1.12E-01
-eBS                                    : -2.07371808763057928E+01
-D                                      : -1.581E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     1.221328E-001    -2.071722E+001    -1.995627E-002
+method                                 : DminDIIS
+iter                                   :  2
+fnrm                                   :  1.22E-01
+eBS                                    : -2.07172246079322946E+01
+D                                      : -1.996E-02
+method                                 : DminDIIS
+iter                                   :  2
+fnrm                                   :  1.22E-01
+eBS                                    : -2.07172246079322946E+01
+D                                      : -1.996E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     1.122339E-001    -2.073718E+001    -1.580853E-002
 method                                 : DminDIIS
-iter                                   :  2
-fnrm                                   :  1.22E-01
-eBS                                    : -2.07172246079322697E+01
-D                                      : -1.996E-02
+iter                                   :  3
+fnrm                                   :  1.12E-01
+eBS                                    : -2.07371808763057288E+01
+D                                      : -1.581E-02
 method                                 : DminDIIS
 iter                                   :  3
 fnrm                                   :  1.12E-01
-eBS                                    : -2.07371808763057928E+01
+eBS                                    : -2.07371808763057288E+01
 D                                      : -1.581E-02
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996412822E+01
@@ -490,46 +500,51 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  3.5253880E-07   -9.76376453672446019E+01    6.0547E-02
+   it, Delta DENS, energy, energyDiff   2  3.5253880E-07   -9.76376453672444882E+01    6.0547E-02
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  3.5253880E-07   -9.76376453672444882E+01    6.0547E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.075298940899E+01  3.669675601160E+02 -2.671896720339E+01 -3.500595914500E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   3   1.23E-06   -9.76376453672446019E+01   -2.9778E-01
- #=========================================================== support function optimization
- #=========================================================== support function optimization
+   itoutL, Delta DENSOUT, energy, energyDiff   3   1.23E-06   -9.76376453672444882E+01   -2.9778E-01
  ############################################################################################
  at iteration 3 of the outer loop:
    > basis functions optimization:
+ #=========================================================== support function optimization
+ #=========================================================== support function optimization
      - target function is hybrid; mean confinement prefactor = 6.08E-03
      - WARNING: basis functions not converged!
      Final values: target function, fnrm  -1.148088E+02    1.32E-01
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   3    3.53E-07   -9.76376453672446019E+01
+     FINAL values: it, Delta DENS, energy   3    3.53E-07   -9.76376453672444882E+01
    > energy difference to last iteration: -2.977823E-01
  ############################################################################################
  Multiply the confinement prefactor by 6.8E-01
  ======================== Creation of the basis functions... ========================
- econf, econf/tmb%orbs%norb   1.03134970894403       2.242064584660936E-002
+ econf, econf/tmb%orbs%norb   1.03134970894391       2.242064584660678E-002
 Energies: {Ekin:  1.04890452270E+02, Epot: -1.20896782985E+02, Enl:  1.09566142824E+01}
 Energies: {Ekin:  1.04890452270E+02, Epot: -1.20896782985E+02, Enl:  1.09566142824E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    6.442628E-02    8.411913E-02    8.273360E-02
- ediff, delta_energy_prev  -2.27530501425747       1.000000000000000E+100
- ratio_deltas -2.275305014257469E-100
+ ediff, delta_energy_prev  -2.27530501425645       1.000000000000000E+100
+ ratio_deltas -2.275305014256446E-100
  iter, fnrm, fnrmMax, hybrid, diff     1  1.3259477E-01  1.6870819E-01  -116.4515417570  -2.2753E+00
  SD informations: mean alpha=3.558E-01, max alpha=3.558E-01, consecutive successes=1
- delta_energy -0.336972118467990     
+ delta_energy -0.336972118468189     
 reconstruct kernel                     :  Yes
 reconstruct kernel                     :  Yes
 coeff renormalization... calculate density kernel... done.
- econf, econf/tmb%orbs%norb   1.10495286601834       2.402071447865957E-002
 Energies: {Ekin:  1.04028644437E+02, Epot: -1.20131052733E+02, Enl:  1.10085153654E+01}
 Energies: {Ekin:  1.04028644437E+02, Epot: -1.20131052733E+02, Enl:  1.10085153654E+01}
+ econf, econf/tmb%orbs%norb   1.10495286601821       2.402071447865670E-002
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.582240E-02    4.763148E-02    7.267217E-02
- ediff, delta_energy_prev -0.210772170391692      -0.336972118467990     
- ratio_deltas  0.625488456878707     
+ ediff, delta_energy_prev -0.210772170391863      -0.336972118468189     
+ ratio_deltas  0.625488456878846     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  1.0495322E-01  1.5361919E-01  -116.6623139273  -2.1077E-01
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
@@ -540,51 +555,51 @@ max dev from unity    7.682859E-03
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
 method                                 : DminDIIS
-iter                                   :  1
 method                                 : DminDIIS
-iter                                   :  1
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
-fnrm                                   :  6.12E-02
-eBS                                    : -2.07529894089907359E+01
-fnrm                                   :  6.12E-02
-eBS                                    : -2.07529894089907359E+01
-D                                      : -3.437E-01
-D                                      : -3.437E-01
 DminDIIS: it, fnrm, ebs, ebsdiff   1     6.117387E-002    -2.075299E+001    -3.436622E-001
+iter                                   :  1
+fnrm                                   :  6.12E-02
+eBS                                    : -2.07529894089905724E+01
+D                                      : -3.437E-01
+iter                                   :  1
+fnrm                                   :  6.12E-02
+eBS                                    : -2.07529894089905724E+01
+D                                      : -3.437E-01
 method                                 : DminDIIS
 method                                 : DminDIIS
 iter                                   :  2
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-iter                                   :  2
-fnrm                                   :  4.41E-02
-eBS                                    : -2.10966516505740316E+01
-D                                      : -1.209E-02
-fnrm                                   :  4.41E-02
-eBS                                    : -2.10966516505740316E+01
-D                                      : -1.209E-02
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     4.414333E-002    -2.109665E+001    -1.209053E-002
+fnrm                                   :  4.41E-02
+eBS                                    : -2.10966516505733175E+01
+D                                      : -1.209E-02
+iter                                   :  2
+fnrm                                   :  4.41E-02
+eBS                                    : -2.10966516505733175E+01
+D                                      : -1.209E-02
 method                                 : DminDIIS
-iter                                   :  3
 method                                 : DminDIIS
 iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
-fnrm                                   :  1.49E-02
-eBS                                    : -2.11087421783123688E+01
-D                                      : -1.137E-03
-fnrm                                   :  1.49E-02
-eBS                                    : -2.11087421783123688E+01
-D                                      : -1.137E-03
 DminDIIS: it, fnrm, ebs, ebsdiff   3     1.486244E-002    -2.110874E+001    -1.136953E-003
+fnrm                                   :  1.49E-02
+eBS                                    : -2.11087421783117328E+01
+D                                      : -1.137E-03
+iter                                   :  3
+fnrm                                   :  1.49E-02
+eBS                                    : -2.11087421783117328E+01
+D                                      : -1.137E-03
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996313795E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.0871380E-06   -9.78514594503051285E+01   -2.1381E-01
+   it, Delta DENS, energy, energyDiff   1  1.0871380E-06   -9.78514594503052422E+01   -2.1381E-01
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    7.682859E-03
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -592,42 +607,42 @@ Energies: {Ekin:  1.04028644437E+02, Epot: -1.23077830093E+02, Enl:  1.100851536
 Energies: {Ekin:  1.04028644437E+02, Epot: -1.23077830093E+02, Enl:  1.10085153654E+01}
 ekin, eh, epot, eproj, eex  1.040286444372E+02  0.000000000000E+00 -1.230778300925E+02  1.100851536538E+01  0.000000000000E+00
  Hamiltonian application done.
-method                                 : DminDIIS
-iter                                   :  1
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  9.35E-02
-eBS                                    : -2.11098791308714553E+01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-fnrm                                   :  9.35E-02
-eBS                                    : -2.11098791308714553E+01
-D                                      : -1.615E+00
-D                                      : -1.615E+00
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     9.353801E-002    -2.110988E+001    -1.614523E+000
 method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  9.35E-02
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  9.35E-02
+eBS                                    : -2.11098791308708336E+01
+D                                      : -1.615E+00
+eBS                                    : -2.11098791308708336E+01
+D                                      : -1.615E+00
+method                                 : DminDIIS
 method                                 : DminDIIS
 iter                                   :  2
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-fnrm                                   :  9.00E-02
-eBS                                    : -2.27244019494532630E+01
-iter                                   :  2
-fnrm                                   :  9.00E-02
  
-D                                      : -3.636E-02
-eBS                                    : -2.27244019494532630E+01
-D                                      : -3.636E-02
 DminDIIS: it, fnrm, ebs, ebsdiff   2     8.998348E-002    -2.272440E+001    -3.636059E-002
+fnrm                                   :  9.00E-02
+eBS                                    : -2.27244019494535152E+01
+D                                      : -3.636E-02
+iter                                   :  2
+fnrm                                   :  9.00E-02
+eBS                                    : -2.27244019494535152E+01
+D                                      : -3.636E-02
 method                                 : DminDIIS
-iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
 method                                 : DminDIIS
 iter                                   :  3
+iter                                   :  3
 fnrm                                   :  6.30E-02
-eBS                                    : -2.27607625360584080E+01
+fnrm                                   :  6.30E-02
+eBS                                    : -2.27607625360591044E+01
 D                                      : -1.847E-02
-fnrm                                   :  6.30E-02
-eBS                                    : -2.27607625360584080E+01
+eBS                                    : -2.27607625360591044E+01
 D                                      : -1.847E-02
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     6.301962E-002    -2.276076E+001    -1.846516E-002
@@ -637,13 +652,18 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  7.7946531E-07   -9.78525746818762059E+01   -1.1152E-03
+   it, Delta DENS, energy, energyDiff   2  7.7946531E-07   -9.78525746818766606E+01   -1.1152E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  7.7946531E-07   -9.78525746818766606E+01   -1.1152E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.277922769836E+01  3.659001151958E+02 -2.656372012844E+01 -3.480134372895E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   4   4.28E-07   -9.78525746818762059E+01   -2.1493E-01
- #=========================================================== support function optimization
- #=========================================================== support function optimization
+   itoutL, Delta DENSOUT, energy, energyDiff   4   4.28E-07   -9.78525746818766606E+01   -2.1493E-01
  ############################################################################################
+ #=========================================================== support function optimization
+ #=========================================================== support function optimization
  at iteration 4 of the outer loop:
    > basis functions optimization:
      - target function is hybrid; mean confinement prefactor = 4.15E-03
@@ -652,31 +672,31 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   4    7.79E-07   -9.78525746818762059E+01
+     FINAL values: it, Delta DENS, energy   4    7.79E-07   -9.78525746818766606E+01
    > energy difference to last iteration: -2.149293E-01
  ############################################################################################
  Multiply the confinement prefactor by 6.3E-01
  ======================== Creation of the basis functions... ========================
- econf, econf/tmb%orbs%norb  0.691135263089518       1.502467963238082E-002
+ econf, econf/tmb%orbs%norb  0.691135263089588       1.502467963238235E-002
 Energies: {Ekin:  1.04028644437E+02, Epot: -1.21615398377E+02, Enl:  1.10085153654E+01}
 Energies: {Ekin:  1.04028644437E+02, Epot: -1.21615398377E+02, Enl:  1.10085153654E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    4.962790E-02    8.239430E-02    9.491921E-02
- ediff, delta_energy_prev  -2.07113899306700       1.000000000000000E+100
- ratio_deltas -2.071138993066995E-100
+ ediff, delta_energy_prev  -2.07113899306722       1.000000000000000E+100
+ ratio_deltas -2.071138993067223E-100
  iter, fnrm, fnrmMax, hybrid, diff     1  1.0781984E-01  1.5746407E-01  -118.5226807500  -2.0711E+00
  SD informations: mean alpha=3.914E-01, max alpha=3.914E-01, consecutive successes=1
- delta_energy -0.211849061739312     
-reconstruct kernel                     :  Yes
-reconstruct kernel                     :  Yes
+ delta_energy -0.211849061739316     
 coeff renormalization... calculate density kernel... done.
- econf, econf/tmb%orbs%norb  0.739455624946174       1.607512228143856E-002
+reconstruct kernel                     :  Yes
+reconstruct kernel                     :  Yes
+ econf, econf/tmb%orbs%norb  0.739455624946247       1.607512228144016E-002
 Energies: {Ekin:  1.03121457021E+02, Epot: -1.20733719379E+02, Enl:  1.09973806208E+01}
 Energies: {Ekin:  1.03121457021E+02, Epot: -1.20733719379E+02, Enl:  1.09973806208E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.789160E-02    4.002962E-02    6.673077E-02
- ediff, delta_energy_prev -0.110464107152154      -0.211849061739312     
- ratio_deltas  0.521428352078729     
+ ediff, delta_energy_prev -0.110464107152211      -0.211849061739316     
+ ratio_deltas  0.521428352078986     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  9.6199680E-02  1.5634732E-01  -118.6331448572  -1.1046E-01
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
@@ -686,44 +706,44 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.789160E-02    4.002962E-02    6.673077E
 max dev from unity    9.141249E-03
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
-method                                 : DminDIIS
-iter                                   :  1
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  2.54E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
- 
-eBS                                    : -2.27792276983580457E+01
-D                                      :  5.680E-01
+method                                 : DminDIIS
+iter                                   :  1
+method                                 : DminDIIS
+iter                                   :  1
 fnrm                                   :  2.54E-02
-eBS                                    : -2.27792276983580457E+01
+fnrm                                   :  2.54E-02
+eBS                                    : -2.27792276983586213E+01
+ 
+eBS                                    : -2.27792276983586213E+01
+D                                      :  5.680E-01
 D                                      :  5.680E-01
 DminDIIS: it, fnrm, ebs, ebsdiff   1     2.536660E-002    -2.277923E+001     5.680404E-001
 method                                 : DminDIIS
 method                                 : DminDIIS
-iter                                   :  2
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-fnrm                                   :  1.76E-02
-eBS                                    : -2.22111873253251062E+01
 iter                                   :  2
 fnrm                                   :  1.76E-02
+iter                                   :  2
+fnrm                                   :  1.76E-02
+eBS                                    : -2.22111873253248930E+01
 D                                      : -2.039E-03
-eBS                                    : -2.22111873253251062E+01
+eBS                                    : -2.22111873253248930E+01
 D                                      : -2.039E-03
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     1.761379E-002    -2.221119E+001    -2.038731E-003
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
 method                                 : DminDIIS
-iter                                   :  3
 method                                 : DminDIIS
 iter                                   :  3
 fnrm                                   :  5.14E-03
-eBS                                    : -2.22132260564692032E+01
-D                                      : -1.391E-04
-fnrm                                   :  5.14E-03
-eBS                                    : -2.22132260564692032E+01
-D                                      : -1.391E-04
+eBS                                    : -2.22132260564690043E+01
  
+iter                                   :  3
+fnrm                                   :  5.14E-03
+eBS                                    : -2.22132260564690043E+01
+D                                      : -1.391E-04
+D                                      : -1.391E-04
 DminDIIS: it, fnrm, ebs, ebsdiff   3     5.144784E-003    -2.221323E+001    -1.390876E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996416896E+01
@@ -731,7 +751,7 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  4.7572035E-07   -9.79368688844257917E+01   -8.4294E-02
+   it, Delta DENS, energy, energyDiff   1  4.7572035E-07   -9.79368688844255644E+01   -8.4294E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    9.141249E-03
  ----------------------------------- Determination of the orbitals in this new basis.
@@ -739,44 +759,44 @@ Energies: {Ekin:  1.03121457021E+02, Epot: -1.23061465195E+02, Enl:  1.099738062
 Energies: {Ekin:  1.03121457021E+02, Epot: -1.23061465195E+02, Enl:  1.09973806208E+01}
 ekin, eh, epot, eproj, eex  1.031214570214E+02  0.000000000000E+00 -1.230614651953E+02  1.099738062076E+01  0.000000000000E+00
  Hamiltonian application done.
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  3.43E-02
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  3.43E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-eBS                                    : -2.22133651440844808E+01
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  3.43E-02
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  3.43E-02
+eBS                                    : -2.22133651440842783E+01
 D                                      : -1.498E+00
-eBS                                    : -2.22133651440844808E+01
+eBS                                    : -2.22133651440842783E+01
 D                                      : -1.498E+00
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     3.425858E-002    -2.221337E+001    -1.498322E+000
-method                                 : DminDIIS
-iter                                   :  2
-method                                 : DminDIIS
-iter                                   :  2
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+method                                 : DminDIIS
+iter                                   :  2
+method                                 : DminDIIS
+iter                                   :  2
 fnrm                                   :  3.38E-02
 fnrm                                   :  3.38E-02
-eBS                                    : -2.37116873847311744E+01
+eBS                                    : -2.37116873847309861E+01
+D                                      : -1.787E-03
+eBS                                    : -2.37116873847309861E+01
 D                                      : -1.787E-03
  
-eBS                                    : -2.37116873847311744E+01
-D                                      : -1.787E-03
 DminDIIS: it, fnrm, ebs, ebsdiff   2     3.378207E-002    -2.371169E+001    -1.786692E-003
+method                                 : DminDIIS
+method                                 : DminDIIS
+iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-iter                                   :  3
-method                                 : DminDIIS
+fnrm                                   :  3.06E-02
 iter                                   :  3
 fnrm                                   :  3.06E-02
-eBS                                    : -2.37134740762696339E+01
-fnrm                                   :  3.06E-02
-eBS                                    : -2.37134740762696339E+01
-D                                      : -6.925E-03
-D                                      : -6.925E-03
+eBS                                    : -2.37134740762695628E+01
  
+eBS                                    : -2.37134740762695628E+01
+D                                      : -6.925E-03
+D                                      : -6.925E-03
 DminDIIS: it, fnrm, ebs, ebsdiff   3     3.060375E-002    -2.371347E+001    -6.924603E-003
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996443414E+01
@@ -784,12 +804,15 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  3.3055324E-07   -9.79356041762616769E+01    1.2647E-03
+   it, Delta DENS, energy, energyDiff   2  3.3055324E-07   -9.79356041762619611E+01    1.2647E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  3.3055324E-07   -9.79356041762619611E+01    1.2647E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.372039867946E+01  3.648921309444E+02 -2.639034130461E+01 -3.457263813916E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   5   3.18E-07   -9.79356041762616769E+01   -8.3029E-02
- #=========================================================== support function optimization
- #=========================================================== support function optimization
+   itoutL, Delta DENSOUT, energy, energyDiff   5   3.18E-07   -9.79356041762619611E+01   -8.3029E-02
  ############################################################################################
  at iteration 5 of the outer loop:
    > basis functions optimization:
@@ -799,33 +822,35 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   5    3.31E-07   -9.79356041762616769E+01
+     FINAL values: it, Delta DENS, energy   5    3.31E-07   -9.79356041762619611E+01
    > energy difference to last iteration: -8.302949E-02
  ############################################################################################
+ #=========================================================== support function optimization
+ #=========================================================== support function optimization
  Multiply the confinement prefactor by 5.2E-01
  ======================== Creation of the basis functions... ========================
- econf, econf/tmb%orbs%norb  0.385573127951030       8.382024520674566E-003
+ econf, econf/tmb%orbs%norb  0.385573127951258       8.382024520679531E-003
 Energies: {Ekin:  1.03121457021E+02, Epot: -1.22069481673E+02, Enl:  1.09973806208E+01}
 Energies: {Ekin:  1.03121457021E+02, Epot: -1.22069481673E+02, Enl:  1.09973806208E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.988760E-02    6.634922E-02    9.193590E-02
- ediff, delta_energy_prev  -1.78070704013334       1.000000000000000E+100
- ratio_deltas -1.780707040133336E-100
- iter, fnrm, fnrmMax, hybrid, diff     1  9.8247686E-02  1.5685105E-01  -120.3033877902  -1.7807E+00
+ ediff, delta_energy_prev  -1.78070704010304       1.000000000000000E+100
+ ratio_deltas -1.780707040103039E-100
+ iter, fnrm, fnrmMax, hybrid, diff     1  9.8247686E-02  1.5685105E-01  -120.3033877901  -1.7807E+00
  SD informations: mean alpha=4.305E-01, max alpha=4.305E-01, consecutive successes=1
- delta_energy -0.156806931473818     
-reconstruct kernel                     :  Yes
+ delta_energy -0.156806931474201     
 reconstruct kernel                     :  Yes
 coeff renormalization... calculate density kernel... done.
- econf, econf/tmb%orbs%norb  0.409052426285449       8.892444049683678E-003
+reconstruct kernel                     :  Yes
 Energies: {Ekin:  1.02376616725E+02, Epot: -1.21367144591E+02, Enl:  1.10022461279E+01}
 Energies: {Ekin:  1.02376616725E+02, Epot: -1.21367144591E+02, Enl:  1.10022461279E+01}
+ econf, econf/tmb%orbs%norb  0.409052426285663       8.892444049688336E-003
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.380094E-02    3.500155E-02    6.162659E-02
- ediff, delta_energy_prev -6.681354592234356E-002 -0.156806931473818     
- ratio_deltas  0.426087962402985     
+ ediff, delta_energy_prev -6.681354592274147E-002 -0.156806931474201     
+ ratio_deltas  0.426087962404483     
  reduce the confinement
- iter, fnrm, fnrmMax, hybrid, diff     2  9.2688225E-02  1.5974373E-01  -120.3702013361  -6.6814E-02
+ iter, fnrm, fnrmMax, hybrid, diff     2  9.2688225E-02  1.5974373E-01  -120.3702013360  -6.6814E-02
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  ============================= Basis functions created. =============================
  #===================================================================== kernel optimization
@@ -834,109 +859,112 @@ max dev from unity    1.063282E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
 method                                 : DminDIIS
-iter                                   :  1
-method                                 : DminDIIS
-iter                                   :  1
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
-fnrm                                   :  1.75E-02
-fnrm                                   :  1.75E-02
-eBS                                    : -2.37203986794558972E+01
-eBS                                    : -2.37203986794558972E+01
-D                                      :  4.995E-01
-D                                      :  4.995E-01
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.747799E-002    -2.372040E+001     4.995437E-001
+method                                 : DminDIIS
+iter                                   :  1
+iter                                   :  1
+fnrm                                   :  1.75E-02
+eBS                                    : -2.37203986794559754E+01
+D                                      :  4.995E-01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-method                                 : DminDIIS
-iter                                   :  2
-iter                                   :  2
-fnrm                                   :  1.16E-02
-fnrm                                   :  1.16E-02
-eBS                                    : -2.32208550163180014E+01
-eBS                                    : -2.32208550163180014E+01
-D                                      : -9.243E-04
-D                                      : -9.243E-04
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     1.164409E-002    -2.322086E+001    -9.243192E-004
+fnrm                                   :  1.75E-02
+eBS                                    : -2.37203986794559754E+01
+D                                      :  4.995E-01
 method                                 : DminDIIS
-iter                                   :  3
+method                                 : DminDIIS
+iter                                   :  2
+fnrm                                   :  1.16E-02
+eBS                                    : -2.32208550162884997E+01
+D                                      : -9.243E-04
+iter                                   :  2
+fnrm                                   :  1.16E-02
+eBS                                    : -2.32208550162884997E+01
+D                                      : -9.243E-04
+method                                 : DminDIIS
 method                                 : DminDIIS
 iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-fnrm                                   :  3.21E-03
-fnrm                                   :  3.21E-03
-eBS                                    : -2.32217793354824913E+01
-D                                      : -5.416E-05
  
-eBS                                    : -2.32217793354824913E+01
-D                                      : -5.416E-05
 DminDIIS: it, fnrm, ebs, ebsdiff   3     3.207845E-003    -2.322178E+001    -5.416058E-005
+fnrm                                   :  3.21E-03
+eBS                                    : -2.32217793354531814E+01
+D                                      : -5.416E-05
+iter                                   :  3
+fnrm                                   :  3.21E-03
+eBS                                    : -2.32217793354531814E+01
+D                                      : -5.416E-05
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996458865E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  3.5117019E-07   -9.79926797510008782E+01   -5.7076E-02
+   it, Delta DENS, energy, energyDiff   1  3.5117019E-07   -9.79926797510013330E+01   -5.7076E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.063282E-02
  ----------------------------------- Determination of the orbitals in this new basis.
 Energies: {Ekin:  1.02376616725E+02, Epot: -1.23136000574E+02, Enl:  1.10022461279E+01}
-ekin, eh, epot, eproj, eex  1.023766167253E+02  0.000000000000E+00 -1.231360005736E+02  1.100224612791E+01  0.000000000000E+00
 Energies: {Ekin:  1.02376616725E+02, Epot: -1.23136000574E+02, Enl:  1.10022461279E+01}
+ekin, eh, epot, eproj, eex  1.023766167254E+02  0.000000000000E+00 -1.231360005736E+02  1.100224612791E+01  0.000000000000E+00
  Hamiltonian application done.
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  2.54E-02
+eBS                                    : -2.32218334960293120E+01
+method                                 : DminDIIS
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     2.540641E-002    -2.322183E+001    -1.295811E+000
-method                                 : DminDIIS
+D                                      : -1.296E+00
 iter                                   :  1
 fnrm                                   :  2.54E-02
-eBS                                    : -2.32218334960586290E+01
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  2.54E-02
-eBS                                    : -2.32218334960586290E+01
-D                                      : -1.296E+00
+eBS                                    : -2.32218334960293120E+01
 D                                      : -1.296E+00
 method                                 : DminDIIS
-iter                                   :  2
-fnrm                                   :  2.52E-02
-eBS                                    : -2.45176443970954452E+01
-D                                      : -5.635E-04
 method                                 : DminDIIS
 iter                                   :  2
-fnrm                                   :  2.52E-02
-eBS                                    : -2.45176443970954452E+01
-D                                      : -5.635E-04
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     2.515945E-002    -2.451764E+001    -5.635333E-004
-method                                 : DminDIIS
+fnrm                                   :  2.52E-02
+eBS                                    : -2.45176443971187581E+01
+D                                      : -5.635E-04
+iter                                   :  2
+fnrm                                   :  2.52E-02
+eBS                                    : -2.45176443971187581E+01
+D                                      : -5.635E-04
 method                                 : DminDIIS
 iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-iter                                   :  3
  
-fnrm                                   :  2.38E-02
-eBS                                    : -2.45182079303597540E+01
-D                                      : -3.962E-03
-fnrm                                   :  2.38E-02
-eBS                                    : -2.45182079303597540E+01
-D                                      : -3.962E-03
 DminDIIS: it, fnrm, ebs, ebsdiff   3     2.383441E-002    -2.451821E+001    -3.962165E-003
+method                                 : DminDIIS
+fnrm                                   :  2.38E-02
+eBS                                    : -2.45182079303834435E+01
+D                                      : -3.962E-03
+iter                                   :  3
+fnrm                                   :  2.38E-02
+eBS                                    : -2.45182079303834435E+01
+D                                      : -3.962E-03
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996468342E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  2.1454907E-07   -9.79912174275078769E+01    1.4623E-03
+   it, Delta DENS, energy, energyDiff   2  2.1454907E-07   -9.79912174275085022E+01    1.4623E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.452217009522E+01  3.639756049447E+02 -2.624837679590E+01 -3.438539956774E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   6   2.45E-07   -9.79912174275078769E+01   -5.5613E-02
- #=========================================================== support function optimization
- #=========================================================== support function optimization
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  2.1454907E-07   -9.79912174275085022E+01    1.4623E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.452217009524E+01  3.639756049447E+02 -2.624837679590E+01 -3.438539956774E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   6   2.45E-07   -9.79912174275085022E+01   -5.5613E-02
  ############################################################################################
  at iteration 6 of the outer loop:
    > basis functions optimization:
@@ -946,31 +974,33 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   6    2.15E-07   -9.79912174275078769E+01
+     FINAL values: it, Delta DENS, energy   6    2.15E-07   -9.79912174275085022E+01
    > energy difference to last iteration: -5.561325E-02
  ############################################################################################
+ #=========================================================== support function optimization
+ #=========================================================== support function optimization
  Multiply the confinement prefactor by 4.3E-01
  ======================== Creation of the basis functions... ========================
- econf, econf/tmb%orbs%norb  0.174292314831964       3.788963365912269E-003
+ econf, econf/tmb%orbs%norb  0.174292314832668       3.788963365927572E-003
 Energies: {Ekin:  1.02376616725E+02, Epot: -1.22499474736E+02, Enl:  1.10022461279E+01}
 Energies: {Ekin:  1.02376616725E+02, Epot: -1.22499474736E+02, Enl:  1.10022461279E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    3.110706E-02    5.030119E-02    8.023697E-02
- ediff, delta_energy_prev  -1.41719515588613       1.000000000000000E+100
- ratio_deltas -1.417195155886134E-100
+ ediff, delta_energy_prev  -1.41719515587397       1.000000000000000E+100
+ ratio_deltas -1.417195155873969E-100
  iter, fnrm, fnrmMax, hybrid, diff     1  9.3067857E-02  1.5898359E-01  -121.7205829460  -1.4172E+00
  SD informations: mean alpha=4.736E-01, max alpha=4.736E-01, consecutive successes=1
- delta_energy -0.118074133647571     
-reconstruct kernel                     :  Yes
-reconstruct kernel                     :  Yes
+ delta_energy -0.118074133647708     
 coeff renormalization... calculate density kernel... done.
- econf, econf/tmb%orbs%norb  0.182762854635688       3.973105535558435E-003
+reconstruct kernel                     :  Yes
+reconstruct kernel                     :  Yes
+ econf, econf/tmb%orbs%norb  0.182762854636409       3.973105535574098E-003
 Energies: {Ekin:  1.01811975542E+02, Epot: -1.21979251088E+02, Enl:  1.10119800451E+01}
 Energies: {Ekin:  1.01811975542E+02, Epot: -1.21979251088E+02, Enl:  1.10119800451E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.026366E-02    3.171479E-02    5.589503E-02
- ediff, delta_energy_prev -3.633929385074453E-002 -0.118074133647571     
- ratio_deltas  0.307766762525740     
+ ediff, delta_energy_prev -3.633929385114243E-002 -0.118074133647708     
+ ratio_deltas  0.307766762528754     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  9.0121940E-02  1.6136127E-01  -121.7569222399  -3.6339E-02
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
@@ -981,109 +1011,112 @@ max dev from unity    1.207131E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-iter                                   :  1
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  9.58E-03
-fnrm                                   :  9.58E-03
-eBS                                    : -2.45221700952185238E+01
-D                                      :  4.045E-01
  
-eBS                                    : -2.45221700952185238E+01
-D                                      :  4.045E-01
 DminDIIS: it, fnrm, ebs, ebsdiff   1     9.584035E-003    -2.452217E+001     4.045221E-001
 method                                 : DminDIIS
-iter                                   :  2
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+iter                                   :  1
+fnrm                                   :  9.58E-03
+eBS                                    : -2.45221700952432080E+01
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  9.58E-03
+eBS                                    : -2.45221700952432080E+01
+D                                      :  4.045E-01
+D                                      :  4.045E-01
 method                                 : DminDIIS
 iter                                   :  2
-fnrm                                   :  6.50E-03
-fnrm                                   :  6.50E-03
-eBS                                    : -2.41176479869452436E+01
-eBS                                    : -2.41176479869452436E+01
-D                                      : -2.868E-04
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
-D                                      : -2.868E-04
 DminDIIS: it, fnrm, ebs, ebsdiff   2     6.495739E-003    -2.411765E+001    -2.868166E-004
 method                                 : DminDIIS
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+iter                                   :  2
+fnrm                                   :  6.50E-03
+fnrm                                   :  6.50E-03
+eBS                                    : -2.41176479869043270E+01
+eBS                                    : -2.41176479869043270E+01
+D                                      : -2.868E-04
+D                                      : -2.868E-04
 method                                 : DminDIIS
 iter                                   :  3
 fnrm                                   :  1.77E-03
-eBS                                    : -2.41179348035229708E+01
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
+DminDIIS: it, fnrm, ebs, ebsdiff   3     1.771982E-003    -2.411793E+001    -1.608907E-005
+method                                 : DminDIIS
 iter                                   :  3
 fnrm                                   :  1.77E-03
-eBS                                    : -2.41179348035229708E+01
+eBS                                    : -2.41179348034821928E+01
 D                                      : -1.609E-05
- 
+eBS                                    : -2.41179348034821928E+01
 D                                      : -1.609E-05
-DminDIIS: it, fnrm, ebs, ebsdiff   3     1.771982E-003    -2.411793E+001    -1.608907E-005
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996490067E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  2.1360092E-07   -9.80175452105014529E+01   -2.6328E-02
+   it, Delta DENS, energy, energyDiff   1  2.1360092E-07   -9.80175452105019076E+01   -2.6328E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.207131E-02
  ----------------------------------- Determination of the orbitals in this new basis.
 Energies: {Ekin:  1.01811975542E+02, Epot: -1.23086306337E+02, Enl:  1.10119800451E+01}
 Energies: {Ekin:  1.01811975542E+02, Epot: -1.23086306337E+02, Enl:  1.10119800451E+01}
-ekin, eh, epot, eproj, eex  1.018119755417E+02  0.000000000000E+00 -1.230863063372E+02  1.101198004509E+01  0.000000000000E+00
+ekin, eh, epot, eproj, eex  1.018119755417E+02  0.000000000000E+00 -1.230863063373E+02  1.101198004509E+01  0.000000000000E+00
  Hamiltonian application done.
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  1.37E-02
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  1.37E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-eBS                                    : -2.41179508925962764E+01
-D                                      : -8.915E-01
-eBS                                    : -2.41179508925962764E+01
-D                                      : -8.915E-01
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.372703E-002    -2.411795E+001    -8.915434E-001
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  1.37E-02
+eBS                                    : -2.41179508925555091E+01
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  1.37E-02
+eBS                                    : -2.41179508925555091E+01
+D                                      : -8.915E-01
+D                                      : -8.915E-01
+method                                 : DminDIIS
+iter                                   :  2
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-iter                                   :  2
-method                                 : DminDIIS
-iter                                   :  2
-fnrm                                   :  1.37E-02
-eBS                                    : -2.50094942931424313E+01
-fnrm                                   :  1.37E-02
-eBS                                    : -2.50094942931424313E+01
-D                                      : -7.621E-05
-D                                      : -7.621E-05
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     1.365527E-002    -2.500949E+001    -7.621042E-005
 method                                 : DminDIIS
+iter                                   :  2
+fnrm                                   :  1.37E-02
+eBS                                    : -2.50094942931729420E+01
+fnrm                                   :  1.37E-02
+eBS                                    : -2.50094942931729420E+01
+D                                      : -7.621E-05
+D                                      : -7.621E-05
+method                                 : DminDIIS
 iter                                   :  3
 method                                 : DminDIIS
 iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-fnrm                                   :  1.33E-02
-eBS                                    : -2.50095705035644187E+01
-D                                      : -1.095E-03
-fnrm                                   :  1.33E-02
-eBS                                    : -2.50095705035644187E+01
-D                                      : -1.095E-03
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     1.332687E-002    -2.500957E+001    -1.095346E-003
+fnrm                                   :  1.33E-02
+eBS                                    : -2.50095705035949898E+01
+D                                      : -1.095E-03
+fnrm                                   :  1.33E-02
+eBS                                    : -2.50095705035949898E+01
+D                                      : -1.095E-03
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996489100E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  9.3816176E-08   -9.80165629048863138E+01    9.8231E-04
+   it, Delta DENS, energy, energyDiff   2  9.3816176E-08   -9.80165629048864275E+01    9.8231E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.501066585004E+01  3.632715347304E+02 -2.614307927485E+01 -3.424654952452E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   7   1.74E-07   -9.80165629048863138E+01   -2.5345E-02
- #=========================================================== support function optimization
- #=========================================================== support function optimization
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  9.3816176E-08   -9.80165629048864275E+01    9.8231E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.501066585008E+01  3.632715347303E+02 -2.614307927484E+01 -3.424654952451E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   7   1.74E-07   -9.80165629048864275E+01   -2.5345E-02
  ############################################################################################
  at iteration 7 of the outer loop:
    > basis functions optimization:
@@ -1093,31 +1126,33 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   7    9.38E-08   -9.80165629048863138E+01
+     FINAL values: it, Delta DENS, energy   7    9.38E-08   -9.80165629048864275E+01
+ #=========================================================== support function optimization
    > energy difference to last iteration: -2.534548E-02
  ############################################################################################
+ #=========================================================== support function optimization
  Multiply the confinement prefactor by 3.1E-01
  ======================== Creation of the basis functions... ========================
- econf, econf/tmb%orbs%norb  5.624833208118808E-002  1.222789827851915E-003
-Energies: {Ekin:  1.01811975542E+02, Epot: -1.22795079968E+02, Enl:  1.10119800451E+01}
-Energies: {Ekin:  1.01811975542E+02, Epot: -1.22795079968E+02, Enl:  1.10119800451E+01}
+ econf, econf/tmb%orbs%norb  5.624833208196062E-002  1.222789827868709E-003
+Energies: {Ekin:  1.01811975542E+02, Epot: -1.22795079969E+02, Enl:  1.10119800451E+01}
+Energies: {Ekin:  1.01811975542E+02, Epot: -1.22795079969E+02, Enl:  1.10119800451E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.345148E-02    3.816090E-02    6.543826E-02
- ediff, delta_energy_prev -0.966594778557919       1.000000000000000E+100
- ratio_deltas -9.665947785579192E-101
- iter, fnrm, fnrmMax, hybrid, diff     1  8.9806755E-02  1.6033778E-01  -122.6871777246  -9.6659E-01
+ ediff, delta_energy_prev -0.966594778671038       1.000000000000000E+100
+ ratio_deltas -9.665947786710376E-101
+ iter, fnrm, fnrmMax, hybrid, diff     1  8.9806755E-02  1.6033778E-01  -122.6871777247  -9.6659E-01
  SD informations: mean alpha=5.210E-01, max alpha=5.210E-01, consecutive successes=1
- delta_energy -9.229334611498576E-002
+ delta_energy -9.229334611487736E-002
 coeff renormalization... calculate density kernel... done.
 reconstruct kernel                     :  Yes
 reconstruct kernel                     :  Yes
- econf, econf/tmb%orbs%norb  5.804116080653671E-002  1.261764365359494E-003
+ econf, econf/tmb%orbs%norb  5.804116080731565E-002  1.261764365376427E-003
 Energies: {Ekin:  1.01451619253E+02, Epot: -1.22476508796E+02, Enl:  1.10246480172E+01}
 Energies: {Ekin:  1.01451619253E+02, Epot: -1.22476508796E+02, Enl:  1.10246480172E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.733479E-02    2.837563E-02    5.140355E-02
- ediff, delta_energy_prev -1.732997475130560E-002 -9.229334611498576E-002
- ratio_deltas  0.187770575895197     
+ ediff, delta_energy_prev -1.732997475113507E-002 -9.229334611487736E-002
+ ratio_deltas  0.187770575893570     
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  8.7230141E-02  1.5909596E-01  -122.7045076994  -1.7330E-02
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
@@ -1127,98 +1162,98 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.733479E-02    2.837563E-02    5.140355E
 max dev from unity    1.332630E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
+method                                 : DminDIIS
+method                                 : DminDIIS
+iter                                   :  1
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-iter                                   :  1
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  4.30E-03
-eBS                                    : -2.50106658500442798E+01
-fnrm                                   :  4.30E-03
-eBS                                    : -2.50106658500442798E+01
-D                                      :  2.128E-01
  
-D                                      :  2.128E-01
 DminDIIS: it, fnrm, ebs, ebsdiff   1     4.299399E-003    -2.501067E+001     2.127801E-001
+fnrm                                   :  4.30E-03
+eBS                                    : -2.50106658500752630E+01
+D                                      :  2.128E-01
+iter                                   :  1
+fnrm                                   :  4.30E-03
+eBS                                    : -2.50106658500752630E+01
+D                                      :  2.128E-01
 method                                 : DminDIIS
+iter                                   :  2
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-iter                                   :  2
-iter                                   :  2
-fnrm                                   :  3.49E-03
-fnrm                                   :  3.49E-03
-eBS                                    : -2.47978857566626836E+01
-D                                      : -7.524E-05
-eBS                                    : -2.47978857566626836E+01
-D                                      : -7.524E-05
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     3.486999E-003    -2.479789E+001    -7.523643E-005
 method                                 : DminDIIS
+iter                                   :  2
+fnrm                                   :  3.49E-03
+eBS                                    : -2.47978857567346402E+01
+fnrm                                   :  3.49E-03
+eBS                                    : -2.47978857567346402E+01
+D                                      : -7.524E-05
+D                                      : -7.524E-05
 method                                 : DminDIIS
 iter                                   :  3
+fnrm                                   :  1.02E-03
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-iter                                   :  3
-fnrm                                   :  1.02E-03
-eBS                                    : -2.47979609930914684E+01
-D                                      : -5.203E-06
-fnrm                                   :  1.02E-03
-eBS                                    : -2.47979609930914684E+01
-D                                      : -5.203E-06
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     1.023928E-003    -2.479796E+001    -5.202825E-006
+method                                 : DminDIIS
+iter                                   :  3
+fnrm                                   :  1.02E-03
+eBS                                    : -2.47979609931634073E+01
+D                                      : -5.203E-06
+eBS                                    : -2.47979609931634073E+01
+D                                      : -5.203E-06
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996507792E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.0298277E-07   -9.80270428217204426E+01   -1.0480E-02
+   it, Delta DENS, energy, energyDiff   1  1.0298277E-07   -9.80270428217198173E+01   -1.0480E-02
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.332630E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex  1.014516192527E+02  0.000000000000E+00 -1.229778972979E+02  1.102464801717E+01  0.000000000000E+00
 Energies: {Ekin:  1.01451619253E+02, Epot: -1.22977897298E+02, Enl:  1.10246480172E+01}
 Energies: {Ekin:  1.01451619253E+02, Epot: -1.22977897298E+02, Enl:  1.10246480172E+01}
-ekin, eh, epot, eproj, eex  1.014516192527E+02  0.000000000000E+00 -1.229778972980E+02  1.102464801716E+01  0.000000000000E+00
  Hamiltonian application done.
 method                                 : DminDIIS
 iter                                   :  1
+fnrm                                   :  5.03E-03
+eBS                                    : -2.47979661959879465E+01
 method                                 : DminDIIS
 iter                                   :  1
 fnrm                                   :  5.03E-03
+eBS                                    : -2.47979661959879465E+01
+D                                      : -4.334E-01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-eBS                                    : -2.47979661959160183E+01
-D                                      : -4.334E-01
-fnrm                                   :  5.03E-03
-eBS                                    : -2.47979661959160183E+01
-D                                      : -4.334E-01
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     5.029743E-003    -2.479797E+001    -4.334442E-001
+D                                      : -4.334E-01
+method                                 : DminDIIS
+iter                                   :  2
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-iter                                   :  2
-method                                 : DminDIIS
-iter                                   :  2
-fnrm                                   :  4.99E-03
-eBS                                    : -2.52314104315239973E+01
-D                                      : -1.566E-05
-fnrm                                   :  4.99E-03
-eBS                                    : -2.52314104315239973E+01
-D                                      : -1.566E-05
  
+method                                 : DminDIIS
+iter                                   :  2
 DminDIIS: it, fnrm, ebs, ebsdiff   2     4.986846E-003    -2.523141E+001    -1.566005E-005
+fnrm                                   :  4.99E-03
+eBS                                    : -2.52314104314455321E+01
+D                                      : -1.566E-05
+fnrm                                   :  4.99E-03
+eBS                                    : -2.52314104314455321E+01
+D                                      : -1.566E-05
 method                                 : DminDIIS
 iter                                   :  3
-method                                 : DminDIIS
-iter                                   :  3
-fnrm                                   :  4.80E-03
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
-eBS                                    : -2.52314260915704622E+01
+method                                 : DminDIIS
+iter                                   :  3
+fnrm                                   :  4.80E-03
+DminDIIS: it, fnrm, ebs, ebsdiff   3     4.799289E-003    -2.523143E+001    -1.401410E-004
+eBS                                    : -2.52314260914920290E+01
 D                                      : -1.401E-04
 fnrm                                   :  4.80E-03
-eBS                                    : -2.52314260915704622E+01
+eBS                                    : -2.52314260914920290E+01
 D                                      : -1.401E-04
-DminDIIS: it, fnrm, ebs, ebsdiff   3     4.799289E-003    -2.523143E+001    -1.401410E-004
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996503612E+01
  ---------------------------------------------------------------- Updating potential.
@@ -1227,12 +1262,16 @@ Calculating charge density... done.
    coefficients / kernel obtained by direct minimization.
    it, Delta DENS, energy, energyDiff   2  3.4958435E-08   -9.80267798902793288E+01    2.6293E-04
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.523156623257E+01  3.629122989325E+02 -2.608428221697E+01 -3.416903925877E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  3.4958435E-08   -9.80267798902793288E+01    2.6293E-04
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.523156623249E+01  3.629122989326E+02 -2.608428221697E+01 -3.416903925878E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
    itoutL, Delta DENSOUT, energy, energyDiff   8   9.81E-08   -9.80267798902793288E+01   -1.0217E-02
- #=========================================================== support function optimization
- #=========================================================== support function optimization
  ############################################################################################
  at iteration 8 of the outer loop:
+ #=========================================================== support function optimization
    > basis functions optimization:
      - target function is hybrid; mean confinement prefactor = 1.77E-04
      - WARNING: basis functions not converged!
@@ -1240,33 +1279,34 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
+ #=========================================================== support function optimization
      FINAL values: it, Delta DENS, energy   8    3.50E-08   -9.80267798902793288E+01
    > energy difference to last iteration: -1.021699E-02
  ############################################################################################
  Multiply the confinement prefactor by 1.9E-01
  ======================== Creation of the basis functions... ========================
- econf, econf/tmb%orbs%norb  1.089842219026914E-002  2.369222215275900E-004
+ econf, econf/tmb%orbs%norb  1.089842219032096E-002  2.369222215287164E-004
 Energies: {Ekin:  1.01451619253E+02, Epot: -1.22871969452E+02, Enl:  1.10246480172E+01}
 Energies: {Ekin:  1.01451619253E+02, Epot: -1.22871969452E+02, Enl:  1.10246480172E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.818278E-02    2.956221E-02    5.436758E-02
- ediff, delta_energy_prev -0.455164347788980       1.000000000000000E+100
- ratio_deltas -4.551643477889797E-101
- iter, fnrm, fnrmMax, hybrid, diff     1  8.6958087E-02  1.5848989E-01  -123.1423420724  -4.5516E-01
+ ediff, delta_energy_prev -0.455164347654545       1.000000000000000E+100
+ ratio_deltas -4.551643476545450E-101
+ iter, fnrm, fnrmMax, hybrid, diff     1  8.6958087E-02  1.5848989E-01  -123.1423420723  -4.5516E-01
  SD informations: mean alpha=5.731E-01, max alpha=5.731E-01, consecutive successes=1
- delta_energy -7.948217612969427E-002
+ delta_energy -7.948217612992989E-002
+reconstruct kernel                     :  Yes
 coeff renormalization... calculate density kernel... done.
 reconstruct kernel                     :  Yes
-reconstruct kernel                     :  Yes
- econf, econf/tmb%orbs%norb  1.108793756700534E-002  2.410421210218552E-004
+ econf, econf/tmb%orbs%norb  1.108793756707245E-002  2.410421210233142E-004
 Energies: {Ekin:  1.01252690820E+02, Epot: -1.22701273372E+02, Enl:  1.10304917827E+01}
 Energies: {Ekin:  1.01252690820E+02, Epot: -1.22701273372E+02, Enl:  1.10304917827E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.521997E-02    2.534202E-02    4.916047E-02
- ediff, delta_energy_prev -8.794578980712231E-003 -7.948217612969427E-002
- ratio_deltas  0.110648442316951     
+ ediff, delta_energy_prev -8.794578980825918E-003 -7.948217612992989E-002
+ ratio_deltas  0.110648442318054     
  reduce the confinement
- iter, fnrm, fnrmMax, hybrid, diff     2  8.3724391E-02  1.5285833E-01  -123.1511366514  -8.7946E-03
+ iter, fnrm, fnrmMax, hybrid, diff     2  8.3724391E-02  1.5285833E-01  -123.1511366513  -8.7946E-03
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  ============================= Basis functions created. =============================
  #===================================================================== kernel optimization
@@ -1276,94 +1316,94 @@ max dev from unity    1.429141E-02
  No Hamiltonian application required.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
+method                                 : DminDIIS
+iter                                   :  1
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  3.16E-03
+eBS                                    : -2.52315662324883547E+01
+fnrm                                   :  3.16E-03
+D                                      :  8.873E-02
+eBS                                    : -2.52315662324883547E+01
+D                                      :  8.873E-02
 DminDIIS: it, fnrm, ebs, ebsdiff   1     3.161938E-003    -2.523157E+001     8.873389E-002
 method                                 : DminDIIS
-iter                                   :  1
+iter                                   :  2
 method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  3.16E-03
-eBS                                    : -2.52315662325669550E+01
-fnrm                                   :  3.16E-03
-eBS                                    : -2.52315662325669550E+01
-D                                      :  8.873E-02
-D                                      :  8.873E-02
+iter                                   :  2
+fnrm                                   :  2.81E-03
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
+fnrm                                   :  2.81E-03
+eBS                                    : -2.51428323443509427E+01
+eBS                                    : -2.51428323443509427E+01
+D                                      : -4.584E-05
+D                                      : -4.584E-05
 DminDIIS: it, fnrm, ebs, ebsdiff   2     2.809899E-003    -2.514283E+001    -4.583663E-005
 method                                 : DminDIIS
-iter                                   :  2
-fnrm                                   :  2.81E-03
-method                                 : DminDIIS
-iter                                   :  2
-fnrm                                   :  2.81E-03
-eBS                                    : -2.51428323444149235E+01
-D                                      : -4.584E-05
-eBS                                    : -2.51428323444149235E+01
-D                                      : -4.584E-05
-method                                 : DminDIIS
 iter                                   :  3
 method                                 : DminDIIS
 iter                                   :  3
-fnrm                                   :  8.68E-04
-eBS                                    : -2.51428781810415813E+01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+fnrm                                   :  8.68E-04
+fnrm                                   :  8.68E-04
+eBS                                    : -2.51428781809775721E+01
+D                                      : -3.825E-06
+eBS                                    : -2.51428781809775721E+01
+D                                      : -3.825E-06
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     8.677136E-004    -2.514288E+001    -3.824853E-006
-fnrm                                   :  8.68E-04
-D                                      : -3.825E-06
-eBS                                    : -2.51428781810415813E+01
-D                                      : -3.825E-06
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996515903E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  5.1357321E-08   -9.80314360416640511E+01   -4.6562E-03
+   it, Delta DENS, energy, energyDiff   1  5.1357321E-08   -9.80314360416639374E+01   -4.6562E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.429141E-02
  ----------------------------------- Determination of the orbitals in this new basis.
 Energies: {Ekin:  1.01252690820E+02, Epot: -1.22924201925E+02, Enl:  1.10304917827E+01}
 Energies: {Ekin:  1.01252690820E+02, Epot: -1.22924201925E+02, Enl:  1.10304917827E+01}
-ekin, eh, epot, eproj, eex  1.012526908198E+02  0.000000000000E+00 -1.229242019252E+02  1.103049178269E+01  0.000000000000E+00
+ekin, eh, epot, eproj, eex  1.012526908198E+02  0.000000000000E+00 -1.229242019253E+02  1.103049178269E+01  0.000000000000E+00
  Hamiltonian application done.
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  2.75E-03
+eBS                                    : -2.51428820058301952E+01
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  2.75E-03
+eBS                                    : -2.51428820058301952E+01
+D                                      : -2.081E-01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
+D                                      : -2.081E-01
 DminDIIS: it, fnrm, ebs, ebsdiff   1     2.752397E-003    -2.514288E+001    -2.080643E-001
 method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  2.75E-03
-eBS                                    : -2.51428820058942186E+01
-D                                      : -2.081E-01
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  2.75E-03
-eBS                                    : -2.51428820058942186E+01
-D                                      : -2.081E-01
-method                                 : DminDIIS
 iter                                   :  2
+fnrm                                   :  2.69E-03
+eBS                                    : -2.53509462658617366E+01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     2.685231E-003    -2.535095E+001    -6.424856E-006
 method                                 : DminDIIS
 iter                                   :  2
 fnrm                                   :  2.69E-03
-eBS                                    : -2.53509462657914675E+01
-fnrm                                   :  2.69E-03
+eBS                                    : -2.53509462658617366E+01
 D                                      : -6.425E-06
-eBS                                    : -2.53509462657914675E+01
 D                                      : -6.425E-06
-method                                 : DminDIIS
-iter                                   :  3
-fnrm                                   :  2.54E-03
-eBS                                    : -2.53509526906471265E+01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     2.542474E-003    -2.535095E+001    -4.043499E-005
 method                                 : DminDIIS
 iter                                   :  3
 fnrm                                   :  2.54E-03
-eBS                                    : -2.53509526906471265E+01
+eBS                                    : -2.53509526907173921E+01
+method                                 : DminDIIS
+iter                                   :  3
+fnrm                                   :  2.54E-03
+eBS                                    : -2.53509526907173921E+01
 D                                      : -4.043E-05
 D                                      : -4.043E-05
 Calculating charge density... done.
@@ -1372,46 +1412,51 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  2.1219520E-08   -9.80313758086236930E+01    6.0233E-05
+   it, Delta DENS, energy, energyDiff   2  2.1219520E-08   -9.80313758086232383E+01    6.0233E-05
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.535099312564E+01  3.627430672834E+02 -2.605597648128E+01 -3.413172880067E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   9   4.73E-08   -9.80313758086236930E+01   -4.5959E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  2.1219520E-08   -9.80313758086232383E+01    6.0233E-05
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.535099312571E+01  3.627430672834E+02 -2.605597648127E+01 -3.413172880065E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   9   4.73E-08   -9.80313758086232383E+01   -4.5959E-03
  ############################################################################################
  at iteration 9 of the outer loop:
    > basis functions optimization:
+ #=========================================================== support function optimization
+ #=========================================================== support function optimization
      - target function is hybrid; mean confinement prefactor = 3.33E-05
      - WARNING: basis functions not converged!
      Final values: target function, fnrm  -1.231511E+02    8.37E-02
    > density optimization:
- #=========================================================== support function optimization
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   9    2.12E-08   -9.80313758086236930E+01
+     FINAL values: it, Delta DENS, energy   9    2.12E-08   -9.80313758086232383E+01
    > energy difference to last iteration: -4.595918E-03
  ############################################################################################
- #=========================================================== support function optimization
  Multiply the confinement prefactor by 1.1E-01
  ======================== Creation of the basis functions... ========================
+ econf, econf/tmb%orbs%norb  1.226863020316394E-003  2.667093522426943E-005
 Energies: {Ekin:  1.01252690820E+02, Epot: -1.22874935679E+02, Enl:  1.10304917827E+01}
 Energies: {Ekin:  1.01252690820E+02, Epot: -1.22874935679E+02, Enl:  1.10304917827E+01}
- econf, econf/tmb%orbs%norb  1.226863020296745E-003  2.667093522384229E-005
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.533804E-02    2.522566E-02    4.965407E-02
- ediff, delta_energy_prev -0.189501747605846       1.000000000000000E+100
- ratio_deltas -1.895017476058456E-101
- iter, fnrm, fnrmMax, hybrid, diff     1  8.3665941E-02  1.5268756E-01  -123.3318438200  -1.8950E-01
+ ediff, delta_energy_prev -0.189501747751365       1.000000000000000E+100
+ ratio_deltas -1.895017477513648E-101
+ iter, fnrm, fnrmMax, hybrid, diff     1  8.3665941E-02  1.5268756E-01  -123.3318438201  -1.8950E-01
  SD informations: mean alpha=6.304E-01, max alpha=6.304E-01, consecutive successes=1
- delta_energy -7.483673116011628E-002
+ delta_energy -7.483673116009690E-002
+reconstruct kernel                     :  Yes
+reconstruct kernel                     :  Yes
 coeff renormalization... calculate density kernel... done.
-reconstruct kernel                     :  Yes
-reconstruct kernel                     :  Yes
- econf, econf/tmb%orbs%norb  1.236728873560744E-003  2.688541029479878E-005
+ econf, econf/tmb%orbs%norb  1.236728873578144E-003  2.688541029517705E-005
 Energies: {Ekin:  1.01154790507E+02, Epot: -1.22796839439E+02, Enl:  1.10327142626E+01}
 Energies: {Ekin:  1.01154790507E+02, Epot: -1.22796839439E+02, Enl:  1.10327142626E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.379968E-02    2.313228E-02    4.917070E-02
- ediff, delta_energy_prev -6.460513265835743E-003 -7.483673116011628E-002
- ratio_deltas  8.632810607418445E-002
+ ediff, delta_energy_prev -6.460513265949430E-003 -7.483673116009690E-002
+ ratio_deltas  8.632810607572594E-002
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  7.9759521E-02  1.4462675E-01  -123.3383043333  -6.4605E-03
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
@@ -1421,58 +1466,58 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.379968E-02    2.313228E-02    4.917070E
 max dev from unity    1.503575E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
-method                                 : DminDIIS
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-iter                                   :  1
-iter                                   :  1
-fnrm                                   :  2.97E-03
-fnrm                                   :  2.97E-03
-eBS                                    : -2.53509931256408834E+01
-D                                      :  4.469E-02
-eBS                                    : -2.53509931256408834E+01
-D                                      :  4.469E-02
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     2.974134E-003    -2.535099E+001     4.468909E-002
+method                                 : DminDIIS
+iter                                   :  1
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  2.97E-03
+eBS                                    : -2.53509931257112129E+01
+fnrm                                   :  2.97E-03
+eBS                                    : -2.53509931257112129E+01
+D                                      :  4.469E-02
+D                                      :  4.469E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-iter                                   :  2
-method                                 : DminDIIS
-iter                                   :  2
-fnrm                                   :  2.64E-03
-eBS                                    : -2.53063040353392665E+01
-D                                      : -4.058E-05
-fnrm                                   :  2.64E-03
-eBS                                    : -2.53063040353392665E+01
-D                                      : -4.058E-05
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     2.643494E-003    -2.530630E+001    -4.057534E-005
+method                                 : DminDIIS
+iter                                   :  2
+method                                 : DminDIIS
+iter                                   :  2
+fnrm                                   :  2.64E-03
+eBS                                    : -2.53063040354203608E+01
+D                                      : -4.058E-05
+fnrm                                   :  2.64E-03
+eBS                                    : -2.53063040354203608E+01
+D                                      : -4.058E-05
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-method                                 : DminDIIS
-iter                                   :  3
-method                                 : DminDIIS
-iter                                   :  3
-fnrm                                   :  8.12E-04
-eBS                                    : -2.53063446106793180E+01
-D                                      : -3.383E-06
-fnrm                                   :  8.12E-04
-eBS                                    : -2.53063446106793180E+01
-D                                      : -3.383E-06
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     8.122733E-004    -2.530634E+001    -3.383309E-006
+method                                 : DminDIIS
+iter                                   :  3
+method                                 : DminDIIS
+iter                                   :  3
+fnrm                                   :  8.12E-04
+eBS                                    : -2.53063446107604371E+01
+D                                      : -3.383E-06
+fnrm                                   :  8.12E-04
+eBS                                    : -2.53063446107604371E+01
+D                                      : -3.383E-06
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996519094E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  2.2485285E-08   -9.80346751031085546E+01   -3.2993E-03
+   it, Delta DENS, energy, energyDiff   1  2.2485285E-08   -9.80346751031086683E+01   -3.2993E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.503575E-02
  ----------------------------------- Determination of the orbitals in this new basis.
 Energies: {Ekin:  1.01154790507E+02, Epot: -1.22870472806E+02, Enl:  1.10327142626E+01}
 Energies: {Ekin:  1.01154790507E+02, Epot: -1.22870472806E+02, Enl:  1.10327142626E+01}
-ekin, eh, epot, eproj, eex  1.011547905067E+02  0.000000000000E+00 -1.228704728060E+02  1.103271426262E+01  0.000000000000E+00
+ekin, eh, epot, eproj, eex  1.011547905067E+02  0.000000000000E+00 -1.228704728059E+02  1.103271426263E+01  0.000000000000E+00
  Hamiltonian application done.
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
@@ -1480,38 +1525,38 @@ DminDIIS: it, fnrm, ebs, ebsdiff   1     1.321633E-003    -2.530635E+001    -7.1
 method                                 : DminDIIS
 iter                                   :  1
 fnrm                                   :  1.32E-03
-eBS                                    : -2.53063479939884814E+01
-D                                      : -7.100E-02
+eBS                                    : -2.53063479940695828E+01
 method                                 : DminDIIS
 iter                                   :  1
 fnrm                                   :  1.32E-03
-eBS                                    : -2.53063479939884814E+01
+eBS                                    : -2.53063479940695828E+01
+D                                      : -7.100E-02
 D                                      : -7.100E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
-method                                 : DminDIIS
-iter                                   :  2
-method                                 : DminDIIS
-iter                                   :  2
 DminDIIS: it, fnrm, ebs, ebsdiff   2     1.218961E-003    -2.537735E+001    -4.020868E-006
-fnrm                                   :  1.22E-03
-eBS                                    : -2.53773485246472461E+01
-D                                      : -4.021E-06
-fnrm                                   :  1.22E-03
-eBS                                    : -2.53773485246472461E+01
-D                                      : -4.021E-06
 method                                 : DminDIIS
-iter                                   :  3
+iter                                   :  2
+fnrm                                   :  1.22E-03
+method                                 : DminDIIS
+iter                                   :  2
+fnrm                                   :  1.22E-03
+eBS                                    : -2.53773485245525237E+01
+D                                      : -4.021E-06
+eBS                                    : -2.53773485245525237E+01
+D                                      : -4.021E-06
 method                                 : DminDIIS
 iter                                   :  3
 fnrm                                   :  1.02E-03
-eBS                                    : -2.53773525455153539E+01
+eBS                                    : -2.53773525454206172E+01
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     1.016197E-003    -2.537735E+001    -7.827162E-006
+method                                 : DminDIIS
+iter                                   :  3
 fnrm                                   :  1.02E-03
 D                                      : -7.827E-06
-eBS                                    : -2.53773525455153539E+01
+eBS                                    : -2.53773525454206172E+01
 D                                      : -7.827E-06
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996517545E+01
@@ -1519,10 +1564,16 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.4561526E-08   -9.80346683845872917E+01    6.7185E-06
+   it, Delta DENS, energy, energyDiff   2  1.4561526E-08   -9.80346683845873486E+01    6.7185E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.537736037268E+01  3.626954498251E+02 -2.604678468368E+01 -3.411961730669E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   10   2.00E-08   -9.80346683845872917E+01   -3.2926E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  1.4561526E-08   -9.80346683845873486E+01    6.7185E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.537736037258E+01  3.626954498251E+02 -2.604678468368E+01 -3.411961730670E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   10   2.00E-08   -9.80346683845873486E+01   -3.2926E-03
+ #=========================================================== support function optimization
  #############################################################################################
  at iteration 10 of the outer loop:
    > basis functions optimization:
@@ -1532,33 +1583,32 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   10    1.46E-08   -9.80346683845872917E+01
+ #=========================================================== support function optimization
+     FINAL values: it, Delta DENS, energy   10    1.46E-08   -9.80346683845873486E+01
    > energy difference to last iteration: -3.292576E-03
  #############################################################################################
- #=========================================================== support function optimization
  Multiply the confinement prefactor by 8.6E-02
  ======================== Creation of the basis functions... ========================
- #=========================================================== support function optimization
- econf, econf/tmb%orbs%norb  1.067644613817585E-004  2.320966551777360E-006
 Energies: {Ekin:  1.01154790507E+02, Epot: -1.22844026598E+02, Enl:  1.10327142626E+01}
 Energies: {Ekin:  1.01154790507E+02, Epot: -1.22844026598E+02, Enl:  1.10327142626E+01}
+ econf, econf/tmb%orbs%norb  1.067644613851671E-004  2.320966551851459E-006
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.389543E-02    2.304492E-02    4.949062E-02
- ediff, delta_energy_prev -5.362348141420625E-002  1.000000000000000E+100
- ratio_deltas -5.362348141420626E-102
+ ediff, delta_energy_prev -5.362348130057626E-002  1.000000000000000E+100
+ ratio_deltas -5.362348130057625E-102
  iter, fnrm, fnrmMax, hybrid, diff     1  7.9787469E-02  1.4453791E-01  -123.3854673014  -5.3623E-02
  SD informations: mean alpha=6.934E-01, max alpha=6.934E-01, consecutive successes=1
- delta_energy -7.305276496558397E-002
+ delta_energy -7.305276496549899E-002
 reconstruct kernel                     :  Yes
 reconstruct kernel                     :  Yes
 coeff renormalization... calculate density kernel... done.
- econf, econf/tmb%orbs%norb  1.072940877534455E-004  2.332480168553164E-006
-Energies: {Ekin:  1.01087667510E+02, Epot: -1.22788512888E+02, Enl:  1.10290819080E+01}
-Energies: {Ekin:  1.01087667510E+02, Epot: -1.22788512888E+02, Enl:  1.10290819080E+01}
+ econf, econf/tmb%orbs%norb  1.072940877570771E-004  2.332480168632111E-006
+Energies: {Ekin:  1.01087667510E+02, Epot: -1.22788512888E+02, Enl:  1.10290819079E+01}
+Energies: {Ekin:  1.01087667510E+02, Epot: -1.22788512888E+02, Enl:  1.10290819079E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.280092E-02    2.149999E-02    5.054374E-02
- ediff, delta_energy_prev -6.015278528025192E-003 -7.305276496558397E-002
- ratio_deltas  8.234155860984950E-002
+ ediff, delta_energy_prev -6.015278527854662E-003 -7.305276496549899E-002
+ ratio_deltas  8.234155860761093E-002
  reduce the confinement
  iter, fnrm, fnrmMax, hybrid, diff     2  7.5757729E-02  1.3628010E-01  -123.3914825799  -6.0153E-03
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
@@ -1570,42 +1620,42 @@ max dev from unity    1.566881E-02
  No Hamiltonian application required.
 method                                 : DminDIIS
 method                                 : DminDIIS
+iter                                   :  1
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     3.073760E-003    -2.537736E+001     2.328881E-002
-iter                                   :  1
 fnrm                                   :  3.07E-03
-eBS                                    : -2.53773603726771562E+01
+eBS                                    : -2.53773603725823484E+01
 D                                      :  2.329E-02
 iter                                   :  1
 fnrm                                   :  3.07E-03
-eBS                                    : -2.53773603726771562E+01
+eBS                                    : -2.53773603725823484E+01
 D                                      :  2.329E-02
-method                                 : DminDIIS
-iter                                   :  2
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     2.694211E-003    -2.535407E+001    -4.265997E-005
 method                                 : DminDIIS
 iter                                   :  2
 fnrm                                   :  2.69E-03
+method                                 : DminDIIS
+eBS                                    : -2.53540715659534115E+01
+D                                      : -4.266E-05
+iter                                   :  2
 fnrm                                   :  2.69E-03
-eBS                                    : -2.53540715659858691E+01
+eBS                                    : -2.53540715659534115E+01
 D                                      : -4.266E-05
-eBS                                    : -2.53540715659858691E+01
-D                                      : -4.266E-05
+method                                 : DminDIIS
+method                                 : DminDIIS
+iter                                   :  3
+fnrm                                   :  8.14E-04
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     8.142479E-004    -2.535411E+001    -3.410870E-006
-method                                 : DminDIIS
-iter                                   :  3
-fnrm                                   :  8.14E-04
-eBS                                    : -2.53541142259561205E+01
-method                                 : DminDIIS
-iter                                   :  3
-fnrm                                   :  8.14E-04
-eBS                                    : -2.53541142259561205E+01
+eBS                                    : -2.53541142259236629E+01
 D                                      : -3.411E-06
+iter                                   :  3
+fnrm                                   :  8.14E-04
+eBS                                    : -2.53541142259236629E+01
 D                                      : -3.411E-06
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996521682E+01
@@ -1613,25 +1663,25 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.9101279E-08   -9.80377469839420996E+01   -3.0786E-03
+   it, Delta DENS, energy, energyDiff   1  1.9101279E-08   -9.80377469839419291E+01   -3.0786E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.566881E-02
  ----------------------------------- Determination of the orbitals in this new basis.
-Energies: {Ekin:  1.01087667510E+02, Epot: -1.22845063464E+02, Enl:  1.10290819080E+01}
-Energies: {Ekin:  1.01087667510E+02, Epot: -1.22845063464E+02, Enl:  1.10290819080E+01}
+Energies: {Ekin:  1.01087667510E+02, Epot: -1.22845063464E+02, Enl:  1.10290819079E+01}
+Energies: {Ekin:  1.01087667510E+02, Epot: -1.22845063464E+02, Enl:  1.10290819079E+01}
 ekin, eh, epot, eproj, eex  1.010876675104E+02  0.000000000000E+00 -1.228450634643E+02  1.102908190795E+01  0.000000000000E+00
  Hamiltonian application done.
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  1.45E-03
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  1.45E-03
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.454469E-003    -2.535412E+001    -5.553875E-002
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  1.45E-03
-eBS                                    : -2.53541176368260643E+01
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  1.45E-03
-eBS                                    : -2.53541176368260643E+01
+eBS                                    : -2.53541176367936316E+01
+eBS                                    : -2.53541176367936316E+01
 D                                      : -5.554E-02
 D                                      : -5.554E-02
 method                                 : DminDIIS
@@ -1642,34 +1692,41 @@ DminDIIS: it, fnrm, ebs, ebsdiff   2     1.337740E-003    -2.540966E+001    -4.5
 method                                 : DminDIIS
 iter                                   :  2
 fnrm                                   :  1.34E-03
+eBS                                    : -2.54096563852823643E+01
 fnrm                                   :  1.34E-03
-eBS                                    : -2.54096563852441335E+01
-eBS                                    : -2.54096563852441335E+01
 D                                      : -4.502E-06
+eBS                                    : -2.54096563852823643E+01
 D                                      : -4.502E-06
-method                                 : DminDIIS
-iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
- 
-DminDIIS: it, fnrm, ebs, ebsdiff   3     1.135021E-003    -2.540966E+001    -9.766473E-006
+method                                 : DminDIIS
+iter                                   :  3
 method                                 : DminDIIS
 iter                                   :  3
 fnrm                                   :  1.14E-03
-eBS                                    : -2.54096608868729810E+01
-D                                      : -9.766E-06
 fnrm                                   :  1.14E-03
-eBS                                    : -2.54096608868729810E+01
+eBS                                    : -2.54096608869112366E+01
+ 
+eBS                                    : -2.54096608869112366E+01
 D                                      : -9.766E-06
+D                                      : -9.766E-06
+DminDIIS: it, fnrm, ebs, ebsdiff   3     1.135021E-003    -2.540966E+001    -9.766473E-006
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996520207E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.5840493E-08   -9.80377452464713315E+01    1.7375E-06
+   it, Delta DENS, energy, energyDiff   2  1.5840493E-08   -9.80377452464714452E+01    1.7375E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.540967065335E+01  3.626622528458E+02 -2.604113209734E+01 -3.411216393306E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   11   1.16E-08   -9.80377452464713315E+01   -3.0769E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  1.5840493E-08   -9.80377452464714452E+01    1.7375E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.540967065338E+01  3.626622528458E+02 -2.604113209734E+01 -3.411216393306E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   11   1.16E-08   -9.80377452464714452E+01   -3.0769E-03
+ #=========================================================== support function optimization
+ #=========================================================== support function optimization
  #############################################################################################
  at iteration 11 of the outer loop:
    > basis functions optimization:
@@ -1679,35 +1736,33 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   11    1.58E-08   -9.80377452464713315E+01
- #=========================================================== support function optimization
- #=========================================================== support function optimization
+     FINAL values: it, Delta DENS, energy   11    1.58E-08   -9.80377452464714452E+01
    > energy difference to last iteration: -3.076862E-03
  #############################################################################################
  Multiply the confinement prefactor by 8.2E-02
  ======================== Creation of the basis functions... ========================
- econf, econf/tmb%orbs%norb  8.834762415240658E-006  1.920600525052317E-007
-Energies: {Ekin:  1.01087667510E+02, Epot: -1.22821011451E+02, Enl:  1.10290819080E+01}
-Energies: {Ekin:  1.01087667510E+02, Epot: -1.22821011451E+02, Enl:  1.10290819080E+01}
+ econf, econf/tmb%orbs%norb  8.834762415299503E-006  1.920600525065109E-007
+Energies: {Ekin:  1.01087667510E+02, Epot: -1.22821011451E+02, Enl:  1.10290819079E+01}
+Energies: {Ekin:  1.01087667510E+02, Epot: -1.22821011451E+02, Enl:  1.10290819079E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.289689E-02    2.140260E-02    5.087577E-02
- ediff, delta_energy_prev -3.774859894389238E-002  1.000000000000000E+100
- ratio_deltas -3.774859894389238E-102
+ ediff, delta_energy_prev -3.774859898635441E-002  1.000000000000000E+100
+ ratio_deltas -3.774859898635441E-102
  iter, fnrm, fnrmMax, hybrid, diff     1  7.5794743E-02  1.3618037E-01  -123.4232159004  -3.7749E-02
  SD informations: mean alpha=7.627E-01, max alpha=7.627E-01, consecutive successes=1
- delta_energy -7.197327723925319E-002
+ delta_energy -7.197327723935697E-002
 coeff renormalization... calculate density kernel... done.
 reconstruct kernel                     :  Yes
 reconstruct kernel                     :  Yes
- econf, econf/tmb%orbs%norb  8.862425621882151E-006  1.926614265626554E-007
+ econf, econf/tmb%orbs%norb  8.862425621928280E-006  1.926614265636583E-007
 Energies: {Ekin:  1.01041749139E+02, Epot: -1.22788562848E+02, Enl:  1.10277246397E+01}
 Energies: {Ekin:  1.01041749139E+02, Epot: -1.22788562848E+02, Enl:  1.10277246397E+01}
 done.
 AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.200962E-02    2.061466E-02    5.284882E-02
- ediff, delta_energy_prev -6.018884992727180E-003 -7.197327723925319E-002
- ratio_deltas  8.362666288932814E-002
+ ediff, delta_energy_prev -6.018884992954554E-003 -7.197327723935697E-002
+ ratio_deltas  8.362666289236670E-002
  reduce the confinement
- iter, fnrm, fnrmMax, hybrid, diff     2  7.1730223E-02  1.2814543E-01  -123.4292347853  -6.0189E-03
+ iter, fnrm, fnrmMax, hybrid, diff     2  7.1730223E-02  1.2814543E-01  -123.4292347854  -6.0189E-03
  WARNING: not converged within 2 iterations! Exiting loop due to limitations of iterations.
  ============================= Basis functions created. =============================
  #===================================================================== kernel optimization
@@ -1715,44 +1770,44 @@ AFTER: gnrm, gnrmmax, gnrm/gnrm_old    1.200962E-02    2.061466E-02    5.284882E
 max dev from unity    1.625575E-02
  ----------------------------------- Determination of the orbitals in this new basis.
  No Hamiltonian application required.
+method                                 : DminDIIS
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
-method                                 : DminDIIS
-iter                                   :  1
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  3.20E-03
-eBS                                    : -2.54096706533456071E+01
-D                                      :  2.113E-02
 DminDIIS: it, fnrm, ebs, ebsdiff   1     3.197229E-003    -2.540967E+001     2.112865E-002
-fnrm                                   :  3.20E-03
-eBS                                    : -2.54096706533456071E+01
-D                                      :  2.113E-02
 method                                 : DminDIIS
-iter                                   :  2
-fnrm                                   :  2.88E-03
-eBS                                    : -2.53885420022605643E+01
-D                                      : -4.896E-05
+iter                                   :  1
+iter                                   :  1
+fnrm                                   :  3.20E-03
+fnrm                                   :  3.20E-03
+eBS                                    : -2.54096706533838628E+01
+D                                      :  2.113E-02
+eBS                                    : -2.54096706533838628E+01
+D                                      :  2.113E-02
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   2     2.879993E-003    -2.538854E+001    -4.896445E-005
 method                                 : DminDIIS
 iter                                   :  2
 fnrm                                   :  2.88E-03
-eBS                                    : -2.53885420022605643E+01
+method                                 : DminDIIS
+iter                                   :  2
+fnrm                                   :  2.88E-03
+eBS                                    : -2.53885420022712935E+01
 D                                      : -4.896E-05
+eBS                                    : -2.53885420022712935E+01
+D                                      : -4.896E-05
+method                                 : DminDIIS
+iter                                   :  3
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
 DminDIIS: it, fnrm, ebs, ebsdiff   3     8.131474E-004    -2.538859E+001    -3.423726E-006
 method                                 : DminDIIS
 iter                                   :  3
 fnrm                                   :  8.13E-04
-eBS                                    : -2.53885909667059408E+01
-method                                 : DminDIIS
-iter                                   :  3
-fnrm                                   :  8.13E-04
-eBS                                    : -2.53885909667059408E+01
+eBS                                    : -2.53885909667166558E+01
 D                                      : -3.424E-06
+fnrm                                   :  8.13E-04
+eBS                                    : -2.53885909667166558E+01
 D                                      : -3.424E-06
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996522286E+01
@@ -1760,63 +1815,68 @@ Calculating charge density... done.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 1 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  1.5966255E-08   -9.80408275455566809E+01   -3.0823E-03
+   it, Delta DENS, energy, energyDiff   1  1.5966255E-08   -9.80408275455561125E+01   -3.0823E-03
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 max dev from unity    1.625575E-02
  ----------------------------------- Determination of the orbitals in this new basis.
+ekin, eh, epot, eproj, eex  1.010417491392E+02  0.000000000000E+00 -1.228071373456E+02  1.102772463970E+01  0.000000000000E+00
 Energies: {Ekin:  1.01041749139E+02, Epot: -1.22807137346E+02, Enl:  1.10277246397E+01}
 Energies: {Ekin:  1.01041749139E+02, Epot: -1.22807137346E+02, Enl:  1.10277246397E+01}
-ekin, eh, epot, eproj, eex  1.010417491392E+02  0.000000000000E+00 -1.228071373456E+02  1.102772463969E+01  0.000000000000E+00
  Hamiltonian application done.
-method                                 : DminDIIS
-iter                                   :  1
-method                                 : DminDIIS
-iter                                   :  1
-fnrm                                   :  1.33E-03
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
-eBS                                    : -2.53885943904321039E+01
-D                                      : -1.858E-02
-fnrm                                   :  1.33E-03
-eBS                                    : -2.53885943904321039E+01
-D                                      : -1.858E-02
  
 DminDIIS: it, fnrm, ebs, ebsdiff   1     1.332955E-003    -2.538859E+001    -1.857954E-002
 method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  1.33E-03
+method                                 : DminDIIS
+iter                                   :  1
+fnrm                                   :  1.33E-03
+eBS                                    : -2.53885943904428046E+01
+eBS                                    : -2.53885943904428046E+01
+D                                      : -1.858E-02
+D                                      : -1.858E-02
+ calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+ 
 method                                 : DminDIIS
 iter                                   :  2
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
+method                                 : DminDIIS
 iter                                   :  2
-fnrm                                   :  1.20E-03
-eBS                                    : -2.54071739320645840E+01
-D                                      : -4.311E-06
-fnrm                                   :  1.20E-03
-eBS                                    : -2.54071739320645840E+01
-D                                      : -4.311E-06
- 
 DminDIIS: it, fnrm, ebs, ebsdiff   2     1.202384E-003    -2.540717E+001    -4.310664E-006
-method                                 : DminDIIS
-iter                                   :  3
-method                                 : DminDIIS
-iter                                   :  3
+fnrm                                   :  1.20E-03
+eBS                                    : -2.54071739320396048E+01
+fnrm                                   :  1.20E-03
+eBS                                    : -2.54071739320396048E+01
+D                                      : -4.311E-06
+D                                      : -4.311E-06
  calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel... 
  
-fnrm                                   :  9.87E-04
-eBS                                    : -2.54071782427285839E+01
-D                                      : -7.622E-06
-fnrm                                   :  9.87E-04
-eBS                                    : -2.54071782427285839E+01
-D                                      : -7.622E-06
+method                                 : DminDIIS
+iter                                   :  3
+method                                 : DminDIIS
+iter                                   :  3
 DminDIIS: it, fnrm, ebs, ebsdiff   3     9.872069E-004    -2.540718E+001    -7.622261E-006
+fnrm                                   :  9.87E-04
+eBS                                    : -2.54071782427036155E+01
+D                                      : -7.622E-06
+fnrm                                   :  9.87E-04
+eBS                                    : -2.54071782427036155E+01
+D                                      : -7.622E-06
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996521348E+01
  ---------------------------------------------------------------- Updating potential.
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  at iteration 2 of the density optimization:
    coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  1.5548249E-08   -9.80408293568610247E+01   -1.8113E-06
+   it, Delta DENS, energy, energyDiff   2  1.5548249E-08   -9.80408293568608542E+01   -1.8113E-06
  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.540718586499E+01  3.626558370553E+02 -2.603983202343E+01 -3.411045049180E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   12   6.96E-09   -9.80408293568610247E+01   -3.0841E-03
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ at iteration 3 of the density optimization:
+   coefficients / kernel obtained by direct minimization.
+   it, Delta DENS, energy, energyDiff   3  1.5548249E-08   -9.80408293568608542E+01   -1.8113E-06
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.540718586497E+01  3.626558370553E+02 -2.603983202343E+01 -3.411045049181E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   12   6.96E-09   -9.80408293568608542E+01   -3.0841E-03
  #############################################################################################
  at iteration 12 of the outer loop:
    > basis functions optimization:
@@ -1826,10 +1886,10 @@ Calculating charge density... done.
    > density optimization:
      - using direct minimization.
      - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   12    1.55E-08   -9.80408293568610247E+01
+     FINAL values: it, Delta DENS, energy   12    1.55E-08   -9.80408293568608542E+01
    > energy difference to last iteration: -3.084110E-03
  #############################################################################################
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.540718586499E+01  3.626558370553E+02 -2.603983202343E+01 -3.411045049180E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
-   itoutL, Delta DENSOUT, energy, energyDiff   12   6.96E-09   -9.80408293568610247E+01    0.0000E+00   FINAL
+   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -2.540718586497E+01  3.626558370553E+02 -2.603983202343E+01 -3.411045049181E+01  0.000000000000E+00  2.819389878549E+02  0.000000000000E+00
+   itoutL, Delta DENSOUT, energy, energyDiff   12   6.96E-09   -9.80408293568608542E+01    0.0000E+00   FINAL
 Calculating charge density... done.
    Calculation finished. TOTAL CHARGE =   5.399996521348E+01
