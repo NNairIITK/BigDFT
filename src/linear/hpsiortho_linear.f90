@@ -777,9 +777,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !    call memocc(istat, iall, 'hpsi_tmp', subname)
   !end if
 
-  if(iproc==0) then
-      write(*,'(a)') 'done.'
-  end if
+  !!if(iproc==0) then
+  !!    write(*,'(a)') 'done.'
+  !!end if
 
   call timing(iproc,'eglincomms','ON')
   ist=1
@@ -947,13 +947,25 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
   if(iproc==0) then
+      call yaml_newline()
+      call yaml_open_map('Optimization',flow=.true.)
       if(ldiis%isx>0) then
-          write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
-              ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
+          !!write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
+          !!    ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
+          call yaml_map('algorithm','DIIS')
+          call yaml_map('history length',ldiis%isx)
+          call yaml_map('consecutive failures',ldiis%icountDIISFailureCons)
+          call yaml_map('total failures',ldiis%icountDIISFailureTot)
       else
-          write(*,'(1x,2(a,es9.3),a,i0)') 'SD informations: mean alpha=', alpha_mean, ', max alpha=', alpha_max,&
-          ', consecutive successes=', ldiis%icountSDSatur
+          !!write(*,'(1x,2(a,es9.3),a,i0)') 'SD informations: mean alpha=', alpha_mean, ', max alpha=', alpha_max,&
+          !!', consecutive successes=', ldiis%icountSDSatur
+          call yaml_map('algorithm','SD')
+          call yaml_map('mean alpha',alpha_mean,fmt='(es9.3)')
+          call yaml_map('max alpha',alpha_max,fmt='(es9.3)')
+          call yaml_map('consecutive successes',ldiis%icountSDSatur)
       end if
+      call yaml_close_map()
+      call yaml_newline()
   end if
 
   ! Improve the orbitals, depending on the choice made above.

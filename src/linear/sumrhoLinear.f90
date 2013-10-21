@@ -292,6 +292,7 @@ END SUBROUTINE partial_density_linear
 subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern)
   use module_base
   use module_types
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -313,6 +314,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   call f_routine(id='calculate_density_kernel')
 
   if (communication_strategy==ALLGATHERV) then
+      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLGATHERV')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       density_kernel_partial=f_malloc((/orbs_tmb%norb,max(orbs_tmb%norbp,1)/), id='density_kernel_partial')
@@ -370,8 +372,9 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call compress_matrix_for_allreduce(iproc,denskern)
       call f_free_ptr(denskern%matrix)
   else if (communication_strategy==ALLREDUCE) then
+      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON') !lr408t
-      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       denskern%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern')
       if(orbs%norbp>0) then
           fcoeff=f_malloc((/orbs_tmb%norb,orbs%norbp/), id='fcoeff')
@@ -458,6 +461,7 @@ end subroutine calculate_density_kernel
 subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, kernel)
   use module_base
   use module_types
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -477,6 +481,7 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
   integer,parameter :: communication_strategy=ALLREDUCE
 
   if (communication_strategy==ALLGATHERV) then
+      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLGATHERV')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
@@ -542,8 +547,9 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
       deallocate(density_kernel_partial,stat=istat)
       call memocc(istat,iall,'density_kernel_partial',subname)
   else if (communication_strategy==ALLREDUCE) then
+      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON') !lr408t
-      if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+      !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       if(orbs%norbp>0) then
           allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
           call memocc(istat, fcoeff, 'fcoeff', subname)
@@ -1693,7 +1699,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !end if
 
 
-  if (print_local .and. iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
+  !!if (print_local .and. iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
   total_charge=0.d0
   !$omp parallel default(private) &
@@ -1722,7 +1728,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !$omp end do
   !$omp end parallel
 
-  if (print_local .and. iproc==0) write(*,'(a)') 'done.'
+  !if (print_local .and. iproc==0) write(*,'(a)') 'done.'
 
   call timing(iproc,'sumrho_TMB    ','OF')
 

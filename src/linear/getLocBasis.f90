@@ -100,7 +100,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   call deviation_from_unity(iproc, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, deviation)
   if (iproc==0) then
-      write(*,'(a,es16.6)') 'max dev from unity', deviation
+      !!write(*,'(a,es16.6)') 'max dev from unity', deviation
+      call yaml_map('max dev from unity',deviation,fmt='(es9.2)')
   end if
   deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
 
@@ -110,7 +111,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            tmb%orbs, tmb%psi, tmb%collcom_sr)
   end if
 
-  if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
+  !!if(iproc==0) write(*,'(1x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(calculate_ham) then
@@ -167,7 +168,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       deallocate(denspot%pot_work, stat=istat)
       call memocc(istat, iall, 'denspot%pot_work', subname)
 
-      if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
+      !!if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
 
       ! Calculate the matrix elements <phi|H|phi>.
       if(.not.tmb%ham_descr%can_use_transposed) then
@@ -259,7 +260,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       end if
 
   else
-      if(iproc==0) write(*,*) 'No Hamiltonian application required.'
+      !!if(iproc==0) write(*,*) 'No Hamiltonian application required.'
       if (iproc==0) then
           call yaml_map('Hamiltonian application required',.false.)
       end if
@@ -288,10 +289,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call dcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
   if (.true.) then
       if(tmb%orthpar%blocksize_pdsyev<0) then
-          if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
+          if (iproc==0) call yaml_map('Diagonalizing Hamiltonian','sequential')
+          !if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
       else
-          if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
+          !!if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
+          if (iproc==0) call yaml_map('Diagonalizing Hamiltonian','parallel')
           call dsygv_parallel(iproc, nproc, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
                bigdft_mpi%mpi_comm, 1, 'v', 'l',tmb%orbs%norb, &
                matrixElements(1,1,1), tmb%orbs%norb, matrixElements(1,1,2), tmb%orbs%norb, tmb%orbs%eval, info)
@@ -305,7 +308,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           end if
       end do
 
-      if(iproc==0) write(*,'(a)') 'done.'
+      !!if(iproc==0) write(*,'(a)') 'done.'
 
       call dcopy(tmb%orbs%norb*tmb%orbs%norb, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
       infoCoeff=0
@@ -351,7 +354,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       deallocate(evalsmall)
       deallocate(smallmat)
 
-      if(iproc==0) write(*,'(a)') 'done.'
+      !!if(iproc==0) write(*,'(a)') 'done.'
 
       call dcopy(tmb%orbs%norb*tmb%orbs%norb, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
       infoCoeff=0
@@ -595,7 +598,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   call timing(iproc,'getlocbasinit','ON')
   tmb%can_use_transposed=.false.
-  if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
+  !!if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
@@ -1148,7 +1151,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               infoBasisFunctions=0
               if (iproc==0) call yaml_map('exit criterion','extended input guess')
           end if
-          if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
+          !!if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           if (infoBasisFunctions>=0) then
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
@@ -1216,15 +1219,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(scf_mode/=LINEAR_FOE) then
           call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                orbs, tmb, overlap_calculated)
-          call yaml_map('reconstruct kernel',.true.)
+          if (iproc==0) call yaml_map('reconstruct kernel',.true.)
       else if (experimental_mode) then
           call purify_kernel(iproc, nproc, tmb, overlap_calculated)
-          call yaml_map('purify kernel',.true.)
+          if (iproc==0) call yaml_map('purify kernel',.true.)
       end if
   !!end if
-      if(iproc==0) then
-          write(*,'(a)') 'done.'
-      end if
+      !!if(iproc==0) then
+      !!    write(*,'(a)') 'done.'
+      !!end if
   end if
 
   if (iproc==0) then
@@ -1966,9 +1969,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   allocate(coeff_tmp(basis_orbs%norbp,max(norb,1)), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
 
-  if(iproc==0) then
-      write(*,'(a)',advance='no') 'coeff renormalization...'
-  end if
+  !!if(iproc==0) then
+  !!    write(*,'(a)',advance='no') 'coeff renormalization...'
+  !!end if
 
   !dense=.true.
 

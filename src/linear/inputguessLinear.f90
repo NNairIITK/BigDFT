@@ -18,6 +18,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use yaml_output
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -468,7 +469,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (.not. input%lin%iterative_orthogonalization) then
       ! Standard orthonomalization
-      if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+      !!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+      if (iproc==0) call yaml_map('orthonormalization of input guess','standard')
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       !write(*,'(a,i4,4i8)') 'IG: iproc, lbound, ubound, minval, maxval',&
       !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
@@ -481,7 +483,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  else
 
      ! Iterative orthonomalization
-     if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+     !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+     if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
      allocate(maxorbs_type(at%astruct%ntypes),stat=istat)
      call memocc(istat,maxorbs_type,'maxorbs_type',subname)
      allocate(minorbs_type(at%astruct%ntypes),stat=istat)
@@ -642,7 +645,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
   end if
   
-  if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
+  !!if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
+  if (iproc==0) call yaml_comment('Input guess generated',hfill='=')
   
   ! Deallocate all local arrays.
 

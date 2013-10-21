@@ -234,7 +234,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      ! Calculate the new potential.
-     if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+     !if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+     if (iproc==0) call yaml_map('update potential',.true.)
      call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   end if
 
@@ -715,7 +716,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
 
              ! Calculate the new potential.
-             if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+             !!if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
              if (iproc==0) then
                  call yaml_map('update potential',.true.)
                  call yaml_newline()
@@ -1174,8 +1175,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       implicit none
 
       if(iproc==0) then
-          write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
-          write(*,'(1x,a,i0,a)') 'at iteration ', it_SCC, ' of the density optimization:'
+          !write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
+          !write(*,'(1x,a,i0,a)') 'at iteration ', it_SCC, ' of the density optimization:'
           !!if(infoCoeff<0) then
           !!    write(*,'(3x,a)') '- WARNING: coefficients not converged!'
           !!else if(infoCoeff>0) then
@@ -1237,7 +1238,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
              end if
           end if     
-          write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
+          !write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
       end if
 
     end subroutine printSummary
@@ -1272,9 +1273,44 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           call yaml_map('iter',itout)
-          ! Use this subroutine to write the energies, with some fake
-          ! number to prevent it from writing too much
-          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+          if(target_function==TARGET_FUNCTION_IS_TRACE) then
+              call yaml_map('target function','TRACE')
+          else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
+              call yaml_map('target function','ENERGY')
+          else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+              call yaml_map('target function','HYBRID')
+              write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
+          end if
+          call yaml_map('mean conf prefac',mean_conf,fmt='(es9.2)')
+          if(info_basis_functions<=0) then
+              call yaml_warning('support function optimization not converged')
+          else
+              call yaml_map('iterations to converge support functions',info_basis_functions)
+          end if
+          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+              call yaml_map('kernel optimization','DIRMIN')
+          else if (input%lin%scf_mode==LINEAR_FOE) then
+              call yaml_map('kernel optimization','FOE')
+          else
+              call yaml_map('kernel optimization','DIAG')
+          end if
+          if(info_scf<0) then
+              call yaml_warning('density optimization not converged')
+          else
+              call yaml_map('iterations to converge kernel optimization',info_scf)
+          end if
+          !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+          !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
+          !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+          !!end if
+          !!! Use this subroutine to write the energies, with some fake
+          !!! number to prevent it from writing too much
+          !!call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+          !!call yaml_map('final target function',trace)
+          !!call yaml_map('final fnrm',fnrm_tmb)
 
           !Before convergence
           !!write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
@@ -1310,45 +1346,45 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
           call yaml_close_map()
 
-          !when convergence is reached, use this block
-          write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
-          write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
-          write(*,'(3x,a)') '> basis functions optimization:'
-          if(target_function==TARGET_FUNCTION_IS_TRACE) then
-              write(*,'(5x,a)') '- target function is trace'
-          else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
-              write(*,'(5x,a)') '- target function is energy'
-          else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-              write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
-          end if
-          if(info_basis_functions<=0) then
-              write(*,'(5x,a)') '- WARNING: basis functions not converged!'
-          else
-              write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_basis_functions, ' iterations.'
-          end if
-          write(*,'(5x,a,es15.6,2x,es10.2)') 'Final values: target function, fnrm', trace, fnrm_tmb
-          write(*,'(3x,a)') '> density optimization:'
-          if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(5x,a)') '- using direct minimization.'
-          else if (input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(5x,a)') '- using Fermi Operator Expansion / mixing.'
-          else
-              write(*,'(5x,a)') '- using diagonalization / mixing.'
-          end if
-          if(info_scf<0) then
-              write(*,'(5x,a)') '- WARNING: density optimization not converged!'
-          else
-              write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_scf, ' iterations.'
-          end if
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
-          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
-          else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
-          end if
-          write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
-          write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
+          !!!when convergence is reached, use this block
+          !!write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
+          !!write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
+          !!write(*,'(3x,a)') '> basis functions optimization:'
+          !!if(target_function==TARGET_FUNCTION_IS_TRACE) then
+          !!    write(*,'(5x,a)') '- target function is trace'
+          !!else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
+          !!    write(*,'(5x,a)') '- target function is energy'
+          !!else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+          !!    write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
+          !!end if
+          !!if(info_basis_functions<=0) then
+          !!    write(*,'(5x,a)') '- WARNING: basis functions not converged!'
+          !!else
+          !!    write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_basis_functions, ' iterations.'
+          !!end if
+          !!write(*,'(5x,a,es15.6,2x,es10.2)') 'Final values: target function, fnrm', trace, fnrm_tmb
+          !!write(*,'(3x,a)') '> density optimization:'
+          !!if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          !!    write(*,'(5x,a)') '- using direct minimization.'
+          !!else if (input%lin%scf_mode==LINEAR_FOE) then
+          !!    write(*,'(5x,a)') '- using Fermi Operator Expansion / mixing.'
+          !!else
+          !!    write(*,'(5x,a)') '- using diagonalization / mixing.'
+          !!end if
+          !!if(info_scf<0) then
+          !!    write(*,'(5x,a)') '- WARNING: density optimization not converged!'
+          !!else
+          !!    write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_scf, ' iterations.'
+          !!end if
+          !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+          !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
+          !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+          !!end if
+          !!write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
+          !!write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
       else if (iproc==0.and.final) then
           call yaml_comment('final results',hfill='=')
           call yaml_sequence(advance='no')
@@ -1533,6 +1569,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
+  use yaml_output
   implicit none
   
   ! Calling argument
@@ -1559,7 +1596,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   if(lowaccur_converged ) then
       do ilr = 1, tmb%lzd%nlr
          if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
-             if(iproc==0) write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+             !!if(iproc==0) write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+             if (iproc==0) call yaml_map('Increasing the localization radius for the high accuracy part',.true.)
              locreg_increased=.true.
              exit
          end if
