@@ -206,10 +206,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           end if
 
           if (iproc==0) then
-              write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
-              write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', &
-                                                            it, foe_obj%evlow, foe_obj%evhigh, foe_obj%ef, npl
-              write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
+              !!write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
+              !!write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', &
+              !!                                              it, foe_obj%evlow, foe_obj%evhigh, foe_obj%ef, npl
+              !!write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
               call yaml_map('lower bisection bound',efarr(1),fmt='(es10.3)')
               call yaml_map('upper bisection bound',efarr(1),fmt='(es10.3)')
               call yaml_map('lower eigenvalue bound',foe_obj%evlow,fmt='(es10.3)')
@@ -260,13 +260,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
           if (calculate_SHS) then
               ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
-              if (iproc==0) write(*,*) 'Need to recalculate the Chebyshev polynomials.'
+              !!if (iproc==0) write(*,*) 'Need to recalculate the Chebyshev polynomials.'
               if (iproc==0) call yaml_map('Chebyshev polynomials','recalculated')
               call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, fermi, hamscal_compr, &
                    ovrlpeff_compr, calculate_SHS, nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
           else
               ! The Chebyshev polynomials are already available
-              if (iproc==0) write(*,*) 'Can use the Chebyshev polynomials from memory.'
+              !!if (iproc==0) write(*,*) 'Can use the Chebyshev polynomials from memory.'
               if (iproc==0) call yaml_map('Chebyshev polynomials','from memory')
               call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, fermip)
           end if 
@@ -310,31 +310,31 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               call mpiallred(allredarr, 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
               if (allredarr(1)>anoise) then
                   if (iproc==0) then
-                      write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
-                                                allredarr(1), anoise
-                      write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
+                      !!write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
+                      !!                          allredarr(1), anoise
+                      !!write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
                       call yaml_map('lowest eigenvalue within bounds','No; increase magnitude by 20% and cycle')
                   end if
                   foe_obj%evlow=foe_obj%evlow*1.2d0
                   restart=.true.
               else
                   if (iproc==0) then
-                      write(*,'(1x,a)') 'Lowest eigenvalue within interval, can continue.'
+                      !!write(*,'(1x,a)') 'Lowest eigenvalue within interval, can continue.'
                       call yaml_map('lowest eigenvalue within bounds','Yes; can continue')
                   end if
               end if
               if (allredarr(2)>anoise) then
                   if (iproc==0) then
-                      write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
-                                                allredarr(2), anoise
-                      write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
+                      !!write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
+                      !!                          allredarr(2), anoise
+                      !!write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
                       call yaml_map('highest eigenvalue within bounds','No; increase magnitude by 20% and cycle')
                   end if
                   foe_obj%evhigh=foe_obj%evhigh*1.2d0
                   restart=.true.
               else
                   if (iproc==0) then
-                      write(*,'(1x,a)') 'Highest eigenvalue within interval, can continue.'
+                      !!write(*,'(1x,a)') 'Highest eigenvalue within interval, can continue.'
                       call yaml_map('highest eigenvalue within bounds','Yes; can continue')
                   end if
               end if
@@ -402,7 +402,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   !!    interpol_matrix(ii,4)=1
                   !!end do
                   !!interpol_vector(ii)=(sumn-foe_obj%charge)
-                  if (iproc==0) write(*,'(1x,a)') 'lower bisection bound is okay.'
+                  !!if (iproc==0) write(*,'(1x,a)') 'lower bisection bound is okay.'
                   if (iproc==0) then
                       call yaml_map('lower bound okay',.true.)
                       call yaml_close_map()
@@ -412,8 +412,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               else
                   efarr(1)=efarr(1)-foe_obj%bisection_shift
                   foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
-                  if (iproc==0) write(*,'(1x,a,es12.5)') &
-                      'lower bisection bound does not give negative charge difference: diff=',charge_diff
+                  !!if (iproc==0) write(*,'(1x,a,es12.5)') &
+                  !!    'lower bisection bound does not give negative charge difference: diff=',charge_diff
                   if (iproc==0) then
                       call yaml_map('lower bound okay',.false.)
                       call yaml_close_map()
@@ -429,13 +429,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   adjust_upper_bound=.false.
                   foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
                   sumnarr(2)=sumn
-                  if (iproc==0) write(*,'(1x,a)') 'upper bisection bound is okay.'
+                  !!if (iproc==0) write(*,'(1x,a)') 'upper bisection bound is okay.'
                   if (iproc==0) call yaml_map('upper bound okay',.true.)
               else
                   efarr(2)=efarr(2)+foe_obj%bisection_shift
                   foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
-                  if (iproc==0) write(*,'(1x,a,es12.5)') &
-                      'upper bisection bound does not give positive charge difference: diff=',charge_diff
+                  !!if (iproc==0) write(*,'(1x,a,es12.5)') &
+                  !!    'upper bisection bound does not give positive charge difference: diff=',charge_diff
                   if (iproc==0) then
                       call yaml_map('upper bound okay',.false.)
                       call yaml_close_map()
@@ -458,19 +458,19 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               if (iproc==0) call yaml_map('D eF',foe_obj%ef-ef_old,fmt='(es13.6)')
               if (iproc==0) call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
               if (foe_obj%ef>ef_old .and. sumn<sumn_old) then
-                  if (iproc==0) then
-                      write(*,'(1x,a,2es13.5)') 'WARNING: Fermi energy was raised, but the trace still decreased: Deltas=',&
-                                        foe_obj%ef-ef_old,sumn-sumn_old
-                      write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
-                  end if
+                  !!if (iproc==0) then
+                  !!    !!write(*,'(1x,a,2es13.5)') 'WARNING: Fermi energy was raised, but the trace still decreased: Deltas=',&
+                  !!    !!                  foe_obj%ef-ef_old,sumn-sumn_old
+                  !!    !!write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
+                  !!end if
                   interpolation_possible=.false.
               end if
               if (foe_obj%ef<ef_old .and. sumn>sumn_old) then
-                  if (iproc==0) then
-                      write(*,'(1x,a,2es13.5)') 'WARNING: Fermi energy was lowered, but the trace still increased: Deltas=',&
-                                        foe_obj%ef-ef_old,sumn-sumn_old
-                      write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
-                  end if
+                  !!if (iproc==0) then
+                  !!    !!write(*,'(1x,a,2es13.5)') 'WARNING: Fermi energy was lowered, but the trace still increased: Deltas=',&
+                  !!    !!                  foe_obj%ef-ef_old,sumn-sumn_old
+                  !!    !!write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
+                  !!end if
                   interpolation_possible=.false.
               end if
               if (foe_obj%ef>ef_old .and. sumn<sumn_old .or. foe_obj%ef<ef_old .and. sumn>sumn_old) then
@@ -552,17 +552,17 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           if (iproc==0) call yaml_open_map('Search new eF:',flow=.true.)
           if (it_solver>=4 .and.  abs(sumn-foe_obj%charge)<foe_obj%ef_interpol_chargediff) then
               det=determinant(iproc,4,interpol_matrix)
-              if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
-                                                     det, foe_obj%ef_interpol_det
+              !!if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
+              !!                                       det, foe_obj%ef_interpol_det
               if (iproc==0) call yaml_map('det',det,fmt='(es10.3)')
               if (iproc==0) call yaml_map('limit',foe_obj%ef_interpol_det,fmt='(es10.3)')
               if(abs(det)>foe_obj%ef_interpol_det) then
                   foe_obj%ef=ef_interpol
-                  if (iproc==0) write(*,'(1x,a)') 'new fermi energy from cubic interpolation'
+                  !!if (iproc==0) write(*,'(1x,a)') 'new fermi energy from cubic interpolation'
                   if (iproc==0) call yaml_map('method','cubic interpolation')
               else
                   ! linear interpolation
-                  if (iproc==0) write(*,'(1x,a)') 'new fermi energy from linear interpolation'
+                  !!if (iproc==0) write(*,'(1x,a)') 'new fermi energy from linear interpolation'
                   if (iproc==0) call yaml_map('method','linear interpolation')
                   m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
                   b = interpol_vector(4)-m*interpol_matrix(4,3)
@@ -576,7 +576,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               foe_obj%ef = foe_obj%ef + .5d0*(efarr(1)+efarr(2))
               ! Take the mean value
               foe_obj%ef=.5d0*foe_obj%ef
-              if (iproc==0) write(*,'(1x,a)') 'new fermi energy from bisection / secant method'
+              !!if (iproc==0) write(*,'(1x,a)') 'new fermi energy from bisection / secant method'
               if (iproc==0) call yaml_map('method','besiection / secant method')
           end if
           if (iproc==0) then
@@ -586,9 +586,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
 
           if (iproc==0) then
-              write(*,'(1x,a,2es21.13)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
-              write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-foe_obj%charge, charge_tolerance
-              write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', foe_obj%ef
+              !!write(*,'(1x,a,2es21.13)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
+              !!write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-foe_obj%charge, charge_tolerance
+              !!write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', foe_obj%ef
               call yaml_map('iter',it)
               call yaml_map('Tr(K)',sumn,fmt='(es16.9)')
               call yaml_map('charge diff',sumn-foe_obj%charge,fmt='(es16.9)')
@@ -606,9 +606,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
       end do main_loop
 
-      if (iproc==0) then
-          write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
-      end if
+      !!if (iproc==0) then
+      !!    write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
+      !!end if
 
       if (iproc==0) then
           call yaml_close_sequence()

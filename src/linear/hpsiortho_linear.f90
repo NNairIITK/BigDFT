@@ -1079,7 +1079,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       end if
   else if (experimental_mode) then
       ! Wasteful to do it transposed...
-      if (iproc==0) write(*,*) 'normalize...'
+      !if (iproc==0) write(*,*) 'normalize...'
+      if (iproc==0) call yaml_map('normalization',.true.)
       if(associated(tmb%psit_c)) then
           iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
           deallocate(tmb%psit_c, stat=istat)

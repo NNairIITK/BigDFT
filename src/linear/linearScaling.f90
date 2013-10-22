@@ -86,10 +86,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   call allocate_local_arrays()
 
-  if(iproc==0) then
-      write(*,'(1x,a)') repeat('*',84)
-      write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
-  end if
+  !!if(iproc==0) then
+  !!    write(*,'(1x,a)') repeat('*',84)
+  !!    write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
+  !!end if
 
   ! Allocate the communications buffers needed for the communications of the potential and
   ! post the messages. This will send to each process the part of the potential that this process
@@ -388,19 +388,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        if(update_phi) then
            if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
                if (input%lin%reduce_confinement_factor>0.d0) then
-                   if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
+                   !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
+                   if (iproc==0) call yaml_map('multiplicator for the confinement',input%lin%reduce_confinement_factor)
                    tmb%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmb%confdatarr(:)%prefac
                else
                    if (ratio_deltas<=1.d0 .and. ratio_deltas>0.d0) then
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
+                       !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas)
                        tmb%confdatarr(:)%prefac=ratio_deltas*tmb%confdatarr(:)%prefac
                    else if (ratio_deltas>1.d0) then
-                       if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       !if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
+                       !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       if (iproc==0) call yaml_warning('ratio_deltas>1, using 0.5 instead')
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',0.5d0)
                        tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    else if (ratio_deltas<=0.d0) then
-                       if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       !if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
+                       !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       if (iproc==0) call yaml_warning('ratio_deltas<=0.d0, using 0.5 instead')
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',0.5d0)
                        tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    end if
                end if
@@ -425,7 +431,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            !    ldiis%isx=0
            !end if
            if (input%experimental_mode) then
-               if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
+               if (iproc==0) call yaml_map('Orthogonalizing the support functions',.false.)
+               !if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
                orthonormalization_on=.false.
            end if
            if (iproc==0) then
@@ -961,7 +968,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   if (input%lin%pulay_correction) then
-      if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
+      !if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
+      if (iproc==0) call yaml_warning('commented correction_locrad')
       !!! Testing energy corrections due to locrad
       !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff) 
       ! Calculate Pulay correction to the forces
@@ -1279,7 +1287,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
               call yaml_map('target function','ENERGY')
           else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
               call yaml_map('target function','HYBRID')
-              write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
+              !write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
           end if
           call yaml_map('mean conf prefac',mean_conf,fmt='(es9.2)')
           if(info_basis_functions<=0) then
@@ -1452,8 +1460,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                           -      3.d0*meanconf_array(itout-1) &
                           + 3.d0/2.d0*meanconf_array(itout-2) &
                           - 1.d0/3.d0*meanconf_array(itout-3)
-            if (iproc==0) write(*,'(a,es16.5)') 'meanconf_der',meanconf_der
-            if (iproc==0) write(*,'(a,es16.5)') 'abs(meanconf_der)/mean_conf',abs(meanconf_der)/mean_conf
+            !!if (iproc==0) write(*,'(a,es16.5)') 'meanconf_der',meanconf_der
+            !!if (iproc==0) write(*,'(a,es16.5)') 'abs(meanconf_der)/mean_conf',abs(meanconf_der)/mean_conf
         end if
         !if (mean_conf<1.d-15 .and. .false.) then
         !if (mean_conf<1.d-15) then
@@ -1791,6 +1799,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   use module_base
   use module_types
   use module_interfaces, except_this_one => pulay_correction
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -1959,9 +1968,19 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
    call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   if(iproc==0) then
-       do jat=1,at%astruct%nat
-           write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
-       end do
+       !!do jat=1,at%astruct%nat
+       !!    write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
+       !!end do
+       call yaml_comment('Pulay Correction',hfill='-')
+       call yaml_open_sequence('Pulay Forces (Ha/Bohr)')
+          do jat=1,at%astruct%nat
+             call yaml_sequence(advance='no')
+             call yaml_open_map(flow=.true.)
+             call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(jat))),fpulay(1:3,jat),fmt='(1es20.12)')
+             call yaml_close_map(advance='no')
+             call yaml_comment(trim(yaml_toa(jat,fmt='(i4.4)')))
+          end do
+          call yaml_close_sequence()
   end if
 
   iall=-product(shape(psit_c))*kind(psit_c)
@@ -1996,7 +2015,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
      call deallocate_sparseMatrix(dham(jdir),subname)
   end do
 
-  if(iproc==0) write(*,'(1x,a)') 'done.'
+  !!if(iproc==0) write(*,'(1x,a)') 'done.'
 
 end subroutine pulay_correction
 

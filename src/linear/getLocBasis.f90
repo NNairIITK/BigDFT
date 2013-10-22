@@ -690,9 +690,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
-          write(*,*) 'econf, econf/tmb%orbs%norb',econf, econf/tmb%orbs%norb
-      end if
+      !!if (target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
+      !!    write(*,*) 'econf, econf/tmb%orbs%norb',econf, econf/tmb%orbs%norb
+      !!end if
 
       call timing(iproc,'glsynchham2','ON')
       call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
@@ -828,12 +828,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (it_tot==1) then
               energy_first=trH
           end if
-          if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
-                                                trH, energy_first, (trH-energy_first)/energy_first
+          !!if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
+          !!                                      trH, energy_first, (trH-energy_first)/energy_first
+          if (iproc==0) call yaml_map('rel D',(trH-energy_first)/energy_first,fmt='(es9.2)')
           if ((trH-energy_first)/energy_first>early_stop .and. itout>0) then
               stop_optimization=.true.
-              if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
-                                                    trH, energy_first, (trH-energy_first)/energy_first
+              !!if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
+              !!                                      trH, energy_first, (trH-energy_first)/energy_first
           end if
       end if
 
@@ -1015,11 +1016,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !if (iproc==0) write(*,*) 'WARNING: HACK FOR ratio_deltas, set to 0.5d0*(ratio_deltas+1.d0)!!'
           !ratio_deltas=0.5d0*(ratio_deltas+1.d0)
           !ratio_deltas=1.d0
-          if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
-          if (iproc==0) write(*,*) 'ratio_deltas',ratio_deltas
+          !!if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
+          !!if (iproc==0) write(*,*) 'ratio_deltas',ratio_deltas
+          if (iproc==0) call yaml_map('kappa',ratio_deltas,fmt='(es10.3)')
           if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
           !if ((it>=nit_basis .or.  energy_increased) .and. it>1) then
-              if (iproc==0) write(*,*) 'reduce the confinement'
+              !if (iproc==0) write(*,*) 'reduce the confinement'
               reduce_conf=.true.
           end if
       end if
@@ -1200,7 +1202,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               delta_energy=1.d100
               !ratio_deltas=1.d100
           end if
-          if (iproc==0) write(*,*) 'delta_energy', delta_energy
+          !if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
           delta_energy_arr(max(it,1))=delta_energy !max since the counter was decreased if there are problems, might lead to wrong results otherwise
       end if
