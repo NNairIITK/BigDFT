@@ -566,12 +566,19 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      ldiis%alphaDIIS=input%lin%alphaDIIS
      energs%eexctX=0.d0 !temporary fix
      trace_old=0.d0 !initialization
+     if (iproc==0) then
+         call yaml_close_map()
+         call yaml_comment('Extended input guess for experimental mode',hfill='-')
+         call yaml_open_sequence('Extended input guess')
+     end if
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
          reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
          50,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop)
+     call yaml_close_sequence()
      call deallocateDIIS(ldiis)
+     call yaml_open_map()
      ! END NEW ############################################################################
  end if
 
@@ -585,7 +592,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
 
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
          call deallocate_sparsematrix(ham_small,subname)
@@ -593,7 +600,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
   end if
 
 
@@ -608,7 +615,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%lin%mixing_after_inputguess .and. (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
      if (input%experimental_mode) then
          !if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
-         if (iproc==0) call yaml_map('INFO: mixing parameter for this step',1.d0)
+         if (iproc==0) call yaml_map('INFO mixing parameter for this step',1.d0)
          call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, 1.d0, &
               denspot, mixdiis, rhopotold, pnrm)
      else

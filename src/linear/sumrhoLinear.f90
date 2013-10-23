@@ -2148,7 +2148,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           end if
       end if
     
-      if (iproc==0) call yaml_close_map()
     
       call f_free(weight)
       call f_free(orbital_id)
@@ -2156,6 +2155,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       call f_free(rho)
 
   end if
+
+  if (iproc==0) call yaml_close_map()
 
   call timing(iproc,'check_sumrho','OF')
 

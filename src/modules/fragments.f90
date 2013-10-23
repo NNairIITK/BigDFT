@@ -1283,6 +1283,7 @@ contains
 
   subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
     nstates_max,cdft)
+    use yaml_output
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
     type(input_variables), intent(in) :: input
@@ -1598,7 +1599,12 @@ contains
        jsforb=jsforb+ref_frags(ifrag_ref)%fbasis%forbs%norb-ceiling(jstate_max)
     end do
     if (.not. completely_random) then
-       if (bigdft_mpi%iproc==0) print*,'nstates_max:',nstates_max,ksorbs%norb,tmb%orbs%norb
+       !!print*,'nstates_max:',nstates_max,ksorbs%norb,tmb%orbs%norb
+       if (bigdft_mpi%iproc==0) then
+           call yaml_map('nstates_max',nstates_max)
+           call yaml_map('ksorbs%norb',ksorbs%norb)
+           call yaml_map('tmb%orbs%norb',tmb%orbs%norb)
+       end if
 
        ! reorder unoccupied states so that extra states functions correctly
        ! still needed just in case number of empty bands doesn't divide by number of fragments
@@ -1615,19 +1621,42 @@ contains
        ! end debug
        ! print starting eigenvalues
        if(bigdft_mpi%iproc==0) then
-          write(*,'(1x,a)') '-------------------------------------------------'
-          write(*,'(1x,a)') 'some selected eigenvalues:'
-          do iorb=1,tmb%orbs%norb!max(ksorbs%norb-8,1),min(ksorbs%norb+8,tmb%orbs%norb)
+          !!write(*,'(1x,a)') '-------------------------------------------------'
+          !!write(*,'(1x,a)') 'some selected eigenvalues:'
+          !!do iorb=1,tmb%orbs%norb!max(ksorbs%norb-8,1),min(ksorbs%norb+8,tmb%orbs%norb)
+          !!    if(iorb==ksorbs%norb) then
+          !!        write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
+          !!    else if(iorb==ksorbs%norb+1) then
+          !!        write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- first virtual orbital'
+          !!    else
+          !!        write(*,'(3x,a,i0,a,es20.12)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb)
+          !!    end if
+          !!end do
+          !!write(*,'(1x,a)') '-------------------------------------------------'
+          !!write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
+
+          call yaml_open_sequence('TMB eigenvalues',flow=.true.)
+          call yaml_newline()
+          do iorb=1,tmb%orbs%norb
+              call yaml_open_map(flow=.true.)
+              call yaml_map('index',iorb)
+              call yaml_map('value',tmb%orbs%eval(iorb),fmt='(es20.12)')
+              call yaml_close_map()
               if(iorb==ksorbs%norb) then
-                  write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
+                  !!write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
+                  call yaml_comment('  <-- last occupied orbital')
               else if(iorb==ksorbs%norb+1) then
-                  write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- first virtual orbital'
+                  !!write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- first virtual orbital'
+                  call yaml_comment('  <-- first virtual orbital')
               else
-                  write(*,'(3x,a,i0,a,es20.12)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb)
+                  !!write(*,'(3x,a,i0,a,es20.12)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb)
               end if
+              call yaml_newline()
           end do
-          write(*,'(1x,a)') '-------------------------------------------------'
-          write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
+          call yaml_close_sequence()
+          !!write(*,'(1x,a)') '-------------------------------------------------'
+          !!write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
+
        end if
 
        if (nstates_max/=ksorbs%norb) then

@@ -12,7 +12,7 @@
 !!  of orthonormality constraints. This should speedup the convergence by
 !!  reducing the effective number of degrees of freedom.
 subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, &
-    factor, itout, it_scc, reorder, num_extra)
+    factor, itout, it_scc, it_cdft, reorder, num_extra)
   use module_base
   use module_types
   use module_interfaces, fake_name => optimize_coeffs
@@ -21,7 +21,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, itmax, itout, it_scc
+  integer,intent(in):: iproc, nproc, itmax, itout, it_scc, it_cdft
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
   type(DIIS_obj), intent(inout) :: ldiis_coeff
@@ -34,7 +34,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   logical, optional, intent(in) :: reorder
 
   ! Local variables
-  integer:: iorb, jorb, iiorb, ierr, it
+  integer:: iorb, jorb, iiorb, ierr, it, itlast
   real(kind=gp),dimension(:,:),allocatable:: grad, grad_cov_or_coeffp !coeffp, grad_cov
   real(kind=gp) :: tt, ddot, energy0, pred_e
 
@@ -57,9 +57,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   end if
 
   if (iproc==0) then
+      call yamL_newline()
       call yaml_open_sequence('expansion coefficients optimization',label=&
-           'it_coeff'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
-           trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))))
+           'it_coeff'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'_'//&
+           trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))//&
+           '_'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))))
   end if
 
 
@@ -270,12 +272,30 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      end if
 
 
+     itlast=it
      if (fnrm<fnrm_crit) exit
 
   end do
 
+  !!if (iproc==0) then
+  !!    call yaml_newline()
+  !!    call yaml_sequence(label='final_coeff'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'_'//&
+  !!         trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))//'_'//&
+  !!         trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))),advance='no')
+  !!    call yaml_open_map(flow=.true.)
+  !!    call yaml_comment('iter:'//yaml_toa(itlast,fmt='(i6)'),hfill='-')
+  !!    call yaml_map('iter',itlast,fmt='(i6)')
+  !!    call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+  !!    call yaml_map('eBS',energy0,fmt='(es24.17)')
+  !!    call yaml_map('D',energy-energy0,fmt='(es10.3)')
+  !!    call yaml_close_map()
+  !!    call bigdft_utils_flush(unit=6)
+  !!end if
+
+
   if (iproc==0) then
       call yaml_close_sequence()
+      call yaml_newline()
   end if
 
 

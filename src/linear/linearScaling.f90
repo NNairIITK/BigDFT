@@ -321,7 +321,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (.not. input%lin%constrained_dft) then
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,ham_small,input%lin%extra_states,itout,0,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                     .true.,ham_small,input%lin%extra_states,itout,0,0,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
 
@@ -380,7 +380,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                                  'it_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
               call yaml_sequence(label='final_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))),advance='no')
               call yaml_open_map(flow=.true.)
-              call yaml_map('fake iteration','bridge lwo accuracy')
+              call yaml_map('fake iteration','bridge low accuracy')
               call yaml_close_map
               call yaml_close_sequence()
           end if
@@ -572,8 +572,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          if (iproc==0) then
              call yaml_comment('kernel optimization',hfill='=')
              call yaml_sequence(advance='no')
-             call yaml_open_map('kernel optimization',label=&
-                  'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+             if (input%lin%constrained_dft) then
+                 call yaml_open_map('kernel optimization',label=&
+                      'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
+                      '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))))
+             else
+                 call yaml_open_map('kernel optimization',label=&
+                      'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+             end if
          end if
          kernel_loop : do it_scc=1,nit_scc
              dmin_diag_it=dmin_diag_it+1
@@ -593,24 +599,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,input%lin%extra_states,itout,it_scc,convcrit_dmin,nitdmin,&
+                        .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,input%lin%extra_states,itout,it_scc,convcrit_dmin,nitdmin,&
+                        .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,input%lin%extra_states,itout,it_scc,convcrit_dmin,nitdmin,&
+                        .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,input%lin%extra_states,itout,it_scc,convcrit_dmin,nitdmin,&
+                        .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
@@ -662,8 +668,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
                    ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
                 end if
-                if(iproc==0) write(*,*) ''
-                if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
+                !!if(iproc==0) write(*,*) ''
+                !!if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
+                if (iproc==0) then
+                    call yaml_map('alpha',ldiis_coeff%alpha_coeff)
+                    call yaml_map('energydiff',energydiff)
+                end if
              end if
 
              ! Calculate the charge density.
@@ -821,12 +831,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
          ! Write the final results
          if (iproc==0) then
-            call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
-            call yaml_open_map(flow=.true.)
-            call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
-            call printSummary()
-            call yaml_close_map() !iteration
-            call bigdft_utils_flush(unit=6)
+             if (input%lin%constrained_dft) then
+                 call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
+                      '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))),advance='no')
+             else
+                 call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+             end if
+             call yaml_open_map(flow=.true.)
+             call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
+             call printSummary()
+             call yaml_close_map() !iteration
+             call bigdft_utils_flush(unit=6)
          end if
 
           ! Close sequence for the optimization steps
@@ -945,7 +960,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,input%lin%extra_states,itout,0)
+           .true.,ham_small,input%lin%extra_states,itout,0,0)
   end if
 
   if (input%lin%fragment_calculation .and. input%frag%nfrag>1) then
@@ -1246,7 +1261,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('delta',pnrm,fmt='(es9.2)')
                  call yaml_map('energy',energy,fmt='(es24.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
-                 call yaml_map('Tr[KW]',ebs,fmt='(es14.4)')
+                 !call yaml_map('Tr[KW]',ebs,fmt='(es14.4)')
+                 call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
              end if
           else
              !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
@@ -1631,6 +1647,13 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
              exit
          end if
       end do
+  end if
+  if (iproc==0) then
+      if (locreg_increased) then
+          call yaml_map('Locreg increased',.true.)
+      else
+          call yaml_map('Locreg increased',.false.)
+      end if
   end if
 
   if(locreg_increased) then

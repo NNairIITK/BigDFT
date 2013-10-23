@@ -2106,7 +2106,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,extra_states,itout,it_scc,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
+         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
       use module_base
       use module_types
       use constrained_dft
@@ -2114,7 +2114,7 @@ module module_interfaces
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc
+      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft
       type(orbitals_data),intent(inout) :: orbs
       type(atoms_data),intent(in) :: at
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -4992,12 +4992,12 @@ module module_interfaces
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
-               sd_fit_curve, factor, itout, it_scc, reorder, num_extra)
+               sd_fit_curve, factor, itout, it_scc, it_cdft, reorder, num_extra)
           use module_base
           use module_types
           use diis_sd_optimization
           implicit none
-          integer,intent(in):: iproc, nproc, itmax, itout, it_scc
+          integer,intent(in):: iproc, nproc, itmax, itout, it_scc, it_cdft
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           type(DIIS_obj), intent(inout) :: ldiis_coeff
