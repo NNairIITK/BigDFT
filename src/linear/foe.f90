@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
-           ham, ovrlp, fermi, ebs, itout)
+           ham, ovrlp, fermi, ebs, itout, it_scc)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
@@ -18,7 +18,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc,itout
+  integer,intent(in) :: iproc, nproc,itout,it_scc
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(inout) :: foe_obj
   real(kind=8),intent(inout) :: tmprtr
@@ -146,7 +146,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
       if (iproc==0) then
           call yaml_open_sequence('FOE to determine density kernel',label=&
-               'itrp'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+               'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
+               trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))))
       end if
 
 
@@ -454,7 +455,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           interpolation_possible=.true.
           if (it_solver>1) then
               if (iproc==0) call yaml_newline()
-              if (iproc==0) call yaml_open_map('Interpolation check:',flow=.true.)
+              if (iproc==0) call yaml_open_map('Interpolation check',flow=.true.)
               if (iproc==0) call yaml_map('D eF',foe_obj%ef-ef_old,fmt='(es13.6)')
               if (iproc==0) call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
               if (foe_obj%ef>ef_old .and. sumn<sumn_old) then
@@ -549,7 +550,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           !!if (iproc==0) write(*,'(a,i6,2es16.6)') 'it_solver, abs(sumn-charge), foe_obj%ef_interpol_chargediff', it_solver, abs(sumn-foe_obj%charge), foe_obj%ef_interpol_chargediff
           !!if (iproc==0) write(*,'(a,5es16.6)') 'efarr(1), efarr(2), sumnarr(1), sumnarr(2), charge', efarr(1), efarr(2), sumnarr(1), sumnarr(2), foe_obj%charge
           if (iproc==0) call yaml_newline()
-          if (iproc==0) call yaml_open_map('Search new eF:',flow=.true.)
+          if (iproc==0) call yaml_open_map('Search new eF',flow=.true.)
           if (it_solver>=4 .and.  abs(sumn-foe_obj%charge)<foe_obj%ef_interpol_chargediff) then
               det=determinant(iproc,4,interpol_matrix)
               !!if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
@@ -577,7 +578,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               ! Take the mean value
               foe_obj%ef=.5d0*foe_obj%ef
               !!if (iproc==0) write(*,'(1x,a)') 'new fermi energy from bisection / secant method'
-              if (iproc==0) call yaml_map('method','besiection / secant method')
+              if (iproc==0) call yaml_map('method','bisection / secant method')
           end if
           if (iproc==0) then
               call yaml_close_map()

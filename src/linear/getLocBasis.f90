@@ -10,7 +10,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,extra_states,itout,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
+    calculate_ham,ham_small,extra_states,itout,it_scc,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -21,7 +21,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, scf_mode, itout
+  integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc
   type(orbitals_data),intent(inout) :: orbs
   type(atoms_data),intent(in) :: at
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -389,10 +389,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
      ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
      if (extra_states>0) then
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
-             curvefit_dmin, factor, itout, reorder, extra_states)
+             curvefit_dmin, factor, itout, it_scc, reorder, extra_states)
      else
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
-             curvefit_dmin, factor, itout, reorder)
+             curvefit_dmin, factor, itout, it_scc, reorder)
      end if
   end if
 
@@ -426,7 +426,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
            tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, ebs, &
-       itout)
+           itout,it_scc)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
@@ -1042,9 +1042,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!delta_energy_prev=delta_energy
 
       if (energy_increased) then
-          if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
-          if (iproc==0) call yaml_warning('The target function increased, D='&
-                        //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
+          !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
+          !if (iproc==0) call yaml_warning('The target function increased, D='&
+          !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_map('iter',it,fmt='(i6)')
+              call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+              call yaml_map('Omega',trH,fmt='(es24.17)')
+              call yaml_map('D',ediff,fmt='(es10.3)')
+          end if
           tmb%ham_descr%can_use_transposed=.false.
           call dcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           if (scf_mode/=LINEAR_FOE) then
@@ -1065,25 +1072,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               deallocate(tmb%ham_descr%psit_f, stat=istat)
               call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
           end if
-          if(iproc==0) write(*,*) 'it_tot',it_tot
+          !!if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
           ! print info here anyway for debugging
-          if (iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
-          it, fnrm, fnrmMax, trH, ediff,noise
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_map('iter',it,fmt='(i6)')
-              call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-              call yaml_map('Omega',trH,fmt='(es24.17)')
-              call yaml_map('D',ediff,fmt='(es10.3)')
-          end if
+          !!if (iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
+          !!it, fnrm, fnrmMax, trH, ediff,noise
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
               call yaml_close_map()
               call bigdft_utils_flush(unit=6)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              !if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
-             if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
+             !if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
+             if (iproc==0) call yaml_newline()
+             if (iproc==0) call yaml_warning('Energy increasing, switching off orthonormalization of tmbs')
              ortho_on=.false.
              alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
           end if

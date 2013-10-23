@@ -321,7 +321,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (.not. input%lin%constrained_dft) then
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                     .true.,ham_small,input%lin%extra_states,itout,0,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
 
@@ -374,6 +374,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
               call memocc(istat, iall, 'tmb%psit_f', subname)
           end if
           tmb%can_use_transposed=.false.
+          if (iproc==0) then
+              call yaml_sequence(advance='no')
+              call yaml_open_map('fake iteration',label=&
+                                 'it_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
+              call yaml_sequence(label='final_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))),advance='no')
+              call yaml_open_map(flow=.true.)
+              call yaml_map('fake iteration','bridge lwo accuracy')
+              call yaml_close_map
+              call yaml_close_sequence()
+          end if
           cycle outerLoop
       end if
 
@@ -583,24 +593,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,&
+                        .false.,ham_small,input%lin%extra_states,itout,it_scc,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,&
+                        .false.,ham_small,input%lin%extra_states,itout,it_scc,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,&
+                        .true.,ham_small,input%lin%extra_states,itout,it_scc,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,input%lin%extra_states,itout,convcrit_dmin,nitdmin,&
+                        .true.,ham_small,input%lin%extra_states,itout,it_scc,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
@@ -918,7 +928,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       if(pnrm_out<input%lin%support_functions_converged.and.lowaccur_converged .or. &
          fix_supportfunctions) then
-          if(iproc==0) write(*,*) 'fix the support functions from now on'
+          !if(iproc==0) write(*,*) 'fix the support functions from now on'
+          if (iproc==0) call yaml_map('fix the support functions from now on',.true.)
           fix_support_functions=.true.
       end if
 
@@ -934,7 +945,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,input%lin%extra_states,itout)
+           .true.,ham_small,input%lin%extra_states,itout,0)
   end if
 
   if (input%lin%fragment_calculation .and. input%frag%nfrag>1) then
@@ -1089,11 +1100,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
              fnrm_pulay=dnrm2(3*at%astruct%nat, fpulay, 1)/sqrt(dble(at%astruct%nat))
 
-             if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+             !if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+             if (iproc==0) call yaml_map('fnrm Pulay',fnrm_pulay)
 
              if (fnrm_pulay>1.d-1) then !1.d-10
-                if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
-                                                   &Start over again with an AO input guess.'
+                !!if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
+                !!                                   &Start over again with an AO input guess.'
+                if (iproc==0) then
+                    call yaml_warning('The pulay force is too large after the restart. &
+                         &Start over again with an AO input guess.')
+                end if
                 if (associated(tmb%psit_c)) then
                     iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
                     deallocate(tmb%psit_c, stat=istat)
@@ -1118,12 +1134,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !call orthonormalizeLocalized(iproc, nproc, 0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, &
                 !     tmb%linmat%denskern, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
              else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
-                if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+                !!if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+                if (iproc==0) then
+                    call yaml_warning('The pulay forces are rather large, so start with low accuracy.')
+                end if
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
              else if (fnrm_pulay>1.d-10) then !1d-10
-                if (iproc==0) write(*,'(1x,a)') &
-                     'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
+                if (iproc==0) then
+                    !write(*,'(1x,a)') 'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
+                    call yaml_warning('The pulay forces are fairly large, so reoptimising basis with high accuracy only.')
+                end if
                 nit_lowaccuracy=0
                 nit_highaccuracy=input%lin%nit_highaccuracy
              else

@@ -522,9 +522,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! Cycle if the trace increased (steepest descent only)
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
       if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
-          if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
-              'WARNING: the target function is larger than its minimal value reached so far:',trH,' > ', ldiis%trmin
-          if(iproc==0) write(*,'(1x,a)') 'Decrease step size and restart with previous TMBs'
+          !!if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
+          !!    'WARNING: the target function is larger than its minimal value reached so far:',trH,' > ', ldiis%trmin
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_warning('target function larger than its minimal value reached so far, &
+                  &D='//trim(yaml_toa(trH-ldiis%trmin,fmt='(1es10.3)')))!//'. &
+                  !&Decrease step size and restart with previous TMBs')
+          end if
+          !if(iproc==0) write(*,'(1x,a)') 'Decrease step size and restart with previous TMBs'
           energy_increased=.true.
       end if
   end if
@@ -973,7 +979,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   if(.not.ldiis%switchSD) then
       call improveOrbitals(iproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
   else
-      if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
+      !if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
+      if (iproc==0) then
+          call yaml_warning('no improvement of the orbitals, recalculate gradient')
+          call yaml_newline()
+      end if
   end if
   if (present(psidiff)) then
       do i=1,tmb%npsidim_orbs
@@ -1064,6 +1074,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
 !!!!  tmb%ham_descr%can_use_transposed=.false.
 !!!!  ! END EXPERIMENTAL ###################################################################
 
+  if (.not.ortho .and. iproc==0) then
+      call yaml_map('Orthogonalization',.false.)
+  end if
 
   if(.not.ldiis%switchSD.and.ortho) then
       !!if(iproc==0) then

@@ -12,7 +12,7 @@
 !!  of orthonormality constraints. This should speedup the convergence by
 !!  reducing the effective number of degrees of freedom.
 subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, &
-    factor, itout, reorder, num_extra)
+    factor, itout, it_scc, reorder, num_extra)
   use module_base
   use module_types
   use module_interfaces, fake_name => optimize_coeffs
@@ -21,7 +21,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, itmax, itout
+  integer,intent(in):: iproc, nproc, itmax, itout, it_scc
   type(orbitals_data),intent(in):: orbs
   type(DFT_wavefunction),intent(inout):: tmb
   type(DIIS_obj), intent(inout) :: ldiis_coeff
@@ -58,7 +58,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
   if (iproc==0) then
       call yaml_open_sequence('expansion coefficients optimization',label=&
-           'itrp'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+           'it_coeff'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
+           trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))))
   end if
 
 
@@ -223,8 +224,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
      if (iproc==0) write(*,*) ''
      if (sd_fit_curve .and. ldiis_coeff%idsx == 0) then
-        if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))')'DminSD: it, fnrm, ebs, ebsdiff, alpha, pred E, diff',&
-             it,fnrm,energy0,energy-energy0,ldiis_coeff%alpha_coeff,pred_e,pred_e-energy
+        !!if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))')'DminSD: it, fnrm, ebs, ebsdiff, alpha, pred E, diff',&
+        !!     it,fnrm,energy0,energy-energy0,ldiis_coeff%alpha_coeff,pred_e,pred_e-energy
         if (iproc==0) then
             call yaml_map('method','DminSD')
             call yaml_newline()
@@ -237,8 +238,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             call yaml_map('D',pred_e-energy,fmt='(es10.3)')
         end if
      else if (ldiis_coeff%idsx == 0) then
-        if (iproc==0) write(*,'(a,I4,2x,4(ES16.6e3,2x))')'DminSD: it, fnrm, ebs, ebsdiff, alpha',&
-             it,fnrm,energy0,energy-energy0,ldiis_coeff%alpha_coeff
+        !!if (iproc==0) write(*,'(a,I4,2x,4(ES16.6e3,2x))')'DminSD: it, fnrm, ebs, ebsdiff, alpha',&
+        !!     it,fnrm,energy0,energy-energy0,ldiis_coeff%alpha_coeff
+        if (iproc==0) then
             call yaml_map('method','DminSD')
             call yaml_newline()
             call yaml_map('iter',it)
@@ -246,15 +248,18 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             call yaml_map('eBS',energy0,fmt='(es24.17)')
             call yaml_map('D',energy-energy0,fmt='(es10.3)')
             call yaml_map('alpha',ldiis_coeff%alpha_coeff,fmt='(es10.3)')
+        end if
      else
-        if (iproc==0) write(*,'(a,I4,2x,3(ES16.6e3,2x))')'DminDIIS: it, fnrm, ebs, ebsdiff',&
-             it,fnrm,energy0,energy-energy0
+        !!if (iproc==0) write(*,'(a,I4,2x,3(ES16.6e3,2x))')'DminDIIS: it, fnrm, ebs, ebsdiff',&
+        !!     it,fnrm,energy0,energy-energy0
+        if (iproc==0) then
             call yaml_map('method','DminDIIS')
             call yaml_newline()
             call yaml_map('iter',it)
             call yaml_map('fnrm',fnrm,fmt='(es9.2)')
             call yaml_map('eBS',energy0,fmt='(es24.17)')
             call yaml_map('D',energy-energy0,fmt='(es10.3)')
+        end if
      end if
 
      energy0=energy

@@ -314,7 +314,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   call f_routine(id='calculate_density_kernel')
 
   if (communication_strategy==ALLGATHERV) then
-      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLGATHERV')
+      if (iproc==0) call yaml_map('communication strategy kernel','ALLGATHERV')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       density_kernel_partial=f_malloc((/orbs_tmb%norb,max(orbs_tmb%norbp,1)/), id='density_kernel_partial')
@@ -372,7 +372,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call compress_matrix_for_allreduce(iproc,denskern)
       call f_free_ptr(denskern%matrix)
   else if (communication_strategy==ALLREDUCE) then
-      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLREDUCE')
+      if (iproc==0) call yaml_map('communication strategy kernel','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       denskern%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern')

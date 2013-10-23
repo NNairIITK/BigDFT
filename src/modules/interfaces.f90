@@ -2106,7 +2106,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,extra_states,itout,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
+         calculate_ham,ham_small,extra_states,itout,it_scc,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
       use module_base
       use module_types
       use constrained_dft
@@ -2114,7 +2114,7 @@ module module_interfaces
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, scf_mode, itout
+      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc
       type(orbitals_data),intent(inout) :: orbs
       type(atoms_data),intent(in) :: at
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -4491,11 +4491,11 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, orbs, foe_obj, &
-                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout)
+                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout, it_scc)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc, itout
+          integer,intent(in) :: iproc, nproc, itout, it_scc
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(inout) :: foe_obj
           real(kind=8),intent(inout) :: tmprtr
@@ -4992,12 +4992,12 @@ module module_interfaces
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
-               sd_fit_curve, factor, itout, reorder, num_extra)
+               sd_fit_curve, factor, itout, it_scc, reorder, num_extra)
           use module_base
           use module_types
           use diis_sd_optimization
           implicit none
-          integer,intent(in):: iproc, nproc, itmax, itout
+          integer,intent(in):: iproc, nproc, itmax, itout, it_scc
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           type(DIIS_obj), intent(inout) :: ldiis_coeff
