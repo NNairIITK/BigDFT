@@ -314,6 +314,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use module_interfaces
   use module_fragments
   use constrained_dft
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -349,16 +350,28 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
      call memocc(istat,iall,'weight_matrix%matrix',subname)
   end do
 
-  if (iproc==0) write(*,*) 'Weight analysis:'
-  if (iproc==0) write(*,*) 'coeff, occ, eval, frac for each frag'
+  !if (iproc==0) write(*,*) 'Weight analysis:'
+  if (iproc==0) call yaml_open_sequence('Weight analysis')
+  if (iproc==0) call yaml_newline()
+  !if (iproc==0) write(*,*) 'coeff, occ, eval, frac for each frag'
+  if (iproc==0) call yaml_comment ('coeff, occ, eval, frac for each frag')
   ! only care about diagonal elements
   do iorb=1,ksorbs%norb
-     if (iproc==0) write(*,'(i4,2x,f6.4,1x,f10.6,2x)',ADVANCE='no') iorb,KSorbs%occup(iorb),tmb%orbs%eval(iorb)
+     !if (iproc==0) write(*,'(i4,2x,f6.4,1x,f10.6,2x)',ADVANCE='no') iorb,KSorbs%occup(iorb),tmb%orbs%eval(iorb)
+     if (iproc==0) then
+         call yaml_open_map(flow=.true.)
+         call yaml_map('iorb',iorb,fmt='(i4)')
+         call yaml_map('occ',KSorbs%occup(iorb),fmt='(f6.4)')
+         call yaml_map('eval',tmb%orbs%eval(iorb),fmt='(f10.6)')
+     end if
      do ifrag=1,input%frag%nfrag
-        if (iproc==0) write(*,'(f6.4,2x)',ADVANCE='no') weight_coeff(iorb,iorb,ifrag)
+        !if (iproc==0) write(*,'(f6.4,2x)',ADVANCE='no') weight_coeff(iorb,iorb,ifrag)
+        if (iproc==0) call yaml_map('frac',weight_coeff(iorb,iorb,ifrag),fmt='(f6.4)')
      end do
-     if (iproc==0) write(*,*) ''
+     !if (iproc==0) write(*,*) ''
+     if (iproc==0) call yaml_close_map()
   end do
+  if (iproc==0) call yaml_close_sequence()
 
   call deallocate_sparseMatrix(weight_matrix, subname)
 

@@ -625,8 +625,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   energy_increased_previous=.false.
  
   if (iproc==0) then
-      call yaml_sequence(advance='no')
-      call yaml_open_map('support function optimization',label=&
+      !!call yaml_sequence(advance='no')
+      !!call yaml_open_map('support function optimization',label=&
+      !!     'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+      call yaml_open_sequence('support function optimization',label=&
            'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
   end if
 

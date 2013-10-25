@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-10-23 09:09:49.902
+ Timestamp of this run                 : 2013-10-24 08:45:11.428
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -490,7 +490,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -2.044634E-04, D Tr: -1.133397E-02, interpol possible:  Yes}, 
  Search new eF: {det: -5.855E-13, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  5.599999075E+01, charge diff: -9.251616405E-06}
+ iter:  10, Tr(K):  5.599999075E+01, charge diff: -9.251616419E-06}
    -  { #----------------------------------------------------------------------- it FOE: 11
  lower bisection bound: -1.703E-01, upper bisection bound: -1.703E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -498,7 +498,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  1.668980E-07, D Tr:  9.286140E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.381E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  11, Tr(K):  5.600000003E+01, charge diff:  3.452402098E-08}
+ iter:  11, Tr(K):  5.600000003E+01, charge diff:  3.452403519E-08}
    Total charge                        :  5.599999907668E+01
    Poisson Solver:
      BC                                : Free
@@ -518,12 +518,12 @@
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
     #========================================================= support function optimization
- - support function optimization: &it_supfun001
+   support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.92810230269E+01, Epot: -8.66252673865E+01, Enl:  7.21577634840E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  6.37E-01, Omega: -3.55297396016117091E+01, D: -3.553E+01, 
+ iter:  1, fnrm:  6.37E-01, Omega: -3.55297396016116522E+01, D: -3.553E+01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
@@ -531,7 +531,7 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.60516296700E+01, Epot: -9.01013597304E+01, Enl:  1.07089722106E+01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  2.10E-01, Omega: -3.88737741309795410E+01, D: -3.344E+00, 
+ iter:  2, fnrm:  2.10E-01, Omega: -3.88737741309794842E+01, D: -3.344E+00, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
@@ -539,15 +539,15 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.49127123676E+01, Epot: -8.97885867662E+01, Enl:  1.05895705474E+01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  1.17E-01, Omega: -3.95540021617737239E+01, D: -6.802E-01, 
+ iter:  3, fnrm:  1.17E-01, Omega: -3.95540021617736670E+01, D: -6.802E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 3
  target function: TRACE, 
  Energies: {Ekin:  7.49127123676E+01, Epot: -8.97885867662E+01, Enl:  1.05895705474E+01}, 
- iter:  3, fnrm:  1.17E-01, Omega: -3.95540021617737239E+01, D: -6.802E-01}
+ iter:  3, fnrm:  1.17E-01, Omega: -3.95540021617736670E+01, D: -6.802E-01}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel001
+   kernel optimization: &it_kernel001
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  1.56E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.49127123676E+01, Epot: -9.32366475883E+01, Enl:  1.05895705474E+01}, 
@@ -624,7 +624,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -1.527885E-04, D Tr: -1.263978E-03, interpol possible:  Yes}, 
  Search new eF: {det: -6.517E-15, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  5.600000542E+01, charge diff:  5.423583339E-06}, 
+ iter:  9, Tr(K):  5.600000542E+01, charge diff:  5.423583303E-06}, 
  { #--------------------------------------------------------------------------- it FOE: 10
  lower bisection bound: -2.303E-01, upper bisection bound: -2.303E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -632,7 +632,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -6.555976E-07, D Tr: -5.449648E-06, interpol possible:  Yes}, 
  Search new eF: {det:  3.238E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  5.599999997E+01, charge diff: -2.606426364E-08}], 
+ iter:  10, Tr(K):  5.599999997E+01, charge diff: -2.606428495E-08}], 
      Total charge:  5.599999937885E+01, density mixing; history:  0, 
  update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
@@ -660,7 +660,7 @@
  { #---------------------------------------------------------------------------- it FOE: 3
  lower bisection bound: -2.856E-01, upper bisection bound: -2.856E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -7.627624301294E-02,    conv crit:  1.000E-06, 
+                    eF: -7.627624301293E-02,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
               checking upper bisection bound, charge diff:  1.23E-01, 
       upper bound okay:  Yes, 
@@ -705,7 +705,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -3.314209E-04, D Tr: -2.130215E-03, interpol possible:  Yes}, 
  Search new eF: {det: -8.314E-14, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.599999592E+01, charge diff: -4.078613891E-06}, 
+ iter:  8, Tr(K):  5.599999592E+01, charge diff: -4.078613884E-06}, 
  { #---------------------------------------------------------------------------- it FOE: 9
  lower bisection bound: -1.518E-01, upper bisection bound: -1.518E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -713,11 +713,11 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  6.345546E-07, D Tr:  4.110945E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.626E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  5.600000003E+01, charge diff:  3.233103030E-08}], 
+ iter:  9, Tr(K):  5.600000003E+01, charge diff:  3.233101609E-08}], 
     Total charge:  5.599984378222E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  2, delta:  1.60E-06, energy: -6.19333976158700352E+01, D:  2.200E-01}
+ iter:  2, delta:  1.60E-06, energy: -6.19333976158700921E+01, D:  2.200E-01}
    -  { #-------------------------------------------------------------------------- iter: 3
  max dev from unity:  1.56E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.49127123676E+01, Epot: -8.89680442017E+01, Enl:  1.05895705474E+01}, 
@@ -786,27 +786,27 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -4.246743E-07, D Tr: -3.519890E-06, interpol possible:  Yes}, 
  Search new eF: {det:  8.640E-24, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.600000002E+01, charge diff:  1.606533573E-08}], 
+ iter:  8, Tr(K):  5.600000002E+01, charge diff:  1.606531441E-08}], 
     Total charge:  5.599986009082E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  3, delta:  7.25E-07, energy: -6.19199182356758797E+01, D:  1.348E-02}
+ iter:  3, delta:  7.25E-07, energy: -6.19199182356758229E+01, D:  1.348E-02}
    -  &final_kernel001  { #-------------------------------------------------------- iter: 4
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  4, delta:  7.25E-07, energy: -6.19199182356758797E+01, D:  1.348E-02}
+ iter:  4, delta:  7.25E-07, energy: -6.19199182356758229E+01, D:  1.348E-02}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc001
+   self consistency summary: &it_sc001
    -  {iter:  1, target function: TRACE, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: FOE,  #WARNING: density optimization not converged
-   iter low:  1,       delta out:  1.531E-06, energy: -6.19199182356758797E+01, 
+   iter low:  1,       delta out:  1.531E-06, energy: -6.19199182356758229E+01, 
           D: -6.192E+01}
     #========================================================= support function optimization
- - support function optimization: &it_supfun002
+   support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.49127123676E+01, Epot: -8.53863912992E+01, Enl:  1.05895705474E+01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.25E-01, Omega: -3.47862301567567442E+01, D:  4.088E+00, 
+ iter:  1, fnrm:  1.25E-01, Omega: -3.47862301567568579E+01, D:  4.088E+00, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
@@ -814,7 +814,7 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.34421148845E+01, Epot: -8.36590521700E+01, Enl:  9.94568874989E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  1.07E-01, Omega: -3.50875803009019478E+01, D: -3.014E-01, 
+ iter:  2, fnrm:  1.07E-01, Omega: -3.50875803009020046E+01, D: -3.014E-01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
@@ -822,15 +822,15 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.09766025266E+01, Epot: -8.12923315083E+01, Enl:  9.42853938927E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  1.01E-01, Omega: -3.53688039270979289E+01, D: -2.812E-01, 
+ iter:  3, fnrm:  1.01E-01, Omega: -3.53688039270979857E+01, D: -2.812E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 3
  target function: TRACE, 
  Energies: {Ekin:  7.09766025266E+01, Epot: -8.12923315083E+01, Enl:  9.42853938927E+00}, 
- iter:  3, fnrm:  1.01E-01, Omega: -3.53688039270979289E+01, D: -2.812E-01}
+ iter:  3, fnrm:  1.01E-01, Omega: -3.53688039270979857E+01, D: -2.812E-01}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel002
+   kernel optimization: &it_kernel002
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  1.78E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.09766025266E+01, Epot: -8.50888040970E+01, Enl:  9.42853938927E+00}, 
@@ -883,7 +883,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  1.322331E-02, D Tr:  2.236029E-01, interpol possible:  Yes}, 
  Search new eF: {det: -1.026E-12, limit:  1.000E-12, method: cubic interpolation}, 
- iter:  6, Tr(K):  5.600018275E+01, charge diff:  1.827540619E-04}, 
+ iter:  6, Tr(K):  5.600018275E+01, charge diff:  1.827540618E-04}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.812E-01, upper bisection bound: -1.812E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -891,11 +891,11 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -1.571051E-05, D Tr: -1.826822E-04, interpol possible:  Yes}, 
  Search new eF: {det:  5.801E-18, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.600000007E+01, charge diff:  7.183314921E-08}], 
+ iter:  7, Tr(K):  5.600000007E+01, charge diff:  7.183316342E-08}], 
     Total charge:  5.599986265067E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  1, delta:  6.43E-07, energy: -6.18857011093048754E+01, D:  3.422E-02}
+ iter:  1, delta:  6.43E-07, energy: -6.18857011093049323E+01, D:  3.422E-02}
    -  { #-------------------------------------------------------------------------- iter: 2
  max dev from unity:  1.78E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.09766025266E+01, Epot: -8.56715496059E+01, Enl:  9.42853938927E+00}, 
@@ -944,7 +944,7 @@
  { #---------------------------------------------------------------------------- it FOE: 6
  lower bisection bound: -1.834E-01, upper bisection bound: -1.834E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.800377677818E-01,    conv crit:  1.000E-06, 
+                    eF: -1.800377677817E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  3.350750E-03, D Tr:  4.404489E-02, interpol possible:  Yes}, 
  Search new eF: {det: -3.811E-12, limit:  1.000E-12, method: cubic interpolation}, 
@@ -963,12 +963,12 @@
                     eF: -1.801359624778E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -2.270362E-07, D Tr: -2.722884E-06, interpol possible:  Yes}, 
- Search new eF: {det: -7.743E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.599999999E+01, charge diff: -7.714142214E-09}], 
+ Search new eF: {det: -7.742E-23, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  8, Tr(K):  5.599999999E+01, charge diff: -7.714177741E-09}], 
     Total charge:  5.599987268764E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  2, delta:  4.02E-07, energy: -6.18826702017891535E+01, D:  3.031E-03}
+ iter:  2, delta:  4.02E-07, energy: -6.18826702017892671E+01, D:  3.031E-03}
    -  { #-------------------------------------------------------------------------- iter: 3
  max dev from unity:  1.78E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.09766025266E+01, Epot: -8.57308485551E+01, Enl:  9.42853938927E+00}, 
@@ -1021,7 +1021,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -3.320135E-03, D Tr: -3.607656E-02, interpol possible:  Yes}, 
  Search new eF: {det:  1.202E-14, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.600003116E+01, charge diff:  3.116355475E-05}, 
+ iter:  6, Tr(K):  5.600003116E+01, charge diff:  3.116355474E-05}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.818E-01, upper bisection bound: -1.818E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1036,22 +1036,23 @@
                     eF: -1.812622884517E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  2.603813E-07, D Tr:  3.112054E-06, interpol possible:  Yes}, 
- Search new eF: {det: -7.134E-26, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.600000000E+01, charge diff:  2.337046112E-10}], 
+ Search new eF: {det: -7.137E-26, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  8, Tr(K):  5.600000000E+01, charge diff:  2.337259275E-10}], 
     Total charge:  5.599986834180E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  3, delta:  1.77E-07, energy: -6.18822844755969186E+01, D:  3.857E-04}
+ iter:  3, delta:  1.77E-07, energy: -6.18822844755968617E+01, D:  3.857E-04}
    -  &final_kernel002  { #-------------------------------------------------------- iter: 4
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  4, delta:  1.77E-07, energy: -6.18822844755969186E+01, D:  3.857E-04}
+ iter:  4, delta:  1.77E-07, energy: -6.18822844755968617E+01, D:  3.857E-04}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc002
+   self consistency summary: &it_sc002
    -  {iter:  2, target function: TRACE, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: FOE,  #WARNING: density optimization not converged
-   iter low:  2,       delta out:  2.978E-07, energy: -6.18822844755969186E+01, 
+   iter low:  2,       delta out:  2.978E-07, energy: -6.18822844755968617E+01, 
           D:  3.763E-02}
     #========================================================= Adjustments for high accuracy
+   Locreg increased                    :  No
    max dev from unity                  :  1.78E-02
    Hamiltonian application required    :  Yes
    Energies: {Ekin:  7.09766025266E+01, Epot: -8.58072385163E+01, Enl:  9.42853938927E+00}
@@ -1104,7 +1105,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -2.395741E-03, D Tr: -2.678636E-02, interpol possible:  Yes}, 
  Search new eF: {det:  8.593E-15, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.600003409E+01, charge diff:  3.409153123E-05}
+ iter:  6, Tr(K):  5.600003409E+01, charge diff:  3.409153125E-05}
    -  { #------------------------------------------------------------------------ it FOE: 7
  lower bisection bound: -1.840E-01, upper bisection bound: -1.840E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1112,17 +1113,17 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -3.049107E-06, D Tr: -3.652650E-05, interpol possible:  Yes}, 
  Search new eF: {det: -8.654E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599999757E+01, charge diff: -2.434964401E-06}
+ iter:  7, Tr(K):  5.599999757E+01, charge diff: -2.434964451E-06}
    -  { #------------------------------------------------------------------------ it FOE: 8
  lower bisection bound: -1.828E-01, upper bisection bound: -1.828E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
                     eF: -1.828105768284E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
- Interpolation check: {D eF:  2.032625E-07, D Tr:  2.435164E-06, interpol possible:  Yes}, 
- Search new eF: {det: -2.427E-26, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.600000000E+01, charge diff:  2.000746235E-10}
+ Interpolation check: {D eF:  2.032625E-07, D Tr:  2.435165E-06, interpol possible:  Yes}, 
+ Search new eF: {det: -2.432E-26, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  8, Tr(K):  5.600000000E+01, charge diff:  2.000959398E-10}
     #========================================================= support function optimization
- - support function optimization: &it_supfun003
+   support function optimization: &it_supfun003
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.09766025266E+01, Epot: -8.58072385163E+01, Enl:  9.42853938927E+00}, 
@@ -1135,7 +1136,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  6.98338923114E+01, Epot: -8.39949501934E+01, Enl:  8.61387195210E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  1.72E-01, Omega: -6.25610507203012958E+01, D: -6.789E-01, 
+ iter:  2, fnrm:  1.72E-01, Omega: -6.25610507203014095E+01, D: -6.789E-01, 
  Optimization: {algorithm: SD, mean alpha:  6.000E-01, max alpha:  6.000E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1143,15 +1144,15 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.03865691605E+01, Epot: -8.48873781684E+01, Enl:  9.05388672045E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  1.05E-01, Omega: -6.26311228179378645E+01, D: -7.007E-02, 
+ iter:  3, fnrm:  1.05E-01, Omega: -6.26311228179379214E+01, D: -7.007E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  7.03865691605E+01, Epot: -8.48873781684E+01, Enl:  9.05388672045E+00}, 
- iter:  3, fnrm:  1.05E-01, Omega: -6.26311228179378645E+01, D: -7.007E-02}
+ iter:  3, fnrm:  1.05E-01, Omega: -6.26311228179379214E+01, D: -7.007E-02}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel003
+   kernel optimization: &it_kernel003
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  2.22E-02, Hamiltonian application required:  No, FOE to determine density kernel: &it_foe003-001 [
  { #---------------------------------------------------------------------------- it FOE: 1
@@ -1202,7 +1203,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -1.564414E-03, D Tr: -6.089752E-03, interpol possible:  Yes}, 
  Search new eF: {det:  3.233E-15, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.600001249E+01, charge diff:  1.248624658E-05}, 
+ iter:  6, Tr(K):  5.600001249E+01, charge diff:  1.248624659E-05}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.846E-01, upper bisection bound: -1.846E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1210,7 +1211,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -3.207628E-06, D Tr: -1.317328E-05, interpol possible:  Yes}, 
  Search new eF: {det: -8.206E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599999931E+01, charge diff: -6.870337472E-07}], 
+ iter:  7, Tr(K):  5.599999931E+01, charge diff: -6.870337614E-07}], 
     Total charge:  5.600004121281E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
@@ -1283,7 +1284,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  1.149573E-06, D Tr:  4.722469E-06, interpol possible:  Yes}, 
  Search new eF: {det: -7.068E-25, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.600000001E+01, charge diff:  8.793399786E-09}], 
+ iter:  8, Tr(K):  5.600000001E+01, charge diff:  8.793385575E-09}], 
     Total charge:  5.600001732831E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
@@ -1348,7 +1349,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  1.385752E-04, D Tr:  5.720694E-04, interpol possible:  Yes}, 
  Search new eF: {det:  8.287E-18, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599998030E+01, charge diff: -1.970134056E-05}, 
+ iter:  7, Tr(K):  5.599998030E+01, charge diff: -1.970134055E-05}, 
  { #---------------------------------------------------------------------------- it FOE: 8
  lower bisection bound: -1.772E-01, upper bisection bound: -1.772E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1356,7 +1357,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  4.772352E-06, D Tr:  1.960414E-05, interpol possible:  Yes}, 
  Search new eF: {det:  7.726E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.599999990E+01, charge diff: -9.719706640E-08}], 
+ iter:  8, Tr(K):  5.599999990E+01, charge diff: -9.719707350E-08}], 
     Total charge:  5.600001768971E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
@@ -1421,7 +1422,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  3.889122E-05, D Tr:  1.599206E-04, interpol possible:  Yes}, 
  Search new eF: {det:  1.282E-19, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599999776E+01, charge diff: -2.243153006E-06}, 
+ iter:  7, Tr(K):  5.599999776E+01, charge diff: -2.243153055E-06}, 
  { #---------------------------------------------------------------------------- it FOE: 8
  lower bisection bound: -1.752E-01, upper bisection bound: -1.752E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1429,7 +1430,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  5.455142E-07, D Tr:  2.240106E-06, interpol possible:  Yes}, 
  Search new eF: {det:  4.990E-26, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.600000000E+01, charge diff: -3.047276209E-09}], 
+ iter:  8, Tr(K):  5.600000000E+01, charge diff: -3.047247787E-09}], 
     Total charge:  5.600001717839E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
@@ -1486,7 +1487,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  2.638279E-04, D Tr:  1.094932E-03, interpol possible:  Yes}, 
  Search new eF: {det: -4.794E-18, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.599991174E+01, charge diff: -8.825805800E-05}, 
+ iter:  6, Tr(K):  5.599991174E+01, charge diff: -8.825805799E-05}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.742E-01, upper bisection bound: -1.742E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1494,7 +1495,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  2.126610E-05, D Tr:  8.739488E-05, interpol possible:  Yes}, 
  Search new eF: {det:  1.614E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599999914E+01, charge diff: -8.631744493E-07}], 
+ iter:  7, Tr(K):  5.599999914E+01, charge diff: -8.631744706E-07}], 
     Total charge:  5.600001619842E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
@@ -1503,18 +1504,18 @@
  kernel optimization: FOE, mixing quantity: DENS, 
  iter:  6, delta:  1.13E-07, energy: -6.26530024913316765E+01, D:  1.502E-04}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc003
+   self consistency summary: &it_sc003
    -  {iter:  3, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: FOE,  #WARNING: density optimization not converged
   iter high:  3,       delta out:  9.097E-07, energy: -6.26530024913316765E+01, 
           D: -7.707E-01}
     #========================================================= support function optimization
- - support function optimization: &it_supfun004
+   support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.03865691605E+01, Epot: -8.45181271793E+01, Enl:  9.05388672045E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.07E-01, Omega: -6.26529671963665464E+01, D: -9.192E-02, 
+ iter:  1, fnrm:  1.07E-01, Omega: -6.26529671963666033E+01, D: -9.192E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.457E-01, max alpha:  4.457E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -1522,7 +1523,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.07224973624E+01, Epot: -8.47697411147E+01, Enl:  9.02011840142E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  1.05E-01, Omega: -6.26562306701903822E+01, D: -3.263E-03, 
+ iter:  2, fnrm:  1.05E-01, Omega: -6.26562306701904390E+01, D: -3.263E-03, 
  Optimization: {algorithm: SD, mean alpha:  4.903E-01, max alpha:  4.903E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1530,15 +1531,15 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.09458215699E+01, Epot: -8.49705934397E+01, Enl:  9.04911926791E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  9.95E-02, Omega: -6.26625370184223129E+01, D: -6.306E-03, 
+ iter:  3, fnrm:  9.95E-02, Omega: -6.26625370184223698E+01, D: -6.306E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  7.09458215699E+01, Epot: -8.49705934397E+01, Enl:  9.04911926791E+00}, 
- iter:  3, fnrm:  9.95E-02, Omega: -6.26625370184223129E+01, D: -6.306E-03}
+ iter:  3, fnrm:  9.95E-02, Omega: -6.26625370184223698E+01, D: -6.306E-03}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel004
+   kernel optimization: &it_kernel004
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  2.10E-02, Hamiltonian application required:  No, FOE to determine density kernel: &it_foe004-001 [
  { #---------------------------------------------------------------------------- it FOE: 1
@@ -1581,7 +1582,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  5.788626E-04, D Tr:  1.527104E-03, interpol possible:  Yes}, 
  Search new eF: {det: -4.220E-17, limit:  1.000E-12, method: linear interpolation}, 
- iter:  5, Tr(K):  5.600081242E+01, charge diff:  8.124239146E-04}, 
+ iter:  5, Tr(K):  5.600081242E+01, charge diff:  8.124239145E-04}, 
  { #---------------------------------------------------------------------------- it FOE: 6
  lower bisection bound: -1.681E-01, upper bisection bound: -1.681E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1589,7 +1590,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -3.079567E-04, D Tr: -8.043783E-04, interpol possible:  Yes}, 
  Search new eF: {det: -1.132E-18, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.600000805E+01, charge diff:  8.045653857E-06}, 
+ iter:  6, Tr(K):  5.600000805E+01, charge diff:  8.045653871E-06}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.681E-01, upper bisection bound: -1.681E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1597,11 +1598,11 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -3.080284E-06, D Tr: -8.137519E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.239E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599999991E+01, charge diff: -9.186535976E-08}], 
+ iter:  7, Tr(K):  5.599999991E+01, charge diff: -9.186537397E-08}], 
     Total charge:  5.599999228382E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  1, delta:  3.39E-07, energy: -6.26684707064632676E+01, D: -1.547E-02}
+ iter:  1, delta:  3.39E-07, energy: -6.26684707064633244E+01, D: -1.547E-02}
    -  { #-------------------------------------------------------------------------- iter: 2
  max dev from unity:  2.10E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.09458215699E+01, Epot: -8.46275717011E+01, Enl:  9.04911926791E+00}, 
@@ -1609,7 +1610,7 @@
  { #---------------------------------------------------------------------------- it FOE: 1
  lower bisection bound: -1.742E-01, upper bisection bound: -1.742E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.741647136360E-01,    conv crit:  1.000E-06, 
+                    eF: -1.741647136359E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: recalculated, lowest eigenvalue within bounds: Yes; can continue, 
                          highest eigenvalue within bounds: Yes; can continue, 
               checking lower bisection bound, charge diff: -5.45E-02, 
@@ -1661,7 +1662,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -2.658953E-04, D Tr: -6.717317E-04, interpol possible:  Yes}, 
  Search new eF: {det: -1.357E-19, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599996788E+01, charge diff: -3.212290098E-05}, 
+ iter:  7, Tr(K):  5.599996788E+01, charge diff: -3.212290100E-05}, 
  { #---------------------------------------------------------------------------- it FOE: 8
  lower bisection bound: -1.617E-01, upper bisection bound: -1.617E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1669,7 +1670,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  1.271539E-05, D Tr:  3.240444E-05, interpol possible:  Yes}, 
  Search new eF: {det: -1.977E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.600000028E+01, charge diff:  2.815341418E-07}], 
+ iter:  8, Tr(K):  5.600000028E+01, charge diff:  2.815341702E-07}], 
     Total charge:  5.599999805278E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
@@ -1726,19 +1727,19 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  3.019483E-04, D Tr:  8.044016E-04, interpol possible:  Yes}, 
  Search new eF: {det: -1.085E-19, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.599995571E+01, charge diff: -4.429300149E-05}, 
+ iter:  6, Tr(K):  5.599995571E+01, charge diff: -4.429300148E-05}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.611E-01, upper bisection bound: -1.611E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.610611666674E-01,    conv crit:  1.000E-06, 
+                    eF: -1.610611666673E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  1.662627E-05, D Tr:  4.378743E-05, interpol possible:  Yes}, 
  Search new eF: {det:  4.254E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599999949E+01, charge diff: -5.055678400E-07}], 
+ iter:  7, Tr(K):  5.599999949E+01, charge diff: -5.055678542E-07}], 
     Total charge:  5.599999660695E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  3, delta:  8.71E-08, energy: -6.26675971007194903E+01, D:  8.067E-05}
+ iter:  3, delta:  8.71E-08, energy: -6.26675971007195471E+01, D:  8.067E-05}
    -  { #-------------------------------------------------------------------------- iter: 4
  max dev from unity:  2.10E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.09458215699E+01, Epot: -8.45652604618E+01, Enl:  9.04911926791E+00}, 
@@ -1754,7 +1755,7 @@
  { #---------------------------------------------------------------------------- it FOE: 2
  lower bisection bound: -1.656E-01, upper bisection bound: -1.656E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.564907415364E-01,    conv crit:  1.000E-06, 
+                    eF: -1.564907415363E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
               checking upper bisection bound, charge diff:  9.16E-03, 
       upper bound okay:  Yes, 
@@ -1791,7 +1792,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  2.779212E-04, D Tr:  7.397485E-04, interpol possible:  Yes}, 
  Search new eF: {det: -1.592E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.599996622E+01, charge diff: -3.378062471E-05}, 
+ iter:  6, Tr(K):  5.599996622E+01, charge diff: -3.378062472E-05}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.605E-01, upper bisection bound: -1.605E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1799,7 +1800,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  1.269127E-05, D Tr:  3.342874E-05, interpol possible:  Yes}, 
  Search new eF: {det:  1.535E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599999965E+01, charge diff: -3.518894829E-07}], 
+ iter:  7, Tr(K):  5.599999965E+01, charge diff: -3.518894687E-07}], 
     Total charge:  5.599999666253E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
@@ -1832,7 +1833,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -3.329671E-03, D Tr: -7.723590E-03, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method}, 
- iter:  3, Tr(K):  5.600029328E+01, charge diff:  2.932768386E-04}, 
+ iter:  3, Tr(K):  5.600029328E+01, charge diff:  2.932768385E-04}, 
  { #---------------------------------------------------------------------------- it FOE: 4
  lower bisection bound: -1.642E-01, upper bisection bound: -1.642E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1844,7 +1845,7 @@
  { #---------------------------------------------------------------------------- it FOE: 5
  lower bisection bound: -1.612E-01, upper bisection bound: -1.612E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.604541007080E-01,    conv crit:  1.000E-06, 
+                    eF: -1.604541007079E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  7.461712E-04, D Tr:  2.048851E-03, interpol possible:  Yes}, 
  Search new eF: {det: -1.365E-17, limit:  1.000E-12, method: linear interpolation}, 
@@ -1856,11 +1857,11 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  2.018542E-04, D Tr:  5.356571E-04, interpol possible:  Yes}, 
  Search new eF: {det: -5.809E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.599998140E+01, charge diff: -1.859801010E-05}, 
+ iter:  6, Tr(K):  5.599998140E+01, charge diff: -1.859801011E-05}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.603E-01, upper bisection bound: -1.603E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.602452381014E-01,    conv crit:  1.000E-06, 
+                    eF: -1.602452381013E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  7.008378E-06, D Tr:  1.845859E-05, interpol possible:  Yes}, 
  Search new eF: {det:  1.996E-22, limit:  1.000E-12, method: linear interpolation}, 
@@ -1868,23 +1869,23 @@
     Total charge:  5.599999681632E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  5, delta:  2.19E-08, energy: -6.26675697028514946E+01, D:  5.967E-06}
+ iter:  5, delta:  2.19E-08, energy: -6.26675697028516083E+01, D:  5.967E-06}
    -  &final_kernel004  { #-------------------------------------------------------- iter: 6
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  6, delta:  2.19E-08, energy: -6.26675697028514946E+01, D:  5.967E-06}
+ iter:  6, delta:  2.19E-08, energy: -6.26675697028516083E+01, D:  5.967E-06}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc004
+   self consistency summary: &it_sc004
    -  {iter:  4, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: FOE,  #WARNING: density optimization not converged
-  iter high:  4,       delta out:  1.592E-07, energy: -6.26675697028514946E+01, 
+  iter high:  4,       delta out:  1.592E-07, energy: -6.26675697028516083E+01, 
           D: -1.457E-02}
     #========================================================= support function optimization
- - support function optimization: &it_supfun005
+   support function optimization: &it_supfun005
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  7.09458215699E+01, Epot: -8.45450908553E+01, Enl:  9.04911926791E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  9.93E-02, Omega: -6.26675696332328016E+01, D: -1.134E-02, 
+ iter:  1, fnrm:  9.93E-02, Omega: -6.26675696332328585E+01, D: -1.134E-02, 
  Optimization: {algorithm: SD, mean alpha:  5.393E-01, max alpha:  5.393E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -1908,7 +1909,7 @@
  iter:  3, fnrm:  8.65E-02, Omega: -6.26789900811774032E+01, D: -5.472E-03}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel005
+   kernel optimization: &it_kernel005
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  2.18E-02, Hamiltonian application required:  No, FOE to determine density kernel: &it_foe005-001 [
  { #---------------------------------------------------------------------------- it FOE: 1
@@ -1929,7 +1930,7 @@
  { #---------------------------------------------------------------------------- it FOE: 3
  lower bisection bound: -1.632E-01, upper bisection bound: -1.632E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.545479782050E-01,    conv crit:  1.000E-06, 
+                    eF: -1.545479782049E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
               checking upper bisection bound, charge diff:  4.04E-03, 
       upper bound okay:  Yes, 
@@ -1938,7 +1939,7 @@
  { #---------------------------------------------------------------------------- it FOE: 4
  lower bisection bound: -1.632E-01, upper bisection bound: -1.632E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.575666543984E-01,    conv crit:  1.000E-06, 
+                    eF: -1.575666543983E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -3.018676E-03, D Tr: -5.307738E-03, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method}, 
@@ -1966,7 +1967,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  4.364469E-05, D Tr:  8.034445E-05, interpol possible:  Yes}, 
  Search new eF: {det:  4.482E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.600000124E+01, charge diff:  1.237217766E-06}, 
+ iter:  7, Tr(K):  5.600000124E+01, charge diff:  1.237217781E-06}, 
  { #---------------------------------------------------------------------------- it FOE: 8
  lower bisection bound: -1.570E-01, upper bisection bound: -1.570E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -1974,7 +1975,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -6.720811E-07, D Tr: -1.235401E-06, interpol possible:  Yes}, 
  Search new eF: {det:  1.302E-25, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.600000000E+01, charge diff:  1.816452766E-09}], 
+ iter:  8, Tr(K):  5.600000000E+01, charge diff:  1.816438555E-09}], 
     Total charge:  5.599999498656E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
@@ -1994,7 +1995,7 @@
  { #---------------------------------------------------------------------------- it FOE: 2
  lower bisection bound: -1.596E-01, upper bisection bound: -1.596E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.542359021294E-01,    conv crit:  1.000E-06, 
+                    eF: -1.542359021293E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
               checking upper bisection bound, charge diff: -1.16E-04, 
       upper bound okay:  No}, 
@@ -2018,7 +2019,7 @@
  { #---------------------------------------------------------------------------- it FOE: 5
  lower bisection bound: -1.547E-01, upper bisection bound: -1.547E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.537870951352E-01,    conv crit:  1.000E-06, 
+                    eF: -1.537870951351E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  9.323231E-04, D Tr:  1.742197E-03, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method}, 
@@ -2038,7 +2039,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -4.035740E-05, D Tr: -7.626601E-05, interpol possible:  Yes}, 
  Search new eF: {det: -1.718E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.599999858E+01, charge diff: -1.418474547E-06}, 
+ iter:  7, Tr(K):  5.599999858E+01, charge diff: -1.418474554E-06}, 
  { #---------------------------------------------------------------------------- it FOE: 8
  lower bisection bound: -1.543E-01, upper bisection bound: -1.543E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -2046,11 +2047,11 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  7.506090E-07, D Tr:  1.420421E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.774E-25, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  5.600000000E+01, charge diff:  1.945998918E-09}], 
+ iter:  8, Tr(K):  5.600000000E+01, charge diff:  1.946013128E-09}], 
     Total charge:  5.599999690741E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  2, delta:  6.45E-08, energy: -6.26812257504097374E+01, D:  7.143E-05}
+ iter:  2, delta:  6.45E-08, energy: -6.26812257504096806E+01, D:  7.143E-05}
    -  { #-------------------------------------------------------------------------- iter: 3
  max dev from unity:  2.18E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.11848408535E+01, Epot: -8.45614478010E+01, Enl:  9.06424179724E+00}, 
@@ -2087,7 +2088,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  5.764869E-04, D Tr:  1.137023E-03, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method}, 
- iter:  4, Tr(K):  5.600091886E+01, charge diff:  9.188564775E-04}, 
+ iter:  4, Tr(K):  5.600091886E+01, charge diff:  9.188564776E-04}, 
  { #---------------------------------------------------------------------------- it FOE: 5
  lower bisection bound: -1.540E-01, upper bisection bound: -1.540E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -2099,11 +2100,11 @@
  { #---------------------------------------------------------------------------- it FOE: 6
  lower bisection bound: -1.540E-01, upper bisection bound: -1.540E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
-                    eF: -1.539138190024E-01,    conv crit:  1.000E-06, 
+                    eF: -1.539138190023E-01,    conv crit:  1.000E-06, 
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -9.227808E-05, D Tr: -1.838132E-04, interpol possible:  Yes}, 
  Search new eF: {det: -2.012E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.599999685E+01, charge diff: -3.153196651E-06}, 
+ iter:  6, Tr(K):  5.599999685E+01, charge diff: -3.153196644E-06}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.539E-01, upper bisection bound: -1.539E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -2111,11 +2112,11 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  1.582971E-06, D Tr:  3.163756E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.097E-24, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.600000001E+01, charge diff:  1.055936849E-08}], 
+ iter:  7, Tr(K):  5.600000001E+01, charge diff:  1.055936139E-08}], 
     Total charge:  5.599999671297E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  3, delta:  3.05E-08, energy: -6.26812225739805058E+01, D:  3.176E-06}
+ iter:  3, delta:  3.05E-08, energy: -6.26812225739804489E+01, D:  3.176E-06}
    -  { #-------------------------------------------------------------------------- iter: 4
  max dev from unity:  2.18E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.11848408535E+01, Epot: -8.45469904523E+01, Enl:  9.06424179724E+00}, 
@@ -2168,7 +2169,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -8.241316E-05, D Tr: -1.642355E-04, interpol possible:  Yes}, 
  Search new eF: {det: -5.400E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.599999761E+01, charge diff: -2.388209403E-06}, 
+ iter:  6, Tr(K):  5.599999761E+01, charge diff: -2.388209396E-06}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.536E-01, upper bisection bound: -1.536E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -2176,11 +2177,11 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF:  1.198401E-06, D Tr:  2.395370E-06, interpol possible:  Yes}, 
  Search new eF: {det: -3.974E-25, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  5.600000001E+01, charge diff:  7.160501525E-09}], 
+ iter:  7, Tr(K):  5.600000001E+01, charge diff:  7.160508630E-09}], 
     Total charge:  5.599999668304E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  4, delta:  1.53E-08, energy: -6.26812212693801030E+01, D:  1.305E-06}
+ iter:  4, delta:  1.53E-08, energy: -6.26812212693800461E+01, D:  1.305E-06}
    -  { #-------------------------------------------------------------------------- iter: 5
  max dev from unity:  2.18E-02, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  7.11848408535E+01, Epot: -8.45400166142E+01, Enl:  9.06424179724E+00}, 
@@ -2209,7 +2210,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -1.450722E-03, D Tr: -2.753960E-03, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method}, 
- iter:  3, Tr(K):  5.599995541E+01, charge diff: -4.458510357E-05}, 
+ iter:  3, Tr(K):  5.599995541E+01, charge diff: -4.458510358E-05}, 
  { #---------------------------------------------------------------------------- it FOE: 4
  lower bisection bound: -1.535E-01, upper bisection bound: -1.535E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -2233,7 +2234,7 @@
  Chebyshev polynomials: from memory, 
  Interpolation check: {D eF: -8.368733E-05, D Tr: -1.667740E-04, interpol possible:  Yes}, 
  Search new eF: {det: -6.636E-24, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  5.599999784E+01, charge diff: -2.158220127E-06}, 
+ iter:  6, Tr(K):  5.599999784E+01, charge diff: -2.158220134E-06}, 
  { #---------------------------------------------------------------------------- it FOE: 7
  lower bisection bound: -1.535E-01, upper bisection bound: -1.535E-01, 
  lower eigenvalue bound: -1.600E+00, upper eigenvalue bound:  1.800E+00, pol degree:  204, 
@@ -2245,15 +2246,15 @@
     Total charge:  5.599999666581E+01, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  105,  109,  199 ], MPI tasks:  3}, 
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  5, delta:  7.66E-09, energy: -6.26812207349306618E+01, D:  5.344E-07}
+ iter:  5, delta:  7.66E-09, energy: -6.26812207349305481E+01, D:  5.344E-07}
    -  &final_kernel005  { #-------------------------------------------------------- iter: 6
  kernel optimization: FOE, mixing quantity: DENS, 
- iter:  6, delta:  7.66E-09, energy: -6.26812207349306618E+01, D:  5.344E-07}
+ iter:  6, delta:  7.66E-09, energy: -6.26812207349305481E+01, D:  5.344E-07}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc005
+   self consistency summary: &it_sc005
    -  {iter:  5, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: FOE,  #WARNING: density optimization not converged
-  iter high:  5,       delta out:  5.303E-08, energy: -6.26812207349306618E+01, 
+  iter high:  5,       delta out:  5.303E-08, energy: -6.26812207349305481E+01, 
           D: -1.365E-02}
    max dev from unity                  :  2.18E-02
    Hamiltonian application required    :  Yes
@@ -2262,41 +2263,41 @@
    communication strategy kernel       : ALLREDUCE
    calculate density kernel            :  Yes
     #========================================================================= final results
- - self consistency summary:
+   self consistency summary:
    -  {iter:  5, 
  Energies: {EH:  3.07637265542E+02, EXC: -2.28941052682E+01, EvXC: -2.99442057583E+01}, 
- iter high:  5, delta out:  5.303E-08, energy: -6.26812207349306618E+01, D:  0.000E+00,  #FINAL
+ iter high:  5, delta out:  5.303E-08, energy: -6.26812207349305481E+01, D:  0.000E+00,  #FINAL
  }
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
  Pulay Forces (Ha/Bohr):
- -  {C: [-8.228135783154E-04,  7.067311103429E-03,  7.237323226018E-03]} # 0001
- -  {C: [-1.076570137126E-03, -1.236021804440E-02,  2.480847033542E-04]} # 0002
- -  {C: [-1.032062680175E-03,  1.354085769299E-02, -2.276473619667E-04]} # 0003
- -  {C: [-1.116244524906E-03, -1.382812181486E-02, -5.744602776495E-04]} # 0004
- -  {C: [-1.073486342752E-03,  1.310385370804E-02, -8.494305404713E-04]} # 0005
- -  {C: [-1.111576021474E-03, -1.374330221903E-02, -5.058014477721E-04]} # 0006
- -  {C: [-1.051868427492E-03,  1.316342850168E-02, -8.890907628859E-04]} # 0007
- -  {C: [-1.090323740144E-03, -1.228419372159E-02, -1.033362601977E-03]} # 0008
- -  {C: [-8.698798281501E-04,  6.699264477321E-03, -8.495705915104E-03]} # 0009
- -  {H: [-3.063527242689E-04, -2.593529695977E-03,  1.507151970475E-03]} # 0010
- -  {H: [ 2.367258185818E-03,  7.645339546362E-04, -1.275334212504E-03]} # 0011
- -  {H: [-2.311670657403E-03,  5.891196590882E-04, -1.143021916088E-03]} # 0012
+ -  {C: [-8.228135783166E-04,  7.067311103427E-03,  7.237323226018E-03]} # 0001
+ -  {C: [-1.076570137126E-03, -1.236021804440E-02,  2.480847033576E-04]} # 0002
+ -  {C: [-1.032062680177E-03,  1.354085769299E-02, -2.276473619683E-04]} # 0003
+ -  {C: [-1.116244524906E-03, -1.382812181486E-02, -5.744602776500E-04]} # 0004
+ -  {C: [-1.073486342752E-03,  1.310385370804E-02, -8.494305404712E-04]} # 0005
+ -  {C: [-1.111576021474E-03, -1.374330221903E-02, -5.058014477722E-04]} # 0006
+ -  {C: [-1.051868427492E-03,  1.316342850168E-02, -8.890907628884E-04]} # 0007
+ -  {C: [-1.090323740144E-03, -1.228419372159E-02, -1.033362601974E-03]} # 0008
+ -  {C: [-8.698798281503E-04,  6.699264477319E-03, -8.495705915105E-03]} # 0009
+ -  {H: [-3.063527242691E-04, -2.593529695976E-03,  1.507151970474E-03]} # 0010
+ -  {H: [ 2.367258185818E-03,  7.645339546369E-04, -1.275334212504E-03]} # 0011
+ -  {H: [-2.311670657402E-03,  5.891196590880E-04, -1.143021916088E-03]} # 0012
  -  {H: [ 3.745729603289E-03, -1.487073460664E-03,  1.715534242575E-04]} # 0013
  -  {H: [-3.542614497818E-03, -1.274902226380E-03,  2.329101795412E-04]} # 0014
- -  {H: [ 4.045872007144E-03,  9.915763855110E-04, -1.771047791641E-04]} # 0015
- -  {H: [-3.868276263119E-03,  8.790278615351E-04, -1.525293808500E-04]} # 0016
- -  {H: [ 3.934315842956E-03, -1.306177697772E-03, -2.402599313552E-04]} # 0017
- -  {H: [-3.644820735731E-03, -1.099836347012E-03, -2.378309699184E-04]} # 0018
+ -  {H: [ 4.045872007144E-03,  9.915763855111E-04, -1.771047791644E-04]} # 0015
+ -  {H: [-3.868276263118E-03,  8.790278615350E-04, -1.525293808504E-04]} # 0016
+ -  {H: [ 3.934315842956E-03, -1.306177697772E-03, -2.402599313551E-04]} # 0017
+ -  {H: [-3.644820735731E-03, -1.099836347012E-03, -2.378309699183E-04]} # 0018
  -  {H: [ 4.373624585106E-03,  1.246485863196E-03, -1.932496309383E-04]} # 0019
- -  {H: [-4.119561985927E-03,  1.083282155374E-03, -1.637214066751E-04]} # 0020
- -  {H: [ 3.949797712453E-03, -1.298434250903E-03, -3.340172271992E-04]} # 0021
- -  {H: [-3.649219263526E-03, -1.086386135246E-03, -2.818064652059E-04]} # 0022
- -  {H: [ 4.117413346311E-03,  1.025695624909E-03, -4.322767507806E-04]} # 0023
- -  {H: [-3.917833599849E-03,  9.105810387763E-04, -4.009355926549E-04]} # 0024
- -  {H: [ 3.809292406753E-03, -1.518494580226E-03, -6.819657621641E-04]} # 0025
- -  {H: [-3.583236330099E-03, -1.303673877964E-03, -7.058345444136E-04]} # 0026
- -  {H: [ 2.367468225901E-03,  7.536017228233E-04,  6.856808041600E-04]} # 0027
+ -  {H: [-4.119561985927E-03,  1.083282155374E-03, -1.637214066750E-04]} # 0020
+ -  {H: [ 3.949797712453E-03, -1.298434250903E-03, -3.340172271991E-04]} # 0021
+ -  {H: [-3.649219263526E-03, -1.086386135246E-03, -2.818064652060E-04]} # 0022
+ -  {H: [ 4.117413346310E-03,  1.025695624909E-03, -4.322767507803E-04]} # 0023
+ -  {H: [-3.917833599849E-03,  9.105810387759E-04, -4.009355926547E-04]} # 0024
+ -  {H: [ 3.809292406753E-03, -1.518494580226E-03, -6.819657621642E-04]} # 0025
+ -  {H: [-3.583236330099E-03, -1.303673877964E-03, -7.058345444137E-04]} # 0026
+ -  {H: [ 2.367468225901E-03,  7.536017228235E-04,  6.856808041597E-04]} # 0027
  -  {H: [-2.285676490864E-03,  5.710659196606E-04,  6.051586701009E-04]} # 0028
  -  {H: [-2.849319238953E-04, -2.248091054497E-03, -1.281176802560E-03]} # 0029
  Total charge                          :  5.599999939154E+01
@@ -2315,43 +2316,43 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  3.96480564E-03, y:  3.47909357E-03, z:  3.43208192E-03, 
                     total:  6.29308844E-03}
- Clean forces norm (Ha/Bohr): {maxval:  1.252249559726E-02, fnrm2:  8.329495966855E-04}
- Raw forces norm (Ha/Bohr): {maxval:  1.258613572415E-02, fnrm2:  8.725712405465E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.252249559726E-02, fnrm2:  8.329495966848E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.258613572415E-02, fnrm2:  8.725712405458E-04}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 1.364468416624E-03,  4.955891492097E-04,  7.722948422359E-03]} # 0001
- -  {C: [ 1.132947964041E-03,  2.319293919723E-03, -1.874479968296E-03]} # 0002
- -  {C: [ 9.393810118378E-04,  2.130534570088E-04, -2.596338944229E-03]} # 0003
- -  {C: [ 1.048321665334E-03,  6.491385680502E-04, -2.894781116491E-03]} # 0004
- -  {C: [ 9.823760275992E-04, -6.449368604772E-04, -6.956008085394E-04]} # 0005
- -  {C: [ 1.056673328067E-03,  2.364312282229E-03,  1.424479469585E-03]} # 0006
- -  {C: [ 9.765904292590E-04,  4.808999996715E-05,  2.147589297778E-03]} # 0007
- -  {C: [ 1.269939107642E-03,  4.687730280203E-03,  5.411133377200E-03]} # 0008
- -  {C: [ 1.335311255182E-03, -1.479215167783E-03, -1.417894645170E-03]} # 0009
- -  {H: [-4.707311646382E-04, -8.662153835883E-03,  9.030968889195E-03]} # 0010
- -  {H: [ 2.078567676207E-03,  5.387708675681E-03, -2.416333561516E-03]} # 0011
- -  {H: [-3.088194823441E-03,  5.614462849520E-03, -2.220213023662E-03]} # 0012
- -  {H: [ 2.188121955295E-03, -3.903366857607E-03,  8.660796277607E-04]} # 0013
- -  {H: [-3.181493117123E-03, -4.065743098585E-03,  9.815860916103E-04]} # 0014
- -  {H: [ 2.247870555464E-03,  3.336613626815E-03, -1.243114836917E-03]} # 0015
- -  {H: [-3.227291805571E-03,  3.569182763379E-03, -1.115846725351E-03]} # 0016
- -  {H: [ 8.236161480791E-04, -3.814753760468E-03, -1.166543226591E-03]} # 0017
- -  {H: [-1.832152467067E-03, -3.964414850064E-03, -1.056210137293E-03]} # 0018
- -  {H: [ 5.788725689298E-04,  2.274894917069E-03, -9.167484890450E-04]} # 0019
- -  {H: [-1.618206638531E-03,  2.460134367244E-03, -9.078841040593E-04]} # 0020
- -  {H: [ 5.899685710677E-04, -3.468352838724E-03, -9.426983477871E-06]} # 0021
- -  {H: [-1.606126997284E-03, -3.613559258981E-03, -7.368552556136E-05]} # 0022
- -  {H: [ 9.908106930825E-04,  2.311301875733E-03,  4.239835441892E-04]} # 0023
- -  {H: [-2.007813105839E-03,  2.531049753316E-03,  2.518017643252E-04]} # 0024
- -  {H: [ 1.196888987667E-03, -2.928492352693E-03, -1.343601846933E-03]} # 0025
- -  {H: [-2.249133664453E-03, -3.116094813867E-03, -1.523033869863E-03]} # 0026
- -  {H: [ 1.511200213540E-03,  4.640364731180E-03,  2.195895501957E-03]} # 0027
- -  {H: [-2.527570312249E-03,  4.894635735273E-03,  1.963794752026E-03]} # 0028
- -  {H: [-5.032124787217E-04, -8.136473256468E-03, -8.948522924992E-03]} # 0029
+ -  {C: [ 1.364468416624E-03,  4.955891492022E-04,  7.722948422334E-03]} # 0001
+ -  {C: [ 1.132947964042E-03,  2.319293919729E-03, -1.874479968298E-03]} # 0002
+ -  {C: [ 9.393810118371E-04,  2.130534570082E-04, -2.596338944213E-03]} # 0003
+ -  {C: [ 1.048321665333E-03,  6.491385680517E-04, -2.894781116497E-03]} # 0004
+ -  {C: [ 9.823760275956E-04, -6.449368604804E-04, -6.956008085425E-04]} # 0005
+ -  {C: [ 1.056673328065E-03,  2.364312282220E-03,  1.424479469602E-03]} # 0006
+ -  {C: [ 9.765904292563E-04,  4.808999997319E-05,  2.147589297762E-03]} # 0007
+ -  {C: [ 1.269939107646E-03,  4.687730280196E-03,  5.411133377202E-03]} # 0008
+ -  {C: [ 1.335311255178E-03, -1.479215167786E-03, -1.417894645164E-03]} # 0009
+ -  {H: [-4.707311646391E-04, -8.662153835885E-03,  9.030968889192E-03]} # 0010
+ -  {H: [ 2.078567676210E-03,  5.387708675684E-03, -2.416333561510E-03]} # 0011
+ -  {H: [-3.088194823440E-03,  5.614462849518E-03, -2.220213023661E-03]} # 0012
+ -  {H: [ 2.188121955294E-03, -3.903366857603E-03,  8.660796277598E-04]} # 0013
+ -  {H: [-3.181493117122E-03, -4.065743098584E-03,  9.815860916116E-04]} # 0014
+ -  {H: [ 2.247870555465E-03,  3.336613626814E-03, -1.243114836923E-03]} # 0015
+ -  {H: [-3.227291805571E-03,  3.569182763377E-03, -1.115846725348E-03]} # 0016
+ -  {H: [ 8.236161480789E-04, -3.814753760469E-03, -1.166543226592E-03]} # 0017
+ -  {H: [-1.832152467065E-03, -3.964414850064E-03, -1.056210137292E-03]} # 0018
+ -  {H: [ 5.788725689310E-04,  2.274894917071E-03, -9.167484890377E-04]} # 0019
+ -  {H: [-1.618206638531E-03,  2.460134367245E-03, -9.078841040579E-04]} # 0020
+ -  {H: [ 5.899685710660E-04, -3.468352838727E-03, -9.426983470969E-06]} # 0021
+ -  {H: [-1.606126997286E-03, -3.613559258980E-03, -7.368552556783E-05]} # 0022
+ -  {H: [ 9.908106930843E-04,  2.311301875735E-03,  4.239835441901E-04]} # 0023
+ -  {H: [-2.007813105840E-03,  2.531049753317E-03,  2.518017643211E-04]} # 0024
+ -  {H: [ 1.196888987668E-03, -2.928492352690E-03, -1.343601846931E-03]} # 0025
+ -  {H: [-2.249133664453E-03, -3.116094813866E-03, -1.523033869854E-03]} # 0026
+ -  {H: [ 1.511200213542E-03,  4.640364731184E-03,  2.195895501950E-03]} # 0027
+ -  {H: [-2.527570312247E-03,  4.894635735276E-03,  1.963794752024E-03]} # 0028
+ -  {H: [-5.032124787220E-04, -8.136473256467E-03, -8.948522924988E-03]} # 0029
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  139.72
-   Elapsed time (s)                    :  71.80
+   CPU time (s)                        :  138.98
+   Elapsed time (s)                    :  71.23
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!

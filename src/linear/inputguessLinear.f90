@@ -567,7 +567,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      energs%eexctX=0.d0 !temporary fix
      trace_old=0.d0 !initialization
      if (iproc==0) then
-         call yaml_close_map()
+         !call yaml_close_map()
          call yaml_comment('Extended input guess for experimental mode',hfill='-')
          call yaml_open_sequence('Extended input guess')
      end if
@@ -578,7 +578,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop)
      call yaml_close_sequence()
      call deallocateDIIS(ldiis)
-     call yaml_open_map()
+     !call yaml_open_map()
      ! END NEW ############################################################################
  end if
 

@@ -9,10 +9,9 @@
   # 2) considering the forces over all atoms.
   #------------------------------------------------------------------------------------------- 
  <BigDFT> log of the run will be written in logfile: ./log.yaml
- <BigDFT> Logfile existing, renamed into: ./logfiles/log.10:56:06.701.yaml
  
  Check correctness of forces
- Difference of total energies =  1.841450407077616E-003
- Integral force*displacement =   1.873433669012440E-003
- Difference =  -3.198326193482428E-005
+ Difference of total energies =  1.841450407070511E-003
+ Integral force*displacement =   1.873433669012430E-003
+ Difference =  -3.198326194191886E-005
  

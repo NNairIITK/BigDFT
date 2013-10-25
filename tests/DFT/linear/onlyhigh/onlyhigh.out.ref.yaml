@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-10-23 08:31:19.550
+ Timestamp of this run                 : 2013-10-24 08:43:33.271
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -411,9 +411,10 @@
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - fake iteration: &it_fake000
-   -  &final_fake000  {fake iteration: bridge lwo accuracy}
+   -  &final_fake000  {fake iteration: bridge low accuracy}
     #========================================================= Adjustments for high accuracy
    Increasing the localization radius for the high accuracy part:  Yes
+   Locreg increased                    :  Yes
    total elements                      :  144
    non-zero elements                   :  144
    sparsity in %                       :  0.00
@@ -430,12 +431,12 @@
    communication strategy kernel       : ALLREDUCE
    calculate density kernel            :  Yes
     #========================================================= support function optimization
- - support function optimization: &it_supfun001
+   support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68817057033E+01, Epot: -4.60663595040E+01, Enl:  3.41920852542E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  5.60E-01, Omega: -3.76208603871043366E+01, D: -3.762E+01, 
+ iter:  1, fnrm:  5.60E-01, Omega: -3.76208603871043223E+01, D: -3.762E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.000E+00, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -461,7 +462,7 @@
  iter:  3, fnrm:  2.35E-01, Omega: -3.81419153089146405E+01, D: -1.628E-01}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel001
+   kernel optimization: &it_kernel001
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  1.40E-04, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -480,7 +481,7 @@
  {e: -3.189731143135E-01, f:  2.0000},  # 00007
  {e: -3.185810875816E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  1.47E-05, energy: -3.81438097712590931E+01, D: -3.814E+01}
+ iter:  1, delta:  1.47E-05, energy: -3.81438097712590789E+01, D: -3.814E+01}
    -  { #-------------------------------------------------------------------------- iter: 2
  max dev from unity:  1.40E-04, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.64887749593E+01, Epot: -4.57276192135E+01, Enl:  3.39188124169E+00}, 
@@ -493,13 +494,13 @@
  {e: -1.079717889499E+00, f:  2.0000},  # 00001
  {e: -1.058199404064E+00, f:  2.0000},  # 00002
  {e: -5.362997844727E-01, f:  2.0000},  # 00003
- {e: -5.135239017119E-01, f:  2.0000},  # 00004
+ {e: -5.135239017118E-01, f:  2.0000},  # 00004
  {e: -4.813949405068E-01, f:  2.0000},  # 00005
  {e: -4.813204157458E-01, f:  2.0000},  # 00006
  {e: -3.870969706094E-01, f:  2.0000},  # 00007
  {e: -3.860773590329E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  7.36E-06, energy: -3.76771212271840810E+01, D:  4.667E-01}
+ iter:  2, delta:  7.36E-06, energy: -3.76771212271840668E+01, D:  4.667E-01}
    -  { #-------------------------------------------------------------------------- iter: 3
  max dev from unity:  1.40E-04, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.64887749593E+01, Epot: -4.52600175975E+01, Enl:  3.39188124169E+00}, 
@@ -537,18 +538,18 @@
  {e: -3.411936154699E-01, f:  2.0000},  # 00007
  {e: -3.405010815619E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  1.57E-06, energy: -3.75838901718425618E+01, D:  1.303E-02}
+ iter:  4, delta:  1.57E-06, energy: -3.75838901718426044E+01, D:  1.303E-02}
    -  &final_kernel001  { #-------------------------------------------------------- iter: 5
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  1.57E-06, energy: -3.75838901718425618E+01, D:  1.303E-02}
+ iter:  5, delta:  1.57E-06, energy: -3.75838901718426044E+01, D:  1.303E-02}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc001
+   self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIAG,  #WARNING: density optimization not converged
-  iter high:  1,       delta out:  3.473E-06, energy: -3.75838901718425618E+01, 
+  iter high:  1,       delta out:  3.473E-06, energy: -3.75838901718426044E+01, 
           D: -3.758E+01}
     #========================================================= support function optimization
- - support function optimization: &it_supfun002
+   support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.64887749593E+01, Epot: -4.51358166516E+01, Enl:  3.39188124169E+00}, 
@@ -579,7 +580,7 @@
  iter:  3, fnrm:  7.61E-02, Omega: -3.77155954562185300E+01, D: -2.485E-02}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel002
+   kernel optimization: &it_kernel002
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  2.02E-05, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -655,23 +656,23 @@
  {e: -3.413713495644E-01, f:  2.0000},  # 00007
  {e: -3.412781873616E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  4.98E-07, energy: -3.77117102475675168E+01, D:  3.185E-04}
+ iter:  4, delta:  4.98E-07, energy: -3.77117102475674884E+01, D:  3.185E-04}
    -  &final_kernel002  { #-------------------------------------------------------- iter: 5
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  4.98E-07, energy: -3.77117102475675168E+01, D:  3.185E-04}
+ iter:  5, delta:  4.98E-07, energy: -3.77117102475674884E+01, D:  3.185E-04}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc002
+   self consistency summary: &it_sc002
    -  {iter:  2, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIAG,  #WARNING: density optimization not converged
-  iter high:  2,       delta out:  7.600E-07, energy: -3.77117102475675168E+01, 
+  iter high:  2,       delta out:  7.600E-07, energy: -3.77117102475674884E+01, 
           D: -1.278E-01}
     #========================================================= support function optimization
- - support function optimization: &it_supfun003
+   support function optimization: &it_supfun003
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.66729006943E+01, Epot: -4.54207752460E+01, Enl:  3.22958065236E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  5.83E-02, Omega: -3.77104365169305211E+01, D: -1.969E-02, 
+ iter:  1, fnrm:  5.83E-02, Omega: -3.77104365169305353E+01, D: -1.969E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.191E-01, max alpha:  4.191E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -689,15 +690,15 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68095234297E+01, Epot: -4.55797993877E+01, Enl:  3.25099023478E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  1.95E-02, Omega: -3.77161801367964884E+01, D: -1.495E-03, 
+ iter:  3, fnrm:  1.95E-02, Omega: -3.77161801367965026E+01, D: -1.495E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  3.68095234297E+01, Epot: -4.55797993877E+01, Enl:  3.25099023478E+00}, 
- iter:  3, fnrm:  1.95E-02, Omega: -3.77161801367964884E+01, D: -1.495E-03}
+ iter:  3, fnrm:  1.95E-02, Omega: -3.77161801367965026E+01, D: -1.495E-03}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel003
+   kernel optimization: &it_kernel003
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  7.58E-06, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -716,7 +717,7 @@
  {e: -3.428625061548E-01, f:  2.0000},  # 00007
  {e: -3.427297155484E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  7.10E-07, energy: -3.77170249097282593E+01, D: -5.315E-03}
+ iter:  1, delta:  7.10E-07, energy: -3.77170249097282451E+01, D: -5.315E-03}
    -  { #-------------------------------------------------------------------------- iter: 2
  max dev from unity:  7.58E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68095234297E+01, Epot: -4.55578195618E+01, Enl:  3.25099023478E+00}, 
@@ -735,7 +736,7 @@
  {e: -3.397163178253E-01, f:  2.0000},  # 00007
  {e: -3.396100664108E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  4.88E-07, energy: -3.77166033067595023E+01, D:  4.216E-04}
+ iter:  2, delta:  4.88E-07, energy: -3.77166033067595308E+01, D:  4.216E-04}
    -  { #-------------------------------------------------------------------------- iter: 3
  max dev from unity:  7.58E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68095234297E+01, Epot: -4.55571944208E+01, Enl:  3.25099023478E+00}, 
@@ -754,7 +755,7 @@
  {e: -3.405181310697E-01, f:  2.0000},  # 00007
  {e: -3.403979746802E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  3, delta:  4.34E-07, energy: -3.77165108371094462E+01, D:  9.247E-05}
+ iter:  3, delta:  4.34E-07, energy: -3.77165108371094604E+01, D:  9.247E-05}
    -  { #-------------------------------------------------------------------------- iter: 4
  max dev from unity:  7.58E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68095234297E+01, Epot: -4.55511516221E+01, Enl:  3.25099023478E+00}, 
@@ -778,18 +779,18 @@
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  5, delta:  3.98E-07, energy: -3.77164652076700193E+01, D:  4.563E-05}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc003
+   self consistency summary: &it_sc003
    -  {iter:  3, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIAG,  #WARNING: density optimization not converged
   iter high:  3,       delta out:  2.082E-07, energy: -3.77164652076700193E+01, 
           D: -4.755E-03}
     #========================================================= support function optimization
- - support function optimization: &it_supfun004
+   support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68095234297E+01, Epot: -4.55497570904E+01, Enl:  3.25099023478E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.76E-02, Omega: -3.77155692806233063E+01, D: -8.846E-04, 
+ iter:  1, fnrm:  1.76E-02, Omega: -3.77155692806232921E+01, D: -8.846E-04, 
  Optimization: {algorithm: SD, mean alpha:  5.071E-01, max alpha:  5.071E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -807,15 +808,15 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68106881543E+01, Epot: -4.55464735032E+01, Enl:  3.24637554630E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  7.05E-03, Omega: -3.77162860930625712E+01, D: -2.315E-04, 
+ iter:  3, fnrm:  7.05E-03, Omega: -3.77162860930625854E+01, D: -2.315E-04, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  3.68106881543E+01, Epot: -4.55464735032E+01, Enl:  3.24637554630E+00}, 
- iter:  3, fnrm:  7.05E-03, Omega: -3.77162860930625712E+01, D: -2.315E-04}
+ iter:  3, fnrm:  7.05E-03, Omega: -3.77162860930625854E+01, D: -2.315E-04}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel004
+   kernel optimization: &it_kernel004
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  3.11E-06, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -853,7 +854,7 @@
  {e: -3.403814636736E-01, f:  2.0000},  # 00007
  {e: -3.402844272348E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  3.63E-07, energy: -3.77168491636104406E+01, D:  2.870E-05}
+ iter:  2, delta:  3.63E-07, energy: -3.77168491636104690E+01, D:  2.870E-05}
    -  { #-------------------------------------------------------------------------- iter: 3
  max dev from unity:  3.11E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68106881543E+01, Epot: -4.55684464258E+01, Enl:  3.24637554630E+00}, 
@@ -896,18 +897,18 @@
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  5, delta:  3.39E-07, energy: -3.77168214194976272E+01, D:  1.335E-05}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc004
+   self consistency summary: &it_sc004
    -  {iter:  4, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIAG,  #WARNING: density optimization not converged
   iter high:  4,       delta out:  3.398E-08, energy: -3.77168214194976272E+01, 
           D: -3.562E-04}
     #========================================================= support function optimization
- - support function optimization: &it_supfun005
+   support function optimization: &it_supfun005
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68106881543E+01, Epot: -4.55737066088E+01, Enl:  3.24637554630E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  7.65E-03, Omega: -3.77161700813989498E+01, D: -1.155E-04, 
+ iter:  1, fnrm:  7.65E-03, Omega: -3.77161700813989782E+01, D: -1.155E-04, 
  Optimization: {algorithm: SD, mean alpha:  5.904E-01, max alpha:  5.904E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -916,7 +917,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68210125061E+01, Epot: -4.55854746803E+01, Enl:  3.24788044905E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  5.75E-03, Omega: -3.77163301762152585E+01, D: -1.601E-04, 
+ iter:  2, fnrm:  5.75E-03, Omega: -3.77163301762152869E+01, D: -1.601E-04, 
  Optimization: {algorithm: SD, mean alpha:  5.756E-01, max alpha:  6.494E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -925,15 +926,15 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68233052897E+01, Epot: -4.55881072495E+01, Enl:  3.24797781149E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  4.81E-03, Omega: -3.77164408316001030E+01, D: -1.107E-04, 
+ iter:  3, fnrm:  4.81E-03, Omega: -3.77164408316001314E+01, D: -1.107E-04, 
  exit criterion: net number of iterations}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  3.68233052897E+01, Epot: -4.55881072495E+01, Enl:  3.24797781149E+00}, 
- iter:  3, fnrm:  4.81E-03, Omega: -3.77164408316001030E+01, D: -1.107E-04}
+ iter:  3, fnrm:  4.81E-03, Omega: -3.77164408316001314E+01, D: -1.107E-04}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel005
+   kernel optimization: &it_kernel005
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  1.91E-06, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -952,7 +953,7 @@
  {e: -3.412829190541E-01, f:  2.0000},  # 00007
  {e: -3.411831400678E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  3.37E-07, energy: -3.77168516097775708E+01, D: -3.019E-05}
+ iter:  1, delta:  3.37E-07, energy: -3.77168516097775992E+01, D: -3.019E-05}
    -  { #-------------------------------------------------------------------------- iter: 2
  max dev from unity:  1.91E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68233052897E+01, Epot: -4.55824613843E+01, Enl:  3.24797781149E+00}, 
@@ -971,7 +972,7 @@
  {e: -3.408307224254E-01, f:  2.0000},  # 00007
  {e: -3.407359242859E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  3.27E-07, energy: -3.77168399878172451E+01, D:  1.162E-05}
+ iter:  2, delta:  3.27E-07, energy: -3.77168399878172309E+01, D:  1.162E-05}
    -  { #-------------------------------------------------------------------------- iter: 3
  max dev from unity:  1.91E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68233052897E+01, Epot: -4.55807976033E+01, Enl:  3.24797781149E+00}, 
@@ -1014,13 +1015,13 @@
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  5, delta:  3.13E-07, energy: -3.77168219449779727E+01, D:  9.011E-06}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc005
+   self consistency summary: &it_sc005
    -  {iter:  5, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIAG,  #WARNING: density optimization not converged
   iter high:  5,       delta out:  1.344E-08, energy: -3.77168219449779727E+01, 
           D: -5.255E-07}
     #========================================================= support function optimization
- - support function optimization: &it_supfun006
+   support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68233052897E+01, Epot: -4.55790765385E+01, Enl:  3.24797781149E+00}, 
@@ -1034,7 +1035,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68187939082E+01, Epot: -4.55733517349E+01, Enl:  3.24681729206E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  4.90E-03, Omega: -3.77163871600185630E+01, D: -1.218E-04, 
+ iter:  2, fnrm:  4.90E-03, Omega: -3.77163871600185487E+01, D: -1.218E-04, 
  Optimization: {algorithm: SD, mean alpha:  6.437E-01, max alpha:  6.965E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1043,15 +1044,15 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68166624171E+01, Epot: -4.55719630992E+01, Enl:  3.24732436430E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  4.31E-03, Omega: -3.77164790218513204E+01, D: -9.186E-05, 
+ iter:  3, fnrm:  4.31E-03, Omega: -3.77164790218513062E+01, D: -9.186E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun006  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  3.68166624171E+01, Epot: -4.55719630992E+01, Enl:  3.24732436430E+00}, 
- iter:  3, fnrm:  4.31E-03, Omega: -3.77164790218513204E+01, D: -9.186E-05}
+ iter:  3, fnrm:  4.31E-03, Omega: -3.77164790218513062E+01, D: -9.186E-05}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel006
+   kernel optimization: &it_kernel006
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  1.25E-06, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -1108,7 +1109,7 @@
  {e: -3.410972636755E-01, f:  2.0000},  # 00007
  {e: -3.410016760247E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  3, delta:  2.89E-07, energy: -3.77168049178382532E+01, D:  7.558E-06}
+ iter:  3, delta:  2.89E-07, energy: -3.77168049178382390E+01, D:  7.558E-06}
    -  { #-------------------------------------------------------------------------- iter: 4
  max dev from unity:  1.25E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68166624171E+01, Epot: -4.55791358904E+01, Enl:  3.24732436430E+00}, 
@@ -1132,13 +1133,13 @@
  kernel optimization: DIAG, mixing quantity: DENS, 
  iter:  5, delta:  2.83E-07, energy: -3.77167977052476360E+01, D:  7.213E-06}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc006
+   self consistency summary: &it_sc006
    -  {iter:  6, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIAG,  #WARNING: density optimization not converged
   iter high:  6,       delta out:  6.149E-09, energy: -3.77167977052476360E+01, 
           D:  2.424E-05}
     #========================================================= support function optimization
- - support function optimization: &it_supfun007
+   support function optimization: &it_supfun007
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68166624171E+01, Epot: -4.55801149389E+01, Enl:  3.24732436430E+00}, 
@@ -1152,7 +1153,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68201070847E+01, Epot: -4.55841320882E+01, Enl:  3.24802982715E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  4.43E-03, Omega: -3.77164458683478401E+01, D: -1.044E-04, 
+ iter:  2, fnrm:  4.43E-03, Omega: -3.77164458683478259E+01, D: -1.044E-04, 
  Optimization: {algorithm: SD, mean alpha:  6.750E-01, max alpha:  7.615E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1169,7 +1170,7 @@
  iter:  3, fnrm:  3.94E-03, Omega: -3.77165238396515363E+01, D: -7.797E-05}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel007
+   kernel optimization: &it_kernel007
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  1.19E-06, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -1240,28 +1241,28 @@
  {e: -1.039107451525E+00, f:  2.0000},  # 00002
  {e: -5.060967837708E-01, f:  2.0000},  # 00003
  {e: -4.781978613610E-01, f:  2.0000},  # 00004
- {e: -4.781316317940E-01, f:  2.0000},  # 00005
+ {e: -4.781316317941E-01, f:  2.0000},  # 00005
  {e: -4.695509708062E-01, f:  2.0000},  # 00006
  {e: -3.409350710510E-01, f:  2.0000},  # 00007
  {e: -3.408420224876E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  2.58E-07, energy: -3.77167743232807382E+01, D:  5.899E-06}
+ iter:  4, delta:  2.58E-07, energy: -3.77167743232807240E+01, D:  5.899E-06}
    -  &final_kernel007  { #-------------------------------------------------------- iter: 5
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  2.58E-07, energy: -3.77167743232807382E+01, D:  5.899E-06}
+ iter:  5, delta:  2.58E-07, energy: -3.77167743232807240E+01, D:  5.899E-06}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc007
+   self consistency summary: &it_sc007
    -  {iter:  7, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIAG,  #WARNING: density optimization not converged
-  iter high:  7,       delta out:  4.058E-09, energy: -3.77167743232807382E+01, 
+  iter high:  7,       delta out:  4.058E-09, energy: -3.77167743232807240E+01, 
           D:  2.338E-05}
     #========================================================= support function optimization
- - support function optimization: &it_supfun008
+   support function optimization: &it_supfun008
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68192764948E+01, Epot: -4.55802591661E+01, Enl:  3.24823263855E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  5.04E-03, Omega: -3.77163954384686733E+01, D:  5.043E-05, 
+ iter:  1, fnrm:  5.04E-03, Omega: -3.77163954384686875E+01, D:  5.043E-05, 
  Optimization: {algorithm: SD, mean alpha:  7.078E-01, max alpha:  7.078E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1270,7 +1271,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68179798706E+01, Epot: -4.55780607998E+01, Enl:  3.24755369981E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  4.17E-03, Omega: -3.77164821304163880E+01, D: -8.669E-05, 
+ iter:  2, fnrm:  4.17E-03, Omega: -3.77164821304164022E+01, D: -8.669E-05, 
  Optimization: {algorithm: SD, mean alpha:  6.901E-01, max alpha:  7.786E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1279,15 +1280,15 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68161693028E+01, Epot: -4.55772478808E+01, Enl:  3.24823585070E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  3.76E-03, Omega: -3.77165476745836585E+01, D: -6.554E-05, 
+ iter:  3, fnrm:  3.76E-03, Omega: -3.77165476745836727E+01, D: -6.554E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun008  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  3.68161693028E+01, Epot: -4.55772478808E+01, Enl:  3.24823585070E+00}, 
- iter:  3, fnrm:  3.76E-03, Omega: -3.77165476745836585E+01, D: -6.554E-05}
+ iter:  3, fnrm:  3.76E-03, Omega: -3.77165476745836727E+01, D: -6.554E-05}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel008
+   kernel optimization: &it_kernel008
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  1.05E-06, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -1300,13 +1301,13 @@
  {e: -1.074490424841E+00, f:  2.0000},  # 00001
  {e: -1.039288264114E+00, f:  2.0000},  # 00002
  {e: -5.059831384254E-01, f:  2.0000},  # 00003
- {e: -4.781818335039E-01, f:  2.0000},  # 00004
+ {e: -4.781818335040E-01, f:  2.0000},  # 00004
  {e: -4.781166941977E-01, f:  2.0000},  # 00005
  {e: -4.697153334279E-01, f:  2.0000},  # 00006
  {e: -3.409963195494E-01, f:  2.0000},  # 00007
  {e: -3.409022255813E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  2.49E-07, energy: -3.77167696973083579E+01, D:  4.626E-06}
+ iter:  1, delta:  2.49E-07, energy: -3.77167696973083721E+01, D:  4.626E-06}
    -  { #-------------------------------------------------------------------------- iter: 2
  max dev from unity:  1.05E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68161693028E+01, Epot: -4.55783332462E+01, Enl:  3.24823585070E+00}, 
@@ -1325,7 +1326,7 @@
  {e: -3.410326563811E-01, f:  2.0000},  # 00007
  {e: -3.409397652464E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  2.45E-07, energy: -3.77167642631248938E+01, D:  5.434E-06}
+ iter:  2, delta:  2.45E-07, energy: -3.77167642631248796E+01, D:  5.434E-06}
    -  { #-------------------------------------------------------------------------- iter: 3
  max dev from unity:  1.05E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68161693028E+01, Epot: -4.55799428175E+01, Enl:  3.24823585070E+00}, 
@@ -1337,14 +1338,14 @@
  Orbitals: [
  {e: -1.074655679912E+00, f:  2.0000},  # 00001
  {e: -1.039505422527E+00, f:  2.0000},  # 00002
- {e: -5.060984864606E-01, f:  2.0000},  # 00003
+ {e: -5.060984864605E-01, f:  2.0000},  # 00003
  {e: -4.783270028959E-01, f:  2.0000},  # 00004
  {e: -4.782621413206E-01, f:  2.0000},  # 00005
  {e: -4.698959876461E-01, f:  2.0000},  # 00006
  {e: -3.411554988651E-01, f:  2.0000},  # 00007
  {e: -3.410617772200E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  3, delta:  2.39E-07, energy: -3.77167592191097967E+01, D:  5.044E-06}
+ iter:  3, delta:  2.39E-07, energy: -3.77167592191097683E+01, D:  5.044E-06}
    -  { #-------------------------------------------------------------------------- iter: 4
  max dev from unity:  1.05E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68161693028E+01, Epot: -4.55796374302E+01, Enl:  3.24823585070E+00}, 
@@ -1363,18 +1364,18 @@
  {e: -3.411072235401E-01, f:  2.0000},  # 00007
  {e: -3.410144737452E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  2.34E-07, energy: -3.77167543354177823E+01, D:  4.884E-06}
+ iter:  4, delta:  2.34E-07, energy: -3.77167543354177397E+01, D:  4.884E-06}
    -  &final_kernel008  { #-------------------------------------------------------- iter: 5
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  2.34E-07, energy: -3.77167543354177823E+01, D:  4.884E-06}
+ iter:  5, delta:  2.34E-07, energy: -3.77167543354177397E+01, D:  4.884E-06}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc008
+   self consistency summary: &it_sc008
    -  {iter:  8, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIAG,  #WARNING: density optimization not converged
-  iter high:  8,       delta out:  3.433E-09, energy: -3.77167543354177823E+01, 
+  iter high:  8,       delta out:  3.433E-09, energy: -3.77167543354177397E+01, 
           D:  1.999E-05}
     #========================================================= support function optimization
- - support function optimization: &it_supfun009
+   support function optimization: &it_supfun009
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68161693028E+01, Epot: -4.55805691788E+01, Enl:  3.24823585070E+00}, 
@@ -1388,7 +1389,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68184631910E+01, Epot: -4.55824570987E+01, Enl:  3.24811033684E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  3.78E-03, Omega: -3.77165051480515032E+01, D: -6.172E-05, 
+ iter:  2, fnrm:  3.78E-03, Omega: -3.77165051480515174E+01, D: -6.172E-05, 
  Optimization: {algorithm: SD, mean alpha:  5.296E-01, max alpha:  6.534E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1405,7 +1406,7 @@
  iter:  3, fnrm:  3.29E-03, Omega: -3.77165501651953647E+01, D: -4.502E-05}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel009
+   kernel optimization: &it_kernel009
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  1.06E-06, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -1443,7 +1444,7 @@
  {e: -3.410936106008E-01, f:  2.0000},  # 00007
  {e: -3.410008383876E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  2, delta:  2.21E-07, energy: -3.77167472417207179E+01, D:  4.368E-06}
+ iter:  2, delta:  2.21E-07, energy: -3.77167472417206895E+01, D:  4.368E-06}
    -  { #-------------------------------------------------------------------------- iter: 3
  max dev from unity:  1.06E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68168775469E+01, Epot: -4.55806646755E+01, Enl:  3.24860793592E+00}, 
@@ -1462,7 +1463,7 @@
  {e: -3.411493189680E-01, f:  2.0000},  # 00007
  {e: -3.410558175651E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  3, delta:  2.15E-07, energy: -3.77167431421566235E+01, D:  4.100E-06}
+ iter:  3, delta:  2.15E-07, energy: -3.77167431421565809E+01, D:  4.100E-06}
    -  { #-------------------------------------------------------------------------- iter: 4
  max dev from unity:  1.06E-06, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68168775469E+01, Epot: -4.55797545951E+01, Enl:  3.24860793592E+00}, 
@@ -1481,18 +1482,18 @@
  {e: -3.410698528053E-01, f:  2.0000},  # 00007
  {e: -3.409771230574E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  2.11E-07, energy: -3.77167391562037935E+01, D:  3.986E-06}
+ iter:  4, delta:  2.11E-07, energy: -3.77167391562037508E+01, D:  3.986E-06}
    -  &final_kernel009  { #-------------------------------------------------------- iter: 5
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  2.11E-07, energy: -3.77167391562037935E+01, D:  3.986E-06}
+ iter:  5, delta:  2.11E-07, energy: -3.77167391562037508E+01, D:  3.986E-06}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc009
+   self consistency summary: &it_sc009
    -  {iter:  9, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIAG,  #WARNING: density optimization not converged
-  iter high:  9,       delta out:  2.570E-09, energy: -3.77167391562037935E+01, 
+  iter high:  9,       delta out:  2.570E-09, energy: -3.77167391562037508E+01, 
           D:  1.518E-05}
     #========================================================= support function optimization
- - support function optimization: &it_supfun010
+   support function optimization: &it_supfun010
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68168775469E+01, Epot: -4.55804386946E+01, Enl:  3.24860793592E+00}, 
@@ -1515,15 +1516,15 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.68174247988E+01, Epot: -4.55807529890E+01, Enl:  3.24841810285E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  2.93E-03, Omega: -3.77165749549968368E+01, D: -3.934E-05, 
+ iter:  3, fnrm:  2.93E-03, Omega: -3.77165749549968510E+01, D: -3.934E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun010  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  3.68174247988E+01, Epot: -4.55807529890E+01, Enl:  3.24841810285E+00}, 
- iter:  3, fnrm:  2.93E-03, Omega: -3.77165749549968368E+01, D: -3.934E-05}
+ iter:  3, fnrm:  2.93E-03, Omega: -3.77165749549968510E+01, D: -3.934E-05}
     #Support functions created
     #=================================================================== kernel optimization
- - kernel optimization: &it_kernel010
+   kernel optimization: &it_kernel010
    -  { #-------------------------------------------------------------------------- iter: 1
  max dev from unity:  7.61E-07, Hamiltonian application required:  No, 
  Diagonalizing Hamiltonian: sequential, communication strategy kernel: ALLREDUCE, 
@@ -1542,7 +1543,7 @@
  {e: -3.411392550644E-01, f:  2.0000},  # 00007
  {e: -3.410458030889E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  1, delta:  2.03E-07, energy: -3.77167370652731009E+01, D:  2.091E-06}
+ iter:  1, delta:  2.03E-07, energy: -3.77167370652730867E+01, D:  2.091E-06}
    -  { #-------------------------------------------------------------------------- iter: 2
  max dev from unity:  7.61E-07, Hamiltonian application required:  Yes, 
  Energies: {Ekin:  3.68174247988E+01, Epot: -4.55800752749E+01, Enl:  3.24841810285E+00}, 
@@ -1556,7 +1557,7 @@
  {e: -1.039397996773E+00, f:  2.0000},  # 00002
  {e: -5.060235801769E-01, f:  2.0000},  # 00003
  {e: -4.782780352298E-01, f:  2.0000},  # 00004
- {e: -4.782130059993E-01, f:  2.0000},  # 00005
+ {e: -4.782130059994E-01, f:  2.0000},  # 00005
  {e: -4.698403410911E-01, f:  2.0000},  # 00006
  {e: -3.410719526197E-01, f:  2.0000},  # 00007
  {e: -3.409794446828E-01, f:  2.0000}],  # 00008
@@ -1599,28 +1600,28 @@
  {e: -3.410821766984E-01, f:  2.0000},  # 00007
  {e: -3.409898457360E-01, f:  2.0000}],  # 00008
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  4, delta:  1.91E-07, energy: -3.77167268966621307E+01, D:  3.257E-06}
+ iter:  4, delta:  1.91E-07, energy: -3.77167268966621592E+01, D:  3.257E-06}
    -  &final_kernel010  { #-------------------------------------------------------- iter: 5
  kernel optimization: DIAG, mixing quantity: DENS, 
- iter:  5, delta:  1.91E-07, energy: -3.77167268966621307E+01, D:  3.257E-06}
+ iter:  5, delta:  1.91E-07, energy: -3.77167268966621592E+01, D:  3.257E-06}
     #================================================================= Summary of both steps
- - self consistency summary: &it_sc010
+   self consistency summary: &it_sc010
    -  {iter:  10, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
               kernel optimization: DIAG,  #WARNING: density optimization not converged
-  iter high:  10,       delta out:  2.344E-09, energy: -3.77167268966621307E+01, 
+  iter high:  10,       delta out:  2.344E-09, energy: -3.77167268966621592E+01, 
           D:  1.226E-05}
     #========================================================================= final results
- - self consistency summary:
+   self consistency summary:
    -  {iter:  10, 
  Energies: {EH:  6.10418095971E+01, EXC: -8.49449696448E+00, EvXC: -1.11367173604E+01}, 
- iter high:  10, delta out:  2.344E-09, energy: -3.77167268966621307E+01, D:  0.000E+00,  #FINAL
+ iter high:  10, delta out:  2.344E-09, energy: -3.77167268966621592E+01, D:  0.000E+00,  #FINAL
  }
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
  Pulay Forces (Ha/Bohr):
- -  {O: [-3.459665831471E-04, -5.717850767758E-04, -5.846632028873E-04]} # 0001
- -  {O: [-1.020136020634E-03, -9.458195510081E-04, -9.487686552395E-04]} # 0002
- -  {C: [ 5.648472714150E-03,  6.367914556848E-03,  6.398573846861E-03]} # 0003
+ -  {O: [-3.459665831516E-04, -5.717850767789E-04, -5.846632028905E-04]} # 0001
+ -  {O: [-1.020136020634E-03, -9.458195510137E-04, -9.487686552423E-04]} # 0002
+ -  {C: [ 5.648472714151E-03,  6.367914556850E-03,  6.398573846861E-03]} # 0003
  Total charge                          :  1.599999314549E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1637,17 +1638,17 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -8.46563120E-03, y: -7.06912476E-03, z: -7.01710025E-03, 
                     total:  1.30720745E-02}
- Clean forces norm (Ha/Bohr): {maxval:  1.015903003223E-02, fnrm2:  1.613012696263E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.015903003225E-02, fnrm2:  1.613012696267E-04}
  Raw forces norm (Ha/Bohr): {maxval:  3.870060703973E-02, fnrm2:  2.943489313379E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 1.703651930036E-03,  1.871088339953E-03,  2.121467195452E-03]} # 0001
- -  {O: [-5.440744159790E-03, -6.172609733914E-03, -5.958446379411E-03]} # 0002
- -  {C: [ 3.737092229758E-03,  4.301521393953E-03,  3.836979183964E-03]} # 0003
+ -  {O: [ 1.703651930045E-03,  1.871088339963E-03,  2.121467195466E-03]} # 0001
+ -  {O: [-5.440744159799E-03, -6.172609733925E-03, -5.958446379417E-03]} # 0002
+ -  {C: [ 3.737092229757E-03,  4.301521393954E-03,  3.836979183956E-03]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  59.58
-   Elapsed time (s)                    :  30.11
+   CPU time (s)                        :  59.24
+   Elapsed time (s)                    :  29.81
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
