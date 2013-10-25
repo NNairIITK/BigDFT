@@ -375,8 +375,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
           tmb%can_use_transposed=.false.
           if (iproc==0) then
-              call yaml_sequence(advance='no')
-              call yaml_open_map('fake iteration',label=&
+              !call yaml_sequence(advance='no')
+              call yaml_open_sequence('fake iteration',label=&
                                  'it_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
               call yaml_sequence(label='final_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))),advance='no')
               call yaml_open_map(flow=.true.)
@@ -2564,9 +2564,11 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
 
   !if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
   !if (iproc==0) write(*,*) 'Site energies:'
-  if (iproc==0) call yaml_open_sequence('Site energies')
+  if (iproc==0) call yaml_open_sequence('Site energies',flow=.true.)
 
   !!if (iproc==0) write(*,*) 'state, energy, orthog energy, frag eval, overlap, orthog overlap, occ'
+  if (iproc==0) call yaml_comment('state, energy, orthog energy, frag eval, overlap, orthog overlap, occ')
+
   istate=1
   frag_sum_tot=0
   frag_sum_tot_orthog=0
@@ -2634,10 +2636,12 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
        !if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
        !     '-------------------------'
      if(iproc==0) then
+         call yaml_newline
          call yaml_map('2*frag sum',2.0_gp*frag_sum(ifrag))
          call yaml_map('2*frag sum orthog',2.0_gp*frag_sum_orthog(ifrag))
          call yaml_map('2*eval sum',2.0_gp*eval_sum(ifrag))
          call yaml_close_map()
+         call yaml_newline()
      end if
      frag_sum_tot=frag_sum_tot+frag_sum(ifrag)
      frag_sum_tot_orthog=frag_sum_tot_orthog+frag_sum_orthog(ifrag)

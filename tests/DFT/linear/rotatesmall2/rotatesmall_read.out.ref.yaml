@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-10-25 09:31:52.328
+ Timestamp of this run                 : 2013-10-25 10:41:36.344
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -394,7 +394,7 @@
      Molecule was rotated              :  7
      Discrete operations               :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.860E+00,  2.781E+00 ]}
+   -  {Process:  0, Timing:  [  3.496E+00,  2.470E+00 ]}
    nstates_max                         :  4
    ksorbs%norb                         :  4
    tmb%orbs%norb                       :  7
@@ -431,7 +431,7 @@
    Maxdiff for untranspose             :  0.00000000000000000E+00
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
- - fake iteration: &it_fake000
+   fake iteration: &it_fake000
    -  &final_fake000  {fake iteration: bridge low accuracy}
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
@@ -450,12 +450,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  5.62534261190E+00, Epot: -7.96353075807E+00, Enl:  1.81170613974E+00}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.49135561524026006E+00, D: -5.491E+00, 
+ iter:  1, fnrm:  1.71E-01, Omega: -5.49135561524025473E+00, D: -5.491E+00, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  5.62534261190E+00, Epot: -7.96353075807E+00, Enl:  1.81170613974E+00}, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.49135561524026006E+00, D: -5.491E+00}
+ iter:  1, fnrm:  1.71E-01, Omega: -5.49135561524025473E+00, D: -5.491E+00}
     #Support functions created
     #=================================================================== kernel optimization
    kernel optimization: &it_kernel001
@@ -465,7 +465,7 @@
  { #-------------------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.31E-02, eBS: -2.01201278795773142E+00, D: -3.870E-04, 
+ iter:  1, fnrm:  2.31E-02, eBS: -2.01201278795773497E+00, D: -3.870E-04, 
           alpha:  2.000E-01}], 
  Total charge:  6.999999956255E+00, density mixing; history:  0, update potential:  Yes, 
  Poisson Solver: {BC: Free, Box:  [  115,  113,  113 ], MPI tasks:  3}, 
@@ -476,50 +476,52 @@
  {e: -2.687965044030E-01, f:  2.0000},  # 00003
  {e: -9.570892839734E-02, f:  1.0000}],  # 00004
  kernel optimization: DMIN, mixing quantity: DENS, 
- iter:  1, delta:  3.38E-08, energy: -5.49174259321492908E+00, D: -5.492E+00}
+ iter:  1, delta:  3.38E-08, energy: -5.49174259321492197E+00, D: -5.492E+00}
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  kernel optimization: DMIN, mixing quantity: DENS, 
- iter:  2, delta:  3.38E-08, energy: -5.49174259321492908E+00, D: -5.492E+00}
+ iter:  2, delta:  3.38E-08, energy: -5.49174259321492197E+00, D: -5.492E+00}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY, mean conf prefac:  6.95-310,  #WARNING: support function optimization not converged
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  1,       delta out:  3.379E-08, energy: -5.49174259321492908E+00, 
+  iter high:  1,       delta out:  3.379E-08, energy: -5.49174259321492197E+00, 
           D: -5.492E+00}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
  Energies: {EH:  9.06881572858E+00, EXC: -2.18712311116E+00, EvXC: -2.85442743500E+00}, 
- iter high:  1, delta out:  3.379E-08, energy: -5.49174259321492908E+00, D:  0.000E+00,  #FINAL
+ iter high:  1, delta out:  3.379E-08, energy: -5.49174259321492197E+00, D:  0.000E+00,  #FINAL
  }
  Total charge                          :  6.999999956255E+00
- Site energies:
-    {label: sih3, state: HOMO-3, energy: -0.43165640819968065, 
-          orthog energy: -0.43166403946983350, frag eval: -0.43942462258467402, 
-   overlap:  0.99998260057136934, orthog overlap:  0.99999999999999967, 
-       occ:  2.0000000000000000,  state: HOMO-2,  energy: -0.26628371588181354, 
-          orthog energy: -0.26627479812058058, frag eval: -0.26967442895192101, 
-   overlap:  1.0000333884110324,          orthog overlap:  1.0000000000000027, 
-       occ:  2.0000000000000000,  state: HOMO-1,  energy: -0.26851937757759498, 
-          orthog energy: -0.26851267030537174, frag eval: -0.26879650440299502, 
-   overlap:  1.0000248310303042,          orthog overlap:  0.99999999999999933, 
-       occ:  2.0000000000000000,  state: HOMO,    energy: -7.88615124281185215E-002, 
-          orthog energy: -7.88611052375401966E-002, frag eval: -9.57089283973360100E-002, 
-   overlap:  1.0000052379289444,          orthog overlap:  1.0000000000000016, 
-       occ:  1.0000000000000000,  state: LUMO,    energy:  0.18227061500274325, 
-          orthog energy:  0.18227496282025604, frag eval:  0.17998969289930000, 
-   overlap:  0.99997544076069889,         orthog overlap:  1.0000000000000009, 
-       occ:  0.0000000000000000,  state: LUMO+1,  energy:  0.20319497585367630, 
-          orthog energy:  0.20319767635701422, frag eval:  0.19319086076686101, 
-   overlap:  0.99998671613038215,         orthog overlap:  0.99999999999999900, 
-       occ:  0.0000000000000000,  state: LUMO+2,  energy:  0.20043194137445275, 
-          orthog energy:  0.20043364218309642, frag eval:  0.19376080229511500, 
-   overlap:  0.99999178548252377,         orthog overlap:  0.99999999999999967, 
-       occ:  0.0000000000000000,              2*frag sum: -2.0117805157462967, 
-      2*frag sum orthog: -2.0117641210291120, 2*eval sum: -2.0515000402765162}
- 2.0_gp*frag_sum_tot                   : -2.0117805157462967
- 2.0_gp*frag_sum_tot_orthog            : -2.0117641210291120
- 2.0_gp*eval_sum_tot                   : -2.0515000402765162
+ Site energies: [ #state, energy, orthog energy, frag eval, overlap, orthog overlap, occ
+  {label: sih3, state: HOMO-3, energy: -0.43165640819968143, 
+        orthog energy: -0.43166403946983378, frag eval: -0.43942462258467402, 
+ overlap:  0.99998260057137012, orthog overlap:  0.99999999999999956, 
+     occ:  2.0000000000000000,  state: HOMO-2,  energy: -0.26628371588180366, 
+        orthog energy: -0.26627479812057697, frag eval: -0.26967442895192101, 
+ overlap:  1.0000333884110029,          orthog overlap:  0.99999999999999756, 
+     occ:  2.0000000000000000,  state: HOMO-1,  energy: -0.26851937757759864, 
+        orthog energy: -0.26851267030537523, frag eval: -0.26879650440299502, 
+ overlap:  1.0000248310303064,          orthog overlap:  0.99999999999999944, 
+     occ:  2.0000000000000000,  state: HOMO,    energy: -7.88615124281184521E-002, 
+        orthog energy: -7.88611052375403909E-002, frag eval: -9.57089283973369120E-002, 
+ overlap:  1.0000052379289437,          orthog overlap:  0.99999999999999989, 
+     occ:  1.0000000000000000,  state: LUMO,    energy:  0.18227061500274316, 
+        orthog energy:  0.18227496282025585, frag eval:  0.17998969289929900, 
+ overlap:  0.99997544076069933,         orthog overlap:  0.99999999999999889, 
+     occ:  0.0000000000000000,  state: LUMO+1,  energy:  0.20319497585367025, 
+        orthog energy:  0.20319767635701352, frag eval:  0.19319086076686001, 
+ overlap:  0.99998671613035595,         orthog overlap:  0.99999999999999978, 
+     occ:  0.0000000000000000,  state: LUMO+2,  energy:  0.20043194137445311, 
+        orthog energy:  0.20043364218309709, frag eval:  0.19376080229511500, 
+ overlap:  0.99999178548252243,         orthog overlap:  0.99999999999999867, 
+     occ:  0.0000000000000000, 
+ 2*frag sum: -2.0117805157462860, 2*frag sum orthog: -2.0117641210291124, 
+ 2*eval sum: -2.0515000402765171}, 
+ ]
+ 2.0_gp*frag_sum_tot                   : -2.0117805157462860
+ 2.0_gp*frag_sum_tot_orthog            : -2.0117641210291124
+ 2.0_gp*eval_sum_tot                   : -2.0515000402765171
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -529,18 +531,18 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  8.73226168E-02, y: -1.12705181E-02, z: -2.29951737E-02, 
                     total:  9.10002307E-02}
- Clean forces norm (Ha/Bohr): {maxval:  4.224112289378E-02, fnrm2:  4.510072340226E-03}
- Raw forces norm (Ha/Bohr): {maxval:  7.090434346081E-02, fnrm2:  1.279701250498E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  4.224112289379E-02, fnrm2:  4.510072340226E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  7.090434346080E-02, fnrm2:  1.279701250498E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [ 3.736901577514E-03,  3.778439171811E-03, -1.304825681032E-02]} # 0001
- -  {H: [-3.521228406373E-03,  3.246440702119E-02,  2.679506840074E-02]} # 0002
- -  {H: [-2.107628413667E-02, -3.600588825844E-02,  4.460601428122E-03]} # 0003
- -  {H: [ 2.086061096553E-02, -2.369579345567E-04, -1.820741301854E-02]} # 0004
+ -  {Si: [ 3.736901577510E-03,  3.778439171815E-03, -1.304825681032E-02]} # 0001
+ -  {H: [-3.521228406369E-03,  3.246440702119E-02,  2.679506840074E-02]} # 0002
+ -  {H: [-2.107628413667E-02, -3.600588825845E-02,  4.460601428115E-03]} # 0003
+ -  {H: [ 2.086061096553E-02, -2.369579345608E-04, -1.820741301854E-02]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.24
-   Elapsed time (s)                    :  5.48
+   CPU time (s)                        :  8.85
+   Elapsed time (s)                    :  5.15
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
@@ -549,7 +551,7 @@
  - density optimization not converged
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-10-25 09:31:51.298
+     2013-10-25 10:41:35.315
    Process Id:
      0
  Memory Consumption Report:

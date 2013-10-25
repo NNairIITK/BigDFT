@@ -351,7 +351,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   end do
 
   !if (iproc==0) write(*,*) 'Weight analysis:'
-  if (iproc==0) call yaml_open_sequence('Weight analysis')
+  if (iproc==0) call yaml_open_sequence('Weight analysis',flow=.true.)
   if (iproc==0) call yaml_newline()
   !if (iproc==0) write(*,*) 'coeff, occ, eval, frac for each frag'
   if (iproc==0) call yaml_comment ('coeff, occ, eval, frac for each frag')
@@ -370,6 +370,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
      end do
      !if (iproc==0) write(*,*) ''
      if (iproc==0) call yaml_close_map()
+     if (iproc==0) call yaml_newline()
   end do
   if (iproc==0) call yaml_close_sequence()
 
