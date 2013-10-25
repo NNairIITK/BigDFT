@@ -1329,8 +1329,8 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
    real(gp), dimension(nelecmax), intent(in) :: aocc
    !local variables
    character(len=10) :: tmp
-   character(len=500) :: string
-   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
+   character(len=3) :: string
+   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp
    logical, dimension(4,2) :: scorb
 
    !if non-collinear it is like nspin=1 but with the double of orbitals
@@ -1353,10 +1353,6 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
 
    call yaml_open_map('Electronic configuration',flow=.true.)
 
-   !initalise string
-   string=repeat(' ',len(string))
-
-   is=1
    do i=1,noccmax
       iocc=0
       do l=1,lmax
@@ -1365,10 +1361,12 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
          do inl=1,nl
             !write to the string the angular momentum
             if (inl == i) then
-               iss=is
+               string='   '
                if (scorb(l,inl)) then
-                  string(is:is)='('
-                  is=is+1
+                  string(1:1)='('
+                  is=2
+               else
+                  is=1
                end if
                select case(l)
                case(1)
@@ -1385,9 +1383,8 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
                is=is+1
                if (scorb(l,inl)) then
                   string(is:is)=')'
-                  is=is+1
                end if
-               call yaml_open_sequence(string(iss:is))
+               call yaml_open_sequence(string)
             end if
             do ispin=1,nspin
                do m=1,2*l-1
@@ -1396,23 +1393,17 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
                      !write to the string the value of the occupation numbers
                      if (inl == i) then
                         call write_fraction_string(l,aocc(iocc),tmp,ntmp)
-                        string(is:is+ntmp-1)=tmp(1:ntmp)
                         call yaml_sequence(tmp(1:ntmp))
-                        is=is+ntmp
                      end if
                   end do
                end do
             end do
             if (inl == i) then
-               string(is:is+2)=' , '
-               is=is+3
                call yaml_close_sequence()
             end if
          end do
       end do
    end do
-
-   !write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
 
    call yaml_close_map()
 

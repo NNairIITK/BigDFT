@@ -7,7 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> this function returns a dictionary with all the input variables of a BigDFT run filled
+!> This function returns a dictionary with all the input variables of a BigDFT run filled
 !! this dictionary is constructed from a updated version of the input variables dictionary
 !! following the input files as defined  by the user
 function read_input_dict_from_files(radical, mpi_env) result(dict)
@@ -75,6 +75,7 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   call mpi_barrier(mpi_env%mpi_comm, ierr)
 end function read_input_dict_from_files
 
+
 !> Routine to read YAML input files and create input dictionary.
 subroutine merge_input_file_to_dict(dict, fname, mpi_env)
   use module_input_keys
@@ -123,6 +124,7 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
   !in the present implementation f_err_check is not cleaned after the close of the try
   if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
 end subroutine merge_input_file_to_dict
+
 
 !> Fill the input_variables structure with the information
 !! contained in the dictionary dict
@@ -229,6 +231,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
 end subroutine inputs_from_dict
 
+
 !> Check the directory of data (create if not present)
 subroutine check_for_data_writing_directory(iproc,in)
   use module_base
@@ -292,6 +295,7 @@ subroutine create_dir_output(iproc, in)
   in%dir_output=dirname
 END SUBROUTINE create_dir_output
 
+
 !> Set default values for input variables
 subroutine default_input_variables(in)
   use module_base
@@ -339,6 +343,7 @@ subroutine default_input_variables(in)
   nullify(in%frag%charge)
 END SUBROUTINE default_input_variables
 
+
 !> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
@@ -358,6 +363,7 @@ subroutine mix_input_variables_default(in)
   in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
+
 
 !> Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
@@ -382,6 +388,7 @@ subroutine geopt_input_variables_default(in)
 
 END SUBROUTINE geopt_input_variables_default
 
+
 !> Assign default values for self-interaction correction variables
 subroutine sic_input_variables_default(in)
   use module_base
@@ -395,6 +402,7 @@ subroutine sic_input_variables_default(in)
 
 END SUBROUTINE sic_input_variables_default
 
+
 !> Assign default values for TDDFT variables
 subroutine tddft_input_variables_default(in)
   use module_base
@@ -406,99 +414,105 @@ subroutine tddft_input_variables_default(in)
 
 END SUBROUTINE tddft_input_variables_default
 
-  subroutine allocateInputFragArrays(input_frag)
-    use module_types
-    implicit none
-  
-    ! Calling arguments
-    type(fragmentInputParameters),intent(inout) :: input_frag
-  
-    ! Local variables
-    integer :: i_stat
-    character(len=*),parameter :: subname='allocateInputFragArrays'
- 
-    allocate(input_frag%frag_index(input_frag%nfrag), stat=i_stat)
-    call memocc(i_stat, input_frag%frag_index, 'input_frag%frag_index', subname)
 
-    allocate(input_frag%charge(input_frag%nfrag), stat=i_stat)
-    call memocc(i_stat, input_frag%charge, 'input_frag%charge', subname)
+!> Allocate the arrays for the input related to the fragment
+subroutine allocateInputFragArrays(input_frag)
+  use module_types
+  implicit none
 
-    !allocate(input_frag%frag_info(input_frag%nfrag_ref,2), stat=i_stat)
-    !call memocc(i_stat, input_frag%frag_info, 'input_frag%frag_info', subname)
+  ! Calling arguments
+  type(fragmentInputParameters),intent(inout) :: input_frag
 
-    allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
-    call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
+  ! Local variables
+  integer :: i_stat
+  character(len=*),parameter :: subname='allocateInputFragArrays'
 
-    allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
-    call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
+  allocate(input_frag%frag_index(input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, input_frag%frag_index, 'input_frag%frag_index', subname)
 
-  end subroutine allocateInputFragArrays
+  allocate(input_frag%charge(input_frag%nfrag), stat=i_stat)
+  call memocc(i_stat, input_frag%charge, 'input_frag%charge', subname)
 
-  subroutine deallocateInputFragArrays(input_frag)
-    use module_types
-    implicit none
-  
-    ! Calling arguments
-    type(fragmentInputParameters),intent(inout) :: input_frag
-  
-    ! Local variables
-    integer :: i_stat,i_all
-    character(len=*),parameter :: subname='deallocateInputFragArrays'
- 
-    !if(associated(input_frag%frag_info)) then
-    !  i_all = -product(shape(input_frag%frag_info))*kind(input_frag%frag_info)
-    !  deallocate(input_frag%frag_info,stat=i_stat)
-    !  call memocc(i_stat,i_all,'input_frag%frag_info',subname)
-    !  nullify(input_frag%frag_info)
-    !end if 
- 
-    if(associated(input_frag%frag_index)) then
-      i_all = -product(shape(input_frag%frag_index))*kind(input_frag%frag_index)
-      deallocate(input_frag%frag_index,stat=i_stat)
-      call memocc(i_stat,i_all,'input_frag%frag_index',subname)
-      nullify(input_frag%frag_index)
-    end if 
- 
-    if(associated(input_frag%charge)) then
-      i_all = -product(shape(input_frag%charge))*kind(input_frag%charge)
-      deallocate(input_frag%charge,stat=i_stat)
-      call memocc(i_stat,i_all,'input_frag%charge',subname)
-      nullify(input_frag%charge)
-    end if 
+  !allocate(input_frag%frag_info(input_frag%nfrag_ref,2), stat=i_stat)
+  !call memocc(i_stat, input_frag%frag_info, 'input_frag%frag_info', subname)
 
-    if(associated(input_frag%label)) then
-      i_all = -product(shape(input_frag%label))*kind(input_frag%label)
-      deallocate(input_frag%label,stat=i_stat)
-      call memocc(i_stat,i_all,'input_frag%label',subname)
-      nullify(input_frag%label)
-    end if 
+  allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
+  call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
-    if(associated(input_frag%dirname)) then
-      i_all = -product(shape(input_frag%dirname))*kind(input_frag%dirname)
-      deallocate(input_frag%dirname,stat=i_stat)
-      call memocc(i_stat,i_all,'input_frag%dirname',subname)
-      nullify(input_frag%dirname)
-    end if 
+  allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
+  call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
-  end subroutine deallocateInputFragArrays
+end subroutine allocateInputFragArrays
 
 
-  subroutine nullifyInputFragParameters(input_frag)
-    use module_types
-    implicit none
+!> Deallocate the arrays related to the input for the fragments
+subroutine deallocateInputFragArrays(input_frag)
+  use module_types
+  implicit none
 
-    ! Calling arguments
-    type(fragmentInputParameters),intent(inout) :: input_frag
+  ! Calling arguments
+  type(fragmentInputParameters),intent(inout) :: input_frag
 
+  ! Local variables
+  integer :: i_stat,i_all
+  character(len=*),parameter :: subname='deallocateInputFragArrays'
+
+  !if(associated(input_frag%frag_info)) then
+  !  i_all = -product(shape(input_frag%frag_info))*kind(input_frag%frag_info)
+  !  deallocate(input_frag%frag_info,stat=i_stat)
+  !  call memocc(i_stat,i_all,'input_frag%frag_info',subname)
+  !  nullify(input_frag%frag_info)
+  !end if 
+
+  if(associated(input_frag%frag_index)) then
+    i_all = -product(shape(input_frag%frag_index))*kind(input_frag%frag_index)
+    deallocate(input_frag%frag_index,stat=i_stat)
+    call memocc(i_stat,i_all,'input_frag%frag_index',subname)
     nullify(input_frag%frag_index)
+  end if 
+
+  if(associated(input_frag%charge)) then
+    i_all = -product(shape(input_frag%charge))*kind(input_frag%charge)
+    deallocate(input_frag%charge,stat=i_stat)
+    call memocc(i_stat,i_all,'input_frag%charge',subname)
     nullify(input_frag%charge)
-    !nullify(input_frag%frag_info)
+  end if 
+
+  if(associated(input_frag%label)) then
+    i_all = -product(shape(input_frag%label))*kind(input_frag%label)
+    deallocate(input_frag%label,stat=i_stat)
+    call memocc(i_stat,i_all,'input_frag%label',subname)
     nullify(input_frag%label)
+  end if 
+
+  if(associated(input_frag%dirname)) then
+    i_all = -product(shape(input_frag%dirname))*kind(input_frag%dirname)
+    deallocate(input_frag%dirname,stat=i_stat)
+    call memocc(i_stat,i_all,'input_frag%dirname',subname)
     nullify(input_frag%dirname)
+  end if 
 
-  end subroutine nullifyInputFragParameters
+end subroutine deallocateInputFragArrays
 
 
+!> Nullify the parameters related to the fragments
+subroutine nullifyInputFragParameters(input_frag)
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(fragmentInputParameters),intent(inout) :: input_frag
+
+  nullify(input_frag%frag_index)
+  nullify(input_frag%charge)
+  !nullify(input_frag%frag_info)
+  nullify(input_frag%label)
+  nullify(input_frag%dirname)
+
+end subroutine nullifyInputFragParameters
+
+
+!> Creation of the log file (by default log.yaml)
 subroutine create_log_file(iproc,inputs)
 
   use module_base
@@ -652,6 +666,7 @@ subroutine free_geopt_variables(in)
   nullify(in%qmass)
 end subroutine free_geopt_variables
 
+
 !>  Free all dynamically allocated memory from the input variable structure.
 subroutine free_input_variables(in)
   use module_base
@@ -702,6 +717,7 @@ subroutine abscalc_input_variables_default(in)
   in%abscalc_Sinv_do_cg=.false.
 END SUBROUTINE abscalc_input_variables_default
 
+
 !> Assign default values for frequencies variables
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
 !!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
@@ -717,6 +733,7 @@ subroutine frequencies_input_variables_default(in)
   in%freq_method=1
 
 END SUBROUTINE frequencies_input_variables_default
+
 
 subroutine dft_input_analyse(iproc, in, dict_dft)
   use module_base
@@ -821,6 +838,7 @@ subroutine dft_input_analyse(iproc, in, dict_dft)
      in%last_run=0
   end if
 end subroutine dft_input_analyse
+
 
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
@@ -1036,6 +1054,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
 END SUBROUTINE kpt_input_analyse
 
+
 !> Read the input variables needed for the geometry optimisation
 !! Every argument should be considered as mandatory
 subroutine geopt_input_analyse(iproc,in,dict)
@@ -1130,6 +1149,7 @@ subroutine geopt_input_analyse(iproc,in,dict)
   endif
 END SUBROUTINE geopt_input_analyse
 
+
 subroutine mix_input_analyse(iproc,in,dict)
   use module_base
   use module_types
@@ -1160,6 +1180,7 @@ subroutine mix_input_analyse(iproc,in,dict)
 
 END SUBROUTINE mix_input_analyse
 
+
 subroutine sic_input_analyse(iproc,in,dict,ixc_)
   use module_base
   use module_types
@@ -1182,6 +1203,7 @@ subroutine sic_input_analyse(iproc,in,dict,ixc_)
 
 END SUBROUTINE sic_input_analyse
 
+
 subroutine tddft_input_analyse(iproc,in,dict)
   use module_base
   use module_types
@@ -1198,6 +1220,7 @@ subroutine tddft_input_analyse(iproc,in,dict)
   in%tddft_approach(1:len(in%tddft_approach)) = dict // TDDFT_APPROACH
 
 END SUBROUTINE tddft_input_analyse
+
 
 !> Read the input variables which can be used for performances
 subroutine perf_input_analyse(iproc,in,dict)
@@ -1355,4 +1378,3 @@ subroutine perf_input_analyse(iproc,in,dict)
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   in%experimental_mode = dict//EXPERIMENTAL_MODE
 END SUBROUTINE perf_input_analyse
-

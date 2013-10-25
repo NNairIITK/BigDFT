@@ -380,7 +380,7 @@ contains
       call dgeev('v','v',n,hessian,n,eigen_r,eigen_i,vector_l,n,vector_r,n,work,lwork,info)
 
       if (info /= 0) then
-         call yaml_warning('(f) error from the routine dgeev: info=' // trim(yaml_toa(info)))
+         call yaml_warning('(F) error from the routine dgeev: info=' // trim(yaml_toa(info)))
       end if
 
       !de-allocation
@@ -446,12 +446,12 @@ contains
       if (.not.exists) then
          !there is no restart file.
          call razero(n_order*(3*nat+1),energies(1,0))
-         if (bigdft_mpi%iproc == 0) call yaml_map('(f) file "frequencies.res" present',.false.)
+         if (bigdft_mpi%iproc == 0) call yaml_map('(F) file "frequencies.res" present',.false.)
          !code error non zero
          ierror = -1
          return
       else
-         if (bigdft_mpi%iproc == 0) call yaml_map('(f) file "frequencies.res" present',.true.)
+         if (bigdft_mpi%iproc == 0) call yaml_map('(F) file "frequencies.res" present',.true.)
       end if
 
       !we read the file
@@ -462,20 +462,20 @@ contains
          !read error, we exit
          if (bigdft_mpi%iproc == 0) then
             close(unit=iunit)
-            call yaml_warning('(f) error when reading the first line of "frequencies.res"')
+            call yaml_warning('(F) error when reading the first line of "frequencies.res"')
          end if
          call f_release_routine()
          return
       else
          if (steps(1) /= freq_step(1) .or. steps(2) /= freq_step(2) .or. steps(3) /= freq_step(3)) then
-            if (bigdft_mpi%iproc == 0) call yaml_warning('(f) the step to calculate frequencies is not the same: stop.')
+            if (bigdft_mpi%iproc == 0) call yaml_warning('(F) the step to calculate frequencies is not the same: stop.')
             stop
          end if
 
          if (i_order > n_order) then
             if (bigdft_mpi%iproc == 0) then 
-               call yaml_warning('(f) the number of points per direction is bigger in the "frequencies.res" file.')
-               call yaml_warning('(f) increase the order of the finite difference scheme')
+               call yaml_warning('(F) the number of points per direction is bigger in the "frequencies.res" file.')
+               call yaml_warning('(F) increase the order of the finite difference scheme')
             end if
             stop
          end if
@@ -489,9 +489,9 @@ contains
       read(unit=iunit,iostat=ierror) iat,etot,rxyz,fxyz
       if (ierror /= 0 .or. iat /= 0) then
          !read error, we assume that it is not calculated
-         if (bigdft_mpi%iproc == 0) call yaml_map('(f) reference state calculated in the "frequencies.res" file',.false.)
+         if (bigdft_mpi%iproc == 0) call yaml_map('(F) reference state calculated in the "frequencies.res" file',.false.)
       else
-         if (bigdft_mpi%iproc == 0) call yaml_map('(f) reference state calculated in the "frequencies.res" file',.true.)
+         if (bigdft_mpi%iproc == 0) call yaml_map('(F) reference state calculated in the "frequencies.res" file',.true.)
          energies(:,0) = etot
          forces(:,1,0) = fxyz
          moves(:,0) = .true.
@@ -503,7 +503,7 @@ contains
             if (bigdft_mpi%iproc == 0) then
                close(unit=iunit)
                !error if all moves are not read
-               if (imoves < 3*nat+1) call yaml_warning('(f) the file "frequencies.res" is incomplete!')
+               if (imoves < 3*nat+1) call yaml_warning('(F) the file "frequencies.res" is incomplete!')
             end if
             exit
          end if
@@ -548,7 +548,7 @@ contains
          write(unit=iunit) 0,outs%energy,rxyz0,outs%fxyz
          do iat=1,runobj%atoms%astruct%nat
             if (runobj%atoms%astruct%ifrztyp(iat) == 1) then
-               if (bigdft_mpi%iproc == 0) call yaml_comment('(f) the atom ' // trim(yaml_toa(iat)) // ' is frozen.')
+               if (bigdft_mpi%iproc == 0) call yaml_comment('(F) the atom ' // trim(yaml_toa(iat)) // ' is frozen.')
                cycle
             end if
             do i=1,3
@@ -583,7 +583,7 @@ contains
 
       if (km == 0 .and. .not.(present(n_order).and.present(freq_step).and.present(amu))) then
          if (bigdft_mpi%iproc == 0) write(*,*) "bug for use of frequencies_write_restart"
-         if (bigdft_mpi%iproc == 0) call yaml_warning("(f) bug for use of frequencies_write_restart")
+         if (bigdft_mpi%iproc == 0) call yaml_warning("(F) bug for use of frequencies_write_restart")
          stop
       end if
 

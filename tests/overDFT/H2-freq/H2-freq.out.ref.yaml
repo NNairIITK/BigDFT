@@ -155,7 +155,7 @@
  #|1              Method used (only possible value=1)                                        
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|#Best effort: 4173 cm-1, E=-1.1370708233960054 Hartree, d=0.76558 angstroem               
- (f) file "frequencies.res" present    :  No
+ (F) file "frequencies.res" present    :  No
  (F) Frequency moves already calculated:  0
  (F) Total Frequency moves             :  12
   #========================================================= (F) Reference state calculation
@@ -1909,11 +1909,11 @@
                               1.1362477982E-11, -1.3838276666E-11, -2.3283064365E-10]
  (F) Frequencies (cm-1)                :  [  4202.65,  186.79,  186.78,  0.00, -0.00, -0.00 ]
  (F) Frequencies (THz)                 :  [  125.99,  5.60,  5.60,  0.00, -0.00, -0.00 ]
- (f) zero-point energy (cm-1 and hartree):  [  2.1013236687E+03,  9.5743351090E-03 ]
- (f) considered temperature (kelvin)   :  300.0
- (f) vibrational entropy =             :  4.5058946475E-02
- (f) vibrational energy (cm-1 and hartree):  [  2.1013236761E+03,  9.5743351428E-03 ]
- (f) total energy (hartree)            :  9.5743351428E-03
+ (F) zero-point energy (cm-1 and hartree):  [  2.1013236687E+03,  9.5743351090E-03 ]
+ (F) considered temperature (kelvin)   :  300.0
+ (F) vibrational entropy =             :  4.5058946475E-02
+ (F) vibrational energy (cm-1 and hartree):  [  2.1013236761E+03,  9.5743351428E-03 ]
+ (F) total energy (hartree)            :  9.5743351428E-03
  Status of the memory at finalization:
    Timestamp of Profile initialization:
      2013-10-14 17:09:36.915
@@ -2084,8 +2084,8 @@
  #|1              Method used (only possible value=1)                                        
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|#Best effort: 4173 cm-1, E=-1.1370708233960054 Hartree, d=0.76558 angstroem               
- (f) file "frequencies.res" present    :  Yes
- (f) reference state calculated in the "frequencies.res" file:  Yes
+ (F) file "frequencies.res" present    :  Yes
+ (F) reference state calculated in the "frequencies.res" file:  Yes
  (F) Frequency moves already calculated:  12
  (F) Total Frequency moves             :  12
  (F) Exit signal for Wavefunction Optimization Finished:  0

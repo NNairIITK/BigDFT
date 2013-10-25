@@ -1,7 +1,7 @@
 !> @file
 !!  Module to store all dictionary keys of the input files.
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -232,7 +232,7 @@ contains
     call dict_free(parameters)
   END SUBROUTINE input_keys_finalize
 
-  !this function is going to disappear as soon as the input is hard-coded in yaml format
+  !> This function is going to disappear as soon as the input is hard-coded in yaml format
   function get_dft_parameters()
     use dictionaries
     implicit none
@@ -249,7 +249,7 @@ contains
          & "accurate".is. list_new(.item."0.30", .item."0.30", .item."0.30") ))
 
     call set(p // RMULT, dict_new( &
-         & COMMENT   .is. "c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius", &
+         & COMMENT   .is. "c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-base radius", &
          & RANGE     .is. list_new(.item."0.", .item."100."), &
          & DEFAULT   .is. list_new(.item."5.", .item."8.")))
 
@@ -947,9 +947,9 @@ contains
     use yaml_output
     implicit none
     character(len = *), intent(in) :: fname
-    character(len = *), intent(in), optional :: file !<subsection of the input to be printed (old input.file)
+    character(len = *), intent(in), optional :: file !< Subsection of the input to be printed (old input.file)
     !local variables
-    integer, parameter :: unt=789159 !to be sure is not opened
+    integer, parameter :: unt=789159 !< To be sure is not opened
     integer :: iunit_def, ierr
 
     ! Switch YAML output stream
@@ -974,7 +974,7 @@ contains
     call yaml_set_default_stream(iunit_def,ierr)
   end subroutine input_keys_dump_def
 
-  !> get for each keys available profiles.
+  !> Get for each keys available profiles.
   function input_keys_get_profiles(file)
     use dictionaries
     implicit none
@@ -1003,7 +1003,9 @@ contains
     call input_keys_finalize()
 
     input_keys_get_profiles => p
+
   contains
+
     subroutine vars(dict, ref)
       use dictionaries
       implicit none

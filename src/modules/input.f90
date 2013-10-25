@@ -54,12 +54,12 @@ module module_input
 
    contains
 
-     subroutine input_set_stdout(unit)
-       implicit none
-       integer, intent(in) :: unit
-       
-       stdout=unit
-     end subroutine input_set_stdout
+   subroutine input_set_stdout(unit)
+     implicit none
+     integer, intent(in) :: unit
+     
+     stdout=unit
+   end subroutine input_set_stdout
 
    subroutine input_set_file(iproc, dump, filename, exists,comment_file_usage)
       integer, intent(in) :: iproc
@@ -437,7 +437,7 @@ module module_input
       if (ierror /= 0) var = huge(1_gp) 
    END SUBROUTINE read_fraction_string
 
-   !>  Here the fraction is indicated by the :
+   !> Here the fraction is indicated by the :
    subroutine read_fraction_string_old(l,string,occ)
       use module_base
       implicit none
