@@ -861,7 +861,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
            ! COULD CHANGE THIS NOW !!
            call yaml_warning('Localization Regions not allowed in once-and-for-all')
            stop
-         end if
+        end if
 
       end do loop_lr
 
@@ -888,12 +888,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
      if (nwarnings /= 0) then
         call yaml_newline()
         call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
-        !write(*,'(1x,a,i0,a)') 'found ',nwarnings,' warnings.'
-        !write(*,'(1x,a)') 'Some projectors may be too rough.'
-        !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
    end if
-
 
    call timing(iproc,'ApplyProj     ','OF')
 

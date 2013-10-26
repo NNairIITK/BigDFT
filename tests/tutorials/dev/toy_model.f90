@@ -285,6 +285,8 @@ program wvl
   call deallocate_orbs(orbs,"main")
 
   call deallocate_atoms(atoms,"main") 
+  call dpbox_free(dpcom,'main')
+  call pkernel_free(pkernel,'main')
   call free_input_variables(inputs)
 
   !wait all processes before finalisation

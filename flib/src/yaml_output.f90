@@ -251,7 +251,7 @@ contains
 
   !> Set all the output from now on to the file indicated by stdout
   !! therefore the default stream is now the one indicated by unit
-  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position)
+  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position,setdefault)
     implicit none
     integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
                                                        !! is not 6 and it has already been opened by the processor
@@ -260,11 +260,12 @@ contains
     character(len=*), optional, intent(in) :: filename !< Filename of the stream
     character(len=*), optional, intent(in) :: position !< specifier of the position while opening the unit (all fortran values of position specifier in open statement are valid)
     integer, optional, intent(out) :: istat            !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
+    logical, optional, intent(in) :: setdefault        !< decide if the new stream will be set as default stream. True if absent
                                                        !! it is up the the user to deal with error signals sent by istat
 
     !local variables
     integer, parameter :: NO_ERRORS           = 0
-    logical :: unit_is_open
+    logical :: unit_is_open,set_default
     integer :: istream,unt,ierr
     character(len=15) :: pos
         
@@ -284,6 +285,13 @@ contains
     else
        pos(1:len(pos))='append'
     end if
+
+    if (present(setdefault)) then
+       set_default=setdefault
+    else
+       set_default=.true.
+    end if
+
     !check if unit has been already assigned
     do istream=1,active_streams
        if (unt==stream_units(istream)) then
@@ -306,7 +314,7 @@ contains
     stream_units(active_streams)=unt
 
     ! set last opened stream as default stream
-    default_stream=active_streams
+    if (set_default) default_stream=active_streams
 
     !open fortran unit if needed
     if (present(filename) .and. unt /= 6) then
