@@ -70,7 +70,8 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   !without istat this opening should crash 
   !do nothing if the unit is already opened
   call yaml_set_stream(unit=16,filename=trim(filename),tabbing=0,record_length=100,setdefault=.false.,istat=ierr)
-  if (iproc ==0 ) call yaml_comment('Geopt file opened, name: '//trim(filename)//', timestamp: '//trim(yaml_date_and_time_toa()),hfill='-',unit=16)
+  if (iproc ==0 ) call yaml_comment('Geopt file opened, name: '//trim(filename)//', timestamp: '//trim(yaml_date_and_time_toa()),&
+       hfill='-',unit=16)
   !write(16,*) '----------------------------------------------------------------------------'
 
   if (iproc == 0 .and. parmin%verbosity > 0 .and. ierr /= 0)  &!write(16,'(a)')  & 
