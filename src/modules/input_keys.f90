@@ -133,11 +133,17 @@ module module_input_keys
   integer, public :: INPUT_VAR_ILLEGAL = 0
   type(dictionary), pointer :: failed_exclusive
 
-  character(len = *), parameter :: RANGE = "__range__", EXCLUSIVE = "__exclusive__"
-  character(len = *), parameter :: DEFAULT = "default", COMMENT = "__comment__"
-  character(len = *), parameter :: COND = "__condition__", WHEN = "__when__"
-  character(len = *), parameter :: MASTER_KEY = "__master_key__", USER_DEFINED = "__user__"
-  character(len = *), parameter :: PROF_KEY = "__profile__", ATTRS = "_attributes"
+!!$  character(len = *), parameter :: RANGE = "__range__", EXCLUSIVE = "__exclusive__"
+!!$  character(len = *), parameter :: DEFAULT = "default", COMMENT = "__comment__"
+!!$  character(len = *), parameter :: COND = "__condition__", WHEN = "__when__"
+!!$  character(len = *), parameter :: MASTER_KEY = "__master_key__"
+  character(len = *), parameter :: PROF_KEY = "__profile__", ATTRS = "_attributes",USER_DEFINED = "__user__"
+
+  character(len = *), parameter :: RANGE = "RANGE", EXCLUSIVE = "EXCLUSIVE"
+  character(len = *), parameter :: DEFAULT = "default", COMMENT = "COMMENT"
+  character(len = *), parameter :: COND = "CONDITION", WHEN = "WHEN"
+  character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
+
 
   public :: input_keys_init, input_keys_finalize
   public :: input_keys_set, input_keys_fill, input_keys_fill_all, input_keys_dump
@@ -951,26 +957,26 @@ contains
     integer, parameter :: unt=789159 !to be sure is not opened
     integer :: iunit_def, ierr
 
-    ! Switch YAML output stream
-    call yaml_get_default_stream(iunit_def)
-    call yaml_set_stream(unit=unt,filename=trim(fname),tabbing=0,record_length=100,istat=ierr)
+    ! Switch YAML output stream (not needed anymore)
+    !call yaml_get_default_stream(iunit_def)
+    call yaml_set_stream(unit=unt,filename=trim(fname),tabbing=0,record_length=100,istat=ierr,setdefault=.false.)
 
     if (ierr == 0) then
        call input_keys_init()
        if (present(file)) then
           if (has_key(parameters, file)) then
-             call yaml_dict_dump(parameters // file)
+             call yaml_dict_dump(parameters // file,unit=unt)
           else
-             call yaml_dict_dump(parameters)
+             call yaml_dict_dump(parameters,unit=unt)
           end if
        else
-          call yaml_dict_dump(parameters)
+          call yaml_dict_dump(parameters,unit=unt)
        end if
        call input_keys_finalize()
     end if
     call yaml_close_stream(unit=unt)
-    ! Set back normal YAML output
-    call yaml_set_default_stream(iunit_def,ierr)
+    ! Set back normal YAML output (not needed anymore)
+    !call yaml_set_default_stream(iunit_def,ierr)
   end subroutine input_keys_dump_def
 
   !> get for each keys available profiles.
