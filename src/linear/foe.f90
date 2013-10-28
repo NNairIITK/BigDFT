@@ -43,6 +43,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
+  integer :: jproc
 
   !!real(8),dimension(100000) ::  work, eval, hamtmp, ovrlptmp
 
@@ -263,6 +264,12 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
               !!if (iproc==0) write(*,*) 'Need to recalculate the Chebyshev polynomials.'
               if (iproc==0) call yaml_map('Chebyshev polynomials','recalculated')
+              !!do jproc=0,nproc-1
+              !!    if (iproc==jproc) then
+              !!        write(*,'(a,i5,2es17.8)') 'iproc, sums',iproc, sum(hamscal_compr), sum(ovrlpeff_compr)
+              !!    end if
+              !!    call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+              !!end do
               call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, fermi, hamscal_compr, &
                    ovrlpeff_compr, calculate_SHS, nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
           else
@@ -271,6 +278,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               if (iproc==0) call yaml_map('Chebyshev polynomials','from memory')
               call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, fermip)
           end if 
+          !write(*,*) 'iproc, sum(fermip)', iproc, sum(fermip)
+
 
           call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -348,7 +357,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           if (restart) then
               if (iproc==0) then
                   call yaml_close_map()
-                  call bigdft_utils_flush(unit=6)
+                  !call bigdft_utils_flush(unit=6)
               end if
               cycle
           end if
@@ -358,26 +367,31 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           sumn=0.d0
           sumnder=0.d0
           if (orbs%norbp>0) then
-              isegstart=ovrlp%istsegline(orbs%isorb_par(iproc)+1)
-              if (orbs%isorb+orbs%norbp<orbs%norb) then
-                  isegend=ovrlp%istsegline(orbs%isorb_par(iproc+1)+1)-1
-              else
-                  isegend=ovrlp%nseg
-              end if
-              !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermip, ovrlp, sumn) 
-              !!$omp do reduction(+:sumn)
-              do iseg=isegstart,isegend
-                  ii=ovrlp%keyv(iseg)-1
-                  do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
-                      ii=ii+1
-                      iiorb = (jorb-1)/orbs%norb + 1
-                      jjorb = jorb - (iiorb-1)*orbs%norb
-                      sumn = sumn + fermip(jjorb,iiorb-orbs%isorb)*ovrlp%matrix_compr(ii)
-                      write(*,'(a,i5,es17.8)') 'ii, value', ii, fermip(jjorb,iiorb-orbs%isorb)*ovrlp%matrix_compr(ii)
-                  end do  
-              end do
-              !!$omp end do
-              !!$omp end parallel
+              !do jproc=0,nproc-1
+              !    if (iproc==jproc) then
+                      isegstart=ovrlp%istsegline(orbs%isorb_par(iproc)+1)
+                      if (orbs%isorb+orbs%norbp<orbs%norb) then
+                          isegend=ovrlp%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                      else
+                          isegend=ovrlp%nseg
+                      end if
+                      !$omp parallel default(private) shared(isegstart, isegend, orbs, fermip, ovrlp, sumn) 
+                      !$omp do reduction(+:sumn)
+                      do iseg=isegstart,isegend
+                          ii=ovrlp%keyv(iseg)-1
+                          do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
+                              ii=ii+1
+                              iiorb = (jorb-1)/orbs%norb + 1
+                              jjorb = jorb - (iiorb-1)*orbs%norb
+                              sumn = sumn + fermip(jjorb,iiorb-orbs%isorb)*ovrlp%matrix_compr(ii)
+                              !write(*,'(a,2i5,2es17.8)') 'iproc, ii, values', iproc, ii, fermip(jjorb,iiorb-orbs%isorb),ovrlp%matrix_compr(ii)
+                          end do  
+                      end do
+                      !$omp end do
+                      !$omp end parallel
+              !    end if
+              !    call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+              !end do
           end if
 
           if (nproc>1) then
@@ -408,7 +422,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   if (iproc==0) then
                       call yaml_map('lower bound okay',.true.)
                       call yaml_close_map()
-                      call bigdft_utils_flush(unit=6)
+                      !call bigdft_utils_flush(unit=6)
                   end if
                   cycle !now check the upper bound
               else
@@ -419,7 +433,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   if (iproc==0) then
                       call yaml_map('lower bound okay',.false.)
                       call yaml_close_map()
-                      call bigdft_utils_flush(unit=6)
+                      !call bigdft_utils_flush(unit=6)
                   end if
                   cycle !move the bisection bound
               end if
@@ -441,7 +455,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   if (iproc==0) then
                       call yaml_map('upper bound okay',.false.)
                       call yaml_close_map()
-                      call bigdft_utils_flush(unit=6)
+                      !!call bigdft_utils_flush(unit=6)
                       cycle !move the bisection bound
                   end if
               end if
@@ -481,6 +495,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   if (iproc==0) call yaml_map('interpol possible',.true.)
               end if
               if (iproc==0) call yaml_close_map()
+              !!call bigdft_utils_flush(unit=6)
               if (iproc==0) call yaml_newline()
           end if
           if (.not.interpolation_possible) then
@@ -583,14 +598,16 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           end if
           if (iproc==0) then
               call yaml_close_map()
-              call yaml_newline()
+              !!call bigdft_utils_flush(unit=6)
+              !call yaml_newline()
           end if
 
 
           if (iproc==0) then
-              !!write(*,'(1x,a,2es21.13)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
-              !!write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-foe_obj%charge, charge_tolerance
-              !!write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', foe_obj%ef
+              !write(*,'(1x,a,2es21.13)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
+              !write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-foe_obj%charge, charge_tolerance
+              !write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', foe_obj%ef
+              call yaml_newline()
               call yaml_map('iter',it)
               call yaml_map('Tr(K)',sumn,fmt='(es16.9)')
               call yaml_map('charge diff',sumn-foe_obj%charge,fmt='(es16.9)')
@@ -598,7 +615,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
           if (iproc==0) then
               call yaml_close_map()
-              call bigdft_utils_flush(unit=6)
+              !call bigdft_utils_flush(unit=6)
           end if
 
           if (abs(charge_diff)<charge_tolerance) then

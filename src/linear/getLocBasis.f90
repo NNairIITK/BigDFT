@@ -1216,31 +1216,31 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call dcopy(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1), 1, coeff_old(1,1), 1)
       end if
 
-  !!if (itout>=12) then
-  !!    if (iproc==0) write(*,*) 'WARNING: NO UPDATE OF KERNEL'
-  !!else
+      !!if (itout>=12) then
+      !!    if (iproc==0) write(*,*) 'WARNING: NO UPDATE OF KERNEL'
+      !!else
 
-  ! Only need to reconstruct the kernel if it is actually used.
-  if (target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      if(scf_mode/=LINEAR_FOE) then
-          call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-               orbs, tmb, overlap_calculated)
-          if (iproc==0) call yaml_map('reconstruct kernel',.true.)
-      else if (experimental_mode) then
-          call purify_kernel(iproc, nproc, tmb, overlap_calculated)
-          if (iproc==0) call yaml_map('purify kernel',.true.)
-      end if
-  !!end if
-      !!if(iproc==0) then
-      !!    write(*,'(a)') 'done.'
+      ! Only need to reconstruct the kernel if it is actually used.
+      if (target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          if(scf_mode/=LINEAR_FOE) then
+              call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+                   orbs, tmb, overlap_calculated)
+              if (iproc==0) call yaml_map('reconstruct kernel',.true.)
+          else if (experimental_mode) then
+              call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+              if (iproc==0) call yaml_map('purify kernel',.true.)
+          end if
       !!end if
-  end if
+          !!if(iproc==0) then
+          !!    write(*,'(a)') 'done.'
+          !!end if
+      end if
 
-  if (iproc==0) then
-      !yaml output
-      call yaml_close_map() !iteration
-      call bigdft_utils_flush(unit=6)
-  end if
+      if (iproc==0) then
+          !yaml output
+          call yaml_close_map() !iteration
+          call bigdft_utils_flush(unit=6)
+      end if
 
 
   end do iterLoop
