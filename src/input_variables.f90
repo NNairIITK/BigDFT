@@ -1244,14 +1244,12 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%debug = dict // DEBUG
   if (.not. in%debug) then
      call f_malloc_set_status(output_level=1)
-     !call memocc_set_state(1)
   end if
   in%ncache_fft = dict // FFTCACHE
   call set_cache_size(in%ncache_fft)
   in%verbosity = dict // VERBOSITY
   if (in%verbosity == 0 ) then
      call f_malloc_set_status(output_level=0)
-     !call memocc_set_state(0)
   end if
   in%writing_directory = dict // OUTDIR
   !here the logfile should be opened in the usual way, differentiating between 

@@ -364,12 +364,6 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
   ityp=at%astruct%iatype(iat)
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-!!$  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-!!$
-!!$  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$  jseg_c=nlpspd%nseg_p(2*iat-2)+1
 
   !number of terms for every projector:
   nc=(mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx_k
