@@ -359,7 +359,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
-       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,mapping,input%lin%potentialPrefac_ao)
+       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,input%lin%potentialPrefac_ao)
+  !!call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
+  !!     tmb%lzd%nlr,norbsPerAt,mapping, &
+  !!     tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_ao)
 
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
   !do iorb=1,tmb%orbs%norb

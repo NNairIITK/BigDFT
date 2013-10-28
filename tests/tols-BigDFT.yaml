@@ -288,16 +288,26 @@ BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 1.31e-10
 
 cleanup:
+ Ekin: 6.1e-10
+ Enl: 9.1e-11
  Atomic Forces (Ha/Bohr): 3.1e-10
  Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
- Raw forces norm (Ha/Bohr): 2.4e-10
- Orbitals: 4.42e-11
+ Raw forces norm (Ha/Bohr): 7.1e-11
+ Epot: 3.0e-10
+ Orbitals: 5.0e-11
+ EH: 4.1e-10
+ EXC: 9.1e-11
+ EvXC: 1.2e-10
+ Omega: 4.4e-11
+ Pulay Forces (Ha/Bohr): 7.8e-11
+ energy: 4.4e-11
 
 directmin:
  Patterns to ignore:
  - Wavefunction written
  Epsilon: 3.5e-10
+ mean alpha: 1.1e-04
 
 experimentalmode:
  Epsilon: 8.e-10
@@ -307,6 +317,7 @@ experimentalmode:
  multiplicator for the confinement: 1.7e-09
 
 restartdisk_charge:
+ Epot: 1.1e-10
  Patterns to ignore:
  - Wavefunction written
 
@@ -330,20 +341,28 @@ rotatesmall_write:
 
 wrappers.out:
  EH: 1.1e-10
+
 rotatesmall_read:
  Epsilon: 2.4e-11
+ overlap: 2.0e-08
+ frag eval: 3.0e-10
+ energy: 4.2e-10
+ orthog energy: 1.9e-10
+
 molecule_dmix:
  Epsilon: 7.0e-11
+
 molecule_pmix:
  Epsilon: 7.0e-11
+
 molecule_dmin:
  Epsilon: 5.0e-11
 
 hybrid-directmin:
  Epsilon: 1.4e-11
  Enl: 1.1e-10
- eBS: 9.0e-11
- Omega: 4.0e-11
+ eBS: 1.3e-10
+ Omega: 4.9e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10

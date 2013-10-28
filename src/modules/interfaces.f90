@@ -1171,7 +1171,7 @@ module module_interfaces
       END SUBROUTINE restart_from_gaussians
 
       subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
-            orbs,orbse,norbsc_arr,locrad,G,psigau,eks,mapping,quartic_prefactor)
+            orbs,orbse,norbsc_arr,locrad,G,psigau,eks,iversion,mapping,quartic_prefactor)
          !n(c) use module_base
          use module_types
          implicit none
@@ -1186,6 +1186,7 @@ module module_interfaces
          type(orbitals_data), intent(out) :: orbse
          type(gaussian_basis), intent(out) :: G
          real(wp), dimension(:,:,:), pointer :: psigau
+         integer,intent(in) :: iversion !< 1:cubic, 2:linear
          integer,dimension(orbs%norb),intent(in),optional:: mapping
          real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
       END SUBROUTINE inputguess_gaussian_orbitals

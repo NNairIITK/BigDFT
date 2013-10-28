@@ -364,8 +364,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               else
                   isegend=ovrlp%nseg
               end if
-              !$omp parallel default(private) shared(isegstart, isegend, orbs, fermip, ovrlp, sumn) 
-              !$omp do reduction(+:sumn)
+              !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermip, ovrlp, sumn) 
+              !!$omp do reduction(+:sumn)
               do iseg=isegstart,isegend
                   ii=ovrlp%keyv(iseg)-1
                   do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
@@ -375,8 +375,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                       sumn = sumn + fermip(jjorb,iiorb-orbs%isorb)*ovrlp%matrix_compr(ii)
                   end do  
               end do
-              !$omp end do
-              !$omp end parallel
+              !!$omp end do
+              !!$omp end parallel
           end if
 
           if (nproc>1) then
