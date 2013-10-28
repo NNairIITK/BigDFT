@@ -373,6 +373,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                       iiorb = (jorb-1)/orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*orbs%norb
                       sumn = sumn + fermip(jjorb,iiorb-orbs%isorb)*ovrlp%matrix_compr(ii)
+                      write(*,'(a,i5,es17.8)') 'ii, value', ii, fermip(jjorb,iiorb-orbs%isorb)*ovrlp%matrix_compr(ii)
                   end do  
               end do
               !!$omp end do
