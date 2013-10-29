@@ -137,7 +137,7 @@ module module_input_keys
 !!$  character(len = *), parameter :: DEFAULT = "default", COMMENT = "__comment__"
 !!$  character(len = *), parameter :: COND = "__condition__", WHEN = "__when__"
 !!$  character(len = *), parameter :: MASTER_KEY = "__master_key__"
-  character(len = *), parameter :: PROF_KEY = "__profile__", ATTRS = "_attributes",USER_DEFINED = "__user__"
+  character(len = *), parameter :: PROF_KEY = "PROFILE_FROM", ATTRS = "_attributes",USER_DEFINED = "__user__"
 
   character(len = *), parameter :: RANGE = "RANGE", EXCLUSIVE = "EXCLUSIVE"
   character(len = *), parameter :: DEFAULT = "default", COMMENT = "COMMENT"
