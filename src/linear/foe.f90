@@ -456,8 +456,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                       call yaml_map('upper bound okay',.false.)
                       call yaml_close_map()
                       !!call bigdft_utils_flush(unit=6)
-                      cycle !move the bisection bound
                   end if
+                  cycle !move the bisection bound
               end if
           end if
 
