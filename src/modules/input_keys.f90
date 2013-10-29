@@ -956,7 +956,8 @@ contains
     character(len = *), intent(in), optional :: file !< Subsection of the input to be printed (old input.file)
     !local variables
     integer, parameter :: unt=789159 !< To be sure is not opened
-    integer :: iunit_def, ierr
+    integer :: ierr
+    !integer :: iunit_def
 
     ! Switch YAML output stream (not needed anymore)
     !call yaml_get_default_stream(iunit_def)

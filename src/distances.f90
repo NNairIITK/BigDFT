@@ -203,11 +203,10 @@ program MDanalysis
  if (whichone /= 'B') then
     close(iunit)
  end if
- print *,''
- print *,'anglemin,anglemax,ncountmax=',anglemin,anglemax,ncountmax
+ write(*,*)
+ write(*,*) 'anglemin,anglemax,ncountmax=',anglemin,anglemax,ncountmax
  call system_clock(timeread_stop)
- write(0, "(A,F20.8,A)") "Global file read: ", &
-      & real(timeread_stop - timeread_start) / real(timecount) , "s"
+ write(0, "(A,F20.8,A)") "Global file read: ", real(timeread_stop - timeread_start) / real(timecount) , "s"
  call finaliseExtract()
 
  !values of the normalisations

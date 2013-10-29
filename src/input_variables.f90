@@ -154,11 +154,11 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   ! Analyse the input dictionary and transfer it to in.
   call input_keys_fill_all(dict)
   call perf_input_analyse(bigdft_mpi%iproc, in, dict//PERF_VARIABLES)
-  call dft_input_analyse(bigdft_mpi%iproc, in, dict//DFT_VARIABLES)
-  call geopt_input_analyse(bigdft_mpi%iproc, in, dict//GEOPT_VARIABLES)
-  call mix_input_analyse(bigdft_mpi%iproc, in, dict//MIX_VARIABLES)
-  call sic_input_analyse(bigdft_mpi%iproc, in, dict//SIC_VARIABLES, in%ixc)
-  call tddft_input_analyse(bigdft_mpi%iproc, in, dict//TDDFT_VARIABLES)
+  call dft_input_analyse(in, dict//DFT_VARIABLES)
+  call geopt_input_analyse(in, dict//GEOPT_VARIABLES)
+  call mix_input_analyse(in, dict//MIX_VARIABLES)
+  call sic_input_analyse(in, dict//SIC_VARIABLES, in%ixc)
+  call tddft_input_analyse(in, dict//TDDFT_VARIABLES)
 
   ! Shake atoms, if required.
   call astruct_set_displacement(atoms%astruct, in%randdis)
@@ -271,6 +271,8 @@ subroutine check_for_data_writing_directory(iproc,in)
   end if
 END SUBROUTINE check_for_data_writing_directory
 
+
+!> Create the directory output
 subroutine create_dir_output(iproc, in)
   use yaml_output
   use module_types
@@ -735,7 +737,7 @@ subroutine frequencies_input_variables_default(in)
 END SUBROUTINE frequencies_input_variables_default
 
 
-subroutine dft_input_analyse(iproc, in, dict_dft)
+subroutine dft_input_analyse(in, dict_dft)
   use module_base
   use module_types
   use module_input
@@ -744,7 +746,6 @@ subroutine dft_input_analyse(iproc, in, dict_dft)
   use yaml_output
   use module_input_keys
   implicit none
-  integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
   type(dictionary), pointer :: dict_dft
 
@@ -1057,14 +1058,13 @@ END SUBROUTINE kpt_input_analyse
 
 !> Read the input variables needed for the geometry optimisation
 !! Every argument should be considered as mandatory
-subroutine geopt_input_analyse(iproc,in,dict)
+subroutine geopt_input_analyse(in,dict)
   use module_base
   use module_types
   use module_input_keys
   use dictionaries
   use yaml_output
   implicit none
-  integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
   type(dictionary), pointer :: dict
   !local variables
@@ -1150,14 +1150,13 @@ subroutine geopt_input_analyse(iproc,in,dict)
 END SUBROUTINE geopt_input_analyse
 
 
-subroutine mix_input_analyse(iproc,in,dict)
+subroutine mix_input_analyse(in,dict)
   use module_base
   use module_types
   use module_input_keys
   use dictionaries
   implicit none
   !Arguments
-  integer, intent(in) :: iproc
   type(dictionary), pointer :: dict
   type(input_variables), intent(inout) :: in
   !local variables
@@ -1181,7 +1180,8 @@ subroutine mix_input_analyse(iproc,in,dict)
 END SUBROUTINE mix_input_analyse
 
 
-subroutine sic_input_analyse(iproc,in,dict,ixc_)
+!> Analyse the Self-Interaction Correction input parameters
+subroutine sic_input_analyse(in,dict,ixc_)
   use module_base
   use module_types
   use module_input_keys
@@ -1189,7 +1189,6 @@ subroutine sic_input_analyse(iproc,in,dict,ixc_)
   use yaml_output
   implicit none
   !Arguments
-  integer, intent(in) :: iproc
   type(dictionary), pointer :: dict
   type(input_variables), intent(inout) :: in
   integer, intent(in) :: ixc_
@@ -1204,13 +1203,13 @@ subroutine sic_input_analyse(iproc,in,dict,ixc_)
 END SUBROUTINE sic_input_analyse
 
 
-subroutine tddft_input_analyse(iproc,in,dict)
+!> Analyse the Time-Dependent Density Functional Theory input parameters
+subroutine tddft_input_analyse(in,dict)
   use module_base
   use module_types
   use module_input_keys
   use dictionaries
   implicit none
-  integer, intent(in) :: iproc
   type(dictionary), pointer :: dict
   type(input_variables), intent(inout) :: in
   !local variables
@@ -1223,6 +1222,7 @@ END SUBROUTINE tddft_input_analyse
 
 
 !> Read the input variables which can be used for performances
+!! Create also the log file if needed
 subroutine perf_input_analyse(iproc,in,dict)
   use module_base
   use module_types

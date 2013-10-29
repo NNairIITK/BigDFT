@@ -250,12 +250,11 @@ module module_interfaces
         type(input_variables), intent(inout) :: in
       end subroutine perf_input_analyse
 
-      subroutine dft_input_analyse(iproc, in, dict_dft)
+      subroutine dft_input_analyse(in, dict_dft)
         use module_base
         use module_types
         use dictionaries
         implicit none
-        integer, intent(in) :: iproc
         type(input_variables), intent(inout) :: in
         type(dictionary), pointer :: dict_dft
       end subroutine dft_input_analyse
@@ -273,45 +272,41 @@ module module_interfaces
         real(gp), intent(in) :: alat(3)
       end subroutine kpt_input_analyse
 
-      subroutine geopt_input_analyse(iproc,in,dict)
+      subroutine geopt_input_analyse(in,dict)
         use module_base
         use module_types
         use dictionaries
         implicit none
-        integer, intent(in) :: iproc
         type(input_variables), intent(inout) :: in
         type(dictionary), pointer :: dict
       end subroutine geopt_input_analyse
 
-      subroutine mix_input_analyse(iproc,in,dict)
+      subroutine mix_input_analyse(in,dict)
         use module_base
         use module_types
         use dictionaries
         implicit none
         !Arguments
-        integer, intent(in) :: iproc
         type(dictionary), pointer :: dict
         type(input_variables), intent(inout) :: in
       end subroutine mix_input_analyse
 
-      subroutine sic_input_analyse(iproc,in,dict,ixc)
+      subroutine sic_input_analyse(in,dict,ixc)
         use module_base
         use module_types
         use dictionaries
         implicit none
         !Arguments
-        integer, intent(in) :: iproc
         type(dictionary), pointer :: dict
         type(input_variables), intent(inout) :: in
         integer, intent(in) :: ixc
       end subroutine sic_input_analyse
 
-      subroutine tddft_input_analyse(iproc,in,dict)
+      subroutine tddft_input_analyse(in,dict)
         use module_base
         use module_types
         use dictionaries
         implicit none
-        integer, intent(in) :: iproc
         type(dictionary), pointer :: dict
         type(input_variables), intent(inout) :: in
       end subroutine tddft_input_analyse
