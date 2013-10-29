@@ -308,6 +308,7 @@ directmin:
  - Wavefunction written
  Epsilon: 3.5e-10
  mean alpha: 1.1e-04
+ max alpha: 1.1e-04
 
 experimentalmode:
  Epsilon: 8.e-10
@@ -354,13 +355,18 @@ rotatesmall_read:
  orthog energy: 1.9e-10
 
 molecule_dmix:
- Epsilon: 7.0e-11
+ Enl: 1.1e-10
 
 molecule_pmix:
- Epsilon: 7.0e-11
+ Enl: 1.1e-10
 
 molecule_dmin:
- Epsilon: 5.0e-11
+ eBS: 5.1e-11
+ Enl: 1.1e-10
+
+molecule_foe:
+ Enl: 1.1e-10
+ Epot: 1.1e-9
 
 hybrid-directmin:
  Epsilon: 1.4e-11
@@ -378,4 +384,16 @@ fructose:
 
 geopt_foe:
  D eF: 1.1e-10
- eF: 2.8e-11
+ eF: 5.8e-11
+
+water_foe:
+ EvXC: 1.1e-10
+
+deltascf_read_charge:
+ Epot: 1.1e-09
+ eBS: 2.6e-11
+ Total ionic charge: 1.5e-11
+
+deltascf_write_neut:
+ eBS: 1.7e-11
+ Total ionic charge: 1.4e-11
