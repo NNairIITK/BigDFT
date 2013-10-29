@@ -1,4 +1,4 @@
-#example of the input variables
+#definition of the input variables
 inputvar: #name of the variable as declared in the code
  COMMENT: This is the description of the variable as will appear in the logfile
  RANGE: [from,to] #always put two numbers (also .inf) can be put
@@ -10,10 +10,12 @@ inputvar: #name of the variable as declared in the code
    WHEN: #provide a list of allowed values of foo for which inputvars is meaningful
      - fooval1
      - fooval2   
+ PROFILE_FROM: foo #inputvar inherit the profile from the one specified by foo variable
 #then the profiles follows, which gives to the variables the allowed name
  default: value of the default, written as a string 
  profile1: value1 # if the user specifies inputvar: profile1 then inputvars will be value1
  profile2: value2
+########################################## 
 
 
 

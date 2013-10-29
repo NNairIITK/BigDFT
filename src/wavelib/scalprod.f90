@@ -32,6 +32,7 @@ END SUBROUTINE wnrm_wrap
 
 
 !> Calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
+!! given the distribution of the data also dnrm2 or ddot can be called
 subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   use module_base
   implicit none
@@ -113,6 +114,7 @@ END SUBROUTINE wscal_wrap
 
 
 !> Multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
+! dscal can aldso be used
 subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
   implicit none

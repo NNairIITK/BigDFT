@@ -204,6 +204,7 @@ test.minhop.ref.yaml:
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
+   - XC ID
 
 test.testforces.ref.yaml:
  Epsilon: 1.2e-10

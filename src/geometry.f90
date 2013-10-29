@@ -55,7 +55,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   integer, intent(inout) :: ncount_bigdft
   !local variables
   logical :: fail
-  integer :: ibfgs
+  integer :: ibfgs,ierr
   character(len=6) :: outfile, fmt
   character(len=5) :: fn4
   character(len=40) :: comment
@@ -66,11 +66,16 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   call geopt_init()
 
   filename=trim(runObj%inputs%dir_output)//'geopt.mon'
-  open(unit=16,file=filename,status='unknown',position='append')
-  if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+  !open(unit=16,file=filename,status='unknown',position='append')
+  !without istat this opening should crash 
+  !do nothing if the unit is already opened
+  call yaml_set_stream(unit=16,filename=trim(filename),tabbing=0,record_length=100,setdefault=.false.,istat=ierr)
+  if (iproc ==0 ) call yaml_comment('Geopt file opened, name: '//trim(filename)//', timestamp: '//trim(yaml_date_and_time_toa()),&
+       hfill='-',unit=16)
+  !write(16,*) '----------------------------------------------------------------------------'
 
-  if (iproc == 0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
-     '# Geometry optimization log file, grep for GEOPT for consistent output'
+  if (iproc == 0 .and. parmin%verbosity > 0 .and. ierr /= 0)  &!write(16,'(a)')  & 
+     call yaml_comment('Geometry optimization log file, grep for GEOPT for consistent output',unit=16)
   if (iproc == 0 .and. parmin%verbosity > 0) write(16,'(a)')  & 
       '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
