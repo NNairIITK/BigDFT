@@ -401,7 +401,7 @@ geopt_foe:
  eF: 5.8e-11
  Epot: 1.1e-10
 
-geopt_diag;
+geopt_diag:
  Epot: 1.1e-10
 
 water_foe:
