@@ -394,11 +394,12 @@ fructose:
  energy: 4.2e-11
  Omega: 4.2e-11
  Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
   - found warnings
 
 geopt_foe:
  D eF: 1.1e-10
- eF: 5.8e-11
+ eF: 6.0e-11
  Epot: 1.1e-10
 
 geopt_diag:
