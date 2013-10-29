@@ -220,6 +220,8 @@ N2:
 
 mixpotential:
  Epot: 1.1e-10
+ energy: 1.6e-11
+ Omega: 1.6e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -289,19 +291,19 @@ BigDFT2Wannier.b2w.ref.yaml:
 
 cleanup:
  Ekin: 6.1e-10
- Enl: 9.1e-11
- Atomic Forces (Ha/Bohr): 3.1e-10
+ Enl: 1.6e-10
+ Atomic Forces (Ha/Bohr): 3.2e-10
  Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 7.1e-11
- Epot: 3.0e-10
+ Epot: 1.1e-9
  Orbitals: 5.0e-11
  EH: 4.1e-10
  EXC: 9.1e-11
  EvXC: 1.2e-10
  Omega: 4.4e-11
  Pulay Forces (Ha/Bohr): 7.8e-11
- energy: 4.4e-11
+ energy: 9.0e-11
 
 directmin:
  Patterns to ignore:
@@ -312,14 +314,19 @@ directmin:
 
 experimentalmode:
  Epsilon: 8.e-10
- Ekin: 6.0e-09
- Enl: 2.3e-09
- Omega: 3.9e-09
- EH: 1.e-09
- multiplicator for the confinement: 3.6e-09
+ Ekin: 1.3e-07
+ Enl: 4.9e-08
+ Omega: 9.2e-08
+ EH: 1.1e-09
+ Epot: 1.1e-09
+ EXC: 2.7e-09
+ EvXC: 3.6e-09
+ multiplicator for the confinement: 7.5e-09
  fnrm2: 1.1e-09
  maxval: 1.6e-09
  Atomic Forces (Ha/Bohr): 1.3e-09
+ Raw forces norm (Ha/Bohr): 3.2e-8
+ Orbitals: 5.1e-09
 
 restartdisk_charge:
  Epot: 1.1e-10
@@ -373,6 +380,7 @@ hybrid-directmin:
  Enl: 1.1e-10
  eBS: 1.3e-10
  Omega: 4.9e-11
+ energy: 2.1e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -381,10 +389,19 @@ fructose:
  Epsilon: 1.1e-11
  D eF: 1.1e-9
  eF: 2.3e-10
+ EH: 1.0e-9
+ energy: 4.2e-11
+ Omega: 4.2e-11
+ Keys to ignore:
+  - found warnings
 
 geopt_foe:
  D eF: 1.1e-10
  eF: 5.8e-11
+ Epot: 1.1e-10
+
+geopt_diag;
+ Epot: 1.1e-10
 
 water_foe:
  EvXC: 1.1e-10
@@ -397,3 +414,9 @@ deltascf_read_charge:
 deltascf_write_neut:
  eBS: 1.7e-11
  Total ionic charge: 1.4e-11
+
+foe:
+ Epot: 1.1e-10
+ energy: 2.8e-11
+ EH: 1.0e-9
+ Omega: 2.7e-11
