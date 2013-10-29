@@ -269,6 +269,7 @@ subroutine check_for_data_writing_directory(iproc,in)
      if (iproc==0) call yaml_map('Data Writing directory','./')
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
+
 END SUBROUTINE check_for_data_writing_directory
 
 

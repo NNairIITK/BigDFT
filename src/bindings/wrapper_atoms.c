@@ -184,6 +184,7 @@ void bigdft_atoms_set_n_atoms(BigDFT_Atoms *atoms, guint nat)
   atoms->nat = nat;
   bigdft_atoms_get_nat_arrays(atoms);
 }
+
 static void _sync_atomnames(BigDFT_Atoms *atoms)
 {
   gchar name[20];
@@ -198,6 +199,7 @@ static void _sync_atomnames(BigDFT_Atoms *atoms)
       FC_FUNC_(atoms_set_name, ATOMS_SET_NAME)(atoms->data, (int*)(&j), name, 20);
     }
 }
+
 /**
  * bigdft_atoms_set_types:
  * @atoms: 
@@ -216,7 +218,7 @@ void bigdft_atoms_set_types(BigDFT_Atoms *atoms, const gchar **names)
   atoms->ntypes = ntypes;
   bigdft_atoms_get_ntypes_arrays(atoms);
   atoms->atomnames = g_malloc(sizeof(gchar*) * (ntypes + 1));
-  for (i = 0; i < ntypes; i++)
+  for (i = 0; i < ntypes; i++) 
     atoms->atomnames[i] = g_strdup(names[i]);
   atoms->atomnames[ntypes] = (gchar*)0;
   _sync_atomnames(atoms);

@@ -70,7 +70,9 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
      in%last_run = 1
   end if
 
+
 END SUBROUTINE bigdft_set_input
+
 
 !> De-allocate the variable of type input_variables
 subroutine bigdft_free_input(in)
@@ -85,6 +87,7 @@ subroutine bigdft_free_input(in)
   call yaml_close_all_streams()
 
 end subroutine bigdft_free_input
+
 
 !> Read the options in the command line using get_command statement
 subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
@@ -166,6 +169,7 @@ contains
   end subroutine help_screen
 
 end subroutine command_line_information
+
 
 !> Initialization of acceleration (OpenCL)
 subroutine init_material_acceleration(iproc,matacc,GPU)
