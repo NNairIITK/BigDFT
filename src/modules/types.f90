@@ -163,7 +163,7 @@ module module_types
   integer, parameter, public :: INPUTS_FRAG  = 512
 
   !> Contains all parameters related to the linear scaling version.
-  type,public:: linearInputParameters 
+  type, public :: linearInputParameters 
     integer :: DIIS_hist_lowaccur
     integer :: DIIS_hist_highaccur
     integer :: nItPrecond
@@ -196,7 +196,7 @@ module module_types
   end type linearInputParameters
 
   !> Contains all parameters for the calculation of the fragments
-  type,public:: fragmentInputParameters
+  type, public :: fragmentInputParameters
     integer :: nfrag_ref
     integer :: nfrag
     integer, dimension(:), pointer :: frag_index         !< Array matching system fragments to reference fragments
@@ -494,10 +494,10 @@ module module_types
 !> Contains arguments needed for rho_local for WVL+PAW
 
   type, public :: rholoc_objects
-    integer ,pointer,dimension(:)    :: msz ! mesh size for local rho
-    real(gp),pointer,dimension(:,:,:) :: d! local rho and derivatives
-    real(gp),pointer,dimension(:,:)  :: rad!radial mesh for local rho
-    real(gp),pointer,dimension(:) :: radius !after this radius, rholoc is zero
+    integer , pointer, dimension(:)    :: msz ! mesh size for local rho
+    real(gp), pointer, dimension(:,:,:) :: d! local rho and derivatives
+    real(gp), pointer, dimension(:,:)  :: rad!radial mesh for local rho
+    real(gp), pointer, dimension(:) :: radius !after this radius, rholoc is zero
   end type rholoc_objects
 
   type, public :: atomic_structure
@@ -651,14 +651,14 @@ module module_types
   end type GPU_pointers
 
   !> Contains all the descriptors necessary for splitting the calculation in different locregs 
-  type,public:: local_zone_descriptors
+  type, public :: local_zone_descriptors
      logical :: linear                         !< if true, use linear part of the code
      integer :: nlr                            !< Number of localization regions 
      integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
      integer :: ndimpotisf                      !< total dimension of potential in isf (including exctX)
      real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
      type(locreg_descriptors) :: Glr           !< Global region descriptors
-     type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
+     type(locreg_descriptors), dimension(:), pointer :: Llr                !< Local region descriptors (dimension = nlr)
   end type local_zone_descriptors
 
   !> Contains the work arrays needed for expressing wavefunction in real space
@@ -722,116 +722,117 @@ module module_types
 
 
   !> Contains all parameters needed for point to point communication
-  type,public:: p2pComms
-    integer,dimension(:),pointer :: noverlaps
-    real(kind=8),dimension(:),pointer :: recvBuf
-    integer,dimension(:,:,:),pointer :: comarr
-    integer :: nrecvBuf, window
-    integer,dimension(:,:),pointer :: ise ! starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
-    integer,dimension(:,:),pointer :: mpi_datatypes
+  type, public :: p2pComms
+    integer, dimension(:), pointer :: noverlaps
+    real(kind=8), dimension(:), pointer :: recvBuf
+    integer, dimension(:,:,:), pointer :: comarr
+    integer :: nrecvBuf
+    integer :: window
+    integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
+    integer, dimension(:,:), pointer :: mpi_datatypes
     logical :: communication_complete
   end type p2pComms
 
-  type,public :: foe_data
-    integer,dimension(:),pointer :: kernel_nseg
-    integer,dimension(:,:,:),pointer :: kernel_segkeyg
-    real(kind=8) :: ef !< Fermi energy for FOE
-    real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
-    real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
-    real(kind=8) :: fscale !< length scale for complementary error function (FOE)
-    real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
-    real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
-    real(kind=8) :: charge !total charge of the system
+  !> Fermi Operator Expansion parameters
+  type, public :: foe_data
+    integer, dimension(:), pointer :: kernel_nseg
+    integer, dimension(:,:,:), pointer :: kernel_segkeyg
+    real(kind=8) :: ef                     !< Fermi energy for FOE
+    real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
+    real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
+    real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
+    real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
+    real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
+    real(kind=8) :: charge                 !< Total charge of the system
   end type foe_data
 
 !!$  type, public :: sparseMatrix_metadata
 !!$     integer :: nvctr, nseg, full_dim1, full_dim2
-!!$     integer,dimension(:),pointer :: noverlaps
-!!$     integer,dimension(:,:),pointer :: overlaps
-!!$     integer,dimension(:),pointer :: keyv, nsegline, istsegline
-!!$     integer,dimension(:,:),pointer :: keyg
-!!$     integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
+!!$     integer, dimension(:), pointer :: noverlaps
+!!$     integer, dimension(:,:), pointer :: overlaps
+!!$     integer, dimension(:), pointer :: keyv, nsegline, istsegline
+!!$     integer, dimension(:,:), pointer :: keyg
+!!$     integer, dimension(:,:), pointer :: matrixindex_in_compressed, orb_from_index
 !!$  end type sparseMatrix_metadata
 
-  type,public :: sparseMatrix
+  type, public :: sparseMatrix
       integer :: nvctr, nseg, full_dim1, full_dim2
-      integer,dimension(:),pointer :: keyv, nsegline, istsegline
-      integer,dimension(:,:),pointer :: keyg
+      integer, dimension(:), pointer :: keyv, nsegline, istsegline
+      integer, dimension(:,:), pointer :: keyg
       !type(sparseMatrix_metadata), pointer :: pattern
-      real(kind=8),dimension(:),pointer :: matrix_compr
-      real(kind=8),dimension(:,:),pointer :: matrix
-      !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
+      real(kind=8), dimension(:), pointer :: matrix_compr
+      real(kind=8), dimension(:,:), pointer :: matrix
+      !integer, dimension(:,:), pointer :: matrixindex_in_compressed, orb_from_index
+      integer, dimension(:,:), pointer :: matrixindex_in_compressed_arr, orb_from_index
+      integer, dimension(:,:), pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index
-
       !!contains
       !!  procedure,pass :: matrixindex_in_compressed
   end type sparseMatrix
 
-  type,public :: linear_matrices !may not keep
+  type, public :: linear_matrices !may not keep
       type(sparseMatrix) :: ham, ovrlp, denskern, inv_ovrlp
   end type linear_matrices
 
-  type:: collective_comms
+  type :: collective_comms
     integer :: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
-    integer,dimension(:),pointer :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
-    integer,dimension(:),pointer :: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
-    integer,dimension(:),pointer :: norb_per_gridpoint_c, indexrecvorbital_c
-    integer,dimension(:),pointer :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
-    integer,dimension(:),pointer :: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
-    integer,dimension(:),pointer :: norb_per_gridpoint_f, indexrecvorbital_f
-    integer,dimension(:),pointer :: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
-    real(kind=8),dimension(:),pointer :: psit_c, psit_f
-    integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
-    integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
+    integer, dimension(:), pointer :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
+    integer, dimension(:), pointer :: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
+    integer, dimension(:), pointer :: norb_per_gridpoint_c, indexrecvorbital_c
+    integer, dimension(:), pointer :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
+    integer, dimension(:), pointer :: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
+    integer, dimension(:), pointer :: norb_per_gridpoint_f, indexrecvorbital_f
+    integer, dimension(:), pointer :: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
+    real(kind=8), dimension(:), pointer :: psit_c, psit_f
+    integer, dimension(:), pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
+    integer, dimension(:), pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
   end type collective_comms
 
 
-  type,public:: workarrays_quartic_convolutions
-    real(wp),dimension(:,:,:),pointer :: xx_c, xy_c, xz_c
-    real(wp),dimension(:,:,:),pointer :: xx_f1
-    real(wp),dimension(:,:,:),pointer :: xy_f2
-    real(wp),dimension(:,:,:),pointer :: xz_f4
-    real(wp),dimension(:,:,:,:),pointer :: xx_f, xy_f, xz_f
-    real(wp),dimension(:,:,:),pointer :: y_c
-    real(wp),dimension(:,:,:,:),pointer :: y_f
+  type, public :: workarrays_quartic_convolutions
+    real(wp), dimension(:,:,:), pointer :: xx_c, xy_c, xz_c
+    real(wp), dimension(:,:,:), pointer :: xx_f1
+    real(wp), dimension(:,:,:), pointer :: xy_f2
+    real(wp), dimension(:,:,:), pointer :: xz_f4
+    real(wp), dimension(:,:,:,:), pointer :: xx_f, xy_f, xz_f
+    real(wp), dimension(:,:,:), pointer :: y_c
+    real(wp), dimension(:,:,:,:), pointer :: y_f
     ! The following arrays are work arrays within the subroutine
-    real(wp),dimension(:,:),pointer :: aeff0array, beff0array, ceff0array, eeff0array
-    real(wp),dimension(:,:),pointer :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
-    real(wp),dimension(:,:),pointer :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-    real(wp),dimension(:,:,:),pointer :: xya_c, xyc_c
-    real(wp),dimension(:,:,:),pointer :: xza_c, xzc_c
-    real(wp),dimension(:,:,:),pointer :: yza_c, yzb_c, yzc_c, yze_c
-    real(wp),dimension(:,:,:,:),pointer :: xya_f, xyb_f, xyc_f, xye_f
-    real(wp),dimension(:,:,:,:),pointer :: xza_f, xzb_f, xzc_f, xze_f
-    real(wp),dimension(:,:,:,:),pointer :: yza_f, yzb_f, yzc_f, yze_f
-    real(wp),dimension(-17:17) :: aeff0, aeff1, aeff2, aeff3
-    real(wp),dimension(-17:17) :: beff0, beff1, beff2, beff3
-    real(wp),dimension(-17:17) :: ceff0, ceff1, ceff2, ceff3
-    real(wp),dimension(-14:14) :: eeff0, eeff1, eeff2, eeff3
-    real(wp),dimension(-17:17) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-    real(wp),dimension(-17:17) :: beff0_2, beff1_2, beff2_2, beff3_2
-    real(wp),dimension(-17:17) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-    real(wp),dimension(-14:14) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
+    real(wp), dimension(:,:), pointer :: aeff0array, beff0array, ceff0array, eeff0array
+    real(wp), dimension(:,:), pointer :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
+    real(wp), dimension(:,:), pointer :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
+    real(wp), dimension(:,:,:), pointer :: xya_c, xyc_c
+    real(wp), dimension(:,:,:), pointer :: xza_c, xzc_c
+    real(wp), dimension(:,:,:), pointer :: yza_c, yzb_c, yzc_c, yze_c
+    real(wp), dimension(:,:,:,:), pointer :: xya_f, xyb_f, xyc_f, xye_f
+    real(wp), dimension(:,:,:,:), pointer :: xza_f, xzb_f, xzc_f, xze_f
+    real(wp), dimension(:,:,:,:), pointer :: yza_f, yzb_f, yzc_f, yze_f
+    real(wp), dimension(-17:17) :: aeff0, aeff1, aeff2, aeff3
+    real(wp), dimension(-17:17) :: beff0, beff1, beff2, beff3
+    real(wp), dimension(-17:17) :: ceff0, ceff1, ceff2, ceff3
+    real(wp), dimension(-14:14) :: eeff0, eeff1, eeff2, eeff3
+    real(wp), dimension(-17:17) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
+    real(wp), dimension(-17:17) :: beff0_2, beff1_2, beff2_2, beff3_2
+    real(wp), dimension(-17:17) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+    real(wp), dimension(-14:14) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
   end type workarrays_quartic_convolutions
   
 
-  type,public:: localizedDIISParameters
+  type, public :: localizedDIISParameters
     integer :: is, isx, mis, DIISHistMax, DIISHistMin
     integer :: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
-    real(kind=8),dimension(:),pointer :: phiHist, hphiHist
+    real(kind=8), dimension(:), pointer :: phiHist, hphiHist
     real(kind=8) :: alpha_coeff !step size for optimization of coefficients
-    real(kind=8),dimension(:,:,:),pointer :: mat
+    real(kind=8), dimension(:,:,:), pointer :: mat
     real(kind=8) :: trmin, trold, alphaSD, alphaDIIS
     logical :: switchSD, immediateSwitchToSD, resetDIIS
   end type localizedDIISParameters
 
 
-  type,public:: mixrhopotDIISParameters
+  type, public :: mixrhopotDIISParameters
     integer :: is, isx, mis
-    real(kind=8),dimension(:),pointer :: rhopotHist, rhopotresHist
-    real(kind=8),dimension(:,:),pointer :: mat
+    real(kind=8), dimension(:), pointer :: rhopotHist, rhopotresHist
+    real(kind=8), dimension(:,:), pointer :: mat
   end type mixrhopotDIISParameters
 
   !> Contains the arguments needed for the diis procedure
@@ -846,56 +847,55 @@ module module_types
 
   !> Contains the information needed for the preconditioner
   type, public :: precond_data
-    integer :: confPotOrder                           !< The order of the algebraic expression for Confinement potential
-    integer :: ncong                                  !< Number of CG iterations for the preconditioning equation
-    logical, dimension(:), pointer :: withConfPot     !< Use confinement potentials
+    integer :: confPotOrder                                !< The order of the algebraic expression for Confinement potential
+    integer :: ncong                                       !< Number of CG iterations for the preconditioning equation
+    logical, dimension(:), pointer :: withConfPot          !< Use confinement potentials
     real(kind=8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potentiar : Prefac * f(r) 
   end type precond_data
 
   !> Information for the confining potential to be used in TMB scheme
   !! The potential is supposed to be defined as prefac*(r-rC)**potorder
   type, public :: confpot_data
-     integer :: potorder                !< order of the confining potential
-     integer, dimension(3) :: ioffset   !< offset for the coordinates of potential lr in global region
-     real(gp) :: prefac                 !< prefactor
-     real(gp), dimension(3) :: hh       !< grid spacings in ISF grid
-     real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
+     integer :: potorder                !< Order of the confining potential
+     integer, dimension(3) :: ioffset   !< Offset for the coordinates of potential lr in global region
+     real(gp) :: prefac                 !< Prefactor
+     real(gp), dimension(3) :: hh       !< Grid spacings in ISF grid
+     real(gp), dimension(3) :: rxyzConf !< Confining potential center in global coordinates
   end type confpot_data
 
   !> Defines the important information needed to reformat a old wavefunctions
   type, public :: old_wavefunction
-     type(local_zone_descriptors) :: Lzd !< local zone descriptors of the corresponding run
-     real(wp), dimension(:), pointer :: psi !<wavelets coefficients in compressed form
-     real(gp), dimension(:,:), pointer :: rxyz !<atomic positions of the step
+     type(local_zone_descriptors) :: Lzd       !< Local zone descriptors of the corresponding run
+     real(wp), dimension(:), pointer :: psi    !< Wavelets coefficients in compressed form
+     real(gp), dimension(:,:), pointer :: rxyz !< Atomic positions of the step
   end type old_wavefunction
 
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
-     real(dp), dimension(:), pointer :: rhov !< generic workspace. What is there is indicated by rhov_is
-     
+     real(dp), dimension(:), pointer :: rhov          !< generic workspace. What is there is indicated by rhov_is
      type(ab6_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
-     !local fields which are associated to their name
-     !normally given in parallel distribution
-     real(dp), dimension(:,:), pointer :: rho_psi !< density as given by square of el. WFN
+     !> Local fields which are associated to their name
+     !! normally given in parallel distribution
+     real(dp), dimension(:,:), pointer :: rho_psi     !< density as given by square of el. WFN
      real(dp), dimension(:,:,:,:), pointer :: rho_C   !< core density
      real(wp), dimension(:,:,:,:), pointer :: V_ext   !< local part of pseudopotientials
      real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
-     real(wp), dimension(:,:,:,:), pointer :: f_XC !< dV_XC[rho]/d_rho
+     real(wp), dimension(:,:,:,:), pointer :: f_XC    !< dV_XC[rho]/d_rho
      !temporary arrays
      real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
      !metadata
      integer :: rhov_is
-     real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC
-     type(rho_descriptors) :: rhod !< descriptors of the density for parallel communication
-     type(denspot_distribution) :: dpbox !< distribution of density and potential box
+     real(gp) :: psoffset                 !< offset of the Poisson Solver in the case of Periodic BC
+     type(rho_descriptors) :: rhod        !< descriptors of the density for parallel communication
+     type(denspot_distribution) :: dpbox  !< distribution of density and potential box
      character(len=3) :: PSquiet
-     !real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
-     type(coulomb_operator) :: pkernel !< kernel of the Poisson Solver used for V_H[rho]
-     type(coulomb_operator) :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
+     !real(gp), dimension(3) :: hgrids    !< grid spacings of denspot grid (half of the wvl grid)
+     type(coulomb_operator) :: pkernel    !< kernel of the Poisson Solver used for V_H[rho]
+     type(coulomb_operator) :: pkernelseq !< for monoproc PS (useful for exactX, SIC,...)
 
-     integer(kind = 8) :: c_obj = 0                !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj = 0       !< Storage of the C wrapper object.
   end type DFT_local_fields
 
   !> Flags for rhov status
@@ -906,16 +906,16 @@ module module_types
   integer, parameter, public :: HARTREE_POTENTIAL  = -1976
 
   !> Flags for the restart (linear scaling only)
-  integer, parameter, public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
-  integer, parameter, public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
+  integer, parameter, public :: LINEAR_LOWACCURACY  = 101 !< Low accuracy after restart
+  integer, parameter, public :: LINEAR_HIGHACCURACY = 102 !< High accuracy after restart
 
   !check if all comms are necessary here
   type, public :: hamiltonian_descriptors
-     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
-     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
-     type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
-     type(collective_comms) :: collcom ! describes collective communication
-     type(p2pComms) :: comgp           !<describing p2p communications for distributing the potential
+     integer :: npsidim_orbs             !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp             !< Number of elements inside psi in the components distribution scheme
+     type(local_zone_descriptors) :: Lzd !< Data on the localisation regions, if associated
+     type(collective_comms) :: collcom   !< Describes collective communication
+     type(p2pComms) :: comgp             !< Describing p2p communications for distributing the potential
      real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
      logical :: can_use_transposed
   end type hamiltonian_descriptors
@@ -950,7 +950,7 @@ module module_types
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(hamiltonian_descriptors) :: ham_descr
-     real(kind=8),dimension(:,:),pointer :: coeff !<expansion coefficients
+     real(kind=8), dimension(:,:), pointer :: coeff !<expansion coefficients
   end type DFT_wavefunction
 
   !> Flags for optimization loop id
@@ -1094,7 +1094,7 @@ module module_types
    !  dij(:,:,3) contains Dij^up-dn (only if nspinor=2)
    !  dij(:,:,4) contains Dij^dn-up (only if nspinor=2)
 
-  !real(dp),pointer :: dijexxcore(:,:)
+  !real(dp), pointer :: dijexxcore(:,:)
   ! dijexxcore(cplex_dij*lmn2_size,ndij)
   ! Onsite matrix elements of the Fock operator generated by core electrons
 
@@ -1191,11 +1191,11 @@ module module_types
     integer :: ntypes
     integer :: natom
     integer :: usepaw
-    integer,dimension(:,:,:),pointer :: indlmn
-    type(paw_ij_objects),dimension(:),allocatable :: paw_ij
-    type(cprj_objects),dimension(:,:),allocatable :: cprj
-    real(wp),dimension(:),pointer :: spsi
-    real(wp),dimension(:,:),pointer :: sij
+    integer, dimension(:,:,:), pointer :: indlmn
+    type(paw_ij_objects), dimension(:), allocatable :: paw_ij
+    type(cprj_objects), dimension(:,:), allocatable :: cprj
+    real(wp), dimension(:), pointer :: spsi
+    real(wp), dimension(:,:), pointer :: sij
   end type paw_objects
 
 contains

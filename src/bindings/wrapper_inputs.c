@@ -233,6 +233,7 @@ void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
  * @posinp: 
  * @atoms: (out) (transfer full):
  *
+ * Pouet.
  *
  * Returns: (transfer full):
  **/
@@ -265,12 +266,12 @@ void bigdft_inputs_set(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar *v
   FC_FUNC_(inputs_set, INPUTS_SET)(&in->input_values, file, name, value,
                                    strlen(file), strlen(name), strlen(value));
 }
-
-
-/** Set an array in the structure of inputs in BigDFT (hgrids)
- * @in: BigDFT Input Structure
- * @id: Identity
- * @value: array of gchar, (array zero-terminated=1)
+/**
+ * bigdft_inputs_set_array:
+ * @in: 
+ * @id: 
+ * @value: (array zero-terminated=1):
+ *
  * 
  **/
 void bigdft_inputs_set_array(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar **value)

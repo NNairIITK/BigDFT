@@ -853,12 +853,13 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_input_keys
   use dictionaries
   implicit none
+  !Arguments
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
-  type(dictionary), pointer :: dict
+  type(dictionary), pointer, intent(in) :: dict
   type(symmetry_data), intent(in) :: sym
   character(len = 1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  real(gp), intent(in) :: alat(3)
+  real(gp), dimension(3), intent(in) :: alat
   !local variables
   logical :: lstat
   character(len=*), parameter :: subname='kpt_input_analyse'
@@ -956,7 +957,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         in%gen_kpt(3, i) = dict // KPT // (i-1) // 2
         if (geocode == 'S' .and. in%gen_kpt(2,i) /= 0.) then
            in%gen_kpt(2,i) = 0.
-           if (iproc==0) call yaml_warning('Surface conditions, supressing k-points along y.')
+           if (iproc==0) call yaml_warning('Surface conditions, suppressing k-points along y.')
         end if
         in%gen_wkpt(i) = dict // WKPT // (i-1)
         if (geocode == 'F') then

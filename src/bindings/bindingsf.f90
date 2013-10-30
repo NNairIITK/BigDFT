@@ -170,6 +170,7 @@ subroutine deallocate_double_1D(array)
      call memocc(i_stat,i_all,'array',"deallocate_double")
   end if
 end subroutine deallocate_double_1D
+
 subroutine deallocate_double_2D(array)
   use module_base
   implicit none
@@ -191,6 +192,7 @@ subroutine glr_new(glr)
 
   allocate(glr)
 end subroutine glr_new
+
 subroutine glr_copy(glr, d, wfd, from)
   use module_types
   implicit none
@@ -205,6 +207,7 @@ subroutine glr_copy(glr, d, wfd, from)
   wfd => glr%wfd
   call copy_locreg_descriptors(from, glr, "glr_copy")
 end subroutine glr_copy
+
 subroutine glr_init(glr, d, wfd)
   use module_types
   implicit none
@@ -216,6 +219,7 @@ subroutine glr_init(glr, d, wfd)
   d => glr%d
   wfd => glr%wfd
 end subroutine glr_init
+
 subroutine glr_get_data(glr, d, wfd)
   use module_types
   implicit none
@@ -226,6 +230,7 @@ subroutine glr_get_data(glr, d, wfd)
   d => glr%d
   wfd => glr%wfd
 end subroutine glr_get_data
+
 subroutine glr_free(glr)
   use module_types
   implicit none
@@ -233,6 +238,7 @@ subroutine glr_free(glr)
 
   deallocate(glr)
 end subroutine glr_free
+
 subroutine glr_empty(glr)
   use module_types
   implicit none
@@ -240,6 +246,7 @@ subroutine glr_empty(glr)
 
   call deallocate_locreg_descriptors(glr, "glr_empty")
 end subroutine glr_empty
+
 subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   use module_types
   implicit none
@@ -270,6 +277,7 @@ subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   
   norb = glr%Localnorb
 end subroutine glr_get_dimensions
+
 subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
   use module_types
   implicit none
@@ -297,6 +305,7 @@ subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
   glr%nsi2 = nsi(2)
   glr%nsi3 = nsi(3)
 end subroutine glr_set_dimensions
+
 subroutine glr_get_locreg_data(glr, locrad, locregCenter)
   use module_types
   implicit none
@@ -307,6 +316,7 @@ subroutine glr_get_locreg_data(glr, locrad, locregCenter)
   locrad = glr%locrad
   locregCenter = glr%locregCenter
 end subroutine glr_get_locreg_data
+
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   use module_types
   implicit none
@@ -319,6 +329,7 @@ subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   glr%wfd%nvctr_f = nvctr_f
   call allocate_wfd(glr%wfd, "glr_set_wfd_dims")
 END SUBROUTINE glr_set_wfd_dims
+
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
    use module_base
@@ -336,6 +347,7 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
+
 subroutine glr_set_bounds(lr)
   use module_types
   implicit none
@@ -345,6 +357,7 @@ subroutine glr_set_bounds(lr)
        & lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
        & lr%wfd,lr%bounds)
 END SUBROUTINE glr_set_bounds
+
 subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
      & keyglob, keygloc, keyvglob, keyvloc)
   use module_types
@@ -371,6 +384,7 @@ subroutine lzd_new(lzd)
 
   allocate(lzd)
 end subroutine lzd_new
+
 subroutine lzd_init(lzd, glr)
   use module_types
   implicit none
@@ -435,6 +449,7 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
      lzd%Llr(i)%geocode = geocode
   end do
 END SUBROUTINE lzd_set_nlr
+
 subroutine lzd_get_hgrids(Lzd, hgrids)
   use module_base
   use module_types
@@ -444,6 +459,7 @@ subroutine lzd_get_hgrids(Lzd, hgrids)
   !initial values
   hgrids = Lzd%hgrids
 END SUBROUTINE lzd_get_hgrids
+
 subroutine lzd_get_llr(Lzd, i, llr)
   use module_base
   use module_types
