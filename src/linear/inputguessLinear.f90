@@ -588,6 +588,21 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
+  !!if (iproc==0) then
+  !!    call yaml_close_map()
+  !!end if
+
+  if (iproc==0) then
+      !call yaml_open_sequence('First kernel')
+      !call yaml_open_sequence('kernel optimization',label=&
+      !                          'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+      call yaml_sequence(advance='no')
+      call yaml_open_sequence('kernel optimization')
+      call yaml_sequence(advance='no')
+      call yaml_open_map(flow=.false.)
+      call yaml_comment('kernel iter:'//yaml_toa(0,fmt='(i6)'),hfill='-')
+  end if
+
   if (input%lin%scf_mode==LINEAR_FOE) then
 
       call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
@@ -605,6 +620,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
   end if
+
 
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -659,6 +675,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
   end if
   
+  if (iproc==0) then
+      call yaml_close_map()
+      call yaml_close_sequence()
+      !call yaml_close_sequence()
+  end if
   !!if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
   if (iproc==0) call yaml_comment('Input guess generated',hfill='=')
   

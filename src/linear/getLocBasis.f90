@@ -624,13 +624,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   delta_energy_prev_sum=0.d0
   energy_increased_previous=.false.
  
-  if (iproc==0) then
-      !!call yaml_sequence(advance='no')
-      !!call yaml_open_map('support function optimization',label=&
-      !!     'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
-      call yaml_open_sequence('support function optimization',label=&
-           'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
-  end if
+  !!if (iproc==0) then
+  !!    !!call yaml_sequence(advance='no')
+  !!    !!call yaml_open_map('support function optimization',label=&
+  !!    !!     'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+  !!    call yaml_open_sequence('support function optimization',label=&
+  !!         'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+  !!end if
 
   isatur_in=0
   iterLoop: do
@@ -1269,9 +1269,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
   ! Close sequence for the optimization steps
-  if (iproc==0) then
-      call yaml_close_sequence()
-  end if
+  !!if (iproc==0) then
+  !!    call yaml_close_sequence()
+  !!end if
   if (iproc==0) then
       call yaml_comment('Support functions created')
   end if
