@@ -1,3 +1,14 @@
+/** @file
+ * Bindings for the BigDFT package
+ * @author
+ * Copyright (C) 2013-2013 BigDFT group
+ * This file is distributed under the terms of the
+ * GNU General Public License, see ~/COPYING file
+ * or http://www.gnu.org/copyleft/gpl.txt .
+ * For the list of contributors, see ~/AUTHORS
+**/
+
+
 #include <config.h>
 
 #include "bigdft.h"
@@ -7,6 +18,7 @@
 #include <string.h>
 #include <stdio.h>
 
+
 static void _free_names(BigDFT_Inputs *in)
 {
   g_free(in->run_name);
@@ -15,11 +27,15 @@ static void _free_names(BigDFT_Inputs *in)
   g_free(in->file_igpop);
   g_free(in->file_lin);
 }
+
+
 static void _free_output(BigDFT_Inputs *in)
 {
   g_free(in->dir_output);
   g_free(in->writing_directory);
 }
+
+
 static void _sync_output(BigDFT_Inputs *in)
 {
   gchar dir_output[100], writing_directory[500];
@@ -28,6 +44,8 @@ static void _sync_output(BigDFT_Inputs *in)
   in->dir_output = _get_c_string(dir_output, 100);
   in->writing_directory = _get_c_string(writing_directory, 500);
 }
+
+
 static void _sync(BigDFT_Inputs *in)
 {
   FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
@@ -54,12 +72,15 @@ static void _sync(BigDFT_Inputs *in)
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
   FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(in->data, (int*)&in->linear);
 }
+
+
 static void _sync_add(BigDFT_Inputs *in)
 {
   FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
   /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */
   _sync_output(in);
 }
+
 
 static BigDFT_Inputs* bigdft_inputs_init()
 {
@@ -73,6 +94,8 @@ static BigDFT_Inputs* bigdft_inputs_init()
 
   return in;
 }
+
+
 static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 {
   if (in->data)
@@ -85,6 +108,8 @@ static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 
   g_free(in);
 }
+
+
 /**
  * bigdft_inputs_new:
  * @naming: (allow-none): a naming scheme, or none.
@@ -117,6 +142,8 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
 
   return in;
 }
+
+
 /**
  * bigdft_inputs_new_from_files:
  * @naming: (allow-none): a naming scheme, or none.
@@ -143,6 +170,8 @@ BigDFT_Inputs* bigdft_inputs_new_from_files(const gchar *naming, guint iproc)
   
   return in;
 }
+
+
 BigDFT_Inputs* bigdft_inputs_new_from_fortran(_input_variables *inputs)
 {
   BigDFT_Inputs *in;
@@ -204,7 +233,6 @@ void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
  * @posinp: 
  * @atoms: (out) (transfer full):
  *
- * Pouet.
  *
  * Returns: (transfer full):
  **/
@@ -225,6 +253,7 @@ BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDF
   return in;
 }
 
+
 /* Wrappers on dictionaries, for the input variables. */
 #include "input_keys.h"
 void bigdft_inputs_set(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar *value)
@@ -236,12 +265,12 @@ void bigdft_inputs_set(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar *v
   FC_FUNC_(inputs_set, INPUTS_SET)(&in->input_values, file, name, value,
                                    strlen(file), strlen(name), strlen(value));
 }
-/**
- * bigdft_inputs_set_array:
- * @in: 
- * @id: 
- * @value: (array zero-terminated=1):
- *
+
+
+/** Set an array in the structure of inputs in BigDFT (hgrids)
+ * @in: BigDFT Input Structure
+ * @id: Identity
+ * @value: array of gchar, (array zero-terminated=1)
  * 
  **/
 void bigdft_inputs_set_array(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar **value)

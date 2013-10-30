@@ -8,6 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
+!> Orthonormalized the localized orbitals
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_orbs, &
            orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
   use module_base
@@ -1307,8 +1308,7 @@ subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrd
 end subroutine overlapPowerPlusMinusOneHalf_old
 
 
-
-
+!> Orthonormalize a subset of orbitals
 subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
            orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
            lphi, psit_c, psit_f, can_use_transposed)

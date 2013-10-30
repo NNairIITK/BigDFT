@@ -176,7 +176,9 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
   
-  if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
+  if(in%inputpsiid == INPUT_PSI_LINEAR_AO .or. &
+     in%inputpsiid == INPUT_PSI_MEMORY_LINEAR .or. &
+     in%inputpsiid == INPUT_PSI_DISK_LINEAR) &
       DistProjApply=.true.
   if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
@@ -1376,4 +1378,5 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%check_sumrho = dict // CHECK_SUMRHO
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   in%experimental_mode = dict//EXPERIMENTAL_MODE
+
 END SUBROUTINE perf_input_analyse

@@ -38,16 +38,16 @@ module module_types
   integer, parameter :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
   integer, parameter :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
   integer, parameter :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
-  integer, parameter :: INPUT_PSI_MEMORY_WVL   = 1
-  integer, parameter :: INPUT_PSI_DISK_WVL     = 2
+  integer, parameter :: INPUT_PSI_MEMORY_WVL   = 1      !< Input PSI from memory
+  integer, parameter :: INPUT_PSI_DISK_WVL     = 2      !< Input PSI from disk (wavelet coefficients)
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
-  integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI from Atomic Orbital for linear
+  integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
   integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
 
-  !> All possible values of input psi (determnitation of the input guess)
+  !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
@@ -133,10 +133,15 @@ module module_types
      !!   methOrtho==1 -> combined block wise classical Gram-Schmidt and Cholesky
      !!   methOrtho==2 -> Loewdin
      integer :: methOrtho
-     real(gp) :: iguessTol           !< Gives the tolerance to which the input guess will converged (maximal residue of all orbitals).
-     integer :: methTransformOverlap, nItOrtho, blocksize_pdsyev, blocksize_pdgemm, nproc_pdsyev
+     real(gp) :: iguessTol            !< Gives the tolerance to which the input guess will converged (maximal residue of all orbitals).
+     integer :: methTransformOverlap  !< Method to overlap the localized orbitals (see linear/orthonormality.f90)
+     integer :: nItOrtho              !< Number of iterations for the orthonormalisation
+     integer :: blocksize_pdsyev      !< Size of the block for the Scalapack routine pdsyev (computes eigenval and vectors)
+     integer :: blocksize_pdgemm      !< Size of the block for the Scalapack routine pdgemm
+     integer :: nproc_pdsyev          !< Number of proc for the Scalapack routine pdsyev (linear version)
   end type orthon_data
 
+  !> Self-Interaction Correction data
   type, public :: SIC_data
      character(len=4) :: approach !< Approach for the Self-Interaction-Correction (PZ, NK)
      integer :: ixc               !< Base for the SIC correction
@@ -159,18 +164,24 @@ module module_types
 
   !> Contains all parameters related to the linear scaling version.
   type,public:: linearInputParameters 
-    integer :: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
-    integer :: nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer :: mixHist_lowaccuracy, mixHist_highaccuracy
+    integer :: DIIS_hist_lowaccur
+    integer :: DIIS_hist_highaccur
+    integer :: nItPrecond
+    integer :: nItSCCWhenOptimizing
+    integer :: nItBasis_lowaccuracy
+    integer :: nItBasis_highaccuracy
+    integer :: mixHist_lowaccuracy
+    integer :: mixHist_highaccuracy
     integer :: dmin_hist_lowaccuracy, dmin_hist_highaccuracy
     integer :: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
+    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy
+    real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
     real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
     integer :: plotBasisFunctions
-    real(kind=8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+    real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
     real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
     real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
@@ -184,13 +195,15 @@ module module_types
     integer :: extra_states
   end type linearInputParameters
 
+  !> Contains all parameters for the calculation of the fragments
   type,public:: fragmentInputParameters
-    integer :: nfrag_ref, nfrag
-    integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
-    real(kind=8), dimension(:), pointer :: charge ! array giving the charge on each fragment for constrained DFT calculations
-    !integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
-    character(len=100), dimension(:), pointer :: label ! array of fragment names
-    character(len=100), dimension(:), pointer :: dirname ! array of fragment directories, blank if not a fragment calculation
+    integer :: nfrag_ref
+    integer :: nfrag
+    integer, dimension(:), pointer :: frag_index         !< Array matching system fragments to reference fragments
+    real(kind=8), dimension(:), pointer :: charge        !< Array giving the charge on each fragment for constrained DFT calculations
+    !integer, dimension(:,:), pointer :: frag_info       !< Array giving number of atoms in fragment and environment for reference fragments
+    character(len=100), dimension(:), pointer :: label   !< Array of fragment names
+    character(len=100), dimension(:), pointer :: dirname !< Array of fragment directories, blank if not a fragment calculation
   end type fragmentInputParameters
 
 
@@ -205,79 +218,111 @@ module module_types
      !! values 0: traditional CPU calculation
      !!        1: CUDA acceleration with CUBLAS
      !!        2: OpenCL acceleration (with CUBLAS one day)
+     !!        3: OpenCL accelearation for CPU
+     !!        4: OCLACC (OpenCL both ? see input_variables.f90)
      integer :: iacceleration
-     integer :: Psolver_igpu !< acceleration of the Poisson solver
-     character(len=11) :: OCL_platform
-     character(len=11) :: OCL_devices
+     integer :: Psolver_igpu            !< Acceleration of the Poisson solver
+     character(len=11) :: OCL_platform  !< Name of the OpenCL platform
+     character(len=11) :: OCL_devices   !< Name of the OpenCL devices
   end type material_acceleration
 
 
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
-     !strings of the input files
-     character(len=100) :: file_occnum,file_igpop,file_lin,file_frag
-     character(len=100) :: dir_output !< Strings of the directory which contains all data output files
-     character(len=100) :: run_name   !< Contains the prefix (by default input) used for input files as input.dft
-     integer :: files                 !< Existing files.
-     !miscellaneous variables
+     !> Strings of the input files
+     character(len=100) :: file_occnum !< Occupation number (input)
+     character(len=100) :: file_igpop
+     character(len=100) :: file_lin   
+     character(len=100) :: file_frag   !< Fragments
+     character(len=100) :: dir_output  !< Strings of the directory which contains all data output files
+     character(len=100) :: run_name    !< Contains the prefix (by default input) used for input files as input.dft
+     integer :: files                  !< Existing files.
+     !> Miscellaneous variables
      logical :: gaussian_help
      integer :: itrpmax
-     integer :: iscf,norbsempty,norbsuempty,norbsdempty, occopt
+     integer :: iscf
+     integer :: norbsempty
+     integer :: norbsuempty,norbsdempty
+     integer :: occopt
      integer :: last_run
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
-     real(gp) :: rpnrm_cv,gnrm_startmix
-     integer :: verbosity
-     ! DFT basic parameters.
-     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
-     integer :: norbv,nvirt,nplot
-     integer :: output_denspot,dispersion,output_wf_format,output_denspot_format
-     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
-     real(gp) :: elecfield(3)
-     logical :: disableSym
+     real(gp) :: rpnrm_cv
+     real(gp) :: gnrm_startmix
+     integer :: verbosity   !< Verbosity of the output file
+     !> DFT basic parameters.
+     integer :: ixc         !< XC functional Id
+     integer :: ncharge     !< Total charge of the system
+     integer :: itermax     !< Maximal number of SCF iterations
+     integer :: nrepmax
+     integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
+     integer :: idsx        !< DIIS history
+     integer :: ncongt      !< Number of conjugate garident for the tail treatment
+     integer :: inputpsiid  !< Input PSI choice
+     integer :: nspin       !< Spin components (no spin 1, collinear 2, non collinear 4)
+     integer :: mpol        !< Total spin polarisation of the system
+     integer :: norbv
+     integer :: nvirt
+     integer :: nplot
+     integer :: output_denspot        !< 0= No output, 1= density, 2= density+potential
+     integer :: dispersion            !< Dispersion term
+     integer :: output_wf_format      !< Output Wavefunction format
+     integer :: output_denspot_format !< Format for the output density and potential
+     real(gp) :: hx,hy,hz   !< Step grid parameter (hgrid)
+     real(gp) :: crmult     !< Coarse radius multiplier
+     real(gp) :: frmult     !< Fine radius multiplier
+     real(gp) :: gnrm_cv    !< Convergence parameters of orbitals
+     real(gp) :: rbuf       !< buffer for tail treatment
+     real(gp), dimension(3) :: elecfield   !< Electric Field vector
+     logical :: disableSym                 !< .true. disable symmetry
 
-     ! For absorption calculations
+     !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
      !! integer :: iat_absorber, L_absorber, N_absorber, rpower_absorber, Linit_absorber
      integer :: iat_absorber,  L_absorber
-     real(gp), pointer :: Gabs_coeffs(:)
+     real(gp), dimension(:), pointer :: Gabs_coeffs
      real(gp) :: abscalc_bottomshift
-     logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff,abscalc_S_do_cg, abscalc_Sinv_do_cg
+     logical ::  c_absorbtion
+     logical ::  abscalc_alterpot
+     logical ::  abscalc_eqdiff
+     logical ::  abscalc_S_do_cg
+     logical ::  abscalc_Sinv_do_cg
      integer ::  potshortcut
      integer ::  nsteps
      character(len=100) :: extraOrbital
      character(len=1000) :: xabs_res_prefix
    
-     ! Frequencies calculations (finite difference)
+     !> Frequencies calculations (finite difference)
      real(gp) :: freq_alpha  !< Factor for the finite difference step (step = alpha * hgrid)
      integer :: freq_order   !< Order of the finite difference scheme
      integer :: freq_method  !< Method to calculate the frequencies
 
-     ! kpoints related input variables
-     ! generated results
-     integer :: gen_nkpt
-     real(gp), pointer :: gen_kpt(:,:), gen_wkpt(:)
-     ! Band structure path
-     integer :: nkptv,ngroups_kptv
+     !> kpoints related input variables
+     integer :: gen_nkpt                            !< K points to generate the results
+     real(gp), dimension(:,:), pointer :: gen_kpt   !< K points coordinates
+     real(gp), dimension(:), pointer :: gen_wkpt    !< Weights of k points
+     !> Band structure path
+     integer :: nkptv
+     integer :: ngroups_kptv
      integer, dimension(:), pointer :: nkptsv_group
-     real(gp), pointer :: kptv(:,:)
+     real(gp), dimension(:,:), pointer :: kptv
      character(len=100) :: band_structure_filename
 
-     ! Geometry variables from *.geopt
-     character(len=10) :: geopt_approach !<id of geopt driver
-     integer :: ncount_cluster_x !< Maximum number of geopt steps 
-     integer :: wfn_history !< number of previous steps saved for wfn reformatting
-     integer :: history !< History of DIIS method
+     !> Geometry variables from *.geopt
+     character(len=10) :: geopt_approach !< Id of geopt driver
+     integer :: ncount_cluster_x         !< Maximum number of geopt steps 
+     integer :: wfn_history              !< Number of previous steps saved for wfn reformatting
+     integer :: history                  !< History of DIIS method
      real(gp) :: betax,forcemax,randdis
      integer :: optcell, ionmov, nnos
-     real(gp) :: dtion, mditemp, mdftemp, noseinert, friction, mdwall
+     real(gp) :: dtion
+     real(gp) :: mditemp, mdftemp
+     real(gp) :: noseinert, friction, mdwall
      real(gp) :: bmass, vmass, strprecon, strfact
-     real(gp) :: strtarget(6)
-     real(gp), pointer :: qmass(:)
-     real(gp) :: dtinit,dtmax !for FIRE
-     ! tddft variables from *.tddft
-     character(len=10) :: tddft_approach
-     !variables for SIC
-     type(SIC_data) :: SIC !<parameters for the SIC methods
+     real(gp), dimension(6) :: strtarget
+     real(gp), dimension(:), pointer :: qmass
+     real(gp) :: dtinit, dtmax           !< For FIRE
+     character(len=10) :: tddft_approach !< TD-DFT variables from *.tddft
+     type(SIC_data) :: SIC               !< Parameters for the SIC methods
 
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
@@ -285,12 +330,12 @@ module module_types
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
      integer :: linear
-     logical :: signaling  !< Expose results on DBus or Inet.
-     integer :: signalTimeout !< Timeout for inet connection.
-     character(len = 64) :: domain !< Domain to get the IP from hostname.
-     character(len=500) :: writing_directory !< absolute path of the local directory to write the data on
-     double precision :: gmainloop !< Internal C pointer on the signaling structure.
-     integer :: inguess_geopt !< 0= Wavelet input guess, 1 = real space input guess 
+     logical :: signaling                    !< Expose results on DBus or Inet.
+     integer :: signalTimeout                !< Timeout for inet connection.
+     character(len = 64) :: domain           !< Domain to get the IP from hostname.
+     character(len=500) :: writing_directory !< Absolute path of the local directory to write the data on
+     double precision :: gmainloop           !< Internal C pointer on the signaling structure.
+     integer :: inguess_geopt                !< 0= Wavelet input guess, 1 = real space input guess 
 
      !orthogonalisation data
      type(orthon_data) :: orthpar
