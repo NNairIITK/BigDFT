@@ -448,12 +448,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            if (iproc==0) then
                call yaml_comment('support function optimization',hfill='=')
            end if
+           !!if (iproc==0) then
+           !!    call yaml_sequence(advance='no')
+           !!    call yaml_open_sequence('support function optimization',label=&
+           !!                   'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+           !!end if
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
                ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                input%lin%early_stop)
+           !!if (iproc==0) then
+           !!    call yaml_close_sequence()
+           !!end if
 
            !!! WRITE SUPPORT FUNCTIONS TO DISK ############################################
            !!npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
@@ -600,7 +608,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !else
                    call yaml_sequence(advance='no')
                 !end if
-                call yaml_open_map(flow=.true.)
+                call yaml_open_map(flow=.false.)
                 call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
              if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then

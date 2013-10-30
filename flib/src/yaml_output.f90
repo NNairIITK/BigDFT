@@ -86,7 +86,8 @@ module yaml_output
   !! @param unit     (optional) @copydoc doc::unit
   !! @param fmt      (optional) format for the value
   interface yaml_map
-     module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
+     module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv,&
+                      yaml_map_lv
   end interface
 
  
@@ -1114,6 +1115,12 @@ contains
     character(len=*), dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_cv
+
+  subroutine yaml_map_lv(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    logical, dimension(:), intent(in) :: mapvalue
+    include 'yaml_map-arr-inc.f90'
+  end subroutine yaml_map_lv
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none

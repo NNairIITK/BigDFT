@@ -44,6 +44,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   integer,dimension(4) :: ipiv
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
   integer :: jproc
+  logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
 
   !!real(8),dimension(100000) ::  work, eval, hamtmp, ovrlptmp
 
@@ -155,6 +156,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
       it=0
       it_solver=0
+      eval_bounds_ok=.false.
+      bisection_bounds_ok=.false.
       main_loop: do 
           
           it=it+1
@@ -212,13 +215,15 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               !!write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', &
               !!                                              it, foe_obj%evlow, foe_obj%evhigh, foe_obj%ef, npl
               !!write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
-              call yaml_map('lower bisection bound',efarr(1),fmt='(es10.3)')
-              call yaml_map('upper bisection bound',efarr(1),fmt='(es10.3)')
-              call yaml_map('lower eigenvalue bound',foe_obj%evlow,fmt='(es10.3)')
-              call yaml_map('upper eigenvalue bound',foe_obj%evhigh,fmt='(es10.3)')
-              call yaml_map('pol degree',npl)
-              call yaml_map('eF',foe_obj%ef,fmt='(es19.12)')
-              call yaml_map('conv crit',charge_tolerance,fmt='(es10.3)')
+              call yaml_map('bisec/eval bounds',&
+                   (/efarr(1),efarr(2),foe_obj%evlow,foe_obj%evhigh/),fmt='(f5.2)')
+              !call yaml_map('lower bisection bound',efarr(1),fmt='(es10.3)')
+              !call yaml_map('upper bisection bound',efarr(1),fmt='(es10.3)')
+              !call yaml_map('lower eigenvalue bound',foe_obj%evlow,fmt='(es10.3)')
+              !call yaml_map('upper eigenvalue bound',foe_obj%evhigh,fmt='(es10.3)')
+              call yaml_map('pol deg',npl,fmt='(i3)')
+              call yaml_map('eF',foe_obj%ef,fmt='(es16.9)')
+              !call yaml_map('conv crit',charge_tolerance,fmt='(es10.3)')
           end if
 
 
@@ -263,7 +268,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           if (calculate_SHS) then
               ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
               !!if (iproc==0) write(*,*) 'Need to recalculate the Chebyshev polynomials.'
-              if (iproc==0) call yaml_map('Chebyshev polynomials','recalculated')
+              if (iproc==0) call yaml_map('polynomials','recalculated')
               !!do jproc=0,nproc-1
               !!    if (iproc==jproc) then
               !!        write(*,'(a,i5,2es17.8)') 'iproc, sums',iproc, sum(hamscal_compr), sum(ovrlpeff_compr)
@@ -275,7 +280,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           else
               ! The Chebyshev polynomials are already available
               !!if (iproc==0) write(*,*) 'Can use the Chebyshev polynomials from memory.'
-              if (iproc==0) call yaml_map('Chebyshev polynomials','from memory')
+              if (iproc==0) call yaml_map('polynomials','from memory')
               call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, fermip)
           end if 
           !write(*,*) 'iproc, sum(fermip)', iproc, sum(fermip)
@@ -323,30 +328,38 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                       !!write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
                       !!                          allredarr(1), anoise
                       !!write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
-                      call yaml_map('lowest eigenvalue within bounds','No; increase magnitude by 20% and cycle')
+                      !call yaml_map('lowest eigenvalue within bounds','No; increase magnitude by 20% and cycle')
+                      !call yaml_map('lower eval bound ok',.false.)
                   end if
+                  eval_bounds_ok(1)=.false.
                   foe_obj%evlow=foe_obj%evlow*1.2d0
                   restart=.true.
               else
                   if (iproc==0) then
                       !!write(*,'(1x,a)') 'Lowest eigenvalue within interval, can continue.'
-                      call yaml_map('lowest eigenvalue within bounds','Yes; can continue')
+                      !call yaml_map('lowest eigenvalue within bounds','Yes; can continue')
+                      !call yaml_map('lower eval bound ok',.true.)
                   end if
+                  eval_bounds_ok(1)=.true.
               end if
               if (allredarr(2)>anoise) then
                   if (iproc==0) then
                       !!write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
                       !!                          allredarr(2), anoise
                       !!write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
-                      call yaml_map('highest eigenvalue within bounds','No; increase magnitude by 20% and cycle')
+                      !call yaml_map('highest eigenvalue within bounds','No; increase magnitude by 20% and cycle')
+                      !call yaml_map('upper eval bound ok',.false.)
                   end if
+                  eval_bounds_ok(2)=.false.
                   foe_obj%evhigh=foe_obj%evhigh*1.2d0
                   restart=.true.
               else
                   if (iproc==0) then
                       !!write(*,'(1x,a)') 'Highest eigenvalue within interval, can continue.'
-                      call yaml_map('highest eigenvalue within bounds','Yes; can continue')
+                      !call yaml_map('highest eigenvalue within bounds','Yes; can continue')
+                      !call yaml_map('upper eval bound ok',.true.)
                   end if
+                  eval_bounds_ok(2)=.true.
               end if
           end if
 
@@ -356,6 +369,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
           if (restart) then
               if (iproc==0) then
+                  call yaml_map('eval/bisection bounds ok',&
+                       (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                   call yaml_close_map()
                   !call bigdft_utils_flush(unit=6)
               end if
@@ -401,9 +416,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
 
           ! Make sure that the bounds for the bisection are negative and positive
+          restart=.false.
           charge_diff = sumn-foe_obj%charge
           if (adjust_lower_bound) then
-              if (iproc==0) call yaml_map('checking lower bisection bound, charge diff',charge_diff,fmt='(es9.2)')
+              !if (iproc==0) call yaml_map('checking lower bisection bound, charge diff',charge_diff,fmt='(es9.2)')
               if (charge_diff<=0.d0) then
                   ! Lower bound okay
                   adjust_lower_bound=.false.
@@ -420,45 +436,74 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   !!interpol_vector(ii)=(sumn-foe_obj%charge)
                   !!if (iproc==0) write(*,'(1x,a)') 'lower bisection bound is okay.'
                   if (iproc==0) then
-                      call yaml_map('lower bound okay',.true.)
-                      call yaml_close_map()
+                      !call yaml_map('lower bound okay',.true.)
+                      !call yaml_close_map()
                       !call bigdft_utils_flush(unit=6)
                   end if
-                  cycle !now check the upper bound
+                  restart=.true.
+                  bisection_bounds_ok(1)=.true.
+                  !cycle !now check the upper bound
               else
                   efarr(1)=efarr(1)-foe_obj%bisection_shift
                   foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
                   !!if (iproc==0) write(*,'(1x,a,es12.5)') &
                   !!    'lower bisection bound does not give negative charge difference: diff=',charge_diff
                   if (iproc==0) then
-                      call yaml_map('lower bound okay',.false.)
-                      call yaml_close_map()
+                      !call yaml_map('lower bound okay',.false.)
+                      !call yaml_close_map()
                       !call bigdft_utils_flush(unit=6)
                   end if
-                  cycle !move the bisection bound
+                  restart=.true.
+                  bisection_bounds_ok(1)=.false.
+                  !cycle !move the bisection bound
               end if
           end if
+          if (restart) then
+              if (iproc==0) then
+                  call yaml_map('eval/bisection bounds ok',&
+                       (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
+                  call yaml_close_map()
+                  !call bigdft_utils_flush(unit=6)
+              end if
+              cycle
+          end if
           if (adjust_upper_bound) then
-              if (iproc==0) call yaml_map('checking upper bisection bound, charge diff',charge_diff,fmt='(es9.2)')
+              !if (iproc==0) call yaml_map('checking upper bisection bound, charge diff',charge_diff,fmt='(es9.2)')
               if (charge_diff>=0.d0) then
                   ! Upper bound okay
                   adjust_upper_bound=.false.
                   foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
                   sumnarr(2)=sumn
                   !!if (iproc==0) write(*,'(1x,a)') 'upper bisection bound is okay.'
-                  if (iproc==0) call yaml_map('upper bound okay',.true.)
+                  !if (iproc==0) call yaml_map('upper bound okay',.true.)
+                  restart=.false.
+                  bisection_bounds_ok(2)=.true.
               else
                   efarr(2)=efarr(2)+foe_obj%bisection_shift
                   foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
                   !!if (iproc==0) write(*,'(1x,a,es12.5)') &
                   !!    'upper bisection bound does not give positive charge difference: diff=',charge_diff
                   if (iproc==0) then
-                      call yaml_map('upper bound okay',.false.)
-                      call yaml_close_map()
+                      !call yaml_map('upper bound okay',.false.)
+                      !call yaml_close_map()
                       !!call bigdft_utils_flush(unit=6)
                   end if
-                  cycle !move the bisection bound
+                  restart=.true.
+                  bisection_bounds_ok(2)=.false.
+                  !cycle !move the bisection bound
               end if
+          end if
+
+          if (iproc==0) then
+              call yaml_map('eval/bisection bounds ok',&
+                   (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
+              !call bigdft_utils_flush(unit=6)
+          end if
+          if (restart) then
+              if (iproc==0) then
+                  call yaml_close_map()
+              end if
+              cycle
           end if
 
           !!! Cycle if one of the two bounds is not okay
@@ -470,7 +515,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           interpolation_possible=.true.
           if (it_solver>1) then
               if (iproc==0) call yaml_newline()
-              if (iproc==0) call yaml_open_map('Interpolation check',flow=.true.)
+              if (iproc==0) call yaml_open_map('interpol check',flow=.true.)
               if (iproc==0) call yaml_map('D eF',foe_obj%ef-ef_old,fmt='(es13.6)')
               if (iproc==0) call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
               if (foe_obj%ef>ef_old .and. sumn<sumn_old) then

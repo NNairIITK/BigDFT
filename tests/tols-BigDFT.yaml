@@ -318,7 +318,7 @@ experimentalmode:
  Ekin: 1.3e-07
  Enl: 4.9e-08
  Omega: 9.2e-08
- EH: 1.1e-09
+ EH: 2.1e-09
  Epot: 1.1e-09
  EXC: 2.7e-09
  EvXC: 3.6e-09
@@ -327,7 +327,9 @@ experimentalmode:
  maxval: 1.6e-09
  Atomic Forces (Ha/Bohr): 1.3e-09
  Raw forces norm (Ha/Bohr): 3.2e-8
+ Clean forces norm (Ha/Bohr): 2.3e-09
  Orbitals: 5.1e-09
+ Average noise forces: 4.4e-09
 
 restartdisk_charge:
  Epot: 1.1e-10
@@ -379,9 +381,11 @@ molecule_foe:
 hybrid-directmin:
  Epsilon: 1.4e-11
  Enl: 1.1e-10
- eBS: 1.3e-10
- Omega: 4.9e-11
+ eBS: 3.5e-10
+ Omega: 7.7e-11
  energy: 2.1e-11
+ multiplicator for the confinement: 2.2e-11
+ Epot: 1.1e-09
 
 cdft_ohoh:
  Epsilon: 7.1e-10
