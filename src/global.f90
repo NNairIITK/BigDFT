@@ -757,18 +757,9 @@ end do hopping_loop
 
   call free_input_variables(inputs_md)
   call free_input_variables(inputs_opt)
-  !call bigdft_free_input(inputs_opt)
-!!$  call free_input_variables(inputs_opt)
-!!$  call free_input_variables(inputs_md)
-!!$
-!!$  !Finalize memory counting
-!!$  call memocc(0,0,'count','stop')
 
   call bigdft_finalize(ierr)
 
-!!$  call mpi_environment_free(bigdft_mpi)
-!!$
-!!$  call MPI_FINALIZE(ierr)
   call f_lib_finalize()
 
 contains
