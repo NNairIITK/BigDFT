@@ -29,21 +29,26 @@ PROGRAM rotate_posinp
    write(*,*) 'reading atomic positions from file posinp'
    open(unit=9,file='posinp.xyz',status='unknown')
    read(9,*) nat,units
+   write(*,*) nat,units
    if (nat.gt.natx) stop 'increase natx'
    read(9,*) line2
+   write(*,*) line2
 
    ! put center of mass at origin
    pos_s(1)=0.d0
    pos_s(2)=0.d0
    pos_s(3)=0.d0
    do iat=1,nat
+      write(*,*)  '      ---------------------------------- '
       read(9,'(a100)')line
+      write(*,*) iat, line
 
       read(line,*,iostat=ierror) atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat) ,extra(iat)
       if (ierror .ne. 0) then
          read(line,*,iostat=ierror) atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat) 
          extra(iat)='  '
       end if
+      write(*,*) atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat)
 
       pos_s(1)=pos_s(1)+pos(1,iat)
       pos_s(2)=pos_s(2)+pos(2,iat)
