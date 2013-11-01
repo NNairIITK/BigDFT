@@ -209,7 +209,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
                       ncount_bigdft,it,"GEOPT_CG  ",outs%energy,outs%energy-etotprev, &
                       & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,&
                       fluct,"b/b0=",beta/runObj%inputs%betax
-
+                 
                  call yaml_map('Ncount_BigDFT',ncount_bigdft)
                  call yaml_map('Iteration',it)
                  call yaml_map('Geometry Method','GEOPT_CG')

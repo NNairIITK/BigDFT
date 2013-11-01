@@ -47,6 +47,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_interfaces, except_this_one => geopt
   use module_types
   use yaml_output
+  use dictionaries
   use minpar
   implicit none
   type(run_objects), intent(inout) :: runObj
@@ -69,7 +70,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   !open(unit=16,file=filename,status='unknown',position='append')
   !without istat this opening should crash 
   !do nothing if the unit is already opened
-  call yaml_set_stream(unit=16,filename=trim(filename),tabbing=0,record_length=100,setdefault=.false.,istat=ierr)
+  if (iproc == 0) call yaml_set_stream(unit=16,filename=trim(filename),tabbing=0,record_length=100,setdefault=.false.,istat=ierr)
   if (iproc ==0 ) call yaml_comment('Geopt file opened, name: '//trim(filename)//', timestamp: '//trim(yaml_date_and_time_toa()),&
        hfill='-',unit=16)
   !write(16,*) '----------------------------------------------------------------------------'
@@ -107,8 +108,6 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   select case(trim(parmin%approach))
 
   case('LBFGS')
-  !if (trim(parmin%approach)=='LBFGS') then
-  
      ibfgs=0
      do
         ibfgs=ibfgs+1
@@ -119,7 +118,6 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
 
      if (fail) then
         if (iproc ==0) call yaml_map('ENTERING CG after LBFGS failure,ibfgs',ibfgs)
-        !if (iproc ==0) write(*,*) '# ENTERING CG after LBFGS failure'
         call conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
      end if
 
@@ -135,55 +133,31 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
 !     end if
 !
   case('BFGS','PBFGS')
-  !else if(trim(parmin%approach)=='BFGS' .or. trim(parmin%approach)=='PBFGS') then
      call bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
-
   case('SDCG')
-  !else if(trim(parmin%approach)=='SDCG') then
      if (iproc ==0) call yaml_map('ENTERING CG',ncount_bigdft)
-     !if (iproc ==0) write(*,*) '# ENTERING CG'
-!     call yaml_open_map('Geometry optimization')
      call conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
-!     call yaml_close_map()
-
   case('VSSD')
-  !else if(trim(parmin%approach)=='VSSD') then
      if (iproc ==0) call yaml_map('ENTERING VSSD',ncount_bigdft)
-     !if (iproc ==0) write(*,*) '# ENTERING VSSD'
      call vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
-
   case('FIRE')
-  !else if(trim(parmin%approach)=='FIRE') then
      if (iproc ==0) call yaml_map('ENTERING FIRE',ncount_bigdft)
-     !if (iproc ==0) write(*,*) '# ENTERING FIRE'
      call fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
-
   case('DIIS')   
-  !else if(trim(parmin%approach)=='DIIS') then
      if (iproc ==0) call yaml_map('ENTERING DIIS',ncount_bigdft)
-     !if (iproc ==0) write(*,*) '# ENTERING DIIS'
      call rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
-
   case('AB6MD')
-  !else if(trim(parmin%approach)=='AB6MD') then
      if (iproc ==0) call yaml_map('ENTERING Molecular Dynamics (ABINIT implementation)',ncount_bigdft)
-     !if (iproc ==0) write(*,*) '# ENTERING Molecular Dynamics (ABINIT implementation)'
      call ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
-
   case default
-  !else
-     call yaml_warning('ERROR: geometry optimization method undefined (' // trim(parmin%approach) &
-          & // '), exiting...')
-     !write(*,*) 'ERROR: geometry optimization method undefined, exiting...',trim(parmin%approach)
-     stop
-
+     call f_err_throw('Geometry optimization method undefined ('//trim(parmin%approach)//')',&
+          err_name='BIGDFT_RUNTIME_ERROR')
+     return
   end select
-  !endif
 
-  close(16)
+  if (iproc==0) call yaml_close_stream(unit=16)
 
   if (iproc==0) call yaml_map('End of minimization using ',parmin%approach)
-  !if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
   if (iproc==0) call finaliseCompress()
 

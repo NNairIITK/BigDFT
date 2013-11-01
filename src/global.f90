@@ -154,7 +154,7 @@ program MINHOP
      !open(unit=2,file='global'//trim(bigdft_run_id_toa())//'.mon',status='unknown',position='append')
      open(unit=2,file=trim(inputs_md%dir_output)//'global.mon',status='unknown',position='append')
      !open(unit=16,file='geopt'//trim(bigdft_run_id_toa())//'.mon',status='unknown')
-     open(unit=16,file=trim(inputs_md%dir_output)//'geopt.mon',status='unknown')
+     !open(unit=16,file=trim(inputs_md%dir_output)//'geopt.mon',status='unknown')
   endif
 
   ! read input parameters
