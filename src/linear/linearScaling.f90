@@ -1172,7 +1172,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !!input%lin%highaccuracy_conv_crit=1.d-8
                 call inputguessConfinement(iproc, nproc, at, input, &
                      KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                     rxyz, nlpspd, proj, GPU, KSwfn%orbs, tmb, denspot, rhopotold, energs)
+                     rxyz, nlpspd, proj, GPU, KSwfn%orbs, KSwfn, tmb, denspot, rhopotold, energs)
                      energs%eexctX=0.0_gp
 
                 !already done in inputguess
@@ -1297,6 +1297,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
                  !call yaml_map('Tr[KW]',ebs,fmt='(es14.4)')
                  call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
+                 call yaml_close_map()
              end if
           else
              !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then

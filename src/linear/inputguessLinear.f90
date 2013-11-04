@@ -13,7 +13,7 @@
 !! Each processors write its initial wavefunctions into the wavefunction file
 !! The files are then read by readwave
 subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-     rxyz, nlpspd, proj, GPU, orbs, tmb, denspot, rhopotold, energs)
+     rxyz, nlpspd, proj, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs)
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
@@ -30,7 +30,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   type(orbitals_data),intent(inout) :: orbs
-  type(DFT_wavefunction),intent(inout) :: tmb
+  type(DFT_wavefunction),intent(inout) :: kswfn, tmb
   type(DFT_local_fields), intent(inout) :: denspot
   real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) :: rhopotold
   type(energy_terms),intent(inout) :: energs
@@ -65,8 +65,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, fix_supportfunctions, reduce_conf
   type(localizedDIISParameters) :: ldiis
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
   call nullify_orbitals_data(orbs_gauss)
+  nullify(mom_vec_fake)
 
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
@@ -623,6 +625,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
+
+      call dcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+      call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+      if (bigdft_mpi%iproc ==0) then
+         call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
+      end if
+
   end if
 
 

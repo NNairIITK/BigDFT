@@ -1,4 +1,5 @@
  <BigDFT> log of the run will be written in logfile: ./log-ohoh.yaml
+ <BigDFT> Logfile existing, renamed into: ./logfiles/log-ohoh.15:27:34.489.yaml
 N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)   8.000000E+000     7.985301E+000    -1.469944E-002     7.349718E-004
  
  

@@ -2206,7 +2206,7 @@ module module_interfaces
     end subroutine readAtomicOrbitals
 
     subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-         rxyz, nlpspd, proj, GPU, orbs, tmb, denspot, rhopotold, energs)
+         rxyz, nlpspd, proj, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs)
          
       ! Input wavefunctions are found by a diagonalization in a minimal basis set
       ! Each processors write its initial wavefunctions into the wavefunction file
@@ -2224,7 +2224,7 @@ module module_interfaces
       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
       type(orbitals_data),intent(inout) :: orbs
-      type(DFT_wavefunction),intent(inout) :: tmb
+      type(DFT_wavefunction),intent(inout) :: kswfn, tmb
       type(DFT_local_fields), intent(inout) :: denspot
       real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), intent(inout) ::  rhopotold
       type(energy_terms),intent(inout) :: energs
