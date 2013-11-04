@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-04 15:16:07.502
+ Timestamp of this run                 : 2013-11-04 16:10:36.546
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -623,7 +623,16 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  4.760E-01,  2.383E-01 ]}
+ -  {Process:  0, Timing:  [  3.640E-01,  1.825E-01 ]}
+ 
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [-0.180000000000, -0.180000000000,  0.180000000000]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -653,8 +662,8 @@
  -  {H: [ 1.694752897065E-02, -1.754245912216E-02, -2.538068243721E-02]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  13.53
-   Elapsed time (s)                    :  7.18
+   CPU time (s)                        :  13.48
+   Elapsed time (s)                    :  7.15
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
@@ -665,7 +674,7 @@
  - density optimization not converged
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-11-04 15:16:06.457
+     2013-11-04 16:10:35.509
    Process Id:
      0
  Memory Consumption Report:

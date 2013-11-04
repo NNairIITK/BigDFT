@@ -1,5 +1,4 @@
  <BigDFT> log of the run will be written in logfile: ./log-oh-.yaml
- <BigDFT> Logfile existing, renamed into: ./logfiles/log-oh-.15:26:36.278.yaml
  
  
  
@@ -142,3 +141,13 @@
  
  
  
+ 
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+Rotation angle (deg)                   :  0.00000000000
+ 
+ Translation vector                    :  [ -0.721380260151,  0.00000000000,  0.00000000000 ]
+Rotation matrix elements:
+-  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+-  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+-  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+Suggested order for the transformation :  [  1,  2,  3 ]
