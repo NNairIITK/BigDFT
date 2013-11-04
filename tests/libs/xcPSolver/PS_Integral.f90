@@ -41,10 +41,12 @@ program PS_Integral
   real(dp), dimension(0:2048) :: fISF
 
   integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,i_all,nrange
-  real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss,theta,sum,sum2,sumx,sumx2,sumy,sumy2,xmin,xmax,ymin,ymax
+  real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss,theta,sum,sum2,sumx,sumx2,sumy,sumy2,xmin,xmax,ymin,ymax,shift
   real(dp), dimension(:), allocatable :: x_phi, y_phi
   real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2,dx_field,dy_field
   real(dp), external :: lr_gauss
+
+  call f_lib_initialize()
 
   call f_malloc_set_status(memory_limit=0.e0)
 
@@ -238,15 +240,24 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 
 !    call scaling_function(itype,nd,nrange,x_phi,y_phi) 
 !cut the size of the array to exclude points outside support
-
-!    if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
+  call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)  
+  !    if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
+  do i=0,nd
+ ! if (abs(y_phi(i)-0.97821193752582369d0) <= 1.d-5) then
+ !    print *,'hello',x_phi(i),y_phi(i)
+ ! end if
+  shift=-0.1111450195312500d0
+  if (real(nint(x_phi(i)+shift,kind=8)) == x_phi(i)+shift) then
+     print *,x_phi(i),y_phi(i)
+  end if
+!    write(17,*)i,x_phi(i),y_phi(i)
+  end do
+  call scaling_function4b2B_again(itype,nd,nrange,x_phi,y_phi)
   do i=0,nd
     write(17,*)i,x_phi(i),y_phi(i)
-  end do
-  !call scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)
-  call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)  
-  do i=0,nd
-    write(18,*)i,x_phi(i),y_phi(i)
+    if (real(nint(x_phi(i),kind=8)) == x_phi(i)) then
+       print *,x_phi(i),y_phi(i)
+    end if
   end do
 
 !      stop " wrong scaling function 4b2B: not a centered one "
@@ -254,6 +265,7 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 
   call f_free(x_phi)
 
+stop
 !    i_all=-product(shape(x_phi))*kind(x_phi)
 !    deallocate(x_phi,stat=i_stat)
 !    call memocc(i_stat,i_all,'x_phi',subname)
@@ -826,7 +838,7 @@ print*,'interpolating first dimension...'
   deallocate(analytic_vs_naive, stat=i_stat)
   deallocate(timings, stat=i_stat)
 
-  call f_malloc_finalize()
+  call f_lib_finalize()
 
 end program PS_Integral
 
@@ -1644,7 +1656,7 @@ end do
 end subroutine my_interpolate_and_transpose
 
 
-subroutine scaling_function4b2B(itype,nd,nrange,a,x)
+subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
    use module_base
    implicit none
    !Arguments
@@ -1691,7 +1703,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
       case(14)
          stop
       case(16)
-         call back_trans_16(nd,nt,x,y)
+         call back_trans_16_again(nd,nt,x,y)
       case(20)
          stop
       case(24)
@@ -1726,7 +1738,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    i_all=-product(shape(y))*kind(y)
    deallocate(y,stat=i_stat)
    call memocc(i_stat,i_all,'y',subname)
-END SUBROUTINE scaling_function4b2B
+ END SUBROUTINE scaling_function4b2B_again
 
 !!$
 !!$!call the routine which performs the interpolation in each direction
@@ -1909,3 +1921,93 @@ END SUBROUTINE scaling_function4b2B
 !!$ call memocc(i_stat,i_all,'shf',subname)
 !!$
 !!$end subroutine my_morph_and_transpose
+
+!> Backward wavelet transform
+subroutine back_trans_16_again(nd,nt,x,y)
+  implicit none
+  !Arguments
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
+  !Local variables
+  integer :: i,j,ind
+
+  integer, parameter :: m=18
+  real(kind=8), dimension(-m:m) :: ch=(/0d0, 0d0,&
+       3.571912260328699082d-6, -1.1450094552100700164d-6, &
+       -0.00005642629040127758254d0, 0.00002345539585568117642d0, &
+       0.0004069961892884996228d0, -0.0002465534369237166607d0, &
+       -0.001634776719899382798d0, 0.00259729967896342247d0, &
+       0.006477427625463336123d0, -0.01262044842878062896d0, &
+       -0.02535252967734825372d0, 0.02966399618206407251d0, &
+       0.06485097060728547963d0, -0.0289320622117497406d0, &
+       0.0185085845718848147d0, 0.5048199552943667001d0, &
+       0.970046711566057329d0, 0.7212353426722887695d0, &
+       0.0294258861485558961d0, -0.2797722999367705543d0, &
+       -0.0990303522418633099d0, 0.07410630821538452139d0,&
+       0.04680637576666147908d0, -0.011843799423550127927d0, &
+       -0.0122154536585793166d0, 0.0010521128108874154748d0, &
+       0.00196569149666800115d0, -0.00008582923667387588177d0, &
+       -0.0002141180336992365887d0, 3.667434093271785533d-6,&
+       0.000011440737665613076119d0, 0d0, 0d0, 0d0, 0d0/)
+!!$
+!!$  real(kind=8), dimension(-m:m) :: ch = (/&
+!!$       0.d0,0.d0,0.d0,&
+!!$       -6.39259815216064453D-6,0.D0,0.000110641121864318848D0,0.D0,&
+!!$       -0.000915303826332092285D0,0.D0,0.00484772026538848877D0,0.D0,&
+!!$       -0.0186983495950698853D0,0.D0,0.0575909167528152466D0,0.D0,&
+!!$       -0.159974768757820129D0,0.D0,0.617045536637306213D0,&
+!!$       1.D0,0.617045536637306213D0,&
+!!$       0D0,-0.159974768757820129D0,0.D0,0.0575909167528152466D0,0.D0,&
+!!$       -0.0186983495950698853D0,0.D0,0.00484772026538848877D0,0.D0,&
+!!$       -0.000915303826332092285D0,0.D0,0.000110641121864318848D0,0.D0,&
+!!$       -6.39259815216064453D-6,0.d0,0.d0,0.d0&
+!!$       /)
+  real(kind=8), dimension(-m:m) :: cg,cht,cgt
+
+  !******** coefficients for wavelet transform *********************
+  do i=-m,m
+     cht(i)=0.d0
+     cg(i)=0.d0
+     cgt(i)=0.d0
+  enddo
+
+  ! the normalization is chosen such that a constant function remains the same constant 
+  ! on each level of the transform
+
+  cht( 0)=1.D0
+
+  ! g coefficients from h coefficients
+  do i=-m,m-1
+     cg(i+1)=cht(-i)*(-1.d0)**(i+1)
+     cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
+  enddo
+
+  
+  do i=0,nt/2-1
+     y(2*i+0)=0.d0
+     y(2*i+1)=0.d0
+     
+     do j=-m/2,m/2-1
+        
+        ! periodically wrap index if necessary
+        ind=i-j
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt/2
+              cycle loop99
+           end if
+           if (ind.ge.nt/2) then 
+              ind=ind-nt/2
+              cycle loop99
+           end if
+           exit loop99
+        end do loop99
+
+        y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
+        y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
+     end do
+  end do
+        
+END SUBROUTINE back_trans_16_again
