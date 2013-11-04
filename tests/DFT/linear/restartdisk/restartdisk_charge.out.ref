@@ -1,1 +1,10 @@
  <BigDFT> log of the run will be written in logfile: ./log-charge.yaml
+ 
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+Rotation angle (deg)                   :  0.00000000000
+Translation vector: [-0.151884866295,  3.288620937234E-02,  8.447782485454E-02]
+Rotation matrix elements:
+-  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+-  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+-  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+Suggested order for the transformation :  [  1,  2,  3 ]

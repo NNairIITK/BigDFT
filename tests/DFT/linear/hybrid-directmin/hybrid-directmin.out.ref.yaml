@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-04 14:29:34.673
+ Timestamp of this run                 : 2013-11-04 16:14:14.347
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -419,6 +419,35 @@
      mode                              : sequential
      communication strategy kernel     : ALLREDUCE
      Coefficients available            :  Yes
+    #Eigenvalues and New Occupation Numbers
+   Orbitals: [
+ {e: -6.969742473314E-01, f:  2.0000},  # 00001
+ {e: -6.921351109956E-01, f:  2.0000},  # 00002
+ {e: -6.894104713138E-01, f:  2.0000},  # 00003
+ {e: -6.476056411148E-01, f:  2.0000},  # 00004
+ {e: -4.164120770610E-01, f:  2.0000},  # 00005
+ {e: -3.992970778582E-01, f:  2.0000},  # 00006
+ {e: -3.366749638318E-01, f:  2.0000},  # 00007
+ {e: -3.005430984808E-01, f:  2.0000},  # 00008
+ {e: -2.778135900115E-01, f:  2.0000},  # 00009
+ {e: -2.244591652993E-01, f:  2.0000},  # 00010
+ {e: -1.999633366919E-01, f:  2.0000},  # 00011
+ {e: -1.937320810842E-01, f:  2.0000},  # 00012
+ {e: -1.699993275780E-01, f:  2.0000},  # 00013
+ {e: -1.539203005936E-01, f:  2.0000},  # 00014
+ {e: -1.427429813489E-01, f:  2.0000},  # 00015
+ {e: -1.291031749935E-01, f:  2.0000},  # 00016
+ {e: -1.070609742134E-01, f:  2.0000},  # 00017
+ {e: -9.610700012261E-02, f:  2.0000},  # 00018
+ {e: -7.987848868568E-02, f:  2.0000},  # 00019
+ {e: -6.273680804206E-02, f:  2.0000},  # 00020
+ {e: -3.617483986099E-02, f:  2.0000},  # 00021
+ {e: -2.498970115296E-02, f:  2.0000},  # 00022
+ {e: -4.686307619509E-03, f:  2.0000},  # 00023
+ {e:  2.314263369964E-02, f:  2.0000},  # 00024
+ {e:  2.986859099965E-02, f:  2.0000},  # 00025
+ {e:  3.916807857726E-02, f:  2.0000},  # 00026
+ {e:  6.972330031499E-02, f:  2.0000}] # 00027
    Hamiltonian update: {
  Energies: {Ekin:  1.09499110671E+02, Epot: -1.17589201080E+02, Enl:  1.10244670723E+01, 
               EH:  3.75176127490E+02,  EXC: -2.80407426235E+01, EvXC: -3.67511859539E+01}, 
@@ -443,7 +472,7 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.09499110671E+02, Epot: -1.12063097696E+02, Enl:  1.10244670723E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -9.085E-99, 
- iter:  1, fnrm:  7.49E-01, Omega: -9.08538246107332839E+01, D: -9.085E+01, 
+ iter:  1, fnrm:  7.49E-01, Omega: -9.08538246107336249E+01, D: -9.085E+01, 
  Optimization: {algorithm: SD, mean alpha:  5.000E-01, max alpha:  5.000E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -452,12 +481,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.10685368688E+02, Epot: -1.14549116360E+02, Enl:  1.10957928795E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  1.899E-01, 
- iter:  2, fnrm:  7.30E-01, Omega: -9.28923188258226560E+01, D: -2.038E+00, 
+ iter:  2, fnrm:  7.30E-01, Omega: -9.28923188258229402E+01, D: -2.038E+00, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.10685368688E+02, Epot: -1.14549116360E+02, Enl:  1.10957928795E+01}, 
- iter:  2, fnrm:  7.30E-01, Omega: -9.28923188258226560E+01, D: -2.038E+00}
+ iter:  2, fnrm:  7.30E-01, Omega: -9.28923188258229402E+01, D: -2.038E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -476,12 +505,12 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 4.68E-01,  5.32E-01, -1.20E-01], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  2.66E-01, eBS: -1.64204402061624677E+01, D: -4.054E-01}
+ iter:  2, fnrm:  2.66E-01, eBS: -1.64204402061627057E+01, D: -4.054E-01}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.34E-01,  2.44E-01,  6.22E-01, -1.79E-02], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  7.40E-02, eBS: -1.68258695866556351E+01, D: -2.694E-02}
+ iter:  3, fnrm:  7.40E-02, eBS: -1.68258695866558696E+01, D: -2.694E-02}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.09499110671E+02, Epot: -1.17589201080E+02, Enl:  1.10244670723E+01, 
@@ -518,7 +547,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  4.78E-06, energy: -9.63217262270380274E+01, D: -9.632E+01}]
+ iter:  1, delta:  4.78E-06, energy: -9.63217262270381411E+01, D: -9.632E+01}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.11E-02
@@ -529,18 +558,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.04E-01,  2.46E-01,  5.01E-01,  4.93E-02, -1.54E-02], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  4.78E-01, eBS: -1.68528080689659951E+01, D:  5.472E+00}
+ iter:  1, fnrm:  4.78E-01, eBS: -1.68528080689662190E+01, D:  5.472E+00}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.55E-01,  2.40E-01,  3.84E-01, -6.23E-01,  7.44E-01, -1.45E-02], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  4.49E-01, eBS: -1.13809180523339286E+01, D: -2.815E-01}
+ iter:  2, fnrm:  4.49E-01, eBS: -1.13809180523338362E+01, D: -2.815E-01}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.33E-01,  2.33E-01,  3.97E-01, -3.02E-01, -1.56E-01,  5.96E-01, 
                 -1.37E-02],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  4.13E-01, eBS: -1.16623762177140353E+01, D: -5.583E-02}
+ iter:  3, fnrm:  4.13E-01, eBS: -1.16623762177139341E+01, D: -5.583E-02}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.10685368688E+02, Epot: -1.19339982589E+02, Enl:  1.10957928795E+01, 
@@ -577,24 +606,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.25E-06, energy: -9.56373835022343428E+01, D:  6.843E-01}]
+ iter:  2, delta:  1.25E-06, energy: -9.56373835022343997E+01, D:  6.843E-01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.25E-06, energy: -9.56373835022343428E+01, D:  6.843E-01}]}
+ iter:  3, delta:  1.25E-06, energy: -9.56373835022343997E+01, D:  6.843E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: HYBRID, mean conf prefac:  4.90E-02,  #WARNING: support function optimization not converged
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  1,       delta out:  3.632E-06, energy: -9.56373835022343428E+01, 
+   iter low:  1,       delta out:  3.632E-06, energy: -9.56373835022343997E+01, 
           D: -9.564E+01}
-   multiplicator for the confinement   :  0.18988537891607715
+   multiplicator for the confinement   :  0.18988537891607241
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.10685368688E+02, Epot: -1.18424754936E+02, Enl:  1.10957928795E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -1.378E-99, 
- iter:  1, fnrm:  4.52E-01, Omega: -1.04632562830080701E+02, D: -1.378E+01, 
+ iter:  1, fnrm:  4.52E-01, Omega: -1.04632562830080929E+02, D: -1.378E+01, 
  Optimization: {algorithm: SD, mean alpha:  3.000E-01, max alpha:  3.000E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -603,12 +632,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.07127516892E+02, Epot: -1.15582323076E+02, Enl:  1.10622793039E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  6.536E-01, 
- iter:  2, fnrm:  2.23E-01, Omega: -1.07235601101067175E+02, D: -2.603E+00, 
+ iter:  2, fnrm:  2.23E-01, Omega: -1.07235601101067346E+02, D: -2.603E+00, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.07127516892E+02, Epot: -1.15582323076E+02, Enl:  1.10622793039E+01}, 
- iter:  2, fnrm:  2.23E-01, Omega: -1.07235601101067175E+02, D: -2.603E+00}
+ iter:  2, fnrm:  2.23E-01, Omega: -1.07235601101067346E+02, D: -2.603E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -622,17 +651,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  2.44E-01, eBS: -1.17182081407553706E+01, D: -2.840E+00}
+ iter:  1, fnrm:  2.44E-01, eBS: -1.17182081407553014E+01, D: -2.840E+00}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 4.12E-01,  5.88E-01, -3.64E-02], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  1.75E-01, eBS: -1.45580195776583814E+01, D: -2.002E-01}
+ iter:  2, fnrm:  1.75E-01, eBS: -1.45580195776583601E+01, D: -2.002E-01}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.76E-01,  3.10E-01,  5.14E-01, -4.62E-03], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  5.31E-02, eBS: -1.47581859585267630E+01, D: -1.260E-02}
+ iter:  3, fnrm:  5.31E-02, eBS: -1.47581859585267363E+01, D: -1.260E-02}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.10685368688E+02, Epot: -1.19339982589E+02, Enl:  1.10957928795E+01, 
@@ -669,7 +698,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.93E-06, energy: -9.76083659629635463E+01, D: -1.971E+00}]
+ iter:  1, delta:  3.93E-06, energy: -9.76083659629636031E+01, D: -1.971E+00}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  4.27E-03
@@ -680,18 +709,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.88E-01,  2.98E-01,  5.01E-01,  1.39E-02, -4.59E-03], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  3.47E-01, eBS: -1.47707899233605868E+01, D: -5.933E+00}
+ iter:  1, fnrm:  3.47E-01, eBS: -1.47707899233605566E+01, D: -5.933E+00}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 3.18E-01,  1.44E-01,  2.55E-01, -9.24E+00,  9.52E+00, -2.27E-03], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  3.43E-01, eBS: -2.07042735579393451E+01, D: -4.877E-01}
+ iter:  2, fnrm:  3.43E-01, eBS: -2.07042735579394481E+01, D: -4.877E-01}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 3.04E-01,  1.56E-01,  2.10E-01, -5.84E+00,  5.74E+00,  4.30E-01, 
                 -1.61E-03],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  2.57E-01, eBS: -2.11920110372043489E+01, D: -8.471E-02}
+ iter:  3, fnrm:  2.57E-01, eBS: -2.11920110372041961E+01, D: -8.471E-02}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.07127516892E+02, Epot: -1.25117892966E+02, Enl:  1.10622793039E+01, 
@@ -728,24 +757,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.81E-06, energy: -9.73398630267706721E+01, D:  2.685E-01}]
+ iter:  2, delta:  1.81E-06, energy: -9.73398630267704448E+01, D:  2.685E-01}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.81E-06, energy: -9.73398630267706721E+01, D:  2.685E-01}]}
+ iter:  3, delta:  1.81E-06, energy: -9.73398630267704448E+01, D:  2.685E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, target function: HYBRID, mean conf prefac:  9.30E-03,  #WARNING: support function optimization not converged
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  2,       delta out:  2.279E-06, energy: -9.73398630267706721E+01, 
+   iter low:  2,       delta out:  2.279E-06, energy: -9.73398630267704448E+01, 
           D: -1.702E+00}
-   multiplicator for the confinement   :  0.65362138977206896
+   multiplicator for the confinement   :  0.65362138977205397
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.07127516892E+02, Epot: -1.21881026935E+02, Enl:  1.10622793039E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -9.544-100, 
- iter:  1, fnrm:  2.14E-01, Omega: -1.14176236742691231E+02, D: -9.544E+00, 
+ iter:  1, fnrm:  2.14E-01, Omega: -1.14176236742692083E+02, D: -9.544E+00, 
  Optimization: {algorithm: SD, mean alpha:  3.235E-01, max alpha:  3.235E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -754,12 +783,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.04890452270E+02, Epot: -1.19760921402E+02, Enl:  1.09566142824E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  6.821E-01, 
- iter:  2, fnrm:  1.32E-01, Omega: -1.14808752049953910E+02, D: -6.325E-01, 
+ iter:  2, fnrm:  1.32E-01, Omega: -1.14808752049954876E+02, D: -6.325E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.04890452270E+02, Epot: -1.19760921402E+02, Enl:  1.09566142824E+01}, 
- iter:  2, fnrm:  1.32E-01, Omega: -1.14808752049953910E+02, D: -6.325E-01}
+ iter:  2, fnrm:  1.32E-01, Omega: -1.14808752049954876E+02, D: -6.325E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -773,17 +802,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  6.23E-02, eBS: -2.12767214040874961E+01, D:  1.082E+00}
+ iter:  1, fnrm:  6.23E-02, eBS: -2.12767214040873718E+01, D:  1.082E+00}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 3.94E-01,  6.06E-01, -2.48E-03], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  4.19E-02, eBS: -2.01944486436781361E+01, D: -1.148E-02}
+ iter:  2, fnrm:  4.19E-02, eBS: -2.01944486436790953E+01, D: -1.148E-02}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.62E-01,  3.18E-01,  5.21E-01, -2.24E-04], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  1.37E-02, eBS: -2.02059308206787058E+01, D: -9.876E-04}
+ iter:  3, fnrm:  1.37E-02, eBS: -2.02059308206797112E+01, D: -9.876E-04}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.07127516892E+02, Epot: -1.25117892966E+02, Enl:  1.10622793039E+01, 
@@ -820,7 +849,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.51E-06, energy: -9.76981920154703403E+01, D: -3.583E-01}]
+ iter:  1, delta:  1.51E-06, energy: -9.76981920154704540E+01, D: -3.583E-01}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  6.20E-03
@@ -831,18 +860,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.92E-01,  2.87E-01,  4.93E-01,  2.70E-02, -1.83E-04], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  1.26E-01, eBS: -2.02069184583677668E+01, D: -5.103E-01}
+ iter:  1, fnrm:  1.26E-01, eBS: -2.02069184583687615E+01, D: -5.103E-01}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.26E-01,  2.42E-01,  4.24E-01, -1.64E+00,  1.74E+00, -1.55E-04], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  1.22E-01, eBS: -2.07172246079449245E+01, D: -1.996E-02}
+ iter:  2, fnrm:  1.22E-01, eBS: -2.07172246079440647E+01, D: -1.996E-02}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.23E-01,  2.20E-01,  3.83E-01, -2.09E+00,  1.64E+00,  6.20E-01, 
                 -1.43E-04],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  1.12E-01, eBS: -2.07371808763172822E+01, D: -1.581E-02}
+ iter:  3, fnrm:  1.12E-01, eBS: -2.07371808763165859E+01, D: -1.581E-02}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.04890452270E+02, Epot: -1.21762679233E+02, Enl:  1.09566142824E+01, 
@@ -879,24 +908,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  3.53E-07, energy: -9.76376453672449429E+01, D:  6.055E-02}]
+ iter:  2, delta:  3.53E-07, energy: -9.76376453672447724E+01, D:  6.055E-02}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  3.53E-07, energy: -9.76376453672449429E+01, D:  6.055E-02}]}
+ iter:  3, delta:  3.53E-07, energy: -9.76376453672447724E+01, D:  6.055E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, target function: HYBRID, mean conf prefac:  6.08E-03,  #WARNING: support function optimization not converged
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  3,       delta out:  1.226E-06, energy: -9.76376453672449429E+01, 
+   iter low:  3,       delta out:  1.226E-06, energy: -9.76376453672447724E+01, 
           D: -2.978E-01}
-   multiplicator for the confinement   :  0.68206612841354419
+   multiplicator for the confinement   :  0.68206612841352310
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.04890452270E+02, Epot: -1.20896782985E+02, Enl:  1.09566142824E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -2.275-100, 
- iter:  1, fnrm:  1.33E-01, Omega: -1.16451541756965241E+02, D: -2.275E+00, 
+ iter:  1, fnrm:  1.33E-01, Omega: -1.16451541756964730E+02, D: -2.275E+00, 
  Optimization: {algorithm: SD, mean alpha:  3.558E-01, max alpha:  3.558E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -905,12 +934,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.04028644437E+02, Epot: -1.20131052733E+02, Enl:  1.10085153654E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  6.255E-01, 
- iter:  2, fnrm:  1.05E-01, Omega: -1.16662313927356251E+02, D: -2.108E-01, 
+ iter:  2, fnrm:  1.05E-01, Omega: -1.16662313927355854E+02, D: -2.108E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.04028644437E+02, Epot: -1.20131052733E+02, Enl:  1.10085153654E+01}, 
- iter:  2, fnrm:  1.05E-01, Omega: -1.16662313927356251E+02, D: -2.108E-01}
+ iter:  2, fnrm:  1.05E-01, Omega: -1.16662313927355854E+02, D: -2.108E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -924,17 +953,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  6.12E-02, eBS: -2.07529894090021720E+01, D: -3.437E-01}
+ iter:  1, fnrm:  6.12E-02, eBS: -2.07529894090013940E+01, D: -3.437E-01}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 4.12E-01,  5.88E-01, -2.81E-03], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  4.41E-02, eBS: -2.10966516505798971E+01, D: -1.209E-02}
+ iter:  2, fnrm:  4.41E-02, eBS: -2.10966516505793855E+01, D: -1.209E-02}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.67E-01,  3.15E-01,  5.18E-01, -2.13E-04], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  1.49E-02, eBS: -2.11087421783178861E+01, D: -1.137E-03}
+ iter:  3, fnrm:  1.49E-02, eBS: -2.11087421783174420E+01, D: -1.137E-03}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.04890452270E+02, Epot: -1.21762679233E+02, Enl:  1.09566142824E+01, 
@@ -982,18 +1011,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.01E-01,  2.80E-01,  4.81E-01,  3.69E-02, -1.99E-04], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  9.35E-02, eBS: -2.11098791308769478E+01, D: -1.615E+00}
+ iter:  1, fnrm:  9.35E-02, eBS: -2.11098791308764930E+01, D: -1.615E+00}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 3.15E-01,  1.14E-01,  2.38E-01, -4.14E+00,  4.47E+00, -1.24E-04], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  9.00E-02, eBS: -2.27244019494505700E+01, D: -3.636E-02}
+ iter:  2, fnrm:  9.00E-02, eBS: -2.27244019494510496E+01, D: -3.636E-02}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.67E-01,  6.91E-02,  1.22E-01, -3.99E+00,  3.75E+00,  7.76E-01, 
                 -6.84E-05],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  6.30E-02, eBS: -2.27607625360540986E+01, D: -1.847E-02}
+ iter:  3, fnrm:  6.30E-02, eBS: -2.27607625360545462E+01, D: -1.847E-02}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.04028644437E+02, Epot: -1.23077830093E+02, Enl:  1.10085153654E+01, 
@@ -1030,24 +1059,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  7.79E-07, energy: -9.78525746818759217E+01, D: -1.115E-03}]
+ iter:  2, delta:  7.79E-07, energy: -9.78525746818758648E+01, D: -1.115E-03}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  7.79E-07, energy: -9.78525746818759217E+01, D: -1.115E-03}]}
+ iter:  3, delta:  7.79E-07, energy: -9.78525746818758648E+01, D: -1.115E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, target function: HYBRID, mean conf prefac:  4.15E-03,  #WARNING: support function optimization not converged
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  4,       delta out:  4.277E-07, energy: -9.78525746818759217E+01, 
+   iter low:  4,       delta out:  4.277E-07, energy: -9.78525746818758648E+01, 
           D: -2.149E-01}
-   multiplicator for the confinement   :  0.62548845687809917
+   multiplicator for the confinement   :  0.62548845687823040
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.04028644437E+02, Epot: -1.21615398377E+02, Enl:  1.10085153654E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -2.071-100, 
- iter:  1, fnrm:  1.08E-01, Omega: -1.18522680750025700E+02, D: -2.071E+00, 
+ iter:  1, fnrm:  1.08E-01, Omega: -1.18522680750028712E+02, D: -2.071E+00, 
  Optimization: {algorithm: SD, mean alpha:  3.914E-01, max alpha:  3.914E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1056,12 +1085,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.03121457021E+02, Epot: -1.20733719379E+02, Enl:  1.09973806208E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  5.214E-01, 
- iter:  2, fnrm:  9.62E-02, Omega: -1.18633144857177967E+02, D: -1.105E-01, 
+ iter:  2, fnrm:  9.62E-02, Omega: -1.18633144857180866E+02, D: -1.105E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.03121457021E+02, Epot: -1.20733719379E+02, Enl:  1.09973806208E+01}, 
- iter:  2, fnrm:  9.62E-02, Omega: -1.18633144857177967E+02, D: -1.105E-01}
+ iter:  2, fnrm:  9.62E-02, Omega: -1.18633144857180866E+02, D: -1.105E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -1075,17 +1104,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  2.54E-02, eBS: -2.27792276983537576E+01, D:  5.680E-01}
+ iter:  1, fnrm:  2.54E-02, eBS: -2.27792276983542692E+01, D:  5.680E-01}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 4.03E-01,  5.97E-01, -4.37E-04], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  1.76E-02, eBS: -2.22111873253249144E+01, D: -2.039E-03}
+ iter:  2, fnrm:  1.76E-02, eBS: -2.22111873253277885E+01, D: -2.039E-03}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.50E-01,  2.95E-01,  5.55E-01, -3.56E-05], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  5.14E-03, eBS: -2.22132260564690469E+01, D: -1.391E-04}
+ iter:  3, fnrm:  5.14E-03, eBS: -2.22132260564718536E+01, D: -1.391E-04}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.04028644437E+02, Epot: -1.23077830093E+02, Enl:  1.10085153654E+01, 
@@ -1133,18 +1162,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.59E-01,  2.86E-01,  5.43E-01,  1.16E-02, -3.50E-05], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  3.43E-02, eBS: -2.22133651440843067E+01, D: -1.498E+00}
+ iter:  1, fnrm:  3.43E-02, eBS: -2.22133651440871454E+01, D: -1.498E+00}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.85E-01,  2.44E-01,  4.64E-01, -4.63E+00,  4.74E+00, -3.30E-05], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  3.38E-02, eBS: -2.37116873847341267E+01, D: -1.787E-03}
+ iter:  2, fnrm:  3.38E-02, eBS: -2.37116873847320733E+01, D: -1.787E-03}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.81E-01,  5.03E-02,  1.03E-01, -1.70E+01,  1.43E+01,  3.44E+00, 
                 -1.28E-05],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  3.06E-02, eBS: -2.37134740762726963E+01, D: -6.925E-03}
+ iter:  3, fnrm:  3.06E-02, eBS: -2.37134740762704261E+01, D: -6.925E-03}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.03121457021E+02, Epot: -1.23061465195E+02, Enl:  1.09973806208E+01, 
@@ -1181,24 +1210,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  3.31E-07, energy: -9.79356041762619611E+01, D:  1.265E-03}]
+ iter:  2, delta:  3.31E-07, energy: -9.79356041762615064E+01, D:  1.265E-03}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  3.31E-07, energy: -9.79356041762619611E+01, D:  1.265E-03}]}
+ iter:  3, delta:  3.31E-07, energy: -9.79356041762615064E+01, D:  1.265E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, target function: HYBRID, mean conf prefac:  2.59E-03,  #WARNING: support function optimization not converged
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  5,       delta out:  3.177E-07, energy: -9.79356041762619611E+01, 
+   iter low:  5,       delta out:  3.177E-07, energy: -9.79356041762615064E+01, 
           D: -8.303E-02}
-   multiplicator for the confinement   :  0.52142835207913429
+   multiplicator for the confinement   :  0.52142835207872928
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.03121457021E+02, Epot: -1.22069481673E+02, Enl:  1.09973806208E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -1.781-100, 
- iter:  1, fnrm:  9.82E-02, Omega: -1.20303387790124816E+02, D: -1.781E+00, 
+ iter:  1, fnrm:  9.82E-02, Omega: -1.20303387790186207E+02, D: -1.781E+00, 
  Optimization: {algorithm: SD, mean alpha:  4.305E-01, max alpha:  4.305E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1207,12 +1236,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.02376616725E+02, Epot: -1.21367144591E+02, Enl:  1.10022461279E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  4.261E-01, 
- iter:  2, fnrm:  9.27E-02, Omega: -1.20370201336047558E+02, D: -6.681E-02, 
+ iter:  2, fnrm:  9.27E-02, Omega: -1.20370201336108096E+02, D: -6.681E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun006  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.02376616725E+02, Epot: -1.21367144591E+02, Enl:  1.10022461279E+01}, 
- iter:  2, fnrm:  9.27E-02, Omega: -1.20370201336047558E+02, D: -6.681E-02}
+ iter:  2, fnrm:  9.27E-02, Omega: -1.20370201336108096E+02, D: -6.681E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
@@ -1226,17 +1255,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  1.75E-02, eBS: -2.37203986794592296E+01, D:  4.995E-01}
+ iter:  1, fnrm:  1.75E-02, eBS: -2.37203986794563981E+01, D:  4.995E-01}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 3.92E-01,  6.08E-01, -1.86E-04], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  1.16E-02, eBS: -2.32208550162860234E+01, D: -9.243E-04}
+ iter:  2, fnrm:  1.16E-02, eBS: -2.32208550163446574E+01, D: -9.243E-04}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.44E-01,  2.90E-01,  5.66E-01, -1.58E-05], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  3.21E-03, eBS: -2.32217793354507336E+01, D: -5.416E-05}
+ iter:  3, fnrm:  3.21E-03, eBS: -2.32217793355089697E+01, D: -5.416E-05}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.03121457021E+02, Epot: -1.23061465195E+02, Enl:  1.09973806208E+01, 
@@ -1273,7 +1302,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.51E-07, energy: -9.79926797510011056E+01, D: -5.708E-02}]
+ iter:  1, delta:  3.51E-07, energy: -9.79926797510003667E+01, D: -5.708E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.06E-02
@@ -1284,22 +1313,22 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.51E-01,  2.84E-01,  5.58E-01,  7.90E-03, -1.57E-05], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  2.54E-02, eBS: -2.32218334960268713E+01, D: -1.296E+00}
+ iter:  1, fnrm:  2.54E-02, eBS: -2.32218334960850719E+01, D: -1.296E+00}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.67E-01,  2.59E-01,  5.12E-01, -3.79E+00,  3.85E+00, -1.53E-05], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  2.52E-02, eBS: -2.45176443971225986E+01, D: -5.635E-04}
+ iter:  2, fnrm:  2.52E-02, eBS: -2.45176443970762463E+01, D: -5.635E-04}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.79E-01,  6.36E-02,  1.59E-01, -2.27E+01,  1.78E+01,  5.50E+00, 
                 -7.03E-06],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  2.38E-02, eBS: -2.45182079303872271E+01, D: -3.962E-03}
+ iter:  3, fnrm:  2.38E-02, eBS: -2.45182079303402816E+01, D: -3.962E-03}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.02376616725E+02, Epot: -1.23136000574E+02, Enl:  1.10022461279E+01, 
-              EH:  3.63541644395E+02,  EXC: -2.62375518825E+01, EvXC: -3.43711610908E+01}, 
+              EH:  3.63541644396E+02,  EXC: -2.62375518825E+01, EvXC: -3.43711610908E+01}, 
     Total charge:  5.399996468342E+01, 
  Poisson Solver: {BC: Free, Box:  [  107,  111,  123 ], MPI tasks:  3}}
         #Eigenvalues and New Occupation Numbers
@@ -1332,24 +1361,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.15E-07, energy: -9.79912174275080474E+01, D:  1.462E-03}]
+ iter:  2, delta:  2.15E-07, energy: -9.79912174275075358E+01, D:  1.462E-03}]
    -  &final_kernel006  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.15E-07, energy: -9.79912174275080474E+01, D:  1.462E-03}]}
+ iter:  3, delta:  2.15E-07, energy: -9.79912174275075358E+01, D:  1.462E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc006
    -  {iter:  6, target function: HYBRID, mean conf prefac:  1.35E-03,  #WARNING: support function optimization not converged
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  6,       delta out:  2.445E-07, energy: -9.79912174275080474E+01, 
+   iter low:  6,       delta out:  2.445E-07, energy: -9.79912174275075358E+01, 
           D: -5.561E-02}
-   multiplicator for the confinement   :  0.42608796240450586
+   multiplicator for the confinement   :  0.42608796240126540
     #========================================================= support function optimization
  - support function optimization: &it_supfun007
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.02376616725E+02, Epot: -1.22499474736E+02, Enl:  1.10022461279E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -1.417-100, 
- iter:  1, fnrm:  9.31E-02, Omega: -1.21720582946072795E+02, D: -1.417E+00, 
+ iter:  1, fnrm:  9.31E-02, Omega: -1.21720582946029879E+02, D: -1.417E+00, 
  Optimization: {algorithm: SD, mean alpha:  4.736E-01, max alpha:  4.736E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1358,12 +1387,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01811975542E+02, Epot: -1.21979251088E+02, Enl:  1.10119800451E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.078E-01, 
- iter:  2, fnrm:  9.01E-02, Omega: -1.21756922239923313E+02, D: -3.634E-02, 
+ iter:  2, fnrm:  9.01E-02, Omega: -1.21756922239880794E+02, D: -3.634E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun007  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.01811975542E+02, Epot: -1.21979251088E+02, Enl:  1.10119800451E+01}, 
- iter:  2, fnrm:  9.01E-02, Omega: -1.21756922239923313E+02, D: -3.634E-02}
+ iter:  2, fnrm:  9.01E-02, Omega: -1.21756922239880794E+02, D: -3.634E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel007
@@ -1377,17 +1406,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  9.58E-03, eBS: -2.45221700952467607E+01, D:  4.045E-01}
+ iter:  1, fnrm:  9.58E-03, eBS: -2.45221700951984118E+01, D:  4.045E-01}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 3.97E-01,  6.03E-01, -5.66E-05], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  6.50E-03, eBS: -2.41176479869750295E+01, D: -2.868E-04}
+ iter:  2, fnrm:  6.50E-03, eBS: -2.41176479869292137E+01, D: -2.868E-04}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.46E-01,  2.88E-01,  5.66E-01, -5.21E-06], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  1.77E-03, eBS: -2.41179348035526928E+01, D: -1.609E-05}
+ iter:  3, fnrm:  1.77E-03, eBS: -2.41179348035069623E+01, D: -1.609E-05}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.02376616725E+02, Epot: -1.23136000574E+02, Enl:  1.10022461279E+01, 
@@ -1424,7 +1453,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.14E-07, energy: -9.80175452105012255E+01, D: -2.633E-02}]
+ iter:  1, delta:  2.14E-07, energy: -9.80175452105018508E+01, D: -2.633E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.21E-02
@@ -1435,18 +1464,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.48E-01,  2.86E-01,  5.62E-01,  3.68E-03, -5.19E-06], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  1.37E-02, eBS: -2.41179508926260198E+01, D: -8.915E-01}
+ iter:  1, fnrm:  1.37E-02, eBS: -2.41179508925802821E+01, D: -8.915E-01}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.54E-01,  2.75E-01,  5.42E-01, -3.85E+00,  3.88E+00, -5.14E-06], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  1.37E-02, eBS: -2.50094942931097250E+01, D: -7.621E-05}
+ iter:  2, fnrm:  1.37E-02, eBS: -2.50094942931640389E+01, D: -7.621E-05}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.52E-01,  1.10E-01,  2.35E-01, -4.23E+01,  3.31E+01,  9.76E+00, 
                 -2.93E-06],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  1.33E-02, eBS: -2.50095705035316769E+01, D: -1.095E-03}
+ iter:  3, fnrm:  1.33E-02, eBS: -2.50095705035860334E+01, D: -1.095E-03}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01811975542E+02, Epot: -1.23086306337E+02, Enl:  1.10119800451E+01, 
@@ -1483,24 +1512,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  9.38E-08, energy: -9.80165629048859728E+01, D:  9.823E-04}]
+ iter:  2, delta:  9.38E-08, energy: -9.80165629048864275E+01, D:  9.823E-04}]
    -  &final_kernel007  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  9.38E-08, energy: -9.80165629048859728E+01, D:  9.823E-04}]}
+ iter:  3, delta:  9.38E-08, energy: -9.80165629048864275E+01, D:  9.823E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc007
    -  {iter:  7, target function: HYBRID, mean conf prefac:  5.76E-04,  #WARNING: support function optimization not converged
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  7,       delta out:  1.741E-07, energy: -9.80165629048859728E+01, 
+   iter low:  7,       delta out:  1.741E-07, energy: -9.80165629048864275E+01, 
           D: -2.535E-02}
-   multiplicator for the confinement   :  0.30776676252478680
+   multiplicator for the confinement   :  0.30776676252663365
     #========================================================= support function optimization
  - support function optimization: &it_supfun008
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  1.01811975542E+02, Epot: -1.22795079969E+02, Enl:  1.10119800451E+01}, 
+ Energies: {Ekin:  1.01811975542E+02, Epot: -1.22795079968E+02, Enl:  1.10119800451E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -9.666-101, 
- iter:  1, fnrm:  8.98E-02, Omega: -1.22687177724643391E+02, D: -9.666E-01, 
+ iter:  1, fnrm:  8.98E-02, Omega: -1.22687177724577225E+02, D: -9.666E-01, 
  Optimization: {algorithm: SD, mean alpha:  5.210E-01, max alpha:  5.210E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1509,12 +1538,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01451619253E+02, Epot: -1.22476508796E+02, Enl:  1.10246480172E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  1.878E-01, 
- iter:  2, fnrm:  8.72E-02, Omega: -1.22704507699394640E+02, D: -1.733E-02, 
+ iter:  2, fnrm:  8.72E-02, Omega: -1.22704507699328474E+02, D: -1.733E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun008  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.01451619253E+02, Epot: -1.22476508796E+02, Enl:  1.10246480172E+01}, 
- iter:  2, fnrm:  8.72E-02, Omega: -1.22704507699394640E+02, D: -1.733E-02}
+ iter:  2, fnrm:  8.72E-02, Omega: -1.22704507699328474E+02, D: -1.733E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel008
@@ -1528,17 +1557,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  4.30E-03, eBS: -2.50106658500110903E+01, D:  2.128E-01}
+ iter:  1, fnrm:  4.30E-03, eBS: -2.50106658500661503E+01, D:  2.128E-01}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 4.44E-01,  5.56E-01, -1.34E-05], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  3.49E-03, eBS: -2.47978857567047228E+01, D: -7.524E-05}
+ iter:  2, fnrm:  3.49E-03, eBS: -2.47978857566381024E+01, D: -7.524E-05}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.85E-01,  2.97E-01,  5.18E-01, -1.28E-06], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  1.02E-03, eBS: -2.47979609931334579E+01, D: -5.203E-06}
+ iter:  3, fnrm:  1.02E-03, eBS: -2.47979609930669120E+01, D: -5.203E-06}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01811975542E+02, Epot: -1.23086306337E+02, Enl:  1.10119800451E+01, 
@@ -1575,7 +1604,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.03E-07, energy: -9.80270428217198173E+01, D: -1.048E-02}]
+ iter:  1, delta:  1.03E-07, energy: -9.80270428217202152E+01, D: -1.048E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.33E-02
@@ -1586,18 +1615,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.85E-01,  2.95E-01,  5.15E-01,  4.87E-03, -1.27E-06], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  5.03E-03, eBS: -2.47979661959580149E+01, D: -4.334E-01}
+ iter:  1, fnrm:  5.03E-03, eBS: -2.47979661958914583E+01, D: -4.334E-01}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.79E-01,  2.84E-01,  4.90E-01, -4.82E+00,  4.87E+00, -1.24E-06], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  4.99E-03, eBS: -2.52314104314814749E+01, D: -1.566E-05}
+ iter:  2, fnrm:  4.99E-03, eBS: -2.52314104315506640E+01, D: -1.566E-05}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 9.73E-02,  1.43E-01,  2.31E-01, -3.48E+01,  2.93E+01,  6.00E+00, 
                 -6.95E-07],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  4.80E-03, eBS: -2.52314260915279576E+01, D: -1.401E-04}
+ iter:  3, fnrm:  4.80E-03, eBS: -2.52314260915971609E+01, D: -1.401E-04}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01451619253E+02, Epot: -1.22977897298E+02, Enl:  1.10246480172E+01, 
@@ -1644,14 +1673,14 @@
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
    iter low:  8,       delta out:  9.814E-08, energy: -9.80267798902791583E+01, 
           D: -1.022E-02}
-   multiplicator for the confinement   :  0.18777057589433868
+   multiplicator for the confinement   :  0.18777057589486282
     #========================================================= support function optimization
  - support function optimization: &it_supfun009
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01451619253E+02, Epot: -1.22871969452E+02, Enl:  1.10246480172E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -4.552-101, 
- iter:  1, fnrm:  8.70E-02, Omega: -1.23142342072385645E+02, D: -4.552E-01, 
+ iter:  1, fnrm:  8.70E-02, Omega: -1.23142342072401902E+02, D: -4.552E-01, 
  Optimization: {algorithm: SD, mean alpha:  5.731E-01, max alpha:  5.731E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1660,12 +1689,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01252690820E+02, Epot: -1.22701273372E+02, Enl:  1.10304917827E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  1.106E-01, 
- iter:  2, fnrm:  8.37E-02, Omega: -1.23151136651366414E+02, D: -8.795E-03, 
+ iter:  2, fnrm:  8.37E-02, Omega: -1.23151136651382615E+02, D: -8.795E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun009  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.01252690820E+02, Epot: -1.22701273372E+02, Enl:  1.10304917827E+01}, 
- iter:  2, fnrm:  8.37E-02, Omega: -1.23151136651366414E+02, D: -8.795E-03}
+ iter:  2, fnrm:  8.37E-02, Omega: -1.23151136651382615E+02, D: -8.795E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel009
@@ -1679,21 +1708,21 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  3.16E-03, eBS: -2.52315662325243260E+01, D:  8.873E-02}
+ iter:  1, fnrm:  3.16E-03, eBS: -2.52315662325936962E+01, D:  8.873E-02}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 4.68E-01,  5.32E-01, -7.91E-06], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  2.81E-03, eBS: -2.51428323444096193E+01, D: -4.584E-05}
+ iter:  2, fnrm:  2.81E-03, eBS: -2.51428323444261750E+01, D: -4.584E-05}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.07E-01,  3.01E-01,  4.92E-01, -5.18E-07], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  8.68E-04, eBS: -2.51428781810362452E+01, D: -3.825E-06}
+ iter:  3, fnrm:  8.68E-04, eBS: -2.51428781810528150E+01, D: -3.825E-06}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01451619253E+02, Epot: -1.22977897298E+02, Enl:  1.10246480172E+01, 
-              EH:  3.62912298933E+02,  EXC: -2.60842822170E+01, EvXC: -3.41690392588E+01}, 
+              EH:  3.62912298932E+02,  EXC: -2.60842822170E+01, EvXC: -3.41690392588E+01}, 
     Total charge:  5.399996515903E+01, 
  Poisson Solver: {BC: Free, Box:  [  107,  111,  123 ], MPI tasks:  3}}
         #Eigenvalues and New Occupation Numbers
@@ -1726,7 +1755,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  5.14E-08, energy: -9.80314360416642785E+01, D: -4.656E-03}]
+ iter:  1, delta:  5.14E-08, energy: -9.80314360416639374E+01, D: -4.656E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.43E-02
@@ -1737,22 +1766,22 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.04E-01,  2.97E-01,  4.85E-01,  1.38E-02, -4.98E-07], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  2.75E-03, eBS: -2.51428820058888967E+01, D: -2.081E-01}
+ iter:  1, fnrm:  2.75E-03, eBS: -2.51428820059054488E+01, D: -2.081E-01}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.95E-01,  2.82E-01,  4.50E-01, -2.36E+00,  2.44E+00, -4.75E-07], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  2.69E-03, eBS: -2.53509462657992657E+01, D: -6.425E-06}
+ iter:  2, fnrm:  2.69E-03, eBS: -2.53509462657783295E+01, D: -6.425E-06}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.05E-01,  1.43E-01,  1.91E-01, -1.26E+01,  8.69E+00,  4.48E+00, 
                 -2.58E-07],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  2.54E-03, eBS: -2.53509526906549212E+01, D: -4.043E-05}
+ iter:  3, fnrm:  2.54E-03, eBS: -2.53509526906339921E+01, D: -4.043E-05}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01252690820E+02, Epot: -1.22924201925E+02, Enl:  1.10304917827E+01, 
-              EH:  3.62693436733E+02,  EXC: -2.60507435106E+01, EvXC: -3.41248097058E+01}, 
+              EH:  3.62693436733E+02,  EXC: -2.60507435107E+01, EvXC: -3.41248097058E+01}, 
     Total charge:  5.399996512906E+01, 
  Poisson Solver: {BC: Free, Box:  [  107,  111,  123 ], MPI tasks:  3}}
         #Eigenvalues and New Occupation Numbers
@@ -1785,24 +1814,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.12E-08, energy: -9.80313758086233520E+01, D:  6.023E-05}]
+ iter:  2, delta:  2.12E-08, energy: -9.80313758086234657E+01, D:  6.023E-05}]
    -  &final_kernel009  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.12E-08, energy: -9.80313758086233520E+01, D:  6.023E-05}]}
+ iter:  3, delta:  2.12E-08, energy: -9.80313758086234657E+01, D:  6.023E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc009
    -  {iter:  9, target function: HYBRID, mean conf prefac:  3.33E-05,  #WARNING: support function optimization not converged
              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  9,       delta out:  4.735E-08, energy: -9.80313758086233520E+01, 
+   iter low:  9,       delta out:  4.735E-08, energy: -9.80313758086234657E+01, 
           D: -4.596E-03}
-   multiplicator for the confinement   :  0.11064844231747858
+   multiplicator for the confinement   :  0.11064844231709393
     #========================================================= support function optimization
  - support function optimization: &it_supfun010
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01252690820E+02, Epot: -1.22874935679E+02, Enl:  1.10304917827E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -1.895-101, 
- iter:  1, fnrm:  8.37E-02, Omega: -1.23331843820022641E+02, D: -1.895E-01, 
+ iter:  1, fnrm:  8.37E-02, Omega: -1.23331843819974154E+02, D: -1.895E-01, 
  Optimization: {algorithm: SD, mean alpha:  6.304E-01, max alpha:  6.304E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1811,12 +1840,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01154790507E+02, Epot: -1.22796839439E+02, Enl:  1.10327142626E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  8.633E-02, 
- iter:  2, fnrm:  7.98E-02, Omega: -1.23338304333288534E+02, D: -6.461E-03, 
+ iter:  2, fnrm:  7.98E-02, Omega: -1.23338304333239932E+02, D: -6.461E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun010  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.01154790507E+02, Epot: -1.22796839439E+02, Enl:  1.10327142626E+01}, 
- iter:  2, fnrm:  7.98E-02, Omega: -1.23338304333288534E+02, D: -6.461E-03}
+ iter:  2, fnrm:  7.98E-02, Omega: -1.23338304333239932E+02, D: -6.461E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel010
@@ -1830,17 +1859,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  2.97E-03, eBS: -2.53509931256486745E+01, D:  4.469E-02}
+ iter:  1, fnrm:  2.97E-03, eBS: -2.53509931256277028E+01, D:  4.469E-02}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 4.69E-01,  5.31E-01, -6.91E-06], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  2.64E-03, eBS: -2.53063040353653896E+01, D: -4.058E-05}
+ iter:  2, fnrm:  2.64E-03, eBS: -2.53063040353169413E+01, D: -4.058E-05}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.07E-01,  3.01E-01,  4.92E-01, -4.05E-07], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  8.12E-04, eBS: -2.53063446107054766E+01, D: -3.383E-06}
+ iter:  3, fnrm:  8.12E-04, eBS: -2.53063446106569963E+01, D: -3.383E-06}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01252690820E+02, Epot: -1.22924201925E+02, Enl:  1.10304917827E+01, 
@@ -1877,7 +1906,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.25E-08, energy: -9.80346751031085546E+01, D: -3.299E-03}]
+ iter:  1, delta:  2.25E-08, energy: -9.80346751031084409E+01, D: -3.299E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.50E-02
@@ -1888,18 +1917,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.99E-01,  2.88E-01,  4.67E-01,  4.52E-02, -3.53E-07], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  1.32E-03, eBS: -2.53063479940146188E+01, D: -7.100E-02}
+ iter:  1, fnrm:  1.32E-03, eBS: -2.53063479939661704E+01, D: -7.100E-02}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.70E-01,  2.41E-01,  3.64E-01, -2.17E+00,  2.40E+00, -2.93E-07], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  1.22E-03, eBS: -2.53773485246177266E+01, D: -4.021E-06}
+ iter:  2, fnrm:  1.22E-03, eBS: -2.53773485246726409E+01, D: -4.021E-06}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 5.95E-02,  7.69E-02,  7.11E-02, -5.21E+00,  3.98E+00,  2.03E+00, 
                 -8.33E-08],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  1.02E-03, eBS: -2.53773525454858095E+01, D: -7.827E-06}
+ iter:  3, fnrm:  1.02E-03, eBS: -2.53773525455407345E+01, D: -7.827E-06}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01154790507E+02, Epot: -1.22870472806E+02, Enl:  1.10327142626E+01, 
@@ -1936,24 +1965,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.46E-08, energy: -9.80346683845871780E+01, D:  6.719E-06}]
+ iter:  2, delta:  1.46E-08, energy: -9.80346683845873486E+01, D:  6.719E-06}]
    -  &final_kernel010  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.46E-08, energy: -9.80346683845871780E+01, D:  6.719E-06}]}
+ iter:  3, delta:  1.46E-08, energy: -9.80346683845873486E+01, D:  6.719E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc010
    -  {iter:  10, target function: HYBRID, mean conf prefac:  3.69E-06,  #WARNING: support function optimization not converged
               kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  10,       delta out:  2.001E-08, energy: -9.80346683845871780E+01, 
+   iter low:  10,       delta out:  2.001E-08, energy: -9.80346683845873486E+01, 
           D: -3.293E-03}
-   multiplicator for the confinement   :  8.63281060748576912E-002
+   multiplicator for the confinement   :  8.63281060734625572E-002
     #========================================================= support function optimization
  - support function optimization: &it_supfun011
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01154790507E+02, Epot: -1.22844026598E+02, Enl:  1.10327142626E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -5.362-102, 
- iter:  1, fnrm:  7.98E-02, Omega: -1.23385467301403821E+02, D: -5.362E-02, 
+ iter:  1, fnrm:  7.98E-02, Omega: -1.23385467301417293E+02, D: -5.362E-02, 
  Optimization: {algorithm: SD, mean alpha:  6.934E-01, max alpha:  6.934E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1962,12 +1991,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01087667510E+02, Epot: -1.22788512888E+02, Enl:  1.10290819080E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  8.234E-02, 
- iter:  2, fnrm:  7.58E-02, Omega: -1.23391482579931790E+02, D: -6.015E-03, 
+ iter:  2, fnrm:  7.58E-02, Omega: -1.23391482579945375E+02, D: -6.015E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun011  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.01087667510E+02, Epot: -1.22788512888E+02, Enl:  1.10290819080E+01}, 
- iter:  2, fnrm:  7.58E-02, Omega: -1.23391482579931790E+02, D: -6.015E-03}
+ iter:  2, fnrm:  7.58E-02, Omega: -1.23391482579945375E+02, D: -6.015E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel011
@@ -1981,17 +2010,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  3.07E-03, eBS: -2.53773603726475940E+01, D:  2.329E-02}
+ iter:  1, fnrm:  3.07E-03, eBS: -2.53773603727025652E+01, D:  2.329E-02}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 4.65E-01,  5.35E-01, -7.21E-06], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  2.69E-03, eBS: -2.53540715659790088E+01, D: -4.266E-05}
+ iter:  2, fnrm:  2.69E-03, eBS: -2.53540715659928502E+01, D: -4.266E-05}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.04E-01,  3.00E-01,  4.97E-01, -4.42E-07], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  8.14E-04, eBS: -2.53541142259492638E+01, D: -3.411E-06}
+ iter:  3, fnrm:  8.14E-04, eBS: -2.53541142259631123E+01, D: -3.411E-06}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01154790507E+02, Epot: -1.22870472806E+02, Enl:  1.10327142626E+01, 
@@ -2028,7 +2057,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.91E-08, energy: -9.80377469839420428E+01, D: -3.079E-03}]
+ iter:  1, delta:  1.91E-08, energy: -9.80377469839417017E+01, D: -3.079E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.57E-02
@@ -2039,18 +2068,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.98E-01,  2.88E-01,  4.66E-01,  4.76E-02, -3.73E-07], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  1.45E-03, eBS: -2.53541176368192218E+01, D: -5.554E-02}
+ iter:  1, fnrm:  1.45E-03, eBS: -2.53541176368330561E+01, D: -5.554E-02}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.78E-01,  2.50E-01,  3.64E-01, -1.85E+00,  2.06E+00, -3.18E-07], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  1.34E-03, eBS: -2.54096563852527666E+01, D: -4.502E-06}
+ iter:  2, fnrm:  1.34E-03, eBS: -2.54096563852354791E+01, D: -4.502E-06}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 7.47E-02,  9.26E-02,  7.23E-02, -4.59E+00,  3.13E+00,  2.23E+00, 
                 -9.14E-08],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  1.14E-03, eBS: -2.54096608868816318E+01, D: -9.766E-06}
+ iter:  3, fnrm:  1.14E-03, eBS: -2.54096608868643621E+01, D: -9.766E-06}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01087667510E+02, Epot: -1.22845063464E+02, Enl:  1.10290819080E+01, 
@@ -2087,24 +2116,24 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.58E-08, energy: -9.80377452464716157E+01, D:  1.737E-06}]
+ iter:  2, delta:  1.58E-08, energy: -9.80377452464715589E+01, D:  1.737E-06}]
    -  &final_kernel011  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.58E-08, energy: -9.80377452464716157E+01, D:  1.737E-06}]}
+ iter:  3, delta:  1.58E-08, energy: -9.80377452464715589E+01, D:  1.737E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc011
    -  {iter:  11, target function: HYBRID, mean conf prefac:  3.18E-07,  #WARNING: support function optimization not converged
               kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  11,       delta out:  1.159E-08, energy: -9.80377452464716157E+01, 
+   iter low:  11,       delta out:  1.159E-08, energy: -9.80377452464715589E+01, 
           D: -3.077E-03}
-   multiplicator for the confinement   :  8.23415586090099766E-002
+   multiplicator for the confinement   :  8.23415586106434338E-002
     #========================================================= support function optimization
  - support function optimization: &it_supfun012
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01087667510E+02, Epot: -1.22821011451E+02, Enl:  1.10290819080E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa: -3.775-102, 
- iter:  1, fnrm:  7.58E-02, Omega: -1.23423215900359480E+02, D: -3.775E-02, 
+ iter:  1, fnrm:  7.58E-02, Omega: -1.23423215900350556E+02, D: -3.775E-02, 
  Optimization: {algorithm: SD, mean alpha:  7.627E-01, max alpha:  7.627E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2113,12 +2142,12 @@
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.01041749139E+02, Epot: -1.22788562848E+02, Enl:  1.10277246397E+01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  8.363E-02, 
- iter:  2, fnrm:  7.17E-02, Omega: -1.23429234785352321E+02, D: -6.019E-03, 
+ iter:  2, fnrm:  7.17E-02, Omega: -1.23429234785343340E+02, D: -6.019E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun012  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  1.01041749139E+02, Epot: -1.22788562848E+02, Enl:  1.10277246397E+01}, 
- iter:  2, fnrm:  7.17E-02, Omega: -1.23429234785352321E+02, D: -6.019E-03}
+ iter:  2, fnrm:  7.17E-02, Omega: -1.23429234785343340E+02, D: -6.019E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel012
@@ -2132,17 +2161,17 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.00E+00,  1.00E+00], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  1, fnrm:  3.20E-03, eBS: -2.54096706533542580E+01, D:  2.113E-02}
+ iter:  1, fnrm:  3.20E-03, eBS: -2.54096706533369847E+01, D:  2.113E-02}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 4.72E-01,  5.28E-01, -7.61E-06], communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  2, fnrm:  2.88E-03, eBS: -2.53885420022657620E+01, D: -4.896E-05}
+ iter:  2, fnrm:  2.88E-03, eBS: -2.53885420022568304E+01, D: -4.896E-05}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 2.05E-01,  2.91E-01,  5.04E-01, -4.80E-07], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  3, fnrm:  8.13E-04, eBS: -2.53885909667111100E+01, D: -3.424E-06}
+ iter:  3, fnrm:  8.13E-04, eBS: -2.53885909667022247E+01, D: -3.424E-06}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01087667510E+02, Epot: -1.22845063464E+02, Enl:  1.10290819080E+01, 
@@ -2179,7 +2208,7 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.60E-08, energy: -9.80408275455563967E+01, D: -3.082E-03}]
+ iter:  1, delta:  1.60E-08, energy: -9.80408275455563398E+01, D: -3.082E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.63E-02
@@ -2190,18 +2219,18 @@
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.97E-01,  2.76E-01,  4.68E-01,  5.88E-02, -3.90E-07], 
            communication strategy kernel: ALLREDUCE, method: DminDIIS, 
- iter:  1, fnrm:  1.33E-03, eBS: -2.53885943904372766E+01, D: -1.858E-02}
+ iter:  1, fnrm:  1.33E-03, eBS: -2.53885943904283984E+01, D: -1.858E-02}
          -  { #---------------------------------------------------------------- it coeff: 2
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 1.70E-01,  2.32E-01,  3.50E-01, -1.76E+00,  2.01E+00, -3.21E-07], 
            communication strategy kernel: ALLREDUCE,    method: DminDIIS, 
- iter:  2, fnrm:  1.20E-03, eBS: -2.54071739320558940E+01, D: -4.311E-06}
+ iter:  2, fnrm:  1.20E-03, eBS: -2.54071739320713590E+01, D: -4.311E-06}
          -  { #---------------------------------------------------------------- it coeff: 3
  calculate density kernel, communication strategy: ALLREDUCE, 
  DIIS weights: [ 6.46E-02,  7.89E-02,  6.45E-02, -3.76E+00,  2.54E+00,  2.02E+00, 
                 -7.75E-08],      communication strategy kernel: ALLREDUCE, 
             method: DminDIIS, 
- iter:  3, fnrm:  9.87E-04, eBS: -2.54071782427198976E+01, D: -7.622E-06}
+ iter:  3, fnrm:  9.87E-04, eBS: -2.54071782427353554E+01, D: -7.622E-06}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  1.01041749139E+02, Epot: -1.22807137346E+02, Enl:  1.10277246397E+01, 
@@ -2238,15 +2267,15 @@
  {e:  3.916807857726E-02, f:  2.0000},  # 00026
  {e:  6.972330031499E-02, f:  2.0000}] # 00027
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.55E-08, energy: -9.80408293568606837E+01, D: -1.811E-06}]
+ iter:  2, delta:  1.55E-08, energy: -9.80408293568610247E+01, D: -1.811E-06}]
    -  &final_kernel012  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.55E-08, energy: -9.80408293568606837E+01, D: -1.811E-06}]}
+ iter:  3, delta:  1.55E-08, energy: -9.80408293568610247E+01, D: -1.811E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc012
    -  {iter:  12, target function: HYBRID, mean conf prefac:  2.62E-08,  #WARNING: support function optimization not converged
               kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  12,       delta out:  6.956E-09, energy: -9.80408293568606837E+01, 
+   iter low:  12,       delta out:  6.956E-09, energy: -9.80408293568610247E+01, 
           D: -3.084E-03}
     #========================================================================= final results
    self consistency summary:
@@ -2254,7 +2283,7 @@
  Energies: {Ekin:  1.01041749139E+02, Epot: -1.22807137346E+02, Enl:  1.10277246397E+01, 
               EH:  3.62655837055E+02,  EXC: -2.60398320234E+01, EvXC: -3.41104504918E+01}, 
         iter low:  12,           delta out:  6.956E-09, 
-          energy: -9.80408293568606837E+01,                       D:  0.000E+00,  #FINAL
+          energy: -9.80408293568610247E+01,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  5.399996521348E+01
   #---------------------------------------------------------------------- Forces Calculation
@@ -2266,33 +2295,33 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  6.11733963E-02, y:  6.89371679E-02, z:  7.34176090E-03, 
                     total:  9.24576605E-02}
- Clean forces norm (Ha/Bohr): {maxval:  1.068971792326E-01, fnrm2:  3.672525290965E-02}
- Raw forces norm (Ha/Bohr): {maxval:  1.347333893710E-01, fnrm2:  4.597218755368E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  1.068971792327E-01, fnrm2:  3.672525290959E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  1.347333893711E-01, fnrm2:  4.597218755359E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-2.625906155676E-02, -2.343225918065E-02, -6.063808534704E-03]} # 0001
- -  {H: [-4.591412899740E-03, -2.744363080518E-02,  8.631081878813E-03]} # 0002
- -  {H: [-5.007643032364E-03, -3.395569154790E-02,  6.149292464057E-04]} # 0003
- -  {C: [-1.071582924756E-02, -8.251837064649E-03, -2.959796586830E-03]} # 0004
- -  {H: [-3.117866895647E-03, -1.546251835508E-02, -3.864806355133E-04]} # 0005
- -  {O: [ 7.699161970313E-02,  1.321075469987E-02, -3.060927217600E-02]} # 0006
- -  {H: [-2.272855054215E-02, -3.930242656910E-03, -1.104029864090E-03]} # 0007
- -  {C: [-9.836040046145E-03, -1.677524834814E-02,  1.292671460353E-02]} # 0008
- -  {O: [ 3.457968709688E-02,  5.484624738054E-02,  1.865325853587E-02]} # 0009
- -  {C: [-1.019267162460E-02, -1.825176551234E-02, -8.111796235129E-03]} # 0010
- -  {C: [-9.182039388980E-03, -2.261357089183E-02,  1.944020386765E-02]} # 0011
- -  {C: [-1.854499951489E-02,  2.722494211597E-03,  6.322922738143E-03]} # 0012
- -  {H: [-1.257804364544E-02, -8.044231595619E-03,  1.235918981147E-02]} # 0013
- -  {H: [-1.014811770397E-02,  2.400822201870E-03,  5.881876088691E-04]} # 0014
- -  {H: [-3.261111045900E-02,  1.723890877845E-03,  4.181288663719E-03]} # 0015
- -  {O: [ 3.954511839145E-02,  4.336641254343E-02, -9.943044110117E-03]} # 0016
- -  {H: [-3.584232588295E-03, -1.948617508740E-02, -2.735227862182E-02]} # 0017
- -  {O: [ 5.149137493760E-02,  9.344439592202E-02,  6.617409288712E-03]} # 0018
- -  {H: [-2.351018098352E-02, -1.406784679147E-02, -3.804679478988E-03]} # 0019
+ -  {H: [-2.625906155684E-02, -2.343225918058E-02, -6.063808534708E-03]} # 0001
+ -  {H: [-4.591412899679E-03, -2.744363080531E-02,  8.631081878682E-03]} # 0002
+ -  {H: [-5.007643032425E-03, -3.395569154790E-02,  6.149292464015E-04]} # 0003
+ -  {C: [-1.071582924750E-02, -8.251837064750E-03, -2.959796586899E-03]} # 0004
+ -  {H: [-3.117866895590E-03, -1.546251835519E-02, -3.864806355856E-04]} # 0005
+ -  {O: [ 7.699161970359E-02,  1.321075470020E-02, -3.060927217604E-02]} # 0006
+ -  {H: [-2.272855054198E-02, -3.930242656931E-03, -1.104029864058E-03]} # 0007
+ -  {C: [-9.836040046316E-03, -1.677524834809E-02,  1.292671460388E-02]} # 0008
+ -  {O: [ 3.457968709672E-02,  5.484624738022E-02,  1.865325853592E-02]} # 0009
+ -  {C: [-1.019267162468E-02, -1.825176551219E-02, -8.111796235129E-03]} # 0010
+ -  {C: [-9.182039389128E-03, -2.261357089180E-02,  1.944020386765E-02]} # 0011
+ -  {C: [-1.854499951482E-02,  2.722494211496E-03,  6.322922738009E-03]} # 0012
+ -  {H: [-1.257804364517E-02, -8.044231595494E-03,  1.235918981130E-02]} # 0013
+ -  {H: [-1.014811770370E-02,  2.400822201678E-03,  5.881876089349E-04]} # 0014
+ -  {H: [-3.261111045898E-02,  1.723890877897E-03,  4.181288663679E-03]} # 0015
+ -  {O: [ 3.954511839051E-02,  4.336641254349E-02, -9.943044110046E-03]} # 0016
+ -  {H: [-3.584232588149E-03, -1.948617508735E-02, -2.735227862173E-02]} # 0017
+ -  {O: [ 5.149137493754E-02,  9.344439592210E-02,  6.617409288774E-03]} # 0018
+ -  {H: [-2.351018098340E-02, -1.406784679149E-02, -3.804679479039E-03]} # 0019
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  118.93
-   Elapsed time (s)                    :  59.76
+   CPU time (s)                        :  120.76
+   Elapsed time (s)                    :  60.81
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2322,7 +2351,7 @@
  - density optimization not converged
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-11-04 14:29:33.634
+     2013-11-04 16:14:13.314
    Process Id:
      0
  Memory Consumption Report:
