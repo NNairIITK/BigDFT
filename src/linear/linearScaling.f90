@@ -321,7 +321,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! NB nothing is written to screen for this get_coeff
              if (.not. input%lin%constrained_dft) then
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                     infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                      .true.,ham_small,input%lin%extra_states,itout,0,0,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
@@ -376,7 +376,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
           tmb%can_use_transposed=.false.
           if (iproc==0) then
-              !call yaml_sequence(advance='no')
+              call yaml_sequence(advance='no')
               call yaml_open_sequence('fake iteration',label=&
                                  'it_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
               call yaml_sequence(label='final_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))),advance='no')
@@ -442,7 +442,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            !    ldiis%isx=0
            !end if
            if (input%experimental_mode) then
-               if (iproc==0) call yaml_map('Orthogonalizing the support functions',.false.)
+               if (iproc==0) call yaml_warning('No orthogonalizing of the support functions')
                !if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
                orthonormalization_on=.false.
            end if
@@ -616,24 +616,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
@@ -697,7 +697,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Calculate the charge density.
              if (iproc==0) then
-                 call yaml_open_sequence('charge and potential')
+                 call yaml_open_map('Hamiltonian update',flow=.true.)
+                 ! Use this subroutine to write the energies, with some
+                 ! fake number
+                 ! to prevent it from writing too much
+                 call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
              end if
              call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                   tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
@@ -767,13 +771,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! Calculate the new potential.
              !!if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
              if (iproc==0) then
-                 if (iproc==0) call yaml_open_map('pot',flow=.true.)
+!                 if (iproc==0) call yaml_open_map('pot',flow=.true.)
                  !call yaml_map('update potential',.true.)
              end if
+             if (iproc==0) call yaml_newline()
+             
+
              call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-             if (iproc==0) then
-                 if (iproc==0) call yaml_close_map()
-             end if
+              if (iproc==0) call yaml_close_map()
+
 
              ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
              ! switch off for FOE at the moment
@@ -820,7 +826,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
 
              ! Write some informations.
-             if (iproc==0) call yaml_close_sequence()
              call printSummary()
 
              if (pnrm<convCritMix.and.input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
@@ -985,7 +990,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        .or. input%lin%diag_end)) then
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
-           infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
+           infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ham_small,input%lin%extra_states,itout,0,0)
   end if
 

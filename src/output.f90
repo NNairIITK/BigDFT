@@ -710,10 +710,10 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
 
      end if
      call yaml_close_map()
-     call yaml_newline()
   end if
 
   if (.not.write_only_energies) then
+     call yaml_newline()
      if (len(trim(comment)) == 0) then
         call write_iter()
         if (verbose >0) call yaml_newline()

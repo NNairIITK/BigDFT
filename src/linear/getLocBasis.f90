@@ -9,7 +9,7 @@
 
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-    ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+    energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
   use module_base
   use module_types
@@ -28,7 +28,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
   integer,intent(out) :: infoCoeff
-  real(kind=8),intent(inout) :: ebs
+  type(energy_terms),intent(inout) :: energs
   real(kind=8),intent(inout) :: fnrm
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd
   real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -51,13 +51,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, evalsmall, work
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-  type(energy_terms) :: energs
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
   real(kind=8) :: deviation
   integer :: iat, iiorb, jjorb, lwork,jorb
 
+   if (iproc==0) call yaml_open_map('Kernel update')
   ! should eventually make this an input variable
   if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
      if (present(cdft)) then
@@ -147,12 +147,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
 
-
-      ! Use this subroutine to write the energies, with some fake number
-      ! to prevent it from writing too much
-      if (iproc==0) then
-          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
-      end if
 
 
       !!if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
@@ -281,20 +275,22 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
 
   ! Diagonalize the Hamiltonian.
+!  if (iproc==0) call yaml_open_sequence('kernel method')
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
       allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
       call memocc(istat, matrixElements, 'matrixElements', subname)
       call dcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
       call dcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
+      if (iproc==0) call yaml_map('method','diagonalization')
   if (.true.) then
       if(tmb%orthpar%blocksize_pdsyev<0) then
-          if (iproc==0) call yaml_map('Diagonalizing Hamiltonian','sequential')
+          if (iproc==0) call yaml_map('mode','sequential')
           !if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
       else
           !!if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
-          if (iproc==0) call yaml_map('Diagonalizing Hamiltonian','parallel')
+          if (iproc==0) call yaml_map('mode','parallel')
           call dsygv_parallel(iproc, nproc, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
                bigdft_mpi%mpi_comm, 1, 'v', 'l',tmb%orbs%norb, &
                matrixElements(1,1,1), tmb%orbs%norb, matrixElements(1,1,2), tmb%orbs%norb, tmb%orbs%eval, info)
@@ -387,11 +383,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
      if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
      ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
+     if (iproc==0) call yaml_map('method','directmin')
      if (extra_states>0) then
-        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
              curvefit_dmin, factor, itout, it_scc, it_cdft, reorder, extra_states)
      else
-        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
              curvefit_dmin, factor, itout, it_scc, it_cdft, reorder)
      end if
   end if
@@ -405,13 +402,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'getlocbasinit','ON') !lr408t
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,ebs,tmb%coeff,orbs,tmb%orbs,.true.)
-         if (iproc==0) call yaml_map('calculate density kernel',.true.)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.true.)
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,ebs,tmb%coeff,orbs,tmb%orbs,.false.)
-         if (iproc==0) call yaml_map('calculate density kernel',.true.)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.false.)
       end if
+
       call timing(iproc,'getlocbasinit','OF') !lr408t
 
       iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
@@ -423,15 +419,20 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   else ! foe
 
+      if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
-           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, ebs, &
+           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, energs%ebs, &
            itout,it_scc)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
   end if
+  if (iproc==0) call yaml_map('Coefficients available',scf_mode /= LINEAR_FOE)
 
+!  if (iproc==0) call yaml_close_sequence()
+
+  if (iproc==0) call yaml_close_map() !close kernel update
 
 end subroutine get_coeff
 

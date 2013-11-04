@@ -147,7 +147,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       end if
 
       if (iproc==0) then
-          call yaml_sequence(advance='no')
+          !call yaml_sequence(advance='no')
           call yaml_open_sequence('FOE to determine density kernel',label=&
                'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
                trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))))

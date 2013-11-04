@@ -572,7 +572,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      if (iproc==0) then
          !call yaml_close_map()
          call yaml_comment('Extended input guess for experimental mode',hfill='-')
-         call yaml_open_sequence('Extended input guess')
+         call yaml_open_map('Extended input guess')
+         call yaml_open_sequence('support function optimization',label=&
+                                           'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
      end if
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
@@ -580,6 +582,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          50,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop)
      call yaml_close_sequence()
+     call yaml_close_map()
      call deallocateDIIS(ldiis)
      !call yaml_open_map()
      ! END NEW ############################################################################
@@ -596,11 +599,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !call yaml_open_sequence('First kernel')
       !call yaml_open_sequence('kernel optimization',label=&
       !                          'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
-      call yaml_sequence(advance='no')
-      call yaml_open_sequence('kernel optimization')
-      call yaml_sequence(advance='no')
-      call yaml_open_map(flow=.false.)
-      call yaml_comment('kernel iter:'//yaml_toa(0,fmt='(i6)'),hfill='-')
+      !call yaml_sequence(advance='no')
+!      call yaml_open_map('Input Guess kernel ')
+!      call yaml_map('Generation method',input%lin%scf_mode) 
+      !call yaml_sequence(advance='no')
+      !call yaml_open_map(flow=.false.)
+      !call yaml_comment('kernel iter:'//yaml_toa(0,fmt='(i6)'),hfill='-')
   end if
 
   if (input%lin%scf_mode==LINEAR_FOE) then
@@ -609,7 +613,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
       call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
 
-      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
@@ -617,7 +621,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       end if
 
   else
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
   end if
 
@@ -625,6 +629,17 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
+
+
+  if (iproc==0) then
+      call yaml_open_map('Hamiltonian update',flow=.true.)
+     ! Use this subroutine to write the energies, with some
+     ! fake number
+     ! to prevent it from writing too much
+    call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+  end if
+
+
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
@@ -646,9 +661,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
-
+  if (iproc==0) call yaml_newline()
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-
+  if(iproc==0) call yaml_close_map()
   ! Mix the potential.
   if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
      call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
@@ -675,11 +690,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
   end if
   
-  if (iproc==0) then
-      call yaml_close_map()
-      call yaml_close_sequence()
+  !if (iproc==0) then
+  !    call yaml_close_map()
       !call yaml_close_sequence()
-  end if
+      !call yaml_close_sequence()
+  !end if
   !!if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
   if (iproc==0) call yaml_comment('Input guess generated',hfill='=')
   
