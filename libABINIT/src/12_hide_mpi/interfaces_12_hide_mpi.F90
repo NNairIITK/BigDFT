@@ -669,6 +669,178 @@ interface
 end interface
 
 interface
+ subroutine xgather_mpi_int(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+  implicit none
+  integer,intent(out) :: ier
+  integer :: recvcount
+  integer,intent(in) :: root
+  integer :: sendcount
+  integer,intent(in) :: spaceComm
+  integer,intent(inout) :: recvbuf(:)
+  integer,intent(in) :: xval(:)
+ end subroutine xgather_mpi_int
+end interface
+
+interface
+ subroutine xgather_mpi_int2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+  implicit none
+  integer,intent(out) :: ier
+  integer :: recvcount
+  integer,intent(in) :: root
+  integer :: sendcount
+  integer,intent(in) :: spaceComm
+  integer,intent(inout) :: recvbuf(:,:)
+  integer,intent(in) :: xval(:,:)
+ end subroutine xgather_mpi_int2d
+end interface
+
+interface
+ subroutine xgather_mpi_dp(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+  use defs_basis
+  implicit none
+  integer,intent(out) :: ier
+  integer :: recvcount
+  integer,intent(in) :: root
+  integer :: sendcount
+  integer,intent(in) :: spaceComm
+  real(dp),intent(inout) :: recvbuf(:)
+  real(dp),intent(in) :: xval(:)
+ end subroutine xgather_mpi_dp
+end interface
+
+interface
+ subroutine xgather_mpi_dp2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+  use defs_basis
+  implicit none
+  integer,intent(out) :: ier
+  integer :: recvcount
+  integer,intent(in) :: root
+  integer :: sendcount
+  integer,intent(in) :: spaceComm
+  real(dp),intent(inout) :: recvbuf(:,:)
+  real(dp),intent(in) :: xval(:,:)
+ end subroutine xgather_mpi_dp2d
+end interface
+
+interface
+ subroutine xgather_mpi_dp3d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+  use defs_basis
+  implicit none
+  integer,intent(out) :: ier
+  integer :: recvcount
+  integer,intent(in) :: root
+  integer :: sendcount
+  integer,intent(in) :: spaceComm
+  real(dp),intent(inout) :: recvbuf(:,:,:)
+  real(dp),intent(in) :: xval(:,:,:)
+ end subroutine xgather_mpi_dp3d
+end interface
+
+interface
+ subroutine xgather_mpi_dp4d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+  use defs_basis
+  implicit none
+  integer,intent(out) :: ier
+  integer :: recvcount
+  integer,intent(in) :: root
+  integer :: sendcount
+  integer,intent(in) :: spaceComm
+  real(dp),intent(inout) :: recvbuf(:,:,:,:)
+  real(dp),intent(in) :: xval(:,:,:,:)
+ end subroutine xgather_mpi_dp4d
+end interface
+
+interface
+ subroutine xgatherv_mpi_int(xval,nelem,recvbuf,recvcounts,displs,root,spaceComm,ier)
+  implicit none
+  integer,intent(out) :: ier
+  integer,intent(in) :: nelem
+  integer,intent(in) :: root
+  integer,intent(in) :: spaceComm
+  integer,intent(in) :: displs(:)
+  integer,intent(inout) :: recvbuf(:)
+  integer,intent(in) :: recvcounts(:)
+  integer,intent(in) :: xval(:)
+ end subroutine xgatherv_mpi_int
+end interface
+
+interface
+ subroutine xgatherv_mpi_int2d(xval,nelem,recvbuf,recvcounts,displs,root,spaceComm,ier)
+  implicit none
+  integer,intent(out) :: ier
+  integer,intent(in) :: nelem
+  integer,intent(in) :: root
+  integer,intent(in) :: spaceComm
+  integer,intent(in) :: displs(:)
+  integer,intent(inout) :: recvbuf(:,:)
+  integer,intent(in) :: recvcounts(:)
+  integer,intent(in) :: xval(:,:)
+ end subroutine xgatherv_mpi_int2d
+end interface
+
+interface
+ subroutine xgatherv_mpi_dp(xval,nelem,recvbuf,recvcounts,displs,root,spaceComm,ier)
+  use defs_basis
+  implicit none
+  integer,intent(out) :: ier
+  integer,intent(in) :: nelem
+  integer,intent(in) :: root
+  integer,intent(in) :: spaceComm
+  integer,intent(in) :: displs(:)
+  integer,intent(in) :: recvcounts(:)
+  real(dp),intent(inout) :: recvbuf(:)
+  real(dp),intent(in) :: xval(:)
+ end subroutine xgatherv_mpi_dp
+end interface
+
+interface
+ subroutine xgatherv_mpi_dp2d(xval,nelem,recvbuf,recvcounts,displs,root,spaceComm,ier)
+  use defs_basis
+  implicit none
+  integer,intent(out) :: ier
+  integer,intent(in) :: nelem
+  integer,intent(in) :: root
+  integer,intent(in) :: spaceComm
+  integer,intent(in) :: displs(:)
+  integer,intent(in) :: recvcounts(:)
+  real(dp),intent(inout) :: recvbuf(:,:)
+  real(dp),intent(in) :: xval(:,:)
+ end subroutine xgatherv_mpi_dp2d
+end interface
+
+interface
+ subroutine xgatherv_mpi_dp3d(xval,nelem,recvbuf,recvcounts,displs,root,spaceComm,ier)
+  use defs_basis
+  implicit none
+  integer,intent(out) :: ier
+  integer,intent(in) :: nelem
+  integer,intent(in) :: root
+  integer,intent(in) :: spaceComm
+  integer,intent(in) :: displs(:)
+  integer,intent(in) :: recvcounts(:)
+  real(dp),intent(inout) :: recvbuf(:,:,:)
+  real(dp),intent(in) :: xval(:,:,:)
+ end subroutine xgatherv_mpi_dp3d
+end interface
+
+interface
+ subroutine xgatherv_mpi_dp4d(xval,nelem,recvbuf,recvcounts,displs,root,spaceComm,ier)
+  use defs_basis
+  implicit none
+  integer,intent(out) :: ier
+  integer,intent(in) :: nelem
+  integer,intent(in) :: root
+  integer,intent(in) :: spaceComm
+  integer,intent(in) :: displs(:)
+  integer,intent(in) :: recvcounts(:)
+  real(dp),intent(inout) :: recvbuf(:,:,:,:)
+  real(dp),intent(in) :: xval(:,:,:,:)
+ end subroutine xgatherv_mpi_dp4d
+end interface
+
+
+
+interface
  subroutine xmax_mpi_intv(xval,xmax,spaceComm,ier)
   implicit none
   integer ,intent(out) :: ier

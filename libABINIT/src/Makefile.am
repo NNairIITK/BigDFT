@@ -20,6 +20,8 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xalltoallv_mpi.F90 \
 	12_hide_mpi/xcast_mpi.F90 \
 	12_hide_mpi/xexch_mpi.F90 \
+	12_hide_mpi/xgather_mpi.F90 \
+        12_hide_mpi/xgatherv_mpi.F90 \
 	12_hide_mpi/xmax_mpi.F90 \
 	12_hide_mpi/xmin_mpi.F90 \
 	12_hide_mpi/xrecv_mpi.F90 \
@@ -55,7 +57,12 @@ libabinit_a_SOURCES = \
 	12_hide_mpi/m_xmpi.F90 \
 	14_hidewrite/wrtout.F90 \
 	14_hidewrite/interfaces_14_hidewrite.F90 \
+	14_hidewrite/m_fstrings.F90 \
+	14_hidewrite/m_io_tools.F90 \
 	16_hideleave/leave_new.F90 \
+	16_hideleave/m_build_info.F90 \
+	16_hideleave/m_build_info_fake.F90 \
+	16_hideleave/m_errors.F90 \
 	16_hideleave/interfaces_16_hideleave.F90 \
 	18_timing/interfaces_18_timing.F90 \
 	18_timing/timab.F90 \
@@ -72,7 +79,21 @@ libabinit_a_SOURCES = \
 	32_util/matr3inv.F90 \
 	32_util/matrginv.F90 \
 	32_util/wrap2_pmhalf.F90 \
-	42_geometry/interfaces_42_geometry.F90 \
+	41_xc_lowlevel/interfaces_41_xc_lowlevel.F90 \
+	41_xc_lowlevel/drivexc.F90 \
+	41_xc_lowlevel/invcb.F90 \
+	41_xc_lowlevel/mkdenpos.F90 \
+	41_xc_lowlevel/m_libxc_functionals.F90 \
+	41_xc_lowlevel/size_dvxc.F90 \
+	41_xc_lowlevel/xchcth.F90 \
+	41_xc_lowlevel/xchelu.F90 \
+	41_xc_lowlevel/xclb.F90 \
+	41_xc_lowlevel/xcpbe.F90 \
+	41_xc_lowlevel/xcpzca.F90 \
+	41_xc_lowlevel/xcspol.F90 \
+	41_xc_lowlevel/xctetr.F90 \
+	41_xc_lowlevel/xcwign.F90 \
+	41_xc_lowlevel/xcxalp.F90 \
 	42_geometry/bldgrpaf.F90 \
 	42_geometry/bldgrp.F90 \
 	42_geometry/bonds_lgth_angles.F90 \
@@ -124,6 +145,24 @@ libabinit_a_SOURCES = \
 	42_geometry/symspgr.F90 \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
+        42_libpaw/interfaces_42_libpaw.F90   \
+        42_libpaw/m_atompaw.F90              \
+        42_libpaw/m_gaussfit.F90             \
+        42_libpaw/m_paral_atom.F90           \
+        42_libpaw/m_paw_numeric.F90          \
+        42_libpaw/m_pawang.F90               \
+        42_libpaw/m_pawcprj.F90              \
+        42_libpaw/m_pawio.F90                \
+        42_libpaw/m_pawpsp.F90               \
+        42_libpaw/m_pawrad.F90               \
+        42_libpaw/m_pawrhoij.F90             \
+        42_libpaw/m_pawtab.F90               \
+        42_libpaw/m_pawxc.F90                \
+        42_libpaw/m_sphharm.F90              \
+        42_libpaw/m_xml_converters.F90       \
+        42_libpaw/m_xml_pawpseudo.F90        \
+        42_libpaw/m_xml_pawpseudo_types.F90  \
+	42_geometry/interfaces_42_geometry.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
 	56_mixing/aprxdr.F90 \
 	56_mixing/dotprodm_v.F90 \
@@ -142,21 +181,6 @@ libabinit_a_SOURCES = \
 	56_recipspace/smpbz.F90 \
 	56_recipspace/symkpt.F90 \
 	56_recipspace/testkgrid.F90 \
-	41_xc_lowlevel/interfaces_41_xc_lowlevel.F90 \
-	41_xc_lowlevel/drivexc.F90 \
-	41_xc_lowlevel/invcb.F90 \
-	41_xc_lowlevel/mkdenpos.F90 \
-	41_xc_lowlevel/m_libxc_functionals.F90 \
-	41_xc_lowlevel/size_dvxc.F90 \
-	41_xc_lowlevel/xchcth.F90 \
-	41_xc_lowlevel/xchelu.F90 \
-	41_xc_lowlevel/xclb.F90 \
-	41_xc_lowlevel/xcpbe.F90 \
-	41_xc_lowlevel/xcpzca.F90 \
-	41_xc_lowlevel/xcspol.F90 \
-	41_xc_lowlevel/xctetr.F90 \
-	41_xc_lowlevel/xcwign.F90 \
-	41_xc_lowlevel/xcxalp.F90 \
 	67_common/ewald.F90 \
         67_common/ewald2.F90 \
 	67_common/fconv.F90 \

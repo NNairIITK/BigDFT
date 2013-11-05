@@ -15,7 +15,7 @@ TESTDIRS = C \
 	  ElectronGas \
 	  NLCC \
 	  taskgroups \
-	  CH4-D3
+	  CH4-D3 
 
 EXTRA_TESTDIRS =
 
@@ -53,6 +53,8 @@ GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
+#PAW.psp: PAW/psppar.H
+
 #SIC.psp: HGH/psppar.H \
 #	HGH/psppar.C \
 #	HGH/psppar.O \
