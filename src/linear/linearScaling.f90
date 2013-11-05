@@ -1365,7 +1365,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
               call yaml_map('target function','HYBRID')
               !write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
           end if
-          call yaml_map('mean conf prefac',mean_conf,fmt='(es9.2)')
+          if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+              call yaml_map('mean conf prefac',mean_conf,fmt='(es9.2)')
+          end if
           if(info_basis_functions<=0) then
               call yaml_warning('support function optimization not converged')
           else
