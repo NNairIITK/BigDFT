@@ -1,60 +1,4 @@
  <BigDFT> log of the run will be written in logfile: ./log-read_charge.yaml
- Error, Wahba's cost function is too big  0.268623882684150     
-   10.0000068738647     
- Error, Wahba's cost function is too big  0.264649010955067     
-   10.0000091576975     
- Error, Wahba's cost function is too big  0.272200126892227     
-   10.0000054560496     
- Error, Wahba's cost function is too big  0.129844618650588     
-   10.0000052893872     
- Error, Wahba's cost function is too big  0.129844618650588     
-   10.0000052893872     
- Error, Wahba's cost function is too big  0.129844618650588     
-   10.0000052893872     
- Error, Wahba's cost function is too big  0.129844618650588     
-   10.0000052893872     
- Error, Wahba's cost function is too big  0.382512772840271     
-   10.0000001645602     
- Error, Wahba's cost function is too big  0.255274818284474     
-   10.0000007064801     
- Error, Wahba's cost function is too big  0.255274818284474     
-   10.0000007064801     
- Error, Wahba's cost function is too big  0.255274818284474     
-   10.0000007064801     
- Error, Wahba's cost function is too big  0.255274818284474     
-   10.0000007064801     
- Error, Wahba's cost function is too big  0.179061683829469     
-   10.0000001346588     
- Error, Wahba's cost function is too big  0.179061683829469     
-   10.0000001346588     
- Error, Wahba's cost function is too big  0.179061683829469     
-   10.0000001346588     
- Error, Wahba's cost function is too big  0.179061683829469     
-   10.0000001346588     
- Error, Wahba's cost function is too big  0.458410452453174     
-   10.0000001777734     
- Error, Wahba's cost function is too big  0.458410452453174     
-   10.0000001777734     
- Error, Wahba's cost function is too big  0.458410452453174     
-   10.0000001777734     
- Error, Wahba's cost function is too big  0.458410452453174     
-   10.0000001777734     
- Error, Wahba's cost function is too big  0.245632093404356     
-   9.99999998064724     
- Error, Wahba's cost function is too big  0.245632093404356     
-   9.99999998064724     
- Error, Wahba's cost function is too big  0.245632093404356     
-   9.99999998064724     
- Error, Wahba's cost function is too big  0.245632093404356     
-   9.99999998064724     
- Error, Wahba's cost function is too big  0.245632188666517     
-   9.99999944609263     
- Error, Wahba's cost function is too big  0.245632188666517     
-   9.99999944609263     
- Error, Wahba's cost function is too big  0.245632188666517     
-   9.99999944609263     
- Error, Wahba's cost function is too big  0.245632188666517     
-   9.99999944609263     
  Error, Wahba's cost function is too big  0.245632047829818     
    10.0000013580825     
  Error, Wahba's cost function is too big  0.245632047829818     
@@ -111,6 +55,62 @@
    10.0000158080216     
  Error, Wahba's cost function is too big  0.268623126176455     
    10.0000083937466     
+ Error, Wahba's cost function is too big  0.268623882684150     
+   10.0000068738647     
+ Error, Wahba's cost function is too big  0.264649010955067     
+   10.0000091576975     
+ Error, Wahba's cost function is too big  0.272200126892227     
+   10.0000054560496     
+ Error, Wahba's cost function is too big  0.129844618650588     
+   10.0000052893872     
+ Error, Wahba's cost function is too big  0.129844618650588     
+   10.0000052893872     
+ Error, Wahba's cost function is too big  0.129844618650588     
+   10.0000052893872     
+ Error, Wahba's cost function is too big  0.129844618650588     
+   10.0000052893872     
+ Error, Wahba's cost function is too big  0.382512772840271     
+   10.0000001645602     
+ Error, Wahba's cost function is too big  0.255274818284474     
+   10.0000007064801     
+ Error, Wahba's cost function is too big  0.255274818284474     
+   10.0000007064801     
+ Error, Wahba's cost function is too big  0.255274818284474     
+   10.0000007064801     
+ Error, Wahba's cost function is too big  0.255274818284474     
+   10.0000007064801     
+ Error, Wahba's cost function is too big  0.179061683829469     
+   10.0000001346588     
+ Error, Wahba's cost function is too big  0.179061683829469     
+   10.0000001346588     
+ Error, Wahba's cost function is too big  0.179061683829469     
+   10.0000001346588     
+ Error, Wahba's cost function is too big  0.179061683829469     
+   10.0000001346588     
+ Error, Wahba's cost function is too big  0.458410452453174     
+   10.0000001777734     
+ Error, Wahba's cost function is too big  0.458410452453174     
+   10.0000001777734     
+ Error, Wahba's cost function is too big  0.458410452453174     
+   10.0000001777734     
+ Error, Wahba's cost function is too big  0.458410452453174     
+   10.0000001777734     
+ Error, Wahba's cost function is too big  0.245632093404356     
+   9.99999998064724     
+ Error, Wahba's cost function is too big  0.245632093404356     
+   9.99999998064724     
+ Error, Wahba's cost function is too big  0.245632093404356     
+   9.99999998064724     
+ Error, Wahba's cost function is too big  0.245632093404356     
+   9.99999998064724     
+ Error, Wahba's cost function is too big  0.245632188666517     
+   9.99999944609263     
+ Error, Wahba's cost function is too big  0.245632188666517     
+   9.99999944609263     
+ Error, Wahba's cost function is too big  0.245632188666517     
+   9.99999944609263     
+ Error, Wahba's cost function is too big  0.245632188666517     
+   9.99999944609263     
  Error, Wahba's cost function is too big  0.453054702628582     
    9.99999981576006     
  Error, Wahba's cost function is too big  0.453054702628582     

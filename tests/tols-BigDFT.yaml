@@ -406,6 +406,7 @@ fructose:
  EvXC: 1.1e-10
  energy: 4.2e-11
  Omega: 4.2e-11
+ Total charge: 2.1e-10
  charge diff: 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -439,6 +440,8 @@ foe:
  EH: 1.0e-9
  Omega: 3.2e-11
  EXC: 1.0e-10
+ Total charge: 2.1e-11
+ EvXC: 1.1e-10
 
 onlyhigh:
  EH: 1.1e-10
