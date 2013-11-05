@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-05 13:00:57.544
+ Timestamp of this run                 : 2013-11-05 14:36:17.389
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -384,30 +384,6 @@
   #ALLOCATING KSwfn%orbs%eval... is this correct?
   #--------------------------------------------------------- Reading Wavefunctions from disk
  Input Hamiltonian:
-   Rotation axis: [ 0.267261241913, -0.534522483825,  0.801783725737]
-   Rotation angle (deg)                :  35.0000000000
-   Translation vector: [-0.252821746605, -0.268892184239,  9.585184852604E-02]
-   Rotation matrix elements:
-   -  [  0.832069755411, -0.485719674377, -0.267836368055 ]
-   -  [  0.434048829888,  0.870822888778, -0.230801017444 ]
-   -  [  0.345342634788,  7.578848397771E-02,  0.935411444389 ]
-   Suggested order for the transformation:  [  1,  2,  3 ]
-   Rotation axis: [ 0.267261241913, -0.534522483825,  0.801783725737]
-   Rotation angle (deg)                :  35.0000000000
-   Translation vector: [ 2.216030091954E-02,  0.148897648260, -1.728227898296E-02]
-   Rotation matrix elements:
-   -  [  0.832069755411, -0.485719674377, -0.267836368055 ]
-   -  [  0.434048829888,  0.870822888778, -0.230801017444 ]
-   -  [  0.345342634788,  7.578848397774E-02,  0.935411444389 ]
-   Suggested order for the transformation:  [  1,  2,  3 ]
-   Rotation axis: [ 0.267261241913, -0.534522483825,  0.801783725737]
-   Rotation angle (deg)                :  35.0000000000
-   Translation vector: [ 2.216030091954E-02,  0.148897648260, -1.728227898296E-02]
-   Rotation matrix elements:
-   -  [  0.832069755411, -0.485719674377, -0.267836368055 ]
-   -  [  0.434048829888,  0.870822888778, -0.230801017444 ]
-   -  [  0.345342634788,  7.578848397774E-02,  0.935411444389 ]
-   Suggested order for the transformation:  [  1,  2,  3 ]
    Overview of the reformatting (several categories may apply):
      No reformatting required          :  0
      Grid spacing has changed          :  0
@@ -418,7 +394,7 @@
      Molecule was rotated              :  7
      Discrete operations               :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.504E+00,  2.481E+00 ]}
+   -  {Process:  0, Timing:  [  3.604E+00,  2.648E+00 ]}
    nstates_max                         :  4
    ksorbs%norb                         :  4
    tmb%orbs%norb                       :  7
@@ -476,12 +452,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  5.62534261829E+00, Epot: -7.96354511552E+00, Enl:  1.81170543597E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.49135542936746557E+00, D: -5.491E+00, 
+ iter:  1, fnrm:  1.71E-01, Omega: -5.49135542936748333E+00, D: -5.491E+00, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  5.62534261829E+00, Epot: -7.96354511552E+00, Enl:  1.81170543597E+00}, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.49135542936746557E+00, D: -5.491E+00}
+ iter:  1, fnrm:  1.71E-01, Omega: -5.49135542936748333E+00, D: -5.491E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -494,7 +470,7 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.31E-02, eBS: -2.01201259796913057E+00, D: -3.869E-04, 
+ iter:  1, fnrm:  2.31E-02, eBS: -2.01201259796949028E+00, D: -3.869E-04, 
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -543,12 +519,12 @@
              frag eval:  1.93190861E-01, overlap:  9.999867E-01, occ:  0.00, 
  state: LUMO+2, energy:  2.00431182E-01, orthog energy:  2.00432883E-01, 
              frag eval:  1.93760802E-01, overlap:  9.999918E-01, occ:  0.00, 
- 2*frag sum: -2.0117803666426326, 2*frag sum orthog: -2.0117639729330539, 
- 2*eval sum: -2.0515000402765233}, 
+ 2*frag sum: -2.0117803666436935, 2*frag sum orthog: -2.0117639729334074, 
+ 2*eval sum: -2.0515000402765189}, 
  ]
- 2.0_gp*frag_sum_tot                   : -2.0117803666426326
- 2.0_gp*frag_sum_tot_orthog            : -2.0117639729330539
- 2.0_gp*eval_sum_tot                   : -2.0515000402765233
+ 2.0_gp*frag_sum_tot                   : -2.0117803666436935
+ 2.0_gp*frag_sum_tot_orthog            : -2.0117639729334074
+ 2.0_gp*eval_sum_tot                   : -2.0515000402765189
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -558,18 +534,18 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  8.73394363E-02, y: -1.12445249E-02, z: -2.29628366E-02, 
                     total:  9.10049907E-02}
- Clean forces norm (Ha/Bohr): {maxval:  4.223629153776E-02, fnrm2:  4.509712546567E-03}
- Raw forces norm (Ha/Bohr): {maxval:  7.090336301093E-02, fnrm2:  1.279751805336E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  4.223629153784E-02, fnrm2:  4.509712546578E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  7.090336301092E-02, fnrm2:  1.279751805335E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [ 3.739546375739E-03,  3.780443163773E-03, -1.304389774666E-02]} # 0001
- -  {H: [-3.521518231823E-03,  3.246168713632E-02,  2.679070921924E-02]} # 0002
- -  {H: [-2.107814190086E-02, -3.600667125542E-02,  4.460908469549E-03]} # 0003
- -  {H: [ 2.086011375694E-02, -2.354590446669E-04, -1.820771994213E-02]} # 0004
+ -  {Si: [ 3.739546375694E-03,  3.780443163684E-03, -1.304389774662E-02]} # 0001
+ -  {H: [-3.521518231783E-03,  3.246168713641E-02,  2.679070921925E-02]} # 0002
+ -  {H: [-2.107814190090E-02, -3.600667125546E-02,  4.460908469513E-03]} # 0003
+ -  {H: [ 2.086011375699E-02, -2.354590446276E-04, -1.820771994214E-02]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  8.78
-   Elapsed time (s)                    :  5.13
+   CPU time (s)                        :  8.90
+   Elapsed time (s)                    :  5.31
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS: [Odd number of electrons, no closed shell system, 
  Do not call check_communications in the linear scaling version!, 
@@ -577,7 +553,7 @@
             density optimization not converged]
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-11-05 13:00:56.496
+     2013-11-05 14:36:16.345
    Process Id:
      0
  Memory Consumption Report:

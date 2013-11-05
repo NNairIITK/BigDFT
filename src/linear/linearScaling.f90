@@ -186,8 +186,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
      vgrad_old=ebs-cdft%charge
 
-     if (iproc==0) write(*,'(a,4(ES16.6e3,2x))') 'N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',&
-          cdft%charge,ebs,vgrad_old,cdft%lag_mult*vgrad_old
+     !!if (iproc==0) write(*,'(a,4(ES16.6e3,2x))') 'N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',&
+     !!     cdft%charge,ebs,vgrad_old,cdft%lag_mult*vgrad_old
+     if (iproc==0) then
+         call yaml_open_map('CDFT infos')
+         call yaml_map('N',cdft%charge,fmt='(es16.6e3)')
+         call yaml_map('Tr(KW)',ebs,fmt='(es16.6e3)')
+         call yaml_map('Tr(KW)-N',vgrad_old,fmt='(es16.6e3)')
+         call yaml_map('V*(Tr(KW)-N)',cdft%lag_mult*vgrad_old,fmt='(es16.6e3)')
+         call yaml_close_map()
+     end if
      vgrad_old=abs(vgrad_old)
      valpha=0.5_gp
 

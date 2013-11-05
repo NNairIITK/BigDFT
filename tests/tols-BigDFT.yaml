@@ -319,11 +319,11 @@ experimentalmode:
  Ekin: 1.3e-07
  Enl: 4.9e-08
  Omega: 9.2e-08
- EH: 4.8e-07
- Epot: 4.7e-07
- EXC: 9.1e-08
+ EH: 5.0e-07
+ Epot: 4.9e-07
+ EXC: 9.7e-08
  EvXC: 1.3e-07
- energy: 4.9e-09
+ energy: 5.2e-09
  multiplicator for the confinement: 7.5e-09
  fnrm2: 1.1e-09
  maxval: 1.6e-09

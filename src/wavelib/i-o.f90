@@ -1163,17 +1163,18 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 
   !write some output on the screen
   !print matrix elements, to be moved at the moment of identification of the transformation
-  call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
-  call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
-  call yaml_map('Translation vector',da,fmt='(1pg20.12)')
-  call yaml_open_sequence('Rotation matrix elements')
-  call yaml_sequence(trim(yaml_toa((/&
-       cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
-  call yaml_sequence(trim(yaml_toa((/&
-       ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
-  call yaml_sequence(trim(yaml_toa((/&
-       ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
-  call yaml_close_sequence()
+  !!call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
+  !!call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
+  !!call yaml_map('Translation vector',da,fmt='(1pg20.12)')
+  !!call yaml_open_sequence('Rotation matrix elements')
+  !!call yaml_sequence(trim(yaml_toa((/&
+  !!     cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
+  !!call yaml_sequence(trim(yaml_toa((/&
+  !!     ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
+  !!call yaml_sequence(trim(yaml_toa((/&
+  !!     ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
+  !!call yaml_close_sequence()
+
   !determine ideal sequence for rotation
   !pay attention to what happens if two values are identical  
   !from where xp should be determined
@@ -1191,7 +1192,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   iyp=maxloc(rrow,1)
 
   !!print the suggested order
-  call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
+  !!call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
 
   !we should define the transformation order
   !traditional case, for testing
