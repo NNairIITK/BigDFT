@@ -80,8 +80,8 @@
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Suggested order for the transformation:  [  1,  2,  3 ]
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
  Translation vector: [ 5.569779557710E-03,  7.754886907264E-03,  1.042892940790E-02]
  Rotation matrix elements:
@@ -139,7 +139,7 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  
  Check correctness of forces
- Difference of total energies =  1.841450407066958E-003
- Integral force*displacement =   1.873433669012359E-003
- Difference =  -3.198326194540088E-005
+ Difference of total energies =  1.841450407074063E-003
+ Integral force*displacement =   1.873433669012451E-003
+ Difference =  -3.198326193838805E-005
  

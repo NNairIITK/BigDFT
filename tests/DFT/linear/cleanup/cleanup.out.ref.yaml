@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-04 15:55:19.310
+ Timestamp of this run                 : 2013-11-05 12:49:55.675
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -500,10 +500,9 @@
  iter:  4, delta:  1.40E-06, energy: -1.69493388591494103E+01, D:  4.008E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
-   -  {iter:  1, target function: TRACE, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIAG,  #WARNING: density optimization not converged
-   iter low:  1,       delta out:  3.317E-06, energy: -1.69493388591494103E+01, 
-          D: -1.695E+01}
+   -  {iter:  1, target function: TRACE,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter low:  1, delta out:  3.317E-06, energy: -1.69493388591494103E+01, D: -1.695E+01}
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
    Kernel update:
@@ -626,10 +625,9 @@
  iter:  5, delta:  8.82E-08, energy: -1.69482243711015244E+01, D:  1.240E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
-   -  {iter:  2, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIAG,  #WARNING: density optimization not converged
-  iter high:  2,       delta out:  3.282E-07, energy: -1.69482243711015244E+01, 
-          D:  1.114E-03}
+   -  {iter:  2, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter high:  2, delta out:  3.282E-07, energy: -1.69482243711015244E+01, D:  1.114E-03}
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -737,23 +735,22 @@
  {e: -3.704785182387E-01, f:  2.0000},  # 00003
  {e: -2.834532209835E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  5.62E-09, energy: -1.69482356915338137E+01, D:  4.423E-08}]
+ iter:  4, delta:  5.62E-09, energy: -1.69482356915338173E+01, D:  4.423E-08}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  5.62E-09, energy: -1.69482356915338137E+01, D:  4.423E-08}]}
+ iter:  5, delta:  5.62E-09, energy: -1.69482356915338173E+01, D:  4.423E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
-   -  {iter:  3, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIAG,  #WARNING: density optimization not converged
-  iter high:  3,       delta out:  2.083E-08, energy: -1.69482356915338137E+01, 
-          D: -1.132E-05}
+   -  {iter:  3, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter high:  3, delta out:  2.083E-08, energy: -1.69482356915338173E+01, D: -1.132E-05}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  3, 
  Energies: {Ekin:  1.35000885136E+01, Epot: -1.79605768775E+01, Enl:  1.45748824521E+00, 
               EH:  2.08166486691E+01,  EXC: -4.01549257366E+00, EvXC: -5.26288374719E+00}, 
        iter high:  3,            delta out:  2.083E-08, 
-          energy: -1.69482356915338137E+01,                       D:  0.000E+00,  #FINAL
+          energy: -1.69482356915338173E+01,                       D:  0.000E+00,  #FINAL
  }
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
@@ -786,8 +783,8 @@
  -  {H: [-4.308671313771E-02, -1.557603068651E-03,  3.162292091573E-04]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.41
-   Elapsed time (s)                    :  3.26
+   CPU time (s)                        :  6.44
+   Elapsed time (s)                    :  3.36
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!

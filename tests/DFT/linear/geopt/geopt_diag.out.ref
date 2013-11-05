@@ -1,7 +1,7 @@
  <BigDFT> log of the run will be written in logfile: ./log-diag.yaml
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 7.524436128671E-02,  5.428594560514E-02,  4.945801521739E-02]
+ Translation vector: [ 7.524436128671E-02,  5.428594560515E-02,  4.945801521741E-02]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
@@ -9,15 +9,7 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 7.524436128671E-02,  5.428594560514E-02,  4.945801521739E-02]
- Rotation matrix elements:
- -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
- -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
- Suggested order for the transformation:  [  1,  2,  3 ]
- Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
- Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 7.524436128671E-02,  5.428594560514E-02,  4.945801521739E-02]
+ Translation vector: [ 7.524436128671E-02,  5.428594560515E-02,  4.945801521741E-02]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
@@ -33,7 +25,7 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-1.664589575578E-02,  5.211567657041E-03,  5.138021144699E-03]
+ Translation vector: [ 7.524436128671E-02,  5.428594560515E-02,  4.945801521741E-02]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
@@ -41,7 +33,7 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-1.664589575578E-02,  5.211567657041E-03,  5.138021144699E-03]
+ Translation vector: [-1.664589575579E-02,  5.211567657005E-03,  5.138021144662E-03]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
@@ -49,7 +41,7 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-3.071917985409E-03, -8.108807268812E-04, -7.069417086267E-04]
+ Translation vector: [-1.664589575579E-02,  5.211567657005E-03,  5.138021144662E-03]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
@@ -57,7 +49,7 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-1.664589575578E-02,  5.211567657041E-03,  5.138021144699E-03]
+ Translation vector: [-3.071917985416E-03, -8.108807268759E-04, -7.069417086214E-04]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
@@ -65,7 +57,7 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-3.179759311596E-03,  2.357587571220E-03,  2.253245741986E-03]
+ Translation vector: [-1.664589575579E-02,  5.211567657005E-03,  5.138021144662E-03]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
@@ -73,7 +65,7 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-3.179759311596E-03,  2.357587571220E-03,  2.253245741986E-03]
+ Translation vector: [-3.179759311571E-03,  2.357587571250E-03,  2.253245742015E-03]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
@@ -81,7 +73,7 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [-3.179759311596E-03,  2.357587571220E-03,  2.253245741986E-03]
+ Translation vector: [-3.179759311571E-03,  2.357587571250E-03,  2.253245742015E-03]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
@@ -89,7 +81,15 @@
  Suggested order for the transformation:  [  1,  2,  3 ]
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
- Translation vector: [ 9.729128427018E-04,  7.029420449509E-04,  6.404489184693E-04]
+ Translation vector: [-3.179759311571E-03,  2.357587571250E-03,  2.253245742015E-03]
+ Rotation matrix elements:
+ -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  1.00000000000,  0.00000000000 ]
+ -  [  0.00000000000,  0.00000000000,  1.00000000000 ]
+ Suggested order for the transformation:  [  1,  2,  3 ]
+ Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
+ Rotation angle (deg)                  :  0.00000000000
+ Translation vector: [ 9.729128427054E-04,  7.029420449403E-04,  6.404489184604E-04]
  Rotation matrix elements:
  -  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  -  [  0.00000000000,  1.00000000000,  0.00000000000 ]

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-04 16:12:03.516
+ Timestamp of this run                 : 2013-11-05 13:02:15.763
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -488,7 +488,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  0.76833864326245660
+       energydiff                      :  0.76833864326244949
        Hamiltonian update: {
  Energies: {Ekin:  8.86224176901E+00, Epot: -1.16104779022E+01, Enl:  1.01030136569E+00, 
               EH:  1.81660979098E+01,  EXC: -3.52915249291E+00, EvXC: -4.62070925014E+00}, 
@@ -501,7 +501,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  3.98E-07, energy: -1.62613985480105860E+01, D:  7.683E-01}]
+ iter:  2, delta:  3.98E-07, energy: -1.62613985480105931E+01, D:  7.683E-01}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  7.74E-06
@@ -515,7 +515,7 @@
           alpha:  1.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -3.01809665430852192E-003
+       energydiff                      : -3.01809665430141649E-003
        Hamiltonian update: {
  Energies: {Ekin:  8.86224176901E+00, Epot: -1.14582796929E+01, Enl:  1.01030136569E+00, 
               EH:  1.83590997248E+01,  EXC: -3.56094104961E+00, EvXC: -4.66268668124E+00}, 
@@ -615,10 +615,9 @@
  iter:  7, delta:  6.51E-08, energy: -1.62711843988035092E+01, D: -1.354E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
-   -  {iter:  1, target function: TRACE, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  1,       delta out:  6.581E-06, energy: -1.62711843988035092E+01, 
-          D: -1.627E+01}
+   -  {iter:  1, target function: TRACE,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter low:  1, delta out:  6.581E-06, energy: -1.62711843988035092E+01, D: -1.627E+01}
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -699,7 +698,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  0.85296994967785267
+       energydiff                      :  0.85296994967784912
        Hamiltonian update: {
  Energies: {Ekin:  1.40720620545E+01, Epot: -1.20819140552E+01, Enl:  1.56709133810E+00, 
               EH:  2.48120266161E+01,  EXC: -4.72349448546E+00, EvXC: -6.19861409954E+00}, 
@@ -712,7 +711,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  8.84E-07, energy: -1.60795553317915854E+01, D:  8.530E-01}]
+ iter:  2, delta:  8.84E-07, energy: -1.60795553317915889E+01, D:  8.530E-01}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  1.84E-06
@@ -726,7 +725,7 @@
           alpha:  1.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -2.26277932213534427E-002
+       energydiff                      : -2.26277932213569954E-002
        Hamiltonian update: {
  Energies: {Ekin:  1.40720620545E+01, Epot: -1.25877489844E+01, Enl:  1.56709133810E+00, 
               EH:  2.41580009458E+01,  EXC: -4.62435850513E+00, EvXC: -6.06768891898E+00}, 
@@ -739,7 +738,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  3.21E-07, energy: -1.61021831250129388E+01, D: -2.263E-02}]
+ iter:  3, delta:  3.21E-07, energy: -1.61021831250129459E+01, D: -2.263E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  1.84E-06
@@ -753,7 +752,7 @@
           alpha:  1.100E-01}
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -2.40280870606852659E-002
+       energydiff                      : -2.40280870606781605E-002
        Hamiltonian update: {
  Energies: {Ekin:  1.40720620545E+01, Epot: -1.27789954243E+01, Enl:  1.56709133810E+00, 
               EH:  2.39146918426E+01,  EXC: -4.58842726455E+00, EvXC: -6.02023898941E+00}, 
@@ -807,7 +806,7 @@
           alpha:  1.331E-01}
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -1.29639021017773359E-002
+       energydiff                      : -1.29639021017808886E-002
        Hamiltonian update: {
  Energies: {Ekin:  1.40720620545E+01, Epot: -1.31181813115E+01, Enl:  1.56709133810E+00, 
               EH:  2.34887230659E+01,  EXC: -4.52670821193E+00, EvXC: -5.93873726552E+00}, 
@@ -820,16 +819,15 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  2.27E-07, energy: -1.61570638058126548E+01, D: -1.296E-02}]
+ iter:  6, delta:  2.27E-07, energy: -1.61570638058126583E+01, D: -1.296E-02}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  2.27E-07, energy: -1.61570638058126548E+01, D: -1.296E-02}]}
+ iter:  7, delta:  2.27E-07, energy: -1.61570638058126583E+01, D: -1.296E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
-   -  {iter:  2, target function: TRACE, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  2,       delta out:  7.249E-06, energy: -1.61570638058126548E+01, 
-          D:  1.141E-01}
+   -  {iter:  2, target function: TRACE,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter low:  2, delta out:  7.249E-06, energy: -1.61570638058126583E+01, D:  1.141E-01}
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
    Kernel update:
@@ -849,7 +847,7 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.40720620545E+01, Epot: -1.32576175914E+01, Enl:  1.56709133810E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  6.05E-01, Omega: -1.61662885598053201E+01, D:  6.883E-02, 
+ iter:  1, fnrm:  6.05E-01, Omega: -1.61662885598053165E+01, D:  6.883E-02, 
  Optimization: {algorithm: SD, mean alpha:  8.785E-01, max alpha:  8.785E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -858,12 +856,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.83801440392E+00, Epot: -8.83391347939E+00, Enl:  8.31069919120E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  4.78E-01, Omega: -1.69394984652427461E+01, D: -7.732E-01, 
+ iter:  2, fnrm:  4.78E-01, Omega: -1.69394984652427425E+01, D: -7.732E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.83801440392E+00, Epot: -8.83391347939E+00, Enl:  8.31069919120E-01}, 
- iter:  2, fnrm:  4.78E-01, Omega: -1.69394984652427461E+01, D: -7.732E-01}
+ iter:  2, fnrm:  4.78E-01, Omega: -1.69394984652427425E+01, D: -7.732E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -891,7 +889,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  7.37E-06, energy: -1.69439112582293987E+01, D: -7.868E-01}]
+ iter:  1, delta:  7.37E-06, energy: -1.69439112582293951E+01, D: -7.868E-01}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  4.78E-05
@@ -905,7 +903,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  0.66801317121760206
+       energydiff                      :  0.66801317121759851
        Hamiltonian update: {
  Energies: {Ekin:  9.83801440392E+00, Epot: -1.26338915742E+01, Enl:  8.31069919120E-01, 
               EH:  1.80324897624E+01,  EXC: -3.51416930359E+00, EvXC: -4.60089044217E+00}, 
@@ -1121,7 +1119,7 @@
           alpha:  1.949E-01}
          Coefficients available        :  Yes
        alpha                           :  0.21435888100000011
-       energydiff                      : -1.12368710148302853E-003
+       energydiff                      : -1.12368710149013395E-003
        Hamiltonian update: {
  Energies: {Ekin:  9.83801440392E+00, Epot: -1.17246352163E+01, Enl:  8.31069919120E-01, 
               EH:  1.91452451726E+01,  EXC: -3.69446479588E+00, EvXC: -4.83888363342E+00}, 
@@ -1134,16 +1132,15 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  10, delta:  6.83E-08, energy: -1.63324043605441283E+01, D: -1.124E-03}]
+ iter:  10, delta:  6.83E-08, energy: -1.63324043605441354E+01, D: -1.124E-03}]
    -  &final_kernel003  { #------------------------------------------------------- iter: 11
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  11, delta:  6.83E-08, energy: -1.63324043605441283E+01, D: -1.124E-03}]}
+ iter:  11, delta:  6.83E-08, energy: -1.63324043605441354E+01, D: -1.124E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
-   -  {iter:  3, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  3,       delta out:  6.670E-06, energy: -1.63324043605441283E+01, 
-          D: -1.753E-01}
+   -  {iter:  3, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  3, delta out:  6.670E-06, energy: -1.63324043605441354E+01, D: -1.753E-01}
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1441,10 +1438,9 @@
  iter:  11, delta:  2.39E-08, energy: -1.65386797468915674E+01, D: -1.103E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
-   -  {iter:  4, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  4,       delta out:  2.694E-06, energy: -1.65386797468915674E+01, 
-          D: -2.063E-01}
+   -  {iter:  4, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  4, delta out:  2.694E-06, energy: -1.65386797468915674E+01, D: -2.063E-01}
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1534,7 +1530,7 @@
           alpha:  1.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -7.16700985492479958E-006
+       energydiff                      : -7.16700985137208590E-006
        Hamiltonian update: {
  Energies: {Ekin:  1.11904242174E+01, Epot: -1.27212859576E+01, Enl:  1.34284342574E+00, 
               EH:  2.04427599476E+01,  EXC: -3.95093026366E+00, EvXC: -5.17814304646E+00}, 
@@ -1547,7 +1543,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  6.75E-09, energy: -1.65482886559038640E+01, D: -7.167E-06}]
+ iter:  3, delta:  6.75E-09, energy: -1.65482886559038604E+01, D: -7.167E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  9.58E-07
@@ -1561,7 +1557,7 @@
           alpha:  1.100E-01}
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -8.64799391919746085E-006
+       energydiff                      : -8.64799392275017453E-006
        Hamiltonian update: {
  Energies: {Ekin:  1.11904242174E+01, Epot: -1.27183430613E+01, Enl:  1.34284342574E+00, 
               EH:  2.04463910509E+01,  EXC: -3.95151277864E+00, EvXC: -5.17891250553E+00}, 
@@ -1642,7 +1638,7 @@
           alpha:  1.464E-01}
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -1.58156641560935896E-006
+       energydiff                      : -1.58156641916207263E-006
        Hamiltonian update: {
  Energies: {Ekin:  1.11904242174E+01, Epot: -1.27120817833E+01, Enl:  1.34284342574E+00, 
               EH:  2.04541212583E+01,  EXC: -3.95275311903E+00, EvXC: -5.18055090604E+00}, 
@@ -1655,7 +1651,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  2.95E-09, energy: -1.65483071782413269E+01, D: -1.582E-06}]
+ iter:  7, delta:  2.95E-09, energy: -1.65483071782413305E+01, D: -1.582E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  9.58E-07
@@ -1669,7 +1665,7 @@
           alpha:  1.611E-01}
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
-       energydiff                      : -7.57264469797291895E-007
+       energydiff                      : -7.57264466244578216E-007
        Hamiltonian update: {
  Energies: {Ekin:  1.11904242174E+01, Epot: -1.27107898655E+01, Enl:  1.34284342574E+00, 
               EH:  2.04557173238E+01,  EXC: -3.95300921656E+00, EvXC: -5.18088919198E+00}, 
@@ -1742,10 +1738,9 @@
  iter:  11, delta:  1.02E-09, energy: -1.65483083835664964E+01, D: -1.228E-07}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
-   -  {iter:  5, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  5,       delta out:  1.511E-07, energy: -1.65483083835664964E+01, 
-          D: -9.629E-03}
+   -  {iter:  5, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  5, delta out:  1.511E-07, energy: -1.65483083835664964E+01, D: -9.629E-03}
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1835,7 +1830,7 @@
           alpha:  1.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -1.11585397633007233E-006
+       energydiff                      : -1.11585397277735865E-006
        Hamiltonian update: {
  Energies: {Ekin:  1.12029321084E+01, Epot: -1.27413330989E+01, Enl:  1.31135672996E+00, 
               EH:  2.03961848785E+01,  EXC: -3.94346867177E+00, EvXC: -5.16834732974E+00}, 
@@ -1848,7 +1843,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.76E-09, energy: -1.65508008547546019E+01, D: -1.116E-06}]
+ iter:  3, delta:  2.76E-09, energy: -1.65508008547545984E+01, D: -1.116E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  2.45E-07
@@ -1875,7 +1870,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  2.40E-09, energy: -1.65508023392898949E+01, D: -1.485E-06}]
+ iter:  4, delta:  2.40E-09, energy: -1.65508023392898913E+01, D: -1.485E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  2.45E-07
@@ -1889,7 +1884,7 @@
           alpha:  1.210E-01}
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -9.80078123546945790E-007
+       energydiff                      : -9.80078130652373147E-007
        Hamiltonian update: {
  Energies: {Ekin:  1.12029321084E+01, Epot: -1.27388302769E+01, Enl:  1.31135672996E+00, 
               EH:  2.03993099226E+01,  EXC: -3.94396639785E+00, EvXC: -5.16900468340E+00}, 
@@ -1902,7 +1897,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  2.05E-09, energy: -1.65508033193680184E+01, D: -9.801E-07}]
+ iter:  5, delta:  2.05E-09, energy: -1.65508033193680220E+01, D: -9.801E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  2.45E-07
@@ -1916,7 +1911,7 @@
           alpha:  1.331E-01}
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -6.20938102713353146E-007
+       energydiff                      : -6.20938099160639467E-007
        Hamiltonian update: {
  Energies: {Ekin:  1.12029321084E+01, Epot: -1.27378270323E+01, Enl:  1.31135672996E+00, 
               EH:  2.04005649059E+01,  EXC: -3.94416601494E+00, EvXC: -5.16926831285E+00}, 
@@ -1997,7 +1992,7 @@
           alpha:  1.772E-01}
          Coefficients available        :  Yes
        alpha                           :  0.19487171000000009
-       energydiff                      : -1.26858772375726403E-007
+       energydiff                      : -1.26858779481153761E-007
        Hamiltonian update: {
  Energies: {Ekin:  1.12029321084E+01, Epot: -1.27357609568E+01, Enl:  1.31135672996E+00, 
               EH:  2.04031573444E+01,  EXC: -3.94457738415E+00, EvXC: -5.16981157076E+00}, 
@@ -2010,7 +2005,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  8.41E-10, energy: -1.65508046677656431E+01, D: -1.269E-07}]
+ iter:  9, delta:  8.41E-10, energy: -1.65508046677656502E+01, D: -1.269E-07}]
    -  #------------------------------------------------------------------- kernel iter: 10
        Kernel update:
          max dev from unity            :  2.45E-07
@@ -2024,7 +2019,7 @@
           alpha:  1.949E-01}
          Coefficients available        :  Yes
        alpha                           :  0.21435888100000011
-       energydiff                      : -7.05295946090700454E-008
+       energydiff                      : -7.05295875036426878E-008
        Hamiltonian update: {
  Energies: {Ekin:  1.12029321084E+01, Epot: -1.27353439768E+01, Enl:  1.31135672996E+00, 
               EH:  2.04036829995E+01,  EXC: -3.94466048044E+00, EvXC: -5.16992129976E+00}, 
@@ -2043,10 +2038,9 @@
  iter:  11, delta:  6.34E-10, energy: -1.65508047382952377E+01, D: -7.053E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc006
-   -  {iter:  6, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  6,       delta out:  5.341E-08, energy: -1.65508047382952377E+01, 
-          D: -2.496E-03}
+   -  {iter:  6, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  6, delta out:  5.341E-08, energy: -1.65508047382952377E+01, D: -2.496E-03}
     #========================================================= support function optimization
  - support function optimization: &it_supfun007
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2244,7 +2238,7 @@
           alpha:  1.464E-01}
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -1.24006643176244324E-007
+       energydiff                      : -1.24006639623530646E-007
        Hamiltonian update: {
  Energies: {Ekin:  1.12154724496E+01, Epot: -1.27652035822E+01, Enl:  1.30504373043E+00, 
               EH:  2.03749453938E+01,  EXC: -3.94048865517E+00, EvXC: -5.16445577305E+00}, 
@@ -2257,7 +2251,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  7.39E-10, energy: -1.65517766045080243E+01, D: -1.240E-07}]
+ iter:  7, delta:  7.39E-10, energy: -1.65517766045080208E+01, D: -1.240E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  5.91E-08
@@ -2271,7 +2265,7 @@
           alpha:  1.611E-01}
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
-       energydiff                      : -7.83959137606871082E-008
+       energydiff                      : -7.83959173134007870E-008
        Hamiltonian update: {
  Energies: {Ekin:  1.12154724496E+01, Epot: -1.27648381961E+01, Enl:  1.30504373043E+00, 
               EH:  2.03754060325E+01,  EXC: -3.94056154839E+00, EvXC: -5.16455203056E+00}, 
@@ -2325,7 +2319,7 @@
           alpha:  1.949E-01}
          Coefficients available        :  Yes
        alpha                           :  0.21435888100000011
-       energydiff                      : -2.86093246870677831E-008
+       energydiff                      : -2.86093282397814619E-008
        Hamiltonian update: {
  Energies: {Ekin:  1.12154724496E+01, Epot: -1.27643121590E+01, Enl:  1.30504373043E+00, 
               EH:  2.03760713637E+01,  EXC: -3.94066655565E+00, EvXC: -5.16469068785E+00}, 
@@ -2338,16 +2332,15 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  10, delta:  3.73E-10, energy: -1.65517767596421734E+01, D: -2.861E-08}]
+ iter:  10, delta:  3.73E-10, energy: -1.65517767596421770E+01, D: -2.861E-08}]
    -  &final_kernel007  { #------------------------------------------------------- iter: 11
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  11, delta:  3.73E-10, energy: -1.65517767596421734E+01, D: -2.861E-08}]}
+ iter:  11, delta:  3.73E-10, energy: -1.65517767596421770E+01, D: -2.861E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc007
-   -  {iter:  7, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  7,       delta out:  4.383E-08, energy: -1.65517767596421734E+01, 
-          D: -9.720E-04}
+   -  {iter:  7, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  7, delta out:  4.383E-08, energy: -1.65517767596421770E+01, D: -9.720E-04}
     #========================================================= support function optimization
  - support function optimization: &it_supfun008
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2464,7 +2457,7 @@
           alpha:  1.100E-01}
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -2.01668875376981305E-007
+       energydiff                      : -2.01668871824267626E-007
        Hamiltonian update: {
  Energies: {Ekin:  1.12226089540E+01, Epot: -1.27869576101E+01, Enl:  1.30524161544E+00, 
               EH:  2.03571336645E+01,  EXC: -3.93802224973E+00, EvXC: -5.16122857972E+00}, 
@@ -2477,7 +2470,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  8.19E-10, energy: -1.65521888643279240E+01, D: -2.017E-07}]
+ iter:  4, delta:  8.19E-10, energy: -1.65521888643279205E+01, D: -2.017E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  6.05E-08
@@ -2491,7 +2484,7 @@
           alpha:  1.210E-01}
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -1.45278800545156628E-007
+       energydiff                      : -1.45278804097870307E-007
        Hamiltonian update: {
  Energies: {Ekin:  1.12226089540E+01, Epot: -1.27865532578E+01, Enl:  1.30524161544E+00, 
               EH:  2.03576425950E+01,  EXC: -3.93810293931E+00, EvXC: -5.16133513693E+00}, 
@@ -2645,10 +2638,9 @@
  iter:  11, delta:  2.81E-10, energy: -1.65521892736991454E+01, D: -1.801E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc008
-   -  {iter:  8, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  8,       delta out:  2.998E-08, energy: -1.65521892736991454E+01, 
-          D: -4.125E-04}
+   -  {iter:  8, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  8, delta out:  2.998E-08, energy: -1.65521892736991454E+01, D: -4.125E-04}
     #========================================================= support function optimization
  - support function optimization: &it_supfun009
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2765,7 +2757,7 @@
           alpha:  1.100E-01}
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -1.30869128867061590E-007
+       energydiff                      : -1.30869125314347912E-007
        Hamiltonian update: {
  Energies: {Ekin:  1.12250256825E+01, Epot: -1.27990872666E+01, Enl:  1.30622364595E+00, 
               EH:  2.03462292244E+01,  EXC: -3.93652731983E+00, EvXC: -5.15927371655E+00}, 
@@ -2778,7 +2770,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  6.44E-10, energy: -1.65523622580672090E+01, D: -1.309E-07}]
+ iter:  4, delta:  6.44E-10, energy: -1.65523622580672054E+01, D: -1.309E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  5.66E-08
@@ -2792,7 +2784,7 @@
           alpha:  1.210E-01}
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -9.59938830646933638E-008
+       energydiff                      : -9.59938937228344003E-008
        Hamiltonian update: {
  Energies: {Ekin:  1.12250256825E+01, Epot: -1.27987708051E+01, Enl:  1.30622364595E+00, 
               EH:  2.03466282016E+01,  EXC: -3.93659052690E+00, EvXC: -5.15935718530E+00}, 
@@ -2805,7 +2797,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  5.68E-10, energy: -1.65523623540610920E+01, D: -9.599E-08}]
+ iter:  5, delta:  5.68E-10, energy: -1.65523623540610991E+01, D: -9.599E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  5.66E-08
@@ -2819,7 +2811,7 @@
           alpha:  1.331E-01}
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -6.85232812713820749E-008
+       energydiff                      : -6.85232706132410385E-008
        Hamiltonian update: {
  Energies: {Ekin:  1.12250256825E+01, Epot: -1.27984927177E+01, Enl:  1.30622364595E+00, 
               EH:  2.03469793262E+01,  EXC: -3.93664608807E+00, EvXC: -5.15943055536E+00}, 
@@ -2832,7 +2824,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  4.93E-10, energy: -1.65523624225843733E+01, D: -6.852E-08}]
+ iter:  6, delta:  4.93E-10, energy: -1.65523624225843697E+01, D: -6.852E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 7
        Kernel update:
          max dev from unity            :  5.66E-08
@@ -2846,7 +2838,7 @@
           alpha:  1.464E-01}
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -4.75446135794754809E-008
+       energydiff                      : -4.75446242376165173E-008
        Hamiltonian update: {
  Energies: {Ekin:  1.12250256825E+01, Epot: -1.27982533443E+01, Enl:  1.30622364595E+00, 
               EH:  2.03472820836E+01,  EXC: -3.93669393188E+00, EvXC: -5.15949373266E+00}, 
@@ -2859,7 +2851,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  4.20E-10, energy: -1.65523624701289869E+01, D: -4.754E-08}]
+ iter:  7, delta:  4.20E-10, energy: -1.65523624701289940E+01, D: -4.754E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  5.66E-08
@@ -2873,7 +2865,7 @@
           alpha:  1.611E-01}
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
-       energydiff                      : -3.19951176663835213E-008
+       energydiff                      : -3.19951105609561637E-008
        Hamiltonian update: {
  Energies: {Ekin:  1.12250256825E+01, Epot: -1.27980517742E+01, Enl:  1.30622364595E+00, 
               EH:  2.03475375157E+01,  EXC: -3.93673423619E+00, EvXC: -5.15954695242E+00}, 
@@ -2946,10 +2938,9 @@
  iter:  11, delta:  2.33E-10, energy: -1.65523625359282356E+01, D: -1.300E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc009
-   -  {iter:  9, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  9,       delta out:  1.810E-08, energy: -1.65523625359282356E+01, 
-          D: -1.733E-04}
+   -  {iter:  9, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  9, delta out:  1.810E-08, energy: -1.65523625359282356E+01, D: -1.733E-04}
     #========================================================= support function optimization
  - support function optimization: &it_supfun010
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -3247,10 +3238,9 @@
  iter:  11, delta:  1.81E-10, energy: -1.65524317337597999E+01, D: -7.964E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc010
-   -  {iter:  10, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  10,       delta out:  1.068E-08, energy: -1.65524317337597999E+01, 
-          D: -6.920E-05}
+   -  {iter:  10, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  10, delta out:  1.068E-08, energy: -1.65524317337597999E+01, D: -6.920E-05}
     #========================================================= support function optimization
  - support function optimization: &it_supfun011
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -3421,7 +3411,7 @@
           alpha:  1.331E-01}
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -2.05188754875962331E-008
+       energydiff                      : -2.05188790403099119E-008
        Hamiltonian update: {
  Energies: {Ekin:  1.12240450487E+01, Epot: -1.28079370105E+01, Enl:  1.30763352444E+00, 
               EH:  2.03355875230E+01,  EXC: -3.93505214893E+00, EvXC: -5.15734386295E+00}, 
@@ -3434,7 +3424,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  2.67E-10, energy: -1.65524580031307167E+01, D: -2.052E-08}]
+ iter:  6, delta:  2.67E-10, energy: -1.65524580031307202E+01, D: -2.052E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 7
        Kernel update:
          max dev from unity            :  4.64E-08
@@ -3448,7 +3438,7 @@
           alpha:  1.464E-01}
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -1.43899754334597674E-008
+       energydiff                      : -1.43899718807460886E-008
        Hamiltonian update: {
  Energies: {Ekin:  1.12240450487E+01, Epot: -1.28078088011E+01, Enl:  1.30763352444E+00, 
               EH:  2.03357497705E+01,  EXC: -3.93507779698E+00, EvXC: -5.15737773122E+00}, 
@@ -3502,7 +3492,7 @@
           alpha:  1.772E-01}
          Coefficients available        :  Yes
        alpha                           :  0.19487171000000009
-       energydiff                      : -6.49057341206571436E-009
+       energydiff                      : -6.49057696477939317E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12240450487E+01, Epot: -1.28076116609E+01, Enl:  1.30763352444E+00, 
               EH:  2.03359999642E+01,  EXC: -3.93511725867E+00, EvXC: -5.15742983795E+00}, 
@@ -3515,7 +3505,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  1.59E-10, energy: -1.65524580338244256E+01, D: -6.491E-09}]
+ iter:  9, delta:  1.59E-10, energy: -1.65524580338244292E+01, D: -6.491E-09}]
    -  #------------------------------------------------------------------- kernel iter: 10
        Kernel update:
          max dev from unity            :  4.64E-08
@@ -3529,7 +3519,7 @@
           alpha:  1.949E-01}
          Coefficients available        :  Yes
        alpha                           :  0.21435888100000011
-       energydiff                      : -4.14990353192479233E-009
+       energydiff                      : -4.14989287378375593E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12240450487E+01, Epot: -1.28075400536E+01, Enl:  1.30763352444E+00, 
               EH:  2.03360911581E+01,  EXC: -3.93513160285E+00, EvXC: -5.15744877749E+00}, 
@@ -3542,16 +3532,15 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  10, delta:  1.29E-10, energy: -1.65524580379743291E+01, D: -4.150E-09}]
+ iter:  10, delta:  1.29E-10, energy: -1.65524580379743220E+01, D: -4.150E-09}]
    -  &final_kernel011  { #------------------------------------------------------- iter: 11
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  11, delta:  1.29E-10, energy: -1.65524580379743291E+01, D: -4.150E-09}]}
+ iter:  11, delta:  1.29E-10, energy: -1.65524580379743220E+01, D: -4.150E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc011
-   -  {iter:  11, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  11,       delta out:  6.441E-09, energy: -1.65524580379743291E+01, 
-          D: -2.630E-05}
+   -  {iter:  11, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  11, delta out:  6.441E-09, energy: -1.65524580379743220E+01, D: -2.630E-05}
     #========================================================= support function optimization
  - support function optimization: &it_supfun012
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -3695,7 +3684,7 @@
           alpha:  1.210E-01}
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -8.54100790093070827E-009
+       energydiff                      : -8.54100079550335067E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12231610890E+01, Epot: -1.28088866326E+01, Enl:  1.30797964647E+00, 
               EH:  2.03336909788E+01,  EXC: -3.93478343064E+00, EvXC: -5.15699182296E+00}, 
@@ -3708,7 +3697,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  1.68E-10, energy: -1.65524662134872038E+01, D: -8.541E-09}]
+ iter:  5, delta:  1.68E-10, energy: -1.65524662134871967E+01, D: -8.541E-09}]
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  3.48E-08
@@ -3722,7 +3711,7 @@
           alpha:  1.331E-01}
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -6.16502759953618806E-009
+       energydiff                      : -6.16503470496354566E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12231610890E+01, Epot: -1.28088053775E+01, Enl:  1.30797964647E+00, 
               EH:  2.03337935805E+01,  EXC: -3.93479968087E+00, EvXC: -5.15701328226E+00}, 
@@ -3803,7 +3792,7 @@
           alpha:  1.772E-01}
          Coefficients available        :  Yes
        alpha                           :  0.19487171000000009
-       energydiff                      : -2.01806926725112135E-009
+       energydiff                      : -2.01807281996480015E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12231610890E+01, Epot: -1.28086283655E+01, Enl:  1.30797964647E+00, 
               EH:  2.03340178638E+01,  EXC: -3.93483510737E+00, EvXC: -5.15706006226E+00}, 
@@ -3816,23 +3805,22 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  8.77E-11, energy: -1.65524662290162929E+01, D: -2.018E-09}]
+ iter:  9, delta:  8.77E-11, energy: -1.65524662290162965E+01, D: -2.018E-09}]
    -  &final_kernel012  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  8.77E-11, energy: -1.65524662290162929E+01, D: -2.018E-09}]}
+ iter:  9, delta:  8.77E-11, energy: -1.65524662290162965E+01, D: -2.018E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc012
-   -  {iter:  12, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  12,       delta out:  3.247E-09, energy: -1.65524662290162929E+01, 
-          D: -8.191E-06}
+   -  {iter:  12, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  12, delta out:  3.247E-09, energy: -1.65524662290162965E+01, D: -8.191E-06}
     #========================================================= support function optimization
  - support function optimization: &it_supfun013
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.12231610890E+01, Epot: -1.28085896053E+01, Enl:  1.30797964647E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  1.68E-03, Omega: -1.65524662289052671E+01, D: -8.191E-06, 
+ iter:  1, fnrm:  1.68E-03, Omega: -1.65524662289052635E+01, D: -8.191E-06, 
  Optimization: {algorithm: SD, mean alpha:  4.538E-01, max alpha:  4.538E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -3841,12 +3829,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.12225372497E+01, Epot: -1.28081586445E+01, Enl:  1.30818434871E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  1.14E-03, Omega: -1.65524693273856300E+01, D: -3.098E-06, 
+ iter:  2, fnrm:  1.14E-03, Omega: -1.65524693273856265E+01, D: -3.098E-06, 
  exit criterion: net number of iterations}
    -  &final_supfun013  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  1.12225372497E+01, Epot: -1.28081586445E+01, Enl:  1.30818434871E+00}, 
- iter:  2, fnrm:  1.14E-03, Omega: -1.65524693273856300E+01, D: -3.098E-06}
+ iter:  2, fnrm:  1.14E-03, Omega: -1.65524693273856265E+01, D: -3.098E-06}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel013
@@ -3874,7 +3862,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.93E-09, energy: -1.65524693314466376E+01, D: -3.102E-06}]
+ iter:  1, delta:  1.93E-09, energy: -1.65524693314466340E+01, D: -3.102E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  2.70E-08
@@ -3888,7 +3876,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  9.13738418262255436E-009
+       energydiff                      :  9.13738062990887556E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12225372497E+01, Epot: -1.28094829565E+01, Enl:  1.30818434871E+00, 
               EH:  2.03324018280E+01,  EXC: -3.93459431147E+00, EvXC: -5.15674343683E+00}, 
@@ -3942,7 +3930,7 @@
           alpha:  1.100E-01}
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -3.96576282923888357E-009
+       energydiff                      : -3.96576638195256237E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12225372497E+01, Epot: -1.28092221981E+01, Enl:  1.30818434871E+00, 
               EH:  2.03327290160E+01,  EXC: -3.93464639522E+00, EvXC: -5.15681222347E+00}, 
@@ -3955,7 +3943,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.13E-10, energy: -1.65524693294967946E+01, D: -3.966E-09}]
+ iter:  4, delta:  1.13E-10, energy: -1.65524693294967982E+01, D: -3.966E-09}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  2.70E-08
@@ -3969,7 +3957,7 @@
           alpha:  1.210E-01}
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -2.92072854790603742E-009
+       energydiff                      : -2.92072499519235862E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12225372497E+01, Epot: -1.28091678096E+01, Enl:  1.30818434871E+00, 
               EH:  2.03327975094E+01,  EXC: -3.93465726725E+00, EvXC: -5.15682658124E+00}, 
@@ -3988,10 +3976,9 @@
  iter:  5, delta:  9.91E-11, energy: -1.65524693324175232E+01, D: -2.921E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc013
-   -  {iter:  13, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  13,       delta out:  1.811E-09, energy: -1.65524693324175232E+01, 
-          D: -3.103E-06}
+   -  {iter:  13, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  13, delta out:  1.811E-09, energy: -1.65524693324175232E+01, D: -3.103E-06}
     #========================================================= support function optimization
  - support function optimization: &it_supfun014
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -4154,10 +4141,9 @@
  iter:  5, delta:  8.97E-11, energy: -1.65524709399245999E+01, D: -1.119E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc014
-   -  {iter:  14, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  14,       delta out:  1.445E-09, energy: -1.65524709399245999E+01, 
-          D: -1.608E-06}
+   -  {iter:  14, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  14, delta out:  1.445E-09, energy: -1.65524709399245999E+01, D: -1.608E-06}
     #========================================================= support function optimization
  - support function optimization: &it_supfun015
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -4266,10 +4252,9 @@
  iter:  3, delta:  7.27E-11, energy: -1.65524717484207571E+01, D: -9.417E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc015
-   -  {iter:  15, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  15,       delta out:  1.055E-09, energy: -1.65524717484207571E+01, 
-          D: -8.085E-07}
+   -  {iter:  15, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  15, delta out:  1.055E-09, energy: -1.65524717484207571E+01, D: -8.085E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun016
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -4359,7 +4344,7 @@
           alpha:  2.200E-01}
          Coefficients available        :  Yes
        alpha                           :  0.24200000000000005
-       energydiff                      : -9.98433336008019978E-010
+       energydiff                      : -9.98429783294341178E-010
        Hamiltonian update: {
  Energies: {Ekin:  1.12214651251E+01, Epot: -1.28093977342E+01, Enl:  1.30851657538E+00, 
               EH:  2.03315858103E+01,  EXC: -3.93448633635E+00, EvXC: -5.15660248280E+00}, 
@@ -4372,16 +4357,15 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  9.09E-11, energy: -1.65524720900235991E+01, D: -9.984E-10}]
+ iter:  3, delta:  9.09E-11, energy: -1.65524720900235955E+01, D: -9.984E-10}]
    -  &final_kernel016  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  9.09E-11, energy: -1.65524720900235991E+01, D: -9.984E-10}]}
+ iter:  3, delta:  9.09E-11, energy: -1.65524720900235955E+01, D: -9.984E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc016
-   -  {iter:  16, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  16,       delta out:  6.061E-10, energy: -1.65524720900235991E+01, 
-          D: -3.416E-07}
+   -  {iter:  16, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  16, delta out:  6.061E-10, energy: -1.65524720900235955E+01, D: -3.416E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun017
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -4444,7 +4428,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -1.26516752629868279E-009
+       energydiff                      : -1.26517107901236159E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12212508662E+01, Epot: -1.28093726693E+01, Enl:  1.30853116198E+00, 
               EH:  2.03313838496E+01,  EXC: -3.93445349229E+00, EvXC: -5.15655921926E+00}, 
@@ -4457,7 +4441,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.14E-10, energy: -1.65524722703428182E+01, D: -1.265E-09}]
+ iter:  2, delta:  1.14E-10, energy: -1.65524722703428218E+01, D: -1.265E-09}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  1.86E-08
@@ -4471,7 +4455,7 @@
           alpha:  2.200E-01}
          Coefficients available        :  Yes
        alpha                           :  0.24200000000000005
-       energydiff                      : -7.01955826798439375E-010
+       energydiff                      : -7.01952274084760575E-010
        Hamiltonian update: {
  Energies: {Ekin:  1.12212508662E+01, Epot: -1.28093276323E+01, Enl:  1.30853116198E+00, 
               EH:  2.03314393372E+01,  EXC: -3.93446245417E+00, EvXC: -5.15657105871E+00}, 
@@ -4490,17 +4474,16 @@
  iter:  3, delta:  7.15E-11, energy: -1.65524722710447740E+01, D: -7.020E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc017
-   -  {iter:  17, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  17,       delta out:  3.945E-10, energy: -1.65524722710447740E+01, 
-          D: -1.810E-07}
+   -  {iter:  17, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  17, delta out:  3.945E-10, energy: -1.65524722710447740E+01, D: -1.810E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun018
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.12212508662E+01, Epot: -1.28093010401E+01, Enl:  1.30853116198E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.50E-04, Omega: -1.65524722709960166E+01, D: -1.811E-07, 
+ iter:  1, fnrm:  3.50E-04, Omega: -1.65524722709960095E+01, D: -1.811E-07, 
  Optimization: {algorithm: SD, mean alpha:  4.892E-01, max alpha:  4.892E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -4542,7 +4525,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.64E-10, energy: -1.65524724020446179E+01, D: -1.310E-07}]
+ iter:  1, delta:  3.64E-10, energy: -1.65524724020446143E+01, D: -1.310E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  2.00E-08
@@ -4556,7 +4539,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -1.56228807668412628E-009
+       energydiff                      : -1.56229518211148388E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12211059193E+01, Epot: -1.28093000168E+01, Enl:  1.30855658922E+00, 
               EH:  2.03313467908E+01,  EXC: -3.93444816423E+00, EvXC: -5.15655226093E+00}, 
@@ -4569,23 +4552,22 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  9.17E-11, energy: -1.65524724036069060E+01, D: -1.562E-09}]
+ iter:  2, delta:  9.17E-11, energy: -1.65524724036069095E+01, D: -1.562E-09}]
    -  &final_kernel018  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  9.17E-11, energy: -1.65524724036069060E+01, D: -1.562E-09}]}
+ iter:  2, delta:  9.17E-11, energy: -1.65524724036069095E+01, D: -1.562E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc018
-   -  {iter:  18, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  18,       delta out:  3.176E-10, energy: -1.65524724036069060E+01, 
-          D: -1.326E-07}
+   -  {iter:  18, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  18, delta out:  3.176E-10, energy: -1.65524724036069095E+01, D: -1.326E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun019
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.12211059193E+01, Epot: -1.28092724674E+01, Enl:  1.30855658922E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.99E-04, Omega: -1.65524724035321995E+01, D: -1.325E-07, 
+ iter:  1, fnrm:  2.99E-04, Omega: -1.65524724035322031E+01, D: -1.325E-07, 
  Optimization: {algorithm: SD, mean alpha:  5.382E-01, max alpha:  5.382E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -4594,12 +4576,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.12209940295E+01, Epot: -1.28091949350E+01, Enl:  1.30857043395E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  2.60E-04, Omega: -1.65524725012548188E+01, D: -9.772E-08, 
+ iter:  2, fnrm:  2.60E-04, Omega: -1.65524725012548224E+01, D: -9.772E-08, 
  exit criterion: net number of iterations}
    -  &final_supfun019  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  1.12209940295E+01, Epot: -1.28091949350E+01, Enl:  1.30857043395E+00}, 
- iter:  2, fnrm:  2.60E-04, Omega: -1.65524725012548188E+01, D: -9.772E-08}
+ iter:  2, fnrm:  2.60E-04, Omega: -1.65524725012548224E+01, D: -9.772E-08}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel019
@@ -4627,7 +4609,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.85E-10, energy: -1.65524725052225143E+01, D: -1.016E-07}]
+ iter:  1, delta:  2.85E-10, energy: -1.65524725052225179E+01, D: -1.016E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  2.17E-08
@@ -4641,7 +4623,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -2.27829488608222164E-009
+       energydiff                      : -2.27829133336854284E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12209940295E+01, Epot: -1.28092361947E+01, Enl:  1.30857043395E+00, 
               EH:  2.03313290937E+01,  EXC: -3.93444557818E+00, EvXC: -5.15654888861E+00}, 
@@ -4660,17 +4642,16 @@
  iter:  2, delta:  9.20E-11, energy: -1.65524725075008092E+01, D: -2.278E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc019
-   -  {iter:  19, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  19,       delta out:  2.362E-10, energy: -1.65524725075008092E+01, 
-          D: -1.039E-07}
+   -  {iter:  19, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  19, delta out:  2.362E-10, energy: -1.65524725075008092E+01, D: -1.039E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun020
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.12209940295E+01, Epot: -1.28092194721E+01, Enl:  1.30857043395E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.66E-04, Omega: -1.65524725074280532E+01, D: -1.039E-07, 
+ iter:  1, fnrm:  2.66E-04, Omega: -1.65524725074280497E+01, D: -1.039E-07, 
  Optimization: {algorithm: SD, mean alpha:  4.844E-01, max alpha:  4.844E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -4679,12 +4660,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.12209062188E+01, Epot: -1.28091552775E+01, Enl:  1.30857406628E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  2.39E-04, Omega: -1.65524725764162568E+01, D: -6.899E-08, 
+ iter:  2, fnrm:  2.39E-04, Omega: -1.65524725764162532E+01, D: -6.899E-08, 
  exit criterion: net number of iterations}
    -  &final_supfun020  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  1.12209062188E+01, Epot: -1.28091552775E+01, Enl:  1.30857406628E+00}, 
- iter:  2, fnrm:  2.39E-04, Omega: -1.65524725764162568E+01, D: -6.899E-08}
+ iter:  2, fnrm:  2.39E-04, Omega: -1.65524725764162532E+01, D: -6.899E-08}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel020
@@ -4712,7 +4693,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.95E-10, energy: -1.65524725805836255E+01, D: -7.308E-08}]
+ iter:  1, delta:  1.95E-10, energy: -1.65524725805836184E+01, D: -7.308E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.90E-08
@@ -4726,7 +4707,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -2.37639596889493987E-009
+       energydiff                      : -2.37640307432229747E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12209062188E+01, Epot: -1.28091803611E+01, Enl:  1.30857406628E+00, 
               EH:  2.03313179798E+01,  EXC: -3.93444348315E+00, EvXC: -5.15654614276E+00}, 
@@ -4745,10 +4726,9 @@
  iter:  2, delta:  8.70E-11, energy: -1.65524725829600214E+01, D: -2.376E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc020
-   -  {iter:  20, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  20,       delta out:  1.442E-10, energy: -1.65524725829600214E+01, 
-          D: -7.546E-08}
+   -  {iter:  20, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  20, delta out:  1.442E-10, energy: -1.65524725829600214E+01, D: -7.546E-08}
     #========================================================= support function optimization
  - support function optimization: &it_supfun021
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -4811,7 +4791,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -2.89278645482227148E-009
+       energydiff                      : -2.89278290210859268E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12208294012E+01, Epot: -1.28091336547E+01, Enl:  1.30857555862E+00, 
               EH:  2.03313113104E+01,  EXC: -3.93444209378E+00, EvXC: -5.15654432087E+00}, 
@@ -4824,16 +4804,15 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  9.28E-11, energy: -1.65524726571353753E+01, D: -2.893E-09}]
+ iter:  2, delta:  9.28E-11, energy: -1.65524726571353717E+01, D: -2.893E-09}]
    -  &final_kernel021  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  9.28E-11, energy: -1.65524726571353753E+01, D: -2.893E-09}]}
+ iter:  2, delta:  9.28E-11, energy: -1.65524726571353717E+01, D: -2.893E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc021
-   -  {iter:  21, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  21,       delta out:  1.191E-10, energy: -1.65524726571353753E+01, 
-          D: -7.418E-08}
+   -  {iter:  21, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  21, delta out:  1.191E-10, energy: -1.65524726571353717E+01, D: -7.418E-08}
     #========================================================= support function optimization
  - support function optimization: &it_supfun022
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -4896,7 +4875,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -3.61080765287624672E-009
+       energydiff                      : -3.61080410016256792E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12207607537E+01, Epot: -1.28090906702E+01, Enl:  1.30857400459E+00, 
               EH:  2.03313106121E+01,  EXC: -3.93444162750E+00, EvXC: -5.15654371196E+00}, 
@@ -4909,7 +4888,7 @@
  {e: -2.768703360749E-01, f:  2.0000},  # 00003
  {e: -2.768699999208E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.02E-10, energy: -1.65524727328215349E+01, D: -3.611E-09}]
+ iter:  2, delta:  1.02E-10, energy: -1.65524727328215313E+01, D: -3.611E-09}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  2.24E-08
@@ -4923,7 +4902,7 @@
           alpha:  2.200E-01}
          Coefficients available        :  Yes
        alpha                           :  0.24200000000000005
-       energydiff                      : -1.97816873992451292E-009
+       energydiff                      : -1.97817229263819172E-009
        Hamiltonian update: {
  Energies: {Ekin:  1.12207607537E+01, Epot: -1.28090970965E+01, Enl:  1.30857400459E+00, 
               EH:  2.03313005953E+01,  EXC: -3.93444027626E+00, EvXC: -5.15654193406E+00}, 
@@ -4942,10 +4921,9 @@
  iter:  3, delta:  7.89E-11, energy: -1.65524727347997036E+01, D: -1.978E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc022
-   -  {iter:  22, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-              kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  22,       delta out:  7.745E-11, energy: -1.65524727347997036E+01, 
-          D: -7.766E-08}
+   -  {iter:  22, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  22, delta out:  7.745E-11, energy: -1.65524727347997036E+01, D: -7.766E-08}
    Kernel update:
      max dev from unity                :  2.24E-08
      Hamiltonian application required  :  Yes
@@ -4966,7 +4944,7 @@
  Wavefunction written No.              :  2
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  4.120E-01,  2.066E-01 ]}
+ -  {Process:  0, Timing:  [  3.000E-01,  1.488E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -4995,8 +4973,8 @@
  -  {H: [-1.051125428106E-02,  0.000000000000E+00,  0.000000000000E+00]} # 0002
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  112.63
-   Elapsed time (s)                    :  57.10
+   CPU time (s)                        :  110.03
+   Elapsed time (s)                    :  55.62
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -5046,7 +5024,7 @@
  - density optimization not converged
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-11-04 16:12:02.474
+     2013-11-05 13:02:14.726
    Process Id:
      0
  Memory Consumption Report:

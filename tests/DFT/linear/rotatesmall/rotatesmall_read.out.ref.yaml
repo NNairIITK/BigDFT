@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-04 16:11:00.270
+ Timestamp of this run                 : 2013-11-05 13:01:12.734
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -419,7 +419,7 @@
      Molecule was rotated              :  7
      Discrete operations               :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.144E+00,  2.163E+00 ]}
+   -  {Process:  0, Timing:  [  3.384E+00,  2.394E+00 ]}
    nstates_max                         :  4
    ksorbs%norb                         :  4
    tmb%orbs%norb                       :  7
@@ -516,10 +516,9 @@
  iter:  2, delta:  5.80E-08, energy: -5.48383800460033832E+00, D: -5.484E+00}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
-   -  {iter:  1, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  1,       delta out:  5.803E-08, energy: -5.48383800460033832E+00, 
-          D: -5.484E+00}
+   -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  1, delta out:  5.803E-08, energy: -5.48383800460033832E+00, D: -5.484E+00}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
@@ -570,8 +569,8 @@
  -  {H: [-2.641308382323E-02,  2.586767226906E-02, -3.255119510475E-04]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  8.18
-   Elapsed time (s)                    :  4.72
+   CPU time (s)                        :  8.54
+   Elapsed time (s)                    :  5.00
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS: [Odd number of electrons, no closed shell system, 
  Do not call check_communications in the linear scaling version!, 
@@ -579,7 +578,7 @@
             density optimization not converged]
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-11-04 16:10:59.237
+     2013-11-05 13:01:11.688
    Process Id:
      0
  Memory Consumption Report:

@@ -411,12 +411,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                        !if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
                        if (iproc==0) call yaml_warning('ratio_deltas>1, using 0.5 instead')
+                       if (iproc==0) call yaml_newline()
                        if (iproc==0) call yaml_map('multiplicator for the confinement',0.5d0)
                        tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    else if (ratio_deltas<=0.d0) then
                        !if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
                        if (iproc==0) call yaml_warning('ratio_deltas<=0.d0, using 0.5 instead')
+                       if (iproc==0) call yaml_newline()
                        if (iproc==0) call yaml_map('multiplicator for the confinement',0.5d0)
                        tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    end if
@@ -1370,6 +1372,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
           if(info_basis_functions<=0) then
               call yaml_warning('support function optimization not converged')
+              call yaml_newline()
           else
               call yaml_map('iterations to converge support functions',info_basis_functions)
           end if
@@ -1382,8 +1385,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
           if(info_scf<0) then
               call yaml_warning('density optimization not converged')
+              call yaml_newline()
           else
               call yaml_map('iterations to converge kernel optimization',info_scf)
+              call yaml_newline()
           end if
           !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
           !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy

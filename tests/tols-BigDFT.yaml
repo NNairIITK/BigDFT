@@ -221,7 +221,7 @@ N2:
 
 mixpotential:
  Epot: 1.1e-10
- energy: 1.6e-11
+ energy: 1.7e-11
  Omega: 1.6e-11
 
 IO-wf_plain-read:
@@ -434,5 +434,9 @@ foe:
  Epot: 1.1e-10
  energy: 2.8e-11
  EH: 1.0e-9
- Omega: 2.7e-11
+ Omega: 3.2e-11
  EXC: 1.0e-10
+
+onlyhigh:
+ EH: 1.1e-10
+ Epot: 1.1e-10

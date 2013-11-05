@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-04 16:10:51.941
+ Timestamp of this run                 : 2013-11-05 13:01:04.375
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -481,7 +481,7 @@
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -7.36388882915761656E-003
+       energydiff                      : -7.36388882916116927E-003
        Hamiltonian update: {
  Energies: {Ekin:  4.86601644712E+00, Epot: -6.94925524633E+00, Enl:  1.29778943118E+00, 
               EH:  8.98788926812E+00,  EXC: -2.20637370531E+00, EvXC: -2.87982603254E+00}, 
@@ -494,16 +494,15 @@
  {e: -2.541665902491E-01, f:  2.0000},  # 00003
  {e: -1.011132878653E-02, f:  1.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.23E-07, energy: -5.46515889656260967E+00, D: -7.364E-03}]
+ iter:  2, delta:  1.23E-07, energy: -5.46515889656261322E+00, D: -7.364E-03}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.23E-07, energy: -5.46515889656260967E+00, D: -7.364E-03}]}
+ iter:  3, delta:  1.23E-07, energy: -5.46515889656261322E+00, D: -7.364E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
-   -  {iter:  1, target function: TRACE, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-   iter low:  1,       delta out:  3.209E-07, energy: -5.46515889656260967E+00, 
-          D: -5.465E+00}
+   -  {iter:  1, target function: TRACE,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter low:  1, delta out:  3.209E-07, energy: -5.46515889656261322E+00, D: -5.465E+00}
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
    Kernel update:
@@ -598,10 +597,9 @@
  iter:  3, delta:  2.54E-08, energy: -5.49248095954103022E+00, D:  7.017E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
-   -  {iter:  2, target function: ENERGY, mean conf prefac:  1.98-323,  #WARNING: support function optimization not converged
-             kernel optimization: DIRMIN,  #WARNING: density optimization not converged
-  iter high:  2,       delta out:  2.043E-07, energy: -5.49248095954103022E+00, 
-          D: -2.732E-02}
+   -  {iter:  2, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+ iter high:  2, delta out:  2.043E-07, energy: -5.49248095954103022E+00, D: -2.732E-02}
    Kernel update:
      max dev from unity                :  6.00E-06
      Hamiltonian application required  :  Yes
@@ -623,7 +621,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  4.880E-01,  2.441E-01 ]}
+ -  {Process:  0, Timing:  [  4.720E-01,  2.354E-01 ]}
  
  Rotation axis                         :  [  1.00000000000,  0.00000000000,  0.00000000000 ]
  Rotation angle (deg)                  :  0.00000000000
@@ -662,8 +660,8 @@
  -  {H: [ 1.694752897065E-02, -1.754245912216E-02, -2.538068243721E-02]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  13.39
-   Elapsed time (s)                    :  7.06
+   CPU time (s)                        :  13.40
+   Elapsed time (s)                    :  7.12
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
@@ -674,7 +672,7 @@
  - density optimization not converged
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-11-04 16:10:50.903
+     2013-11-05 13:01:03.324
    Process Id:
      0
  Memory Consumption Report:

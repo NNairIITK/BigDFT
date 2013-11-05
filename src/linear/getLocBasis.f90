@@ -1006,6 +1006,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               else
                   ratio_deltas=ediff/delta_energy_arr(ldiis%itBest)
               end if
+          else
+              ! use a default value
+              if (iproc==0) then
+                  call yaml_warning('use a fake value for kappa')
+                  call yaml_newline()
+              end if
+              ratio_deltas=0.5d0
           end if
           if (.not.energy_increased_previous .and. it>1) then
               ediff_sum=ediff_sum+ediff
