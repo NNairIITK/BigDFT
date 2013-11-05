@@ -299,7 +299,7 @@ cleanup:
  Clean forces norm (Ha/Bohr): 1.6e-10
  Raw forces norm (Ha/Bohr): 7.1e-11
  Epot: 1.2e-9
- Orbitals: 5.0e-11
+ Orbitals: 1.3e-10
  EH: 5.1e-10
  EXC: 9.1e-11
  EvXC: 1.3e-10
@@ -403,8 +403,10 @@ fructose:
  D eF: 1.1e-9
  eF: 2.3e-10
  EH: 1.0e-9
+ EvXC: 1.1e-10
  energy: 4.2e-11
  Omega: 4.2e-11
+ charge diff: 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -417,6 +419,7 @@ geopt_foe:
 
 geopt_diag:
  Epot: 1.1e-10
+ EH: 1.1e-10
 
 water_foe:
  EvXC: 1.1e-10
