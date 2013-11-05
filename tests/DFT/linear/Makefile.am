@@ -17,7 +17,7 @@ TESTDIRS = Locreg \
        experimentalmode
 
 EXTRA_TESTDIRS = reformatcomplete \
-   water \
+    water \
 	molecule \
 	deltascf \
 	reformat \

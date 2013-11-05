@@ -86,7 +86,8 @@ module yaml_output
   !! @param unit     (optional) @copydoc doc::unit
   !! @param fmt      (optional) format for the value
   interface yaml_map
-     module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
+     module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv,&
+                      yaml_map_lv
   end interface
 
  
@@ -251,7 +252,7 @@ contains
 
   !> Set all the output from now on to the file indicated by stdout
   !! therefore the default stream is now the one indicated by unit
-  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position)
+  subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position,setdefault)
     implicit none
     integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
                                                        !! is not 6 and it has already been opened by the processor
@@ -260,11 +261,12 @@ contains
     character(len=*), optional, intent(in) :: filename !< Filename of the stream
     character(len=*), optional, intent(in) :: position !< specifier of the position while opening the unit (all fortran values of position specifier in open statement are valid)
     integer, optional, intent(out) :: istat            !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
+    logical, optional, intent(in) :: setdefault        !< decide if the new stream will be set as default stream. True if absent
                                                        !! it is up the the user to deal with error signals sent by istat
 
     !local variables
     integer, parameter :: NO_ERRORS           = 0
-    logical :: unit_is_open
+    logical :: unit_is_open,set_default
     integer :: istream,unt,ierr
     character(len=15) :: pos
         
@@ -284,6 +286,13 @@ contains
     else
        pos(1:len(pos))='append'
     end if
+
+    if (present(setdefault)) then
+       set_default=setdefault
+    else
+       set_default=.true.
+    end if
+
     !check if unit has been already assigned
     do istream=1,active_streams
        if (unt==stream_units(istream)) then
@@ -306,7 +315,7 @@ contains
     stream_units(active_streams)=unt
 
     ! set last opened stream as default stream
-    default_stream=active_streams
+    if (set_default) default_stream=active_streams
 
     !open fortran unit if needed
     if (present(filename) .and. unt /= 6) then
@@ -1107,6 +1116,12 @@ contains
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_cv
 
+  subroutine yaml_map_lv(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    logical, dimension(:), intent(in) :: mapvalue
+    include 'yaml_map-arr-inc.f90'
+  end subroutine yaml_map_lv
+
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
     integer, dimension(:), intent(in) :: mapvalue
@@ -1766,23 +1781,19 @@ contains
   subroutine yaml_dict_dump(dict,unit,flow,verbatim)
     implicit none
     type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
-    logical, intent(in), optional :: flow  !< if .true. inline
+    logical, intent(in), optional :: flow  !< if .true. use flow writing style, if .false. use yaml plain style
+                                           !! when absent the .false. style is used except for the last level
     logical, intent(in), optional :: verbatim  !< if .true. print as comments the calls performed
     integer, intent(in), optional :: unit   !< unit in which the dump has to be 
     !local variables
-    logical :: flowrite,verb
+    logical :: flowrite,verb,default_flow
     integer :: unt
-    character(len=3) :: adv
-    character(len=7) :: flw
 
     flowrite=.false.
-    if (present(flow)) flowrite=flow
-    if (flowrite) then
-       adv='no '
-       flw='.true.'
-    else
-       adv='yes'
-       flw='.false.'
+    default_flow=.true.
+    if (present(flow)) then
+       flowrite=flow
+       default_flow=.false.
     end if
     unt=0
     if (present(unit)) unt=unit
@@ -1797,6 +1808,38 @@ contains
 
   contains
 
+    !> determine if we are at the last level of the dictionary
+    function last_level(dict)
+      implicit none
+      type(dictionary), pointer, intent(in) :: dict
+      logical :: last_level
+      !local variables
+      type(dictionary), pointer :: dict_tmp
+      
+      !we should have a sequence of only scalar values
+      last_level = dict_len(dict) > 0
+      if (last_level) then
+         dict_tmp=>dict_next(dict%child)
+         do while(associated(dict_tmp))
+            if (dict_len(dict_tmp) > 0 .or. dict_size(dict_tmp) > 0) then
+               last_level=.false.
+               nullify(dict_tmp)
+            else
+               dict_tmp=>dict_next(dict_tmp)
+            end if
+         end do
+      end if
+    end function last_level
+
+    function switch_flow(dict)
+      implicit none
+      type(dictionary), pointer, intent(in) :: dict
+      logical :: switch_flow
+      
+      switch_flow=default_flow .and. last_level(dict) .and. dict_len(dict) <=5 .and. dict_len(dict) > 1
+      
+    end function switch_flow
+
     recursive subroutine yaml_dict_dump_(dict)
       implicit none
       type(dictionary), pointer, intent(in) :: dict
@@ -1807,9 +1850,13 @@ contains
          !see whether the child is a list or not
          if (dict_item(dict) >= 0) call sequence(adv='no')
          if (dict_len(dict) > 0) then
+            !use flowrite in the case of the last level if no flow option is forced
+            if (switch_flow(dict)) flowrite=.true.
             call open_seq(dict_key(dict))
             call yaml_dict_dump_(dict%child)
             call close_seq()
+            !restoe normal flowriting if it has been changed before
+            if (switch_flow(dict)) flowrite=.false.
          else
             if (dict_item(dict) >= 0) then
                call yaml_dict_dump_(dict%child)
@@ -1834,10 +1881,10 @@ contains
       implicit none
       character(len=*), intent(in) :: val
       if (verb) then
-         call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(adv)//&
+         call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(advc(flowrite))//&
               ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
       else
-         call yaml_scalar(trim(val),advance=adv,unit=unt)
+         call yaml_scalar(trim(val),advance=advc(flowrite),unit=unt)
       end if
     end subroutine scalar
 
@@ -1886,7 +1933,7 @@ contains
       character(len=*), intent(in) :: key
       if (verb) then
          call yaml_comment('call yaml_open_sequence("'//trim(key)//&
-              '",flow='//trim(flw)//&
+              '",flow='//trim(flw(flowrite))//&
               ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
          call yaml_open_sequence(trim(key),flow=flowrite,unit=unt)
@@ -1908,7 +1955,7 @@ contains
       character(len=*), intent(in) :: key
       if (verb) then
          call yaml_comment('call yaml_open_map("'//trim(key)//&
-              '",flow='//trim(flw)//&
+              '",flow='//trim(flw(flowrite))//&
               ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
          call yaml_open_map(trim(key),flow=flowrite,unit=unt)
@@ -1924,6 +1971,32 @@ contains
          call yaml_close_map(unit=unt)
       end if
     end subroutine close_map
+
+    function flw(flow_tmp)
+      implicit none
+      logical, intent(in) :: flow_tmp
+      character(len=7) :: flw
+
+      if (flow_tmp) then
+         flw='.true.'
+      else
+         flw='.false.'
+      end if
+    end function flw
+
+    function advc(flow_tmp)
+      implicit none
+      logical, intent(in) :: flow_tmp
+      character(len=3) :: advc
+
+      if (flow_tmp) then
+         advc='no '
+      else
+         advc='yes'
+      end if
+
+    end function advc
+
 
   end subroutine yaml_dict_dump
 

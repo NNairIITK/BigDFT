@@ -15,6 +15,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energy_only, hpsi_small, experimental_mode, hpsi_noprecond)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
   implicit none
 
@@ -521,9 +522,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! Cycle if the trace increased (steepest descent only)
   if(.not. ldiis%switchSD .and. ldiis%isx==0) then
       if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
-          if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
-              'WARNING: the target function is larger than its minimal value reached so far:',trH,' > ', ldiis%trmin
-          if(iproc==0) write(*,'(1x,a)') 'Decrease step size and restart with previous TMBs'
+          !!if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
+          !!    'WARNING: the target function is larger than its minimal value reached so far:',trH,' > ', ldiis%trmin
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_warning('target function larger than its minimal value reached so far, &
+                  &D='//trim(yaml_toa(trH-ldiis%trmin,fmt='(1es10.3)')))!//'. &
+                  !&Decrease step size and restart with previous TMBs')
+          end if
+          !if(iproc==0) write(*,'(1x,a)') 'Decrease step size and restart with previous TMBs'
           energy_increased=.true.
       end if
   end if
@@ -637,10 +644,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! rather than calculating the preconditioning for nothing
   if ((energy_increased .or. energy_only) .and. target_function/=TARGET_FUNCTION_IS_HYBRID) return
 
-  ! Precondition the gradient.
-  if(iproc==0) then
-      write(*,'(a)',advance='no') 'Preconditioning... '
-  end if
+  !!! Precondition the gradient.
+  !!if(iproc==0) then
+  !!    write(*,'(a)',advance='no') 'Preconditioning... '
+  !!end if
  
 
   !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -753,6 +760,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!end if
   end if
 
+  if (iproc==0) then
+      call yaml_map('Preconditioning',.true.)
+  end if
+
+
   !sum over all the partial residues
   if (nproc > 1) then
       garray(1)=gnrm
@@ -771,9 +783,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !    call memocc(istat, iall, 'hpsi_tmp', subname)
   !end if
 
-  if(iproc==0) then
-      write(*,'(a)') 'done.'
-  end if
+  !!if(iproc==0) then
+  !!    write(*,'(a)') 'done.'
+  !!end if
 
   call timing(iproc,'eglincomms','ON')
   ist=1
@@ -794,7 +806,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
-  if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
+  !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
   call timing(iproc,'eglincomms','OF')
 
 
@@ -917,6 +929,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
            experimental_mode)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => hpsitopsi_linear
   implicit none
   
@@ -940,13 +953,25 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
   if(iproc==0) then
+      call yaml_newline()
+      call yaml_open_map('Optimization',flow=.true.)
       if(ldiis%isx>0) then
-          write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
-              ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
+          !!write(*,'(1x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
+          !!    ldiis%icountDIISFailureCons, ', total failures=', ldiis%icountDIISFailureTot
+          call yaml_map('algorithm','DIIS')
+          call yaml_map('history length',ldiis%isx)
+          call yaml_map('consecutive failures',ldiis%icountDIISFailureCons)
+          call yaml_map('total failures',ldiis%icountDIISFailureTot)
       else
-          write(*,'(1x,2(a,es9.3),a,i0)') 'SD informations: mean alpha=', alpha_mean, ', max alpha=', alpha_max,&
-          ', consecutive successes=', ldiis%icountSDSatur
+          !!write(*,'(1x,2(a,es9.3),a,i0)') 'SD informations: mean alpha=', alpha_mean, ', max alpha=', alpha_max,&
+          !!', consecutive successes=', ldiis%icountSDSatur
+          call yaml_map('algorithm','SD')
+          call yaml_map('mean alpha',alpha_mean,fmt='(es9.3)')
+          call yaml_map('max alpha',alpha_max,fmt='(es9.3)')
+          call yaml_map('consecutive successes',ldiis%icountSDSatur)
       end if
+      call yaml_close_map()
+      call yaml_newline()
   end if
 
   ! Improve the orbitals, depending on the choice made above.
@@ -954,7 +979,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   if(.not.ldiis%switchSD) then
       call improveOrbitals(iproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
   else
-      if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
+      !if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
+      if (iproc==0) then
+          call yaml_warning('no improvement of the orbitals, recalculate gradient')
+          call yaml_newline()
+      end if
   end if
   if (present(psidiff)) then
       do i=1,tmb%npsidim_orbs
@@ -1045,18 +1074,26 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
 !!!!  tmb%ham_descr%can_use_transposed=.false.
 !!!!  ! END EXPERIMENTAL ###################################################################
 
+  if (.not.ortho .and. iproc==0) then
+      call yaml_map('Orthogonalization',.false.)
+  end if
 
   if(.not.ldiis%switchSD.and.ortho) then
-      if(iproc==0) then
-           write(*,'(1x,a)',advance='no') 'Orthonormalization... '
-      end if
+      !!if(iproc==0) then
+      !!     write(*,'(1x,a)',advance='no') 'Orthonormalization... '
+      !!end if
+
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
+      if (iproc == 0) then
+          call yaml_map('Orthogonalization',.true.)
+      end if
   else if (experimental_mode) then
       ! Wasteful to do it transposed...
-      if (iproc==0) write(*,*) 'normalize...'
+      !if (iproc==0) write(*,*) 'normalize...'
+      if (iproc==0) call yaml_map('normalization',.true.)
       if(associated(tmb%psit_c)) then
           iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
           deallocate(tmb%psit_c, stat=istat)
@@ -1078,6 +1115,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
       deallocate(norm)
       call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+      if (iproc == 0) then
+          call yaml_map('Normalization',.true.)
+      end if
   end if
 
   ! Emit that new wavefunctions are ready.

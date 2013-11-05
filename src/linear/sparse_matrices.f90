@@ -13,6 +13,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   use module_base
   use module_types
   use module_interfaces, fake_name => initSparseMatrix
+  use yaml_output
   implicit none
   
   ! Calling arguments
@@ -90,9 +91,12 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   end do
 
   if (iproc==0) then
-      write(*,'(a,i0)') 'total elements: ',orbs%norb**2
-      write(*,'(a,i0)') 'non-zero elements: ',sparsemat%nvctr
-      write(*,'(a,f5.2,a)') 'sparsity: ',1.d2*dble(orbs%norb**2-sparsemat%nvctr)/dble(orbs%norb**2),'%'
+      !!write(*,'(a,i0)') 'total elements: ',orbs%norb**2
+      !!write(*,'(a,i0)') 'non-zero elements: ',sparsemat%nvctr
+      !!write(*,'(a,f5.2,a)') 'sparsity: ',1.d2*dble(orbs%norb**2-sparsemat%nvctr)/dble(orbs%norb**2),'%'
+      call yaml_map('total elements',orbs%norb**2)
+      call yaml_map('non-zero elements',sparsemat%nvctr)
+      call yaml_map('sparsity in %',1.d2*dble(orbs%norb**2-sparsemat%nvctr)/dble(orbs%norb**2),fmt='(f5.2)')
   end if
 
   nseglinemax=0

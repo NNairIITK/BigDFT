@@ -28,7 +28,8 @@ EXTRA_DIST = \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
 	init/pspconf.in.f90 \
-	NEB_driver.sh
+	NEB_driver.sh \
+	input_variables_definition.yaml
 
 # Build targets, binaries and libraries.
 # -------------

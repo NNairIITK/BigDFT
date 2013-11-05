@@ -29,6 +29,7 @@ module module_types
   integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
   integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
   integer, parameter :: BIGDFT_INVALID        = -12 !< Invalid entry
+  integer :: BIGDFT_RUNTIME_ERROR                   !< error during runtime
   integer :: BIGDFT_MPI_ERROR                       !< see error definitions below
   integer :: BIGDFT_LINALG_ERROR                    !< to be moved to linalg wrappers
   integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< problems in parsing input variables
@@ -2678,6 +2679,12 @@ subroutine bigdft_init_errors()
   use dictionaries
   implicit none
   external :: bigdft_severe_abort
+
+  call f_err_define('BIGDFT_RUNTIME_ERROR',&
+       'An invalid operation has been done during runtime',&
+       BIGDFT_RUNTIME_ERROR,&
+       err_action='Check the exact unrolling of runtime operations,'//&
+       ' likely something has been initialized/finalized twice')
 
   call f_err_define('BIGDFT_MPI_ERROR',&
        'An error of MPI library occurred',&

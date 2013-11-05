@@ -26,7 +26,7 @@ module yaml_strings
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_ctoa
-     module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa
+     module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_lvtoa,yaml_ztoa,yaml_zvtoa
   end interface
 
   interface cnv_fmt
@@ -449,6 +449,52 @@ contains
     end if
     yaml_cvtoa=yaml_adjust(yaml_cvtoa)
   end function yaml_cvtoa
+
+
+  !> Convert vector of logicals to a chain of characters
+  pure function yaml_lvtoa(lv,fmt)
+    implicit none
+    logical, dimension(:), intent(in) :: lv
+    character(len=max_value_length) :: yaml_lvtoa
+    character(len=*), optional, intent(in) :: fmt
+    !local variables
+    character(len=max_value_length) :: tmp
+    integer :: nl,nu,i,length,pos
+
+    tmp=repeat(' ',max_value_length)
+    yaml_lvtoa=tmp
+
+    nl=lbound(lv,1)
+    nu=ubound(lv,1)
+
+    if (nl > nu) then
+       !Special case for size 0 (nl is > nu!)
+       yaml_lvtoa(1:2) = '[]'
+    else
+       yaml_lvtoa(1:2)='[ '
+       pos=3
+       do i=nl,nu
+          if (present(fmt)) then
+             tmp=yaml_ltoa(lv(i),fmt=fmt)
+          else
+             tmp=yaml_ltoa(lv(i))
+          end if
+          length=len(trim(tmp))-1
+          if (pos+length > max_value_length) exit
+          yaml_lvtoa(pos:pos+length)=tmp(1:length+1)
+          if (i < nu) then
+             yaml_lvtoa(pos+length+1:pos+length+2)=', '
+          else
+             yaml_lvtoa(pos+length+1:pos+length+2)=' ]'
+
+          end if
+          pos=pos+length+3
+       end do
+    end if
+
+    yaml_lvtoa=yaml_adjust(yaml_lvtoa)
+
+  end function yaml_lvtoa
 
 
   !> Yaml Spaced format for Date and Time

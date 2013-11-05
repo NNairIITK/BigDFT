@@ -1717,7 +1717,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      !!call memocc(i_stat, phi_tmp, 'phi_tmp', subname)
      !!call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
      call inputguessConfinement(iproc, nproc, at, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-          rxyz,nlpspd,proj,GPU,KSwfn%orbs,tmb,denspot,denspot0,energs)
+          rxyz,nlpspd,proj,GPU,KSwfn%orbs, kswfn, tmb,denspot,denspot0,energs)
      !!call dcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
      !!i_all=-product(shape(phi_tmp))*kind(phi_tmp)
      !!deallocate(phi_tmp, stat=i_stat)
@@ -1877,7 +1877,7 @@ END SUBROUTINE input_memory_linear
            end if
 
            call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
-                orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
+                orbs,orbse,norbsc_arr,locrad,G,psigau,eks,1)
 
            !allocate communications arrays for inputguess orbitals
            !call allocate_comms(nproc,orbse,commse,subname)
@@ -2663,7 +2663,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
      call inputguessConfinement(iproc,nproc,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-          rxyz,nlpspd,proj,GPU,KSwfn%orbs,tmb,denspot,denspot0,energs)
+          rxyz,nlpspd,proj,GPU,KSwfn%orbs,kswfn,tmb,denspot,denspot0,energs)
      if(tmb%can_use_transposed) then
          i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
          deallocate(tmb%psit_c, stat=i_stat)
@@ -2891,7 +2891,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpspd,proj,in%SIC,tmb,pnrm,.false.,.false.,&
-             .true.,ham_small,0) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             .true.,ham_small,0,0,0,0) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then
         !print*,'coeffs after extra diag:'
@@ -2955,6 +2955,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 
+  !if (iproc==0 .and. inputpsi /= INPUT_PSI_LINEAR_AO) call yaml_close_map() !input hamiltonian
   if (iproc==0) call yaml_close_map() !input hamiltonian
 
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
@@ -3051,7 +3052,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
                 nproc,ref_frags(ifrag)%fbasis%forbs%norb)
         end if
         if (input_wf_format == WF_FORMAT_NONE) then
-           call yaml_warning('Missing wavefunction files, switch to normal input guess')
+           if (iproc==0) call yaml_warning('Missing wavefunction files, switch to normal input guess')
            !if (iproc==0) write(*,*)''
            !if (iproc==0) write(*,*)'*********************************************************************'
            !if (iproc==0) write(*,*)'* WARNING: Missing wavefunction files, switch to normal input guess *'

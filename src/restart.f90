@@ -3137,6 +3137,7 @@ end subroutine reformat_check
 subroutine print_reformat_summary(iproc,reformat_reason)
   use module_base
   use module_types
+  use yaml_output
   implicit none
 
   integer, intent(in) :: iproc
@@ -3146,15 +3147,25 @@ subroutine print_reformat_summary(iproc,reformat_reason)
 
   call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (iproc==0) then
-        write(*,'(1x,a)') 'Overview of the reformatting (several categories may apply):'
-        write(*,'(3x,a,i0)') '- No reformatting required: ', reformat_reason(0)
-        write(*,'(3x,a,i0)') '- Grid spacing has changed: ', reformat_reason(1)
-        write(*,'(3x,a,i0)') '- Number of coarse grid points has changed: ', reformat_reason(2)
-        write(*,'(3x,a,i0)') '- Number of fine grid points has changed: ', reformat_reason(3)
-        write(*,'(3x,a,i0)') '- Box size has changed: ', reformat_reason(4)
-        write(*,'(3x,a,i0)') '- Molecule was shifted: ', reformat_reason(5)
-        write(*,'(3x,a,i0)') '- Molecule was rotated: ', reformat_reason(6)
-        write(*,'(3x,a,i0)') '- Discrete operations: ', reformat_reason(7)
+        !!write(*,'(1x,a)') 'Overview of the reformatting (several categories may apply):'
+        !!write(*,'(3x,a,i0)') '- No reformatting required: ', reformat_reason(0)
+        !!write(*,'(3x,a,i0)') '- Grid spacing has changed: ', reformat_reason(1)
+        !!write(*,'(3x,a,i0)') '- Number of coarse grid points has changed: ', reformat_reason(2)
+        !!write(*,'(3x,a,i0)') '- Number of fine grid points has changed: ', reformat_reason(3)
+        !!write(*,'(3x,a,i0)') '- Box size has changed: ', reformat_reason(4)
+        !!write(*,'(3x,a,i0)') '- Molecule was shifted: ', reformat_reason(5)
+        !!write(*,'(3x,a,i0)') '- Molecule was rotated: ', reformat_reason(6)
+        !!write(*,'(3x,a,i0)') '- Discrete operations: ', reformat_reason(7)
+        call yaml_open_map('Overview of the reformatting (several categories may apply)')
+        call yaml_map('No reformatting required', reformat_reason(0))
+        call yaml_map('Grid spacing has changed', reformat_reason(1))
+        call yaml_map('Number of coarse grid points has changed', reformat_reason(2))
+        call yaml_map('Number of fine grid points has changed', reformat_reason(3))
+        call yaml_map('Box size has changed', reformat_reason(4))
+        call yaml_map('Molecule was shifted', reformat_reason(5))
+        call yaml_map('Molecule was rotated', reformat_reason(6))
+        call yaml_map('Discrete operations', reformat_reason(7))
+        call yaml_close_map()
   end if
 
 end subroutine print_reformat_summary

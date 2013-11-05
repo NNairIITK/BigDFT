@@ -1908,9 +1908,11 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   end do
 
   !Use special subroutines for these number of projectors
-  if (proj_count.eq.4 .or. proj_count.eq.5 .or. proj_count.eq.8 .or. proj_count.eq.13 &
-      .or. proj_count.eq.14 .or. proj_count.eq.18 .or. proj_count.eq.19 &
-      .or. proj_count.eq.20 .or. proj_count.eq.22) then
+!  if (proj_count.eq.4 .or. proj_count.eq.5 .or. proj_count.eq.8 .or. proj_count.eq.13 &
+!      .or. proj_count.eq.14 .or. proj_count.eq.18 .or. proj_count.eq.19 &
+!      .or. proj_count.eq.20 .or. proj_count.eq.22) then
+     !more elegant?
+  if (any(proj_count==(/4,5,8,13,14,18,19,20,22/))) then
 
     allocate(cproj_i(proj_count,ncplx))
 

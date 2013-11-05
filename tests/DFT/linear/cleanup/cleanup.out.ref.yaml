@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-10-11 11:14:53.177
+ Timestamp of this run                 : 2013-11-05 14:20:56.844
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -37,92 +37,107 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp' 
+     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'CXX=icpc' 'FCFLAGS=-O2 -openmp' 
      '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
      p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
      -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
      -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
      -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
  
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, g++ ]
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, icpc ]
    Compiler flags:
      CFLAGS                            : -g -O2
      FCFLAGS                           : -O2 -openmp
      CXXFLAGS                          : -g -O2
- #... (file:input.perf)..................................................Performance Options
- #|debug F                      Debug option                                                 
- #|fftcache 8192                Cache size for the FFT                                       
- #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
- #|OCL_platform                 Chosen OCL platform                                          
- #|OCL_devices                  Chosen OCL devices                                           
- #|blas F                       CUBLAS acceleration                                          
- #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
- #|exctxpar OP2P                Exact exchange parallelisation scheme                        
- #|ig_diag T                    Input guess: (T:Direct, F:Iterative) diag. of Ham.           
- #|ig_norbp 5                   Input guess: Orbitals per process for iterative diag.        
- #|ig_blocks 300 800            Input guess: Block sizes for orthonormalisation              
- #|ig_tol  1.00E-04             Input guess: Tolerance criterion                             
- #|methortho 0                  Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)           
- #|rho_commun DEF               Density communication scheme (DBL, RSC, MIX)                 
- #|psolver_groupsize 0          Size of Poisson Solver taskgroups (0=nproc)                  
- #|psolver_accel 0              Acceleration of the Poisson Solver (0=none, 1=CUDA)          
- #|unblock_comms OFF            Overlap Communications of fields (OFF,DEN,POT)               
- #|linear OFF                   Linear Input Guess approach (OFF, LIG, FUL, TMO)             
- #|tolsym  1.00E-08             Tolerance for symmetry detection                             
- #|signaling F                  Expose calculation results on Network                        
- #|signalTimeout 0              Time out on startup for signal connection                    
- #|domain                       Domain to add to the hostname to find the IP                 
- #|inguess_geopt 0              0= wavlet input guess, 1= real space input guess             
- #|store_index T                linear scaling: store indices or recalculate them            
- #|check_sumrho 2               linear sumrho: 0=no check, 1=light check, 2=full check       
- #|experimental_mode F          linear scaling: activate the experimental mode               
- #|verbosity 2                  verbosity of the output 0=low, 2=high                        
- #|outdir ./                    Writing directory                                            
- #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
- #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
- #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
- #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
- #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
- #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
- #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
- #|mixing_after_inputguess F    mixing step after linear input guess (T/F)                   
- #|iterative_orthogonalization Fiterative_orthogonalization for input guess orbitals         
- #... (file:input.dft)............................................DFT Calculation Parameters
- #|0.50 0.50 0.50  hx,hy,hz: grid spacing in the three directions                            
- #|4.0  4.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
- #|1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                         
- #|0 0.0 0.0 0.0  charge of the system, Electric field (Ex,Ey,Ez)                            
- #|1  0           nspin=1 non-spin polarization, mpol=total magnetic moment                  
- #|1.E-05         gnrm_cv: convergence criterion gradient                                    
- #|100 1          itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs            
- #|5  10          ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history        
- #|0              dispersion correction potential (values 1,2,3,4,5), 0=none                 
- #|100  0         InputPsiId, output_wf, output_denspot                                      
- #|0.0  30        rbuf, ncongt: length of the tail (AU),# tail CG iterations                 
- #|0  0           Davidson subspace dim., # of opt. orbs, # of plotted orbs                  
- #|T              disable the symmetry detection                                             
- #... (file:input.mix.. not present)......................................Mixing Parameters 
- #|0              Mixing parameters                                                          
- #|1              Maximum number of diagonalisation iterations                               
- #|1.e-4          Stop criterion on the residue of potential or density                      
- #|0 0.0 1        No. of additional bands, elec. temperature, smearing method                
- #|0.0 2.0        Multiplying factors for the mixing and the electronic DIIS                 
- #... (file:input.geopt.. not present)..................................Geometry Parameters 
- #|BFGS           Geometry optimisation method                                               
- #|1              Maximum number of force evaluations                                        
- #|1.0 0.0        fract_fluct,forcemax                                                       
- #|0.0            random displacement amplitude                                              
- #|4.0            Stepsize for the geometry optimisation                                     
- #... (file:input.tddft.. not present)....................................TD-DFT Parameters 
- #|NONE           TDDFT Method                                                               
- #... (file:input.sic.. not present).........................................SIC Parameters 
- #|NONE           SIC method: NONE, PZ, NK                                                   
- #|0.0            SIC downscaling parameter                                                  
- #|0.0            Reference occupation fref (NK case only)                                   
- #... (file:input.kpt.. not present).....................Brillouin Zone Sampling Parameters 
- #|manual         K-point sampling method                                                    
- #|1              Number of K-points                                                         
- #|0. 0. 0. 1.    K-pt coords, K-pt weight                                                   
+  #------------------------------------------------------------------------ Input parameters
+ perf:
+   debug                               : No #     debug option
+   fftcache                            : 8192 #   cache size for the FFT
+   accel                               : NO #     acceleration
+   ocl_platform                        : ~ #      Chosen OCL platform
+   ocl_devices                         : ~ #      Chosen OCL devices
+   blas                                : No #     CUBLAS acceleration
+   projrad                             : 15.000 # Radius of the projector as a function of the maxrad
+   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
+   ig_diag                             : Yes #    Input guess: (T:Direct, F:Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess: Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess: Block sizes for orthonormalisation
+   ig_tol                              : 0.1E-03 # Input guess: Tolerance criterion
+   methortho                           : 0 #      Orthogonalisation
+   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
+   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
+   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
+   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
+   linear                              : OFF #    Linear Input Guess approach
+   tolsym                              : 0.1E-07 # Tolerance for symmetry detection
+   signaling                           : No #     Expose calculation results on Network
+   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
+   domain                              : ~ #      Domain to add to the hostname to find the IP
+   inguess_geopt                       : 0 #      0= wavlet input guess, 1= real space input guess
+   store_index                         : Yes #    linear scaling: store indices or recalculate them
+   verbosity                           : 2 #      verbosity of the output
+   outdir                              : ./ #     Writing directory
+   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
+   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
+   ef_interpol_det                     : 0.10E-19 # FOE: max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 0.10E+02 # FOE: max charge difference for interpolation
+   mixing_after_inputguess             : No #     mixing step after linear input guess (T/F)
+   iterative_orthogonalization         : No #     iterative_orthogonalization for input guess orbitals
+   check_sumrho                        : 2 #      enables linear sumrho check
+   experimental_mode                   : No #     linear scaling: activate the experimental mode
+ dft:
+   hgrids: [0.50000, 0.50000, 0.50000] #          grid spacing in the three directions (bohr)
+   rmult: [4.00, 4.00] #                          c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius
+   ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
+   ncharge                             : 0 #      charge of the system
+   elecfield: [0.0000, 0.0000, 0.0000] #          electric field (Ex,Ey,Ez)
+   nspin                               : 1 #      spin polarization
+   mpol                                : 0 #      total magnetic moment
+   gnrm_cv                             : 0.1E-04 # convergence criterion gradient
+   itermax                             : 100 #    max. # of wfn. opt. steps
+   nrepmax                             : 1 #      max. # of re-diag. runs
+   ncong                               : 5 #      # of CG it. for preconditioning eq.
+   idsx                                : 10 #     wfn. diis history
+   dispersion                          : 0 #      dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 100
+   output_wf                           : 0
+   output_denspot                      : 0
+   rbuf                                : 0.00 #   length of the tail (AU)
+   ncongt                              : 30 #     # tail CG iterations
+   norbv                               : 0 #      Davidson subspace dim.
+   nvirt                               : 0 #      # of opt. orbs
+   nplot                               : 0 #      # of plottec orbs
+   disablesym                          : Yes #    disable the symmetry detection
+ kpt:
+   method                              : manual # K-point sampling method
+   kpt: #                                         Kpt coordinates
+   -  [0., 0., 0.]
+   wkpt: [1.] #                                   Kpt weights
+   bands                               : No #     For doing band structure calculation
+ geopt:
+   method                              : none #   Geometry optimisation method
+   ncount_cluster_x                    : 1 #      Maximum number of force evaluations
+   frac_fluct                          : 1.
+   forcemax                            : 0.
+   randdis                             : 0. #     random displacement amplitude
+   betax                               : 4. #     Stepsize for the geometry optimisation
+ mix:
+   iscf                                : 0 #      mixing parameters
+   itrpmax                             : 1 #      maximum number of diagonalisation iterations
+   rpnrm_cv                            : 1e-4 #   stop criterion on the residue of potential or density
+   norbsempty                          : 0 #      No. of additional bands
+   Tel                                 : 0. #     electronic temperature
+   occopt                              : 1 #      smearing method
+   alphamix                            : 0. #     Multiplying factors for the mixing
+   alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
+ sic:
+   sic_approach                        : none #   SIC method
+   sic_alpha                           : 0. #     SIC downscaling parameter
+ tddft:
+   tddft_approach                      : none #   TDDFT method
  #... (file:input.lin).....................................................Linear Parameters
  #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|1              outer loop iterations (low, high)                                          
@@ -166,7 +181,7 @@
   #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
  Geometry Optimization Parameters:
    Maximum steps                       :  1
-   Algorithm                           : BFGS
+   Algorithm                           : none
    Random atomic displacement          :  0.0E+00
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
@@ -289,6 +304,8 @@
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0000}
+ Support function repartition:
+   MPI tasks  0- 2                     :  2
  Wavefunctions memory occupation for root MPI process:  0 MB 149 KB 640 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -311,6 +328,15 @@
    Hamiltonian application             : 21.185
  Estimated Memory Peak (MB)            :  32
   #WARNING: Do not call check_communications in the linear scaling version!
+ total elements                        :  36
+ non-zero elements                     :  36
+ sparsity in %                         :  0.00
+ total elements                        :  36
+ non-zero elements                     :  36
+ sparsity in %                         :  0.00
+ total elements                        :  36
+ non-zero elements                     :  36
+ sparsity in %                         :  0.00
  Checking Compression/Uncompression of sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -339,25 +365,38 @@
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  6
-   Atomic Input Orbital Generation:
-   -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
-   -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
-   Wavelet conversion succeeded        :  Yes
-   Deviation from normalization        :  1.46E-03
-   Total No. of Atomic Input Orbitals  :  6
+   Inputguess Orbitals Repartition:
+     MPI tasks  0- 2                   :  2
    Atomic Input Orbital Generation:
    -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
    Wavelet conversion succeeded        :  Yes
    Deviation from normalization        :  5.23E-03
+   Total charge                        :  7.999970352587E+00
    Poisson Solver:
      BC                                : Free
      Box                               :  [  85,  83,  83 ]
      MPI tasks                         :  3
-   Poisson Solver:
-     BC                                : Free
-     Box                               :  [  85,  83,  83 ]
-     MPI tasks                         :  3
+   orthonormalization of input guess   : standard
+   Kernel update:
+     max dev from unity                :  2.63E-02
+     Hamiltonian application required  :  Yes
+     method                            : diagonalization
+     mode                              : sequential
+     communication strategy kernel     : ALLREDUCE
+     Coefficients available            :  Yes
+    #Eigenvalues and New Occupation Numbers
+   Orbitals: [
+ {e: -1.032466469956E+00, f:  2.0000},  # 00001
+ {e: -5.564406913933E-01, f:  2.0000},  # 00002
+ {e: -4.569418432467E-01, f:  2.0000},  # 00003
+ {e: -3.757602345837E-01, f:  2.0000}] # 00004
+   Hamiltonian update: {
+ Energies: {Ekin:  1.57946564123E+01, Epot: -2.06079737482E+01, Enl:  1.46732642430E+00, 
+              EH:  2.00693076881E+01,  EXC: -3.90682443687E+00, EvXC: -5.11982502079E+00}, 
+    Total charge:  7.999965710124E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+    #================================================================= Input guess generated
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  3035,  17 ]
    Tolerances for this check: [ 4.51950006034179674E-07,  1.33226762955018785E-15]
@@ -368,116 +407,358 @@
    Tolerances for this check: [ 9.57600012785331245E-07,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  2.91038304567337036E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+  #------------------------------------------------------------------- Self-Consistent Cycle
+ Ground State Optimization:
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun001
+   -  { #-------------------------------------------------------------------------- iter: 1
+ target function: TRACE, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  1.57946564123E+01, Epot: -1.88613504620E+01, Enl:  1.46732642430E+00}, 
+ Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  1, fnrm:  7.55E-01, Omega: -1.57704945557016032E+01, D: -1.577E+01, 
+ Optimization: {algorithm: DIIS, history length:  3, consecutive failures:  0, 
+           total failures:  0}, 
+ Orthogonalization:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 2
+ target function: TRACE, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  1.35026318287E+01, Epot: -1.70308188015E+01, Enl:  1.45768769811E+00}, 
+ Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  2, fnrm:  2.18E-01, Omega: -1.64695103510932519E+01, D: -6.990E-01, 
+ exit criterion: net number of iterations}
+   -  &final_supfun001  { #-------------------------------------------------------- iter: 2
+ target function: TRACE, 
+ Energies: {Ekin:  1.35026318287E+01, Epot: -1.70308188015E+01, Enl:  1.45768769811E+00}, 
+ iter:  2, fnrm:  2.18E-01, Omega: -1.64695103510932519E+01, D: -6.990E-01}
+      #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel001
+   -  #-------------------------------------------------------------------- kernel iter: 1
+       Kernel update:
+         max dev from unity            :  1.57E-03
+         Hamiltonian application required:  Yes
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35026318287E+01, Epot: -1.70428762710E+01, Enl:  1.45768769811E+00, 
+              EH:  2.19664842501E+01,  EXC: -4.21697438878E+00, EvXC: -5.52947853076E+00}, 
+    Total charge:  7.999982384609E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -8.630076793936E-01, f:  2.0000},  # 00001
  {e: -4.447127155983E-01, f:  2.0000},  # 00002
  {e: -2.107059512461E-01, f:  2.0000},  # 00003
  {e: -1.329499080147E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  1, delta:  1.11E-05, energy: -1.70722626524845253E+01, D: -1.707E+01}]
+   -  #-------------------------------------------------------------------- kernel iter: 2
+       Kernel update:
+         max dev from unity            :  1.57E-03
+         Hamiltonian application required:  Yes
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35026318287E+01, Epot: -1.80963275811E+01, Enl:  1.45768769811E+00, 
+              EH:  2.06814249484E+01,  EXC: -4.00336581739E+00, EvXC: -5.24711123552E+00}, 
+    Total charge:  7.999979933319E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.947440560549E-01, f:  2.0000},  # 00001
  {e: -5.366841126529E-01, f:  2.0000},  # 00002
  {e: -3.750838331004E-01, f:  2.0000},  # 00003
  {e: -2.935567011562E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  2, delta:  2.84E-06, energy: -1.69533469719586094E+01, D:  1.189E-01}]
+   -  #-------------------------------------------------------------------- kernel iter: 3
+       Kernel update:
+         max dev from unity            :  1.57E-03
+         Hamiltonian application required:  Yes
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35026318287E+01, Epot: -1.80159796378E+01, Enl:  1.45768769811E+00, 
+              EH:  2.07618504068E+01,  EXC: -4.01076627631E+00, EvXC: -5.25676692182E+00}, 
+    Total charge:  7.999979979014E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.779108098975E-01, f:  2.0000},  # 00001
  {e: -5.229639815854E-01, f:  2.0000},  # 00002
  {e: -3.714962292066E-01, f:  2.0000},  # 00003
  {e: -2.866085103511E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  3, delta:  1.40E-06, energy: -1.69493388591493996E+01, D:  4.008E-03}]
+   -  &final_kernel001  { #-------------------------------------------------------- iter: 4
+ summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  4, delta:  1.40E-06, energy: -1.69493388591493996E+01, D:  4.008E-03}]}
+    #================================================================= Summary of both steps
+   self consistency summary: &it_sc001
+   -  {iter:  1, target function: TRACE,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter low:  1, delta out:  3.317E-06, energy: -1.69493388591493996E+01, D: -1.695E+01}
+    #========================================================= Adjustments for high accuracy
+   Locreg increased                    :  No
+   Kernel update:
+     max dev from unity                :  1.57E-03
+     Hamiltonian application required  :  Yes
+     method                            : diagonalization
+     mode                              : sequential
+     communication strategy kernel     : ALLREDUCE
+     Coefficients available            :  Yes
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun002
+   -  { #-------------------------------------------------------------------------- iter: 1
+ target function: ENERGY, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  1.35026318287E+01, Epot: -1.79882929428E+01, Enl:  1.45768769811E+00}, 
+ Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  1, fnrm:  2.52E-01, Omega: -1.69484198063531437E+01, D: -1.178E+00, 
+ Optimization: {algorithm: SD, mean alpha:  1.000E-04, max alpha:  1.000E-04, 
+    consecutive successes:  1}, 
+ Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
+ reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 2
+ target function: ENERGY, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  1.35000012732E+01, Epot: -1.79879321718E+01, Enl:  1.45747050045E+00}, 
+ Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  2, fnrm:  2.51E-01, Omega: -1.69485016654267895E+01, D: -8.186E-05, 
+ exit criterion: net number of iterations}
+   -  &final_supfun002  { #-------------------------------------------------------- iter: 2
+ target function: ENERGY, 
+ Energies: {Ekin:  1.35000012732E+01, Epot: -1.79879321718E+01, Enl:  1.45747050045E+00}, 
+ iter:  2, fnrm:  2.51E-01, Omega: -1.69485016654267895E+01, D: -8.186E-05}
+      #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel002
+   -  #-------------------------------------------------------------------- kernel iter: 1
+       Kernel update:
+         max dev from unity            :  1.61E-04
+         Hamiltonian application required:  No
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35026318287E+01, Epot: -1.79882929428E+01, Enl:  1.45768769811E+00, 
+              EH:  2.07889300173E+01,  EXC: -4.01291454557E+00, EvXC: -5.25954252588E+00}, 
+    Total charge:  7.999979975165E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.716753311286E-01, f:  2.0000},  # 00001
  {e: -5.174935419542E-01, f:  2.0000},  # 00002
  {e: -3.711617593854E-01, f:  2.0000},  # 00003
  {e: -2.850060195984E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  1, delta:  7.00E-07, energy: -1.69485053769759020E+01, D:  8.335E-04}]
+   -  #-------------------------------------------------------------------- kernel iter: 2
+       Kernel update:
+         max dev from unity            :  1.61E-04
+         Hamiltonian application required:  Yes
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35000012732E+01, Epot: -1.79740268413E+01, Enl:  1.45747050045E+00, 
+              EH:  2.08027923437E+01,  EXC: -4.01416411065E+00, EvXC: -5.26116123627E+00}, 
+    Total charge:  7.999979973041E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.686568929503E-01, f:  2.0000},  # 00001
  {e: -5.147278585492E-01, f:  2.0000},  # 00002
- {e: -3.708841121124E-01, f:  2.0000},  # 00003
+ {e: -3.708841121123E-01, f:  2.0000},  # 00003
  {e: -2.842127007711E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  2, delta:  3.50E-07, energy: -1.69482883827030584E+01, D:  2.170E-04}]
+   -  #-------------------------------------------------------------------- kernel iter: 3
+       Kernel update:
+         max dev from unity            :  1.61E-04
+         Hamiltonian application required:  Yes
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35000012732E+01, Epot: -1.79671179229E+01, Enl:  1.45747050045E+00, 
+              EH:  2.08097477912E+01,  EXC: -4.01482108075E+00, EvXC: -5.26201289548E+00}, 
+    Total charge:  7.999979972017E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.671977238165E-01, f:  2.0000},  # 00001
  {e: -5.133455025482E-01, f:  2.0000},  # 00002
  {e: -3.707071795393E-01, f:  2.0000},  # 00003
  {e: -2.838249713512E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  3, delta:  1.76E-07, energy: -1.69482367667640013E+01, D:  5.162E-05}]
+   -  #-------------------------------------------------------------------- kernel iter: 4
+       Kernel update:
+         max dev from unity            :  1.61E-04
+         Hamiltonian application required:  Yes
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35000012732E+01, Epot: -1.79636815492E+01, Enl:  1.45747050045E+00, 
+              EH:  2.08132288544E+01,  EXC: -4.01515602444E+00, EvXC: -5.26244718699E+00}, 
+    Total charge:  7.999979971573E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.664879918434E-01, f:  2.0000},  # 00001
  {e: -5.126541883267E-01, f:  2.0000},  # 00002
  {e: -3.706022299410E-01, f:  2.0000},  # 00003
  {e: -2.836339116305E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  4, delta:  8.82E-08, energy: -1.69482243711015315E+01, D:  1.240E-05}]
+   -  &final_kernel002  { #-------------------------------------------------------- iter: 5
+ summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  5, delta:  8.82E-08, energy: -1.69482243711015315E+01, D:  1.240E-05}]}
+    #================================================================= Summary of both steps
+   self consistency summary: &it_sc002
+   -  {iter:  2, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter high:  2, delta out:  3.282E-07, energy: -1.69482243711015315E+01, D:  1.114E-03}
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun003
+   -  { #-------------------------------------------------------------------------- iter: 1
+ target function: ENERGY, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  1.35000012732E+01, Epot: -1.79619790979E+01, Enl:  1.45747050045E+00}, 
+ Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  1, fnrm:  2.50E-01, Omega: -1.69482213574376814E+01, D:  1.984E-04, 
+ Optimization: {algorithm: SD, mean alpha:  1.100E-04, max alpha:  1.100E-04, 
+    consecutive successes:  1}, 
+ Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
+ reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 2
+ target function: ENERGY, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  1.35000885136E+01, Epot: -1.79621187839E+01, Enl:  1.45748824521E+00}, 
+ Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  2, fnrm:  2.50E-01, Omega: -1.69482366236216286E+01, D: -1.527E-05, 
+ exit criterion: net number of iterations}
+   -  &final_supfun003  { #-------------------------------------------------------- iter: 2
+ target function: ENERGY, 
+ Energies: {Ekin:  1.35000885136E+01, Epot: -1.79621187839E+01, Enl:  1.45748824521E+00}, 
+ iter:  2, fnrm:  2.50E-01, Omega: -1.69482366236216286E+01, D: -1.527E-05}
+      #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel003
+   -  #-------------------------------------------------------------------- kernel iter: 1
+       Kernel update:
+         max dev from unity            :  1.52E-05
+         Hamiltonian application required:  No
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35000012732E+01, Epot: -1.79636815492E+01, Enl:  1.45747050045E+00, 
+              EH:  2.08149602782E+01,  EXC: -4.01532294536E+00, EvXC: -5.26266358138E+00}, 
+    Total charge:  7.999979971623E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.661446965169E-01, f:  2.0000},  # 00001
  {e: -5.123128702088E-01, f:  2.0000},  # 00002
  {e: -3.705446872074E-01, f:  2.0000},  # 00003
  {e: -2.835412330329E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  1, delta:  4.43E-08, energy: -1.69482366518888163E+01, D: -1.228E-05}]
+   -  #-------------------------------------------------------------------- kernel iter: 2
+       Kernel update:
+         max dev from unity            :  1.52E-05
+         Hamiltonian application required:  Yes
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35000885136E+01, Epot: -1.79612188710E+01, Enl:  1.45748824521E+00, 
+              EH:  2.08158831953E+01,  EXC: -4.01541725155E+00, EvXC: -5.26278607674E+00}, 
+    Total charge:  7.999979971600E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.659675146625E-01, f:  2.0000},  # 00001
  {e: -5.121336940994E-01, f:  2.0000},  # 00002
  {e: -3.705062198493E-01, f:  2.0000},  # 00003
  {e: -2.834883263420E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  2, delta:  2.23E-08, energy: -1.69482359158069187E+01, D:  7.361E-07}]
+   -  #-------------------------------------------------------------------- kernel iter: 3
+       Kernel update:
+         max dev from unity            :  1.52E-05
+         Hamiltonian application required:  Yes
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35000885136E+01, Epot: -1.79607889640E+01, Enl:  1.45748824521E+00, 
+              EH:  2.08163234245E+01,  EXC: -4.01546085694E+00, EvXC: -5.26284263522E+00}, 
+    Total charge:  7.999979971563E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.658832167478E-01, f:  2.0000},  # 00001
  {e: -5.120461285462E-01, f:  2.0000},  # 00002
  {e: -3.704880051004E-01, f:  2.0000},  # 00003
  {e: -2.834646764720E-01, f:  2.0000}] # 00004
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  85,  83,  83 ]
-   MPI tasks                           :  3
-  #Eigenvalues and New Occupation Numbers
- Orbitals: [
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  3, delta:  1.12E-08, energy: -1.69482357357614823E+01, D:  1.800E-07}]
+   -  #-------------------------------------------------------------------- kernel iter: 4
+       Kernel update:
+         max dev from unity            :  1.52E-05
+         Hamiltonian application required:  Yes
+         method                        : diagonalization
+         mode                          : sequential
+         communication strategy kernel : ALLREDUCE
+         Coefficients available        :  Yes
+       Hamiltonian update: {
+ Energies: {Ekin:  1.35000885136E+01, Epot: -1.79605768775E+01, Enl:  1.45748824521E+00, 
+              EH:  2.08165409438E+01,  EXC: -4.01548214629E+00, EvXC: -5.26287023497E+00}, 
+    Total charge:  7.999979971546E+00, 
+ Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
+        #Eigenvalues and New Occupation Numbers
+       Orbitals: [
  {e: -9.658420901656E-01, f:  2.0000},  # 00001
  {e: -5.120025708921E-01, f:  2.0000},  # 00002
- {e: -3.704785182387E-01, f:  2.0000},  # 00003
+ {e: -3.704785182388E-01, f:  2.0000},  # 00003
  {e: -2.834532209835E-01, f:  2.0000}] # 00004
+       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  4, delta:  5.62E-09, energy: -1.69482356915338173E+01, D:  4.423E-08}]
+   -  &final_kernel003  { #-------------------------------------------------------- iter: 5
+ summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
+ iter:  5, delta:  5.62E-09, energy: -1.69482356915338173E+01, D:  4.423E-08}]}
+    #================================================================= Summary of both steps
+   self consistency summary: &it_sc003
+   -  {iter:  3, target function: ENERGY,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter high:  3, delta out:  2.083E-08, energy: -1.69482356915338173E+01, D: -1.132E-05}
+    #========================================================================= final results
+   self consistency summary:
+   -  {iter:  3, 
+ Energies: {Ekin:  1.35000885136E+01, Epot: -1.79605768775E+01, Enl:  1.45748824521E+00, 
+              EH:  2.08166486691E+01,  EXC: -4.01549257366E+00, EvXC: -5.26288374719E+00}, 
+       iter high:  3,            delta out:  2.083E-08, 
+          energy: -1.69482356915338173E+01,                       D:  0.000E+00,  #FINAL
+ }
+  #WARNING: commented correction_locrad
+  #------------------------------------------------------------------------ Pulay Correction
+ Pulay Forces (Ha/Bohr):
+ -  {O: [-1.574613433426E-01,  7.366116315562E-02,  8.119914171768E-02]} # 0001
+ -  {H: [ 1.116513453551E-02,  2.862951629016E-03,  1.800985951886E-03]} # 0002
+ -  {H: [ 3.994655946026E-03, -1.682926873168E-02, -1.926677183070E-02]} # 0003
+ Total charge                          :  7.999979971546E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -497,19 +778,26 @@
  Raw forces norm (Ha/Bohr): {maxval:  3.317449326452E-01, fnrm2:  1.132394119519E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.100634594113E-01, -4.045120879340E-03, -1.278154176172E-02]} # 0001
- -  {H: [-1.669767462736E-01,  5.602723947996E-03,  1.246531255257E-02]} # 0002
- -  {H: [-4.308671313770E-02, -1.557603068656E-03,  3.162292091525E-04]} # 0003
+ -  {O: [ 2.100634594113E-01, -4.045120879347E-03, -1.278154176173E-02]} # 0001
+ -  {H: [-1.669767462736E-01,  5.602723947999E-03,  1.246531255257E-02]} # 0002
+ -  {H: [-4.308671313771E-02, -1.557603068653E-03,  3.162292091559E-04]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.81
-   Elapsed time (s)                    :  3.53
+   CPU time (s)                        :  6.42
+   Elapsed time (s)                    :  3.28
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
+ - support function optimization not converged
+ - density optimization not converged
+ - support function optimization not converged
+ - density optimization not converged
+ - support function optimization not converged
+ - density optimization not converged
+ - commented correction_locrad
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3919
-   Tot. No. of Deallocations           :  3919
+   Tot. No. of Allocations             :  3852
+   Tot. No. of Deallocations           :  3852
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  86

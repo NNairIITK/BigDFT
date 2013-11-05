@@ -102,7 +102,9 @@ struct _f90_pointer_double
   void *shift[F90_1D_POINTER_SHIFT];
 #endif
   double *data;
+#if F90_1D_POINTER_SIZE - 1 - F90_1D_POINTER_SHIFT > 0
   void *info[F90_1D_POINTER_SIZE - 1 - F90_1D_POINTER_SHIFT];
+#endif
 };
 typedef struct _f90_pointer_double_2D f90_pointer_double_2D;
 struct _f90_pointer_double_2D
@@ -111,7 +113,9 @@ struct _f90_pointer_double_2D
   void *shift[F90_2D_POINTER_SHIFT];
 #endif
   double *data;
+#if F90_2D_POINTER_SIZE - 1 - F90_2D_POINTER_SHIFT > 0
   void *info[F90_2D_POINTER_SIZE - 1 - F90_2D_POINTER_SHIFT];
+#endif
 };
 typedef struct _f90_pointer_double_3D f90_pointer_double_3D;
 struct _f90_pointer_double_3D
@@ -120,7 +124,9 @@ struct _f90_pointer_double_3D
   void *shift[F90_3D_POINTER_SHIFT];
 #endif
   double *data;
+#if F90_3D_POINTER_SIZE - 1 - F90_3D_POINTER_SHIFT > 0
   void *info[F90_3D_POINTER_SIZE - 1 - F90_3D_POINTER_SHIFT];
+#endif
 };
 typedef struct _f90_pointer_double_4D f90_pointer_double_4D;
 struct _f90_pointer_double_4D
@@ -129,7 +135,9 @@ struct _f90_pointer_double_4D
   void *shift[F90_4D_POINTER_SHIFT];
 #endif
   double *data;
+#if F90_4D_POINTER_SIZE - 1 - F90_4D_POINTER_SHIFT > 0
   void *info[F90_4D_POINTER_SIZE - 1 - F90_4D_POINTER_SHIFT];
+#endif
 };
 typedef struct _f90_pointer_double_5D f90_pointer_double_5D;
 struct _f90_pointer_double_5D
@@ -138,7 +146,9 @@ struct _f90_pointer_double_5D
   void *shift[F90_5D_POINTER_SHIFT];
 #endif
   double *data;
+#if F90_5D_POINTER_SIZE - 1 - F90_5D_POINTER_SHIFT > 0
   void *info[F90_5D_POINTER_SIZE - 1 - F90_5D_POINTER_SHIFT];
+#endif
 };
 typedef struct _f90_pointer_int f90_pointer_int;
 struct _f90_pointer_int 
@@ -147,7 +157,9 @@ struct _f90_pointer_int
   void *shift[F90_1D_POINTER_SHIFT];
 #endif
   int *data;
+#if F90_1D_POINTER_SIZE - 1 - F90_1D_POINTER_SHIFT > 0
   void *info[F90_1D_POINTER_SIZE - 1 - F90_1D_POINTER_SHIFT];
+#endif
 };
 typedef struct _f90_pointer_int_2D f90_pointer_int_2D;
 struct _f90_pointer_int_2D
@@ -156,7 +168,9 @@ struct _f90_pointer_int_2D
   void *shift[F90_2D_POINTER_SHIFT];
 #endif
   int *data;
+#if F90_2D_POINTER_SIZE - 1 - F90_2D_POINTER_SHIFT > 0
   void *info[F90_2D_POINTER_SIZE - 1 - F90_2D_POINTER_SHIFT];
+#endif
 };
 
 #endif

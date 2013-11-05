@@ -1750,7 +1750,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   end if
 
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
-       &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
+       &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks,1)
 
   !allocate communications arrays for inputguess orbitals
   !call allocate_comms(nproc,orbse,commse,subname)
