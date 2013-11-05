@@ -578,7 +578,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
       call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
 
-      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
@@ -586,7 +586,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       end if
 
   else
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0)
   end if
 

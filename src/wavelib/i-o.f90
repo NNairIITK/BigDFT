@@ -1197,7 +1197,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 !if (any(hgridsh/=hgridsh_old)) then
 !  ixp=1
 !  iyp=2
-! izp=3
+!  izp=3
 !!$  print *,'final case',(/ixp,iyp,izp/)
 !endif
 
@@ -1396,16 +1396,16 @@ subroutine define_filter(dt,nrange,nphi,phi,shf)
   real(gp), dimension(-nrange/2:nrange/2), intent(out) :: shf !< interpolating filter to be applied
   !local variables
   integer :: nunit,ish,ipos,m_isf,l,jisf
-  
+
   m_isf=nrange/2
   !number of points for a unit displacement
   nunit=nphi/nrange 
-  
+
   !evaluate the shift
   ish=nint(real(nunit,gp)*dt)
 
   !starting point in the filter definition
-  ipos=ish!+1
+  ipos=ish+1
   if (ish<= 0) then
      jisf=-(abs(ish))/nunit-1
   else if (ish > 0) then
@@ -1960,6 +1960,15 @@ contains
 !!$    dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)
 !!$    !end of doubts
 
+    !!doubts about that
+    !t0_l=(dt-t0_l)/hgrids_old
+    !!identify shift
+    !dt(1)=(real(istart(1),gp)+t0_l(1))-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
+    !dt(2)=(real(istart(2),gp)+t0_l(2))-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
+    !dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
+    !!end of doubts
+
+
       !this shift brings the old point in the new reference frame
     dt=real(istart,gp)-(t0_l+centre_new+hgrids_new)/hgrids_old
 
@@ -2259,7 +2268,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
 
        !define the value of the shift of the variable we are going to transform
       !coordinate that has to be found in the old box, including the shift
-      coord_old=coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr) 
+      coord_old=coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr)
 
       !central point of the convolution rounded to the grid points
       istart=min(max(1,nint((coord_old+centre_old(ntr)+hgrids_old(ntr))&
@@ -2302,8 +2311,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       istart=istart-istart_shift
 
       !identify extremes for the convolution
-       ms=-min(m_isf,istart-1)
-       me=min(m_isf,ndims_old(ntr)-istart)
+      ms=-min(m_isf,istart-1)
+      me=min(m_isf,ndims_old(ntr)-istart)
 
      end subroutine shift_and_start
 

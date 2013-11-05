@@ -2103,7 +2103,7 @@ module module_interfaces
     end subroutine psimix
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-         ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+         energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
          calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
       use module_base
       use module_types
@@ -2119,7 +2119,7 @@ module module_interfaces
       type(DFT_local_fields), intent(inout) :: denspot
       type(GPU_pointers),intent(inout) :: GPU
       integer,intent(out) :: infoCoeff
-      real(kind=8),intent(inout) :: ebs
+      type(energy_terms), intent(inout) :: energs
       real(kind=8),intent(inout) :: fnrm
       type(nonlocal_psp_descriptors),intent(in) :: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj

@@ -9,7 +9,7 @@
 
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-    ebs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+    energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,ham_small,extra_states,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
   use module_base
   use module_types
@@ -27,7 +27,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
   integer,intent(out) :: infoCoeff
-  real(kind=8),intent(inout) :: ebs
+  type(energy_terms), intent(inout) :: energs
   real(kind=8),intent(inout) :: fnrm
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd
   real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -50,7 +50,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, evalsmall, work
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-  type(energy_terms) :: energs
+
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
@@ -368,10 +368,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
      if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
      ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
      if (extra_states>0) then
-        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
              curvefit_dmin, factor, reorder, extra_states)
      else
-        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, ebs, &
+        call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
              curvefit_dmin, factor, reorder)
      end if
   end if
@@ -385,10 +385,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'getlocbasinit','ON') !lr408t
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,ebs,tmb%coeff,orbs,tmb%orbs,.true.)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,&
+              tmb%coeff,orbs,tmb%orbs,.true.)
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,ebs,tmb%coeff,orbs,tmb%orbs,.false.)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,&
+              tmb%coeff,orbs,tmb%orbs,.false.)
       end if
       call timing(iproc,'getlocbasinit','OF') !lr408t
 
@@ -403,7 +405,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
-           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, ebs)
+           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, energs%ebs)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
