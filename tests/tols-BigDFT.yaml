@@ -272,6 +272,7 @@ taskgroups:
 
 base:
   norm(P): 1.1e-9
+  Epot: 1.1e-10
 
 Davidson-SiH4:
   e_virtual: 1.7e-11
@@ -299,10 +300,10 @@ cleanup:
  Raw forces norm (Ha/Bohr): 7.1e-11
  Epot: 1.2e-9
  Orbitals: 5.0e-11
- EH: 4.1e-10
+ EH: 5.1e-10
  EXC: 9.1e-11
- EvXC: 1.2e-10
- Omega: 4.4e-11
+ EvXC: 1.3e-10
+ Omega: 1.2e-10
  Pulay Forces (Ha/Bohr): 7.8e-11
  energy: 9.0e-11
 
@@ -394,6 +395,9 @@ hybrid-directmin:
 cdft_ohoh:
  Epsilon: 7.1e-10
 
+cdft_oh-:
+ Epot: 1.1e-10
+
 fructose:
  Epsilon: 1.1e-11
  D eF: 1.1e-9
@@ -431,3 +435,4 @@ foe:
  energy: 2.8e-11
  EH: 1.0e-9
  Omega: 2.7e-11
+ EXC: 1.0e-10
