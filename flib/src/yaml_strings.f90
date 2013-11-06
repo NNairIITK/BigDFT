@@ -26,7 +26,7 @@ module yaml_strings
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_ctoa
-     module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa
+     module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa,yaml_lvtoa,yaml_rvtoa
   end interface
 
   interface cnv_fmt
@@ -36,11 +36,6 @@ module yaml_strings
   !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa
-
-  !Private routines
-  private :: yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa
-  private :: yaml_dvtoa,yaml_ivtoa,max_value_length
-  
 
 contains
 
@@ -147,7 +142,6 @@ contains
 
   end subroutine buffer_string
 
-
   !> Add the spaces necessary to align the first occurrence of a given anchor
   !! into a tabular value. Can be done either by moving rigidly the message or 
   !! by adding spaces between the anchor and the rest of the message
@@ -210,7 +204,7 @@ contains
     character(len=max_value_length) :: yaml_ctoa
     character(len=*), optional, intent(in) :: fmt
 
-    yaml_ctoa(1:max_value_length)=d
+    yaml_ctoa(1:max_value_length)=trim(d)
 
   end function yaml_ctoa
 
@@ -277,178 +271,45 @@ contains
     yaml_ltoa=yaml_adjust(yaml_ltoa)
   end function yaml_ltoa
 
-
   !> Convert vector of double to character
-  pure function yaml_dvtoa(dv,fmt)
+  pure function yaml_dvtoa(vec,fmt) result(vec_toa)
     implicit none
-    real(kind=8), dimension(:), intent(in) :: dv
-    character(len=max_value_length) :: yaml_dvtoa
-    character(len=*), optional, intent(in) :: fmt
-    !local variables
-    character(len=max_value_length) :: tmp
-    integer :: nl,nu,i,length,pos
-
-    tmp=repeat(' ',max_value_length)
-    yaml_dvtoa=tmp
-
-    nl=lbound(dv,1)
-    nu=ubound(dv,1)
-
-    if (nl > nu) then
-       !Special case for size 0 (nl is > nu!)
-       yaml_dvtoa(1:2) = '[]'
-    else
-       yaml_dvtoa(1:2)='[ '
-       pos=3
-       do i=nl,nu
-          if (present(fmt)) then
-             tmp=yaml_dtoa(dv(i),fmt=fmt)
-          else
-             tmp=yaml_dtoa(dv(i))
-          end if
-          length=len(trim(tmp))-1
-          if (pos+length > max_value_length) exit
-          yaml_dvtoa(pos:pos+length)=tmp(1:length+1)
-          if (i < nu) then
-             yaml_dvtoa(pos+length+1:pos+length+2)=', '
-          else
-             yaml_dvtoa(pos+length+1:pos+length+2)=' ]'
-          end if
-          pos=pos+length+3
-       end do
-    end if
-
-    yaml_dvtoa=yaml_adjust(yaml_dvtoa)
-
+    real(kind=8), dimension(:), intent(in) :: vec
+    include 'yaml_toa-arr-inc.f90'
   end function yaml_dvtoa
 
-
   !> Convert vector of double complex to character
-  pure function yaml_zvtoa(dz,fmt)
+  pure function yaml_zvtoa(vec,fmt) result(vec_toa)
     implicit none
-    double complex, dimension(:), intent(in) :: dz
-    character(len=max_value_length) :: yaml_zvtoa
-    character(len=*), optional, intent(in) :: fmt
-    !local variables
-    character(len=max_value_length) :: tmp
-    integer :: nl,nu,i,length,pos
-
-    tmp=repeat(' ',max_value_length)
-    yaml_zvtoa=tmp
-
-    nl=lbound(dz,1)
-    nu=ubound(dz,1)
-
-    yaml_zvtoa(1:2)='[ '
-    pos=3
-    do i=nl,nu
-       if (present(fmt)) then
-          tmp=yaml_ztoa(dz(i),fmt=fmt)
-       else
-          tmp=yaml_ztoa(dz(i))
-       end if
-       length=len(trim(tmp))-1
-       if (pos+length > max_value_length) exit
-       yaml_zvtoa(pos:pos+length)=tmp(1:length+1)
-       if (i < nu) then
-          yaml_zvtoa(pos+length+1:pos+length+2)=', '
-       else
-          yaml_zvtoa(pos+length+1:pos+length+2)=' ]'
-       end if
-       pos=pos+length+3
-    end do
-
-    yaml_zvtoa=yaml_adjust(yaml_zvtoa)
-
+    double complex, dimension(:), intent(in) :: vec
+    include 'yaml_toa-arr-inc.f90'
   end function yaml_zvtoa
 
   !> Convert vector of integer to character
-  pure function yaml_ivtoa(iv,fmt)
+  pure function yaml_ivtoa(vec,fmt) result(vec_toa)
     implicit none
-    integer, dimension(:), intent(in) :: iv
-    character(len=max_value_length) :: yaml_ivtoa
-    character(len=*), optional, intent(in) :: fmt
-    !local variables
-    character(len=max_value_length) :: tmp
-    integer :: nl,nu,i,length,pos
-
-    tmp=repeat(' ',max_value_length)
-    yaml_ivtoa=tmp
-
-    nl=lbound(iv,1)
-    nu=ubound(iv,1)
-
-    if (nl > nu) then
-       !Special case for size 0 (nl is > nu!)
-       yaml_ivtoa(1:2) = '[]'
-    else
-       yaml_ivtoa(1:2)='[ '
-       pos=3
-       do i=nl,nu
-          if (present(fmt)) then
-             tmp=yaml_itoa(iv(i),fmt=fmt)
-          else
-             tmp=yaml_itoa(iv(i))
-          end if
-          length=len(trim(tmp))-1
-          if (pos+length > max_value_length) exit
-          yaml_ivtoa(pos:pos+length)=tmp(1:length+1)
-          if (i < nu) then
-             yaml_ivtoa(pos+length+1:pos+length+2)=', '
-          else
-             yaml_ivtoa(pos+length+1:pos+length+2)=' ]'
-
-          end if
-          pos=pos+length+3
-       end do
-    end if
-
-    yaml_ivtoa=yaml_adjust(yaml_ivtoa)
-
+    integer, dimension(:), intent(in) :: vec
+    include 'yaml_toa-arr-inc.f90'
   end function yaml_ivtoa
 
-
   !> Convert vector of characters to a chain of characters
-  pure function yaml_cvtoa(cv,fmt)
+  pure function yaml_cvtoa(vec,fmt) result(vec_toa)
     implicit none
-    character(len=*), dimension(:), intent(in) :: cv
-    character(len=max_value_length) :: yaml_cvtoa
-    character(len=*), optional, intent(in) :: fmt
-    !local variables
-    character(len=max_value_length) :: tmp
-    integer :: nl,nu,i,length,pos
-
-    tmp=repeat(' ',max_value_length)
-    yaml_cvtoa=tmp
-
-    nl=lbound(cv,1)
-    nu=ubound(cv,1)
-
-    if (nl > nu) then
-       !Special case for size 0 (nl is > nu!)
-       yaml_cvtoa(1:2) = '[]'
-    else
-       yaml_cvtoa(1:2)='[ '
-       pos=3
-       do i=nl,nu
-          if (present(fmt)) then
-             write(tmp,fmt=fmt) trim(cv(i))
-          else
-             tmp=trim(cv(i))
-          end if
-          length=len(trim(tmp))-1
-          if (pos+length > max_value_length) exit
-          yaml_cvtoa(pos:pos+length)=tmp(1:length+1)
-          if (i < nu) then
-             yaml_cvtoa(pos+length+1:pos+length+2)=', '
-          else
-             yaml_cvtoa(pos+length+1:pos+length+2)=' ]'
-          end if
-          pos=pos+length+3
-       end do
-    end if
-    yaml_cvtoa=yaml_adjust(yaml_cvtoa)
+    character(len=*), dimension(:), intent(in) :: vec
+    include 'yaml_toa-arr-inc.f90'
   end function yaml_cvtoa
+
+  pure function yaml_lvtoa(vec,fmt) result(vec_toa)
+    implicit none
+    logical, dimension(:), intent(in) :: vec
+    include 'yaml_toa-arr-inc.f90'
+  end function yaml_lvtoa
+
+  pure function yaml_rvtoa(vec,fmt) result(vec_toa)
+    implicit none
+    real, dimension(:), intent(in) :: vec
+    include 'yaml_toa-arr-inc.f90'
+  end function yaml_rvtoa
 
 
   !> Yaml Spaced format for Date and Time

@@ -1,7 +1,7 @@
 !> @file
 !! Include file used in yaml_strings.f90
-!! Body of the yaml_to template.
-!! yaml: Yet Another Markeup Language (ML for Human)
+!! Body of the yaml_toa template.
+!! yaml: Yet Another Markup Language (ML for Human)
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group
 !!    This file is distributed under the terms of the
