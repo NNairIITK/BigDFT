@@ -222,7 +222,7 @@ N2:
 mixpotential:
  Epot: 1.1e-10
  energy: 1.7e-11
- Omega: 1.6e-11
+ Omega: 1.8e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -315,18 +315,17 @@ directmin:
  max alpha: 1.1e-04
 
 experimentalmode:
+ D: 1.1e-07
  Epsilon: 8.e-10
  Ekin: 1.3e-07
  Enl: 4.9e-08
- Omega: 9.2e-08
- EH: 5.0e-07
- Epot: 4.9e-07
- EXC: 9.7e-08
- EvXC: 1.3e-07
- energy: 5.2e-09
- multiplicator for the confinement: 7.5e-09
- fnrm2: 1.1e-09
- maxval: 1.6e-09
+ Omega: 2.8e-07
+ EH: 2.8e-06
+ Epot: 2.8e-06
+ EXC: 5.4e-07
+ EvXC: 3.0e-07
+ energy: 2.9e-08
+ multiplicator for the confinement: 1.6e-08
  Atomic Forces (Ha/Bohr): 1.3e-09
  Raw forces norm (Ha/Bohr): 3.2e-8
  Clean forces norm (Ha/Bohr): 2.3e-09
@@ -383,13 +382,13 @@ molecule_foe:
 hybrid-directmin:
  Epsilon: 1.4e-11
  Enl: 1.1e-10
- eBS: 3.5e-10
- Omega: 1.8e-10
- energy: 2.1e-11
+ eBS: 4.5e-10
+ Omega: 4.6e-10
+ energy: 3.3e-11
  multiplicator for the confinement: 2.2e-11
  Epot: 1.1e-09
  EH: 1.0e-9
- EXC: 1.0e-10
+ EXC: 1.1e-10
  EvXC: 1.1e-10
 
 cdft_ohoh:
@@ -397,14 +396,16 @@ cdft_ohoh:
 
 cdft_oh-:
  Epot: 1.1e-10
+ EH: 1.1e-10
 
 fructose:
  Epsilon: 1.1e-11
+ D: 1.1e-10
  D eF: 1.1e-9
  eF: 2.3e-10
  EH: 1.0e-9
  EvXC: 1.1e-10
- energy: 4.2e-11
+ energy: 4.7e-11
  Omega: 4.2e-11
  Total charge: 2.1e-10
  charge diff: 1.1e-10

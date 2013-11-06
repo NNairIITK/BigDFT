@@ -600,7 +600,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
       ! Adapt step size for the steepest descent minimization.
           if (experimental_mode) then
-              if (iproc==0 .and. iorb==1) write(*,*) 'WARNING: USING SAME STEP SIZE'
+              if (iproc==0 .and. iorb==1) then
+                  !write(*,*) 'WARNING: USING SAME STEP SIZE'
+                  call yaml_warning('Using same step size for all TMBs')
+              end if
               tt=fnrmOvrlp_tot/sqrt(fnrm_tot*fnrmOld_tot)
           else
               tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))

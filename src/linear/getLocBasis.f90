@@ -1751,6 +1751,7 @@ end subroutine communicate_basis_for_density_collective
 subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   use module_base
   use module_types
+  use yaml_output
   implicit none
   
   ! Calling arguments
@@ -1763,6 +1764,8 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   
   ! Local variables
   integer :: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
+  character(len=2) :: numfail_char
+  character(len=10) :: stepsize_char
   
 
   ! Purpose:
@@ -1829,11 +1832,30 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
           ! Switch back to SD.
           alpha=ldiis%alphaSD
           if(iproc==0) then
-              if(ldiis%icountDIISFailureCons>=4) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
-                  ldiis%icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
-              if(ldiis%icountDIISFailureTot>=6) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
-                  ldiis%icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
-              if(ldiis%resetDIIS) write(*,'(1x,a)') 'reset DIIS due to flag'
+              !if(ldiis%icountDIISFailureCons>=4) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+              !    ldiis%icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
+              write(numfail_char,'(i2.2)') ldiis%icountDIISFailureCons
+              write(stepsize_char,'(es10.3)') alpha(1)
+              if(ldiis%icountDIISFailureCons>=4) then
+                  call yaml_warning('DIIS failed '//numfail_char//' times consecutively. &
+                       &Switch to SD with stepsize'//stepsize_char//'.')
+                  call yaml_newline()
+                  !!write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+                  !!ldiis%icountDIISFailureCons, ' times consecutively. Switch to SD with stepsize', alpha(1)
+              end if
+              !!if(ldiis%icountDIISFailureTot>=6) write(*,'(1x,a,i0,a,es10.3)') 'DIIS failed ', &
+              !!    ldiis%icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
+              if(ldiis%icountDIISFailureTot>=6) then
+                  call yaml_warning('DIIS failed '//numfail_char//' times in total. &
+                       &Switch to SD with stepsize'//stepsize_char//'.' )
+                  call yaml_newline()
+              end if
+              if(ldiis%resetDIIS) then
+                  call yaml_warning('reset DIIS due to flag')
+                  call yaml_newline()
+                  !write(*,'(1x,a)') 'reset DIIS due to flag'
+              end if
+              
           end if
           if(ldiis%resetDIIS) then
               ldiis%resetDIIS=.false.
@@ -1847,8 +1869,11 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
           ! these orbitals are still present in the DIIS history.
           if(it-ldiis%itBest<ldiis%isx) then
              if(iproc==0) then
-                 if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
-                     ldiis%itBest, ' which are the best so far.'
+                 !!if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
+                 !!    ldiis%itBest, ' which are the best so far.'
+                 if (iproc==0) then
+                     call yaml_map('Take best TMBs from history',ldiis%itBest)
+                 end if
              end if
              ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%mis)
              offset=0

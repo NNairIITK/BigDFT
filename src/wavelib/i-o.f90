@@ -1265,6 +1265,129 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 
 END SUBROUTINE reformat_one_supportfunction
 
+
+!> Call the routine which performs the interpolation in each direction
+subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
+ use module_base
+ implicit none
+ integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+ integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+ integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
+ integer, intent(in) :: ndat !< size of the array in orthogonal directions
+! real(gp), intent(in) :: h !< grid spacing in the interpolating direction
+ real(gp), dimension(nin,ndat), intent(in) :: t0_field !< field of shifts to be applied for each point in grid spacing units
+ real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+ real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
+ real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
+ !local variables
+ character(len=*), parameter :: subname='morph_and_transpose'
+!!$ real(gp), parameter  :: tol=1.e-14_gp
+ integer :: i_all,i_stat,nunit,m_isf,i,j,l,ms,me,k1
+ real(gp) :: dt,tt,t0_l,diff
+ real(gp), dimension(:), allocatable :: shf !< shift filter
+!!$ integer :: k2
+!!$ real(gp) :: k,kold,ksh1,ksh2,alpha
+
+ !assume for the moment that the grid spacing is constant
+ !call f_malloc_routine_id(subname)
+ m_isf=nrange/2
+
+ !shf=f_malloc(bounds=(/-m_isf .to. m_isf/),id='shf')
+
+ !calculate the shift filter for the given t0
+ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
+ call memocc(i_stat,shf,'shf',subname)
+
+ !number of points for a unit displacement
+ nunit=nphi/nrange 
+
+ !apply the interpolating filter to the output
+ do j=1,ndat
+    psi_out(j,:)=0.0_gp
+    do i=1,nout
+
+       !find inverse
+       call find_inverse(nin,i,t0_field(1,j),t0_l,k1)
+!!$       kold=-1000.0_gp
+!!$       find_trans: do l=1,nin
+!!$          k=real(l,gp)+t0_field(l,j)
+!!$          if (k-real(i,gp) > tol) exit find_trans
+!!$          kold=k
+!!$          !print *,l,k,t0_field(l,j),i
+!!$       end do find_trans
+!!$       ! want to use either l or l-1 to give us point i - pick closest
+!!$       if (k-real(i,gp) < -kold+real(i,gp)) then
+!!$          ksh1=k-real(i,gp)
+!!$          ksh2=-kold+real(i,gp)
+!!$          k1=l
+!!$          k2=l-1
+!!$          if (k2==0) then
+!!$             k2=1
+!!$             ksh2=ksh1
+!!$          end if
+!!$          if (k1==nin+1) then
+!!$             k1=nin
+!!$             ksh1=ksh2
+!!$          end if
+!!$       else
+!!$          ksh1=-kold+real(i,gp)
+!!$          ksh2=k-real(i,gp)
+!!$          k1=l-1
+!!$          k2=l
+!!$          if (k1==0) then
+!!$             k1=1
+!!$             ksh1=ksh2
+!!$          end if
+!!$          if (k2==nin+1) then
+!!$             k2=nin
+!!$             ksh2=ksh1
+!!$          end if
+!!$       end if
+!!$
+!!$       if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
+!!$          ksh2=1.0_gp
+!!$          ksh1=0.0_gp
+!!$       end if 
+!!$
+!!$       alpha=ksh2/(ksh1+ksh2)
+!!$
+!!$       t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
+!!$       !end of find_inverse
+
+
+       dt=t0_l-nint(t0_l)
+   
+       diff=real(i,gp)-(k1+t0_l)   
+
+       if (abs(diff - dt) < abs(diff+dt)) dt=-dt
+
+       !define filter for the interpolation starting from a constant shift
+       call define_filter(dt,nrange,nphi,phi,shf)
+
+       !here the boundary conditions have to be considered
+       tt=0.0_gp
+       ms=-min(m_isf,k1-1)
+       me=min(m_isf,nin-k1)
+       do l=ms,me
+          tt=tt+shf(l)*psi_in(k1+l,j)
+       end do
+       !end of interpolate coefficient
+
+
+       if (i > 0 .and. i < nout) psi_out(j,i)=tt
+
+    end do
+ end do
+
+! call f_free(shf)
+! call f_malloc_free_routine()
+
+ i_all=-product(shape(shf))*kind(shf)
+ deallocate(shf,stat=i_stat)
+ call memocc(i_stat,i_all,'shf',subname)
+
+end subroutine morph_and_transpose
+
 subroutine define_filter(dt,nrange,nphi,phi,shf)
   use module_base
   implicit none
