@@ -222,7 +222,7 @@ N2:
 mixpotential:
  Epot: 1.1e-10
  energy: 2.0e-11
- Omega: 1.9e-11
+ Omega: 2.0e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -443,7 +443,7 @@ deltascf_write_neut:
 
 foe:
  Epot: 1.1e-10
- energy: 2.8e-11
+ energy: 2.9e-11
  EH: 1.0e-9
  Omega: 3.2e-11
  EXC: 1.0e-10
