@@ -221,8 +221,8 @@ N2:
 
 mixpotential:
  Epot: 1.1e-10
- energy: 1.7e-11
- Omega: 1.8e-11
+ energy: 2.0e-11
+ Omega: 1.9e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -403,6 +403,8 @@ cdft_oh-a:
  EH: 1.1e-10
 
 fructose:
+ Epot: 1.1e-09
+ Ekin: 1.1e-09
  Epsilon: 1.1e-11
  D: 1.1e-10
  D eF: 1.1e-9
@@ -410,7 +412,7 @@ fructose:
  EH: 1.0e-9
  EvXC: 1.1e-10
  energy: 4.7e-11
- Omega: 4.2e-11
+ Omega: 4.7e-11
  Total charge: 2.1e-10
  charge diff: 1.1e-10
  Keys to ignore:
