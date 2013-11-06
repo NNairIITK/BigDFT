@@ -23,8 +23,9 @@ EXTRA_TESTDIRS = reformatcomplete \
 	reformat \
 	paracetamol \
 	rotate \
-	rotate2 \
-	noortho
+	rotate2 
+#\
+#	noortho
 
 
 EXTRA_DIST = 

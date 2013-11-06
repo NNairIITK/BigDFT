@@ -113,7 +113,7 @@ module module_fragments
 
   !public operator(*)
 
-  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null
+  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, rotate_vector
   public :: frag_center, find_frag_trans, calculate_fragment_density, fragment_coeffs_to_kernel
 
 contains

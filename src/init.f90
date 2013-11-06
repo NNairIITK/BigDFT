@@ -2859,12 +2859,22 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call timing(iproc,'constraineddft','OF')
 
+    !call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'density.cube', &
+    !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
+
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)
      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
+
      call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+
+    !call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'potential.cube', &
+    !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
+
+    !call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'vext.cube', &
+    !     atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
 
      !! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
      if (in%lin%diag_start) then

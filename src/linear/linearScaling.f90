@@ -80,6 +80,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   character(len=50) :: filename
   !!! #########################################################
 
+  ! DEBUG - for calculating centres
+  type(workarr_sumrho) :: w
+  real(gp), allocatable, dimension(:,:,:,:) :: psir
+  integer :: ind, i_all, i_stat, nspinor, ix, iy, iz, iix, iiy, iiz
+  real(gp) :: psix, psiy, psiz, xcent, ycent, zcent
+
   call timing(iproc,'linscalinit','ON') !lr408t
 
   call f_routine(id='linear_scaling')
@@ -234,6 +240,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            exit
         end if
      end do
+  else
+     ! only use tmb%orbs%occup for calculating energy components, otherwise using KSwfn%orbs%occup
+     tmb%orbs%occup=1.0d0
   end if
 
   ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
@@ -249,6 +258,50 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   call timing(iproc,'linscalinit','OF') !lr408t
+
+  !! DEBUG - check centres
+  !ind=1
+  !do iorb=1,tmb%orbs%norbp
+  !   iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
+  !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+  !
+  !   allocate(psir(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, 1+ndebug),stat=i_stat)
+  !   call memocc(i_stat,psir,'psir',subname)
+  !   call initialize_work_arrays_sumrho(tmb%lzd%llr(ilr),w)
+  !
+  !   call daub_to_isf(tmb%lzd%llr(ilr),w,tmb%psi(ind),psir)
+  !
+  !   xcent=0.0d0
+  !   ycent=0.0d0
+  !   zcent=0.0d0
+  !   do iz=1,tmb%lzd%llr(ilr)%d%n3i
+  !      iiz=iz-15+tmb%lzd%llr(ilr)%nsi3
+  !      do iy=1,tmb%lzd%llr(ilr)%d%n2i
+  !         iiy=iy-15+tmb%lzd%llr(ilr)%nsi2
+  !         do ix=1,tmb%lzd%llr(ilr)%d%n1i
+  !            iix=ix-15+tmb%lzd%llr(ilr)%nsi1
+  !            psix=psir(ix,iy,iz,1)*(iix*tmb%lzd%hgrids(1)*0.5d0)
+  !            psiy=psir(ix,iy,iz,1)*(iiy*tmb%lzd%hgrids(2)*0.5d0)
+  !            psiz=psir(ix,iy,iz,1)*(iiz*tmb%lzd%hgrids(3)*0.5d0)
+  !            xcent=xcent+psir(ix,iy,iz,1)*psix
+  !            ycent=ycent+psir(ix,iy,iz,1)*psiy
+  !            zcent=zcent+psir(ix,iy,iz,1)*psiz
+  !         end do
+  !      end do
+  !   end do
+  !
+  !   write(*,'(a,4I4,3(F12.8,x),3(F8.4,x))') 'iproc,iorb,ilr,iat,(xcent,ycent,zcent)-locregcenter,xcent,ycent,zcent',&
+  !        iproc,iorb+tmb%orbs%isorb,ilr,iat,xcent-tmb%lzd%llr(ilr)%locregcenter(1),&
+  !        ycent-tmb%lzd%llr(ilr)%locregcenter(2),zcent-tmb%lzd%llr(ilr)%locregcenter(3),&
+  !        xcent,ycent,zcent
+  !
+  !   ind=ind+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !   call deallocate_work_arrays_sumrho(w)
+  !   i_all=-product(shape(psir))*kind(psir)
+  !   deallocate(psir,stat=i_stat)
+  !   call memocc(i_stat,i_all,'psir',subname)
+  !end do
+  !! END DEBUG - check centres
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
@@ -670,7 +723,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   .and.dmin_diag_it>=dmin_diag_freq.and.dmin_diag_freq/=-1) then
                 reorder=.true.
                 !call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                !     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                !     infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                 !     .true.,ham_small,input%lin%extra_states)
                 ! just diagonalize with optimized states?
                 dmin_diag_it=0
