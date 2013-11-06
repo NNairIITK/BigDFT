@@ -155,7 +155,7 @@ scalability:
  EKS: 2.0e-10
  Total electronic charge: 1.9e-11
 
-GElecField:
+ElecField:
  Epsilon: 1.1e-10 
 
 FeHyb:
@@ -323,12 +323,12 @@ experimentalmode:
  EH: 2.8e-06
  Epot: 2.8e-06
  EXC: 5.4e-07
- EvXC: 3.0e-07
+ EvXC: 7.1e-07
  energy: 2.9e-08
  multiplicator for the confinement: 1.6e-08
  Atomic Forces (Ha/Bohr): 1.3e-09
  Raw forces norm (Ha/Bohr): 3.2e-8
- Clean forces norm (Ha/Bohr): 2.3e-09
+ Clean forces norm (Ha/Bohr): 7.2e-09
  Orbitals: 5.1e-09
  Average noise forces: 4.4e-09
 
@@ -383,19 +383,23 @@ hybrid-directmin:
  Epsilon: 1.4e-11
  Enl: 1.1e-10
  eBS: 4.5e-10
- Omega: 4.6e-10
+ Omega: 9.8e-10
  energy: 3.3e-11
- multiplicator for the confinement: 2.2e-11
+ multiplicator for the confinement: 3.4e-11
  Epot: 1.1e-09
  EH: 1.0e-9
  EXC: 1.1e-10
  EvXC: 1.1e-10
+ Ekin: 1.1e-09
 
 cdft_ohoh:
  Epsilon: 7.1e-10
 
 cdft_oh-:
  Epot: 1.1e-10
+ EH: 1.1e-10
+
+cdft_oh-a:
  EH: 1.1e-10
 
 fructose:
