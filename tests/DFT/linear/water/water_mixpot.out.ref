@@ -1,11 +1,13 @@
  <BigDFT> log of the run will be written in logfile: ./log-mixpot.yaml
-  #WARNING: support function, value: 25 9.984758306E-01
+  #WARNING: support function, value: 40 9.987710070E-01
   #WARNING: support function, value: 49 9.987712587E-01
   #WARNING: support function, value: 50 9.977073062E-01
-  #WARNING: support function, value: 30 9.975336851E-01
-  #WARNING: support function, value: 60 9.986871329E-01
-  #WARNING: support function, value: 40 9.987710070E-01
   #WARNING: support function, value: 41 9.975031983E-01
+  #WARNING: support function, value: 25 9.984758306E-01
+  #WARNING: support function, value: 30 9.975336851E-01
   #WARNING: support function, value: 70 9.988576456E-01
-  #WARNING: support function, value: 71 9.988709374E-01
   #WARNING: support function, value: 43 9.986291496E-01
+  #WARNING: support function, value: 60 9.986871329E-01
+  #WARNING: support function, value: 71 9.988709374E-01
+  #WARNING: support function, value: 17 9.955176875E-01
+  #WARNING: support function, value: 18 9.989705956E-01

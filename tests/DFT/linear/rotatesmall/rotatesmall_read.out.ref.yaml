@@ -25,29 +25,21 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-05 14:36:33.042
- Root process Hostname                 : girofle
- Number of MPI tasks                   :  3
- OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  3
+ Timestamp of this run                 : 2013-11-05 17:47:31.457
+ Root process Hostname                 : moutarde
+ Number of MPI tasks                   :  6
+ OpenMP parallelization                :  No
+ MPI tasks of root process node        :  6
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments:
-     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'CXX=icpc' 'FCFLAGS=-O2 -openmp' 
-     '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
-     p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
-     -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
-     -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
-     -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
- 
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, icpc ]
+   Configure arguments                 : " 'FC=mpif90'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -openmp
+     FCFLAGS                           : -g -O2
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -290,21 +282,20 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  3
-   OpenMP threads per MPI task         :  2
+   MPI tasks                           :  6
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  4.17
-     Kernel (MB)                       :  4.20
+     Density (MB)                      :  2.09
+     Kernel (MB)                       :  2.09
      Full Grid Arrays (MB)             :  10.81
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 1                : 100%
-         MPI task 2                    :  95%
+         MPI tasks 0- 4                : 100%
+         MPI task 5                    :  89%
        Kernel:
-         MPI tasks 0- 1                : 100%
-         MPI task 2                    :  95%
+         MPI tasks 0- 4                : 100%
+         MPI task 5                    :  76%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -318,15 +309,15 @@
  Spin treatment                        : Averaged
   #WARNING: Odd number of electrons, no closed shell system
  Orbitals Repartition:
-   MPI tasks  0- 0                     :  2
-   MPI tasks  1- 2                     :  1
+   MPI tasks  0- 3                     :  1
+   MPI tasks  4- 5                     :  0
  Total Number of Orbitals              :  4
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-3:  2.0000, Orbital No. 4:  1.0000}
  Support function repartition:
-   MPI tasks  0- 2                     :  2
- Wavefunctions memory occupation for root MPI process:  0 MB 726 KB 480 B
+   MPI tasks  0- 5                     :  1
+ Wavefunctions memory occupation for root MPI process:  0 MB 363 KB 240 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  5
@@ -336,17 +327,17 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.364 #  (Number of Components: 46494)
-   All (distributed) orbitals          : 2.132 #  (Number of Orbitals per MPI task: 2)
-   Wavefunction storage size           : 10.658 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 1.66 #   (Number of Orbitals per MPI task: 1)
+   Wavefunction storage size           : 5.329 #  (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.1017
    Full Uncompressed (ISF) grid        : 10.834
    Workspaces storage size             : 0.903
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 81.270
-   Density Construction                : 56.313
-   Poisson Solver                      : 66.9
-   Hamiltonian application             : 57.114
- Estimated Memory Peak (MB)            :  81
+   Kernel calculation                  : 41.638
+   Density Construction                : 42.652
+   Poisson Solver                      : 33.566
+   Hamiltonian application             : 43.453
+ Estimated Memory Peak (MB)            :  43
   #WARNING: Do not call check_communications in the linear scaling version!
  total elements                        :  49
  non-zero elements                     :  49
@@ -372,16 +363,16 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  5.863046878963529319E-15
+   calculation check, error sum        :  0.000000000000000000E+00
    Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  9.237055564881302416E-14
+   calculation check, error max        :  0.000000000000000000E+00
  Ion-Ion interaction energy            :  4.93139716176231E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -7.000000143906
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  113,  111 ]
-   MPI tasks                           :  3
+   MPI tasks                           :  6
   #ALLOCATING KSwfn%orbs%eval... is this correct?
   #--------------------------------------------------------- Reading Wavefunctions from disk
  Input Hamiltonian:
@@ -395,7 +386,7 @@
      Molecule was rotated              :  7
      Discrete operations               :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.556E+00,  2.502E+00 ]}
+   -  {Process:  0, Timing:  [  1.740E+00,  1.747E+00 ]}
    nstates_max                         :  4
    ksorbs%norb                         :  4
    tmb%orbs%norb                       :  7
@@ -403,8 +394,8 @@
   {index:  1, value: -4.394246225847E-01}, 
   {index:  2, value: -2.696744289519E-01}, 
   {index:  3, value: -2.687965044030E-01}, 
-  {index:  4, value: -9.570892839734E-02},  #  <-- last occupied orbital
-  {index:  5, value:  1.799896928993E-01},  #  <-- first virtual orbital
+  {index:  4, value: -9.570892839735E-02},  #  <-- last occupied orbital
+  {index:  5, value:  1.799896928992E-01},  #  <-- first virtual orbital
   {index:  6, value:  1.931908607669E-01}, 
   {index:  7, value:  1.937608022951E-01}, 
  ]
@@ -413,22 +404,22 @@
  {e: -4.394246225847E-01, f:  2.0000},  # 00001
  {e: -2.696744289519E-01, f:  2.0000},  # 00002
  {e: -2.687965044030E-01, f:  2.0000},  # 00003
- {e: -9.570892839734E-02, f:  1.0000}] # 00004
+ {e: -9.570892839735E-02, f:  1.0000}] # 00004
    communication strategy kernel       : ALLREDUCE
    Total charge                        :  6.999999949755E+00
    Poisson Solver:
      BC                                : Free
      Box                               :  [  113,  113,  111 ]
-     MPI tasks                         :  3
+     MPI tasks                         :  6
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  13585,  466 ]
-   Tolerances for this check: [ 2.55513336744802232E-06,  1.55431223447521916E-15]
-   Maxdiff for transpose (checksum)    :  1.01863406598567963E-10
+   Number of coarse and fine DoF (MasterMPI task):  [  8597,  233 ]
+   Tolerances for this check: [ 2.55525003411624652E-06,  1.55431223447521916E-15]
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  12062,  466 ]
-   Tolerances for this check: [ 4.55556672749000534E-06,  1.55431223447521916E-15]
-   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
+   Number of coarse and fine DoF (MasterMPI task):  [  5985,  233 ]
+   Tolerances for this check: [ 4.50865006019693371E-06,  1.55431223447521916E-15]
+   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
    Maxdiff for untranspose             :  0.00000000000000000E+00
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
@@ -451,14 +442,14 @@
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  5.62540441053E+00, Epot: -7.94275968263E+00, Enl:  1.82245722161E+00}, 
+ Energies: {Ekin:  5.01464282659E+00, Epot: -6.66314416224E+00, Enl:  1.19819254198E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.07E-01, Omega: -5.48267954784719613E+00, D: -5.483E+00, 
+ iter:  1, fnrm:  2.07E-01, Omega: -5.48267954784651934E+00, D: -5.483E+00, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
- Energies: {Ekin:  5.62540441053E+00, Epot: -7.94275968263E+00, Enl:  1.82245722161E+00}, 
- iter:  1, fnrm:  2.07E-01, Omega: -5.48267954784719613E+00, D: -5.483E+00}
+ Energies: {Ekin:  5.01464282659E+00, Epot: -6.66314416224E+00, Enl:  1.19819254198E+00}, 
+ iter:  1, fnrm:  2.07E-01, Omega: -5.48267954784651934E+00, D: -5.483E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -471,37 +462,37 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.00E-02, eBS: -2.00332575205176555E+00, D: -1.158E-03, 
+ iter:  1, fnrm:  4.00E-02, eBS: -2.00332575205123575E+00, D: -1.158E-03, 
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
- Energies: {Ekin:  5.62540441053E+00, Epot: -7.94275968263E+00, Enl:  1.82245722161E+00, 
+ Energies: {Ekin:  5.01464282659E+00, Epot: -6.66314416224E+00, Enl:  1.19819254198E+00, 
               EH:  9.07798536221E+00,  EXC: -2.18692559021E+00, EvXC: -2.85415999487E+00}, 
     Total charge:  6.999999948526E+00, 
- Poisson Solver: {BC: Free, Box:  [  113,  113,  111 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  113,  113,  111 ], MPI tasks:  6}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -4.394246225847E-01, f:  2.0000},  # 00001
  {e: -2.696744289519E-01, f:  2.0000},  # 00002
  {e: -2.687965044030E-01, f:  2.0000},  # 00003
- {e: -9.570892839734E-02, f:  1.0000}] # 00004
+ {e: -9.570892839735E-02, f:  1.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  5.80E-08, energy: -5.48383800460034188E+00, D: -5.484E+00}]
+ iter:  1, delta:  5.80E-08, energy: -5.48383800459968818E+00, D: -5.484E+00}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  5.80E-08, energy: -5.48383800460034188E+00, D: -5.484E+00}]}
+ iter:  2, delta:  5.80E-08, energy: -5.48383800459968818E+00, D: -5.484E+00}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  5.803E-08, energy: -5.48383800460034188E+00, D: -5.484E+00}
+ iter high:  1, delta out:  5.803E-08, energy: -5.48383800459968818E+00, D: -5.484E+00}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
- Energies: {Ekin:  5.62540441053E+00, Epot: -7.94275968263E+00, Enl:  1.82245722161E+00, 
+ Energies: {Ekin:  5.01464282659E+00, Epot: -6.66314416224E+00, Enl:  1.19819254198E+00, 
               EH:  9.06199675264E+00,  EXC: -2.18738170758E+00, EvXC: -2.85477363435E+00}, 
        iter high:  1,            delta out:  5.803E-08, 
-          energy: -5.48383800460034188E+00,                       D:  0.000E+00,  #FINAL
+          energy: -5.48383800459968818E+00,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  6.999999948526E+00
  Site energies: [ #state, energy, orthog energy, frag eval, overlap, orthog overlap, occ
@@ -520,33 +511,33 @@
              frag eval:  1.93190861E-01, overlap:  9.999951E-01, occ:  0.00, 
  state: LUMO+2, energy:  2.03653854E-01, orthog energy:  2.03654650E-01, 
              frag eval:  1.93760802E-01, overlap:  9.999966E-01, occ:  0.00, 
- 2*frag sum: -2.0025971828144224, 2*frag sum orthog: -2.0025839989937615, 
- 2*eval sum: -2.0515000402765171}, 
+ 2*frag sum: -2.0025971828145193, 2*frag sum orthog: -2.0025839989932206, 
+ 2*eval sum: -2.0515000402765815}, 
  ]
- 2.0_gp*frag_sum_tot                   : -2.0025971828144224
- 2.0_gp*frag_sum_tot_orthog            : -2.0025839989937615
- 2.0_gp*eval_sum_tot                   : -2.0515000402765171
+ 2.0_gp*frag_sum_tot                   : -2.0025971828145193
+ 2.0_gp*frag_sum_tot_orthog            : -2.0025839989932206
+ 2.0_gp*eval_sum_tot                   : -2.0515000402765815
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  113,  113,  111 ]
-   MPI tasks                           :  3
+   MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -3.06832441E-02, y:  3.04103485E-02, z:  1.76008196E-01, 
                     total:  1.81232270E-01}
- Clean forces norm (Ha/Bohr): {maxval:  5.566460022875E-02, fnrm2:  9.983977693179E-03}
- Raw forces norm (Ha/Bohr): {maxval:  1.386913560905E-01, fnrm2:  4.283360872511E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  5.566460022892E-02, fnrm2:  9.983977693058E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  1.386913560907E-01, fnrm2:  4.283360872524E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [ 2.469576023512E-03, -2.403205972200E-03,  4.969868355595E-02]} # 0001
- -  {H: [ 4.518070752880E-02,  2.104558425904E-02, -2.478577755527E-02]} # 0002
- -  {H: [-2.123719972908E-02, -4.451005055591E-02, -2.458739404963E-02]} # 0003
- -  {H: [-2.641308382323E-02,  2.586767226906E-02, -3.255119510478E-04]} # 0004
+ -  {Si: [ 2.469576023677E-03, -2.403205972662E-03,  4.969868355603E-02]} # 0001
+ -  {H: [ 4.518070752895E-02,  2.104558425903E-02, -2.478577755539E-02]} # 0002
+ -  {H: [-2.123719972926E-02, -4.451005055468E-02, -2.458739404926E-02]} # 0003
+ -  {H: [-2.641308382337E-02,  2.586767226831E-02, -3.255119513813E-04]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  8.83
-   Elapsed time (s)                    :  5.16
+   CPU time (s)                        :  4.06
+   Elapsed time (s)                    :  4.07
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS: [Odd number of electrons, no closed shell system, 
  Do not call check_communications in the linear scaling version!, 
@@ -554,14 +545,14 @@
             density optimization not converged]
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-11-05 14:36:32.001
+     2013-11-05 17:47:30.418
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  1780
-   Tot. No. of Deallocations           :  1780
+   Tot. No. of Allocations             :  1561
+   Tot. No. of Deallocations           :  1561
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  163
+     Peak Value (MB)                   :  111
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
