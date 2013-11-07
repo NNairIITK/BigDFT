@@ -82,7 +82,7 @@ module dynamic_memory
      character(len=namelen) :: routine_id    !< label the routine
   end type malloc_information_all
 
-  !> Structure needed to allocate an allocatable array of string of implicit length (for non-2003 complilers)
+  !> Structure needed to allocate an allocatable array of string of implicit length (for non-2003 compilers)
   type, public :: malloc_information_str_all
      logical :: pin                          !< flag to control the pinning of the address
      logical :: profile                      !< activate profiling for this allocation
@@ -135,13 +135,9 @@ module dynamic_memory
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
-     module procedure l1_all,l2_all
-     module procedure c1_all!,c1_2_all!,c1_3_all,c1_4_all,c1_5_all,c1_6_all,c1_7_all
-  !   module procedure c1_8_all,c1_9_all,c1_10_all,c1_11_all,c1_12_all,c1_13_all,c1_14_all,c1_15_all 
-  !   module procedure c1_16_all,c1_17_all,c1_18_all,c1_19_all,c1_20_all,c1_21_all,c1_22_all,c1_23_all
-  !   module procedure c1_24_all,c1_25_all,c1_26_all,c1_27_all,c1_28_all,c1_29_all,c1_30_all,c1_31_all
-!     module procedure c1_32_all,c1_33_all,c1_34_all,c1_35_all,c1_36_all,c1_37_all,c1_38_all,c1_39_all,c1_40_all
-     module procedure d1_all,d2_all,d3_all,d4_all
+     module procedure l1_all,l2_all,l3_all
+     module procedure c1_all
+     module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
      module procedure i1_ptr,i2_ptr
   end interface
@@ -152,13 +148,9 @@ module dynamic_memory
 
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
-     module procedure c1_all_free!,c1_2_all_free!,c1_3_all_free,c1_4_all_free,c1_5_all_free,c1_6_all_free,c1_7_all_free
- !    module procedure c1_8_all_free,c1_9_all_free,c1_10_all_free,c1_11_all_free,c1_12_all_free,c1_13_all_free,c1_14_all_free,c1_15_all_free 
- !    module procedure c1_16_all_free,c1_17_all_free,c1_18_all_free,c1_19_all_free,c1_20_all_free,c1_21_all_free,c1_22_all_free,c1_23_all_free
- !    module procedure c1_24_all_free,c1_25_all_free,c1_26_all_free,c1_27_all_free,c1_28_all_free,c1_29_all_free,c1_30_all_free,c1_31_all_free
-!     module procedure c1_32_all_free,c1_33_all_free,c1_34_all_free,c1_35_all_free,c1_36_all_free,c1_37_all_free,c1_38_all_free,c1_39_all_free,c1_40_all_free
-     module procedure l1_all_free,l2_all_free
-     module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free
+     module procedure c1_all_free
+     module procedure l1_all_free,l2_all_free,l3_all_free
+     module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free
   end interface
 
   interface f_free_ptr
@@ -215,7 +207,7 @@ contains
     f_time=itime
   end function f_time
 
-  pure function bounds(nlow,nhigh)
+  elemental pure function bounds(nlow,nhigh)
     implicit none
     integer, intent(in) :: nlow,nhigh
     type(array_bounds) :: bounds

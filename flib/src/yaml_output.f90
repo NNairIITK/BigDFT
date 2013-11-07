@@ -86,7 +86,14 @@ module yaml_output
   !! @param unit     (optional) @copydoc doc::unit
   !! @param fmt      (optional) format for the value
   interface yaml_map
-     module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv
+     !general scalar
+     module procedure yaml_map
+     !other scalars
+     module procedure yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l
+     !vectors
+     module procedure yaml_map_iv,yaml_map_dv,yaml_map_cv
+     !matrices (rank2)
+     module procedure yaml_map_dm,yaml_map_rm,yaml_map_im,yaml_map_lm
   end interface
 
  
@@ -504,7 +511,7 @@ contains
     if (associated(streams(strm)%dict_warning)) then
        call yaml_newline()
        call yaml_comment('Warnings obtained during the run, check their relevance!',hfill='-')
-       call yaml_dict_dump(streams(strm)%dict_warning)
+       call yaml_dict_dump(streams(strm)%dict_warning,flow=.false.)
        call dict_free(streams(strm)%dict_warning)
     end if
 
@@ -1126,42 +1133,34 @@ contains
     implicit none
     integer, dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
-!!$    character(len=*), intent(in) :: mapname
-!!$
-!!$    character(len=*), optional, intent(in) :: label,advance,fmt
-!!$    integer, optional, intent(in) :: unit
-!!$    !local variables
-!!$    integer :: msg_lgt,strm,unt
-!!$    character(len=3) :: adv
-!!$    character(len=tot_max_record_length) :: towrite
-!!$
-!!$    unt=0
-!!$    if (present(unit)) unt=unit
-!!$    call get_stream(unt,strm)
-!!$
-!!$    adv='def' !default value
-!!$    if (present(advance)) adv=advance
-!!$
-!!$    msg_lgt=0
-!!$    !put the message
-!!$    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-!!$    !put the semicolon
-!!$    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-!!$    !put the optional name
-!!$    if (present(label)) then
-!!$       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-!!$       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-!!$    end if
-!!$    !put the value
-!!$    if (present(fmt)) then
-!!$       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-!!$    else
-!!$       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-!!$    end if
-!!$    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_iv
 
+  !> double-precision rank2 matrix
+  subroutine yaml_map_dm(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    real(kind=8), dimension(:,:), intent(in) :: mapvalue
+    include 'yaml_map-mat-inc.f90'
+  end subroutine yaml_map_dm
 
+  subroutine yaml_map_rm(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    real, dimension(:,:), intent(in) :: mapvalue
+    include 'yaml_map-mat-inc.f90'
+  end subroutine yaml_map_rm
+
+  subroutine yaml_map_im(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    integer, dimension(:,:), intent(in) :: mapvalue
+    include 'yaml_map-mat-inc.f90'
+  end subroutine yaml_map_im
+
+  subroutine yaml_map_lm(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    logical, dimension(:,:), intent(in) :: mapvalue
+    include 'yaml_map-mat-inc.f90'
+  end subroutine yaml_map_lm
+
+  
   !> Get the stream, initialize if not already present (except if istat present)
   subroutine get_stream(unt,strm,istat)
     implicit none
@@ -1213,7 +1212,7 @@ contains
   subroutine dump(stream,message,advance,event,istat)
     implicit none
     type(yaml_stream), intent(inout) :: stream          !< Stream to handle
-    character(len=*), intent(in) :: message             !< Mesage to dump
+    character(len=*), intent(in) :: message             !< Message to dump
     character(len=*), intent(in), optional :: advance   !< Advance option
     integer, intent(in), optional :: event              !< Event to handle
     integer, intent(out), optional :: istat             !< Status error
@@ -1781,23 +1780,19 @@ contains
   subroutine yaml_dict_dump(dict,unit,flow,verbatim)
     implicit none
     type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
-    logical, intent(in), optional :: flow  !< if .true. inline
+    logical, intent(in), optional :: flow  !< if .true. use flow writing style, if .false. use yaml plain style
+                                           !! when absent the .false. style is used except for the last level
     logical, intent(in), optional :: verbatim  !< if .true. print as comments the calls performed
     integer, intent(in), optional :: unit   !< unit in which the dump has to be 
     !local variables
-    logical :: flowrite,verb
+    logical :: flowrite,verb,default_flow
     integer :: unt
-    character(len=3) :: adv
-    character(len=7) :: flw
 
     flowrite=.false.
-    if (present(flow)) flowrite=flow
-    if (flowrite) then
-       adv='no '
-       flw='.true.'
-    else
-       adv='yes'
-       flw='.false.'
+    default_flow=.true.
+    if (present(flow)) then
+       flowrite=flow
+       default_flow=.false.
     end if
     unt=0
     if (present(unit)) unt=unit
@@ -1812,6 +1807,38 @@ contains
 
   contains
 
+    !> determine if we are at the last level of the dictionary
+    function last_level(dict)
+      implicit none
+      type(dictionary), pointer, intent(in) :: dict
+      logical :: last_level
+      !local variables
+      type(dictionary), pointer :: dict_tmp
+      
+      !we should have a sequence of only scalar values
+      last_level = dict_len(dict) > 0
+      if (last_level) then
+         dict_tmp=>dict_next(dict%child)
+         do while(associated(dict_tmp))
+            if (dict_len(dict_tmp) > 0 .or. dict_size(dict_tmp) > 0) then
+               last_level=.false.
+               nullify(dict_tmp)
+            else
+               dict_tmp=>dict_next(dict_tmp)
+            end if
+         end do
+      end if
+    end function last_level
+
+    function switch_flow(dict)
+      implicit none
+      type(dictionary), pointer, intent(in) :: dict
+      logical :: switch_flow
+      
+      switch_flow=default_flow .and. last_level(dict) .and. dict_len(dict) <=5 .and. dict_len(dict) > 1
+      
+    end function switch_flow
+
     recursive subroutine yaml_dict_dump_(dict)
       implicit none
       type(dictionary), pointer, intent(in) :: dict
@@ -1822,9 +1849,13 @@ contains
          !see whether the child is a list or not
          if (dict_item(dict) >= 0) call sequence(adv='no')
          if (dict_len(dict) > 0) then
+            !use flowrite in the case of the last level if no flow option is forced
+            if (switch_flow(dict)) flowrite=.true.
             call open_seq(dict_key(dict))
             call yaml_dict_dump_(dict%child)
             call close_seq()
+            !restoe normal flowriting if it has been changed before
+            if (switch_flow(dict)) flowrite=.false.
          else
             if (dict_item(dict) >= 0) then
                call yaml_dict_dump_(dict%child)
@@ -1849,10 +1880,10 @@ contains
       implicit none
       character(len=*), intent(in) :: val
       if (verb) then
-         call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(adv)//&
+         call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(advc(flowrite))//&
               ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
       else
-         call yaml_scalar(trim(val),advance=adv,unit=unt)
+         call yaml_scalar(trim(val),advance=advc(flowrite),unit=unt)
       end if
     end subroutine scalar
 
@@ -1901,7 +1932,7 @@ contains
       character(len=*), intent(in) :: key
       if (verb) then
          call yaml_comment('call yaml_open_sequence("'//trim(key)//&
-              '",flow='//trim(flw)//&
+              '",flow='//trim(flw(flowrite))//&
               ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
          call yaml_open_sequence(trim(key),flow=flowrite,unit=unt)
@@ -1923,7 +1954,7 @@ contains
       character(len=*), intent(in) :: key
       if (verb) then
          call yaml_comment('call yaml_open_map("'//trim(key)//&
-              '",flow='//trim(flw)//&
+              '",flow='//trim(flw(flowrite))//&
               ',unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
          call yaml_open_map(trim(key),flow=flowrite,unit=unt)
@@ -1939,6 +1970,32 @@ contains
          call yaml_close_map(unit=unt)
       end if
     end subroutine close_map
+
+    function flw(flow_tmp)
+      implicit none
+      logical, intent(in) :: flow_tmp
+      character(len=7) :: flw
+
+      if (flow_tmp) then
+         flw='.true.'
+      else
+         flw='.false.'
+      end if
+    end function flw
+
+    function advc(flow_tmp)
+      implicit none
+      logical, intent(in) :: flow_tmp
+      character(len=3) :: advc
+
+      if (flow_tmp) then
+         advc='no '
+      else
+         advc='yes'
+      end if
+
+    end function advc
+
 
   end subroutine yaml_dict_dump
 

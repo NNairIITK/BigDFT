@@ -25,7 +25,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   !local variables
   character(len=*), parameter :: subname='reformatonewave'
   logical :: cif1,cif2,cif3,perx,pery,perz
-  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
+  integer :: i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
   real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
   real(wp) :: zr,yr,xr,ym1,y00,yp1
   real(wp), dimension(-1:1,-1:1) :: xya
@@ -33,6 +33,8 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), allocatable :: psifscfold
+
+  call f_routine(id='reformatonewave')
 
   !conditions for periodicity in the three directions
   perx=(at%astruct%geocode /= 'F')
@@ -45,10 +47,8 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   call ext_buffers_coarse(pery,nb2)
   call ext_buffers_coarse(perz,nb3)
 
-  allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
-  call memocc(i_stat,psifscfold,'psifscfold',subname)
-  allocate(wwold((2*n1_old+2+2*nb1)*(2*n2_old+2+2*nb2)*(2*n3_old+2+2*nb3)+ndebug),stat=i_stat)
-  call memocc(i_stat,wwold,'wwold',subname)
+  psifscfold = f_malloc((/ -nb1.to.2*n1_old+1+nb1, -nb2.to.2*n2_old+1+nb2, -nb3.to.2*n3_old+1+nb3 /),id='psifscfold')
+  wwold = f_malloc((2*n1_old+2+2*nb1)*(2*n2_old+2+2*nb2)*(2*n3_old+2+2*nb3),id='wwold')
 
   if (at%astruct%geocode=='F') then
      call synthese_grow(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
@@ -58,9 +58,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
      call synthese_per(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
   end if
 
-  i_all=-product(shape(wwold))*kind(wwold)
-  deallocate(wwold,stat=i_stat)
-  call memocc(i_stat,i_all,'wwold',subname)
+  call f_free(wwold)
   
   !write(*,*) iproc,' displ ',displ
   if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
@@ -175,13 +173,10 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
 
   !write(100+iproc,*) 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
 
-  i_all=-product(shape(psifscfold))*kind(psifscfold)
-  deallocate(psifscfold,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscfold',subname)
-  allocate(psig(0:n1,2,0:n2,2,0:n3,2+ndebug),stat=i_stat)
-  call memocc(i_stat,psig,'psig',subname)
-  allocate(ww((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3)+ndebug),stat=i_stat)
-  call memocc(i_stat,ww,'ww',subname)
+  call f_free(psifscfold)
+
+  psig = f_malloc((/ 0.to.n1, 1.to.2, 0.to.n2, 1.to.2, 0.to.n3, 1.to.2 /),id='psig')
+  ww = f_malloc((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),id='ww')
 
   if (at%astruct%geocode=='F') then
      call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
@@ -201,12 +196,10 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
 
   !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
 
-  i_all=-product(shape(psig))*kind(psig)
-  deallocate(psig,stat=i_stat)
-  call memocc(i_stat,i_all,'psig',subname)
-  i_all=-product(shape(ww))*kind(ww)
-  deallocate(ww,stat=i_stat)
-  call memocc(i_stat,i_all,'ww',subname)
+  call f_free(psig)
+  call f_free(ww)
+
+  call f_release_routine()
 
 END SUBROUTINE reformatonewave
 
@@ -377,20 +370,23 @@ contains
     lstat = .true.
   END SUBROUTINE io_read_descr
 
+
   subroutine io_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr_f, gcoord_c, gcoord_f, lr)
     use module_defs
     use module_types
 
     implicit none
-
+    !Arguments
     integer, intent(in) :: n1, n2, n3, nvctr_c, nvctr_f
     integer, dimension(3, nvctr_c), intent(in) :: gcoord_c
     integer, dimension(3, nvctr_f), intent(in) :: gcoord_f
     type(locreg_descriptors), intent(out) :: lr
-
+    !Local variables
     character(len = *), parameter :: subname = "io_gcoordToLocreg"
-    integer :: i, i_stat, i_all
+    integer :: i
     logical, dimension(:,:,:), allocatable :: logrid_c, logrid_f
+
+    call f_routine(id=subname)
 
     lr%geocode = "P"
     lr%hybrid_on = .false.
@@ -407,10 +403,8 @@ contains
     lr%d%n2i = 2 * n2 + 2
     lr%d%n3i = 2 * n3 + 2
 
-    allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,logrid_c,'logrid_c',subname)
-    allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,logrid_f,'logrid_f',subname)
+    logrid_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_c')
+    logrid_f = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_f')
 
     lr%d%nfl1 = n1
     lr%d%nfl2 = n2
@@ -450,12 +444,11 @@ contains
 
     call wfd_from_grids(logrid_c, logrid_f, lr)
 
-    i_all=-product(shape(logrid_c))*kind(logrid_c)
-    deallocate(logrid_c,stat=i_stat)
-    call memocc(i_stat,i_all,'logrid_c',subname)
-    i_all=-product(shape(logrid_f))*kind(logrid_f)
-    deallocate(logrid_f,stat=i_stat)
-    call memocc(i_stat,i_all,'logrid_f',subname)
+    call f_free(logrid_c)
+    call f_free(logrid_f)
+
+    call f_release_routine()
+
   END SUBROUTINE io_gcoordToLocreg
 
   subroutine read_psi_compress(unitwf, formatted, nvctr_c, nvctr_f, psi, lstat, error, gcoord_c, gcoord_f)
@@ -627,10 +620,12 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   character(len=*), parameter :: subname='readonewave'
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
-  integer :: iorb_old,n1_old,n2_old,n3_old,iat,iel,nvctr_c_old,nvctr_f_old,i_stat,i_all,i1,i2,i3
+  integer :: iorb_old,n1_old,n2_old,n3_old,iat,iel,nvctr_c_old,nvctr_f_old,i1,i2,i3
   real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
+
+  call f_routine(id=subname)
 
   !write(*,*) 'INSIDE readonewave'
   call io_read_descr(unitwf, useFormattedInput, iorb_old, eval, n1_old, n2_old, n3_old, &
@@ -657,9 +652,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
        nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. & 
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
-     !if (iproc == 0) write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
      if (iproc == 0) call yaml_map('Need to reformat wavefunctions',.false.)
-     !if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
      call read_psi_compress(unitwf, useFormattedInput, wfd%nvctr_c, wfd%nvctr_f, psi, lstat, error)
      if (.not. lstat) call io_error(trim(error))
 
@@ -667,26 +660,19 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
      if (iproc == 0 .and. iorb == 1) then
         call yaml_map('Need to reformat wavefunctions',.false.)
-        !write(*,*) 'wavefunctions need reformatting'
         if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) &
            & call yaml_comment('because hgrid_old /= hgrid' // &
              & trim(yaml_toa((/ hx_old,hy_old,hz_old,hx,hy,hz /), fmt='(f14.10)')))
-           ! & write(*,"(1x,A,6F14.10)") 'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
         if (nvctr_c_old /= wfd%nvctr_c) &
            & call yaml_comment('because nvctr_c_old /= nvctr_c' // trim(yaml_toa((/ nvctr_c_old,wfd%nvctr_c /))))
-           ! & write(*,*) 'because nvctr_c_old /= nvctr_c', nvctr_c_old,wfd%nvctr_c
         if (nvctr_f_old /= wfd%nvctr_f) &
            & call yaml_comment('because nvctr_f_old /= nvctr_f' // trim(yaml_toa((/ nvctr_f_old,wfd%nvctr_f /))))
-           ! & write(*,*) 'because nvctr_f_old /= nvctr_f', nvctr_f_old,wfd%nvctr_f
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
            call yaml_comment('because cell size has changed' // trim(yaml_toa((/ n1_old,n1,n2_old,n2,n3_old,n3 /))))
-           ! & write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
         if (displ > 1.d-3 ) call yaml_comment('large displacement of molecule' // trim(yaml_toa(displ)))
-        !if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule',displ
      end if
 
-     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
-     call memocc(i_stat,psigold,'psigold',subname)
+     psigold = f_malloc((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
 
      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
      do iel=1,nvctr_c_old
@@ -716,11 +702,11 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      call reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
           rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
 
-     i_all=-product(shape(psigold))*kind(psigold)
-     deallocate(psigold,stat=i_stat)
-     call memocc(i_stat,i_all,'psigold',subname)
+     call f_free(psigold)
 
   endif
+
+  call f_release_routine()
 
 END SUBROUTINE readonewave
 
@@ -740,7 +726,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   logical, intent(out) :: lstat
 
   character(len = *), parameter :: subname = "readwavetoisf"
-  integer :: unitwf, iorb, i_all, i_stat, ispinor, ispin, ikpt
+  integer :: unitwf, iorb, ispinor, ispin, ikpt
   integer, dimension(:,:), allocatable :: gcoord_c, gcoord_f
   real(wp) :: eval
   real(wp), dimension(:), allocatable :: psi
@@ -750,6 +736,8 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   character(len = 1024) :: fileRI
   integer :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
   real(gp) :: hx_old, hy_old, hz_old
+
+  call f_routine(id=subname)
 
   ! We open the Fortran file
   call io_open(unitwf, filename, formatted)
@@ -772,12 +760,9 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   end if
 
   ! Initial allocations.
-  allocate(gcoord_c(3,lr%wfd%nvctr_c + ndebug),stat=i_stat)
-  call memocc(i_stat,gcoord_c,'gcoord_c',subname)
-  allocate(gcoord_f(3,lr%wfd%nvctr_f + ndebug),stat=i_stat)
-  call memocc(i_stat,gcoord_f,'gcoord_f',subname)
-  allocate(psi(lr%wfd%nvctr_c + 7 * lr%wfd%nvctr_f + ndebug),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
+  gcoord_c = f_malloc((/ 3, lr%wfd%nvctr_c  /),id='gcoord_c')
+  gcoord_f = f_malloc((/ 3, lr%wfd%nvctr_f  /),id='gcoord_f')
+  psi = f_malloc(lr%wfd%nvctr_c + 7 * lr%wfd%nvctr_f ,id='psi')
 
   ! Read psi and the basis-set
   call read_psi_compress(unitwf, formatted, lr%wfd%nvctr_c, lr%wfd%nvctr_f, psi, lstat, error, gcoord_c, gcoord_f)
@@ -789,8 +774,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   call io_gcoordToLocreg(n1, n2, n3, lr%wfd%nvctr_c, lr%wfd%nvctr_f, &
        & gcoord_c, gcoord_f, lr)
 
-  allocate(psiscf(lr%d%n1i, lr%d%n2i, lr%d%n3i, nspinor + ndebug),stat=i_stat)
-  call memocc(i_stat,psiscf,'psiscf',subname)
+  psiscf = f_malloc_ptr((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, nspinor  /),id='psiscf')
 
   call initialize_work_arrays_sumrho(lr,w)
 
@@ -865,20 +849,14 @@ contains
     close(unit=unitwf)
 
     if (allocated(psi)) then
-       i_all=-product(shape(psi))*kind(psi)
-       deallocate(psi,stat=i_stat)
-       call memocc(i_stat,i_all,'psi',subname)
+       call f_free(psi)
     end if
 
     if (allocated(gcoord_c)) then
-       i_all=-product(shape(gcoord_c))*kind(gcoord_c)
-       deallocate(gcoord_c,stat=i_stat)
-       call memocc(i_stat,i_all,'gcoord_c',subname)
+       call f_free(gcoord_c)
     end if
     if (allocated(gcoord_f)) then
-       i_all=-product(shape(gcoord_f))*kind(gcoord_f)
-       deallocate(gcoord_f,stat=i_stat)
-       call memocc(i_stat,i_all,'gcoord_f',subname)
+       call f_free(gcoord_f)
     end if
 
     if (associated(w%x_c)) then
@@ -888,6 +866,8 @@ contains
        call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, subname)
     end if
     call deallocate_wfd(lr%wfd, subname)
+    
+    call f_release_routine()
   END SUBROUTINE deallocate_local
 END SUBROUTINE readwavetoisf
 
@@ -1063,18 +1043,21 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
   logical, dimension(3) :: per
-  integer :: i_stat,i_all
   integer, dimension(3) :: nb, ndims_tmp
   real(gp), dimension(3) :: hgridsh,hgridsh_old
   !!real(wp) :: dnrm2
   real(wp), dimension(:), allocatable :: ww,wwold
-  real(wp), dimension(:), allocatable :: x_phi, y_phi
+  real(wp), dimension(:), allocatable :: x_phi
+  real(wp), dimension(:,:), allocatable :: y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), pointer :: psifscfold, psifscf, psifscf_tmp
   integer :: itype, nd, nrange
-  real(gp), dimension(3) :: rrow
+!!$  real(gp), dimension(3) :: rrow
+  real(gp), dimension(3,3) :: rmat !< rotation matrix
   real(gp) :: sint,cost,onemc,ux,uy,uz
-  integer :: ixp,iyp,izp
+  integer, dimension(3) :: irp
+
+  call f_routine(id=subname)
 
   !if (size(frag_trans%discrete_operations)>0) then
   !   print*,'Error discrete operations not yet implemented',size(frag_trans%discrete_operations),&
@@ -1093,12 +1076,10 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   call ext_buffers_coarse(per(2),nb(2))
   call ext_buffers_coarse(per(3),nb(3))
 
-  allocate(psifscf(-nb(1):2*n(1)+1+nb(1),-nb(2):2*n(2)+1+nb(2),-nb(3):2*n(3)+1+nb(3)+ndebug),stat=i_stat)
-  call memocc(i_stat,psifscf,'psifscf',subname)
-  allocate(psifscfold(-nb(1):2*n_old(1)+1+nb(1),-nb(2):2*n_old(2)+1+nb(2),-nb(3):2*n_old(3)+1+nb(3)+ndebug),stat=i_stat)
-  call memocc(i_stat,psifscfold,'psifscfold',subname)
-  allocate(wwold((2*n_old(1)+2+2*nb(1))*(2*n_old(2)+2+2*nb(2))*(2*n_old(3)+2+2*nb(3))+ndebug),stat=i_stat)
-  call memocc(i_stat,wwold,'wwold',subname)
+  psifscf = f_malloc_ptr(-nb.to.2*n+1+nb,id='psifscf')
+  psifscfold = f_malloc_ptr(-nb.to.2*n_old+1+nb,id='psifscfold')
+
+  wwold = f_malloc((2*n_old(1)+2+2*nb(1))*(2*n_old(2)+2+2*nb(2))*(2*n_old(3)+2+2*nb(3)),id='wwold')
 
   if (geocode=='F') then
      call synthese_grow(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
@@ -1108,9 +1089,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
      call synthese_per(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
   end if
 
-  i_all=-product(shape(wwold))*kind(wwold)
-  deallocate(wwold,stat=i_stat)
-  call memocc(i_stat,i_all,'wwold',subname)
+  call f_free(wwold)
 
   ! transform to new structure    
   hgridsh=.5_gp*hgrids
@@ -1121,29 +1100,25 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   itype=16
   nd=2**20
 
-  allocate(x_phi(0:nd+ndebug),stat=i_stat )
-  call memocc(i_stat,x_phi,'x_phi',subname)
-  allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
-  call memocc(i_stat,y_phi,'y_phi',subname)
+  x_phi = f_malloc(0.to.nd,id='x_phi')
+  y_phi = f_malloc((/0.to.nd,1.to.2/),id='y_phi')
 
   call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi) 
-  if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
+  if( abs(y_phi(nd/2,1)-1)>1.0e-10 ) then
      stop " wrong scaling function 4b2B: not a centered one "
   endif
 
-  i_all=-product(shape(x_phi))*kind(x_phi)
-  deallocate(x_phi,stat=i_stat)
-  call memocc(i_stat,i_all,'x_phi',subname)
+  call f_free(x_phi)
 
   nullify(psifscf_tmp)
   if (size(frag_trans%discrete_operations)==0) then
      psifscf_tmp => psifscfold
      ndims_tmp=(2*n_old+2+2*nb)
   else if (size(frag_trans%discrete_operations)==1) then
-     allocate(psifscf_tmp(-nb(1):2*n_old(1)+1+nb(1),-nb(2):2*n_old(2)+1+nb(2),-nb(3):2*n_old(3)+1+nb(3)+ndebug),stat=i_stat)
-     call memocc(i_stat,psifscf_tmp,'psifscf_tmp',subname)
-     call switch_axes(nd,nrange,y_phi,centre_old,hgridsh_old,(2*n_old+2+2*nb),psifscfold,&
-          hgridsh,ndims_tmp,psifscf_tmp,frag_trans%discrete_operations(1),da)
+     psifscf_tmp = f_malloc_ptr(-nb.to.2*n_old+1+nb,id='psifscf_tmp')
+     !not used anymore I suppose
+     !call switch_axes(nd,nrange,y_phi,centre_old,hgridsh_old,(2*n_old+2+2*nb),psifscfold,&
+     !     hgridsh,ndims_tmp,psifscf_tmp,frag_trans%discrete_operations(1),da)
   else if (size(frag_trans%discrete_operations)==2) then
      stop 'only 1 discrete operation allowed right now'
   else if (size(frag_trans%discrete_operations)==3) then
@@ -1160,76 +1135,83 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   uy=frag_trans%rot_axis(2)
   uz=frag_trans%rot_axis(3)
 
-  !!write some output on the screen
-  !!print matrix elements, to be moved at the moment of identification of the transformation
-  !call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
-  !call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
-  !call yaml_map('Translation vector',da,fmt='(1pg20.12)')
-  !call yaml_open_sequence('Rotation matrix elements')
-  !call yaml_sequence(trim(yaml_toa((/&
-  !     cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
-  !call yaml_sequence(trim(yaml_toa((/&
-  !     ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
-  !call yaml_sequence(trim(yaml_toa((/&
-  !     ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
-  !call yaml_close_sequence()
-  !determine ideal sequence for rotation
-  !pay attention to what happens if two values are identical  
-  !from where xp should be determined
-  rrow=abs((/cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /))
-  ixp=maxloc(rrow,1)
-  !form where zp should be determined (note that the third line has been used)
-  rrow=abs((/ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /))
-  !exclude of course the previously found direction
-  rrow(ixp)=0.0_gp
-  izp=maxloc(rrow,1)
-  !then the last dimension, which is the intermediate one
-  rrow=1.0_gp
-  rrow(ixp)=0.d0
-  rrow(izp)=0.d0
-  iyp=maxloc(rrow,1)
+!!$  call yaml_open_sequence('Rotation matrix elements')
+!!$  call yaml_sequence(trim(yaml_toa((/&
+!!$       cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
+!!$  call yaml_sequence(trim(yaml_toa((/&
+!!$       ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
+!!$  call yaml_sequence(trim(yaml_toa((/&
+!!$       ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
+!!$  call yaml_close_sequence()
+
+
+  !identify the rotation matrix elements
+  !first row (xp)
+  rmat(:,1)=(/cost+onemc*ux**2  ,ux*uy*onemc-uz*sint ,ux*uz*onemc+uy*sint/)
+  !second row (yp)
+  rmat(:,2)=(/ux*uy*onemc+uz*sint,cost+onemc*uy**2   ,uy*uz*onemc-ux*sint/)
+  !third row (zp)
+  rmat(:,3)=(/ux*uz*onemc-uy*sint,uy*uz*onemc+ux*sint,cost+onemc*uz**2   /)
+
+  !write some output on the screen
+  !print matrix elements, to be moved at the moment of identification of the transformation
+  call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
+  call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
+  call yaml_map('Translation vector',da,fmt='(1pg20.12)')
+  call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
+
+  !try different solutions, one of these should always work
+  irp=selection(rmat)
+  !otherwise we have a problem
+  if (f_err_raise(repeated(abs(irp)),'Determination of the best array failed, irp='//&
+          trim(yaml_toa(irp,fmt='(i5)')),err_name='BIGDFT_RUNTIME_ERROR')) return
+
+!!$  !pay attention to what happens if two values are identical  
+!!$  !from where xp should be determined
+!!$  rrow=abs(rmat(:,1))
+!!$  irp(1)=maxloc(rrow,1)
+!!$  !form where zp should be determined (note that the third line has been used)
+!!$  rrow=abs(rmat(:,3))
+!!$  !exclude of course the previously found direction
+!!$  rrow(irp(1))=0.0_gp
+!!$  irp(3)=maxloc(rrow,1)
+!!$  !then the last dimension, which is determined by exclusion
+!!$  rrow=1.0_gp
+!!$  rrow(irp(1))=0.d0
+!!$  rrow(irp(3))=0.d0
+!!$  irp(2)=maxloc(rrow,1)
+
+
+!!$  !traditional case, for testing
+!!$  irp(1)=1
+!!$  irp(2)=2
+!!$  irp(3)=3
 
   !!print the suggested order
-  !call yaml_map('Suggested order for the transformation',(/ixp,iyp,izp/))
+  call yaml_map('Suggested order for the transformation',irp)
 
-  !we should define the transformation order
-  !traditional case, for testing
-!if (any(hgridsh/=hgridsh_old)) then
-!  ixp=1
-!  iyp=2
-! izp=3
-!!$  print *,'final case',(/ixp,iyp,izp/)
-!endif
-
-  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,&
-      sint,cost,onemc,(/ixp,iyp,izp/),&
-      hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,&
+       centre_old,centre_new,sint,cost,onemc,irp,&
+       hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
   !call yaml_map('Centre old',centre_old,fmt='(1pg18.10)')
   !call yaml_map('Centre new',centre_new,fmt='(1pg18.10)')
   !call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
-  !   sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+  !     sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
 
   if (size(frag_trans%discrete_operations)>0) then
-     i_all=-product(shape(psifscf_tmp))*kind(psifscf_tmp)
-     deallocate(psifscf_tmp,stat=i_stat)
-     call memocc(i_stat,i_all,'psifscf_tmp',subname)
+     call f_free_ptr(psifscf_tmp)
   else
      nullify(psifscf_tmp)    
   end if
 
-  i_all=-product(shape(y_phi))*kind(y_phi)
-  deallocate(y_phi,stat=i_stat)
-  call memocc(i_stat,i_all,'y_phi',subname)
+  call f_free(y_phi)
 
   !!print*, 'norm of psifscf ',dnrm2((2*n(1)+16)*(2*n(2)+16)*(2*n(3)+16),psifscf,1)
-  i_all=-product(shape(psifscfold))*kind(psifscfold)
-  deallocate(psifscfold,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscfold',subname)
-  allocate(psig(0:n(1),2,0:n(2),2,0:n(3),2+ndebug),stat=i_stat)
-  call memocc(i_stat,psig,'psig',subname)
-  allocate(ww((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(2))*(2*n(3)+2+2*nb(3))+ndebug),stat=i_stat)
-  call memocc(i_stat,ww,'ww',subname)
+  call f_free_ptr(psifscfold)
+
+  psig = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='psig')
+  ww = f_malloc((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(2))*(2*n(3)+2+2*nb(3)),id='ww')
 
   if (geocode=='F') then
      call analyse_shrink(n(1),n(2),n(3),ww,psifscf,psig)
@@ -1239,9 +1221,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
      call analyse_per(n(1),n(2),n(3),ww,psifscf,psig)
   end if
 
-  i_all=-product(shape(psifscf))*kind(psifscf)
-  deallocate(psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscf',subname)
+  call f_free_ptr(psifscf)
 
   !!print*, 'norm new psig ',dnrm2(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig,1),n(1),n(2),n(3)
   call compress_plain(n(1),n(2),0,n(1),0,n(2),0,n(3),  &
@@ -1254,200 +1234,231 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   !!print*, 'norm of reformatted psic ',dnrm2(wfd%nvctr_c,psi,1)
   !!print*, 'norm of reformatted psif ',dnrm2(wfd%nvctr_f*7,psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),1)
 
-  i_all=-product(shape(psig))*kind(psig)
-  deallocate(psig,stat=i_stat)
-  call memocc(i_stat,i_all,'psig',subname)
-  i_all=-product(shape(ww))*kind(ww)
-  deallocate(ww,stat=i_stat)
-  call memocc(i_stat,i_all,'ww',subname)
+  call f_free(psig)
+  call f_free(ww)
+
+  call f_release_routine()
+
+  contains
+
+    !> Select the best possible rotation sequence by 
+    !! considering the values of the coefficients of the 
+    !! rotation matrix
+    pure function selection(rmat) result(irp)
+      implicit none
+      real(gp), dimension(3,3), intent(in) :: rmat !< rotation matrix
+      integer, dimension(3) :: irp
+      !local variables
+      integer :: i,isgn
+      integer, dimension(3) :: ib1,ib3
+!!$      real(gp), dimension(3) :: rrow
+
+      !determine ideal sequence for rotation, for important rows
+      ib1=reorder(rmat(:,1),1)
+      ib3=reorder(rmat(:,3),3)
+     
+      !verify if either one or three have multiple choices
+      if (equabs(rmat(ib1(1),1),rmat(ib1(2),1)) .and. .not. equabs(rmat(ib3(1),3),rmat(ib3(2),3))) then
+         !only ib1 has multiple choices, pick the one which is closest to cyclic permutation (if present)
+         if (modulo(ib3(1),3) + 1 == ib1(2) .or. ib1(1)==ib3(1)) then
+            !swap
+            i=ib1(1)
+            ib1(1)=ib1(2)
+            ib1(2)=i
+         end if
+      else if (.not. equabs(rmat(ib1(1),1),rmat(ib1(2),1)) .and. equabs(rmat(ib3(1),3),rmat(ib3(2),3))) then
+         !only ib3 has multiple choices
+         if (modulo(ib3(2),3) + 1 == ib1(1) .or. ib3(1)==ib1(1)) then
+            !swap
+            i=ib3(1)
+            ib3(1)=ib3(2)
+            ib3(2)=i
+         end if
+      else if (equabs(rmat(ib1(1),1),rmat(ib1(2),1)) .and. equabs(rmat(ib3(1),3),rmat(ib3(2),3))) then
+         !both of the row has multiple choices, therefore at least cyclic permutation must be present.
+         !both of them are cyclic, choose the last one
+         if (modulo(ib3(2),3) + 1 == ib1(1)) then
+            !swap
+            i=ib3(1)
+            ib3(1)=ib3(2)
+            ib3(2)=i
+         else if (modulo(ib3(1),3) + 1 == ib1(2)) then
+            !swap
+            i=ib1(1)
+            ib1(1)=ib1(2)
+            ib1(2)=i
+         else if (ib3(1) == ib1(1)) then
+            !otherwise just ensure that the two are not equal
+            !swap
+            i=ib3(1)
+            ib3(1)=ib3(2)
+            ib3(2)=i
+         end if
+      else if (ib3(1) == ib1(1)) then
+         !swap
+         i=ib3(1)
+         ib3(1)=ib3(2)
+         ib3(2)=i
+      end if
+      !then assign the rotations
+      irp(1)=ib1(1)
+      irp(3)=ib3(1)
+
+      !define the best for the second
+      ib1=1
+      ib1(irp(1))=0
+      ib1(irp(3))=0
+      irp(2)=maxloc(ib1,1)
+
+!!$      irp(1)=ibest(1,1)
+!!$      irp(3)=ibest(1,3)
+!!$      if (ibest(1,3)==irp(1)) then
+!!$         if (abs(abs(rmat(ibest(1,1),1))-abs(rmat(ibest(2,1),1)))< 1.d-12) then
+!!$            irp(1)=ibest(2,1)
+!!$         else if (abs(abs(rmat(ibest(1,3),3))-abs(rmat(ibest(2,3),3)))< 1.d-12) then
+!!$            irp(3)=ibest(2,3)
+!!$         else !better to preserve the first choice for the last
+!!$            irp(1)=ibest(2,1)
+!!$         end if
+!!$      end if
+!!$
+!!$      !define the best for the second
+!!$      ibest(:,2)=1
+!!$      ibest(irp(1),2)=0
+!!$      ibest(irp(3),2)=0
+!!$      irp(2)=maxloc(ibest(:,2),1)
+
+!!$      rrow=abs(rmat(:,1))
+!!$      irp(1)=maxloc(rrow,1)
+!!$      !form where zp should be determined (note that the third line has been used)
+!!$      rrow=abs(rmat(:,3))
+!!$      !exclude of course the previously found direction
+!!$      rrow(irp(1))=0.0_gp
+!!$      irp(3)=maxloc(rrow,1)
+!!$      !then the last dimension, which is determined by exclusion
+!!$      rrow=1.0_gp
+!!$      rrow(irp(1))=0.d0
+!!$      rrow(irp(3))=0.d0
+!!$      irp(2)=maxloc(rrow,1)
+
+      !add to the transformations the sign of the axis of the chosen reference 
+      !coordinate
+      !the second element has the sign which is the ratio of the previous two,
+      !plus a sign which is given by the fact that the order is a cyclic permutation
+      isgn=int(sign(1.0e0,real(rmat(irp(1),1)/rmat(irp(3),3))))
+      if (modulo(irp(1),3)+1 /= irp(2)) isgn=-isgn !cyclic permutation
+      irp(2)=isgn*irp(2)
+
+      !for the first and the third the sign is determined from the matrix element
+      isgn=int(sign(1.0e0,real(rmat(irp(1),1))))
+      irp(1)=isgn*irp(1)
+      isgn=int(sign(1.0e0,real(rmat(irp(3),3))))
+      irp(3)=isgn*irp(3)
+
+    end function selection
+
+    pure function repeated(ivec)
+      implicit none
+      integer, dimension(3), intent(in) :: ivec
+      logical :: repeated
+      repeated = ivec(1)==ivec(2) .or. ivec(2)==ivec(3) .or. ivec(1)==ivec(3)
+    end function repeated
+
+    !check if two objects are equal in absolute value modulo a given tolerance
+    pure function equabs(a,b)
+      implicit none
+      real(gp), intent(in) :: a,b
+      logical :: equabs
+      real(gp), parameter :: tol=1.e-12_gp
+      equabs=abs(abs(a)-abs(b)) < tol
+    end function equabs
+
+    !> defines the criterion for which one is better than two
+    pure function better(idim,vec,one,two)
+      implicit none
+      integer, intent(in) :: idim,one,two
+      real(gp), dimension(3), intent(in) :: vec
+      logical :: better
+      !local variables
+      real(gp) :: vec1,vec2
+
+      vec1=vec(one)
+      vec2=vec(two)
+
+      better=.false.
+
+      !first criterion, most important: absolute value (clear separation)
+      if (.not. equabs(vec1,vec2)) then
+         better = abs(vec1)>abs(vec2)
+      else
+         !the two values are even. First choose the one which is positive
+         if (sign(vec1,vec2) == vec1) then 
+            !the two objects have same sign and same absolute value
+            if (one==idim .or. two==idim) then 
+               !better the one of the dimension
+               better = one==idim
+            else
+               better = one<two .eqv. idim<=2
+            end if
+         else
+            better = sign(1.0_gp,vec1)==1.0_gp
+         end if
+      end if
+      
+    end function better
+
+    !> order the dimensions in terms of the maximum
+    pure function reorder(vec,idim) result(imax)
+      implicit none
+      integer, intent(in) :: idim
+      real(gp), dimension(3), intent(in) :: vec
+      integer, dimension(3) :: imax
+      !local variables
+!!$      integer, dimension(3,3) :: ibest
+
+      !initialization
+      imax(1)=1
+      imax(2)=2
+      imax(3)=3
+       if (better(idim,vec,2,1)) then
+         if (better(idim,vec,3,1)) then
+            if (better(idim,vec,2,3)) then
+               !other worst case 2<3<1
+               imax(1)=2
+               imax(2)=3
+               imax(3)=1
+            else
+               !  1>3<2, but 2<1 => 3<2<1
+               imax(1)=3
+               imax(3)=1
+            end if
+         else
+            !2<1 and 3>1 => 2<1<3
+            imax(1)=2
+            imax(2)=1
+         end if
+      else
+         if (better(idim,vec,3,2)) then
+            if (better(idim,vec,3,1)) then
+               !worst case, 3<1<2
+               imax(1)=3
+               imax(2)=1
+               imax(3)=2
+            else
+               ! 1<3<2
+               imax(2)=3
+               imax(3)=2
+            end if
+         end if
+      end if
+
+      !once ordered preserve only the choices which are equal
+!!$      if (abs(abs(vec(imax(2)))-abs(vec(imax(3)))) > 1.d-12 ) imax(3)=imax(2)
+!!$      if (abs(abs(vec(imax(1)))-abs(vec(imax(2)))) > 1.d-12 ) imax(2:3)=imax(1)
+
+    end function reorder
 
 END SUBROUTINE reformat_one_supportfunction
-
-
-!> Call the routine which performs the interpolation in each direction
-subroutine morph_and_transpose(t0_field,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
- use module_base
- implicit none
- integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
- integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
- integer, intent(in) :: nin,nout !< sizes of the input and output array in interpolating direction
- integer, intent(in) :: ndat !< size of the array in orthogonal directions
-! real(gp), intent(in) :: h !< grid spacing in the interpolating direction
- real(gp), dimension(nin,ndat), intent(in) :: t0_field !< field of shifts to be applied for each point in grid spacing units
- real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
- real(gp), dimension(nin,ndat), intent(in) :: psi_in !< input wavefunction psifscf
- real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
- !local variables
- character(len=*), parameter :: subname='morph_and_transpose'
-!!$ real(gp), parameter  :: tol=1.e-14_gp
- integer :: i_all,i_stat,nunit,m_isf,i,j,l,ms,me,k1
- real(gp) :: dt,tt,t0_l,diff
- real(gp), dimension(:), allocatable :: shf !< shift filter
-!!$ integer :: k2
-!!$ real(gp) :: k,kold,ksh1,ksh2,alpha
-
- !assume for the moment that the grid spacing is constant
- !call f_malloc_routine_id(subname)
- m_isf=nrange/2
-
- !shf=f_malloc(bounds=(/-m_isf .to. m_isf/),id='shf')
-
- !calculate the shift filter for the given t0
- allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
- call memocc(i_stat,shf,'shf',subname)
-
- !number of points for a unit displacement
- nunit=nphi/nrange 
-
- !apply the interpolating filter to the output
- do j=1,ndat
-    psi_out(j,:)=0.0_gp
-    do i=1,nout
-
-       !find inverse
-       call find_inverse(nin,i,t0_field(1,j),t0_l,k1)
-!!$       kold=-1000.0_gp
-!!$       find_trans: do l=1,nin
-!!$          k=real(l,gp)+t0_field(l,j)
-!!$          if (k-real(i,gp) > tol) exit find_trans
-!!$          kold=k
-!!$          !print *,l,k,t0_field(l,j),i
-!!$       end do find_trans
-!!$       ! want to use either l or l-1 to give us point i - pick closest
-!!$       if (k-real(i,gp) < -kold+real(i,gp)) then
-!!$          ksh1=k-real(i,gp)
-!!$          ksh2=-kold+real(i,gp)
-!!$          k1=l
-!!$          k2=l-1
-!!$          if (k2==0) then
-!!$             k2=1
-!!$             ksh2=ksh1
-!!$          end if
-!!$          if (k1==nin+1) then
-!!$             k1=nin
-!!$             ksh1=ksh2
-!!$          end if
-!!$       else
-!!$          ksh1=-kold+real(i,gp)
-!!$          ksh2=k-real(i,gp)
-!!$          k1=l-1
-!!$          k2=l
-!!$          if (k1==0) then
-!!$             k1=1
-!!$             ksh1=ksh2
-!!$          end if
-!!$          if (k2==nin+1) then
-!!$             k2=nin
-!!$             ksh2=ksh1
-!!$          end if
-!!$       end if
-!!$
-!!$       if (ksh1==0.0_gp .or. k1==k2) then !otherwise already have exactly on point
-!!$          ksh2=1.0_gp
-!!$          ksh1=0.0_gp
-!!$       end if 
-!!$
-!!$       alpha=ksh2/(ksh1+ksh2)
-!!$
-!!$       t0_l=alpha*t0_field(k1,j)+(1.0_gp-alpha)*t0_field(k2,j)
-!!$       !end of find_inverse
-
-
-       dt=t0_l-nint(t0_l)
-   
-       diff=real(i,gp)-(k1+t0_l)   
-
-       if (abs(diff - dt) < abs(diff+dt)) dt=-dt
-
-       !define filter for the interpolation starting from a constant shift
-       call define_filter(dt,nrange,nphi,phi,shf)
-
-       !here the boundary conditions have to be considered
-       tt=0.0_gp
-       ms=-min(m_isf,k1-1)
-       me=min(m_isf,nin-k1)
-       do l=ms,me
-          tt=tt+shf(l)*psi_in(k1+l,j)
-       end do
-       !end of interpolate coefficient
-
-
-       if (i > 0 .and. i < nout) psi_out(j,i)=tt
-
-    end do
- end do
-
-! call f_free(shf)
-! call f_malloc_free_routine()
-
- i_all=-product(shape(shf))*kind(shf)
- deallocate(shf,stat=i_stat)
- call memocc(i_stat,i_all,'shf',subname)
-
-end subroutine morph_and_transpose
-
-subroutine define_filter(dt,nrange,nphi,phi,shf)
-  use module_base
-  implicit none
-  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
-  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
-  real(gp), intent(in) :: dt
-  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
-  real(gp), dimension(-nrange/2:nrange/2), intent(out) :: shf !< interpolating filter to be applied
-  !local variables
-  integer :: nunit,ish,ipos,m_isf,l,jisf
-  
-  m_isf=nrange/2
-  !number of points for a unit displacement
-  nunit=nphi/nrange 
-  
-  !evaluate the shift
-  ish=nint(real(nunit,gp)*dt)
-
-  !starting point in the filter definition
-  ipos=ish!+1
-  if (ish<= 0) then
-     jisf=-(abs(ish))/nunit-1
-  else if (ish > 0) then
-     jisf=ish/nunit+1
-  else
-     jisf=0
-  end if
-  jisf=jisf-m_isf
-
-  !fill the filters in its nonzero coefficients
-  do l=-m_isf,m_isf
-     if (jisf >= -m_isf .and. jisf <= m_isf) then
-        shf(l)=phi(ipos)
-     else
-        shf(l)=0.0_gp
-     end if
-     jisf=jisf+1
-     ipos=ipos+nunit
-  end do
-
-!!$  !old method
-!!$  if (ish<=0) then
-!!$     shf(-m_isf)=0.0_gp
-!!$  else
-!!$     shf(-m_isf)=phi(ish)  
-!!$  end if
-!!$  ipos=ish
-!!$  
-!!$  do l=-m_isf+1,m_isf-1 !extremes excluded
-!!$     !position of the shifted argument in the phi array
-!!$     ipos=ipos+nunit
-!!$     shf(l)=phi(ipos)  
-!!$  end do
-!!$  
-!!$  if (ish<=0) then
-!!$     shf(m_isf)=phi(ipos+nunit)
-!!$  else
-!!$     shf(m_isf)=0.0_gp
-!!$  end if
-
-end subroutine define_filter
-
 
 !> Given a translation vector, find the inverse one
 subroutine find_inverse(nin,iout,t0_field,t0_l,k1)
@@ -1510,6 +1521,7 @@ subroutine find_inverse(nin,iout,t0_field,t0_l,k1)
 
 end subroutine find_inverse
 
+
 subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    use module_base
    implicit none
@@ -1519,15 +1531,18 @@ subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    !Number of points: must be 2**nex
    integer, intent(in) :: nd
    integer, intent(out) :: nrange
-   real(kind=8), dimension(0:nd), intent(out) :: a,x
+   real(kind=8), dimension(0:nd), intent(out) :: a
+   real(kind=8), dimension(0:nd,2), intent(out) :: x
    !Local variables
    character(len=*), parameter :: subname='scaling_function4b2B'
    real(kind=8), dimension(:), allocatable :: y
-   integer :: i,nt,ni,i_all,i_stat  
+   integer :: i,nt,ni
+   
+   call f_routine(id=subname)
 
    !Only itype=8,14,16,20,24,30,40,50,60,100
    select case(itype)
-   case(8,14,16,20,24,30,40,50,60,100)
+   case(16)
       !O.K.
    case default
       print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
@@ -1540,47 +1555,41 @@ subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    !from -itype to itype
    ni=2*itype
    nrange = ni
-   allocate(y(0:nd+ndebug),stat=i_stat)
-   call memocc(i_stat,y,'y',subname)
+
+   y = f_malloc(0.to.nd,id='y')
 
    ! plot scaling function
-   call zero(nd+1,x)
+   call zero(nd+1,x(0,1))
    call zero(nd+1,y)
    nt=ni
-   x(nt/2)=1.d0
+   x(nt/2,1)=1.d0
    loop1: do
       nt=2*nt
-      ! write(6,*) 'nd,nt',nd,nt
-      select case(itype)
-      case(8)
-         stop
-      case(14)
-         stop
-      case(16)
-         call back_trans_16(nd,nt,x,y)
-      case(20)
-         stop
-      case(24)
-         stop
-      case(30)
-         stop
-      case(40)
-         stop
-      case(50)
-         stop
-      case(60)
-         stop
-      case(100)
-         stop
-      end select
-
+      call back_trans_16(nd,nt,x(0,1),y)
       do i=0,nt-1
-         x(i)=y(i)
+         x(i,1)=y(i)
       end do
       if (nt.eq.nd) then
          exit loop1
       end if
    end do loop1
+
+   ! plot reversed scaling function
+   call zero(nd+1,x(0,2))
+   call zero(nd+1,y)
+   nt=ni
+   x(nt/2,2)=1.d0
+   loop2: do
+      nt=2*nt
+      call back_trans_16_reversed(nd,nt,x(0,2),y)
+      do i=0,nt-1
+         x(i,2)=y(i)
+      end do
+      if (nt.eq.nd) then
+         exit loop2
+      end if
+   end do loop2
+
 
    !open (unit=1,file='scfunction',status='unknown')
    do i=0,nd
@@ -1589,256 +1598,9 @@ subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    end do
    !close(1)
 
-   i_all=-product(shape(y))*kind(y)
-   deallocate(y,stat=i_stat)
-   call memocc(i_stat,i_all,'y',subname)
+   call f_free(y)
+   call f_release_routine()
 END SUBROUTINE my_scaling_function4b2B
-
-
-subroutine define_rotations(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old,&
-     hgrids_new,ndims_new,dx,dy,dz)
-  use module_base
-  implicit none
-  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
-  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
-  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
-  real(gp), dimension(3), intent(in) :: boxc_old,boxc_new !<centre of rotation (the coordinates are zero at these points)
-  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
-  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
-  real(gp), dimension(ndims_old(1),ndims_old(2)*ndims_old(3)), intent(out) :: dx !<first deformation
-  real(gp), dimension(ndims_old(2),ndims_new(1)*ndims_old(3)), intent(out) :: dy !<second deformation
-  real(gp), dimension(ndims_old(3),ndims_new(1)*ndims_new(2)), intent(out) :: dz !<third deformation
-  !local variables
-  integer :: i,j,k
-  real(gp) :: x,y,z,cost,sint,onemc,dotp
-
-  !save recalculation
-  sint=sin(theta)
-  cost=cos(theta)
-  onemc=1.0_gp-cost
-
-  z=-boxc_old(3)
-  do k=1,ndims_old(3)
-     y=-boxc_old(2)
-     do j=1,ndims_old(2)
-        x=-boxc_old(1)
-        do i=1,ndims_old(1)
-           dotp=newz(1)*x+newz(2)*y+newz(3)*z
-!!$           dx(i,j+(k-1)*ndims_old(2)) = ( da(1) - x + dotp*newz(1) - cost*(-x + dotp*newz(1)) &
-!!$                                      + sint*(z*newz(2) - y*newz(3)) ) / hgrids_old(1)
-           dx(i,j+(k-1)*ndims_old(2)) = xp_xyz(da(1),theta,newz,x,y,z) / hgrids_old(1)
-           x=x+hgrids_old(1)
-
-        end do
-        !if (j==1 .and. k==1) print *,'test vector',dx(:,j+(k-1)*ndims_old(2)),'x,y,z',x,y,z,theta,sint,cost,'newz',newz
-        !fill the second vector
-        x=-boxc_new(1)
-        do i=1,ndims_new(1)
-           dy(j,k+(i-1)*ndims_old(3)) = yp_xpyz(da(2),theta,newz,x,y,z) / hgrids_old(2)
-!!$           dy(j,k+(i-1)*ndims_old(3)) = ( da(2) - y &
-!!$                                      + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
-!!$                                      + onemc*newz(2)*newz(3)) - ((onemc*newz(1)*newz(2) &
-!!$                                      + sint*newz(3))*(-x  + sint*(z*newz(2) - y*newz(3)) &
-!!$                                      + onemc*newz(1)*(y*newz(2) + z*newz(3)))) &
-!!$                                      / (cost + onemc*newz(1)**2) ) / hgrids_old(2)
-
-           x=x+hgrids_new(1)
-        end do
-        y=y+hgrids_old(2)
-     end do
-     !fill the third vector
-     y=-boxc_new(2)
-     do j=1,ndims_new(2)
-        x=-boxc_new(1)
-        do i=1,ndims_new(1)
-           dz(k,i+(j-1)*ndims_new(1)) = zp_xpypz(da(3),theta,newz,x,y,z) / hgrids_old(3)
-!!$           dz(k,i+(j-1)*ndims_new(1)) = ( da(3) - z &
-!!$                                      + (sint*(newz(1)*y - newz(2)*x) - onemc*newz(3)*(newz(1)*x + newz(2)*y) + z) &
-!!$                                      / (cost + onemc*newz(3)**2) ) / hgrids_old(3)
-
-           x=x+hgrids_new(1)
-        end do
-        y=y+hgrids_new(2)
-     end do
-     z=z+hgrids_old(3)
-  end do
-
-contains
-
-  pure function xp_xyz(dx,theta,newz,x,y,z)
-    use module_base
-    implicit none
-    real(gp), intent(in) :: dx,theta,x,y,z
-    real(gp), dimension(3), intent(in) :: newz
-    real(gp) :: xp_xyz
-    !local variables
-    real(gp) :: cost,sint,onemc,dotp
-
-    sint=sin(theta)
-    cost=cos(theta)
-    onemc=1.0_gp-cost
-    dotp=newz(1)*x+newz(2)*y+newz(3)*z
-
-    xp_xyz=dx-x+dotp*newz(1) - cost*(-x + dotp*newz(1)) + sint*(z*newz(2)-y*newz(3))
-
-  end function xp_xyz
-
-  pure function yp_xpyz(dy,theta,newz,xp,y,z)
-    use module_base
-    implicit none
-    real(gp), intent(in) :: dy,theta,xp,y,z
-    real(gp), dimension(3), intent(in) :: newz
-    real(gp) :: yp_xpyz
-    !local variables
-    real(gp) :: cost,sint,onemc
-
-    sint=sin(theta)
-    cost=cos(theta)
-    onemc=1.0_gp-cost
-
-    yp_xpyz=dy - y  + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
-         + onemc*newz(2)*newz(3)) - &
-         ((onemc*newz(1)*newz(2) + sint*newz(3))*(-xp  + sint*(z*newz(2) - y*newz(3)) &
-         + onemc*newz(1)*(y*newz(2) + z*newz(3))))  / (cost + onemc*newz(1)**2)
-
-  end function yp_xpyz
-
-  pure function zp_xpypz(dz,theta,newz,xp,yp,z)
-    use module_base
-    implicit none
-    real(gp), intent(in) :: dz,theta,xp,yp,z
-    real(gp), dimension(3), intent(in) :: newz
-    real(gp) :: zp_xpypz
-    !local variables
-    real(gp) :: cost,sint,onemc
-
-    sint=sin(theta)
-    cost=cos(theta)
-    onemc=1.0_gp-cost
-
-    zp_xpypz=dz - z +&
-         (sint*(newz(1)*yp - newz(2)*xp) - onemc*newz(3)*(newz(1)*xp + newz(2)*yp) + z) / (cost + onemc*newz(3)**2)
-
-  end function zp_xpypz
-
-end subroutine define_rotations
-
-
-subroutine define_rotations_switch(da,newz,boxc_old,boxc_new,theta,hgrids_old,ndims_old,&
-     hgrids_new,ndims_new,dx,dy,dz)
-  use module_base
-  implicit none
-  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
-  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
-  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
-  real(gp), dimension(3), intent(in) :: boxc_old,boxc_new !<centre of rotation (the coordinates are zero at these points)
-  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
-  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
-  real(gp), dimension(ndims_old(1),ndims_old(2)*ndims_old(3)), intent(out) :: dx !<first deformation
-  real(gp), dimension(ndims_old(2),ndims_new(1)*ndims_old(3)), intent(out) :: dy !<second deformation
-  real(gp), dimension(ndims_old(3),ndims_new(1)*ndims_new(2)), intent(out) :: dz !<third deformation
-  !local variables
-  integer :: i,j,k
-  real(gp) :: x,y,z,cost,sint,onemc,dotp
-
-  !save recalculation
-  sint=sin(theta)
-  cost=cos(theta)
-  onemc=1.0_gp-cost
-
-  z=-boxc_old(3)
-  do k=1,ndims_old(3)
-     y=-boxc_old(2)
-     do j=1,ndims_old(2)
-        x=-boxc_old(1)
-        do i=1,ndims_old(1)
-           dotp=newz(1)*x+newz(2)*y+newz(3)*z
-           dx(i,j+(k-1)*ndims_old(2)) = ( da(1) - x + x*newz(1)**2 - y*newz(1)*newz(2) + sint*y*newz(3) &
-                                      - z*(sint*newz(2) + newz(1)*newz(3)) + cost*(x - x*newz(1)**2 &
-                                      + y*newz(1)*newz(2) + z*newz(1)*newz(3)) ) / hgrids_old(1)
-           x=x+hgrids_old(1)
-        end do
-        !fill the second vector
-        x=-boxc_new(1)
-        do i=1,ndims_new(1)
-           dy(j,k+(i-1)*ndims_old(3)) = ( -da(2) - y + (cost*y - sint*z*newz(1) - onemc*x*newz(1)*newz(2) &
-                                      - newz(3)*(sint*x - onemc*(-(z*newz(2)) + y*newz(3)))) &
-                                      /(-cost - onemc*newz(1)**2) ) / hgrids_old(2)
-           x=x+hgrids_new(1)
-        end do
-        y=y+hgrids_old(2)
-     end do
-     !fill the third vector
-     y=-boxc_new(2)
-     do j=1,ndims_new(2)
-        x=-boxc_new(1)
-        do i=1,ndims_new(1)
-           dz(k,i+(j-1)*ndims_new(1)) = ( -da(3) - z + (z + sint*(-(y*newz(1)) + x*newz(2)) + onemc*(x*newz(1) &
-                + y*newz(2))*newz(3))/(-cost - onemc*newz(3)**2) ) / hgrids_old(3)
-           x=x+hgrids_new(1)
-        end do
-        y=y+hgrids_new(2)
-     end do
-     z=z+hgrids_old(3)
-  end do
-
-end subroutine define_rotations_switch
-
-subroutine field_rototranslation(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,f_old,&
-     hgrids_new,ndims_new,f_new)
-  use module_base
-  implicit none
-  integer, intent(in) :: n_phi,nrange_phi !< number of points of ISF array and real-space range
-  real(gp), intent(in) :: theta !< rotation wrt newzeta vector
-  real(gp), dimension(3), intent(in) :: da !<coordinates of rigid shift vector
-  real(gp), dimension(3), intent(in) :: newz !<coordinates of new z vector (should be of norm one)
-  real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
-  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
-  integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
-  real(gp), dimension(n_phi), intent(in) :: phi_ISF
-  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
-  real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
-  !local variables
-  real(gp), dimension(:,:), allocatable :: dx,dy,dz
-  real(gp), dimension(:,:), allocatable :: work,work2
-  
-  call f_routine(id='field_rototranslation')
-  
-  dx=f_malloc((/ndims_old(1),ndims_old(2)*ndims_old(3)/),id='dx')
-  dy=f_malloc((/ndims_old(2),ndims_new(1)*ndims_old(3)/),id='dy')
-  dz=f_malloc((/ndims_old(3),ndims_new(1)*ndims_new(2)/),id='dz')
-  work =f_malloc(shape(dy),id='work')
-  work2=f_malloc(shape(dz),id='work2')
-
-  call define_rotations(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
-       hgrids_new,ndims_new,dx,dy,dz)
-
-  !call define_rotations(da,newz,centre_old,centre_new,0.498_gp*pi_param,hgrids_old,ndims_old,&
-  !     hgrids_new,ndims_new,dx,dy,dz)
-
-
-  !call define_rotations_switch(da,newz,centre_old,centre_new,theta,hgrids_old,ndims_old,&
-  !     hgrids_new,ndims_new,dx,dy,dz)
-  
-  !perform interpolation
-  call morph_and_transpose(dx,n_phi,nrange_phi,phi_ISF,ndims_old(2)*ndims_old(3),&
-         ndims_old(1),f_old,ndims_new(1),work)
-
-  call morph_and_transpose(dy,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_old(3),&
-         ndims_old(2),work,ndims_new(2),work2)
-
-  call morph_and_transpose(dz,n_phi,nrange_phi,phi_ISF,ndims_new(1)*ndims_new(2),&
-         ndims_old(3),work2,ndims_new(3),f_new)
-  
-  call f_free(dx)
-  call f_free(dy)
-  call f_free(dz)
-  call f_free(work)
-  call f_free(work2)
-
-  call f_release_routine()
-end subroutine field_rototranslation
-
 
  !> routine which directly applies the 3D transformation of the rototranslation
 subroutine field_rototranslation3D_interpolation(da,newz,centre_old,centre_new,&
@@ -1928,44 +1690,33 @@ contains
 
   end function interpolate
 
-  !pure 
-  subroutine shift_and_start(j1,j2,j3,fijk,dt)
+  pure subroutine shift_and_start(j1,j2,j3,fijk,dt)
     implicit none
     integer, intent(in) :: j1,j2,j3
     real(gp), dimension(-1:1,-1:1,-1:1), intent(out) :: fijk
     real(gp), dimension(3), intent(out) :: dt
     !local variables
     integer :: ix,iy,iz
-    integer, dimension(3) :: istart
+    integer, dimension(3) :: istart,istart_shift
     real(gp), dimension(3) :: t0_l
 
-    !define the coordinates in the reference frame, which depends of the transformed variables
-    dt(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
+    !define the coordinates in the reference frame
+    !which depends of the transformed variables
+    dt(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) 
     dt(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
     dt(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
 
     !define the value of the shift of the variable we are going to transform
     t0_l=coord(newz,cost,sint,onemc,dt(1),dt(2),dt(3))-da
     istart=nint((t0_l+centre_old+hgrids_old)/hgrids_old)
-
-    !do i=1,3
-    !   istart(i)=min(max(istart(i),1),ndims_old(i))
-    !end do
     
-!!$    !doubts about that
-!!$    t0_l=(dt-t0_l)/hgrids_old
-!!$    !identify shift
-!!$    dt(1)=(real(istart(1),gp)+t0_l(1))-real(j1,gp)
-!!$    dt(2)=(real(istart(2),gp)+t0_l(2))-real(j2,gp)
-!!$    dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)
-!!$    !end of doubts
-
-      !this shift brings the old point in the new reference frame
+    !this shift brings the old point in the new reference frame
     dt=real(istart,gp)-(t0_l+centre_new+hgrids_new)/hgrids_old
 
-    !identify shift
-    !dt=t0_l-(-centre_old+istart*hgrids_old)
-    !dt=dt/hgrids_old
+    !purify the shift to be a inferior than multiple of the grid spacing
+    istart_shift=nint(dt)
+    dt=dt-real(istart_shift,gp)
+    istart=istart-istart_shift
 
     !fill array if it is inside the old box
     fijk=0.0_gp
@@ -2022,12 +1773,14 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   real(gp), dimension(3), intent(in) :: centre_old,centre_new !<centre of rotation
   real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !<dimension of old and new box
   integer, dimension(3), intent(in) :: ndims_old,ndims_new !<dimension of old and new box
-  real(gp), dimension(n_phi), intent(in) :: phi_ISF
+  real(gp), dimension(n_phi,2), intent(in) :: phi_ISF
   real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
   real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
   !local variables
   integer :: m_isf,k1,i,j,k,me,ms
-  real(gp) :: dt
+  real(gp) :: dt,ux,uy,uz
+  integer, dimension(3) :: isign,irp
+  real(gp), dimension(3,3) :: rmat !< rotation matrix
   real(gp), dimension(:), allocatable :: shf
   real(gp), dimension(:), allocatable :: work,work2
 
@@ -2040,6 +1793,18 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   shf=f_malloc(-m_isf .to. m_isf,id='shf')
   !for each of the dimensions build the interpolating vector which is needed
 
+  !identify the rotation matrix elements
+  ux=newz(1)
+  uy=newz(2)
+  uz=newz(3)
+  !first row (xp)
+  rmat(:,1)=(/cost+onemc*ux**2   ,ux*uy*onemc-uz*sint,ux*uz*onemc+uy*sint/)
+  !second row (yp)
+  rmat(:,2)=(/ux*uy*onemc+uz*sint,cost+onemc*uy**2   ,uy*uz*onemc-ux*sint/)
+  !third row (zp)
+  rmat(:,3)=(/ux*uz*onemc-uy*sint,uy*uz*onemc+ux*sint,cost+onemc*uz**2   /)
+
+
   !first step: determine xn from a coordinate n13o=xo or yo or zo
   !f_old (nxo,nyo,nzo) -> work(n11o,n12o,nxn) !n11o and n12o are the remaining dimensions
   !second step: determine yn from n22o=n11o or n12o
@@ -2047,24 +1812,26 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   !third step: determine zn from n21o
   !work2(n21o,nxn,nyn) -> f_new(xn,yn,zn)
 
+  isign=1
+  if (iorder(1)<0) isign(1)=2
+  if (iorder(2)<0) isign(2)=2
+  if (iorder(3)<0) isign(3)=2
+  irp=abs(iorder)
 
   !first step
-  select case(iorder(1))
+  select case(irp(1))
   case(1) !xn is derived from xo 
      do k=1,ndims_old(3)
         do j=1,ndims_old(2)
            do i=1,ndims_new(1)
-              call shift_and_start(iorder(1),1,2,3,i,j,k,&
+              call shift_and_start(irp(1),1,2,3,i,j,k,&
                    dt,k1,ms,me)
-!if (i==ndims_new(1)/2) then
-!                            print *,'value fouund',dt,k1,j,ms,me
-!stop
-!end if
-              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(1)),shf)
               
               !work(j,k+(i-1)*ndims_old(3))
-              work(j+ind(2,3,k,i))=convolve(iorder(1),k1,j,k,ms,me,m_isf,shf,&
-                   ndims_old(1),ndims_old(2),ndims_old(3),f_old)
+              work(j+ind(2,3,k,i))=convolve(irp(1),k1,j,k,ms,me,&
+                   m_isf,shf,ndims_old(1),ndims_old(2),ndims_old(3),f_old)
            end do
         end do
      end do
@@ -2072,13 +1839,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
      do k=1,ndims_old(3)
         do j=1,ndims_old(1)
            do i=1,ndims_new(1)
-              call shift_and_start(iorder(1),1,1,3,i,j,k,&
+              call shift_and_start(irp(1),1,1,3,i,j,k,&
                    dt,k1,ms,me)
               
-              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(1)),shf)
               !work(j,k+(i-1)*ndims_old(3))
-              work(j+ind(1,3,k,i))=convolve(iorder(1),j,k1,k,ms,me,m_isf,shf,&
-                   ndims_old(1),ndims_old(2),ndims_old(3),f_old)
+              work(j+ind(1,3,k,i))=convolve(irp(1),j,k1,k,ms,me,&
+                   m_isf,shf,ndims_old(1),ndims_old(2),ndims_old(3),f_old)
            end do
         end do
      end do
@@ -2086,99 +1853,99 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
      do k=1,ndims_old(2)
         do j=1,ndims_old(1)
            do i=1,ndims_new(1)
-              call shift_and_start(iorder(1),1,1,2,i,j,k,&
+              call shift_and_start(irp(1),1,1,2,i,j,k,&
                    dt,k1,ms,me)
 
-              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(1)),shf)
               !work(k,j+(i-1)*ndims_old(2))
-              work(j+ind(1,2,k,i))=convolve(iorder(1),j,k,k1,ms,me,m_isf,shf,&
-                   ndims_old(1),ndims_old(2),ndims_old(3),f_old)
+              work(j+ind(1,2,k,i))=convolve(irp(1),j,k,k1,ms,me,&
+                   m_isf,shf,ndims_old(1),ndims_old(2),ndims_old(3),f_old)
            end do
         end do
      end do
   end select
   !second step
-  select case(iorder(1)*10+iorder(2))
+  select case(irp(1)*10+irp(2))
   case(21) !yp is derived from xo (and xp has been derived from y)
      do i=1,ndims_new(1)
-        do k=1,ndims_old(iorder(3))
+        do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
-              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+              call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
-              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(2)),shf)
 
-              work2(k+ind2(iorder(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
+              work2(k+ind2(irp(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(3),ndims_new(1),work)
            end do
         end do
      end do
   case(23) !yp is derived from zo (and xp has been derived from y)
      do i=1,ndims_new(1)
-        do k=1,ndims_old(iorder(3))
+        do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
-              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+              call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
 
-              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
-              work2(k+ind2(iorder(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(2)),shf)
+              work2(k+ind2(irp(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(3),ndims_new(1),work)
            end do
         end do
      end do
   case(12) !yp is derived from yo (and xp has been derived from x)
      do i=1,ndims_new(1)
-        do k=1,ndims_old(iorder(3))
+        do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
-              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+              call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
               
-              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(2)),shf)
               !work2(k,i+(j-1)*ndims_new(1))
-              work2(k+ind2(iorder(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
+              work2(k+ind2(irp(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
                    ndims_old(2),ndims_old(3),ndims_new(1),work)
            end do
         end do
      end do
   case(13) !yp is derived from zo (and xp has been derived from x)
      do i=1,ndims_new(1)
-        do k=1,ndims_old(iorder(3))
+        do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
-              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+              call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
 
 !              print *,'value fouund',dt,k1,j
 
-              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(2)),shf)
               !work2(k,i+(j-1)*ndims_new(1))
-              work2(k+ind2(iorder(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
+              work2(k+ind2(irp(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
                    ndims_old(2),ndims_old(3),ndims_new(1),work)
            end do
         end do
      end do
   case(32) !yp is derived from yo (and xp has been derived from z)
      do i=1,ndims_new(1)
-        do k=1,ndims_old(iorder(3))
+        do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
-              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+              call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
 
-              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(2)),shf)
 
-              work2(k+ind2(iorder(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
+              work2(k+ind2(irp(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(2),ndims_new(1),work)
            end do
         end do
      end do
   case(31) !yp is derived from xo (and xp has been derived from z)
      do i=1,ndims_new(1)
-        do k=1,ndims_old(iorder(3))
+        do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
-              call shift_and_start(iorder(2),2,2,iorder(3),i,j,k,&
+              call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
 
-              call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+              call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(2)),shf)
 
-              work2(k+ind2(iorder(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
+              work2(k+ind2(irp(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(2),ndims_new(1),work)
            end do
         end do
@@ -2189,13 +1956,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   do j=1,ndims_new(2)
      do i=1,ndims_new(1)
         do k=1,ndims_new(3)
-           call shift_and_start(iorder(3),3,2,3,i,j,k,&
+           call shift_and_start(irp(3),3,2,3,i,j,k,&
                 dt,k1,ms,me)
            
-           call define_filter(dt,nrange_phi,n_phi,phi_ISF,shf)
+           call define_filter(dt,nrange_phi,n_phi,phi_ISF(1,isign(3)),shf)
            
            f_new(i,j,k)=convolve(1,k1,i,j,ms,me,m_isf,shf,&
-                ndims_old(iorder(3)),ndims_new(1),ndims_new(2),work2)
+                ndims_old(irp(3)),ndims_new(1),ndims_new(2),work2)
         end do
      end do
   end do
@@ -2268,34 +2035,6 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
      !this shift brings the old point in the new reference frame
      dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
 
-!!$     select case(ntr)
-!!$     case(1)
-!!$        dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
-!!$     case(2)
-!!$        if (istep >=2) then
-!!$           dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
-!!$        else
-!!$           dt=real(istart,gp)-(coord_old+centre_old(i2)+hgrids_old(i2))/hgrids_old(ntr)
-!!$        end if
-!!$     case(3)
-!!$        if (istep ==3) then
-!!$           dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
-!!$        else
-!!$           dt=real(istart,gp)-(coord_old+centre_old(i3)+hgrids_old(i3))/hgrids_old(ntr)
-!!$        end if
-!!$     end select
-
-     !old case, seems working only for the 123 scenario
-!!$           t0_l=(t(ntr)-coord_old)/hgrids_old(ntr)
-!!$     select case(ntr)
-!!$     case(1)
-!!$        dt=(real(istart,gp)+t0_l)-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
-!!$     case(2)
-!!$        dt=(real(istart,gp)+t0_l)-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
-!!$     case(3)
-!!$        dt=(real(istart,gp)+t0_l)-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
-!!$     end select
-
      !purify the shift to be a inferior than multiple of the grid spacing
      istart_shift=nint(dt)
      dt=dt-real(istart_shift,gp)
@@ -2324,39 +2063,73 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       case(1) !x coordinate
          select case(ivars)
          case(1123)!'xnyozo')
-            coord=(x + S*u(3)*y - S*u(2)*z - onemc*u(1)*(u(2)*y + u(3)*z))/(C + onemc*u(1)**2)
+!!$            coord=(x + S*u(3)*y - S*u(2)*z - onemc*u(1)*(u(2)*y + u(3)*z))/&
+!!$                 (C + onemc*u(1)**2)
+!!$            coord=(x + (S*u(3)- onemc*u(1)*u(2))*y - (S*u(2)+onemc*u(1)*u(3))*z)/&
+!!$                 (C + onemc*u(1)**2)
+            coord=(x-rmat(2,1)*y-rmat(3,1)*z)/rmat(1,1)
          case(2123)!'xnynzo')
-            coord=(u(2)**2*x - u(2)*(u(1)*y + S*z) + u(3)*(S*y + u(1)*z) + C*(x - u(2)**2*x + u(1)*u(2)*y - u(1)*u(3)*z))/&
-                 (C + u(3)**2 - C*u(3)**2)
+!!$            coord=(u(2)**2*x - u(2)*(u(1)*y + S*z) + u(3)*(S*y + u(1)*z) + C*(x - u(2)**2*x + u(1)*u(2)*y - u(1)*u(3)*z))/&
+!!$                 (C + u(3)**2 - C*u(3)**2)
+!!$            coord=((C+onemc*u(2)**2)*x - (u(2)*u(1)*onemc-u(3)*S)*y + (u(1)*u(3)*onemc-u(2)*S)*z)/&
+!!$                 (C + onemc*u(3)**2)
+            coord=(rmat(2,2)*x-rmat(2,1)*y+rmat(1,3)*z)/rmat(3,3)
          case(3123)!'xnynzn')
-            coord=u(1)**2*x + u(1)*u(2)*y + S*u(3)*y - S*u(2)*z + u(1)*u(3)*z - C*((-1 + u(1)**2)*x + u(1)*(u(2)*y + u(3)*z))
+!!$            coord=(onemc*u(1)**2+C)*x + (u(1)*u(2)*onemc + S*u(3))*y  + (u(1)*u(3)*onemc- S*u(2))*z
+            coord=rmat(1,1)*x + rmat(1,2)*y  + rmat(1,3)*z
          case(2122)!'xnynyo')
-            coord=(S*(u(1)*x + u(2)*(-z + y)) + onemc*u(3)*(-(u(2)*x) + u(1)*(z + y)))/(S*u(1) + onemc*u(2)*u(3))
+!!$            coord=(S*(u(1)*x + u(2)*(-z + y)) + onemc*u(3)*(-(u(2)*x) + u(1)*(z + y)))/&
+!!$                 (S*u(1) + onemc*u(2)*u(3))
+!!$            coord=((S*u(1)-onemc*u(3)*u(2))*x + (S*u(2)+onemc*u(3)*u(1))*y + ( onemc*u(3)*u(1)-S*u(2))*z)/&
+!!$                 (S*u(1) + onemc*u(2)*u(3))
+            coord=(-rmat(3,2)*x + rmat(3,1)*y + rmat(1,3)*z)/rmat(2,3)
          end select
       case(2) !y coordinate
          select case(ivars)
          case(1113)!'xnxozo')
-            coord=((-C + (-1 + C)*u(1)**2)*y + x - S*u(2)*z + (-1 + C)*u(1)*u(3)*z)/(onemc*u(1)*u(2) - S*u(3))
+!!$            coord=((-C + (-1 + C)*u(1)**2)*y + x - S*u(2)*z + (-1 + C)*u(1)*u(3)*z)/&
+!!$                 (onemc*u(1)*u(2) - S*u(3))
+!!$            coord=(x-(C + onemc*u(1)**2)*y -(onemc*u(1)*u(3)+S*u(2))*z)/&
+!!$                 (onemc*u(1)*u(2) - S*u(3))
+            coord=(x-rmat(1,1)*y-rmat(3,1)*z)/rmat(2,1)
          case(2121)!'xnynxo')
-            coord=(onemc*u(3)*(-(u(2)*(z + x)) + u(1)*y) + S*(u(1)*(-z + x) + u(2)*y))/(S*u(2) - onemc*u(1)*u(3))
+!!$            coord=(onemc*u(3)*(-(u(2)*(z + x)) + u(1)*y) + S*(u(1)*(-z + x) + u(2)*y))/&
+!!$                 (S*u(2) - onemc*u(1)*u(3))
+!!$            coord=(-(onemc*u(3)*u(2)-S*u(1))*x+(onemc*u(3)*u(1)+S*u(2))*y -(onemc*u(3)*u(2) + S*u(1))*z)/&
+!!$                 (S*u(2) - onemc*u(1)*u(3))
+            coord=(rmat(3,2)*x-rmat(3,1)*y +rmat(2,3)*z)/rmat(1,3)
          case(2123)!'xnynzo')
-            coord=(-(S*u(3)*x) + y + S*u(1)*z - onemc*(u(1)*u(2)*x + (u(2)**2 + u(3)**2)*y - u(2)*u(3)*z))/(C + onemc*u(3)**2)
+!!$            coord=(-(S*u(3)*x) + y + S*u(1)*z - onemc*(u(1)*u(2)*x + (u(2)**2 + u(3)**2)*y - u(2)*u(3)*z))/&
+!!$                 (C + onemc*u(3)**2)
+!!$            coord=(-(onemc*u(1)*u(2)+S*u(3))*x +(C+onemc*u(1)**2)*y + (onemc*u(2)*u(3)+S*u(1))*z )/&
+!!$                 (C + onemc*u(3)**2)
+            coord=(-rmat(1,2)*x +rmat(1,1)*y + rmat(2,3)*z )/rmat(3,3)
          case(3123)!'xnynzn')
-            coord=-(S*u(3)*x) + (C + onemc*u(2)**2)*y + onemc*u(2)*u(3)*z + u(1)*(u(2)*onemc*x + S*z)
-            !wrong one S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
+!!$            coord=(u(1)*u(2)*onemc-S*u(3))*x + (C + onemc*u(2)**2)*y + (onemc*u(2)*u(3) + u(1)*S)*z
+            coord=rmat(2,1)*x +rmat(2,2)*y +rmat(2,3)*z
          end select
      case(3) !z coordinate
          select case(ivars)
          case(1112)!'xnxoyo')
-            coord=(-(u(1)**2*y) + C*(-1 + u(1)**2)*y + x - u(1)*u(2)*z + C*u(1)*u(2)*z + S*u(3)*z)/(S*u(2) + onemc*u(1)*u(3))
+!!$            coord=(-(u(1)**2*y) + C*(-1 + u(1)**2)*y + x - u(1)*u(2)*z + C*u(1)*u(2)*z + S*u(3)*z)/&
+!!$                 (S*u(2) + onemc*u(1)*u(3))
+!!$            coord=(x-(C + onemc*u(1)**2)*y - (onemc*u(1)*u(2)-S*u(3))*z)/&
+!!$                 (S*u(2) + onemc*u(1)*u(3))
+            coord=(x-rmat(1,1)*y - rmat(2,1)*z)/rmat(3,1)
          case(2121)!'xnynxo')
-            coord=(-(u(3)**2*z) + S*u(3)*y + u(2)*(u(2)*x - u(1)*y) + C*((-1 + u(3)**2)*z + x - u(2)**2*x + u(1)*u(2)*y))/&
-                 (S*u(2) - onemc*u(1)*u(3))
+!!$            coord=(-(u(3)**2*z) + S*u(3)*y + u(2)*(u(2)*x - u(1)*y) + C*((-1 + u(3)**2)*z + x - u(2)**2*x + u(1)*u(2)*y))/&
+!!$                 (S*u(2) - onemc*u(1)*u(3))
+!!$            coord=(-(C+onemc*u(3)**2)*z + (C+onemc*u(2)**2)*x - (onemc*u(1)*u(2)-S*u(3))*y)/&
+!!$                 (S*u(2) - onemc*u(1)*u(3))
+            coord=(rmat(3,3)*z - rmat(2,2)*x + rmat(2,1)*y)/rmat(1,3)
          case(2122)!'xnynyo')
-            !coord=(S*u(3)*x + C*z - y + onemc*(u(1)*u(2)*x + u(2)**2*y + u(3)**2*(z + y)))/(S*u(1) + onemc*u(2)*u(3))
-            coord=(onemc*u(1)*u(2)*x+S*u(3)*x+C*z+onemc*u(3)**2*z-C*y-onemc*u(1)**2*y)/(S*u(1) + onemc*u(2)*u(3))
+!!$            coord=(onemc*u(1)*u(2)*x+S*u(3)*x+C*z+onemc*u(3)**2*z-C*y-onemc*u(1)**2*y)/(S*u(1) + onemc*u(2)*u(3))
+!!$            coord=((onemc*u(1)*u(2)+S*u(3))*x+(C+onemc*u(3)**2)*z-(C+onemc*u(1)**2)*y)/(S*u(1) + onemc*u(2)*u(3))
+            coord=(rmat(1,2)*x+rmat(3,3)*z-rmat(1,1)*y)/rmat(2,3)
          case(3123)!'xnynzn')
-            coord=S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
+!!$            coord=S*(u(2)*x - u(1)*y) + C*z + u(3)*(onemc*u(1)*x + onemc*u(2)*y + u(3)*z - C*u(3)*z)
+!!$            coord=(C+onemc*u(3)**2)*z + (onemc*u(3)*u(2)-S*u(1))*y + (S*u(2)  + u(3)*onemc*u(1))*x
+            coord=rmat(3,3)*z + rmat(3,2)*y + rmat(3,1)*x
          end select
       end select
 
@@ -2402,505 +2175,130 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
 
     end function convolve
 
+    pure subroutine define_filter(dt,nrange,nphi,phi,shf)
+      use module_base
+      implicit none
+      integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
+      integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
+      real(gp), intent(in) :: dt
+      real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
+      real(gp), dimension(-nrange/2:nrange/2), intent(out) :: shf !< interpolating filter to be applied
+      !local variables
+      integer :: nunit,ish,ipos,m_isf,l,jisf
+
+      m_isf=nrange/2
+      !number of points for a unit displacement
+      nunit=nphi/nrange 
+
+      !evaluate the shift
+      ish=nint(real(nunit,gp)*dt)
+
+      !if (ish /= 0) print *,'dt',dt,ish
+
+      !starting point in the filter definition
+      ipos=ish+1
+      if (ish<= 0) then
+         jisf=-(abs(ish))/nunit-1
+      else if (ish > 0) then
+         jisf=ish/nunit+1
+      else
+         jisf=0
+      end if
+      jisf=jisf-m_isf
+
+      !fill the filters in its nonzero coefficients
+      do l=-m_isf,m_isf
+         if (jisf >= -m_isf .and. jisf <= m_isf) then
+            shf(l)=phi(ipos)
+         else
+            shf(l)=0.0_gp
+         end if
+         jisf=jisf+1
+         ipos=ipos+nunit
+      end do
+
+    end subroutine define_filter
+
 
 end subroutine field_rototranslation3D
 
-subroutine shift_only(ndat,nin,nout,t0,nrange,nphi,phi,shf,&
-     psi_in,psi_out)
-  use module_base
+!> Backward wavelet transform
+!! gives the anti-correlation
+subroutine back_trans_16_reversed(nd,nt,x,y)
   implicit none
-  integer, intent(in) :: ndat,nin,nout
-  real(gp), intent(in) :: t0
-  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
-  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
-  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
-  real(gp), dimension(-nrange/2:nrange/2), intent(inout) :: shf !< interpolating
-  real(gp), dimension(nin,ndat), intent(in) :: psi_in
-  real(gp), dimension(ndat,nout), intent(out) :: psi_out
-  !local variables
-  integer :: i,j,ms,me,l,ish,m_isf
-  real(gp) :: dt,tt
-
-  m_isf=nrange/2  
-  dt=t0-nint(t0)
-  !define the shift for output results
-  ish=nint(t0)
-
-  !define filter for the interpolation starting from a constant shift
-  call define_filter(dt,nrange,nphi,phi,shf)
-  !apply the interpolating filter to the output
-  do j=1,ndat
-     psi_out(j,:)=0.0_gp
-     do i=1,nin
-        !here the boundary conditions have to be considered
-        tt=0.0_gp
-        ms=-min(m_isf,i-1)
-        me=min(m_isf,nin-i)
-        do l=ms,me
-           tt=tt+shf(l)*psi_in(i+l,j)
-        end do
-        !      tt=h*tt
-
-        if (i+ish > 0 .and. i+ish < nout) psi_out(j,i+ish)=tt
-        !	      write(102,*)i+ish,psi_out(j,i+ish)
-     end do
-  end do
-
-end subroutine shift_only
-
-subroutine interpolate_xp_from_x(nx,ny,nz,cx,cy,cz,cx_new,hx,hy,hz,hx_new,&
-     nx_old,dx,theta,newz,nrange,nphi,phi,shf,&
-     psi_in,psi_out)
-  use module_base
-  implicit none
-  integer, intent(in) :: nx,ny,nz,nx_old
-  real(gp), intent(in) :: cx,cy,cz,hx,hy,hz,dx,theta,cx_new,hx_new
-  real(gp), dimension(3), intent(in) :: newz
-  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
-  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
-  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
-  real(gp), dimension(-nrange/2:nrange/2), intent(inout) :: shf !< interpolating filter to be applied
-  real(gp), dimension(nx_old,ny,nz), intent(in) :: psi_in 
-  real(gp), dimension(ny,nz,nx), intent(out) :: psi_out 
-  !local variables
-  integer :: i,j,k,ms,me,l,m_isf,k1
-  real(gp) :: x,y,z,tt,dt,t0_l
-  !to be removed
-  !real(gp), dimension(nx_old) :: tx
-
-  m_isf=nrange/2
-
-  do k=1,nz
-     do j=1,ny
-        do i=1,nx
-           z=-cz+real(k-1,gp)*hz
-           y=-cy+real(j-1,gp)*hy
-           x=-cx_new+real(i-1,gp)*hx_new
-
-           t0_l=(x-x_xpyz(theta,newz,x,y,z)+dx)/hx 
-           k1=min(max(1,nint((x_xpyz(theta,newz,x,y,z)-dx+cx+hx)/hx)),nx_old)
-           dt=(real(k1,gp)+t0_l)-real(i,gp)
-           !if (abs(abs(diff)-abs(dt)) > 1.d-12) 
-!              print '(a,1pg25.17,4(i4),6(1pg25.17))','final values',t0_l,k1,&
-!                   i,j,k,dt,diff
-
-           !define filter for the interpolation starting from a constant shift
-           call define_filter(dt,nrange,nphi,phi,shf)
-           !interpolate the result
-           tt=0.0_gp
-           ms=-min(m_isf,k1-1)
-           me=min(m_isf,nx_old-k1)
-           do l=ms,me
-              tt=tt+shf(l)*psi_in(k1+l,j,k)
-           end do
-           !end of interpolate coefficient
-           psi_out(j,k,i)=tt
-        end do
-     end do
-  end do
-
-contains
-
-
-  pure function xp_xyz(dx,theta,newz,x,y,z)
-    use module_base
-    implicit none
-    real(gp), intent(in) :: dx,theta,x,y,z
-    real(gp), dimension(3), intent(in) :: newz
-    real(gp) :: xp_xyz
-    !local variables
-    real(gp) :: cost,sint,onemc,dotp
-
-    sint=sin(theta)
-    cost=cos(theta)
-    onemc=1.0_gp-cost
-    dotp=newz(1)*x+newz(2)*y+newz(3)*z
-
-    xp_xyz=dx-x+dotp*newz(1) - cost*(-x + dotp*newz(1)) + sint*(z*newz(2)-y*newz(3))
-
-  end function xp_xyz
-
-  !> inverse function to be put in the scheme
-  pure function x_xpyz(theta,newz,xp,y,z)
-    use module_base
-    implicit none
-    real(gp), intent(in) :: theta,xp,y,z
-    real(gp), dimension(3), intent(in) :: newz
-    real(gp) :: x_xpyz
-    !local variables
-    real(gp) :: cost,sint,onemc
-
-    sint=sin(theta)
-    cost=cos(theta)
-    onemc=1.0_gp-cost
-    x_xpyz= xp+sint*newz(3)*y-sint*newz(2)*z-&
-         onemc*newz(1)*(newz(2)*y+newz(3)*z)
-    x_xpyz=x_xpyz/(cost+onemc*(newz(1)**2))
-!!$    tx_xpyz= dx - xp  - sint*newz(3)*y+sint*newz(2)*z+&
-!!$         onemc*newz(1)*(newz(2)*y+newz(3)*z)
-!!$    tx_xpyz=tx_xpyz/(onemc*(newz(1)**2-1.0_gp))
-
-  end function x_xpyz
-
-
-end subroutine interpolate_xp_from_x
-
- 
-subroutine interpolate_yp_from_y(nx,ny,nz,cx,cy,cz,cy_new,hx,hy,hz,hy_new,&
-     ny_old,dy,theta,newz,nrange,nphi,phi,shf,&
-     psi_in,psi_out)
-  use module_base
-  implicit none
-  integer, intent(in) :: nx,ny,nz,ny_old
-  real(gp), intent(in) :: cx,cy,cz,hx,hy,hz,dy,theta,cy_new,hy_new
-  real(gp), dimension(3), intent(in) :: newz
-  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
-  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
-  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
-  real(gp), dimension(-nrange/2:nrange/2), intent(inout) :: shf !< interpolating filter to be applied
-  real(gp), dimension(ny_old,nz,nx), intent(in) :: psi_in 
-  real(gp), dimension(nz,nx,ny), intent(out) :: psi_out 
-  !local variables
-  integer :: i,j,k,ms,me,l,m_isf,k1
-  real(gp) :: x,y,z,tt,dt,t0_l,diff
-  !to be removed
-  !real(gp), dimension(ny_old) :: ty
-
-
-  m_isf=nrange/2
- 
-  x=-cx
-  do i=1,nx
-     z=-cz
-     do k=1,nz
-!!$        !fill the translation vector for this slice
-!!$        y=-cy
-!!$        do j=1,ny_old
-!!$           ty(j)=yp_xpyz(dy,theta,newz,x,y,z)/hy
-!!$           y=y+hy
-!!$        end do
-        !start interpolation
-        y=-cy_new
-        do j=1,ny
-           !find x of xp,y,z, put it in k1 and give the shift from it
-           !this routine can integrate the vector definition above
-!!$           call find_inverse(ny_old,j,ty,t0_l,k1)
-!!$           print '(a,1pg25.17,5(i4),6(1pg25.17))','final values',t0_l,k1,&
-!!$                i,j,k,&
-!!$                !value to be rounded
-!!$                min(max(1,nint((y_xpypz(theta,newz,x,y,z)+cy+hy)/hy)),ny_old),& 
-!!$                !vector to be applied
-!!$                (y-y_xpypz(theta,newz,x,y,z)+dy)/hy 
-           t0_l=(y-y_xpypz(theta,newz,x,y,z)+dy)/hy 
-           k1=min(max(1,nint((y_xpypz(theta,newz,x,y,z)-dy+cy+hy)/hy)),ny_old)
-
-!!$           dt=t0_l-nint(t0_l)
-           diff=real(j,gp)-(k1+t0_l)   
-!!$!           if (abs(diff - dt) < abs(diff+dt)) dt=-dt
-!!$           if (abs(diff) < 1.d0 .or. .true.) then
-              dt=-diff
-!!$           else if (abs(diff - dt) < abs(diff+dt)) then
-!!$              !if (abs(diff) < 1.d0) print *,'herey',dt,diff
-!!$              dt=-dt
-!!$           end if
-
-           !define filter for the interpolation starting from a constant shift
-           call define_filter(dt,nrange,nphi,phi,shf)
-           !interpolate the result
-           tt=0.0_gp
-           ms=-min(m_isf,k1-1)
-           me=min(m_isf,ny_old-k1)
-           do l=ms,me
-              tt=tt+shf(l)*psi_in(k1+l,k,i)
-           end do
-           !end of interpolate coefficient
-           psi_out(k,i,j)=tt
-           y=y+hy_new
-        end do
-        z=z+hz
-     end do
-     x=x+hx
-  end do
-
-contains
-
-  pure function yp_xpyz(dy,theta,newz,xp,y,z)
-    use module_base
-    implicit none
-    real(gp), intent(in) :: dy,theta,xp,y,z
-    real(gp), dimension(3), intent(in) :: newz
-    real(gp) :: yp_xpyz
-    !local variables
-    real(gp) :: cost,sint,onemc
-
-    sint=sin(theta)
-    cost=cos(theta)
-    onemc=1.0_gp-cost
-
-    yp_xpyz=dy - y  + y*(cost + onemc*newz(2)**2) + z*(-(sint*newz(1)) &
-         + onemc*newz(2)*newz(3)) - &
-         ((onemc*newz(1)*newz(2) + sint*newz(3))*(-xp  + sint*(z*newz(2) - y*newz(3)) &
-         + onemc*newz(1)*(y*newz(2) + z*newz(3))))  / (cost + onemc*newz(1)**2)
-
-  end function yp_xpyz
-
-    pure function y_xpypz(theta,newz,xp,yp,z)
-    use module_base
-    implicit none
-    real(gp), intent(in) :: theta,xp,yp,z
-    real(gp), dimension(3), intent(in) :: newz
-    real(gp) :: y_xpypz
-    !local variables
-    real(gp) :: cost,sint,onemc
-    
-    sint=sin(theta)
-    cost=cos(theta)
-    onemc=1.0_gp-cost
-
-    y_xpypz=yp-onemc*newz(1)*newz(2)*xp-sint*newz(3)*xp+sint*newz(1)*z-&
-         onemc*((1.d0-newz(1)**2)*yp-newz(2)*newz(3)*z)
-    y_xpypz=y_xpypz/(cost+onemc*(newz(3)**2))
-
-  end function y_xpypz
-
-end subroutine interpolate_yp_from_y
-
-subroutine interpolate_zp_from_z(nx,ny,nz,cx,cy,cz,cz_new,hx,hy,hz,hz_new,&
-     nz_old,dz,theta,newz,nrange,nphi,phi,shf,&
-     psi_in,psi_out)
-  use module_base
-  implicit none
-  integer, intent(in) :: nx,ny,nz,nz_old
-  real(gp), intent(in) :: cx,cy,cz,hx,hy,hz,dz,theta,cz_new,hz_new
-  real(gp), dimension(3), intent(in) :: newz
-  integer, intent(in) :: nphi !< number of sampling points of the ISF function (multiple of nrange)
-  integer, intent(in) :: nrange !< extension of the ISF domain in dimensionless units (even number)
-  real(gp), dimension(nphi), intent(in) :: phi !< interpolating scaling function array
-  real(gp), dimension(-nrange/2:nrange/2), intent(inout) :: shf !< interpolating filter to be applied
-  real(gp), dimension(nz_old,nx,ny), intent(in) :: psi_in 
-  real(gp), dimension(nx,ny,nz), intent(out) :: psi_out 
-  !local variables
-  integer :: i,j,k,ms,me,l,m_isf,k1
-  real(gp) :: x,y,z,tt,dt,t0_l,diff
-  !to be removed
-  !real(gp), dimension(nz_old) :: tz
-
-  m_isf=nrange/2
-
-  y=-cy
-  do j=1,ny
-     x=-cx
-     do i=1,nx
-!!$        z=-cz
-!!$        do k=1,nz_old
-!!$        !fill the translation vector for this slice
-!!$           tz(k)=zp_xpypz(dz,theta,newz,x,y,z)/hz
-!!$           z=z+hz
-!!$        end do
-        !start interpolation
-        z=-cz_new
-        do k=1,nz
-           !find z of xp,y,z, put it in k1 and give the shift from it
-           !this routine can integrate the vector definition above
-!!$           call find_inverse(nz_old,k,tz,t0_l,k1)
-!!$           print '(a,1pg25.17,5(i4),6(1pg25.17))','final values',t0_l,k1,&
-!!$                i,j,k,&
-!!$                !value to be rounded
-!!$                min(max(1,nint((z_xpypzp(theta,newz,x,y,z)+cz+hz)/hz)),nz_old),& 
-!!$                !vector to be applied
-!!$                (z-z_xpypzp(theta,newz,x,y,z)+dz)/hz 
-
-           t0_l=(z-z_xpypzp(theta,newz,x,y,z)+dz)/hz 
-           k1=min(max(1,nint((z_xpypzp(theta,newz,x,y,z)-dz+cz+hz)/hz)),nz_old)
-
-!!$           dt=t0_l-nint(t0_l)
-           diff=real(k,gp)-(k1+t0_l)   
-!!$           !if (abs(diff - dt) < abs(diff+dt)) dt=-dt
-!!$           if (abs(diff) < 1.d0 .or. .true.) then
-              dt=-diff
-!!$           else if (abs(diff - dt) < abs(diff+dt)) then
-!!$              !if (abs(diff) < 1.d0) print *,'herez',dt,diff
-!!$              dt=-dt
-!!$           end if
-
-           !define filter for the interpolation starting from a constant shift
-           call define_filter(dt,nrange,nphi,phi,shf)
-           !interpolate the result
-           tt=0.0_gp
-           ms=-min(m_isf,k1-1)
-           me=min(m_isf,nz_old-k1)
-           do l=ms,me
-              tt=tt+shf(l)*psi_in(k1+l,i,j)
-           end do
-           !end of interpolate coefficient
-           psi_out(i,j,k)=tt
-           z=z+hz_new
-        end do
-        x=x+hx
-     end do
-     y=y+hy
-  end do
-
-contains
-
-  pure function zp_xpypz(dz,theta,newz,xp,yp,z)
-    use module_base
-    implicit none
-    real(gp), intent(in) :: dz,theta,xp,yp,z
-    real(gp), dimension(3), intent(in) :: newz
-    real(gp) :: zp_xpypz
-    !local variables
-    real(gp) :: cost,sint,onemc
-
-    sint=sin(theta)
-    cost=cos(theta)
-    onemc=1.0_gp-cost
-
-    zp_xpypz=dz - z +&
-         (sint*(newz(1)*yp - newz(2)*xp) - onemc*newz(3)*(newz(1)*xp + newz(2)*yp) + z) / (cost + onemc*newz(3)**2)
-
-  end function zp_xpypz
-
-  pure function z_xpypzp(theta,newz,xp,yp,zp)
-    use module_base
-    implicit none
-    real(gp), intent(in) :: theta,xp,yp,zp
-    real(gp), dimension(3), intent(in) :: newz
-    real(gp) :: z_xpypzp
-    !local variables
-    real(gp) :: cost,sint,onemc
-
-    sint=sin(theta)
-    cost=cos(theta)
-    onemc=1.0_gp-cost
-
-    z_xpypzp=sint*(newz(2)*xp-newz(1)*yp)+onemc*newz(3)*(newz(1)*xp+newz(2)*yp)+&
-         (cost+onemc*newz(3)**2)*zp
-
-  end function z_xpypzp
-
-end subroutine interpolate_zp_from_z
-
-
-
-subroutine switch_axes(n_phi,nrange_phi,phi_ISF,centre_old,hgrids_old,ndims_old,f_old,&
-     hgrids_new,ndims_new,f_new,discrete_op,da_global)
-  use module_base
-  implicit none
-  integer, intent(in) :: n_phi,nrange_phi                      !< number of points of ISF array and real-space range
-  character(len=2) :: discrete_op
-  real(gp), dimension(3), intent(inout) :: centre_old
-  !real(gp), dimension(3), intent(out) :: centre_new !<centre of rotation
-  real(gp), dimension(3), intent(in) :: hgrids_old,hgrids_new !< Dimension of old and new box
-  integer, dimension(3), intent(in) :: ndims_old              !< Dimension of old box
-  integer, dimension(3), intent(out) :: ndims_new             !< Dimension of new box
-  real(gp), dimension(3), intent(inout) :: da_global          !< Shift to be used in final interpolation with non-discrete rotation
-  real(gp), dimension(n_phi), intent(in) :: phi_ISF
-  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(in) :: f_old
-  real(gp), dimension(ndims_old(1),ndims_old(2),ndims_old(3)), intent(out) :: f_new ! in general allocate here to ndims_new, but size doesn't change for now so leave like this
-
-  ! local variables
-  integer :: i, ipos
-  integer, dimension(3) :: icentre_old, icentre_new
-  real(gp), dimension(3) :: da, centre_new
-  real(gp), dimension(:,:,:), allocatable :: f_tmp, f_tmp2
-
-  ! For now do in the least efficient, easiest way
-  call f_routine(id='switch_axes')
-
-  f_tmp=f_malloc((/ndims_old(1),ndims_old(2),ndims_old(3)/),id='f_tmp')
-
-  !do i=1,size(discrete_ops)
-     !theta = 90 => y -> -z, z -> y
-     if (discrete_op=='x1') then
-        stop '90 degrees not yet treated'
-
-     !theta = 180 => y -> -y, z -> -z
-     else if (discrete_op=='x2') then
-        !shift so that centre is on a grid point: +1 to account for the fact that point 1 corresponds to x=0.0
-        icentre_old(1)=0
-        da(1)=0.0_gp
-        icentre_old(2)=nint(centre_old(2)/hgrids_old(2))+1
-        da(2)=real((icentre_old(2)-1)*hgrids_old(2),gp)-centre_old(2)
-        icentre_old(3)=nint(centre_old(3)/hgrids_old(3))+1
-        da(3)=real((icentre_old(3)-1)*hgrids_old(3),gp)-centre_old(3)
-
-        icentre_new(1)=0
-        icentre_new(2)=ndims_old(2)-icentre_old(2)+1
-        icentre_new(3)=ndims_old(3)-icentre_old(3)+1
-
-print*,'da',da
-
-        centre_new = centre_old+da
-        call field_rototranslation(n_phi,nrange_phi,phi_ISF,da,(/0.0_gp,0.0_gp,0.0_gp/),centre_old,centre_new,0.0_gp,&
-            hgrids_old,ndims_old,f_old,hgrids_old,ndims_old,f_tmp)
-
-        f_tmp2=f_malloc((/ndims_old(1),ndims_old(2),ndims_old(3)/),id='f_tmp2')
-
-        ! only switching within axes, so no change in dimensions here
-        ndims_new = ndims_old
-
-        ! switch axes so that y -> -y and z -> -z
-        do i=1,ndims_old(2)
-           ipos=i-icentre_new(2)
-           if (-ipos+icentre_old(2)>=1.and.-ipos+icentre_old(2)<=ndims_old(2)) then
-              f_tmp2(:,i,:)=f_tmp(:,-ipos+icentre_old(2),:)
-           else
-stop 'out of range y'
-              f_tmp2(:,i,:)=0.0_gp
+  !Arguments
+  integer, intent(in) :: nd !< Length of data set
+  integer, intent(in) :: nt !< Length of data in data set to be transformed
+  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
+  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
+  !Local variables
+  integer :: i,j,ind
+
+  integer, parameter :: m=18
+  real(kind=8), dimension(-m:m) :: ch=(/0d0, 0d0,&
+       3.571912260328699082d-6, -1.1450094552100700164d-6, &
+       -0.00005642629040127758254d0, 0.00002345539585568117642d0, &
+       0.0004069961892884996228d0, -0.0002465534369237166607d0, &
+       -0.001634776719899382798d0, 0.00259729967896342247d0, &
+       0.006477427625463336123d0, -0.01262044842878062896d0, &
+       -0.02535252967734825372d0, 0.02966399618206407251d0, &
+       0.06485097060728547963d0, -0.0289320622117497406d0, &
+       0.0185085845718848147d0, 0.5048199552943667001d0, &
+       0.970046711566057329d0, 0.7212353426722887695d0, &
+       0.0294258861485558961d0, -0.2797722999367705543d0, &
+       -0.0990303522418633099d0, 0.07410630821538452139d0,&
+       0.04680637576666147908d0, -0.011843799423550127927d0, &
+       -0.0122154536585793166d0, 0.0010521128108874154748d0, &
+       0.00196569149666800115d0, -0.00008582923667387588177d0, &
+       -0.0002141180336992365887d0, 3.667434093271785533d-6,&
+       0.000011440737665613076119d0, 0d0, 0d0, 0d0, 0d0/)
+  real(kind=8), dimension(-m:m) :: cg,cht,cgt
+
+  !******** coefficients for wavelet transform *********************
+  do i=-m,m
+     cht(i)=0.d0
+     cg(i)=0.d0
+     cgt(i)=0.d0
+  enddo
+
+  ! the normalization is chosen such that a constant function remains the same constant 
+  ! on each level of the transform
+
+  cht( 0)=1.D0
+
+  ! g coefficients from h coefficients
+  do i=-m,m-1
+     cg(i+1)=cht(-i)*(-1.d0)**(i+1)
+     cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
+  enddo
+
+  
+  do i=0,nt/2-1
+     y(2*i+0)=0.d0
+     y(2*i+1)=0.d0
+     
+     do j=-m/2,m/2-1
+        
+        ! periodically wrap index if necessary
+        ind=i-j
+        loop99: do
+           if (ind.lt.0) then 
+              ind=ind+nt/2
+              cycle loop99
            end if
-        end do
-
-        do i=1,ndims_old(3)
-           ipos=i-icentre_new(3)
-           if (-ipos+icentre_old(3)>=1.and.-ipos+icentre_old(3)<=ndims_old(3)) then
-              f_new(:,:,i)=f_tmp2(:,:,-ipos+icentre_old(3))
-           else
-stop 'out of range z'
-              f_new(:,:,i)=0.0_gp
+           if (ind.ge.nt/2) then 
+              ind=ind-nt/2
+              cycle loop99
            end if
-        end do
+           exit loop99
+        end do loop99
 
-        ! correct the shift to be done afterwards
-        da_global=da_global+da-(icentre_new-icentre_old)*hgrids_old
-print*,'n',ndims_old
-print*,'centres',da,icentre_new,icentre_old
-        ! correct centre_old as well ?!  - check when you have a non-zero rotation after!
-        centre_old=centre_old+da+(icentre_new-icentre_old)*hgrids_old
+        y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
+        y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
+     end do
+  end do
+        
+END SUBROUTINE back_trans_16_reversed
 
-     !theta = -90 => y -> z, z -> -y
-     else if (discrete_op=='x3') then
-        stop '90 degrees not yet treated'
-
-     !theta = 90 => x -> z, z -> -x
-     else if (discrete_op=='y1') then
-        stop '90 degrees not yet treated'
-
-     !theta = 180 => x -> -x, z -> -z
-     else if (discrete_op=='y2') then
-
-     !theta = -90 => x -> -z, z -> x
-     else if (discrete_op=='y3') then
-        stop '90 degrees not yet treated'
-
-     !theta = 90 => x -> -y, y -> x
-     else if (discrete_op=='z1') then
-        stop '90 degrees not yet treated'
-
-     !theta = 180 => x -> -x, y -> -y
-     else if (discrete_op=='z2') then
-
-     !theta = -90 => x -> y, y -> -x
-     else if (discrete_op=='z3') then
-        stop '90 degrees not yet treated'
-     end if
-  !end do
-
-  call f_free(f_tmp)
-  call f_free(f_tmp2)
-
-  call f_release_routine()
-
-end subroutine switch_axes
 
 

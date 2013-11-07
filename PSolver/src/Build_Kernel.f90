@@ -2416,22 +2416,19 @@ END SUBROUTINE copyreal
 !>  Build the kernel of the Poisson operator with wires Boundary conditions
 !!  in an interpolating scaling functions basis.
 !!  The periodic direction is z
-!! SYNOPSIS
-!!   @param iproc,nproc        Number of process, number of processes
-!!   @param n1,n2,n3           Dimensions for the FFT
-!!   @param nker1,nker2,nker3  Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1
-!!   @param h1,h2,h3           Mesh steps in the three dimensions
-!!   @param itype_scf          Order of the scaling function
-!!   @param karray             output array
 subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
                         mu0_screening)
   use Poisson_Solver, only: dp
   use memory_profiling
   implicit none
   !Arguments
-  integer, intent(in) :: n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
-  real(dp), intent(in) :: h1,h2,h3
-  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  integer, intent(in) :: iproc,nproc        !< Number of process, number of processes
+  integer, intent(in) :: n01,n02,n03
+  integer, intent(in) :: n1,n2,n3           !< Dimensions for the FFT
+  integer, intent(in) :: nker1,nker2,nker3  !< Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1
+  integer, intent(in) :: itype_scf          !< Order of the scaling function
+  real(dp), intent(in) :: h1,h2,h3          !< Mesh steps in the three dimensions
+  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray !< Output array
   real(dp), intent(in) :: mu0_screening
   !Local variables 
   character(len=*), parameter :: subname='Wires_Kernel'
