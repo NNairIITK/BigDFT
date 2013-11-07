@@ -42,7 +42,8 @@ program PS_Integral
 
   integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,i_all,nrange
   real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss,theta,sum,sum2,sumx,sumx2,sumy,sumy2,xmin,xmax,ymin,ymax,shift
-  real(dp), dimension(:), allocatable :: x_phi, y_phi
+  real(dp), dimension(:), allocatable :: x_phi
+  real(dp), dimension(:,:), allocatable :: y_phi
   real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2,dx_field,dy_field
   real(dp), external :: lr_gauss
 
@@ -233,7 +234,7 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 
   x_phi=f_malloc(bounds=(/0.to.nd/),id='x_phi')
 
-  allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
+  allocate(y_phi(0:nd,2+ndebug) ,stat=i_stat )
   call memocc(i_stat,y_phi,'y_phi',subname)
 
   print *, " scaling function for interpolation "
@@ -1703,7 +1704,7 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
       case(14)
          stop
       case(16)
-         call back_trans_16_again(nd,nt,x,y)
+         call back_trans_16_reversed(nd,nt,x,y)
       case(20)
          stop
       case(24)
@@ -1922,92 +1923,3 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$
 !!$end subroutine my_morph_and_transpose
 
-!> Backward wavelet transform
-subroutine back_trans_16_again(nd,nt,x,y)
-  implicit none
-  !Arguments
-  integer, intent(in) :: nd !< Length of data set
-  integer, intent(in) :: nt !< Length of data in data set to be transformed
-  real(kind=8), intent(in) :: x(0:nd-1)  !< Input data
-  real(kind=8), intent(out) :: y(0:nd-1) !< Output data
-  !Local variables
-  integer :: i,j,ind
-
-  integer, parameter :: m=18
-  real(kind=8), dimension(-m:m) :: ch=(/0d0, 0d0,&
-       3.571912260328699082d-6, -1.1450094552100700164d-6, &
-       -0.00005642629040127758254d0, 0.00002345539585568117642d0, &
-       0.0004069961892884996228d0, -0.0002465534369237166607d0, &
-       -0.001634776719899382798d0, 0.00259729967896342247d0, &
-       0.006477427625463336123d0, -0.01262044842878062896d0, &
-       -0.02535252967734825372d0, 0.02966399618206407251d0, &
-       0.06485097060728547963d0, -0.0289320622117497406d0, &
-       0.0185085845718848147d0, 0.5048199552943667001d0, &
-       0.970046711566057329d0, 0.7212353426722887695d0, &
-       0.0294258861485558961d0, -0.2797722999367705543d0, &
-       -0.0990303522418633099d0, 0.07410630821538452139d0,&
-       0.04680637576666147908d0, -0.011843799423550127927d0, &
-       -0.0122154536585793166d0, 0.0010521128108874154748d0, &
-       0.00196569149666800115d0, -0.00008582923667387588177d0, &
-       -0.0002141180336992365887d0, 3.667434093271785533d-6,&
-       0.000011440737665613076119d0, 0d0, 0d0, 0d0, 0d0/)
-!!$
-!!$  real(kind=8), dimension(-m:m) :: ch = (/&
-!!$       0.d0,0.d0,0.d0,&
-!!$       -6.39259815216064453D-6,0.D0,0.000110641121864318848D0,0.D0,&
-!!$       -0.000915303826332092285D0,0.D0,0.00484772026538848877D0,0.D0,&
-!!$       -0.0186983495950698853D0,0.D0,0.0575909167528152466D0,0.D0,&
-!!$       -0.159974768757820129D0,0.D0,0.617045536637306213D0,&
-!!$       1.D0,0.617045536637306213D0,&
-!!$       0D0,-0.159974768757820129D0,0.D0,0.0575909167528152466D0,0.D0,&
-!!$       -0.0186983495950698853D0,0.D0,0.00484772026538848877D0,0.D0,&
-!!$       -0.000915303826332092285D0,0.D0,0.000110641121864318848D0,0.D0,&
-!!$       -6.39259815216064453D-6,0.d0,0.d0,0.d0&
-!!$       /)
-  real(kind=8), dimension(-m:m) :: cg,cht,cgt
-
-  !******** coefficients for wavelet transform *********************
-  do i=-m,m
-     cht(i)=0.d0
-     cg(i)=0.d0
-     cgt(i)=0.d0
-  enddo
-
-  ! the normalization is chosen such that a constant function remains the same constant 
-  ! on each level of the transform
-
-  cht( 0)=1.D0
-
-  ! g coefficients from h coefficients
-  do i=-m,m-1
-     cg(i+1)=cht(-i)*(-1.d0)**(i+1)
-     cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
-  enddo
-
-  
-  do i=0,nt/2-1
-     y(2*i+0)=0.d0
-     y(2*i+1)=0.d0
-     
-     do j=-m/2,m/2-1
-        
-        ! periodically wrap index if necessary
-        ind=i-j
-        loop99: do
-           if (ind.lt.0) then 
-              ind=ind+nt/2
-              cycle loop99
-           end if
-           if (ind.ge.nt/2) then 
-              ind=ind-nt/2
-              cycle loop99
-           end if
-           exit loop99
-        end do loop99
-
-        y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
-        y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
-     end do
-  end do
-        
-END SUBROUTINE back_trans_16_again
