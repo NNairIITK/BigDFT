@@ -453,3 +453,6 @@ foe:
 onlyhigh:
  EH: 1.1e-10
  Epot: 1.1e-10
+
+rotatesmall_read1:
+ Epsilon: 1.1e-11
