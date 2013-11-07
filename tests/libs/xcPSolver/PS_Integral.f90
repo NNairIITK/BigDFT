@@ -249,15 +249,15 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
  ! end if
   shift=-0.1111450195312500d0
   if (real(nint(x_phi(i)+shift,kind=8)) == x_phi(i)+shift) then
-     print *,x_phi(i),y_phi(i)
+     print *,x_phi(i),y_phi(i,:)
   end if
 !    write(17,*)i,x_phi(i),y_phi(i)
   end do
   call scaling_function4b2B_again(itype,nd,nrange,x_phi,y_phi)
   do i=0,nd
-    write(17,*)i,x_phi(i),y_phi(i)
+    write(17,*)i,x_phi(i),y_phi(i,:)
     if (real(nint(x_phi(i),kind=8)) == x_phi(i)) then
-       print *,x_phi(i),y_phi(i)
+       print *,x_phi(i),y_phi(i,:)
     end if
   end do
 
@@ -277,12 +277,12 @@ stop
 !call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,1,&
 !         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psifscf)
 
-  print *,'interpolating first dimension...'
-    call morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
-         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
-
-    call morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
-         (2*n1_old+2+2*nb1),dy_field,(2*n1+2+2*nb1),psifscf)
+!!  print *,'interpolating first dimension...'
+!!    call morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+!!         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
+!!
+!!    call morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+!!         (2*n1_old+2+2*nb1),dy_field,(2*n1+2+2*nb1),psifscf)
 
 
   ! make an empty border
@@ -337,9 +337,9 @@ stop
 
 
 
-!print*,'...interpolating second dimension...'
-    call morph_and_transpose(dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
-         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
+!!!print*,'...interpolating second dimension...'
+!!    call morph_and_transpose(dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
+!!         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
 
   x=-n1_old*hx!0.d0
   do i=0,2*n1+1
@@ -433,20 +433,19 @@ print*,sumx,xmin,xmax,psifscfold(0,0,k),psifscfold(2*n1_old,0,k),psifscfold(2*n1
 
 stop
 
-
-print*,'interpolating first dimension...'
-    call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
-         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
-
-  print *,'...interpolating second dimension...'
-  call my_interpolate_and_transpose(dy/hy,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n1+2+2*nb1),&
-         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
-
-  print *,'...interpolating third dimension...'
-  call my_interpolate_and_transpose(dz/hz,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
-    (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
-
-  print *,'done'
+!!print*,'interpolating first dimension...'
+!!    call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
+!!         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
+!!
+!!  print *,'...interpolating second dimension...'
+!!  call my_interpolate_and_transpose(dy/hy,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n1+2+2*nb1),&
+!!         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
+!!
+!!  print *,'...interpolating third dimension...'
+!!  call my_interpolate_and_transpose(dz/hz,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
+!!    (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
+!!
+!!  print *,'done'
 
   !print psifscf to check
   !x=0.d0
