@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-06 10:07:53.505
+ Timestamp of this run                 : 2013-11-07 09:59:42.379
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -37,17 +37,17 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'CXX=icpc' 'FCFLAGS=-O2 -openmp' 
+     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 -openmp' 
      '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
      p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
      -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
      -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
      -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
  
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, icpc ]
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -openmp
+     FCFLAGS                           : -O2 -xSSE4.2 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -341,7 +341,7 @@
      MPI tasks                         :  3
    Energies: {Ekin:  2.38568191900E+01, Epot: -3.30380927139E+01, Enl:  2.79817343755E+00, 
                 EH:  2.02044854640E+01,  EXC: -6.88908378753E+00, EvXC: -8.95086618468E+00}
-   EKS                                 : -3.20647550202284037E+01
+   EKS                                 : -3.20647550202284108E+01
    Input Guess Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}
     #Eigenvalues and New Occupation Numbers
    Total magnetization                 :  4.000000
@@ -376,19 +376,19 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  2.58842246387E+01, Epot: -3.40009627344E+01, Enl:  2.63593900719E+00, 
               EH:  2.02930930728E+01,  EXC: -7.03180785282E+00, EvXC: -9.12864729385E+00}, 
- iter:  1, EKS: -3.12160045872816028E+01, gnrm:  2.80E-01, D:  8.49E-01, 
+ iter:  1, EKS: -3.12160045872816170E+01, gnrm:  2.80E-01, D:  8.49E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  11.999999453999, 
  Poisson Solver: {BC: Periodic, Box:  [  48,  48,  48 ], MPI tasks:  3}, 
  Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -3.13343723620770227E+01, gnrm:  2.80E-01, D: -1.18E-01,  #FINAL
+ iter:  2, EKS: -3.13343723620770263E+01, gnrm:  2.80E-01, D: -1.18E-01,  #FINAL
  Energies: {Ekin:  2.58311951051E+01, Epot: -3.36861624128E+01, Enl:  2.79018687907E+00, 
               EH:  2.08466310406E+01,  EXC: -7.09509222749E+00, EvXC: -9.21108320163E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
         #No convergence within the allowed number of minimization steps
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.28E-30
+       Non-Hermiticity of Hamiltonian in the Subspace:  3.75E-30
         #WARNING: Wavefunctions not converged after cycle  1
         #Eigenvalues and New Occupation Numbers
        Total magnetization             :  4.000000
@@ -429,7 +429,7 @@
   # 8th wavefunction written
   # 8th wavefunction written
  Write Waves Time:
- -  {Process:  0, Timing:  [  7.801E-01,  7.813E-01 ]}
+ -  {Process:  0, Timing:  [  1.220E+00,  8.750E-01 ]}
   #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
@@ -451,26 +451,27 @@
  Clean forces norm (Ha/Bohr): {maxval:  4.846821384221E-01, fnrm2:  4.633456084389E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-1.663990328764E-04, -7.106958143913E-05, -4.779422563385E-01]} # 0001
- -  {O: [-2.315496513214E-04, -9.753037036260E-05,  4.846820732996E-01]} # 0002
+ -  {O: [-1.663990328781E-04, -7.106958143033E-05, -4.779422563385E-01]} # 0001
+ -  {O: [-2.315496513204E-04, -9.753037036396E-05,  4.846820732996E-01]} # 0002
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [ -4.739406561765E-04, -4.863593155416E-07, -3.324444373208E-09 ]
-   -  [ -4.863593155416E-07, -2.109450790447E-04, -1.555582886194E-09 ]
-   -  [ -3.324444373208E-09, -1.555582886194E-09, -3.457292927749E-03 ]
+   -  [ -4.739406561765E-04, -4.863593154828E-07, -3.324444371993E-09 ]
+   -  [ -4.863593154828E-07, -2.109450790447E-04, -1.555582886563E-09 ]
+   -  [ -3.324444371993E-09, -1.555582886563E-09, -3.457292927749E-03 ]
    Pressure:
-     Ha/Bohr^3                         : -1.38072622098998E-03
+     Ha/Bohr^3                         : -1.38072622099002E-03
      GPa                               : -40.6224
-     PV (Ha)                           : -0.84906651780212
+     PV (Ha)                           : -0.84906651780214
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  17.84
-   Elapsed time (s)                    :  9.70
+   CPU time (s)                        :  17.05
+   Elapsed time (s)                    :  8.84
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
- WARNINGS: [symmetries have been disabled, k points are not irreductible., 
- Wavefunctions not converged after cycle  1, 
-]
+ WARNINGS:
+ - symmetries have been disabled, k points are not irreductible.
+ - Wavefunctions not converged after cycle  1
+ - Self-consistent cycle did not meet convergence criteria
  Memory Consumption Report:
    Tot. No. of Allocations             :  575
    Tot. No. of Deallocations           :  575
@@ -509,7 +510,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-06 10:08:03.439
+ Timestamp of this run                 : 2013-11-07 09:59:51.482
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  0
  OpenMP parallelization                :  Yes
@@ -517,17 +518,17 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'CXX=icpc' 'FCFLAGS=-O2 -openmp' 
+     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 -openmp' 
      '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
      p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
      -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
      -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
      -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
  
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, icpc ]
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -openmp
+     FCFLAGS                           : -O2 -xSSE4.2 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -761,6 +762,11 @@
    Total number of projectors          :  2
    Total number of components          :  25934
    Percent of zero components          :  0
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-11-07 09:59:51.474
+   Process Id:
+     0
  Memory Consumption Report:
    Tot. No. of Allocations             :  80
    Tot. No. of Deallocations           :  80

@@ -86,8 +86,14 @@ module yaml_output
   !! @param unit     (optional) @copydoc doc::unit
   !! @param fmt      (optional) format for the value
   interface yaml_map
-     module procedure yaml_map,yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l,yaml_map_iv,yaml_map_dv,yaml_map_cv,&
-                      yaml_map_lv
+     !general scalar
+     module procedure yaml_map
+     !other scalars
+     module procedure yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l
+     !vectors
+     module procedure yaml_map_iv,yaml_map_dv,yaml_map_cv,yaml_map_lv
+     !matrices (rank2)
+     module procedure yaml_map_dm,yaml_map_rm,yaml_map_im,yaml_map_lm
   end interface
 
  
@@ -498,7 +504,7 @@ contains
     if (associated(streams(strm)%dict_warning)) then
        call yaml_newline()
        call yaml_comment('Warnings obtained during the run, check their relevance!',hfill='-')
-       call yaml_dict_dump(streams(strm)%dict_warning)
+       call yaml_dict_dump(streams(strm)%dict_warning,flow=.false.)
        call dict_free(streams(strm)%dict_warning)
     end if
 
@@ -1126,42 +1132,34 @@ contains
     implicit none
     integer, dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
-!!$    character(len=*), intent(in) :: mapname
-!!$
-!!$    character(len=*), optional, intent(in) :: label,advance,fmt
-!!$    integer, optional, intent(in) :: unit
-!!$    !local variables
-!!$    integer :: msg_lgt,strm,unt
-!!$    character(len=3) :: adv
-!!$    character(len=tot_max_record_length) :: towrite
-!!$
-!!$    unt=0
-!!$    if (present(unit)) unt=unit
-!!$    call get_stream(unt,strm)
-!!$
-!!$    adv='def' !default value
-!!$    if (present(advance)) adv=advance
-!!$
-!!$    msg_lgt=0
-!!$    !put the message
-!!$    call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-!!$    !put the semicolon
-!!$    call buffer_string(towrite,len(towrite),': ',msg_lgt)
-!!$    !put the optional name
-!!$    if (present(label)) then
-!!$       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-!!$       call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
-!!$    end if
-!!$    !put the value
-!!$    if (present(fmt)) then
-!!$       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue,fmt=fmt)),msg_lgt)
-!!$    else
-!!$       call buffer_string(towrite,len(towrite),trim(yaml_toa(mapvalue)),msg_lgt)
-!!$    end if
-!!$    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING)
   end subroutine yaml_map_iv
 
+  !> double-precision rank2 matrix
+  subroutine yaml_map_dm(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    real(kind=8), dimension(:,:), intent(in) :: mapvalue
+    include 'yaml_map-mat-inc.f90'
+  end subroutine yaml_map_dm
 
+  subroutine yaml_map_rm(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    real, dimension(:,:), intent(in) :: mapvalue
+    include 'yaml_map-mat-inc.f90'
+  end subroutine yaml_map_rm
+
+  subroutine yaml_map_im(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    integer, dimension(:,:), intent(in) :: mapvalue
+    include 'yaml_map-mat-inc.f90'
+  end subroutine yaml_map_im
+
+  subroutine yaml_map_lm(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    logical, dimension(:,:), intent(in) :: mapvalue
+    include 'yaml_map-mat-inc.f90'
+  end subroutine yaml_map_lm
+
+  
   !> Get the stream, initialize if not already present (except if istat present)
   subroutine get_stream(unt,strm,istat)
     implicit none

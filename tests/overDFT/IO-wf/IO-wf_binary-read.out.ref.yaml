@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-06 10:07:38.557
+ Timestamp of this run                 : 2013-11-07 09:59:28.658
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -37,17 +37,17 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'CXX=icpc' 'FCFLAGS=-O2 -openmp' 
+     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 -openmp' 
      '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
      p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
      -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
      -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
      -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
  
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, icpc ]
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -openmp
+     FCFLAGS                           : -O2 -xSSE4.2 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -321,7 +321,7 @@
     #because nvctr_f_old /= nvctr_f [  856,  1656 ]
     #because cell size has changed [  23,  29,  23,  29,  23,  29 ]
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  2.976E+00,  1.818E+00 ]}
+   -  {Process:  0, Timing:  [  2.812E+00,  1.410E+00 ]}
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
@@ -333,19 +333,19 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  2.56859153140E+01, Epot: -3.36216482043E+01, Enl:  2.91331202192E+00, 
               EH:  2.08411928832E+01,  EXC: -7.09393204314E+00, EvXC: -9.20966965032E+00}, 
- iter:  1, EKS: -3.12868280112921866E+01, gnrm:  7.85E-01, 
+ iter:  1, EKS: -3.12868280112922079E+01, gnrm:  7.85E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  11.999999104719, 
  Poisson Solver: {BC: Periodic, Box:  [  60,  60,  60 ], MPI tasks:  3}, 
  Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -3.12982421936923032E+01, gnrm:  7.85E-01, D: -1.14E-02,  #FINAL
+ iter:  2, EKS: -3.12982421936922997E+01, gnrm:  7.85E-01, D: -1.14E-02,  #FINAL
  Energies: {Ekin:  2.50562385790E+01, Epot: -3.35043647116E+01, Enl:  2.43812408773E+00, 
               EH:  1.98137872985E+01,  EXC: -6.92488410022E+00, EvXC: -8.98938311690E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
         #No convergence within the allowed number of minimization steps
-       Non-Hermiticity of Hamiltonian in the Subspace:  9.04E-31
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.17E-30
         #WARNING: Wavefunctions not converged after cycle  1
         #Eigenvalues and New Occupation Numbers
        Total magnetization             :  4.000000
@@ -389,24 +389,30 @@
  Clean forces norm (Ha/Bohr): {maxval:  1.702149845872E+00, fnrm2:  4.097553828677E+00}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.506447791493E-01,  2.156819258299E-01, -1.044460737620E+00]} # 0001
+ -  {O: [ 2.506447791493E-01,  2.156819258300E-01, -1.044460737620E+00]} # 0001
  -  {O: [ 2.513565991236E-01,  2.166982691696E-01,  1.669483698039E+00]} # 0002
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [  7.362468394384E-04, -2.813968733121E-06, -3.454055119457E-06 ]
-   -  [ -2.813968733121E-06,  5.813916355753E-04, -3.107742759834E-06 ]
-   -  [ -3.454055119457E-06, -3.107742759834E-06, -3.521320508077E-03 ]
+   -  [  7.362468394384E-04, -2.813968731614E-06, -3.454055119459E-06 ]
+   -  [ -2.813968731614E-06,  5.813916355753E-04, -3.107742759833E-06 ]
+   -  [ -3.454055119459E-06, -3.107742759833E-06, -3.521320508077E-03 ]
    Pressure:
-     Ha/Bohr^3                         : -7.34560677687851E-04
+     Ha/Bohr^3                         : -7.34560677687825E-04
      GPa                               : -21.6115
-     PV (Ha)                           : -0.45171219843395
+     PV (Ha)                           : -0.45171219843394
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  25.95
-   Elapsed time (s)                    :  13.68
+   CPU time (s)                        :  24.43
+   Elapsed time (s)                    :  12.46
   #-------------------------------- Warnings obtained during the run, check their relevance!
- WARNINGS: [symmetries have been disabled, k points are not irreductible., 
- Wavefunctions not converged after cycle  1]
+ WARNINGS:
+ - symmetries have been disabled, k points are not irreductible.
+ - Wavefunctions not converged after cycle  1
+ Status of the memory at finalization:
+   Timestamp of Profile initialization:
+     2013-11-07 09:59:27.625
+   Process Id:
+     0
  Memory Consumption Report:
    Tot. No. of Allocations             :  464
    Tot. No. of Deallocations           :  464
