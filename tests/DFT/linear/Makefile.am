@@ -10,7 +10,6 @@ TESTDIRS = Locreg \
 	   geopt \
 	   testforces \
 	   fructose \
-       rotatesmall2 \
        rotatesmall \
        cdft \
        hybrid-directmin \
@@ -54,21 +53,18 @@ deltascf_write_neut.out.post-out:
 	rm -rf data-read_charge
 	mv -f data-write_neut data-read_charge
 
-rotatesmall_read.out.out : rotatesmall_write.out.out
+rotatesmall_read1.out.out : rotatesmall_write.out.out
+rotatesmall_read2.out.out : rotatesmall_write.out.out
 
 rotatesmall_write.out.post-out: 
-	rm -rf data-read/data-sih3
-	mkdir -p data-read
-	mv -f data-write data-read/data-sih3
-	cp -f write.xyz data-read/sih3.xyz
-
-rotatesmall2_read.out.out : rotatesmall2_write.out.out
-
-rotatesmall2_write.out.post-out: 
-	rm -rf data-read/data-sih3
-	mkdir -p data-read
-	mv -f data-write data-read/data-sih3
-	cp -f write.xyz data-read/sih3.xyz
+	rm -rf data-read1/data-sih3
+	mkdir -p data-read1
+	cp -rf data-write data-read1/data-sih3
+	cp -f write.xyz data-read1/sih3.xyz
+	rm -rf data-read2/data-sih3
+	mkdir -p data-read2
+	cp -rf data-write data-read2/data-sih3
+	cp -f write.xyz data-read2/sih3.xyz
 
 rotate_read.out.out : rotate_write.out.out
 
