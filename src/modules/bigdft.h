@@ -189,6 +189,8 @@ void           bigdft_inputs_set              (BigDFT_Inputs *in,
                                                BigDFT_InputsKeyIds id, const gchar *value);
 void           bigdft_inputs_set_array        (BigDFT_Inputs *in,
                                                BigDFT_InputsKeyIds id, const gchar **value);
+void           bigdft_inputs_set_array_at     (BigDFT_Inputs *in,
+                                               BigDFT_InputsKeyIds id, guint at, const gchar **value);
 void           bigdft_inputs_analyse          (BigDFT_Inputs *in, BigDFT_Atoms *atoms,
                                                gboolean dump);
 void           bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc);

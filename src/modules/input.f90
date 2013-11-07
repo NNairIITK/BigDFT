@@ -1676,6 +1676,7 @@ contains
 
   end subroutine read_kpt_from_text_format
 
+
   !> Read the input variables which can be used for performances
   subroutine read_perf_from_text_format(iproc,dict,filename)
     use module_input

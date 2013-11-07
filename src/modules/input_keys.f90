@@ -420,7 +420,7 @@ contains
          & COMMENT   .is. 'Grid shifts', &
          & COND      .is. dict_new(MASTER_KEY .is. KPT_METHOD, &
          &                         WHEN .is. list_new(.item. "MPGrid")), &
-         & DEFAULT   .is. list_new(.item."0.", .item."0.", .item."0.") ))
+         & DEFAULT   .is. list_new(.item.list_new(.item."0.", .item."0.", .item."0.")) ))
 
     call set(p // KPT, dict_new( &
          & COMMENT   .is. 'Kpt coordinates', &

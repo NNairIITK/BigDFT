@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> This function returns a dictionary with all the input variables of a BigDFT run filled
 !! this dictionary is constructed from a updated version of the input variables dictionary
 !! following the input files as defined  by the user
@@ -153,6 +154,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   ! Analyse the input dictionary and transfer it to in.
   call input_keys_fill_all(dict)
+
   call perf_input_analyse(bigdft_mpi%iproc, in, dict//PERF_VARIABLES)
   call dft_input_analyse(in, dict//DFT_VARIABLES)
   call geopt_input_analyse(in, dict//GEOPT_VARIABLES)
@@ -863,8 +865,11 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   !local variables
   logical :: lstat
   character(len=*), parameter :: subname='kpt_input_analyse'
-  integer :: i_stat,ierror,i,nshiftk, ngkpt_(3), ikpt, j, ncount, nseg, iseg_, ngranularity_
-  real(gp) :: kptrlen_, shiftk_(3,8), norm, alat_(3)
+  integer :: i_stat,ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
+  integer, dimension(3) :: ngkpt_
+  real(gp), dimension(3) :: alat_
+  real(gp), dimension(3,8) :: shiftk_
+  real(gp) :: kptrlen_, norm
   character(len = 6) :: method
   
   ! Set default values.

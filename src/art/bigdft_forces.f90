@@ -177,6 +177,7 @@ module bigdft_forces
 
    END SUBROUTINE bigdft_init_art
 
+
    !> ART calcforce_bigdft
    !! Calculation of forces
    subroutine calcforce_bigdft( posa, forca, boxl, energy, evalf_number, conv )
