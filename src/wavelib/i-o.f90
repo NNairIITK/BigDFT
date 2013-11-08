@@ -1155,10 +1155,11 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 
   !write some output on the screen
   !print matrix elements, to be moved at the moment of identification of the transformation
-  call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
-  call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
-  call yaml_map('Translation vector',da,fmt='(1pg20.12)')
-  call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
+  !!call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
+  !!call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
+  !!call yaml_map('Translation vector',da,fmt='(1pg20.12)')
+  !!call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
+
 
   !try different solutions, one of these should always work
   irp=selection(rmat)
@@ -1188,7 +1189,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 !!$  irp(3)=3
 
   !!print the suggested order
-  call yaml_map('Suggested order for the transformation',irp)
+  !!call yaml_map('Suggested order for the transformation',irp)
 
   call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,&
        centre_old,centre_new,sint,cost,onemc,irp,&
@@ -1245,6 +1246,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
     !! considering the values of the coefficients of the 
     !! rotation matrix
     pure function selection(rmat) result(irp)
+
       implicit none
       real(gp), dimension(3,3), intent(in) :: rmat !< rotation matrix
       integer, dimension(3) :: irp
@@ -1709,6 +1711,15 @@ contains
     t0_l=coord(newz,cost,sint,onemc,dt(1),dt(2),dt(3))-da
     istart=nint((t0_l+centre_old+hgrids_old)/hgrids_old)
     
+    !!doubts about that
+    !t0_l=(dt-t0_l)/hgrids_old
+    !!identify shift
+    !dt(1)=(real(istart(1),gp)+t0_l(1))-real(j1,gp)*hgrids_new(1)/hgrids_old(1)
+    !dt(2)=(real(istart(2),gp)+t0_l(2))-real(j2,gp)*hgrids_new(2)/hgrids_old(2)
+    !dt(3)=(real(istart(3),gp)+t0_l(3))-real(j3,gp)*hgrids_new(3)/hgrids_old(3)
+    !!end of doubts
+
+
     !this shift brings the old point in the new reference frame
     dt=real(istart,gp)-(t0_l+centre_new+hgrids_new)/hgrids_old
 
@@ -2025,7 +2036,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
 
        !define the value of the shift of the variable we are going to transform
       !coordinate that has to be found in the old box, including the shift
-      coord_old=coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr) 
+      coord_old=coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr)
 
       !central point of the convolution rounded to the grid points
       istart=min(max(1,nint((coord_old+centre_old(ntr)+hgrids_old(ntr))&
@@ -2040,8 +2051,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
       istart=istart-istart_shift
 
       !identify extremes for the convolution
-       ms=-min(m_isf,istart-1)
-       me=min(m_isf,ndims_old(ntr)-istart)
+      ms=-min(m_isf,istart-1)
+      me=min(m_isf,ndims_old(ntr)-istart)
 
      end subroutine shift_and_start
 

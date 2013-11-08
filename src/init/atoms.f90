@@ -598,15 +598,15 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   do iat=1,astruct%nat
      !xyz input file, allow extra information
      call getLine(line, ifile, eof)
-     if (eof) then
-        write(*,*) "Error: unexpected end of file."
-        stop
-     end if
-     if (lpsdbl) then
-        read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
-     else
-        read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
-     end if
+     if (f_err_raise(eof,"Unexpected end of file.",err_name='BIGDFT_RUNTIME_ERROR')) return
+
+
+     !!if (lpsdbl) then
+     !!   read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
+     !!else
+     !!   read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
+     !!end if
+     call check_line_integrity()
      !print *,'extra',iat,extra
      call find_extra_info(line,extra)
      !print *,'then',iat,extra
@@ -681,6 +681,29 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   call astruct_set_n_types(astruct, ntyp, subname)
 
   astruct%atomnames(1:astruct%ntypes)=atomnames(1:astruct%ntypes)
+
+
+contains
+
+  !> stop the code and warns if the status of the line is not good
+  subroutine check_line_integrity()
+   use yaml_output, only: yaml_toa
+   use dictionaries, only: f_err_raise
+   implicit none
+   
+   
+    if (lpsdbl) then
+        read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0
+    else
+        read(line,*,iostat=ierrsfx)symbol,rx,ry,rz
+    end if
+
+    if (f_err_raise(ierrsfx/=0,'The line'//trim(yaml_toa(iat+2))//&
+        ' of the atomic position is not valid, check if it is in DOS format!',&
+        err_name='BIGDFT_LINALG_ERROR')) return
+
+    end subroutine check_line_integrity
+
 END SUBROUTINE read_xyz_positions
 
 
