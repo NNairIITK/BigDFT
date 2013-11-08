@@ -315,22 +315,22 @@ directmin:
  max alpha: 1.1e-04
 
 experimentalmode:
- D: 1.1e-07
+ D: 1.1e-06
  Epsilon: 8.e-10
- Ekin: 1.3e-07
- Enl: 4.9e-08
- Omega: 3.1e-07
- EH: 3.1e-06
- Epot: 2.8e-06
- EXC: 5.9e-07
- EvXC: 7.8e-07
- energy: 3.2e-08
- multiplicator for the confinement: 1.7e-08
- Atomic Forces (Ha/Bohr): 1.6e-09
- Raw forces norm (Ha/Bohr): 3.2e-8
- Clean forces norm (Ha/Bohr): 7.2e-09
- Orbitals: 8.5e-09
- Average noise forces: 4.4e-09
+ Ekin: 9.2e-07
+ Enl: 1.1e-07
+ Omega: 4.1e-06
+ EH: 4.1e-05
+ Epot: 3.6e-05
+ EXC: 7.8e-06
+ EvXC: 1.1e-05
+ energy: 4.2e-07
+ multiplicator for the confinement: 2.4e-07
+ Atomic Forces (Ha/Bohr): 8.7e-08
+ Raw forces norm (Ha/Bohr): 9.9e-8
+ Clean forces norm (Ha/Bohr): 1.1e-07
+ Orbitals: 1.1e-06
+ Average noise forces: 2.3e-08
 
 restartdisk_charge:
  Epot: 1.1e-10
