@@ -319,13 +319,13 @@ experimentalmode:
  Epsilon: 8.e-10
  Ekin: 1.3e-07
  Enl: 4.9e-08
- Omega: 2.8e-07
- EH: 2.8e-06
+ Omega: 3.1e-07
+ EH: 3.1e-06
  Epot: 2.8e-06
- EXC: 5.4e-07
- EvXC: 7.1e-07
- energy: 2.9e-08
- multiplicator for the confinement: 1.6e-08
+ EXC: 5.9e-07
+ EvXC: 7.8e-07
+ energy: 3.2e-08
+ multiplicator for the confinement: 1.7e-08
  Atomic Forces (Ha/Bohr): 1.6e-09
  Raw forces norm (Ha/Bohr): 3.2e-8
  Clean forces norm (Ha/Bohr): 7.2e-09
@@ -456,3 +456,8 @@ onlyhigh:
 
 rotatesmall_read1:
  Epsilon: 1.1e-11
+
+rotatesmall_read2:
+ Average noise forces: 1.1e-10
+
+ 
