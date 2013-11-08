@@ -136,19 +136,27 @@ module dynamic_memory
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all,l3_all
-     module procedure c1_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
      module procedure i1_ptr,i2_ptr
+     !strings and pointers for characters
+     module procedure c1_all
+!     module procedure c1_ptr
   end interface
 
   interface operator(.to.)
      module procedure bounds
   end interface
 
+  interface nullify_malloc_information
+     module procedure nullify_malloc_information_all
+     module procedure nullify_malloc_information_ptr
+     module procedure nullify_malloc_information_str_all
+     module procedure nullify_malloc_information_str_ptr
+  end interface nullify_malloc_information
+
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
-     module procedure c1_all_free
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free
   end interface
@@ -158,25 +166,55 @@ module dynamic_memory
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
   end interface
 
+!  interface f_free_str
+!     module procedure c1_all_free
+!  end interface f_free_str
+
+!  interface f_free_str_ptr
+!     module procedure c1_ptr_free
+!  end interface f_free_str_ptr
+
+
   interface f_malloc
-     module procedure f_malloc,f_malloc_simple,f_malloc_bounds,f_malloc_bound
-     !module procedure f_malloc_str,f_malloc_str_simple,f_malloc_str_bounds,f_malloc_str_bound
+     module procedure f_malloc,f_malloc_simple
+     module procedure f_malloc_bounds,f_malloc_bound
   end interface
 
   interface f_malloc0
-     module procedure f_malloc0,f_malloc0_simple,f_malloc0_bounds,f_malloc0_bound
-     !module procedure f_malloc0_str,f_malloc0_str_simple,f_malloc0_str_bounds,f_malloc0_str_bound
+     module procedure f_malloc0,f_malloc0_simple
+     module procedure f_malloc0_bounds,f_malloc0_bound
   end interface
 
   interface f_malloc_ptr
-     module procedure f_malloc_ptr,f_malloc_ptr_simple,f_malloc_ptr_bounds,f_malloc_ptr_bound
-     !module procedure f_malloc_str_ptr,f_malloc_str_ptr_simple,f_malloc_str_ptr_bounds,f_malloc_str_ptr_bound
+     module procedure f_malloc_ptr,f_malloc_ptr_simple
+     module procedure f_malloc_ptr_bounds,f_malloc_ptr_bound
   end interface
 
   interface f_malloc0_ptr
-     module procedure f_malloc0_ptr,f_malloc0_ptr_simple,f_malloc0_ptr_bounds,f_malloc0_ptr_bound
-     !module procedure f_malloc0_str_ptr,f_malloc0_str_ptr_simple,f_malloc0_str_ptr_bounds,f_malloc0_str_ptr_bound
+     module procedure f_malloc0_ptr,f_malloc0_ptr_simple
+     module procedure f_malloc0_ptr_bounds,f_malloc0_ptr_bound
   end interface
+
+  interface f_malloc_str
+     module procedure f_malloc_str,f_malloc_str_simple
+     module procedure f_malloc_str_bounds,f_malloc_str_bound
+  end interface
+
+  interface f_malloc0_str
+     module procedure f_malloc0_str,f_malloc0_str_simple
+     module procedure f_malloc0_str_bounds,f_malloc0_str_bound
+  end interface
+
+  interface f_malloc_str_ptr
+     module procedure f_malloc_str_ptr,f_malloc_str_ptr_simple
+     module procedure f_malloc_str_ptr_bounds,f_malloc_str_ptr_bound
+  end interface
+
+  interface f_malloc0_str_ptr
+     module procedure f_malloc0_str_ptr,f_malloc0_str_ptr_simple
+     module procedure f_malloc0_str_ptr_bounds,f_malloc0_str_ptr_bound
+  end interface
+
 
   !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
   interface
@@ -189,7 +227,8 @@ module dynamic_memory
 
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
-  public :: f_free,f_free_ptr
+  public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
+  public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
   public :: f_time
   public :: assignment(=),operator(.to.)
@@ -251,47 +290,33 @@ contains
     mem%dict_codepoint => mem%dict_calling_sequence
   end subroutine initialize_mem_ctrl
 
-  pure function malloc_information_ptr_null() result(m)
+  pure subroutine nullify_malloc_information_all(m)
     implicit none
-    type(malloc_information_ptr) :: m
-    !local variables
-    integer :: i
+    type(malloc_information_all), intent(out) :: m
+    include 'f_malloc-null-inc.f90'
+  end subroutine nullify_malloc_information_all
 
+  pure subroutine nullify_malloc_information_ptr(m)
+    implicit none
+    type(malloc_information_ptr), intent(out) :: m
+    include 'f_malloc-null-inc.f90'
     m%ptr=.true.
-    m%pin=.false.
-    m%profile=mems(ictrl)%profile_routine
-    m%put_to_zero=.false.
-    m%metadata_add=0
-    m%rank=1
-    m%shape=0
-    m%lbounds=1
-    m%ubounds=0
-    do i=1,namelen
-       m%array_id(i:i)=' '
-       m%routine_id(i:i)=' '
-    end do
-  end function malloc_information_ptr_null
+  end subroutine nullify_malloc_information_ptr
 
-  pure function malloc_information_all_null() result(m)
+  pure subroutine nullify_malloc_information_str_all(m)
     implicit none
-    type(malloc_information_all) :: m
-    !local variables
-    integer :: i
-
-    m%pin=.false.
-    m%profile=mems(ictrl)%profile_routine !< here omp can be used to know whether to profile or not
-    m%put_to_zero=.false.
-    m%metadata_add=0
-    m%rank=1
-    m%shape=0
-    m%lbounds=1
-    m%ubounds=0
-    do i=1,namelen
-       m%array_id(i:i)=' '
-       m%routine_id(i:i)=' '
-    end do
-
-  end function malloc_information_all_null
+    type(malloc_information_str_all), intent(out) :: m
+    include 'f_malloc-null-inc.f90'
+    m%len=0
+  end subroutine nullify_malloc_information_str_all
+  
+  pure subroutine nullify_malloc_information_str_ptr(m)
+    implicit none
+    type(malloc_information_str_ptr), intent(out) :: m
+    include 'f_malloc-null-inc.f90'
+    m%len=0
+    m%ptr=.true.
+  end subroutine nullify_malloc_information_str_ptr
 
 
   !> This routine adds the corresponding subprogram name to the dictionary
@@ -722,306 +747,248 @@ contains
 
   !> For rank-1 arrays
   pure function f_malloc_simple(size,id,routine_id,profile) result(m)
-    integer, intent(in) :: size
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
+    implicit none
     type(malloc_information_all) :: m
-    !local variables
-    integer :: lgt
-
-    m=malloc_information_all_null()
-    m%rank=1
-    m%shape(1)=size
-    m%ubounds(1)=m%shape(1)
-
-    include 'f_malloc-inc.f90'
-
+    include 'f_malloc-simple-inc.f90'
   end function f_malloc_simple
-
   !> For rank-1 arrays
-  pure function f_malloc_bound(bounds,id,routine_id,profile) result(m)
-    type(array_bounds), intent(in) :: bounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
+  pure function f_malloc0_simple(size,id,routine_id,profile) result(m)
+    implicit none
     type(malloc_information_all) :: m
-    !local variables
-    integer :: lgt
+    include 'f_malloc-simple-inc.f90'
+    m%put_to_zero=.true.
+  end function f_malloc0_simple
+  !> For rank-1 arrays
+  pure function f_malloc_ptr_simple(size,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-simple-inc.f90'
+  end function f_malloc_ptr_simple
+  !> For rank-1 arrays
+  pure function f_malloc0_ptr_simple(size,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-simple-inc.f90'
+    m%put_to_zero=.true.
+  end function f_malloc0_ptr_simple
+  !> For rank-1 arrays
+  pure function f_malloc_str_simple(length,size,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_all) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-simple-inc.f90'
+    m%len=length
+  end function f_malloc_str_simple
+  !> For rank-1 arrays
+  pure function f_malloc0_str_simple(length,size,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_all) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-simple-inc.f90'
+    m%len=length
+    m%put_to_zero=.true.
+  end function f_malloc0_str_simple
+  !> For rank-1 arrays
+  pure function f_malloc_str_ptr_simple(length,size,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_ptr) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-simple-inc.f90'
+    m%len=length
+  end function f_malloc_str_ptr_simple
+  !> For rank-1 arrays
+  pure function f_malloc0_str_ptr_simple(length,size,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_ptr) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-simple-inc.f90'
+    m%len=length
+    m%put_to_zero=.true.
+  end function f_malloc0_str_ptr_simple
 
-    m=malloc_information_all_null()
-    m%rank=1
-    m%lbounds(1)=bounds%nlow
-    m%ubounds(1)=bounds%nhigh
-    m%shape(1)=m%ubounds(1)-m%lbounds(1)+1
 
-    include 'f_malloc-inc.f90'
-
+  !> For rank-1 arrays, with bounds
+  pure function f_malloc_bound(bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_all) :: m
+    include 'f_malloc-bound-inc.f90'
   end function f_malloc_bound
+  !>for rank-1 arrays, with boundaries
+  pure function f_malloc0_bound(bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_all) :: m
+    include 'f_malloc-bound-inc.f90'
+    m%put_to_zero=.true.
+  end function f_malloc0_bound
+  !> For rank-1 arrays
+  pure function f_malloc_ptr_bound(bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-bound-inc.f90'
+  end function f_malloc_ptr_bound
+  !> For rank-1 arrays
+  pure function f_malloc0_ptr_bound(bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-bound-inc.f90'
+    m%put_to_zero=.true.
+  end function f_malloc0_ptr_bound
+  !> For rank-1 arrays, with bounds
+  pure function f_malloc_str_bound(length,bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_all) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-bound-inc.f90'
+    m%len=length
+  end function f_malloc_str_bound
+  !>for rank-1 arrays, with boundaries
+  pure function f_malloc0_str_bound(length,bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_all) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-bound-inc.f90'
+    m%len=length
+    m%put_to_zero=.true.
+  end function f_malloc0_str_bound
+  !> For rank-1 arrays
+  pure function f_malloc_str_ptr_bound(length,bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_ptr) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-bound-inc.f90'
+    m%len=length
+  end function f_malloc_str_ptr_bound
+  !> For rank-1 arrays
+  pure function f_malloc0_str_ptr_bound(length,bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_ptr) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-bound-inc.f90'
+    m%len=length
+    m%put_to_zero=.true.
+  end function f_malloc0_str_ptr_bound
+
 
   !> Define the allocation information for  arrays of different rank
   pure function f_malloc_bounds(bounds,id,routine_id,profile) result(m)
     implicit none
-    type(array_bounds), dimension(:), intent(in) :: bounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
     type(malloc_information_all) :: m
-    !local variables
-    integer :: lgt,i
-    m=malloc_information_all_null()
-    
-    m%rank=size(bounds)
-    do i=1,m%rank
-       m%lbounds(i)=bounds(i)%nlow
-       m%ubounds(i)=bounds(i)%nhigh
-       m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-    end do
-
-    include 'f_malloc-inc.f90'
-
+    include 'f_malloc-bounds-inc.f90'
   end function f_malloc_bounds
-
+  pure function f_malloc0_bounds(bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_all) :: m
+    include 'f_malloc-bounds-inc.f90'
+    m%put_to_zero=.true.
+  end function f_malloc0_bounds
+  !> Define the allocation information for  arrays of different rank
+  pure function f_malloc_ptr_bounds(bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-bounds-inc.f90'
+  end function f_malloc_ptr_bounds
+  !> Define the allocation information for  arrays of different rank
+  pure function f_malloc0_ptr_bounds(bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-bounds-inc.f90'
+    m%put_to_zero=.true.
+  end function f_malloc0_ptr_bounds
+  !> Define the allocation information for  arrays of different rank
+  pure function f_malloc_str_bounds(length,bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_all) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-bounds-inc.f90'
+    m%len=length
+  end function f_malloc_str_bounds
+  pure function f_malloc0_str_bounds(length,bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_all) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-bounds-inc.f90'
+    m%len=length
+    m%put_to_zero=.true.
+  end function f_malloc0_str_bounds
+  !> Define the allocation information for  arrays of different rank
+  pure function f_malloc_str_ptr_bounds(length,bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_ptr) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-bounds-inc.f90'
+    m%len=length
+  end function f_malloc_str_ptr_bounds
+  !> Define the allocation information for  arrays of different rank
+  pure function f_malloc0_str_ptr_bounds(length,bounds,id,routine_id,profile) result(m)
+    implicit none
+    type(malloc_information_str_ptr) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-bounds-inc.f90'
+    m%len=length
+    m%put_to_zero=.true.
+  end function f_malloc0_str_ptr_bounds
 
   !> Define the allocation information for  arrays of different rank
   function f_malloc(shape,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
-    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
     type(malloc_information_all) :: m
-    !local variables
-    integer :: lgt,i
-    m=malloc_information_all_null()
-
-    include 'f_malloc-extra-inc.f90'
-    include 'f_malloc-inc.f90'
-
+    include 'f_malloc-total-inc.f90'
   end function f_malloc
-
-
-  !>for rank-1 arrays
-  pure function f_malloc0_simple(size,id,routine_id,profile) result(m)
-    implicit none
-    integer, intent(in) :: size
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
-    type(malloc_information_all) :: m
-    !local variables
-    integer :: lgt
-
-    m=malloc_information_all_null()
-    m%put_to_zero=.true.
-    m%rank=1
-    m%shape(1)=size
-    m%ubounds(1)=m%shape(1)
-
-    include 'f_malloc-inc.f90'
-
-  end function f_malloc0_simple
-
-  !>for rank-1 arrays
-  pure function f_malloc0_bound(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(array_bounds), intent(in) :: bounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
-    type(malloc_information_all) :: m
-    !local variables
-    integer :: lgt
-
-    m=malloc_information_all_null()
-    m%put_to_zero=.true.
-    m%rank=1
-    m%lbounds(1)=bounds%nlow
-    m%ubounds(1)=bounds%nhigh
-    m%shape(1)=m%ubounds(1)-m%lbounds(1)+1
-
-    include 'f_malloc-inc.f90'
-  end function f_malloc0_bound
-
-  pure function f_malloc0_bounds(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(array_bounds), dimension(:), intent(in) :: bounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
-    type(malloc_information_all) :: m
-    !local variables
-    integer :: lgt,i
-    m=malloc_information_all_null()
-
-    m%put_to_zero=.true.
-
-    m%rank=size(bounds)
-    do i=1,m%rank
-       m%lbounds(i)=bounds(i)%nlow
-       m%ubounds(i)=bounds(i)%nhigh
-       m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-    end do
-
-    include 'f_malloc-inc.f90'
-  end function f_malloc0_bounds
-
   !> define the allocation information for  arrays of different rank
   function f_malloc0(shape,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
-    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
     type(malloc_information_all) :: m
-    !local variables
-    integer :: lgt,i
-    m=malloc_information_all_null()
-
+    include 'f_malloc-total-inc.f90'
     m%put_to_zero=.true.
-
-    include 'f_malloc-extra-inc.f90'
-    include 'f_malloc-inc.f90'
   end function f_malloc0
-
-  !> For rank-1 arrays
-  pure function f_malloc_ptr_simple(size,id,routine_id,profile) result(m)
-    integer, intent(in) :: size
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
-    type(malloc_information_ptr) :: m
-    !local variables
-    integer :: lgt
-
-    m=malloc_information_ptr_null()
-    m%rank=1
-    m%shape(1)=size
-    m%ubounds(1)=m%shape(1)
-
-    include 'f_malloc-inc.f90'
-  end function f_malloc_ptr_simple
-
-  !> For rank-1 arrays
-  pure function f_malloc_ptr_bound(bounds,id,routine_id,profile) result(m)
-    type(array_bounds), intent(in) :: bounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
-    type(malloc_information_ptr) :: m
-    !local variables
-    integer :: lgt
-
-    m=malloc_information_ptr_null()
-    m%rank=1
-    m%lbounds(1)=bounds%nlow
-    m%ubounds(1)=bounds%nhigh
-    m%shape(1)=m%ubounds(1)-m%lbounds(1)+1
-
-    include 'f_malloc-inc.f90'
-  end function f_malloc_ptr_bound
-
-    !> Define the allocation information for  arrays of different rank
-  pure function f_malloc_ptr_bounds(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(array_bounds), dimension(:), intent(in) :: bounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
-    type(malloc_information_ptr) :: m
-    !local variables
-    integer :: lgt,i
-    m=malloc_information_ptr_null()
-    
-    m%rank=size(bounds)
-    do i=1,m%rank
-       m%lbounds(i)=bounds(i)%nlow
-       m%ubounds(i)=bounds(i)%nhigh
-       m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-    end do
-
-    include 'f_malloc-inc.f90'
-  end function f_malloc_ptr_bounds
-
-
   !> Define the allocation information for  arrays of different rank
   function f_malloc_ptr(shape,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
-    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
     type(malloc_information_ptr) :: m
-    !local variables
-    integer :: lgt,i
-    m=malloc_information_ptr_null()
-
-    include 'f_malloc-extra-inc.f90'
-    include 'f_malloc-inc.f90'
+    include 'f_malloc-total-inc.f90'
   end function f_malloc_ptr
-
-  !> For rank-1 arrays
-  pure function f_malloc0_ptr_simple(size,id,routine_id,profile) result(m)
-    integer, intent(in) :: size
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
-    type(malloc_information_ptr) :: m
-    !local variables
-    integer :: lgt
-
-    m=malloc_information_ptr_null()
-    m%put_to_zero=.true.
-    m%rank=1
-    m%shape(1)=size
-    m%ubounds(1)=m%shape(1)
-
-    include 'f_malloc-inc.f90'
-  end function f_malloc0_ptr_simple
-
-  !> For rank-1 arrays
-  pure function f_malloc0_ptr_bound(bounds,id,routine_id,profile) result(m)
-    type(array_bounds), intent(in) :: bounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
-    type(malloc_information_ptr) :: m
-    !local variables
-    integer :: lgt
-
-    m=malloc_information_ptr_null()
-    m%put_to_zero=.true.
-    m%rank=1
-    m%lbounds(1)=bounds%nlow
-    m%ubounds(1)=bounds%nhigh
-    m%shape(1)=m%ubounds(1)-m%lbounds(1)+1
-
-    include 'f_malloc-inc.f90'
-  end function f_malloc0_ptr_bound
-
-  !> Define the allocation information for  arrays of different rank
-  pure function f_malloc0_ptr_bounds(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(array_bounds), dimension(:), intent(in) :: bounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
-    type(malloc_information_ptr) :: m
-    !local variables
-    integer :: lgt,i
-    m=malloc_information_ptr_null()
-
-    m%put_to_zero=.true.
-    m%rank=size(bounds)
-    do i=1,m%rank
-       m%lbounds(i)=bounds(i)%nlow
-       m%ubounds(i)=bounds(i)%nhigh
-       m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
-    end do
-
-    include 'f_malloc-inc.f90'
-  end function f_malloc0_ptr_bounds
-
   !> Define the allocation information for  arrays of different rank
   function f_malloc0_ptr(shape,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
-    integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id,routine_id
     type(malloc_information_ptr) :: m
-    !local variables
-    integer :: lgt,i
-    m=malloc_information_ptr_null()
+    include 'f_malloc-total-inc.f90'
     m%put_to_zero=.true.
-
-    include 'f_malloc-extra-inc.f90'
-    include 'f_malloc-inc.f90'
   end function f_malloc0_ptr
+  !> Define the allocation information for  arrays of different rank
+  function f_malloc_str(length,shape,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    type(malloc_information_str_all) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-total-inc.f90'
+    m%len=length
+  end function f_malloc_str
+  !> define the allocation information for  arrays of different rank
+  function f_malloc0_str(length,shape,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    type(malloc_information_str_all) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-total-inc.f90'
+    m%len=length
+    m%put_to_zero=.true.
+  end function f_malloc0_str
+  !> Define the allocation information for  arrays of different rank
+  function f_malloc_str_ptr(length,shape,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    type(malloc_information_str_ptr) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-total-inc.f90'
+    m%len=length
+  end function f_malloc_str_ptr
+  !> Define the allocation information for  arrays of different rank
+  function f_malloc0_str_ptr(length,shape,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    type(malloc_information_str_ptr) :: m
+    integer, intent(in) :: length
+    include 'f_malloc-total-inc.f90'
+    m%len=length
+    m%put_to_zero=.true.
+  end function f_malloc0_str_ptr
+
 
   !---Templates start here
   include 'malloc_templates-inc.f90'

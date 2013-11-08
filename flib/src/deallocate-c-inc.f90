@@ -22,7 +22,7 @@
      !address of first element (not needed for deallocation)
      !call getaddress(array,address,len(address),ierr)
      !address of the metadata 
-     call metadata_address(array,iadd)
+     call metadata_address(len(array),array,iadd)
      address=repeat(' ',len(address))
      address=trim(long_toa(iadd))
 
