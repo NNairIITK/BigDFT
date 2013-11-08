@@ -223,6 +223,7 @@ mixpotential:
  Epot: 1.1e-10
  energy: 2.0e-11
  Omega: 2.5e-11
+ Ekin: 1.1e-10
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -459,6 +460,4 @@ rotatesmall_read1:
  Epsilon: 1.1e-11
 
 rotatesmall_read2:
- Average noise forces: 1.1e-10
-
- 
+ Average noise forces: 1.1e-10 
