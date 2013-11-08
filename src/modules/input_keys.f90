@@ -192,11 +192,11 @@ contains
 !!$    !alternative filling of parameters from hard-coded source file
 !!$    call getstaticinputdef(cbuf_add,params_size)
 !!$    !allocate array
-!!$    params=f_malloc(params_size,id='params')
+!!$    params=f_malloc_str(1,params_size,id='params')
 !!$    !fill it and parse dictionary
 !!$    call copycbuffer(params,cbuf_add,params_size)
 !!$    call yaml_parse_from_char_array(parameters,params)
-!!$    call f_free(params)
+!!$    call f_free_str(1,params)
 !!$    call yaml_dict_dump_all(parameters,unit=17)
 !!$    call dict_free(parameters)
 
