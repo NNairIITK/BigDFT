@@ -22,7 +22,7 @@ program PS_Integral
   real(dp) :: hgrid, dx!, t0, t1
   real(dp), dimension(7) :: pgauss
   real(dp), dimension(:), allocatable :: x_scf
-  real(dp), dimension(:), allocatable :: y_scf
+  real(dp), dimension(:,:), allocatable :: y_scf
   !real(dp), dimension(-n_range:n_range) :: work
   !real(dp), dimension(-n_range:n_range) :: kernel_scf
   !real(dp), dimension(-n_range:n_range) :: work
@@ -249,15 +249,15 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
  ! end if
   shift=-0.1111450195312500d0
   if (real(nint(x_phi(i)+shift,kind=8)) == x_phi(i)+shift) then
-     print *,x_phi(i),y_phi(i,:)
+     print *,x_phi(i),y_phi(i,2)
   end if
 !    write(17,*)i,x_phi(i),y_phi(i)
   end do
   call scaling_function4b2B_again(itype,nd,nrange,x_phi,y_phi)
   do i=0,nd
-    write(17,*)i,x_phi(i),y_phi(i,:)
+    write(17,*)i,x_phi(i),y_phi(i,1)
     if (real(nint(x_phi(i),kind=8)) == x_phi(i)) then
-       print *,x_phi(i),y_phi(i,:)
+       print *,x_phi(i),y_phi(i,1)
     end if
   end do
 
@@ -525,7 +525,7 @@ stop
 
      !Other allocations
      x_scf=f_malloc(bounds=(/0.to.n_scf/),id='x_scf')
-     y_scf=f_malloc(bounds=(/0.to.n_scf/),id='y_scf')
+     y_scf=f_malloc(bounds=(/0.to.n_scf,1.to.2/),id='y_scf')
      gaussian=f_malloc(bounds=(/1 .to. 7, 0 .to. n_scf/),id='gaussian')
      !allocate(x_scf(0:n_scf),stat=i_stat)
      !allocate(y_scf(0:n_scf),stat=i_stat)

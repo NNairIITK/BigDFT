@@ -17,7 +17,7 @@
      call pad_array(array,m%put_to_zero,m%shape,ndebug)
      !profile the array allocation
      if (m%profile) then
-        call metadata_address(array,iadd)
+        call metadata_address(m%len,array,iadd)
         call profile(iadd)
      end if
   else
