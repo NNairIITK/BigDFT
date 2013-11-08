@@ -83,7 +83,8 @@ rprb=3.61d0
 ehomo=-0.10554d0
 neleconf(1,0)=2
 neleconf(2,0)=1
-nsccode=1
+neleconf(2,1)=1.d-20
+!nsccode=1
 amu=6.941d0
 
 case(4*1000+2)
@@ -577,6 +578,22 @@ neleconf(4,0)=2
 nsccode=12
 amu=58.69d0
 
+case(29*1000+19)
+! -----------------------          43
+! Cu          29          19     Symbol, Z, Zion
+symbol = "Cu"
+rcov=2.30d0
+rprb=4.60d0
+ehomo=-0.172056d0
+neleconf(3,2)=10
+neleconf(4,0)=1
+neleconf(3,0)=2
+neleconf(3,1)=6
+neleconf(4,1)=1.d-20
+!nsccode=3
+amu=63.546d0
+
+
 case(29*1000+11)
 ! -----------------------          43
 ! Cu          29          11     Symbol, Z, Zion
@@ -586,7 +603,8 @@ rprb=4.60d0
 ehomo=-0.172056d0
 neleconf(3,2)=10
 neleconf(4,0)=1
-nsccode=3
+neleconf(4,1)=1.d-20
+!nsccode=3
 amu=63.546d0
 
 case(29*1000+1)
@@ -1489,6 +1507,24 @@ neleconf(6,0)=1.d-18
 neleconf(6,1)=1.d-18
 !nsccode=12
 amu=195.08d0
+
+
+case(79*1000+19)
+! -----------------------         117
+! Au          79          19     Symbol, Z, Zion
+symbol = "Au"
+rcov=2.70d0
+rprb=5.40d0
+ehomo=-0.162334d0
+neleconf(5,0)=2
+neleconf(5,1)=6
+neleconf(5,2)=10
+neleconf(6,0)=1
+neleconf(6,1)=1.d-18
+!neleconf(6,2)=1.d-18
+!nsccode=3
+amu=196.96654d0
+
 
 case(79*1000+11)
 ! -----------------------         117

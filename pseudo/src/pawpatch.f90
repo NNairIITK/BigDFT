@@ -1,62 +1,61 @@
-!> @file
-!! Paw generation (?) in pseudo program
-!! @author
-!!    Alex Willand, under the supervision of Stefan Goedecker
-!!    gpu accelerated routines by Raffael Widmer
-!!    parts of this program were based on the fitting program by matthias krack
-!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
-!!
-!!    Copyright (C) 2010-2013 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
-
-
-subroutine pawpatch(noccmax,noccmx,lmax,lmx,lpmx,nspin,nsmx,&
-     occup,aeval,&
+subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
+     noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,&
+     no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,&
+     occup,aeval,chrg,dhrg,ehrg,res,wght,&
+     wfnode,psir0,wghtp0,&
      rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
-     psi,&
-     rae, &
-     iproc,&
-     ngrid_fit,&
-     nconfpaw, npawl, nchannelspaw, ispp, pawstatom, &
-     pawstN, pawstL, pawstP, pawrcovfact)
+     vh,xp,rmt,rmtg,ud,nint,ng_fit,ngmx,psi,&
+     avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae, &
+     iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,&
+     nhgrid,hgridmin,hgridmax, nhpow,ampl,crmult,frmult,&
+     excitAE,ntime,iter,itertot,penref,time,ngrid_fit,&
+     nconfpaw, npawl, nchannelspaw, ispp, pawstatom , pawstN, pawstL, pawstP ,&
+     pawrcovfact)
   
   implicit none
-  !Arguments
+  !! implicit real*8 (a-h,o-z)
   integer, parameter :: gp=kind(1.0d0) 
-  real(kind=8) :: occup(noccmx,lmx,nsmx),aeval(noccmx,lmx,nsmx),&
+  logical avgl1,avgl2,avgl3,ortprj,litprj,igrad
+  real(8) pp(maxdim),so(norb),ev(norb),crcov(norb),&
+       dcrcov(norb),ddcrcov(norb),occup(noccmx,lmx,nsmx),aeval(noccmx,lmx,nsmx),&
+       chrg(noccmx,lmx,nsmx),dhrg(noccmx,lmx,nsmx),&
+       ehrg(noccmx,lmx,nsmx),res(noccmx,lmx,nsmx),&
+       wght(noccmx,lmx,nsmx,8),&
+       wfnode(noccmx,lmx,nsmx,3),&
        gpot(*),r_l(*),hsep(6,lpmx,nsmx),&
-       psi(*),&
-       rae(*),&
-       rcov,&
-       rprb,rcore,zcore,znuc,zion,rloc
+       vh(*),xp(*),rmt(*),rmtg(*),ud(*),psi(*),&
+       rae(*),pen_cont(7),&
+       exverbose(4*nproc),time(3), penal, psir0,wghtp0,rcov,&
+       rprb,rcore,zcore,znuc,zion,rloc,&
+       wghtexci,wghtsoft,wghtrad,wghthij,&
+       hgridmin,hgridmax, ampl,crmult,frmult,&
+       excitAE,iter,itertot,penref, wghtconf
   
-  integer :: nconfpaw, npawl, nchannelspaw,&
-       noccmax,noccmx,lmax,lmx,lpmx,nspin,nsmx,iproc,&
-       ngrid_fit, j, pawstN, pawstL, pawstP
+  integer no(norb),lo(norb),nconfpaw, npawl, nchannelspaw , maxdim,&
+       noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,nint,ng_fit,ngmx,iproc,&
+       nproc,nhgrid,nhpow,ntime, norb, ngrid_fit, j,   pawstN, pawstL, pawstP
   
-  real(kind=8) :: pawrcovfact
+  real(8) pawrcovfact
 
-  character(len=1) :: ispp
+  character(len=1) ispp
+  logical:: energ, verbose, wpen, pol
   character(len=30) :: plotfile
-  real(kind=8), pointer :: atom_potential_fit(:)
-  real(kind=8), pointer :: statom_potential(:)
-  real(kind=8) :: rdum
+  real(8), pointer :: atom_potential_fit(:)
+  real(8), pointer :: statom_potential(:)
+  real(8) rdum
   
-  integer :: Npaw, ng
-  integer :: Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl,  Ngrid_box_larger
-  real(kind=8) :: boxradius, biggerboxradius, a,b, EMAX
-  real(kind=8), pointer :: rgrid(:), yp(:), ypp(:), w(:), aepot(:), aepot_p(:), aepot_pp(:), &
+  integer Nsolm, Npaw, ng
+  integer Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl,  Ngrid_box_larger
+  real(8) boxradius, biggerboxradius, a,b, EMAX
+  real(8), pointer :: rgrid(:), yp(:), ypp(:), w(:), aepot(:), aepot_p(:), aepot_pp(:), &
        rgrid_ab(:), aepot_cent(:), staepot(:), rw(:),rd(:)
-  real(kind=8) :: a1,b1,an,bn
-  integer :: ierr, isx
-  integer :: LPaw, n, Nsol
-  integer :: igrid
-  real(kind=8), pointer :: psi_initial_copy(:),psi_initial(:), dumpsi_p(:)
-  real(kind=8) :: dum_energy
-  character(len=1000) :: filename
+  real(8) a1,b1,an,bn
+  integer ierr, isx
+  integer LPaw, n, Nsol
+  integer igrid
+  real(8), pointer :: psi_initial_copy(:),psi_initial(:), dumpsi_p(:)
+  real(8) dum_energy
+  character(1000) filename
   character(len=125) :: pawstatom
   real(gp) , pointer ::  psigrid(:,:), Egrid(:), nonloc(:)
   real(gp) , pointer ::  psigrid_pseudo(:,:), Egrid_pseudo(:)
@@ -65,10 +64,10 @@ subroutine pawpatch(noccmax,noccmx,lmax,lmx,lpmx,nspin,nsmx,&
   
   real(gp) , pointer ::  expo(:)
   real(gp), pointer::PAWpatch_matrix(:,:)
-  real(gp) :: fourpi
-  logical :: dump_functions
-  integer :: real_start, l, iocc,i 
-  integer :: iout, outunits(2), uout
+  real(gp) fourpi
+  logical dump_functions
+  integer real_start, l, iocc,i 
+  integer iout, outunits(2), uout
   include 'mpif.h'
   
   dump_functions= .true.
@@ -402,11 +401,11 @@ subroutine pawpatch(noccmax,noccmx,lmax,lmx,lpmx,nspin,nsmx,&
      psigrid_pseudo=psigrid
  
 
-     call paw_generator(zion,lmx,lpmx,lmax,hsep, gpot, &
-          rloc, r_l, &
+     call paw_generator(znuc,zion,lmx,lpmx,lmax,hsep, gpot, &
+          rloc, r_l, &                         !! rloc=alpz=alpl    r_l=alps
           ng-1 ,noccmax ,noccmx,   expo,  psi,aeval, occup ,  &
           Nsol, Lpaw , Ngrid, Ngrid_box,Egrid_pseudo,  rgrid , rw,rd, psigrid_pseudo ,&
-          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rprb, rcore,zcore, Ngrid_box_larger)
+          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rcov, rprb, rcore,zcore, Ngrid_box_larger)
      
      if( dump_functions) then
         write(plotfile, '(a,i0,a)') 'ptildes.L=',LPaw,'.plt'
@@ -473,8 +472,8 @@ subroutine pawpatch(noccmax,noccmx,lmax,lmx,lpmx,nspin,nsmx,&
         write(6,*) "routine pawpatch  , PROJECT  initial wf*r**pawstP on pseudos "
         write(38,*)  "routine pawpatch  , PROJECT  initial wf*r**pawstP on pseudos "
         call find_pfproj_4tail( Nsol,Npaw,Ngrid,  Ngrid_box,Ngrid_biggerbox, rgrid, psi_initial, psigrid, real_start, &
-             psipsigrid_pseudo,  &
-             psigrid_bigger) 
+             psigrid_pseudo, psipsigrid_pseudo,  &
+             psigrid_bigger,dump_functions) 
         
 
         !! if(iproc.eq.0 .and. dump_functions.eq.1) then 
@@ -572,21 +571,23 @@ END subroutine pawpatch
 
 subroutine find_pfproj_4tail( Nsol,Npaw, Ngrid,Ngrid_box,Ngrid_biggerbox,&
      rgrid, psi1s, psigrid, real_start,&
-     psitilde, &
-     psigrid_bigger)
+     ptilde, psitilde, &
+     psigrid_bigger, dump_functions )
   implicit none
   integer, parameter :: gp=kind(1.0d0) 
   !Arguments
   integer, intent(in) ::  Nsol,Npaw,Ngrid,Ngrid_box,Ngrid_biggerbox,real_start
   real(gp), intent(inout) :: psi1s(Ngrid), rgrid(Ngrid)
   real(gp), intent(inout) :: psigrid(Ngrid,Nsol),psigrid_bigger(Ngrid,Nsol)
-  real(gp), dimension(Ngrid,Nsol), intent(inout) :: psitilde
+  real(gp), intent(inout) :: psitilde(Ngrid,Nsol),ptilde(Ngrid,Nsol)
   !! real(gp) , intent(out) :: coeffs_out(Npaw)
+  logical :: dump_functions
   !Local variables
   real(gp)   :: coeffs_out(Npaw)
-  real(gp) :: dumgrid(Ngrid),  dumgrid2(Ngrid)
-  integer :: i,k
-  real(gp)  :: coeffs(Nsol), ratio, x
+  real(gp) :: dumgrid(Ngrid),  dumgrid2(Ngrid), mass, mass_pseudo
+  integer :: segno(Nsol), segno_pseudo(Nsol)
+  integer :: i,k, igrid,j
+  real(gp)  :: coeffs(Nsol), ratio, dum, x
 
   !! check
   do i=1, Nsol-real_start+1

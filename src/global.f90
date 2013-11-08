@@ -778,7 +778,7 @@ contains
     type(run_objects), intent(inout) :: runObj
     type(DFT_global_output), intent(inout) :: outs
     dimension gg(3,atoms%astruct%nat),vxyz(3,atoms%astruct%nat)
-    character(len=4) :: fn
+    character(len=4) :: fn4
     logical :: move_this_coordinate
     real(gp) :: e0
     !type(wavefunctions_descriptors), intent(inout) :: wfd
@@ -855,8 +855,8 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
        call call_bigdft(runObj, outs, nproc,iproc,infocode)
 
        if (iproc == 0) then
-          write(fn,'(i4.4)') istep
-          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn,outs%energy,atoms%astruct%rxyz,atoms,'',forces=outs%fxyz)
+          write(fn4,'(i4.4)') istep
+          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn4,outs%energy,atoms%astruct%rxyz,atoms,'',forces=outs%fxyz)
        end if
 
        en0000=outs%energy-e0
@@ -865,9 +865,10 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
 !  write configuration file for data base
        if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  then
           ngeopt=ngeopt+1
-          write(fn,'(i4.4)') ngeopt
+          write(fn4,'(i4.4)') ngeopt
           write(comment,'(a,i3)')'nummin= ',nummin
-          call write_atomic_file(trim(inputs_md%dir_output)//'poslocm_'//fn,outs%energy,atoms%astruct%rxyz,atoms,'comment',forces=outs%fxyz)
+          call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()), & 
+               outs%energy,atoms%astruct%rxyz,atoms,trim(comment),forces=outs%fxyz)
        endif
        econs_max=max(econs_max,rkin+outs%energy)
        econs_min=min(econs_min,rkin+outs%energy)
