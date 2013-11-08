@@ -1,17 +1,4 @@
  <BigDFT> log of the run will be written in logfile: ./log-read_charge.yaml
- ------------------------------------------------------------------------------------
- >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 5 treat 14 orbitals. |
- -----------------------------------------------
-total elements: 7056
-non-zero elements: 6416
-sparsity:  9.07%
-total elements: 7056
-non-zero elements: 5136
-sparsity: 27.21%
-total elements: 7056
-non-zero elements: 6416
-sparsity:  9.07%
  Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
  Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
  Error, Wahba's cost function is too big  0.25527541221505418        9.9999996454517142     
@@ -26,34 +13,6 @@ sparsity:  9.07%
  Error, Wahba's cost function is too big  0.27219957181376647        10.000003319769219     
  Error, Wahba's cost function is too big  0.26464854521481107        10.000015808021576     
  Error, Wahba's cost function is too big  0.26862312617645506        10.000008393746594     
- Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
- Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
- Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
- Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
- Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
- Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
- Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
- Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
- Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
- Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
- Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
- Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
- Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
- Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
- Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
- Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
- Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
- Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
- Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
- Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
- Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
- Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
- Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
- Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
- Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
- Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
- Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
- Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
  Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
  Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
  Error, Wahba's cost function is too big  0.45841045245317397        10.000000177773400     
@@ -68,6 +27,34 @@ sparsity:  9.07%
  Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
  Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
  Error, Wahba's cost function is too big  0.24563218866651731        9.9999994460927013     
+ Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
+ Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
+ Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
+ Error, Wahba's cost function is too big  0.24563204782981848        10.000001358082523     
+ Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
+ Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
+ Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
+ Error, Wahba's cost function is too big  0.24563247559460813        9.9999996483698332     
+ Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
+ Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
+ Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
+ Error, Wahba's cost function is too big  0.45841070276599100        9.9999999900580789     
+ Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
+ Error, Wahba's cost function is too big  0.17906177095125270        9.9999972554084238     
+ Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
+ Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
+ Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
+ Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
+ Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
+ Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
+ Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
+ Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
+ Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
+ Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
+ Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
+ Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
+ Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
+ Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
  Error, Wahba's cost function is too big  0.26862388268415044        10.000006873864697     
  Error, Wahba's cost function is too big  0.26464901095506710        10.000009157697503     
  Error, Wahba's cost function is too big  0.27220012689222650        10.000005456049557     
@@ -82,201 +69,28 @@ sparsity:  9.07%
  Error, Wahba's cost function is too big  0.25527481828447374        10.000000706480121     
  Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
  Error, Wahba's cost function is too big  0.17906168382946869        10.000000134658876     
+ Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
+ Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
+ Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
+ Error, Wahba's cost function is too big  0.45305470262858244        9.9999998157600931     
+ Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
+ Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
+ Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
+ Error, Wahba's cost function is too big  0.24563212730552927        9.9999996950072738     
+ Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
+ Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
+ Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
+ Error, Wahba's cost function is too big  0.24563204695279567        10.000000514737323     
  Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
  Error, Wahba's cost function is too big  0.45305505475621910        10.000000313963227     
- Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
- Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
- Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
- Error, Wahba's cost function is too big  0.24563223915064669        9.9999999932546757     
- Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
- Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
- Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
- Error, Wahba's cost function is too big  0.24563203807182166        9.9999990153632758     
- Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
- Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
- Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
- Error, Wahba's cost function is too big  0.45305477029720742        10.000001460488470     
- Overview of the reformatting (several categories may apply):
-   - No reformatting required: 0
-   - Grid spacing has changed: 0
-   - Number of coarse grid points has changed: 80
-   - Number of fine grid points has changed: 84
-   - Box size has changed: 4
-   - Molecule was shifted: 84
-   - Molecule was rotated: 84
-   - Discrete operations: 0
-coeff renormalization... calculate density kernel... Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939640E+01
- ************************************************************************************
- ****************************** LINEAR SCALING VERSION ******************************
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.55168529E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     8.067101E-002     0.000000E+000    -6.386167E+001
- ======================== Creation of the basis functions... ========================
- ----------------------------------------------------------------------------- iter=1
- Orthoconstraint... Preconditioning... done.
-AFTER: gnrm, gnrmmax, gnrm/gnrm_old    2.298978E-01    3.993872E-01    8.015085E-03
- iter, fnrm, fnrmMax, ebs, diff     1  5.8435081E-01  9.6632601E-01  -132.5309309792  -1.3253E+02
- WARNING: not converged within 1 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, ebs:   5.8435081E-01  9.6632601E-01   -132.5309310
- ============================= Basis functions created. =============================
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
- No Hamiltonian application required.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     3.471729E-002    -6.386167E+001    -2.043495E-002
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939860E+01
- ---------------------------------------------------------------- Updating potential.
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 1 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   1  2.6454123E-07   -1.32551365932558042E+02   -1.3255E+02
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54018823E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     6.523601E-002    -6.388210E+001     1.544005E+000
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939909E+01
- ---------------------------------------------------------------- Updating potential.
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 2 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   2  9.1593477E-08   -1.32508065372054489E+02    4.3301E-02
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54019732E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     2.534423E-002    -6.233810E+001    -4.580492E-002
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939911E+01
- ---------------------------------------------------------------- Updating potential.
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 3 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   3  4.2764894E-08   -1.32505714983291796E+02    2.3504E-03
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54002977E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     1.808327E-002    -6.238390E+001    -3.190054E-002
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939921E+01
- ---------------------------------------------------------------- Updating potential.
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 4 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   4  4.0111070E-08   -1.32507540006859927E+02   -1.8250E-03
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54145934E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     5.902495E-003    -6.241580E+001    -1.576225E-001
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939921E+01
- ---------------------------------------------------------------- Updating potential.
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 5 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   5  1.4107874E-08   -1.32506666462617432E+02    8.7354E-04
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54121760E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     1.831913E-003    -6.257343E+001     2.436379E-002
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939919E+01
- ---------------------------------------------------------------- Updating potential.
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 6 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   6  4.6975406E-09   -1.32506543758539578E+02    1.2270E-04
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54086362E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     1.175948E-003    -6.254906E+001     3.594828E-002
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939920E+01
- ---------------------------------------------------------------- Updating potential.
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 7 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   7  2.8170997E-09   -1.32506554728995411E+02   -1.0970E-05
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54107085E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     8.552540E-004    -6.251312E+001    -2.170109E-002
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939920E+01
- ---------------------------------------------------------------- Updating potential.
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 8 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   8  2.0604242E-09   -1.32506572479169790E+02   -1.7750E-05
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54099301E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     6.997830E-004    -6.253482E+001     8.662703E-003
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939918E+01
- ---------------------------------------------------------------- Updating potential.
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 9 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   9  1.7910535E-09   -1.32506593585270480E+02   -2.1106E-05
- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-max dev from unity    8.845605E-02
- ----------------------------------- Determination of the orbitals in this new basis.
-ekin, eh, epot, eproj, eex    1.04350963E+02    0.00000000E+00   -1.54081486E+02    1.50085031E+01    0.00000000E+00
- Hamiltonian application done.
- calculate density kernel... coeff renormalization...coeff renormalization... calculate density kernel...  
-DminDIIS: it, fnrm, ebs, ebsdiff   1     5.223824E-004    -6.252615E+001     1.909619E-002
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939920E+01
- ---------------------------------------------------------------- Updating potential.
- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- at iteration 10 of the density optimization:
-   coefficients / kernel obtained by direct minimization.
-   it, Delta DENS, energy, energyDiff   10  1.4299005E-09   -1.32506599278812246E+02   -5.6935E-06
- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.250705724577E+01  6.332161427893E+02 -3.610074867761E+01 -4.720202364014E+01  0.000000000000E+00  5.521194486039E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   1.65E-07   -1.32506599278812246E+02   -1.3251E+02
- ############################################################################################
- at iteration 1 of the outer loop:
-   > basis functions optimization:
-     - target function is energy
-     - WARNING: basis functions not converged!
-     Final values: target function, fnrm  -1.325309E+02    5.84E-01
-   > density optimization:
-     - using direct minimization.
-     - WARNING: density optimization not converged!
-     FINAL values: it, Delta DENS, energy   1    1.43E-09   -1.32506599278812246E+02
-   > energy difference to last iteration: -1.325066E+02
- ############################################################################################
-   ebs, ehart, eexcu, vexcu, eexctX, eion, edisp -6.250705724577E+01  6.332161427893E+02 -3.610074867761E+01 -4.720202364014E+01  0.000000000000E+00  5.521194486039E+02  0.000000000000E+00
-   itoutH, Delta DENSOUT, energy, energyDiff   1   1.65E-07   -1.32506599278812246E+02    0.0000E+00   FINAL
-Calculating charge density... done.
-   Calculation finished. TOTAL CHARGE =   9.199999939920E+01
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

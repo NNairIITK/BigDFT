@@ -27,9 +27,6 @@
      address=trim(long_toa(iadd))
 
      !hopefully only address is necessary for the deallocation
-     !in the include file this part can be expanded if needed
-     !call profile_deallocation(ierror,ilsize,address) 
-     !call check_for_errors(ierror,.false.)
 
      !search in the dictionaries the address
      !a error event should be raised in this case

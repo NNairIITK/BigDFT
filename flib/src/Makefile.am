@@ -30,8 +30,15 @@ libflib_a_SOURCES = utils.c utilsadd.c \
 	yaml_parser.c yaml_parse.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files)
 
-DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 f_malloc-inc.f90 f_malloc-extra-inc.f90 \
-	deallocate-profile-inc.f90 allocate-profile-inc.f90 malloc_templates-inc.f90 malloc_templates-c-inc.f90
+DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
+	deallocate-c-inc.f90 allocate-c-inc.f90 \
+	f_malloc-inc.f90 f_malloc-extra-inc.f90 \
+	deallocate-profile-inc.f90 allocate-profile-inc.f90 \
+	malloc_templates-inc.f90 \
+	f_malloc-base-inc.f90 f_malloc-null-inc.f90 \
+	f_malloc-total-inc.f90 f_malloc-bound-inc.f90 \
+	f_malloc-bounds-inc.f90 f_malloc-simple-inc.f90
+
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 yaml_map-mat-inc.f90
 STRINGS_INCLUDES = yaml_toa-inc.f90 yaml_toa-arr-inc.f90
 ERR_INCLUDES = get_err-inc.f90

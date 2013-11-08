@@ -10,11 +10,6 @@
 
 
 !we should verify if allocatable array of dimension * is valid in most compilers
-subroutine getc1(array,iadd)
-  implicit none
-  character(len=*), dimension(:), allocatable, intent(in) :: array
-  integer(kind=8), intent(out) :: iadd
-end subroutine getc1
 
 !!$subroutine getc1_2(array,iadd)
 !!$  implicit none

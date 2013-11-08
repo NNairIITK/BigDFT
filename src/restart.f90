@@ -3042,6 +3042,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   use module_base
   use module_types
   use module_fragments
+  use yaml_output
   implicit none
 
   logical, intent(out) :: reformat_needed ! logical telling whether reformat is needed
@@ -3081,6 +3082,9 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   centre_new_box(2)=mindist(per(2),at%astruct%cell_dim(2),frag_trans%rot_center_new(2),hgrids(2)*(ns(2)-0.5_dp*nb(2)))
   centre_new_box(3)=mindist(per(3),at%astruct%cell_dim(3),frag_trans%rot_center_new(3),hgrids(3)*(ns(3)-0.5_dp*nb(3)))
 
+  !print*,'rotated nb',trim(yaml_toa(rotate_vector(frag_trans%rot_axis,frag_trans%theta,hgrids*-0.5_dp*nb),fmt='(f12.8)'))
+  !print*,'rotated centre old',trim(yaml_toa(rotate_vector(frag_trans%rot_axis,frag_trans%theta,centre_old_box),fmt='(f12.8)'))
+  !print*,'rotated centre new',trim(yaml_toa(rotate_vector(frag_trans%rot_axis,-frag_trans%theta,centre_new_box),fmt='(f12.8)'))
   !Calculate the shift of the atom to be used in reformat
   !da(1)=mindist(per(1),at%astruct%cell_dim(1),centre_new_box(1),centre_old_box(1))
   !da(2)=mindist(per(2),at%astruct%cell_dim(2),centre_new_box(2),centre_old_box(2))
@@ -3089,8 +3093,9 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
 
   !print*,'reformat check',frag_trans%rot_center(2),ns_old(2),centre_old_box(2),&
   !     frag_trans%rot_center_new(2),ns(2),centre_new_box(2),da(2)
-
-  !!write(*,'(a,3(3(f6.3,x),3x))') 'final',centre_old_box,centre_new_box,da
+  !write(*,'(a,15I4)')'nb,ns_old,ns,n_old,n',nb,ns_old,ns,n_old,n
+  !write(*,'(a,3(3(f12.8,x),3x))') 'final centre box',centre_old_box,centre_new_box,da
+  !write(*,'(a,3(3(f12.8,x),3x))') 'final centre',frag_trans%rot_center,frag_trans%rot_center_new
 
   displ=sqrt(da(1)**2+da(2)**2+da(3)**2)
 
@@ -3132,6 +3137,7 @@ end subroutine reformat_check
 subroutine print_reformat_summary(iproc,reformat_reason)
   use module_base
   use module_types
+  use yaml_output
   implicit none
 
   integer, intent(in) :: iproc
@@ -3141,15 +3147,25 @@ subroutine print_reformat_summary(iproc,reformat_reason)
 
   call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (iproc==0) then
-        write(*,'(1x,a)') 'Overview of the reformatting (several categories may apply):'
-        write(*,'(3x,a,i0)') '- No reformatting required: ', reformat_reason(0)
-        write(*,'(3x,a,i0)') '- Grid spacing has changed: ', reformat_reason(1)
-        write(*,'(3x,a,i0)') '- Number of coarse grid points has changed: ', reformat_reason(2)
-        write(*,'(3x,a,i0)') '- Number of fine grid points has changed: ', reformat_reason(3)
-        write(*,'(3x,a,i0)') '- Box size has changed: ', reformat_reason(4)
-        write(*,'(3x,a,i0)') '- Molecule was shifted: ', reformat_reason(5)
-        write(*,'(3x,a,i0)') '- Molecule was rotated: ', reformat_reason(6)
-        write(*,'(3x,a,i0)') '- Discrete operations: ', reformat_reason(7)
+        !!write(*,'(1x,a)') 'Overview of the reformatting (several categories may apply):'
+        !!write(*,'(3x,a,i0)') '- No reformatting required: ', reformat_reason(0)
+        !!write(*,'(3x,a,i0)') '- Grid spacing has changed: ', reformat_reason(1)
+        !!write(*,'(3x,a,i0)') '- Number of coarse grid points has changed: ', reformat_reason(2)
+        !!write(*,'(3x,a,i0)') '- Number of fine grid points has changed: ', reformat_reason(3)
+        !!write(*,'(3x,a,i0)') '- Box size has changed: ', reformat_reason(4)
+        !!write(*,'(3x,a,i0)') '- Molecule was shifted: ', reformat_reason(5)
+        !!write(*,'(3x,a,i0)') '- Molecule was rotated: ', reformat_reason(6)
+        !!write(*,'(3x,a,i0)') '- Discrete operations: ', reformat_reason(7)
+        call yaml_open_map('Overview of the reformatting (several categories may apply)')
+        call yaml_map('No reformatting required', reformat_reason(0))
+        call yaml_map('Grid spacing has changed', reformat_reason(1))
+        call yaml_map('Number of coarse grid points has changed', reformat_reason(2))
+        call yaml_map('Number of fine grid points has changed', reformat_reason(3))
+        call yaml_map('Box size has changed', reformat_reason(4))
+        call yaml_map('Molecule was shifted', reformat_reason(5))
+        call yaml_map('Molecule was rotated', reformat_reason(6))
+        call yaml_map('Discrete operations', reformat_reason(7))
+        call yaml_close_map()
   end if
 
 end subroutine print_reformat_summary

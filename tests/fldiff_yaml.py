@@ -166,7 +166,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
   global failed_checks,discrepancy,biggest_tol
   failed = always_fails
   ret = (failed, None)
-  #print scl,ref,tols, type(ref), type(scl)
+#  print scl,ref,tols, type(ref), type(scl)
 #eliminate the character variables
   if type(ref) == type(""):
     if not(scl == ref):
@@ -278,7 +278,6 @@ if __name__ == "__main__":
 
 
 #args=parse_arguments()
-
 #print args.ref,args.data,args.output
 #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
@@ -392,7 +391,8 @@ for i in range(len(references)):
   try:
     data = datas[i]
     compare(data, reference, tols)
-  except:
+  except Exception,e:
+    print str(e)
     fatal_error(args,reports)
   try:
     doctime = data["Timings for root process"]["Elapsed time (s)"]

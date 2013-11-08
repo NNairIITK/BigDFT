@@ -282,6 +282,7 @@ END SUBROUTINE release_material_acceleration
 subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   use module_base
   use module_types
+  use dynamic_memory
   implicit none
   integer, intent(in) :: iproc, nproc
   integer, intent(out) :: iproc_node, nproc_node
@@ -297,7 +298,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      iproc_node=0
      nproc_node=1
   else
-     nodename=f_malloc(0 .to. nproc-1,id='nodename')
+     nodename=f_malloc_str(MPI_MAX_PROCESSOR_NAME,0 .to. nproc-1,id='nodename')
      !allocate(nodename(0:nproc-1+ndebug),stat=i_stat)
      !call memocc(i_stat,nodename,'nodename',subname)
      
@@ -328,7 +329,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
         end if
      end do
      
-     call f_free(nodename)
+     call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
      !i_all=-product(shape(nodename))*kind(nodename)
      !deallocate(nodename,stat=i_stat)
      !call memocc(i_stat,i_all,'nodename',subname)

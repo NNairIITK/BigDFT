@@ -157,6 +157,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -233,7 +234,9 @@ call timing(iproc,'misc','ON')
      end if
      if (experimental_mode) then
          if (iorb==jorb) then
-             if (iproc==0 .and. iorb==1) write(*,*) 'MODIFY EVAL'
+             if (iproc==0 .and. iorb==1) then
+                 call yaml_warning('EXPERIMENTAL: modify eval')
+             end if
              orbs%eval(iorb)=lagmat%matrix_compr(ii)
          end if
      end if

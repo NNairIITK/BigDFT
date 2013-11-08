@@ -421,11 +421,10 @@ subroutine test_dictionaries1()
 
    type(dictionary), pointer :: dict, cpy, subd
 
-   dict => dict_new( (/ &
+   dict => dict_new(&
          & "__comment__" .is. 'Grid shifts', &
-         & "__cond__"    .is. dict_new((/ "__master_key__" .is. "kpt_method", &
-         &                                "__when__" .is. list_new((/ .item. "MPGrid" /)) /)), &
-         & "__default__" .is. list_new((/ .item."0.", .item."0.", .item."0." /)) /) )
+         & "__cond__"    .is. dict_new("__master_key__" .is. "kpt_method", "__when__" .is. list_new( .item. "MPGrid")), &
+         & "__default__" .is. list_new( .item."0.", .item."0.", .item."0.") )
 
    call yaml_open_map("test dict_copy")
    call yaml_open_map("original")
@@ -439,10 +438,10 @@ subroutine test_dictionaries1()
    call dict_free(cpy)
    call yaml_close_map()
 
-   subd => dict_new( (/ &
-         & "__exclusive__" .is. dict_new((/ "123" .is. "operation 123", &
-         &                                  "456" .is. "operation 456" /)), &
-         & "__default__"   .is. list_new((/ .item."1.", .item."2.", .item."3." /)) /) )
+   subd => dict_new(  &
+         & "__exclusive__" .is. dict_new( "123" .is. "operation 123", &
+         &                                  "456" .is. "operation 456" ), &
+         & "__default__"   .is. list_new(.item."1.", .item."2.", .item."3." ) )
    call yaml_open_map("test dict_update")
    call dict_update(dict, subd)
    call yaml_open_map("additional")

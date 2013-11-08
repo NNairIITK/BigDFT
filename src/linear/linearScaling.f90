@@ -81,16 +81,22 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !! character(len=50) :: filename
   !!! #########################################################
 
+  ! DEBUG - for calculating centres
+  type(workarr_sumrho) :: w
+  real(gp), allocatable, dimension(:,:,:,:) :: psir
+  integer :: ind, i_all, i_stat, nspinor, ix, iy, iz, iix, iiy, iiz
+  real(gp) :: psix, psiy, psiz, xcent, ycent, zcent
+
   call timing(iproc,'linscalinit','ON') !lr408t
 
   call f_routine(id='linear_scaling')
 
   call allocate_local_arrays()
 
-  if(iproc==0) then
-      write(*,'(1x,a)') repeat('*',84)
-      write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
-  end if
+  !!if(iproc==0) then
+  !!    write(*,'(1x,a)') repeat('*',84)
+  !!    write(*,'(1x,a)') '****************************** LINEAR SCALING VERSION ******************************'
+  !!end if
 
   ! Allocate the communications buffers needed for the communications of the potential and
   ! post the messages. This will send to each process the part of the potential that this process
@@ -187,8 +193,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
      vgrad_old=ebs-cdft%charge
 
-     if (iproc==0) write(*,'(a,4(ES16.6e3,2x))') 'N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',&
-          cdft%charge,ebs,vgrad_old,cdft%lag_mult*vgrad_old
+     !!if (iproc==0) write(*,'(a,4(ES16.6e3,2x))') 'N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',&
+     !!     cdft%charge,ebs,vgrad_old,cdft%lag_mult*vgrad_old
+     if (iproc==0) then
+         call yaml_open_map('CDFT infos')
+         call yaml_map('N',cdft%charge,fmt='(es16.6e3)')
+         call yaml_map('Tr(KW)',ebs,fmt='(es16.6e3)')
+         call yaml_map('Tr(KW)-N',vgrad_old,fmt='(es16.6e3)')
+         call yaml_map('V*(Tr(KW)-N)',cdft%lag_mult*vgrad_old,fmt='(es16.6e3)')
+         call yaml_close_map()
+     end if
      vgrad_old=abs(vgrad_old)
      valpha=0.5_gp
 
@@ -227,6 +241,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            exit
         end if
      end do
+  else
+     ! only use tmb%orbs%occup for calculating energy components, otherwise using KSwfn%orbs%occup
+     tmb%orbs%occup=1.0d0
   end if
 
   ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
@@ -235,17 +252,67 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      ! Calculate the new potential.
-     if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+     !if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+     !if (iproc==0) call yaml_map('update potential',.true.)
+     if (iproc==0) call yaml_open_map('update pot',flow=.true.)
      call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   end if
 
   call timing(iproc,'linscalinit','OF') !lr408t
+
+  !! DEBUG - check centres
+  !ind=1
+  !do iorb=1,tmb%orbs%norbp
+  !   iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
+  !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+  !
+  !   allocate(psir(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, 1+ndebug),stat=i_stat)
+  !   call memocc(i_stat,psir,'psir',subname)
+  !   call initialize_work_arrays_sumrho(tmb%lzd%llr(ilr),w)
+  !
+  !   call daub_to_isf(tmb%lzd%llr(ilr),w,tmb%psi(ind),psir)
+  !
+  !   xcent=0.0d0
+  !   ycent=0.0d0
+  !   zcent=0.0d0
+  !   do iz=1,tmb%lzd%llr(ilr)%d%n3i
+  !      iiz=iz-15+tmb%lzd%llr(ilr)%nsi3
+  !      do iy=1,tmb%lzd%llr(ilr)%d%n2i
+  !         iiy=iy-15+tmb%lzd%llr(ilr)%nsi2
+  !         do ix=1,tmb%lzd%llr(ilr)%d%n1i
+  !            iix=ix-15+tmb%lzd%llr(ilr)%nsi1
+  !            psix=psir(ix,iy,iz,1)*(iix*tmb%lzd%hgrids(1)*0.5d0)
+  !            psiy=psir(ix,iy,iz,1)*(iiy*tmb%lzd%hgrids(2)*0.5d0)
+  !            psiz=psir(ix,iy,iz,1)*(iiz*tmb%lzd%hgrids(3)*0.5d0)
+  !            xcent=xcent+psir(ix,iy,iz,1)*psix
+  !            ycent=ycent+psir(ix,iy,iz,1)*psiy
+  !            zcent=zcent+psir(ix,iy,iz,1)*psiz
+  !         end do
+  !      end do
+  !   end do
+  !
+  !   write(*,'(a,4I4,3(F12.8,x),3(F8.4,x))') 'iproc,iorb,ilr,iat,(xcent,ycent,zcent)-locregcenter,xcent,ycent,zcent',&
+  !        iproc,iorb+tmb%orbs%isorb,ilr,iat,xcent-tmb%lzd%llr(ilr)%locregcenter(1),&
+  !        ycent-tmb%lzd%llr(ilr)%locregcenter(2),zcent-tmb%lzd%llr(ilr)%locregcenter(3),&
+  !        xcent,ycent,zcent
+  !
+  !   ind=ind+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !   call deallocate_work_arrays_sumrho(w)
+  !   i_all=-product(shape(psir))*kind(psir)
+  !   deallocate(psir,stat=i_stat)
+  !   call memocc(i_stat,i_all,'psir',subname)
+  !end do
+  !! END DEBUG - check centres
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
   infocode=0 !default value
   ! This is the main outer loop. Each iteration of this loop consists of a first loop in which the basis functions
   ! are optimized and a consecutive loop in which the density is mixed.
+  if (iproc==0) then
+      call yaml_comment('Self-Consistent Cycle',hfill='-')
+      call yaml_open_sequence('Ground State Optimization')
+  end if
   outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
 
       if (input%lin%nlevel_accuracy==2) then
@@ -288,6 +355,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if(lowaccur_converged) cur_it_highaccuracy=cur_it_highaccuracy+1
 
       if(cur_it_highaccuracy==1) then
+          if (iproc==0) then
+              call yaml_comment('Adjustments for high accuracy',hfill='=')
+          end if
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                at, input, rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
@@ -313,8 +383,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! NB nothing is written to screen for this get_coeff
              if (.not. input%lin%constrained_dft) then
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                     infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                     .true.,ham_small,input%lin%extra_states,itout,0,0,convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
 
@@ -367,6 +437,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
               call memocc(istat, iall, 'tmb%psit_f', subname)
           end if
           tmb%can_use_transposed=.false.
+          if (iproc==0) then
+              call yaml_sequence(advance='no')
+              call yaml_open_sequence('fake iteration',label=&
+                                 'it_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
+              call yaml_sequence(label='final_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))),advance='no')
+              call yaml_open_map(flow=.true.)
+              call yaml_map('fake iteration','bridge low accuracy')
+              call yaml_close_map
+              call yaml_close_sequence()
+          end if
           cycle outerLoop
       end if
 
@@ -381,19 +461,27 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        if(update_phi) then
            if (target_function==TARGET_FUNCTION_IS_HYBRID .and. reduce_conf) then
                if (input%lin%reduce_confinement_factor>0.d0) then
-                   if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
+                   !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',input%lin%reduce_confinement_factor
+                   if (iproc==0) call yaml_map('multiplicator for the confinement',input%lin%reduce_confinement_factor)
                    tmb%confdatarr(:)%prefac=input%lin%reduce_confinement_factor*tmb%confdatarr(:)%prefac
                else
                    if (ratio_deltas<=1.d0 .and. ratio_deltas>0.d0) then
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
+                       !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas)
                        tmb%confdatarr(:)%prefac=ratio_deltas*tmb%confdatarr(:)%prefac
                    else if (ratio_deltas>1.d0) then
-                       if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       !if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
+                       !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       if (iproc==0) call yaml_warning('ratio_deltas>1, using 0.5 instead')
+                       if (iproc==0) call yaml_newline()
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',0.5d0)
                        tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    else if (ratio_deltas<=0.d0) then
-                       if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
-                       if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       !if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
+                       !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
+                       if (iproc==0) call yaml_warning('ratio_deltas<=0.d0, using 0.5 instead')
+                       if (iproc==0) call yaml_newline()
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',0.5d0)
                        tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
                    end if
                end if
@@ -418,8 +506,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            !    ldiis%isx=0
            !end if
            if (input%experimental_mode) then
-               if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
+               if (iproc==0) call yaml_warning('No orthogonalizing of the support functions')
+               !if (iproc==0) write(*,*) 'WARNING: set orthonormalization_on to false'
                orthonormalization_on=.false.
+           end if
+           if (iproc==0) then
+               call yaml_comment('support function optimization',hfill='=')
+           end if
+           if (iproc==0) then
+               call yaml_sequence(advance='no')
+               call yaml_open_sequence('support function optimization',label=&
+                              'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
            end if
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
@@ -427,6 +524,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
                ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                input%lin%early_stop)
+           if (iproc==0) then
+               call yaml_close_sequence()
+           end if
 
            !!! WRITE SUPPORT FUNCTIONS TO DISK ############################################
            !!npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
@@ -542,36 +642,67 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             end if
          end if
          ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
+         if (iproc==0) then
+             call yaml_comment('kernel optimization',hfill='=')
+             !call yaml_sequence(advance='no')
+             !if (input%lin%constrained_dft) then
+             !    call yaml_open_map('kernel optimization',label=&
+             !         'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
+             !         '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))))
+             !else
+             !    call yaml_open_map('kernel optimization',label=&
+             !         'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+             !end if
+             call yaml_sequence(advance='no')
+             if (input%lin%constrained_dft) then
+                 call yaml_open_sequence('kernel optimization',label=&
+                      'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
+                      '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))))
+             else
+                 call yaml_open_sequence('kernel optimization',label=&
+                      'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+             end if
+         end if
          kernel_loop : do it_scc=1,nit_scc
              dmin_diag_it=dmin_diag_it+1
              ! If the hamiltonian is available do not recalculate it
              ! also using update_phi for calculate_overlap_matrix and communicate_phi_for_lsumrho
              ! since this is only required if basis changed
+             if (iproc==0) then
+                !if (it_scc==nit_scc) then
+                !   call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+                !else
+                   call yaml_sequence(advance='no')
+                !end if
+                call yaml_open_map(flow=.false.)
+                call yaml_comment('kernel iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
+             end if
              if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                        infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,ham_small,input%lin%extra_states,convcrit_dmin,nitdmin,&
+                        infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                        .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,convcrit_dmin,nitdmin,&
                         input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
+
 
              !!! TEMPORARY ##########################################################################
              !!do ii=1,tmb%linmat%denskern%nvctr
@@ -593,7 +724,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   .and.dmin_diag_it>=dmin_diag_freq.and.dmin_diag_freq/=-1) then
                 reorder=.true.
                 !call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                !     infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
+                !     infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
                 !     .true.,ham_small,input%lin%extra_states)
                 ! just diagonalize with optimized states?
                 dmin_diag_it=0
@@ -620,11 +751,22 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
                    ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
                 end if
-                if(iproc==0) write(*,*) ''
-                if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
+                !!if(iproc==0) write(*,*) ''
+                !!if(iproc==0) write(*,*) 'alpha, energydiff',ldiis_coeff%alpha_coeff,energydiff
+                if (iproc==0) then
+                    call yaml_map('alpha',ldiis_coeff%alpha_coeff)
+                    call yaml_map('energydiff',energydiff)
+                end if
              end if
 
              ! Calculate the charge density.
+             if (iproc==0) then
+                 call yaml_open_map('Hamiltonian update',flow=.true.)
+                 ! Use this subroutine to write the energies, with some
+                 ! fake number
+                 ! to prevent it from writing too much
+                 call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+             end if
              call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                   tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
@@ -672,6 +814,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Mix the density.
              if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+                !if (iproc==0) then
+                !    call yaml_map('density mixing; history',mix_hist)
+                !end if
                 call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
                      denspot, mixdiis, rhopotold, pnrm)
                 if ((pnrm<convCritMix .or. it_scc==nit_scc) .and. (.not. input%lin%constrained_dft)) then
@@ -688,8 +833,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
 
              ! Calculate the new potential.
-             if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+             !!if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
+             if (iproc==0) then
+!                 if (iproc==0) call yaml_open_map('pot',flow=.true.)
+                 !call yaml_map('update potential',.true.)
+             end if
+             if (iproc==0) call yaml_newline()
+             
+
              call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+              if (iproc==0) call yaml_close_map()
+
 
              ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
              ! switch off for FOE at the moment
@@ -703,6 +857,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Mix the potential
              if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+                !if (iproc==0) then
+                !    call yaml_map('potential mixing; history',mix_hist)
+                !end if
                 call mix_main(iproc, nproc, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
                      denspot, mixdiis, rhopotold, pnrm)
                 if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then
@@ -737,8 +894,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              if (pnrm<convCritMix.and.input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
                  info_scf=it_scc
+                 if (iproc==0) then
+                     !yaml output
+                     call yaml_close_map() !iteration
+                     call bigdft_utils_flush(unit=6)
+                 end if
                  exit
              else if (pnrm<convCritMix.and.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+                 if (iproc==0) then
+                     !yaml output
+                     call yaml_close_map() !iteration
+                     call bigdft_utils_flush(unit=6)
+                 end if
                 exit
              !else if (pnrm<convCritMix.and.reorder) then
              !    exit
@@ -749,7 +916,33 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  info_scf=-1
              end if
 
+             if (iproc==0) then
+                 !yaml output
+                 call yaml_close_map() !iteration
+                 call bigdft_utils_flush(unit=6)
+             end if
+
          end do kernel_loop
+
+         ! Write the final results
+         if (iproc==0) then
+             if (input%lin%constrained_dft) then
+                 call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
+                      '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))),advance='no')
+             else
+                 call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+             end if
+             call yaml_open_map(flow=.true.)
+             call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
+             call printSummary()
+             call yaml_close_map() !iteration
+             call bigdft_utils_flush(unit=6)
+         end if
+
+          ! Close sequence for the optimization steps
+          if (iproc==0) then
+              call yaml_close_sequence()
+          end if
 
          if (input%lin%constrained_dft) then
             call timing(iproc,'constraineddft','ON')
@@ -845,11 +1038,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       if(pnrm_out<input%lin%support_functions_converged.and.lowaccur_converged .or. &
          fix_supportfunctions) then
-          if(iproc==0) write(*,*) 'fix the support functions from now on'
+          !if(iproc==0) write(*,*) 'fix the support functions from now on'
+          if (iproc==0) call yaml_map('fix the support functions from now on',.true.)
           fix_support_functions=.true.
       end if
 
   end do outerLoop
+
 
 
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
@@ -859,8 +1054,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        .or. input%lin%diag_end)) then
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
-           infoCoeff,energs%ebs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,ham_small,input%lin%extra_states)
+           infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
+           .true.,ham_small,input%lin%extra_states,itout,0,0)
   end if
 
   if (input%lin%fragment_calculation .and. input%frag%nfrag>1) then
@@ -880,6 +1075,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! print the final summary
   call print_info(.true.)
 
+  if (iproc==0) call yaml_close_sequence()
+
   ! Deallocate everything that is not needed any more.
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call DIIS_free(ldiis_coeff)!call deallocateDIIS(ldiis_coeff)
   call deallocateDIIS(ldiis)
@@ -892,7 +1089,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   if (input%lin%pulay_correction) then
-      if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
+      !if (iproc==0) write(*,'(1x,a)') 'WARNING: commented correction_locrad!'
+      if (iproc==0) call yaml_warning('commented correction_locrad')
       !!! Testing energy corrections due to locrad
       !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff) 
       ! Calculate Pulay correction to the forces
@@ -1012,11 +1210,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
              fnrm_pulay=dnrm2(3*at%astruct%nat, fpulay, 1)/sqrt(dble(at%astruct%nat))
 
-             if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+             !if (iproc==0) write(*,*) 'fnrm_pulay',fnrm_pulay
+             if (iproc==0) call yaml_map('fnrm Pulay',fnrm_pulay)
 
              if (fnrm_pulay>1.d-1) then !1.d-10
-                if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
-                                                   &Start over again with an AO input guess.'
+                !!if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
+                !!                                   &Start over again with an AO input guess.'
+                if (iproc==0) then
+                    call yaml_warning('The pulay force is too large after the restart. &
+                         &Start over again with an AO input guess.')
+                end if
                 if (associated(tmb%psit_c)) then
                     iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
                     deallocate(tmb%psit_c, stat=istat)
@@ -1033,7 +1236,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !!input%lin%highaccuracy_conv_crit=1.d-8
                 call inputguessConfinement(iproc, nproc, at, input, &
                      KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                     rxyz, nlpspd, proj, GPU, KSwfn%orbs, tmb, denspot, rhopotold, energs)
+                     rxyz, nlpspd, proj, GPU, KSwfn%orbs, KSwfn, tmb, denspot, rhopotold, energs)
                      energs%eexctX=0.0_gp
 
                 !already done in inputguess
@@ -1041,12 +1244,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !call orthonormalizeLocalized(iproc, nproc, 0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, &
                 !     tmb%linmat%denskern, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
              else if (fnrm_pulay>1.d-2) then ! 1.d2 1.d-2
-                if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+                !!if (iproc==0) write(*,'(1x,a)') 'The pulay forces are rather large, so start with low accuracy.'
+                if (iproc==0) then
+                    call yaml_warning('The pulay forces are rather large, so start with low accuracy.')
+                end if
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
              else if (fnrm_pulay>1.d-10) then !1d-10
-                if (iproc==0) write(*,'(1x,a)') &
-                     'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
+                if (iproc==0) then
+                    !write(*,'(1x,a)') 'The pulay forces are fairly large, so reoptimising basis with high accuracy only.'
+                    call yaml_warning('The pulay forces are fairly large, so reoptimising basis with high accuracy only.')
+                end if
                 nit_lowaccuracy=0
                 nit_highaccuracy=input%lin%nit_highaccuracy
              else
@@ -1106,43 +1314,77 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       implicit none
 
       if(iproc==0) then
-          write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
-          write(*,'(1x,a,i0,a)') 'at iteration ', it_SCC, ' of the density optimization:'
+          !write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
+          !write(*,'(1x,a,i0,a)') 'at iteration ', it_SCC, ' of the density optimization:'
           !!if(infoCoeff<0) then
           !!    write(*,'(3x,a)') '- WARNING: coefficients not converged!'
           !!else if(infoCoeff>0) then
           !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+          call yaml_open_sequence('summary',flow=.true.)
+          call yaml_open_map()
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(3x,a)') 'coefficients / kernel obtained by direct minimization.'
+              !!write(*,'(3x,a)') 'coefficients / kernel obtained by direct minimization.'
+              call yaml_map('kernel optimization','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(3x,a)') 'kernel obtained by Fermi Operator Expansion'
+              !!write(*,'(3x,a)') 'kernel obtained by Fermi Operator Expansion'
+              call yaml_map('kernel optimization','FOE')
           else
-              write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
+              !!write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
+              call yaml_map('kernel optimization','DIAG')
           end if
+
+          if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or.  input%lin%scf_mode==LINEAR_FOE &
+              .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+              call yaml_map('mixing quantity','DENS')
+          else if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+              call yaml_map('mixing quantity','POT')
+          end if
+          call yaml_map('mix hist',mix_hist)
+
+
           if (input%lin%constrained_dft) then
-             if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
-                      it_SCC, pnrm, energy, energyDiff, ebs
-             else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta POT, energy, energyDiff, Tr[KW]', &
-                      it_SCC, pnrm, energy, energyDiff, ebs
-             else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
-                      it_SCC, pnrm, energy, energyDiff, ebs
+             !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
+             !!         it_SCC, pnrm, energy, energyDiff, ebs
+             !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta POT, energy, energyDiff, Tr[KW]', &
+             !!         it_SCC, pnrm, energy, energyDiff, ebs
+             !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
+             !!         it_SCC, pnrm, energy, energyDiff, ebs
+             !!end if
+             if (iproc==0) then
+                 call yaml_newline()
+                 call yaml_map('iter',it_scc,fmt='(i6)')
+                 call yaml_map('delta',pnrm,fmt='(es9.2)')
+                 call yaml_map('energy',energy,fmt='(es24.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 !call yaml_map('Tr[KW]',ebs,fmt='(es14.4)')
+                 call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
+                 call yaml_close_map()
              end if
           else
-             if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-                      it_SCC, pnrm, energy, energyDiff
-             else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
-                      it_SCC, pnrm, energy, energyDiff
-             else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-                 write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-                      it_SCC, pnrm, energy, energyDiff
+             !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
+             !!         it_SCC, pnrm, energy, energyDiff
+             !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
+             !!         it_SCC, pnrm, energy, energyDiff
+             !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
+             !!         it_SCC, pnrm, energy, energyDiff
+             !!end if
+             if (iproc==0) then
+                 call yaml_newline()
+                 call yaml_map('iter',it_scc,fmt='(i6)')
+                 call yaml_map('delta',pnrm,fmt='(es9.2)')
+                 call yaml_map('energy',energy,fmt='(es24.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_close_map()
              end if
           end if     
-          write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
+          !write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
+          call yaml_close_sequence()
       end if
 
     end subroutine printSummary
@@ -1169,89 +1411,189 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0.and.(.not.final)) then
 
-          !Before convergence
-          write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
-          if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
-             if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff
-             else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff
-             end if
-          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-             if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
-             else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                      'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
-             end if
-          end if
-
-          !when convergence is reached, use this block
-          write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
-          write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
-          write(*,'(3x,a)') '> basis functions optimization:'
+          call yaml_comment('Summary of both steps',hfill='=')
+          !call yaml_sequence(advance='no')
+          !call yaml_open_map(flow=.true.)
+          !call yaml_open_map('self consistency summary',label=&
+          !    'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+          call yaml_open_sequence('self consistency summary',label=&
+              'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          call yaml_map('iter',itout)
           if(target_function==TARGET_FUNCTION_IS_TRACE) then
-              write(*,'(5x,a)') '- target function is trace'
+              call yaml_map('target function','TRACE')
           else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
-              write(*,'(5x,a)') '- target function is energy'
+              call yaml_map('target function','ENERGY')
           else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-              write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
+              call yaml_map('target function','HYBRID')
+              !write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
+          end if
+          if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+              call yaml_map('mean conf prefac',mean_conf,fmt='(es9.2)')
           end if
           if(info_basis_functions<=0) then
-              write(*,'(5x,a)') '- WARNING: basis functions not converged!'
+              call yaml_warning('support function optimization not converged')
+              call yaml_newline()
           else
-              write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_basis_functions, ' iterations.'
+              call yaml_map('iterations to converge support functions',info_basis_functions)
           end if
-          write(*,'(5x,a,es15.6,2x,es10.2)') 'Final values: target function, fnrm', trace, fnrm_tmb
-          write(*,'(3x,a)') '> density optimization:'
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(5x,a)') '- using direct minimization.'
+              call yaml_map('kernel optimization','DIRMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(5x,a)') '- using Fermi Operator Expansion / mixing.'
+              call yaml_map('kernel optimization','FOE')
           else
-              write(*,'(5x,a)') '- using diagonalization / mixing.'
+              call yaml_map('kernel optimization','DIAG')
           end if
           if(info_scf<0) then
-              write(*,'(5x,a)') '- WARNING: density optimization not converged!'
+              call yaml_warning('density optimization not converged')
+              call yaml_newline()
           else
-              write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_scf, ' iterations.'
+              call yaml_map('iterations to converge kernel optimization',info_scf)
+              call yaml_newline()
           end if
-          if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
-          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
-          else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
-          end if
-          write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
-          write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
-      else if (iproc==0.and.final) then
+          !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+          !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
+          !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+          !!end if
+          !!! Use this subroutine to write the energies, with some fake
+          !!! number to prevent it from writing too much
+          !!call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+          !!call yaml_map('final target function',trace)
+          !!call yaml_map('final fnrm',fnrm_tmb)
+
           !Before convergence
-          write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-              energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
+          !!write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
+          !!    energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff,'FINAL'
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                 !!     'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                 !!     energyDiff
+                 call yaml_map('iter low',itout)
              else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                      energyDiff,'FINAL'
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                 !!     'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                 !!     energyDiff
+                 call yaml_map('iter high',itout)
+             end if
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+          else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+             if (.not. lowaccur_converged) then
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                 !!     'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
+                 call yaml_map('iter low',itout)
+             else
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
+                 !!     'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
+                 call yaml_map('iter high',itout)
+             end if
+             call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+             call yaml_map('energy',energy,fmt='(es27.17)')
+             call yaml_map('D',energyDiff,fmt='(es10.3)')
+          end if
+          call yaml_close_map()
+
+          !!!when convergence is reached, use this block
+          !!write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
+          !!write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
+          !!write(*,'(3x,a)') '> basis functions optimization:'
+          !!if(target_function==TARGET_FUNCTION_IS_TRACE) then
+          !!    write(*,'(5x,a)') '- target function is trace'
+          !!else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
+          !!    write(*,'(5x,a)') '- target function is energy'
+          !!else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+          !!    write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
+          !!end if
+          !!if(info_basis_functions<=0) then
+          !!    write(*,'(5x,a)') '- WARNING: basis functions not converged!'
+          !!else
+          !!    write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_basis_functions, ' iterations.'
+          !!end if
+          !!write(*,'(5x,a,es15.6,2x,es10.2)') 'Final values: target function, fnrm', trace, fnrm_tmb
+          !!write(*,'(3x,a)') '> density optimization:'
+          !!if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          !!    write(*,'(5x,a)') '- using direct minimization.'
+          !!else if (input%lin%scf_mode==LINEAR_FOE) then
+          !!    write(*,'(5x,a)') '- using Fermi Operator Expansion / mixing.'
+          !!else
+          !!    write(*,'(5x,a)') '- using diagonalization / mixing.'
+          !!end if
+          !!if(info_scf<0) then
+          !!    write(*,'(5x,a)') '- WARNING: density optimization not converged!'
+          !!else
+          !!    write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_scf, ' iterations.'
+          !!end if
+          !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+          !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
+          !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
+          !!end if
+          !!write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
+          !!write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
+      else if (iproc==0.and.final) then
+          call yaml_comment('final results',hfill='=')
+          !call yaml_sequence(advance='no')
+          !call yaml_open_map(flow=.true.)
+          !at convergence
+          !call yaml_open_map('self consistency summary',label=&
+          !    'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+          !call yaml_open_map('self consistency summary')
+          call yaml_open_sequence('self consistency summary')
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          call yaml_map('iter',itout)
+          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+          !!write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
+          !!    energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
+          if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+             if (.not. lowaccur_converged) then
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                 !!     'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                 !!     energyDiff,'FINAL'
+                 call yaml_map('iter low',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
+                 call yaml_close_map()
+             else
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                 !!     'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
+                 !!     energyDiff,'FINAL'
+                 call yaml_map('iter high',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
+                 call yaml_close_map()
              end if
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                 !!     'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 call yaml_map('iter low',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
+                 call yaml_close_map()
              else
-                 write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                      'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
+                 !!     'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
+                 call yaml_map('iter high',itout)
+                 call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
+                 call yaml_map('energy',energy,fmt='(es27.17)')
+                 call yaml_map('D',energyDiff,fmt='(es10.3)')
+                 call yaml_comment('FINAL')
+                 call yaml_close_map()
              end if
           end if
        end if
@@ -1264,8 +1606,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                           -      3.d0*meanconf_array(itout-1) &
                           + 3.d0/2.d0*meanconf_array(itout-2) &
                           - 1.d0/3.d0*meanconf_array(itout-3)
-            if (iproc==0) write(*,'(a,es16.5)') 'meanconf_der',meanconf_der
-            if (iproc==0) write(*,'(a,es16.5)') 'abs(meanconf_der)/mean_conf',abs(meanconf_der)/mean_conf
+            !!if (iproc==0) write(*,'(a,es16.5)') 'meanconf_der',meanconf_der
+            !!if (iproc==0) write(*,'(a,es16.5)') 'abs(meanconf_der)/mean_conf',abs(meanconf_der)/mean_conf
         end if
         !if (mean_conf<1.d-15 .and. .false.) then
         !if (mean_conf<1.d-15) then
@@ -1283,6 +1625,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             orthonormalization_on=.false.
         end if
     end if
+
+    call bigdft_utils_flush(unit=6)
+    call yaml_close_sequence()
 
 
     end subroutine print_info
@@ -1376,6 +1721,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
+  use yaml_output
   implicit none
   
   ! Calling argument
@@ -1402,11 +1748,19 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   if(lowaccur_converged ) then
       do ilr = 1, tmb%lzd%nlr
          if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
-             if(iproc==0) write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+             !!if(iproc==0) write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+             if (iproc==0) call yaml_map('Increasing the localization radius for the high accuracy part',.true.)
              locreg_increased=.true.
              exit
          end if
       end do
+  end if
+  if (iproc==0) then
+      if (locreg_increased) then
+          call yaml_map('Locreg increased',.true.)
+      else
+          call yaml_map('Locreg increased',.false.)
+      end if
   end if
 
   if(locreg_increased) then
@@ -1597,6 +1951,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   use module_base
   use module_types
   use module_interfaces, except_this_one => pulay_correction
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -1765,9 +2120,19 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
    call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   if(iproc==0) then
-       do jat=1,at%astruct%nat
-           write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
-       end do
+       !!do jat=1,at%astruct%nat
+       !!    write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
+       !!end do
+       call yaml_comment('Pulay Correction',hfill='-')
+       call yaml_open_sequence('Pulay Forces (Ha/Bohr)')
+          do jat=1,at%astruct%nat
+             call yaml_sequence(advance='no')
+             call yaml_open_map(flow=.true.)
+             call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(jat))),fpulay(1:3,jat),fmt='(1es20.12)')
+             call yaml_close_map(advance='no')
+             call yaml_comment(trim(yaml_toa(jat,fmt='(i4.4)')))
+          end do
+          call yaml_close_sequence()
   end if
 
   iall=-product(shape(psit_c))*kind(psit_c)
@@ -1802,7 +2167,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
      call deallocate_sparseMatrix(dham(jdir),subname)
   end do
 
-  if(iproc==0) write(*,'(1x,a)') 'done.'
+  !!if(iproc==0) write(*,'(1x,a)') 'done.'
 
 end subroutine pulay_correction
 
@@ -2059,15 +2424,25 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
   call memocc(i_stat,i_all,'coeff_tmp',subname)
 
   ! output results
-  if (iproc==0) write(*,'(a)') '-----------------------------------------------------------------------------------------'
+  !if (iproc==0) write(*,'(a)') '-----------------------------------------------------------------------------------------'
   if (input_frag%nfrag/=2) then
-     if (iproc==0) write(*,*) 'Transfer integrals and site energies:'
-     if (iproc==0) write(*,*) 'frag i, frag j, energy, overlap'
+     !!if (iproc==0) write(*,*) 'Transfer integrals and site energies:'
+     !!if (iproc==0) write(*,*) 'frag i, frag j, energy, overlap'
+     if (iproc==0) then
+         call yaml_open_map('Transfer integrals and site energies')
+     end if
      do jfrag=1,input_frag%nfrag
         do ifrag=1,input_frag%nfrag
-           if (iproc==0) write(*,'(2(I5,1x),1x,2(F16.12,1x))') jfrag, ifrag, homo_ham(jfrag,ifrag), homo_ovrlp(jfrag,ifrag)
+           !!if (iproc==0) write(*,'(2(I5,1x),1x,2(F16.12,1x))') jfrag, ifrag, homo_ham(jfrag,ifrag), homo_ovrlp(jfrag,ifrag)
+           if (iproc==0) then
+               call yaml_map('frag j',jfrag)
+               call yaml_map('frag i',ifrag)
+               call yaml_map('energy',homo_ham(jfrag,ifrag),fmt='(f16.12)')
+               call yaml_map('overlap',homo_ovrlp(jfrag,ifrag),fmt='(f16.12)')
+           end if
         end do
      end do
+     call yaml_close_map()
   else ! include orthogonalized results as well
      !if (iproc==0) write(*,*) 'Site energies:'
      !if (iproc==0) write(*,*) 'frag i, energy, overlap, orthog energy'
@@ -2082,19 +2457,33 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
      !             - (homo_ham(i,i)-homo_ham(j,j))*dsqrt(1.0_gp-homo_ovrlp(i,j)**2) )
      !if (iproc==0) write(*,'((I5,1x),1x,3(F16.12,1x))') 2, homo_ham(2,2), homo_ovrlp(2,2), orthog_energy
 
-     if (iproc==0) write(*,*) 'Transfer integrals:'
-     if (iproc==0) write(*,*) 'frag i, frag j, energy, overlap, orthog energy'
+     !!if (iproc==0) write(*,*) 'Transfer integrals:'
+     !!if (iproc==0) write(*,*) 'frag i, frag j, energy, overlap, orthog energy'
      i=1
      j=2
      orthog_energy=(homo_ham(i,j)-0.5_gp*(homo_ham(i,i)+homo_ham(j,j))*homo_ovrlp(i,j))/(1.0_gp-homo_ovrlp(i,j)**2)
-     if (iproc==0) write(*,'(2(I5,1x),1x,3(F16.12,1x))') 1, 2, homo_ham(1,2), homo_ovrlp(1,2),orthog_energy
+     !!if (iproc==0) write(*,'(2(I5,1x),1x,3(F16.12,1x))') 1, 2, homo_ham(1,2), homo_ovrlp(1,2),orthog_energy
      i=2
      j=1
      orthog_energy=(homo_ham(i,j)-0.5_gp*(homo_ham(i,i)+homo_ham(j,j))*homo_ovrlp(i,j))/(1.0_gp-homo_ovrlp(i,j)**2)
-     if (iproc==0) write(*,'(2(I5,1x),1x,3(F16.12,1x))') 1, 2, homo_ham(2,1), homo_ovrlp(2,1),orthog_energy
+     !!if (iproc==0) write(*,'(2(I5,1x),1x,3(F16.12,1x))') 1, 2, homo_ham(2,1), homo_ovrlp(2,1),orthog_energy
+     if (iproc==0) then
+         call yamL_open_map('Transfer integrals')
+         call yaml_map('frag i',1)
+         call yaml_map('frag j',2)
+         call yaml_map('energy',homo_ham(1,2))
+         call yaml_map('overlap',homo_ovrlp(1,2))
+         call yaml_map('orthog energy',orthog_energy)
+         call yaml_map('frag i',1)
+         call yaml_map('frag j',2)
+         call yaml_map('energy',homo_ham(2,1))
+         call yaml_map('overlap',homo_ovrlp(2,1))
+         call yaml_map('orthog energy',orthog_energy)
+         call yaml_close_map()
+     end if
 
   end if
-  if (iproc==0) write(*,'(a)') '-----------------------------------------------------------------------------------------'
+  !!if (iproc==0) write(*,'(a)') '-----------------------------------------------------------------------------------------'
 
   i_all = -product(shape(homo_ham))*kind(homo_ham)
   deallocate(homo_ham,stat=i_stat)
@@ -2266,64 +2655,102 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   frag_sum_orthog=f_malloc0(nstates, id='frag_sum_orthog')
   eval_sum=f_malloc0(nstates, id='eval_sum')
 
-  if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
-  if (iproc==0) write(*,*) 'Site energies:'
+  !if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
+  !if (iproc==0) write(*,*) 'Site energies:'
+  if (iproc==0) call yaml_open_sequence('Site energies',flow=.true.)
 
-  if (iproc==0) write(*,*) 'state, energy, orthog energy, frag eval, overlap, orthog overlap, occ'
+  !!if (iproc==0) write(*,*) 'state, energy, orthog energy, frag eval, overlap, orthog overlap, occ'
+  if (iproc==0) call yaml_comment('state, energy, orthog energy, frag eval, overlap, orthog overlap, occ')
+
   istate=1
   frag_sum_tot=0
   frag_sum_tot_orthog=0
   eval_sum_tot=0
   do ifrag=1,input_frag%nfrag
      ifrag_ref=input_frag%frag_index(ifrag)
-     if (iproc==0) write(*,'(a,i3)') trim(input_frag%label(ifrag_ref)),ifrag
+     !if (iproc==0) write(*,'(a,i3)') trim(input_frag%label(ifrag_ref)),ifrag
+     if (iproc==0) call yaml_open_map(flow=.true.)
+     if (iproc==0) call yaml_map('label',trim(input_frag%label(ifrag_ref)))
      do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
+        !!if (iproc==0) call yaml_open_map(flow=.true.)
+        if (iproc==0) call yaml_newline()
         if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
            write(str,'(I2)') abs(ih-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp))
-           if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO-'//trim(adjustl(str))
+           !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO-'//trim(adjustl(str))
+           if (iproc==0) call yaml_map('state','HOMO-'//trim(adjustl(str)))
         else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
-           if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO'
+           !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO'
+           if (iproc==0) call yaml_map('state','HOMO')
         else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)+1) then
-           if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO'
+           !if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO'
+           if (iproc==0) call yaml_map('state','LUMO')
         else
            write(str,'(I2)') ih-1-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
-           if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
+           !if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
+           if (iproc==0) call yaml_map('state','LUMO+'//trim(adjustl(str)))
         end if
-        if (iproc==0) write(*,'(1x,5(F20.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
-             ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
+        !if (iproc==0) write(*,'(1x,5(F20.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
+        !     ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
+        if (iproc==0) then
+            call yaml_map('energy',homo_ham(istate),fmt='(es16.8)')
+            call yaml_map('orthog energy',homo_ham_orthog(istate),fmt='(es16.8)')
+            call yaml_map('frag eval',ref_frags(ifrag_ref)%eval(ih),fmt='(es16.8)')
+            call yaml_map('overlap',homo_ovrlp(istate),fmt='(es14.6)')
+            !call yaml_map('orthog overlap',homo_ovrlp_orthog(istate))
+        end if     
         if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
            frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
            frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+homo_ham_orthog(istate)
            eval_sum(ifrag)=eval_sum(ifrag)+ref_frags(ifrag_ref)%eval(ih)
-           if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+           !if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+           if (iproc==0) call yaml_map('occ',2.0_gp,fmt='(f5.2)')
         else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
            if (mod(real(ref_frags(ifrag_ref)%nelec,gp),2.0_gp)/=0.0_gp) then
               frag_sum(ifrag)=frag_sum(ifrag)+0.5_gp*homo_ham(istate)
               frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+0.5_gp*homo_ham_orthog(istate)
               eval_sum(ifrag)=eval_sum(ifrag)+0.5_gp*ref_frags(ifrag_ref)%eval(ih)
-              if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
+              !if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
+              if (iproc==0) call yaml_map('occ',1.0_gp,fmt='(f5.2)')
            else
               frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
               frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+homo_ham_orthog(istate)
               eval_sum(ifrag)=eval_sum(ifrag)+ref_frags(ifrag_ref)%eval(ih)
-              if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+              !if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+              if (iproc==0) call yaml_map('occ',2.0_gp,fmt='(f5.2)')
            end if
         else
-           if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
+           !if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
+           if (iproc==0) call yaml_map('occ',0.0_gp,fmt='(f5.2)')
         end if
         istate=istate+1
+        !!if (iproc==0) call yaml_close_map()
      end do
-     if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum(ifrag),&
-          2.0_gp*frag_sum_orthog(ifrag),2.0_gp*eval_sum(ifrag)
-       if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
-            '-------------------------'
+     !if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum(ifrag),&
+     !     2.0_gp*frag_sum_orthog(ifrag),2.0_gp*eval_sum(ifrag)
+       !if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
+       !     '-------------------------'
+     if(iproc==0) then
+         call yaml_newline
+         call yaml_map('2*frag sum',2.0_gp*frag_sum(ifrag))
+         call yaml_map('2*frag sum orthog',2.0_gp*frag_sum_orthog(ifrag))
+         call yaml_map('2*eval sum',2.0_gp*eval_sum(ifrag))
+         call yaml_close_map()
+         call yaml_newline()
+     end if
      frag_sum_tot=frag_sum_tot+frag_sum(ifrag)
      frag_sum_tot_orthog=frag_sum_tot_orthog+frag_sum_orthog(ifrag)
      eval_sum_tot=eval_sum_tot+eval_sum(ifrag)
   end do
+  if (iproc==0) call yaml_close_sequence()
 
-  if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
-  if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
+  if (iproc==0) then
+      call yaml_map('2.0_gp*frag_sum_tot',2.0_gp*frag_sum_tot)
+      call yaml_map('2.0_gp*frag_sum_tot_orthog',2.0_gp*frag_sum_tot_orthog)
+      call yaml_map('2.0_gp*eval_sum_tot',2.0_gp*eval_sum_tot)
+  end if
+
+  !if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
+  !if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
 
   call f_free(eval_sum)
   call f_free(frag_sum)
@@ -2332,8 +2759,13 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   call f_free(homo_ovrlp_orthog)
 
   if (input_frag%nfrag>=2) then
-     if (iproc==0) write(*,*) 'Transfer integrals (HOMO and LUMO are defined as those of the neutral fragment):'
-     if (iproc==0) write(*,*) 'state1, state2, energy, orthog energy, orthog energy2, overlap, orthog overlap, occ1, occ2'
+     !if (iproc==0) write(*,*) 'Transfer integrals (HOMO and LUMO are defined as those of the neutral fragment):'
+     if (iproc==0) call yaml_open_sequence('Transfer integrals &
+         &(HOMO and LUMO are defined as those of the neutral fragment)',flow=.true.)
+     if (iproc==0) call yaml_newline()
+     !if (iproc==0) write(*,*) 'state1, state2, energy, orthog energy, orthog energy2, overlap, orthog overlap, occ1, occ2'
+     if (iproc==0) call yaml_comment('state1, state2, energy, orthog energy, &
+         &orthog energy2, overlap, orthog overlap, occ1, occ2')
      iind=0
      do ifrag=1,input_frag%nfrag
         ifrag_ref1=input_frag%frag_index(ifrag)
@@ -2355,32 +2787,54 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
                  j=homo2+jh+jind
                       
                  if (iproc==0) then
+                    call yaml_open_map()!flow=.true.)
+                    if (iproc==0) call yaml_newline()
                     if (ih<0) then
                        write(str,'(I2)') abs(ih)
-                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO-'//trim(adjustl(str))
+                       !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO-'//trim(adjustl(str))
+                       call yaml_map('i',ifrag)
+                       call yaml_map('s1','HOMO-'//trim(adjustl(str)))
                     else if (ih==0) then
-                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO  '
+                       !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO  '
+                       call yaml_map('i',ifrag)
+                       call yaml_map('s1','HOMO')
                     else if (ih==1) then
-                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO  '
+                       !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO  '
+                       call yaml_map('i',ifrag)
+                       call yaml_map('s1','LUMO')
                     else
                        write(str,'(I2)') ih-1
-                       write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO+'//trim(adjustl(str))
+                       !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO+'//trim(adjustl(str))
+                       call yaml_map('i',ifrag)
+                       call yaml_map('s1','LUMO+'//trim(adjustl(str)))
                     end if
                  end if
 
                  if (iproc==0) then
                     if (jh<0) then
                        write(str,'(I2)') abs(jh)
-                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
-                            ' HOMO-'//trim(adjustl(str))
+                       !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
+                       !     ' HOMO-'//trim(adjustl(str))
+                       call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
+                       call yaml_map('j',ifrag)
+                       call yaml_map('s1','HOMO-'//trim(adjustl(str)))
                     else if (jh==0) then
-                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' HOMO  '
+                       !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' HOMO  '
+                       call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
+                       call yaml_map('j',ifrag)
+                       call yaml_map('s1','HOMO')
                     else if (jh==1) then
-                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' LUMO  '
+                       !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' LUMO  '
+                       call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
+                       call yaml_map('j',ifrag)
+                       call yaml_map('s1','LUMO')
                     else
-                       write(str,'(I2)') jh-1
-                       write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
-                            ' LUMO+'//trim(adjustl(str))
+                       !write(str,'(I2)') jh-1
+                       !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
+                       !     ' LUMO+'//trim(adjustl(str))
+                       call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
+                       call yaml_map('j',ifrag)
+                       call yaml_map('s1','LUMO+'//trim(adjustl(str)))
                     end if
                  end if
 
@@ -2392,41 +2846,61 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
                  orthog_energy=(trans_int_energy(1)-0.5_gp*(homo_ham(i)+homo_ham(j))*trans_int_ovrlp(1))&
                       /(1.0_gp-trans_int_ovrlp(1)**2)
       
-                 if (iproc==0) write(*,'(2x,5(F16.12,1x))',advance='NO') trans_int_energy(1), &
-                      trans_int_energy_orthog(1), orthog_energy, trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
+                 !if (iproc==0) write(*,'(2x,5(F16.12,1x))',advance='NO') trans_int_energy(1), &
+                 !     trans_int_energy_orthog(1), orthog_energy, trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
+                 if (iproc==0) then
+                     call yaml_map('trans_int_energy',trans_int_energy(1),fmt='(f16.12)')
+                     call yaml_map('trans_int_energy_orthog',trans_int_energy_orthog(1),fmt='(f16.12)')
+                     call yamL_map('orthog_energy',orthog_energy,fmt='(f16.12)')
+                     call yaml_map('trans_int_ovrlp',trans_int_ovrlp(1),fmt='(f16.12)')
+                     call yaml_map('trans_int_ovrlp_orthog',trans_int_ovrlp_orthog(1),fmt='(f16.12)')
+                 end if
 
                  if (homo1+ih<ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
-                    if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
+                    !if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
+                    if (iproc==0) call yaml_map('occ1',2.0_gp,fmt='(f4.2)')
                  else if (homo1+ih==ceiling(ref_frags(ifrag_ref1)%nelec/2.0_gp)) then
                     if (mod(real(ref_frags(ifrag_ref1)%nelec,gp),2.0_gp)/=0.0_gp) then
-                       if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 1.0_gp
+                       !if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 1.0_gp
+                       if (iproc==0) call yaml_map('occ1',1.0_gp,fmt='(f4.2)')
                     else
-                       if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
+                       !if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 2.0_gp
+                       if (iproc==0) call yaml_map('occ1',2.0_gp,fmt='(f4.2)')
                     end if
                  else
-                    if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 0.0_gp
+                    !if (iproc==0) write(*,'(1x,F4.2)',advance='NO') 0.0_gp
+                    if (iproc==0) call yaml_map('occ1',0.0_gp,fmt='(f4.2)')
                  end if
 
                  if (homo2+jh<ceiling(ref_frags(ifrag_ref2)%nelec/2.0_gp)) then
-                    if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+                    !if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+                    if (iproc==0) call yaml_map('occ2',2.0_gp,fmt='(f4.2)')
                  else if (homo2+jh==ceiling(ref_frags(ifrag_ref2)%nelec/2.0_gp)) then
                     if (mod(real(ref_frags(ifrag_ref2)%nelec,gp),2.0_gp)/=0.0_gp) then
-                       if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
+                       !if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
+                       if (iproc==0) call yaml_map('occ2',1.0_gp,fmt='(f4.2)')
                     else
-                       if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+                       !if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+                       if (iproc==0) call yaml_map('occ2',2.0_gp,fmt='(f4.2)')
                     end if
                  else
-                    if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
+                    !if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
+                    if (iproc==0) call yaml_map('occ2',0.0_gp,fmt='(f4.2)')
                  end if
+
+                 if (iproc==0) call yaml_close_map()
+                 if (iproc==0) call yaml_newline()
 
               end do
            end do
-           if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
-               '-------------------------'
+           !if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
+           !    '-------------------------'
            jind=jind+min(ceiling((ref_frags(ifrag_ref2)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref2)%fbasis%forbs%norb)
         end do
         iind=iind+min(ceiling((ref_frags(ifrag_ref1)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref1)%fbasis%forbs%norb)
      end do
+
+     if (iproc==0) call yaml_close_sequence()
   end if
 
   call f_free_ptr(ham%matrix)
