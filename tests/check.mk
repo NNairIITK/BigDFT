@@ -94,28 +94,22 @@ report:
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
 	@name=`basename $@ .memguess.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
-	if test -f accel.perf && ! grep -qs ACCEL $$file ; then cat accel.perf >> $$file ; fi ; \
-	echo outdir ./ >> $$file ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "$(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
 	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@ ; \
 	mv log.yaml log-memguess.yaml ; \
-	@name=`basename $@ .out` ; \
+	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	@name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
-	if test -f accel.perf && ! grep -qs ACCEL $$file ; then cat accel.perf >> $$file ; fi ; \
 	if test -f list_posinp; then \
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \
-	echo outdir ./ >> $$file ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
 	if test -f list_posinp; then cat `tail -n $$(($$(wc -l < list_posinp) - 1)) list_posinp | sed "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
-	@name=`basename $@ .out` ; \
+	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft
 	name=`basename $@ .geopt.mon.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
@@ -130,9 +124,6 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.freq.out: $(abs_top_builddir)/src/frequencies
 	@name=`basename $@ .freq.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
-	if test -f accel.perf && ! grep -qs ACCEL $$file ; then cat accel.perf >> $$file ; fi ; \
-	echo outdir ./ >> $$file ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/frequencies > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
@@ -207,25 +198,28 @@ in_message:
 $(INS): in_message
 	@name=`basename $@ .in` ; dir=$$name.test ; \
 	if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
-	  for i in $(srcdir)/$$name/* ; do cp -f $$i $$dir; done ; \
+	for i in $(srcdir)/$$name/* ; do cp -f $$i $$dir ; done ; \
 	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
-	  if test "$(run_ocl)" = "CPU" ; then \
-	    echo "ACCEL OCLCPU" > $$dir/accel.perf ; \
-	  elif test "$(run_ocl)" = "ACC" ; then \
-	    echo "ACCEL OCLACC" > $$dir/accel.perf ; \
-	  else \
-	    echo "ACCEL OCLGPU" > $$dir/accel.perf ; \
-	  fi ; \
-	  if test -n "$(ocl_platform)" ; then \
-	    echo "OCL_PLATFORM $(ocl_platform)" >> $$dir/accel.perf ; \
-	  fi ; \
-	  if test -n "$(ocl_devices)" ; then \
-	    echo "OCL_DEVICES $(ocl_devices)" >> $$dir/accel.perf ; \
-	  fi ; \
-	fi ; \
-        cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
-        $(MAKE) -f ../Makefile $$dir".post-in"; \
-        echo "Input prepared in "$$dir" dir. make $$name.run available"
+		if test "$(run_ocl)" = "CPU" ; then \
+				echo "ACCEL OCLCPU" > $$dir/check.perf ; \
+		elif test "$(run_ocl)" = "ACC" ; then \
+				echo "ACCEL OCLACC" > $$dir/check.perf ; \
+		else \
+				echo "ACCEL OCLGPU" > $$dir/check.perf ; \
+		fi ; \
+		if test -n "$(ocl_platform)" ; then \
+				echo "OCL_PLATFORM $(ocl_platform)" >> $$dir/check.perf ; \
+		fi ; \
+		if test -n "$(ocl_devices)" ; then \
+				echo "OCL_DEVICES $(ocl_devices)" >> $$dir/check.perf ; \
+		fi ; \
+	else echo "" > $$dir/check.perf ; fi ; \
+	echo outdir ./ >> $$dir/check.perf ; \
+	for i in $$dir/*.dft ; do cat $$dir/check.perf >> $$dir/`basename $$i .dft`.perf ; done ; \
+	if [ ! -f $$dir/input.perf ] ; then cp $$dir/check.perf $$dir/input.perf ; fi ; \
+    cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
+    $(MAKE) -f ../Makefile $$dir".post-in"; \
+    echo "Input prepared in "$$dir" dir. make $$name.run available"
 	touch $@
 
 run_message:
@@ -241,7 +235,7 @@ run_message:
 	tgts=`for r in $$runs ; do echo $$(basename $$r .ref)".out"; done` ; \
         cd $$dir && $(MAKE) -f ../Makefile $$tgts ; \
         echo "Tests have run in "$$dir" dir. make $$name.check available"
-	touch $@
+	@touch $@
 
 %.check: %.run %.yaml-check
 	@name=`basename $@ .check` ; dir=$$name.test ; \

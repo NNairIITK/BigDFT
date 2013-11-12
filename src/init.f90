@@ -2281,7 +2281,7 @@ END SUBROUTINE input_memory_linear
              deallocate(passmat,stat=i_stat)
              call memocc(i_stat,i_all,'passmat',subname)
 
-           if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
+        !!$   if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
 
         !commented out, this part has already been done in LDiagHam     
         !!$      !clean the array of the IG eigenvalues
@@ -2298,12 +2298,12 @@ END SUBROUTINE input_memory_linear
         !!$      !correct the occupation numbers wrt fermi level
         !!$      call evaltoocc(iproc,nproc,.false.,input%Tel,orbs,input%occopt)
 
-              !restore the occupations 
-              call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1)
-              !associate the entropic energy contribution
-              orbs%eTS=orbse%eTS
+         !!$     !restore the occupations 
+         !!$    call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1)
+         !!$    !associate the entropic energy contribution
+         !!$    orbs%eTS=orbse%eTS
               
-           end if
+         !!$  end if
 
         !!$   !yaml output
         !!$   if (iproc ==0) then

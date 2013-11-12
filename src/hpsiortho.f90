@@ -2270,6 +2270,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
          call f_err_throw('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
             & ', found='//yaml_toa(chargef),err_name='BIGDFT_RUNTIME_ERROR')
       end if
+      !DEBUG call yaml_map('Electronic charges (expected, found)', (/ charge, chargef /))
    else if(full==1.0_gp) then
       call eFermi_nosmearing(iproc,orbs)
       ! no entropic term when electronc temprature is zero
