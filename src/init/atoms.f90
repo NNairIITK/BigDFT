@@ -2714,7 +2714,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   enddo
 
   !control atom positions
-  call check_atoms_positions(atoms,rxyz,(iproc == 0))
+  call check_atoms_positions(atoms%astruct,(iproc == 0))
 
   ! We delay the calculation of the symmetries.
   atoms%astruct%sym%symObj = -1
