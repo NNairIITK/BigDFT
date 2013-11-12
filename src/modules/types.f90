@@ -12,7 +12,7 @@
 !! and the routines of allocations and de-allocations
 module module_types
 
-  use m_ab6_mixing, only : ab6_mixing_object
+  use m_ab7_mixing, only : ab7_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
@@ -809,7 +809,7 @@ module module_types
   type, public :: DFT_local_fields
      real(dp), dimension(:), pointer :: rhov !< generic workspace. What is there is indicated by rhov_is
      
-     type(ab6_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
+     type(ab7_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
      !local fields which are associated to their name
      !normally given in parallel distribution
      real(dp), dimension(:,:), pointer :: rho_psi !< density as given by square of el. WFN

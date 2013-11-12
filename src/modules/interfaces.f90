@@ -3146,7 +3146,6 @@ module module_interfaces
             energs,rpnrm,xcstr,proj_G,paw)
          use module_base
          use module_types
-         use m_ab6_mixing
          use gaussians, only: gaussian_basis
          implicit none
          logical, intent(in) :: scf

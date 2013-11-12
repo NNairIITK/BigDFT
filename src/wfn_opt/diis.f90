@@ -461,12 +461,12 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   use module_base
   use module_types
   use defs_basis, only: AB6_NO_ERROR
-  use m_ab6_mixing
+  use m_ab7_mixing
   implicit none
   integer, intent(in) :: npoints, istep, n1, n2, n3, nproc, iproc
   real(gp), intent(in) :: alphamix, ucvol
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
-  type(ab6_mixing_object), intent(inout) :: mix
+  type(ab7_mixing_object), intent(inout) :: mix
   real(dp), dimension(npoints), intent(inout) :: rhopot
   real(gp), intent(out) :: rpnrm
   !local variables
@@ -498,7 +498,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   end do
 
   ! Do the mixing 
-  call ab6_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
+  call ab7_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
        & bigdft_mpi%mpi_comm, (nproc > 1), ierr, errmess, resnrm = rpnrm, &
        & fnrm = fnrm_denpot, fdot = fdot_denpot, user_data = user_data)
   if (ierr /= AB6_NO_ERROR) then
