@@ -2055,6 +2055,7 @@ end subroutine eigensystem_info
 subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    use module_base
    use module_types
+   use dictionaries, only: f_err_throw
    use yaml_output
    implicit none
    logical, intent(in) :: filewrite
@@ -2064,11 +2065,12 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    type(orbitals_data), intent(inout) :: orbs
    !local variables
    real(gp), parameter :: pi=3.1415926535897932d0
-   real(gp), parameter :: sqrtpi=sqrt(pi) 
+   real(gp), parameter :: sqrtpi=sqrt(pi)
+   real(gp), dimension(1,1,1) :: fakepsi
    integer :: ikpt,iorb,melec,ii
    real(gp) :: charge, chargef
    real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
-   real(gp) :: a, x, xu, xd, f, df, tt  
+   real(gp) :: a, x, xu, xd, f, df, tt
    !integer :: ierr
 
    !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
@@ -2263,7 +2265,11 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
             chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
          end do
       end do
-      if (abs(charge - chargef) > 1e-6)  stop 'error occupation update'
+      if (abs(charge - chargef) > 1e-6)  then
+         if (orbs%nspinor /= 4) call eigensystem_info(iproc,nproc,1.e-8_gp,0,orbs,fakepsi)
+         call f_err_throw('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
+            & ', found='//yaml_toa(chargef),err_name='BIGDFT_RUNTIME_ERROR')
+      end if
    else if(full==1.0_gp) then
       call eFermi_nosmearing(iproc,orbs)
       ! no entropic term when electronc temprature is zero
