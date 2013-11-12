@@ -246,7 +246,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
 !  use vdwcorrection
-  use m_ab6_mixing
   use yaml_output
   use gaussians, only: gaussian_basis
   implicit none
@@ -1339,7 +1338,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   use module_types
   use module_interfaces, except_this_one => kswfn_optimization_loop
   use yaml_output
-  use m_ab6_mixing
   implicit none
   real(dp), dimension(6), intent(out) :: xcstr
   integer, intent(in) :: iproc, nproc, idsx, inputpsi

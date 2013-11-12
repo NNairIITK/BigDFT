@@ -1067,7 +1067,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   use module_base
   use module_xc
-  use interfaces_56_xc
+  use interfaces_41_xc_lowlevel
   use module_interfaces, only: calc_gradient
 
   implicit none

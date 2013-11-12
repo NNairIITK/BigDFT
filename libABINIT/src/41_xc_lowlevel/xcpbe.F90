@@ -121,7 +121,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,nd2vxci
 !Do not modify the following lines by hand.
  use interfaces_14_hidewrite
  use interfaces_16_hideleave
- use interfaces_56_xc, except_this_one => xcpbe
+ use interfaces_41_xc_lowlevel, except_this_one => xcpbe
 !End of the abilint section
 
  implicit none

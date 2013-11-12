@@ -100,19 +100,6 @@ interface
 end interface
 
 interface
- subroutine bound_deriv(func,mesh,nn,yp1,ypn)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer, intent(in) :: nn
-  type(pawrad_type),intent(in) :: mesh
-  real(dp), intent(out) :: yp1
-  real(dp), intent(out) :: ypn
-  real(dp), intent(in) :: func(nn)
- end subroutine bound_deriv
-end interface
-
-interface
  subroutine chknm8(nmxpct,nmfond)
   implicit none
   character(len=9),intent(in) :: nmfond
@@ -130,25 +117,6 @@ interface
 end interface
 
 interface
- subroutine compmesh(mesh,r_for_intg)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  type(pawrad_type),intent(inout) :: mesh
-  real(dp),intent(in) :: r_for_intg
- end subroutine compmesh
-end interface
-
-interface
- subroutine copymesh(mesh1,mesh2)
-  use defs_datatypes
-  implicit none
-  type(pawrad_type),intent(in) :: mesh1
-  type(pawrad_type),intent(out) :: mesh2
- end subroutine copymesh
-end interface
-
-interface
  subroutine ctrap(imax,ff,hh,ans)
   use defs_basis
   implicit none
@@ -157,28 +125,6 @@ interface
   real(dp),intent(in) :: hh
   real(dp),intent(in) :: ff(imax)
  end subroutine ctrap
-end interface
-
-interface
- subroutine ctrap_gen(intg,func,radmesh)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  real(dp),intent(out) :: intg
-  type(pawrad_type),intent(in) :: radmesh
-  real(dp),intent(in) :: func(radmesh%int_meshsz)
- end subroutine ctrap_gen
-end interface
-
-interface
- subroutine deducer0(func,funcsz,radmesh)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer :: funcsz
-  type(pawrad_type),intent(in) :: radmesh
-  real(dp) :: func(funcsz)
- end subroutine deducer0
 end interface
 
 interface
@@ -239,17 +185,6 @@ interface
   real(dp),intent(inout) :: chmin(ndim*ndim+ndim)
   real(dp),intent(inout) :: chmout(ndim*ndim+ndim)
  end subroutine hermit
-end interface
-
-interface
- function ifromr(radmesh,rr)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer :: ifromr
-  type(pawrad_type),intent(in) :: radmesh
-  real(dp),intent(in) :: rr
- end function ifromr
 end interface
 
 interface
@@ -454,18 +389,6 @@ interface
 end interface
 
 interface
- subroutine nderiv_gen(der,func,nder,radmesh)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: nder
-  type(pawrad_type),intent(in) :: radmesh
-  real(dp),intent(out) :: der(radmesh%mesh_size,nder)
-  real(dp),intent(in) :: func(radmesh%mesh_size)
- end subroutine nderiv_gen
-end interface
-
-interface
  subroutine normev(evec,ndim,num)
   use defs_basis
   implicit none
@@ -473,40 +396,6 @@ interface
   integer,intent(in) :: num
   real(dp),intent(inout) :: evec(2*ndim,num)
  end subroutine normev
-end interface
-
-interface
- function overlap_cmplx(wf1,wf2,usepaw,cprj1,cprj2,typat,pawtab,fact) result(cres)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: usepaw
-  complex(dpc) :: cres
-  real(dp),intent(in),optional :: fact
-  integer,intent(in) :: typat(:)
-  type(cprj_type),intent(in) :: cprj1(:)
-  type(cprj_type),intent(in) :: cprj2(:)
-  type(pawtab_type),intent(in) :: pawtab(:)
-  complex(gwpc),intent(in) :: wf1(:)
-  complex(gwpc),intent(in) :: wf2(:)
- end function overlap_cmplx
-end interface
-
-interface
- function overlap_real(wf1,wf2,usepaw,cprj1,cprj2,typat,pawtab,fact) result(res)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: usepaw
-  real(dp),intent(in),optional :: fact
-  integer,intent(in) :: typat(:)
-  type(cprj_type),intent(in) :: cprj1(:)
-  type(cprj_type),intent(in) :: cprj2(:)
-  type(pawtab_type),intent(in) :: pawtab(:)
-  real(dp) :: res(2)
-  real(dp),intent(in) :: wf1(:,:)
-  real(dp),intent(in) :: wf2(:,:)
- end function overlap_real
 end interface
 
 interface
@@ -589,19 +478,6 @@ interface
   real(dp) :: plm_dtheta
   real(dp),intent(in) :: xx
  end function plm_dtheta
-end interface
-
-interface
- subroutine poisson(den,ll,qq,radmesh,rv)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  integer,intent(in) :: ll
-  real(dp),intent(out) :: qq
-  type(pawrad_type),intent(in) :: radmesh
-  real(dp),intent(in) :: den(radmesh%mesh_size)
-  real(dp),intent(out) :: rv(radmesh%mesh_size)
- end subroutine poisson
 end interface
 
 interface
@@ -700,17 +576,6 @@ interface
   integer :: istwfk
   real(dp),intent(in) :: kpoint(3)
  end function set_istwfk
-end interface
-
-interface
- subroutine simp_gen(intg,func,radmesh)
-  use defs_basis
-  use defs_datatypes
-  implicit none
-  real(dp),intent(out) :: intg
-  type(pawrad_type),intent(in) :: radmesh
-  real(dp),intent(in) :: func(radmesh%int_meshsz)
- end subroutine simp_gen
 end interface
 
 interface

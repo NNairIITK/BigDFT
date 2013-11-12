@@ -1802,7 +1802,7 @@ END SUBROUTINE input_memory_linear
         subroutine input_wf_diag(iproc,nproc,at,denspot,&
              orbs,nvirt,comms,Lzd,energs,rxyz,&
              nlpspd,proj,ixc,psi,hpsi,psit,G,&
-     nspin,symObj,GPU,input,onlywf,proj_G,paw)
+             nspin,symObj,GPU,input,onlywf,proj_G,paw)
            ! Input wavefunctions are found by a diagonalization in a minimal basis set
            ! Each processors write its initial wavefunctions into the wavefunction file
            ! The files are then read by readwave
@@ -1831,9 +1831,9 @@ END SUBROUTINE input_memory_linear
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
            type(gaussian_basis), intent(out) :: G !basis for davidson IG
+           real(wp), dimension(:), pointer :: psi,hpsi,psit
    type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
    type(paw_objects),optional,intent(inout)::paw
-           real(wp), dimension(:), pointer :: psi,hpsi,psit
            !local variables
            character(len=*), parameter :: subname='input_wf_diag'
            logical :: switchGPUconv,switchOCLconv

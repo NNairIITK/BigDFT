@@ -283,7 +283,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_xc
    use esatto
    use m_ab6_symmetry
-   use m_ab6_mixing
    use m_ab6_kpoints
    implicit none
    integer, intent(in) :: nproc,iproc

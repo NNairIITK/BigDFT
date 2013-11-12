@@ -29,7 +29,10 @@ module dictionaries_base
   !> structure of the dictionary element (this internal structure is private)
   type, public :: dictionary
      type(storage) :: data
-     type(dictionary), pointer :: parent,next,child,previous
+     type(dictionary), pointer :: parent => null()
+     type(dictionary), pointer :: next => null()
+     type(dictionary), pointer :: child => null()
+     type(dictionary), pointer :: previous => null()
   end type dictionary
 
   !> operator to access and create a key in the dictionary

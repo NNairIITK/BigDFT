@@ -1,0 +1,21 @@
+rm -rf old
+mkdir old
+mv *.F90 old/.
+../format.pl old/interfaces_42_libpaw.F90   > interfaces_42_libpaw.F90   
+../format.pl old/m_atompaw.F90              > m_atompaw.F90              
+../format.pl old/m_gaussfit.F90             > m_gaussfit.F90             
+../format.pl old/m_paral_atom.F90           > m_paral_atom.F90           
+../format.pl old/m_paw_numeric.F90          > m_paw_numeric.F90          
+../format.pl old/m_pawang.F90               > m_pawang.F90               
+../format.pl old/m_pawcprj.F90              > m_pawcprj.F90              
+../format.pl old/m_pawio.F90                > m_pawio.F90                
+../format.pl old/m_pawpsp.F90               > m_pawpsp.F90               
+../format.pl old/m_pawrad.F90               > m_pawrad.F90               
+../format.pl old/m_pawrhoij.F90             > m_pawrhoij.F90             
+../format.pl old/m_pawtab.F90               > m_pawtab.F90               
+../format.pl old/m_pawxc.F90                > m_pawxc.F90                
+../format.pl old/m_sphharm.F90              > m_sphharm.F90              
+../format.pl old/m_xml_converters.F90       > m_xml_converters.F90       
+../format.pl old/m_xml_pawpseudo.F90        > m_xml_pawpseudo.F90        
+../format.pl old/m_xml_pawpseudo_types.F90  > m_xml_pawpseudo_types.F90  
+rm -rf old
