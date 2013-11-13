@@ -1158,7 +1158,8 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   !!call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
   !!call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
   !!call yaml_map('Translation vector',da,fmt='(1pg20.12)')
-  call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
+  !!call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
+
 
 
   !try different solutions, one of these should always work
@@ -1189,7 +1190,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 !!$  irp(3)=3
 
   !!print the suggested order
-  call yaml_map('Suggested order for the transformation',irp)
+  !!call yaml_map('Suggested order for the transformation',irp)
 
   call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,&
        centre_old,centre_new,sint,cost,onemc,irp,&
@@ -1246,6 +1247,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
     !! considering the values of the coefficients of the 
     !! rotation matrix
     pure function selection(rmat) result(irp)
+
       implicit none
       real(gp), dimension(3,3), intent(in) :: rmat !< rotation matrix
       integer, dimension(3) :: irp

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-04 15:52:43.757
+ Timestamp of this run                 : 2013-11-07 08:35:30.653
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -37,17 +37,17 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'CXX=icpc' 'FCFLAGS=-O2 -openmp' 
+     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 -openmp' 
      '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
      p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
      -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
      -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
      -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
  
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, icpc ]
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -openmp
+     FCFLAGS                           : -O2 -xSSE4.2 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -345,7 +345,7 @@
  Energies: {Ekin:  1.13297974818E+01, Epot: -2.66506168379E+01, Enl:  1.46844541618E+00, 
               EH:  2.41435884817E+01,  EXC: -4.25727264030E+00, EvXC: -5.57136450296E+00, 
            EvSIC: -5.34661305268E+00}, 
- iter:  1, EKS: -1.89588392625075208E+01, gnrm:  3.84E-01, 
+ iter:  1, EKS: -1.89588392625075066E+01, gnrm:  3.84E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999812608, 
@@ -372,7 +372,7 @@
  Energies: {Ekin:  1.39546703419E+01, Epot: -2.84581682196E+01, Enl:  1.55089285934E+00, 
               EH:  2.69222948379E+01,  EXC: -4.76341530096E+00, EvXC: -6.23919927772E+00, 
            EvSIC: -6.40751199670E+00}, 
- iter:  4, EKS: -1.96151856390625596E+01, gnrm:  1.64E-01, D: -3.73E-02, 
+ iter:  4, EKS: -1.96151856390625490E+01, gnrm:  1.64E-01, D: -3.73E-02, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 5
  GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  9.999999792110, 
@@ -423,13 +423,13 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  4.86157400E-03, y:  4.86150053E-03, z:  1.40658084E-01, 
                     total:  1.40826012E-01}
- Clean forces norm (Ha/Bohr): {maxval:  1.861535805796E-01, fnrm2:  5.813687798540E-02}
- Raw forces norm (Ha/Bohr): {maxval:  2.297542685574E-01, fnrm2:  7.798568590205E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  1.861535805796E-01, fnrm2:  5.813687798541E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  2.297542685574E-01, fnrm2:  7.798568590206E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-6.319551389861E-04, -6.319551394282E-04,  1.485451845332E-01]} # 0001
- -  {C: [ 1.225280957865E-03,  1.225280958722E-03,  3.760650493418E-02]} # 0002
- -  {N: [-5.933258188791E-04, -5.933258192942E-04, -1.861516894673E-01]} # 0003
+ -  {H: [-6.319551389872E-04, -6.319551394294E-04,  1.485451845332E-01]} # 0001
+ -  {C: [ 1.225280957867E-03,  1.225280958725E-03,  3.760650493420E-02]} # 0002
+ -  {N: [-5.933258188802E-04, -5.933258192953E-04, -1.861516894674E-01]} # 0003
  Generation of input wavefunction data for atom: H
  Electronic configuration: {s: [ 1.00]}
  Generation of input wavefunction data for atom: C
@@ -504,11 +504,12 @@
  Total Charge considered on the centers:  9.722858062150
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  33.58
-   Elapsed time (s)                    :  19.59
+   CPU time (s)                        :  33.41
+   Elapsed time (s)                    :  19.39
   #-------------------------------- Warnings obtained during the run, check their relevance!
- WARNINGS: [KS Hamiltonian is not Hermitian in the subspace, diff: 1.08E-02, 
- Wavefunctions not converged after cycle  1]
+ WARNINGS:
+ - KS Hamiltonian is not Hermitian in the subspace, diff: 1.08E-02
+ - Wavefunctions not converged after cycle  1
  Memory Consumption Report:
    Tot. No. of Allocations             :  1497
    Tot. No. of Deallocations           :  1497

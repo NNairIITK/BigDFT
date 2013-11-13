@@ -100,6 +100,7 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
      call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
   end if
   allocate(fbuf(cbuf_len))
+
   if (mpi_env%iproc == 0) then
      call copyCBuffer(fbuf(1), cbuf, cbuf_len)
      call freeCBuffer(cbuf)
@@ -111,7 +112,6 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
 
   call f_err_open_try()
   call yaml_parse_from_char_array(udict, fbuf)
-
   ! Handle with possible partial dictionary.
   deallocate(fbuf)
   call dict_update(dict, udict // 0)

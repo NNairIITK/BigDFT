@@ -774,7 +774,7 @@ logical :: written
 !!write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
 call yaml_open_map('Support function repartition')
 jpst=0
-do jproc=1,nproc-1
+do jproc=0,nproc-1
     norb0=orbs%norb_par(jproc,0)
     norb1=orbs%norb_par(min(jproc+1,nproc-1),0)
     if (norb0/=norb1 .or. jproc==nproc-1) then

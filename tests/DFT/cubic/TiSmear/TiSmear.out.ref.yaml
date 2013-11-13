@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-04 15:45:19.045
+ Timestamp of this run                 : 2013-11-07 08:28:03.966
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -37,17 +37,17 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'CXX=icpc' 'FCFLAGS=-O2 -openmp' 
+     " 'FC=/opt/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 -openmp' 
      '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
      p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
      -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
      -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
      -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
  
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, icpc ]
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.5_intel/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -openmp
+     FCFLAGS                           : -O2 -xSSE4.2 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -395,25 +395,25 @@
  GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  12.999995640948, 
  Poisson Solver: {BC: Free, Box:  [  139,  127,  127 ], MPI tasks:  3}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -9.38569351631516646E+00, gnrm:  1.64E-01, gnrm0:  2.7E-01, 
+ iter:  1, tr(H): -9.38569351631506166E+00, gnrm:  1.64E-01, gnrm0:  2.7E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -9.84724947712142828E+00, gnrm:  1.30E-01, gnrm0:  2.7E-01, D: -4.62E-01, 
+ iter:  2, tr(H): -9.84724947712133591E+00, gnrm:  1.30E-01, gnrm0:  2.7E-01, D: -4.62E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -9.99812592068683337E+00, gnrm:  1.35E-01, gnrm0:  3.4E-01, D: -1.51E-01, 
+ iter:  3, tr(H): -9.99812592068673922E+00, gnrm:  1.35E-01, gnrm0:  3.4E-01, D: -1.51E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &final0001  { #---------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, 
- iter:  4, EKS: -5.82707503874720203E+01, gnrm:  1.35E-01, gnrm0:  3.4E-01, D: -1.06E-01,  #final
+ iter:  4, EKS: -5.82707503874719634E+01, gnrm:  1.35E-01, gnrm0:  3.4E-01, D: -1.06E-01,  #final
  Energies: {Ekin:  2.22785087633E+01, Epot: -2.99003422148E+01, Enl: -2.73849304512E+00, 
               EH:  5.27819267319E+01,  EXC: -7.78869509621E+00, EvXC: -1.01106433354E+01, 
             Eion:  2.54955460189E+00}, 
  SCF criterion:  0}
         #No convergence within the allowed number of minimization steps
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.47E-30
+       Non-Hermiticity of Hamiltonian in the Subspace:  6.79E-30
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -1.976711335443E+00, f:  2.0000},  # 00001
@@ -422,12 +422,12 @@
  {e: -1.025900756353E+00, f:  2.0000},  # 00004
  {e: -9.694211187163E-02, f:  2.0000},  # 00005
  {e: -1.248618454187E-02, f:  2.0000},  # 00006
- {e:  3.914850285008E-02, f:  0.8866},  # 00007
+ {e:  3.914850285009E-02, f:  0.8866},  # 00007
  {e:  3.980244315617E-02, f:  0.1134},  # 00008
  {e:  4.794259513267E-02, f:  0.0000},  # 00009
- {e:  4.870173452380E-02, f:  0.0000},  # 00010
- {e:  8.112702866463E-02, f:  0.0000}] # 00011
-   Fermi Energy                        :  3.91752038886063E-02
+ {e:  4.870173452381E-02, f:  0.0000},  # 00010
+ {e:  8.112702866464E-02, f:  0.0000}] # 00011
+   Fermi Energy                        :  3.91752038886113E-02
  - Hamiltonian Optimization: &itrp002
    - Subspace Optimization: &itrep002-01
        Wavefunctions Iterations:
@@ -436,25 +436,25 @@
  itrp:  2, Mixing on: Density, RhoPot delta per volume unit:  &rpnrm0002  2.70E-06, 
  Poisson Solver: {BC: Free, Box:  [  139,  127,  127 ], MPI tasks:  3}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, tr(H): -1.09069478585282731E+01, gnrm:  1.90E-01, gnrm0:  1.4E-01, D: -9.09E-01, 
+ iter:  1, tr(H): -1.09069478585281843E+01, gnrm:  1.90E-01, gnrm0:  1.4E-01, D: -9.09E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, tr(H): -1.08447177444227023E+01, gnrm:  2.27E-01, gnrm0:  1.5E-01, D:  6.22E-02, 
+ iter:  2, tr(H): -1.08447177444226135E+01, gnrm:  2.27E-01, gnrm0:  1.5E-01, D:  6.22E-02, 
  SDalpha:  1.000E+00, Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, tr(H): -1.10673809284600946E+01, gnrm:  5.65E-02, gnrm0:  3.9E-02, D: -2.23E-01, 
+ iter:  3, tr(H): -1.10673809284600164E+01, gnrm:  5.65E-02, gnrm0:  3.9E-02, D: -2.23E-01, 
  SDalpha:  1.050E+00, Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 4
  Hamiltonian Applied:  Yes, 
- iter:  4, EKS: -5.84357920565402225E+01, gnrm:  5.65E-02, gnrm0:  3.9E-02, D: -1.65E-01,  #FINAL
+ iter:  4, EKS: -5.84357920565401940E+01, gnrm:  5.65E-02, gnrm0:  3.9E-02, D: -1.65E-01,  #FINAL
  Energies: {Ekin:  1.85974285640E+01, Epot: -2.83177769562E+01, Enl: -1.49778352671E+00, 
               EH:  5.20627955486E+01,  EXC: -7.70336564338E+00, EvXC: -9.99894645242E+00, 
             Eion:  2.54955460189E+00}, 
  SCF criterion:  0}
         #No convergence within the allowed number of minimization steps
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.40E-30
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.64E-30
         #WARNING: Wavefunctions not converged after cycle  1
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
@@ -464,12 +464,12 @@
  {e: -1.090323897477E+00, f:  2.0000},  # 00004
  {e: -1.257444279686E-01, f:  2.0000},  # 00005
  {e: -5.536808792815E-02, f:  2.0000},  # 00006
- {e: -3.734242012661E-03, f:  0.7821},  # 00007
- {e: -3.294009127376E-03, f:  0.2179},  # 00008
+ {e: -3.734242012665E-03, f:  0.7821},  # 00007
+ {e: -3.294009127373E-03, f:  0.2179},  # 00008
  {e:  1.245565006020E-02, f:  0.0000},  # 00009
- {e:  1.360107512078E-02, f:  0.0000},  # 00010
+ {e:  1.360107512079E-02, f:  0.0000},  # 00010
  {e:  3.952923745175E-02, f:  0.0000}] # 00011
-   Fermi Energy                        : -3.76945797817047E-03
+   Fermi Energy                        : -3.76945797817205E-03
   #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
@@ -488,22 +488,23 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.94984049E-02, y:  3.01112871E-03, z:  3.05270838E-03, 
                     total:  1.99643111E-02}
- Clean forces norm (Ha/Bohr): {maxval:  1.102050177490E-01, fnrm2:  2.429029187410E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  1.102050177490E-01, fnrm2:  2.429029187411E-02}
  Raw forces norm (Ha/Bohr): {maxval:  1.239925816338E-01, fnrm2:  2.470530673574E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Ti: [-1.102050177490E-01,  4.336808689942E-19,  8.673617379884E-19]} # 0001
- -  {Na: [ 1.102050177490E-01,  4.336808689942E-19,  8.673617379884E-19]} # 0002
+ -  {Ti: [-1.102050177490E-01,  8.673617379884E-19,  8.673617379884E-19]} # 0001
+ -  {Na: [ 1.102050177490E-01,  4.336808689942E-19,  4.336808689942E-19]} # 0002
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  15.58
-   Elapsed time (s)                    :  7.90
+   CPU time (s)                        :  16.19
+   Elapsed time (s)                    :  8.33
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
- WARNINGS: [Input XC is "XC: Perdew, Burke & Ernzerhof", 
- Odd number of electrons, no closed shell system, 
-            Wavefunctions not converged after cycle  1, 
-            Self-consistent cycle did not meet convergence criteria]
+ WARNINGS:
+ - Input XC is "XC: Perdew, Burke & Ernzerhof"
+ - Odd number of electrons, no closed shell system
+ - Wavefunctions not converged after cycle  1
+ - Self-consistent cycle did not meet convergence criteria
  Memory Consumption Report:
    Tot. No. of Allocations             :  2862
    Tot. No. of Deallocations           :  2862
