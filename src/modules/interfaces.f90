@@ -3363,7 +3363,7 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  energy_only, hpsi_small, experimental_mode, hpsi_noprecond)
+                  energy_only, hpsi_small, experimental_mode, ksorbs, hpsi_noprecond)
          use module_base
          use module_types
          implicit none
@@ -3382,6 +3382,7 @@ module module_interfaces
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
          logical, intent(in) :: energy_only, experimental_mode
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
+         type(orbitals_data),intent(in) :: ksorbs
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
 
@@ -5034,6 +5035,36 @@ module module_interfaces
           character(len=*), intent(in) :: comment
           logical,intent(in),optional :: only_energies
         end subroutine write_energies
+
+        subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+                 energs, nlpspd, proj, input)
+          use module_base
+          use module_types
+          implicit none
+          integer:: iproc, nproc
+          type(DFT_wavefunction),intent(in) :: tmb, KSwfn
+          type(atoms_data), intent(inout) :: at
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+          type(DFT_local_fields), intent(inout) :: denspot
+          type(GPU_pointers), intent(inout) :: GPU
+          type(energy_terms),intent(inout) :: energs
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+          type(input_variables),intent(in) :: input
+        end subroutine build_ks_orbitals
+
+        subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
+               orbs, phismall, philarge, to_global)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
+          type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
+          type(orbitals_data),intent(in) :: orbs
+          real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
+          real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
+          logical,intent(in),optional :: to_global
+        end subroutine small_to_large_locreg
   
   end interface
 END MODULE module_interfaces

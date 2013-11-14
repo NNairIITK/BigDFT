@@ -1044,6 +1044,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
+  write(*,*) 'before',tmb%linmat%denskern%matrix_compr
+  call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+           energs, nlpspd, proj, input)
 
 
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
@@ -3037,3 +3040,163 @@ subroutine output_fragment_rotations(iproc,nproc,nat,rxyz,iformat,filename,input
    end if
 
 end subroutine output_fragment_rotations
+
+
+
+subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+           energs, nlpspd, proj, input)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => build_ks_orbitals
+  implicit none
+  
+  ! Calling arguments
+  integer:: iproc, nproc
+  type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
+  type(atoms_data), intent(inout) :: at
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(GPU_pointers), intent(inout) :: GPU
+  type(energy_terms),intent(inout) :: energs
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+  type(input_variables),intent(in) :: input
+
+  ! Local variables
+  type(orbitals_data) :: orbs
+  type(communications_arrays) :: comms
+  type(sparseMatrix) :: ham_small ! for FOE
+  real(gp) :: fnrm
+  integer :: infoCoeff, nvctrp, npsidim_global
+  real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
+  character(len=*),parameter :: subname='build_ks_orbitals'
+
+  !debug
+  integer :: iorb, jorb, ist, jst, ierr, i
+  real(kind=8) :: ddot, tt
+
+  write(*,*) 'here: build_ks_orbitals'
+
+  ! Get the expansion coefficients
+  tmb%can_use_transposed=.false.
+  call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+       energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
+
+  ! Create communication arrays for support functions in the global box
+  
+  call nullify_orbitals_data(orbs)
+  call copy_orbitals_data(tmb%orbs, orbs, subname)
+  call orbitals_communicators(iproc, nproc, tmb%lzd%glr, orbs, comms)
+
+
+  ! Transform the support functions to the global box
+  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
+  npsidim_global=max(tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), &
+                     tmb%orbs%norb*comms%nvctr_par(iproc,0)*orbs%nspinor)
+  !phi_global=f_malloc(npsidim_global,id='phi_global')
+  !phiwork_global=f_malloc(npsidim_global,id='phiwork_global')
+  allocate(phi_global(npsidim_global))
+  allocate(phiwork_global(npsidim_global))
+  !do ierr=1,tmb%orbs%norb*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
+  !    write(500,'(i8,es16.7)') ierr, tmb%psi(ierr)
+  !end do
+  call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
+       tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
+       KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
+  !do ierr=1,tmb%orbs%norb*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
+  !    write(501,'(i8,es16.7)') ierr, phi_global(ierr)
+  !end do
+
+  !!ist=1
+  !!do iorb=1,tmb%orbs%norb
+  !!    jst=1
+  !!    do jorb=1,tmb%orbs%norb
+  !!        write(*,'(a,2i8,es16.7)') 'iorb, jorb, ddot', iorb, jorb, &
+  !!        ddot(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f, phi_global(ist), 1, phi_global(jst), 1)
+  !!        jst=jst+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f    
+  !!    end do
+  !!    ist=ist+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f    
+  !!end do
+
+
+  !phiwork_global=0.d0
+  !ierr=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !ist=1
+  !do iorb=1,KSwfn%orbs%norb
+  !    jst=1
+  !    do jorb=1,tmb%orbs%norb
+  !       write(*,'(a,2i7,es16.7)') 'iorb, jorb, coeff', iorb, jorb, tmb%coeff(jorb,iorb)
+  !       phiwork_global(ist:ist+ierr-1)=phiwork_global(ist:ist+ierr-1)+tmb%coeff(jorb,iorb)*phi_global(jst:jst+ierr-1) 
+  !       jst=jst+ierr
+  !    end do
+  !    ist=ist+ierr
+  !end do
+  !ierr=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !do i=1,KSwfn%orbs%norb*ierr
+  !    write(400,*) i, phiwork_global(i)
+  !end do
+
+
+  ! Transpose
+  !do ierr=1,size(phi_global)
+  !    write(200,*) ierr, phi_global(ierr)
+  !end do
+  call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global, work=phiwork_global)
+  !do ierr=1,size(phi_global)
+  !    write(300,*) ierr, phi_global(ierr)
+  !end do
+
+  nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
+  write(*,'(a,i5,2i13)') 'iproc, nvctrp, ncount', iproc, nvctrp, tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  ist=1
+  do iorb=1,tmb%orbs%norb
+      jst=1
+      do jorb=1,tmb%orbs%norb
+          tt=ddot(nvctrp, phi_global(ist), 1, phi_global(jst), 1)
+          call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          if (iproc==0) write(*,'(a,2i8,es16.7)') 'iorb, jorb, tt', iorb, jorb, tt
+          jst=jst+nvctrp
+      end do
+      ist=ist+nvctrp
+  end do
+
+  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
+  nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
+  call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
+             tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
+  
+  call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global, work=phi_global)  
+
+  ist=1
+  do iorb=1,KSwfn%orbs%norbp
+      do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+          write(800+iproc,*) iorb, i, phiwork_global(ist)
+          ist=ist+1
+      end do
+  end do
+
+
+  !!ierr=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !!do i=1,KSwfn%orbs%norb*ierr
+  !!    write(401,*) i, phiwork_global(i)
+  !!end do
+  !!write(*,*) 'GLOBAL DDOT',ddot(KSwfn%orbs%norb*ierr, phi_global, 1, phi_global, 1)
+
+  !!do i=1,KSwfn%orbs%norb*ierr
+  !!     tmb%psi(i)=phi_global(i)
+  !!end do
+  !!call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, tmb%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+  !!     energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
+
+  !!do i=1,KSwfn%orbs%norb*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
+  !!    write(600,'(i10,es16.7)') i, tmb%psi(i)
+  !!end do
+
+
+  !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
+  call writemywaves(iproc,trim(input%dir_output)//"wavefunction", WF_FORMAT_PLAIN, &
+       KSwfn%orbs, KSwfn%Lzd%Glr%d%n1, KSwfn%Lzd%Glr%d%n2, KSwfn%Lzd%Glr%d%n3, &
+       KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
+
+end subroutine build_ks_orbitals
