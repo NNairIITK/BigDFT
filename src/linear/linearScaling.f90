@@ -1044,9 +1044,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
-  call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-           energs, nlpspd, proj, input, &
-           energy, energyDiff, energyold)
+  if (input%write_orbitals) then
+      call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+               energs, nlpspd, proj, input, &
+               energy, energyDiff, energyold)
+  end if
 
 
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
