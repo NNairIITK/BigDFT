@@ -350,7 +350,7 @@ GEOPT-newIG:
   D: 1.1e-10
   Energies: 1.1e-8
   etot: 1.481e-11
-  EKS: 7.4e-10
+  EKS: 1.0e-8
 
 rotatesmall_write:
   Keys to ignore:
