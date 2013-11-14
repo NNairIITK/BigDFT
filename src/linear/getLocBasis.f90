@@ -10,7 +10,8 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
+    calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, &
+    updatekernel)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -44,6 +45,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(cdft_data),intent(inout),optional :: cdft
   integer, intent(in) :: extra_states
   logical, optional, intent(in) :: reorder
+  logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
   integer :: istat, iall, iorb, info
@@ -53,11 +55,24 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(sparseMatrix) :: gradmat 
+  logical :: update_kernel
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
-  real(kind=8) :: deviation, KSgrad
+  real(kind=8) :: deviation, KSres
   integer :: iat, iiorb, jjorb, lwork,jorb
+
+  ! Option to only calculate the energy without updating the kernel
+  if (present(updatekernel)) then
+      update_kernel=updatekernel
+  else
+      update_kernel=.true.
+  end if
+
+  ! This is simply not yet implemented
+  if (.not.update_kernel .and. scf_mode==LINEAR_FOE) then
+      stop 'ERROR: for the moment, update_kernel must be true for FOE'
+  end if
 
    if (iproc==0) call yaml_open_map('Kernel update')
   ! should eventually make this an input variable
@@ -407,7 +422,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'getlocbasinit','ON') !lr408t
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.true.)
+         !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.true.)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs, &
+              update_kernel)
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.false.)
@@ -435,7 +452,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   end if
   if (calculate_ham) then
-      call get_KS_residue(iproc, nproc, tmb, orbs, hpsit_c, hpsit_f)
+      call get_KS_residue(iproc, nproc, tmb, orbs, hpsit_c, hpsit_f, KSres)
+      if (iproc==0) call yaml_map('Kohn-Sham residue',KSres,fmt='(es9.2)')
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
       call memocc(istat, iall, 'hpsit_c', subname)
@@ -2418,10 +2436,10 @@ end subroutine purify_kernel
 
 
 
-subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f)
+subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use module_base
   use module_types
-  use module_interfaces!, except_this_one => get_KS_residue
+  use module_interfaces, except_this_one => get_KS_residue
   implicit none
 
   ! Calling arguments
@@ -2430,10 +2448,11 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f)
   type(orbitals_data),intent(in) :: KSorbs
   real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(in) :: hpsit_c
   real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(in) :: hpsit_f
+  real(kind=8),intent(out) :: KSres
 
   ! Local variables
   integer :: iorb, istat, ierr
-  real(kind=8) :: KSgrad, norbtot, scale_factor
+  real(kind=8) :: norbtot, scale_factor
   type(sparseMatrix) :: gradmat 
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
   character(len=*),parameter :: subname='get_KS_residue'
@@ -2442,27 +2461,20 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f)
  
   call nullify_sparsematrix(gradmat)
   call sparse_copy_pattern(tmb%linmat%ham, gradmat, iproc, subname)
-  allocate(gradmat%matrix_compr(gradmat%nvctr), stat=istat)
+  gradmat%matrix_compr=f_malloc_ptr(gradmat%nvctr,id='gradmat%matrix_compr')
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
        hpsit_c, hpsit_c, hpsit_f, hpsit_f, gradmat)
 
-  ! Kohn-Sham residue
 
-  allocate(gradmat%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  gradmat%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='gradmat%matrix')
+  tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
+  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
   call uncompressMatrix(iproc,gradmat)
   call uncompressMatrix(iproc,tmb%linmat%ham)
   call uncompressMatrix(iproc,tmb%linmat%denskern)
-  !!allocate(KH(tmb%orbs%norb,tmb%orbs%norb))
-  !!allocate(KHKH(tmb%orbs%norb,tmb%orbs%norb))
-  !!allocate(Kgrad(tmb%orbs%norb,tmb%orbs%norb))
   KH=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='KH')
   KHKH=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='KHKH')
   Kgrad=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='Kgrad')
-  !!write(*,*) 'matrices: H',tmb%linmat%ham%matrix
-  !!write(*,*) 'matrices: K',tmb%linmat%denskern%matrix
-  !!write(*,*) 'matrices: P',gradmat%matrix
 
 
   ! scale_factor takes into account the occupancies which are present in the kernel
@@ -2488,25 +2500,22 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f)
        tmb%orbs%norb, KH, tmb%orbs%norb, 0.d0, KHKH, tmb%orbs%norb)
   call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
        tmb%orbs%norb, gradmat%matrix, tmb%orbs%norb, 0.d0, Kgrad, tmb%orbs%norb)
-  !!write(*,*) 'matrices: KH',KH
-  !!write(*,*) 'matrices: KHKH',KHKH
-  !!write(*,*) 'matrices: Kgrad',Kgrad
 
   norbtot=0.d0
   do iorb=1,KSorbs%norb
       norbtot=norbtot+KSorbs%occup(iorb)
   end do
 
-  KSgrad=0.d0
+  KSres=0.d0
   do iorb=1,tmb%orbs%norb
-      KSgrad=KSgrad+Kgrad(iorb,iorb)-KHKH(iorb,iorb)
+      KSres=KSres+Kgrad(iorb,iorb)-KHKH(iorb,iorb)
   end do
-  if (iproc==0) write(*,*) 'tot KSgrad',KSgrad
-  !if (iproc==0) write(*,*) 'KSgrad',sqrt(KSgrad/dble(KSorbs%norb))
-  if (iproc==0) write(*,*) 'KSgrad',sqrt(KSgrad/norbtot)
-  deallocate(gradmat%matrix)
-  deallocate(tmb%linmat%ham%matrix)
-  deallocate(tmb%linmat%denskern%matrix)
+  KSres=sqrt(KSres/norbtot)
+  !!if (iproc==0) write(*,*) 'KSgrad',sqrt(KSgrad/norbtot)
+  call f_free_ptr(gradmat%matrix)
+  call f_free_ptr(tmb%linmat%ham%matrix)
+  call f_free_ptr(tmb%linmat%denskern%matrix)
+  call f_free_ptr(gradmat%matrix_compr)
   call deallocate_sparsematrix(gradmat, subname)
 
   call f_free(KH)

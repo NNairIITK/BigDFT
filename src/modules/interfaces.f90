@@ -2107,7 +2107,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
+         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
       use module_base
       use module_types
       use constrained_dft
@@ -2138,6 +2138,7 @@ module module_interfaces
       type(cdft_data),intent(inout),optional :: cdft
       logical, optional, intent(in) :: reorder
       integer, intent(in) :: extra_states
+      logical, optional, intent(in) :: updatekernel
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
@@ -5037,7 +5038,8 @@ module module_interfaces
         end subroutine write_energies
 
         subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-                 energs, nlpspd, proj, input)
+                 energs, nlpspd, proj, input, &
+                 energy, energyDiff, energyold)
           use module_base
           use module_types
           implicit none
@@ -5051,6 +5053,7 @@ module module_interfaces
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
           real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
           type(input_variables),intent(in) :: input
+          real(kind=8),intent(out) :: energy, energyDiff, energyold
         end subroutine build_ks_orbitals
 
         subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
@@ -5065,6 +5068,18 @@ module module_interfaces
           real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
           logical,intent(in),optional :: to_global
         end subroutine small_to_large_locreg
+
+        subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(DFT_wavefunction) :: tmb
+          type(orbitals_data),intent(in) :: KSorbs
+          real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(in) :: hpsit_c
+          real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(in) :: hpsit_f
+          real(kind=8),intent(out) :: KSres
+        end subroutine get_KS_residue
   
   end interface
 END MODULE module_interfaces
