@@ -197,7 +197,7 @@ in_message:
 
 $(INS): in_message
 	@name=`basename $@ .in` ; dir=$$name.test ; \
-	if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
+	if test ! -d $$dir ; then mkdir $$dir ; fi ; \
 	for i in $(srcdir)/$$name/* ; do cp -f $$i $$dir ; done ; \
 	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
 		if test "$(run_ocl)" = "CPU" ; then \
@@ -216,9 +216,10 @@ $(INS): in_message
 	else echo -n "" > $$dir/check.perf ; fi ; \
 	echo "outdir ./" >> $$dir/check.perf ; \
 	for i in $$dir/*.out.ref.yaml ; do \
-	    cat $$dir/check.perf >> $$dir/`basename $$i .out.ref.yaml`.perf ; \
+	    base=`basename $$i .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	    if test -n "$$base" ; then cat $$dir/check.perf >> $$dir/$$base.perf ; fi ; \
 	done ; \
-	if [ ! -f $$dir/input.perf ] ; then cp $$dir/check.perf $$dir/input.perf ; fi ; \
+	cat $$dir/check.perf >> $$dir/input.perf ; \
     cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
     $(MAKE) -f ../Makefile $$dir".post-in"; \
     echo "Input prepared in "$$dir" dir. make $$name.run available"
