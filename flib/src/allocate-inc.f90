@@ -1,5 +1,6 @@
 !> @file
 !! Include fortran file for allocation template
+!! 
 !! @author
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -19,16 +20,11 @@
         call metadata_address(array,iadd)
         call profile(iadd)
      end if
-     !ierror=SUCCESS
   else
      call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
           ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
           ERR_INVALID_MALLOC)
      return
-     !ierror=INVALID_RANK
-     !lasterror='rank not valid'
-     !call check_for_errors(ierror,m%try)
-     !if (m%try) deallocate(array,stat=ierror)
   end if
 !  call timing(0,'Init to Zero  ','RS') 
 
@@ -49,13 +45,10 @@ contains
     !size
     sizeof=kind(array)
     ilsize=int(sizeof*product(m%shape(1:m%rank)),kind=8)
-    !do i=1,m%rank
-    !   ilsize=int(sizeof*m%shape(i),kind=8)
-    !end do
 
     !create the dictionary array
-    if (.not. associated(dict_routine)) then
-       call dict_init(dict_routine)
+    if (.not. associated(mems(ictrl)%dict_routine)) then
+       call dict_init(mems(ictrl)%dict_routine)
     end if
     !add the array to the routine
     !call dict_array(m%routine_id,m%array_id,ilsize,dict_tmp)
@@ -67,7 +60,7 @@ contains
     call set(dict_tmp//firstadd,trim(address))
 
     !call set(dict_routine//trim(address),dict_tmp)
-    call set(dict_routine//trim(long_toa(iadd)),dict_tmp)
+    call set(mems(ictrl)%dict_routine//trim(long_toa(iadd)),dict_tmp)
 
     !call check_for_errors(ierror,m%try)
     call memocc(ierror,product(m%shape(1:m%rank))*sizeof,m%array_id,m%routine_id)

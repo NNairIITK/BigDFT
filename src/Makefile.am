@@ -15,7 +15,7 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 SUBDIRS = \
 	modules \
 	convolutions \
-	PSolver \
+	xcPSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
 	OpenCL \
@@ -28,7 +28,8 @@ EXTRA_DIST = \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
 	init/pspconf.in.f90 \
-	NEB_driver.sh
+	NEB_driver.sh \
+	input_variables_definition.yaml
 
 # Build targets, binaries and libraries.
 # -------------
@@ -38,7 +39,7 @@ subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	convolutions/libconvolutions.a \
-	PSolver/libxcPSolver.a \
+	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
 out_static_library =  \
@@ -111,7 +112,9 @@ AM_CFLAGS = @CUDA_INCLUDE@ @LIB_YAML_CFLAGS@
 #objects which depends from module_types
 high_level = cluster.f90 \
 	init.f90 \
+	initialization.f90 \
 	input_variables.f90 \
+	input_variables_old.f90 \
 	sumrho.f90 \
 	hpsiortho.f90 \
 	forces.f90 \
@@ -131,7 +134,8 @@ high_level = cluster.f90 \
 	esatto.f90 \
 	tddft.f90 \
 	output.f90 \
-	external.f90
+	external.f90 \
+	images.f90
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -211,6 +215,7 @@ low_level = \
 
 # C objects
 c_level = posfiles.c \
+	input_variables_description.c \
 	init/atoms_yaml.c init/atoms_yaml.h
 
 libmain_a_SOURCES = \
@@ -220,18 +225,28 @@ libmain_a_SOURCES = \
 
 libbigdft_1_a_SOURCES =
 
-libbigdft-1.a: $(libmain_a_OBJECTS) $(subs_static_library) $(out_static_library)
+input_variables_description.o: input_variables_definition-inc.h
+#build the fortran include file with the stream of input variables into a local string
+#should we check (AC_CHECK_PROG) if sed and echo are available?
+#the sed command below will transform the entire yaml document into a fortran string
+input_variables_definition-inc.h: input_variables_definition.yaml
+	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
+
+tmp-libbigdft/extract.stamp: $(subs_static_library) $(out_static_library)
 	test -e "tmp-libbigdft" || $(INSTALL) -d -m 755 tmp-libbigdft
 	cd tmp-libbigdft ; \
-	for lib in $(subs_static_library) $(out_static_library); do \
+	rm -f *; \
+	for lib in $^; do \
 	  $(AR) x ../$$lib ; \
-	done
-	$(AR) $(ARFLAGS) $@ $(libmain_a_OBJECTS) tmp-libbigdft/*
-	$(RANLIB) $@
-	rm -rf tmp-libbigdft
+	done ; \
+	touch extract.stamp
 
-$(bigdft_dynamic_library): $(libmain_a_OBJECTS) $(subs_static_library) $(out_static_library)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $^ @LIBS_SHORT_DEPS@
+libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
+	$(AR) $(ARFLAGS) $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o
+	$(RANLIB) $@
+
+$(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)
@@ -286,8 +301,9 @@ test_forces_SOURCES = test_forces.f90
 test_forces_LDADD = $(bigdft_library)
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = $(bigdft_library)
+NEB_LDADD = $(bigdft_library) @LINALG_LIBS@
 
+#to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
 
@@ -298,7 +314,9 @@ bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
-CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.*
+CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
+clean-local:
+	rm -rf tmp-libbigdft
 
 all: all-recursive
 	chmod ug+x bigdft-tool
@@ -307,7 +325,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-linear/convolutions_aux.o: filterModule.o
+convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o
 
 cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
 
@@ -319,7 +337,10 @@ xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 geometry.o bfgs.o sdcg.o: lbfgs.o
 
-#initAndUtils.o: cleanup.o
+initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
+
+NEB.o: images.o
+
 
 # Introspection for Python bindings
 # ---------------------------------
@@ -328,6 +349,16 @@ BUILT_GIRSOURCES = BigDFT-1.7.gir
 
 gir_DATA = $(BUILT_GIRSOURCES)
 typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
+
+if BUILD_BINDINGS
+additonal_sources = $(srcdir)/bindings/bindings.c \
+		$(srcdir)/bindings/bindings_regions.c \
+		$(srcdir)/bindings/bindings_localfields.c \
+		$(srcdir)/bindings/bindings_wavefunctions.c \
+		$(srcdir)/bindings/bindings_signals.c \
+		$(srcdir)/bindings/bindings_signals_inet.c
+
+endif
 
 $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 	$(G_IR_SCANNER) -v --warn-all \
@@ -345,14 +376,13 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \
 		$(srcdir)/modules/bigdft.h \
+		$(srcdir)/modules/bigdft_input_keys.h \
 		$(builddir)/modules/bigdft_cst.h \
-		$(srcdir)/bindings/bindings.c \
-		$(srcdir)/bindings/bindings_atoms.c \
-		$(srcdir)/bindings/bindings_regions.c \
-		$(srcdir)/bindings/bindings_localfields.c \
-		$(srcdir)/bindings/bindings_wavefunctions.c \
-		$(srcdir)/bindings/bindings_signals.c \
-		$(srcdir)/bindings/bindings_signals_inet.c
+		$(srcdir)/bindings/wrappers.c \
+		$(srcdir)/bindings/wrapper_inputs.c \
+		$(srcdir)/bindings/wrapper_run.c \
+		$(srcdir)/bindings/wrapper_neb.c \
+		$(srcdir)/bindings/wrapper_atoms.c
 
 $(typelibs_DATA): $(gir_DATA) $(G_IR_COMPILER)
 	$(G_IR_COMPILER) \

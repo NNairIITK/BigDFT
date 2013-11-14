@@ -364,12 +364,6 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
   ityp=at%astruct%iatype(iat)
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-!!$  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-!!$
-!!$  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$  jseg_c=nlpspd%nseg_p(2*iat-2)+1
 
   !number of terms for every projector:
   nc=(mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx_k
@@ -472,22 +466,10 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
   ityp=at%astruct%iatype(iat)
 
   call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-!!$  mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-!!$  mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-!!$
-!!$  mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-!!$  mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-!!$  jseg_c=nlpspd%nseg_p(2*iat-2)+1
   !decide the loop bounds
   do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
      do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
-!!$           call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
-!!$                at%psppar(l,0,ityp),rxyz(1,iat),lr,&
-!!$                hx,hy,hz,kx,ky,kz,ncplx_k,&
-!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
-!!$                proj(istart_c),nwarnings)
            gau_a(1)=at%psppar(l,0,ityp)
            call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
                 gau_a,rxyz(1),lr,&
@@ -524,26 +506,6 @@ subroutine deallocate_proj_descr(nlpspd,subname)
   end if
   nullify(nlpspd%plr)
   nlpspd%natoms=0
-  
-!!$  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-!!$  deallocate(nlpspd%nboxp_c,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'nboxp_c',subname)
-!!$  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-!!$  deallocate(nlpspd%nboxp_f,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'nboxp_f',subname)
-!!$  i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
-!!$  deallocate(nlpspd%keyg_p,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'keyg_p',subname)
-!!$  i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
-!!$  deallocate(nlpspd%keyv_p,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'keyv_p',subname)
-!!$  i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
-!!$  deallocate(nlpspd%nvctr_p,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'nvctr_p',subname)
-!!$  i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
-!!$  deallocate(nlpspd%nseg_p,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'nseg_p',subname)
-
 END SUBROUTINE deallocate_proj_descr
 
 
@@ -554,7 +516,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
   use module_types
   implicit none
   integer,parameter::ncplx_g=1 !this is true for NC pseudos
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=20), intent(in) :: atomname
   integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f,ncplx
   type(locreg_descriptors),intent(in) :: lr
@@ -668,10 +630,6 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
               !restore the norm of the projector
               !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))
            else
-!!!              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
-!!!                   'The norm of the nonlocal PSP for atom n=',iat,&
-!!!                   ' (',trim(atomname),&
-!!!                   ') labeled by l=',l,' m=',m,' is ',scpr
               nwarnings=nwarnings+1
            end if
         end if
@@ -693,7 +651,7 @@ subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=20), intent(in) :: atomname
   integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f
   integer, intent(in) :: ncplx_k,ncplx_g
@@ -889,7 +847,7 @@ subroutine crtproj(geocode,nterm,lr, &
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nterm,mvctr_c,mvctr_f,mseg_c,mseg_f
   integer, intent(in) :: ncplx_g,ncplx_k
   real(gp), intent(in) :: hx,hy,hz,rx,ry,rz,kx,ky,kz
@@ -974,46 +932,47 @@ subroutine crtproj(geocode,nterm,lr, &
 
 !!  call system_clock(ncount0,ncount_rate,ncount_max)
 
-  !$omp parallel default(shared) private(iterm,work,ml1,mu1,ml2,mu2,ml3,mu3) &
-  !$omp private(ithread,ichunk,factor,n_gau)
+  ! OpenMP commented here as doesn't work on Vesta
+  !!$omp parallel default(shared) private(iterm,work,ml1,mu1,ml2,mu2,ml3,mu3) &
+  !!$omp private(ithread,ichunk,factor,n_gau)
 
-  !$omp critical
+  !!$omp critical
     allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
     call memocc(i_stat,work,'work',subname)
-  !$omp end critical
+  !!$omp end critical
 
-  !$ ithread=omp_get_thread_num()
-  !$ nthread=omp_get_num_threads() 
-  !$ ichunk=0
+  !!$ ithread=omp_get_thread_num()
+  !!$ nthread=omp_get_num_threads() 
+  !!$ ichunk=0
   do iterm=1,nterm
-     !$ ichunk=ichunk+1
-     !$ if (mod(ichunk,nthread).eq.ithread) then
+     !!$ ichunk=ichunk+1
+     !!$ if (mod(ichunk,nthread).eq.ithread) then
      factor(:)=fac_arr(:,iterm)
      n_gau=lx(iterm) 
      call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
           wprojx(1,0,1,iterm),work,nw,perx,gau_cut) 
-     !$ endif
+     !!$ endif
 
-     !$ ichunk=ichunk+1
-     !$ if (mod(ichunk,nthread).eq.ithread) then
+     !!$ ichunk=ichunk+1
+     !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
      call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
           wprojy(1,0,1,iterm),work,nw,pery,gau_cut) 
-     !$ endif
+     !!$ endif
 
-     !$ ichunk=ichunk+1
-     !$ if (mod(ichunk,nthread).eq.ithread) then
+     !!$ ichunk=ichunk+1
+     !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
      call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
           wprojz(1,0,1,iterm),work,nw,perz,gau_cut)
-     !$ endif
+     !!$ endif
   end do
-  !$omp critical
+  !!$omp critical
     i_all=-product(shape(work))*kind(work)
     deallocate(work,stat=i_stat)
     call memocc(i_stat,i_all,'work',subname)
-  !$omp end critical
-  !$omp end parallel
+  !!$omp end critical
+  !!$omp end parallel
 
   !the filling of the projector should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
@@ -1429,7 +1388,7 @@ END FUNCTION im_cmplx_prod
 subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,rmult,radius
   real(gp), dimension(3), intent(in) :: rxyz

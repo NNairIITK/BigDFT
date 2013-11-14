@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Deallocation pointers used by linear version
+!> Module for the deallocation pointers used by linear version
 module deallocatePointers
 
   implicit none
@@ -709,6 +709,7 @@ module deallocatePointers
 end module deallocatePointers
 
 
+!> Module to deallocate the interfaces for the linear scaling version
 module deallocationInterfaces
   implicit none
 

@@ -1,7 +1,7 @@
 !> @file
 !!  Gaussian to Daubechies projection routines
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group (LG)
+!!    Copyright (C) 2007-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -475,7 +475,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters
   include 'recs16.inc'! MAGIC FILTER  
-  include 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
+  !include 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
   include 'sym_16.inc'! WAVELET FILTERS
 
   !rescale the parameters so that hgrid goes to 1.d0  
@@ -946,6 +946,7 @@ subroutine gauss_c_to_daub_k(hgrid,kval,ncplx,gau_bf,ncs_s,factor , &
   real(gp)  hcutoff
 
   !local variables
+  real(gp), parameter :: pi=3.141592653589793_gp
   integer :: rightx,leftx,right_t,i0,i,k,length,j,ics, icplx
   real(gp) :: a,z0,h,x,r,coeff,r2,fac
   real(wp) :: func,cval,sval
@@ -953,11 +954,10 @@ subroutine gauss_c_to_daub_k(hgrid,kval,ncplx,gau_bf,ncs_s,factor , &
   integer :: nrefinement, nforwards, ifwdtarget , ifwdsource, iswap
   real(gp) gau_kval, kval
   real(gp) cutoff, pishift
-  real(gp), parameter :: pi=3.141592653589793_gp
 
   !include the convolutions filters
   include 'recs16.inc'! MAGIC FILTER  
-  include 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
+  !include 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
   include 'sym_16.inc'! WAVELET FILTERS
 
   !rescale the parameters so that hgrid goes to 1.d0  
@@ -972,7 +972,7 @@ subroutine gauss_c_to_daub_k(hgrid,kval,ncplx,gau_bf,ncs_s,factor , &
   nrefinement=64
   nforwards=6
 
-  h=  (16 * .125_gp*.5_gp)/ nrefinement
+  h = (16 * .125_gp*.5_gp)/ nrefinement
 
   !calculate the array sizes;
   !at level 0, positions shifted by i0 

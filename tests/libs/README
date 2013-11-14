@@ -1,0 +1,39 @@
+/*! @file
+@brief README of the non-regression tests for the internal libraries
+
+@dir ./tests/libs
+@brief Directory of the tests for internal libraries
+
+@page TESTS_LIBS Non-regression tests of the internal parts of BigDFT
+@brief Non-regression tests (internal libraries)
+
+@details
+The command <tt>make check</tt> performs the series of tests:
+- @b CUDA:          Tests the CUDA implementation (GPU).
+- @b dsygv:         Test the routine dsygv (Lapack or Scalapack).
+- @b fft:           Low level tests functionality for the Fast Fourier Transform.
+- @b ftypes:        Tests the bindings of bigdft with the python language.
+- @b IO-wf:         Tests the routines about the Input/Output  for the wavefunctions.
+- @b OP2P:          Test of the Overlap Point to Point
+- @b OpenCL:        Tests the OpenCL part of the code (GPU).
+- @b psp:           Tests the reading of the pseudopotential files.
+- @b xc:            Tests the libxc implementation.
+- @b xcPSolver:     Tests the Poisson Solver implementation.
+
+
+
+Read the manual for more information or go to the web site http://bigdft.org.
+
+
+Test in parallel
+----------------
+
+Use the environment variable 'run_parallel' as:
+<pre>
+export run_parallel='mpirun -np 2'
+To use a batch system, add a batch file with:
+export run_parallel=...
+make check
+</pre>
+
+*/

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Interface for routines which handle diagonalization
+!> Module defining the interfaces for routines which handle diagonalization
 module lanczos_interface
    use module_base
    use module_types
@@ -846,7 +846,7 @@ nullify(Qvect,dumQvect)
      real(gp) ene, gamma
      !Local variables
      integer :: k
-     real(wp), parameter :: b2=24.8758460293923314d0,a2=3.55369228991319019d0
+     !!$ real(wp), parameter :: b2=24.8758460293923314d0,a2=3.55369228991319019d0
      integer :: nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
      type(workarr_precond) :: w
      logical :: dopcproj
@@ -1341,7 +1341,7 @@ nullify(Qvect,dumQvect)
      use module_types
      use gaussians
      implicit none
-     character(len=1), intent(in) :: geocode
+     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
      integer, intent(in) :: iproc,nproc
      real(gp), intent(in) :: hx,hy,hz
      type(grid_dimensions), intent(in) :: grid

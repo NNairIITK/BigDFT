@@ -142,7 +142,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   real(wp) :: cprecr,scpr,evalmax,eval_zero,gnrm_orb
   real(gp) :: kx,ky,kz
 !!$  integer :: i_stat,i_all,ispinor,nbox
-  logical, parameter :: newp=.true.
+!!$  logical, parameter :: newp=.true.
 !!$  real(gp) :: eh_fake,monop
 !!$  real(wp), dimension(:), allocatable :: hpsir
 !!$  type(coulomb_operator) :: G_Helmholtz
@@ -281,6 +281,10 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
               !case active only in the linear scaling case
               if(confdatarr(iorb)%prefac > 0.0_gp .or. confdatarr(iorb)%potorder > 0)then
               !   call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
+              !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerx, startx', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(1)/hx), lzd%llr(ilr)%ns1
+              !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centery, starty', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(2)/hy), lzd%llr(ilr)%ns2
+              !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerz, startz', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(3)/hz), lzd%llr(ilr)%ns3
+
                  call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
                       cprecr,&
                       hx,hy,hz,kx,ky,kz,hpsi(1+ist),&
@@ -362,7 +366,7 @@ END SUBROUTINE preconditionall2
 subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   real(gp), intent(in) :: eval,eval_zero
   real(gp), intent(out) :: cprecr
 
@@ -471,7 +475,7 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -501,7 +505,7 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -705,7 +709,7 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(grid_dimensions), intent(in) :: d
@@ -833,7 +837,7 @@ subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(grid_dimensions), intent(in) :: d
@@ -890,7 +894,7 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
   type(workarr_precond), intent(inout) :: w

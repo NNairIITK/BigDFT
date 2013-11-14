@@ -477,7 +477,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
 
   ! Calculate the residue and put it in rhopot
   if (istep > 1) then
-     ! rhopot = vin
+     ! rhopot = vin - v(out-1)
      call axpy(npoints, -1.d0, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
           & rhopot(1), 1)
      call dscal(npoints, 1.d0 - alphamix, rhopot(1), 1)
@@ -539,15 +539,16 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
 
 !!$     !test for the new diis routine
 !!$     call DIIS_obj_fill(diis,diis_new)
+!!$     call diis_opt(iproc,nproc,orbs%nkpts,orbs%iskpts,orbs%nkptsp,orbs%ikptproc,&
 !!$
-!!$     call DIIS_update_errors(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
-!!$          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,hpsit,diis_new)
+!!$!     call DIIS_update_errors(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
+!!$!          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,hpsit,diis_new)
 !!$
-!!$     call diis_step(iproc,nproc,orbs%nkpts,orbs%iskpts,orbs%nkptsp,orbs%ikptproc,&
-!!$          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),diis_new)
+!!$!     call diis_step(iproc,nproc,orbs%nkpts,orbs%iskpts,orbs%nkptsp,orbs%ikptproc,&
+!!$!          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),diis_new)
 !!$
-!!$     call DIIS_update_psi(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
-!!$          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,diis_new)
+!!$!     call DIIS_update_psi(orbs%nkpts,orbs%iskpts,orbs%nkptsp,&
+!!$!          orbs%norb*orbs%nspinor*comms%nvctr_par(iproc,:),ndim_psi,psit,diis_new)
 !!$
 !!$     call DIIS_obj_release(diis_new,diis)
 !!$

@@ -514,7 +514,7 @@
 !!$   if (iproc==0) write(*,*) 'Cubic code not parallelized'
 !!$end if
 
-!!>
+
 !subroutine angularpart(l, mr, np, nx, ny, nz, ix, iy, iz, &
 !                    xx, yy, zz, n_proj, ylm)
 !
@@ -1052,7 +1052,7 @@
 !!END SUBROUTINE read_cube_header_1
 !!
 !!
-!!!>
+!!
 !!subroutine read_cube_header_2(n_at, Z, at_pos)
 !!
 !!   ! This routine reads the first lines of a .cube file

@@ -6,6 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Program using the integral form for the Poisson solver
 program PS_Integral
 
   use Poisson_Solver
@@ -19,7 +22,7 @@ program PS_Integral
   real(dp) :: hgrid, dx!, t0, t1
   real(dp), dimension(7) :: pgauss
   real(dp), dimension(:), allocatable :: x_scf
-  real(dp), dimension(:), allocatable :: y_scf
+  real(dp), dimension(:,:), allocatable :: y_scf
   !real(dp), dimension(-n_range:n_range) :: work
   !real(dp), dimension(-n_range:n_range) :: kernel_scf
   !real(dp), dimension(-n_range:n_range) :: work
@@ -30,7 +33,6 @@ program PS_Integral
   real(dp), dimension(:,:,:), allocatable :: multiple_naive, analytic_integral_result, timings
   !local variables
   character(len=*), parameter :: subname='PS_Integral'
-  real(dp), parameter :: p0_ref = 1.0_dp
   integer :: i,i_stat,j,k!,n_iter,_kern
   !real(dp) :: p0_cell,p0gauss,absci,kern,moment
   character(len=64) :: chain
@@ -39,10 +41,13 @@ program PS_Integral
   real(dp), dimension(0:2048) :: fISF
 
   integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,i_all,nrange
-  real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss,theta,sum,sum2,sumx,sumx2,sumy,sumy2,xmin,xmax,ymin,ymax
-  real(dp), dimension(:), allocatable :: x_phi, y_phi
+  real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss,theta,sum,sum2,sumx,sumx2,sumy,sumy2,xmin,xmax,ymin,ymax,shift
+  real(dp), dimension(:), allocatable :: x_phi
+  real(dp), dimension(:,:), allocatable :: y_phi
   real(dp), dimension(:,:,:), allocatable :: psifscf,psifscfold,psi_w,psi_w2,dx_field,dy_field
   real(dp), external :: lr_gauss
+
+  call f_lib_initialize()
 
   call f_malloc_set_status(memory_limit=0.e0)
 
@@ -229,22 +234,31 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 
   x_phi=f_malloc(bounds=(/0.to.nd/),id='x_phi')
 
-  allocate(y_phi(0:nd+ndebug) ,stat=i_stat )
+  allocate(y_phi(0:nd,2+ndebug) ,stat=i_stat )
   call memocc(i_stat,y_phi,'y_phi',subname)
 
   print *, " scaling function for interpolation "
 
 !    call scaling_function(itype,nd,nrange,x_phi,y_phi) 
 !cut the size of the array to exclude points outside support
-
-!    if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
-  do i=0,nd
-    write(17,*)i,x_phi(i),y_phi(i)
-  end do
-  !call scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)
   call my_scaling_function4b2B(itype,nd,nrange,x_phi,y_phi)  
+  !    if( abs(y_phi(nd/2)-1)>1.0e-10 ) then
   do i=0,nd
-    write(18,*)i,x_phi(i),y_phi(i)
+ ! if (abs(y_phi(i)-0.97821193752582369d0) <= 1.d-5) then
+ !    print *,'hello',x_phi(i),y_phi(i)
+ ! end if
+  shift=-0.1111450195312500d0
+  if (real(nint(x_phi(i)+shift,kind=8)) == x_phi(i)+shift) then
+     print *,x_phi(i),y_phi(i,2)
+  end if
+!    write(17,*)i,x_phi(i),y_phi(i)
+  end do
+  call scaling_function4b2B_again(itype,nd,nrange,x_phi,y_phi)
+  do i=0,nd
+    write(17,*)i,x_phi(i),y_phi(i,1)
+    if (real(nint(x_phi(i),kind=8)) == x_phi(i)) then
+       print *,x_phi(i),y_phi(i,1)
+    end if
   end do
 
 !      stop " wrong scaling function 4b2B: not a centered one "
@@ -252,6 +266,7 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 
   call f_free(x_phi)
 
+stop
 !    i_all=-product(shape(x_phi))*kind(x_phi)
 !    deallocate(x_phi,stat=i_stat)
 !    call memocc(i_stat,i_all,'x_phi',subname)
@@ -262,12 +277,12 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 !call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,1,&
 !         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psifscf)
 
-  print *,'interpolating first dimension...'
-    call morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
-         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
-
-    call morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
-         (2*n1_old+2+2*nb1),dy_field,(2*n1+2+2*nb1),psifscf)
+!!  print *,'interpolating first dimension...'
+!!    call morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+!!         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
+!!
+!!    call morph_and_transpose(dx_field/hx,nd,nrange,y_phi,(2*n2_old+2+2*nb2),&
+!!         (2*n1_old+2+2*nb1),dy_field,(2*n1+2+2*nb1),psifscf)
 
 
   ! make an empty border
@@ -322,9 +337,9 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 
 
 
-!print*,'...interpolating second dimension...'
-    call morph_and_transpose(dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
-         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
+!!!print*,'...interpolating second dimension...'
+!!    call morph_and_transpose(dy_field/hy,nd,nrange,y_phi,(2*n1+2+2*nb1),&
+!!         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2)
 
   x=-n1_old*hx!0.d0
   do i=0,2*n1+1
@@ -418,20 +433,19 @@ print*,sumx,xmin,xmax,psifscfold(0,0,k),psifscfold(2*n1_old,0,k),psifscfold(2*n1
 
 stop
 
-
-print*,'interpolating first dimension...'
-    call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
-         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
-
-  print *,'...interpolating second dimension...'
-  call my_interpolate_and_transpose(dy/hy,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n1+2+2*nb1),&
-         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
-
-  print *,'...interpolating third dimension...'
-  call my_interpolate_and_transpose(dz/hz,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
-    (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
-
-  print *,'done'
+!!print*,'interpolating first dimension...'
+!!    call my_interpolate_and_transpose(dx/hx,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n2_old+2+2*nb2),&
+!!         (2*n1_old+2+2*nb1),psifscfold,(2*n1+2+2*nb1),psi_w)
+!!
+!!  print *,'...interpolating second dimension...'
+!!  call my_interpolate_and_transpose(dy/hy,nd,nrange,y_phi,(2*n3_old+2+2*nb3)*(2*n1+2+2*nb1),&
+!!         (2*n2_old+2+2*nb2),psi_w,(2*n2+2+2*nb2),psi_w2) 
+!!
+!!  print *,'...interpolating third dimension...'
+!!  call my_interpolate_and_transpose(dz/hz,nd,nrange,y_phi,(2*n2+2+2*nb2)*(2*n1+2+2*nb1),&
+!!    (2*n3_old+2+2*nb3),psi_w2,(2*n3+2+2*nb3),psifscf) 
+!!
+!!  print *,'done'
 
   !print psifscf to check
   !x=0.d0
@@ -511,7 +525,7 @@ print*,'interpolating first dimension...'
 
      !Other allocations
      x_scf=f_malloc(bounds=(/0.to.n_scf/),id='x_scf')
-     y_scf=f_malloc(bounds=(/0.to.n_scf/),id='y_scf')
+     y_scf=f_malloc(bounds=(/0.to.n_scf,1.to.2/),id='y_scf')
      gaussian=f_malloc(bounds=(/1 .to. 7, 0 .to. n_scf/),id='gaussian')
      !allocate(x_scf(0:n_scf),stat=i_stat)
      !allocate(y_scf(0:n_scf),stat=i_stat)
@@ -824,7 +838,7 @@ print*,'interpolating first dimension...'
   deallocate(analytic_vs_naive, stat=i_stat)
   deallocate(timings, stat=i_stat)
 
-  call f_malloc_finalize()
+  call f_lib_finalize()
 
 end program PS_Integral
 
@@ -1642,7 +1656,7 @@ end do
 end subroutine my_interpolate_and_transpose
 
 
-subroutine scaling_function4b2B(itype,nd,nrange,a,x)
+subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
    use module_base
    implicit none
    !Arguments
@@ -1689,7 +1703,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
       case(14)
          stop
       case(16)
-         call back_trans_16(nd,nt,x,y)
+         call back_trans_16_reversed(nd,nt,x,y)
       case(20)
          stop
       case(24)
@@ -1724,7 +1738,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    i_all=-product(shape(y))*kind(y)
    deallocate(y,stat=i_stat)
    call memocc(i_stat,i_all,'y',subname)
-END SUBROUTINE scaling_function4b2B
+ END SUBROUTINE scaling_function4b2B_again
 
 !!$
 !!$!call the routine which performs the interpolation in each direction
@@ -1907,3 +1921,4 @@ END SUBROUTINE scaling_function4b2B
 !!$ call memocc(i_stat,i_all,'shf',subname)
 !!$
 !!$end subroutine my_morph_and_transpose
+

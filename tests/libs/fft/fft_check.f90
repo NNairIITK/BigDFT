@@ -1,7 +1,16 @@
-!!****p* BigDFT/fft_check
+!> @file
+!! Check the FFT routine.
 !!
-!! DESCRIPTION
-!!   3-dimensional complex-complex FFT routine: 
+!! @copyright
+!!    Copyright (C) Stefan Goedecker, CEA Grenoble, 2002, Basel University, 2009
+!!    Copyright (C) 2009-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!>   Check the 3-dimensional complex-complex FFT routine: 
 !!   When compared to the best vendor implementations on RISC architectures 
 !!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
 !!   and it is significanly faster than many not so good vendor implementations 
@@ -12,16 +21,10 @@
 !! The theoretical background is described in :
 !! 1) S. Goedecker: Rotating a three-dimensional array in optimal
 !! positions for vector processing: Case study for a three-dimensional Fast
-!! Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
+!! Fourier Transform, Comp. Phys. Commun. 76, 294 (1993)
 !! Citing of this reference is greatly appreciated if the routines are used 
 !! for scientific work.
 !!
-!! COPYRIGHT
-!!   Copyright (C) Stefan Goedecker, CEA Grenoble, 2002, Basel University, 2009
-!!   This file is distributed under the terms of the
-!!   GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! SYNOPSIS
 !!   Presumably good compiler flags:
 !!   IBM, serial power 2: xlf -qarch=pwr2 -O2 -qmaxmem=-1
 !!   with OpenMP: IBM: xlf_r -qfree -O4 -qarch=pwr3 -qtune=pwr3 -qsmp=omp -qmaxmem=-1 ; 
@@ -29,9 +32,6 @@
 !!   DEC: f90 -O3 -arch ev67 -pipeline
 !!   with OpenMP: DEC: f90 -O3 -arch ev67 -pipeline -omp -lelan ; 
 !!                     prun -N1 -c4 a.out
-!!
-!! SOURCE
-!!
 program fft_check
 
    use module_fft_sg
@@ -277,9 +277,9 @@ contains
 
    end subroutine do_one_fft
 
-!!Stefan convention
-!!Between 1 to n3/2 (0 -> n3/2 - 1)
-!!Between n3/2 to n3 (-n3/2 + 1 -> -1) 
+   !> Stefan convention
+   !! Between 1 to n3/2 (0 -> n3/2 - 1)
+   !! Between n3/2 to n3 (-n3/2 + 1 -> -1) 
    subroutine init_gaussian(n1,n2,n3,nd1,nd2,nd3,zin,z,zout)
       implicit none
       !Arguments
@@ -355,5 +355,3 @@ contains
    end subroutine vgl_gaussian
 
 end program fft_check
-!!***
-

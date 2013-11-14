@@ -24,7 +24,7 @@ PS_Integral_SOURCES = PS_Integral.f90 fisf.f90
 PS_Integral_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
-CLEANFILES = PS_Check.out.yaml fldiff.report.yaml
+CLEANFILES = PS_Check.out.yaml fldiff.report.yaml malloc.prc time.prc
 
 PS_Check.out.yaml: PS_Check
 	$(run_parallel) ./PS_Check 57 48 63  0 F  > PS_Check.out.yaml
@@ -51,5 +51,8 @@ check: PS_Check.out.yaml
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
-#	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 \
-#		PS_Check.out $(srcdir)/PS_Check.out.ref | tee fldiff.report
+
+report: 
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+	python $(top_srcdir)/tests/report.py

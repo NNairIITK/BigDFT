@@ -1,11 +1,11 @@
 !> @file
-! Intialization of the collective communications for the linear version
-! @author
-!    Copyright (C) 2011-2013 BigDFT group
-!    This file is distributed under the terms of the
-!    GNU General Public License, see ~/COPYING file
-!    or http://www.gnu.org/copyleft/gpl.txt .
-!    For the list of contributors, see ~/AUTHORS
+!! Intialization of the collective communications for the linear version
+!! @author
+!!    Copyright (C) 2011-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
 subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom, collcom_reference)
@@ -60,30 +60,31 @@ t1=mpi_wtime()
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
   else
-      allocate(npts_par_c(0:nproc-1), stat=istat)
-       call memocc(istat, npts_par_c, 'npts_par_c', subname)
-      allocate(npts_par_f(0:nproc-1), stat=istat)
-       call memocc(istat, npts_par_f, 'npts_par_f', subname)
-      npts_par_c=0
-      npts_par_f=0
-      npts_par_c(iproc)=collcom_reference%nptsp_c
-      npts_par_f(iproc)=collcom_reference%nptsp_f
-      call mpiallred(npts_par_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(npts_par_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
-           npts_par_c, npts_par_f, &
-           istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-           weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
-      iall=-product(shape(npts_par_c))*kind(npts_par_c)
-      deallocate(npts_par_c, stat=istat)
-      call memocc(istat, iall, 'npts_par_c', subname)
-      iall=-product(shape(npts_par_f))*kind(npts_par_f)
-      deallocate(npts_par_f, stat=istat)
-      call memocc(istat, iall, 'npts_par_f', subname)
+      stop 'THIS OPTION IS DEPRECTAED'
+      !!allocate(npts_par_c(0:nproc-1), stat=istat)
+      !! call memocc(istat, npts_par_c, 'npts_par_c', subname)
+      !!allocate(npts_par_f(0:nproc-1), stat=istat)
+      !! call memocc(istat, npts_par_f, 'npts_par_f', subname)
+      !!npts_par_c=0
+      !!npts_par_f=0
+      !!npts_par_c(iproc)=collcom_reference%nptsp_c
+      !!npts_par_f(iproc)=collcom_reference%nptsp_f
+      !!call mpiallred(npts_par_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!call mpiallred(npts_par_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!call assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
+      !!     npts_par_c, npts_par_f, &
+      !!     istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+      !!     weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
+      !!iall=-product(shape(npts_par_c))*kind(npts_par_c)
+      !!deallocate(npts_par_c, stat=istat)
+      !!call memocc(istat, iall, 'npts_par_c', subname)
+      !!iall=-product(shape(npts_par_f))*kind(npts_par_f)
+      !!deallocate(npts_par_f, stat=istat)
+      !!call memocc(istat, iall, 'npts_par_f', subname)
   end if
 
 
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 t2=mpi_wtime()
 !!if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
 t1=mpi_wtime()
@@ -371,6 +372,9 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
 
   weight_c_tot=0.d0
   weight_f_tot=0.d0
+  !$omp parallel default(none) &
+  !$omp shared(lzd, weight_c, weight_f, weight_c_tot, weight_f_tot) private(i3, i2, i1)
+  !$omp do reduction(+: weight_c_tot, weight_f_tot)
   do i3=0,lzd%glr%d%n3
       do i2=0,lzd%glr%d%n2
           do i1=0,lzd%glr%d%n1
@@ -381,6 +385,8 @@ subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot
           end do
       end do
   end do
+  !$omp end do
+  !$omp end parallel
 
 
 end subroutine get_weights
@@ -419,184 +425,7 @@ subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weigh
 
 
 
-!!$$  ! First the coarse part...
-!!$$ 
-!!$$
-!!$$  !$omp parallel default(private) shared(lzd,iproc,nproc)&
-!!$$  !$omp shared(weight_f,weight_f_ideal,weight_tot_f,weight_c_ideal,weight_tot_c, weight_c,istartend_c,istartend_f)&
-!!$$  !$omp shared(istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f,weightp_c,weightp_f,nptsp_c,nptsp_f)
-!!$$
-!!$$  !$omp sections 
-!!$$
-!!$$  !$omp section
-!!$$
-!!$$  jproc=0
-!!$$  tt=0.d0
-!!$$  tt2=0.d0
-!!$$  iitot=0
-!!$$  ii2=0
-!!$$  iiseg=1
-!!$$  jprocdone=-1
-!!$$  weightp_c=0.d0
-!!$$  loop_nseg_c: do iseg=1,lzd%glr%wfd%nseg_c
-!!$$       jj=lzd%glr%wfd%keyvloc(iseg)
-!!$$       j0=lzd%glr%wfd%keygloc(1,iseg)
-!!$$       j1=lzd%glr%wfd%keygloc(2,iseg)
-!!$$       ii=j0-1
-!!$$       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-!!$$       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-!!$$       i2=ii/(lzd%glr%d%n1+1)
-!!$$       i0=ii-i2*(lzd%glr%d%n1+1)
-!!$$       i1=i0+j1-j0
-!!$$       do i=i0,i1
-!!$$           tt=tt+weight_c(i,i2,i3)
-!!$$           iitot=iitot+1
-!!$$           if((tt>=weight_c_ideal .or. iseg==lzd%glr%wfd%nseg_c) .and. i==i1 .and. jproc<=nproc-2) then
-!!$$               if(tt==weight_tot_c .and. jproc==nproc-1) then
-!!$$                   ! this process also has to take the remaining points, even if they have no weight
-!!$$                   iitot=lzd%glr%wfd%nvctr_c-ii2
-!!$$               end if
-!!$$               if(iproc==jproc) then
-!!$$                   weightp_c=tt
-!!$$                   nptsp_c=iitot
-!!$$                   istartp_seg_c=iiseg
-!!$$                   iendp_seg_c=iseg
-!!$$                   if(tt==weight_tot_c .and. jproc==nproc-1) then
-!!$$                       ! this process also has to take the remaining segments, even if they have no weight
-!!$$                       iendp_seg_c=lzd%glr%wfd%nseg_c
-!!$$                   end if
-!!$$               end if
-!!$$               istartend_c(1,jproc)=ii2+1
-!!$$               istartend_c(2,jproc)=min(istartend_c(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_c)
-!!$$               tt2=tt2+tt
-!!$$               tt=0.d0
-!!$$               ii2=ii2+iitot
-!!$$               iitot=0
-!!$$               jproc=jproc+1
-!!$$               iiseg=iseg
-!!$$               if(ii2>=lzd%glr%wfd%nvctr_c) then
-!!$$                   ! everything is distributed
-!!$$                   jprocdone=jproc
-!!$$                   exit loop_nseg_c
-!!$$               end if
-!!$$           end if
-!!$$       end do
-!!$$   end do loop_nseg_c
-!!$$
-!!$$  if(jprocdone>0) then
-!!$$       do jproc=jprocdone,nproc-1
-!!$$          ! these processes do nothing
-!!$$          istartend_c(1,jproc)=lzd%glr%wfd%nvctr_c+1
-!!$$          istartend_c(2,jproc)=lzd%glr%wfd%nvctr_c
-!!$$          if(iproc==jproc) then
-!!$$              weightp_c=0.d0
-!!$$              nptsp_c=0
-!!$$              istartp_seg_c=lzd%glr%wfd%nseg_c+1
-!!$$              iendp_seg_c=lzd%glr%wfd%nseg_c
-!!$$          end if
-!!$$      end do
-!!$$  else
-!!$$      if(iproc==nproc-1) then
-!!$$          ! Take the rest
-!!$$          weightp_c=weight_tot_c-tt2
-!!$$          nptsp_c=lzd%glr%wfd%nvctr_c-ii2
-!!$$          istartp_seg_c=iiseg
-!!$$          iendp_seg_c=lzd%glr%wfd%nseg_c
-!!$$      end if
-!!$$      istartend_c(1,nproc-1)=ii2+1
-!!$$      istartend_c(2,nproc-1)=istartend_c(1,nproc-1)+iitot-1
-!!$$  end if
-!!$$
-!!$$  ! some check
-!!$$ 
-!!$$  !write(*,*) 'subroutine', weightp_c
-!!$$
-!!$$  !$omp section
-!!$$
-!!$$  ! Now the fine part...
-!!$$  jproc=0
-!!$$  tt=0.d0
-!!$$  tt2=0.d0
-!!$$  iitot=0
-!!$$  ii2=0
-!!$$  weightp_f=0.d0
-!!$$  istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
-!!$$  iend=istart+lzd%glr%wfd%nseg_f-1
-!!$$  iiseg=istart
-!!$$  jprocdone=-1
-!!$$  loop_nseg_f: do iseg=istart,iend
-!!$$       jj=lzd%glr%wfd%keyvloc(iseg)
-!!$$       j0=lzd%glr%wfd%keygloc(1,iseg)
-!!$$       j1=lzd%glr%wfd%keygloc(2,iseg)
-!!$$       ii=j0-1
-!!$$       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-!!$$       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-!!$$       i2=ii/(lzd%glr%d%n1+1)
-!!$$       i0=ii-i2*(lzd%glr%d%n1+1)
-!!$$       i1=i0+j1-j0
-!!$$       do i=i0,i1
-!!$$           tt=tt+weight_f(i,i2,i3)
-!!$$           iitot=iitot+1
-!!$$           if((tt>=weight_f_ideal .or. iseg==iend) .and. i==i1 .and. jproc<=nproc-2) then
-!!$$               if(tt==weight_tot_f .and. jproc==nproc-1) then
-!!$$                   ! this process also has to take the remaining points, even if they have no weight
-!!$$                   iitot=lzd%glr%wfd%nvctr_f-ii2
-!!$$               end if
-!!$$               if(iproc==jproc) then
-!!$$                   weightp_f=tt
-!!$$                   nptsp_f=iitot
-!!$$                   istartp_seg_f=iiseg
-!!$$                   iendp_seg_f=iseg
-!!$$                   if(tt==weight_tot_f .and. jproc==nproc-1) then
-!!$$                       ! this process also has to take the remaining segments, even if they have no weight
-!!$$                       iendp_seg_f=iend
-!!$$                   end if
-!!$$               end if
-!!$$               istartend_f(1,jproc)=ii2+1
-!!$$               istartend_f(2,jproc)=min(istartend_f(1,jproc)+iitot-1,lzd%glr%wfd%nvctr_f)
-!!$$               tt2=tt2+tt
-!!$$               tt=0.d0
-!!$$               ii2=ii2+iitot
-!!$$               iitot=0
-!!$$               jproc=jproc+1
-!!$$               iiseg=iseg
-!!$$               if(ii2>=lzd%glr%wfd%nvctr_f) then
-!!$$                   ! everything is distributed
-!!$$                   jprocdone=jproc
-!!$$                   exit loop_nseg_f
-!!$$               end if
-!!$$           end if
-!!$$       end do
-!!$$   end do loop_nseg_f
-!!$$  if(jprocdone>0) then
-!!$$       do jproc=jprocdone,nproc-1
-!!$$          ! these processes do nothing
-!!$$          istartend_f(1,jproc)=lzd%glr%wfd%nvctr_f+1
-!!$$          istartend_f(2,jproc)=lzd%glr%wfd%nvctr_f
-!!$$          if(iproc==jproc) then
-!!$$              weightp_f=0.d0
-!!$$              nptsp_f=0
-!!$$              istartp_seg_f=lzd%glr%wfd%nseg_f+1
-!!$$              iendp_seg_f=lzd%glr%wfd%nseg_f
-!!$$          end if
-!!$$      end do
-!!$$  else
-!!$$      if(iproc==nproc-1) then
-!!$$          ! Take the rest
-!!$$          weightp_f=weight_tot_f-tt2
-!!$$          nptsp_f=lzd%glr%wfd%nvctr_f-ii2
-!!$$          istartp_seg_f=iiseg
-!!$$          iendp_seg_f=iend
-!!$$      end if
-!!$$      istartend_f(1,nproc-1)=ii2+1
-!!$$      istartend_f(2,nproc-1)=istartend_f(1,nproc-1)+iitot-1
-!!$$  end if
-!!$$
-!!$$!$omp end sections
-!!$$  !$omp end parallel
 
-
-!!! NEW VERSION ####################################################
 allocate(weights_c_startend(2,0:nproc-1), stat=istat)
 call memocc(istat, weights_c_startend, 'weights_c_startend', subname)
 allocate(weights_f_startend(2,0:nproc-1), stat=istat)
@@ -655,30 +484,26 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
               ttt=ttt+sqrt(weight_c(i,i2,i3))
               tmp=tmp+weight_c(i,i2,i3)
               tmp2=tmp2+sqrt(weight_c(i,i2,i3))
-          end do
-          iitot=iitot+i1-i0+1
-          if (jproc<nproc) then
-              if (tt>weights_c_startend(1,jproc)) then
-                  if (jproc>0) then
-                      istartend_c(1,jproc)=iitot+1
+              iitot=iitot+1
+              if (jproc<nproc) then
+                  if (tt>weights_c_startend(1,jproc)) then
+                      if (jproc>0) then
+                          if (iproc==jproc) then
+                              istartp_seg_c=iseg
+                          end if
+                          if (iproc==jproc-1) then
+                              iendp_seg_c=iseg
+                              weightp_c=tt2
+                              nvalp_c=nint(ttt)
+                          end if
+                          istartend_c(1,jproc)=iitot+1
+                          tt2=0.d0
+                          ttt=0.d0
+                      end if
+                      jproc=jproc+1
                   end if
-                  if (iproc==jproc .and. jproc>0) then
-                      istartp_seg_c=iseg+1
-                  end if
-                  if (iproc==jproc-1 .and. jproc>0) then
-                      iendp_seg_c=iseg
-                  end if
-                  if (jproc>0 .and. iproc==jproc-1) then
-                      weightp_c=tt2
-                      nvalp_c=nint(ttt)
-                  end if
-                  if(jproc>0) then
-                      tt2=0.d0
-                      ttt=0.d0
-                  end if
-                  jproc=jproc+1
               end if
-          end if
+          end do
       end do loop_nseg_c
 
       do jproc=0,nproc-2
@@ -691,9 +516,9 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
           weightp_c=tt2
           iendp_seg_c=lzd%glr%wfd%nseg_c
       end if
-      ii=iendp_seg_c-istartp_seg_c+1
-      call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
+      !ii=iendp_seg_c-istartp_seg_c+1
+      !call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
   end if
 
 
@@ -754,30 +579,26 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
               ttt=ttt+sqrt(weight_f(i,i2,i3))
               tmp=tmp+weight_f(i,i2,i3)
               tmp2=tmp2+sqrt(weight_c(i,i2,i3))
-          end do
-          iitot=iitot+i1-i0+1
-          if (jproc<nproc) then
-              if (tt>weights_f_startend(1,jproc)) then
-                  if (jproc>0) then
-                      istartend_f(1,jproc)=iitot+1
+              iitot=iitot+1
+              if (jproc<nproc) then
+                  if (tt>weights_f_startend(1,jproc)) then
+                      if (jproc>0) then
+                          if (iproc==jproc) then
+                              istartp_seg_f=iseg
+                          end if
+                          if (iproc==jproc-1) then
+                              iendp_seg_f=iseg
+                              weightp_f=tt2
+                              nvalp_f=nint(ttt)
+                          end if
+                          istartend_f(1,jproc)=iitot+1
+                          tt2=0.d0
+                          ttt=0.d0
+                      end if
+                      jproc=jproc+1
                   end if
-                  if (iproc==jproc .and. jproc>0) then
-                      istartp_seg_f=iseg+1
-                  end if
-                  if (iproc==jproc-1 .and. jproc>0) then
-                      iendp_seg_f=iseg
-                  end if
-                  if (jproc>0 .and. iproc==jproc-1) then
-                      weightp_f=tt2
-                      nvalp_f=nint(ttt)
-                  end if
-                  if(jproc>0) then
-                      tt2=0.d0
-                      ttt=0.d0
-                  end if
-                  jproc=jproc+1
               end if
-          end if
+          end do
       end do loop_nseg_f
 
       do jproc=0,nproc-2
@@ -789,9 +610,9 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
           weightp_f=tt2
           iendp_seg_f=iend
       end if
-      ii=iendp_seg_f-istartp_seg_f+1
-      call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      if (ii/=lzd%glr%wfd%nseg_f) stop 'ii/=lzd%glr%wfd%nseg_f'
+      !ii=iendp_seg_f-istartp_seg_f+1
+      !call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !if (ii/=lzd%glr%wfd%nseg_f) stop 'ii/=lzd%glr%wfd%nseg_f'
   end if
 
 
@@ -812,7 +633,16 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
   ! some check
   ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
   if(nproc>1) call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
+  !if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
+  if(ii_f/=lzd%glr%wfd%nvctr_f) then
+     write(*,*) 'ii_f/=lzd%glr%wfd%nvctr_f',ii_f,lzd%glr%wfd%nvctr_f
+     if (iproc==0) then
+         do jproc=0,nproc-1
+             write(*,*) jproc, istartend_f(1,jproc), istartend_f(2,jproc)
+         end do
+     end if
+     stop
+  end if
  
   ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
   if(nproc>1) call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)

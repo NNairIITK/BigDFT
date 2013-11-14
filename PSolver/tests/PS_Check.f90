@@ -6,9 +6,12 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Program to test the Poisson Solver
 program PS_Check
-  use wrapper_mpi
+   use wrapper_mpi
    use Poisson_Solver
    use yaml_output
    use dynamic_memory
@@ -20,7 +23,7 @@ program PS_Check
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
    real(kind=8), parameter :: acell = 10.d0
    character(len=50) :: chain
-   character(len=1) :: geocode
+   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,extra_ref
    type(coulomb_operator) :: pkernel,pkernelseq
@@ -38,6 +41,8 @@ program PS_Check
    real(dp), dimension(3) :: hgrids
    type(mpi_environment) :: bigdft_mpi
    character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
+
+   call f_lib_initialize() 
 
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -129,22 +134,6 @@ program PS_Check
    pot_ion=f_malloc(n01*n02*n03,id='pot_ion')
 
    extra_ref=f_malloc(n01*n02*n03,id='extra_ref')
-
-!!$   allocate(density(n01*n02*n03*2+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,density,'density',subname)
-!!$   !Density then potential
-!!$   allocate(potential(n01*n02*n03+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,potential,'potential',subname)
-!!$   !ionic potential
-!!$   allocate(pot_ion(n01*n02*n03+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,pot_ion,'pot_ion',subname)
-!!$   !XC potential
-!!$   allocate(xc_pot(n01*n02*n03*2+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,xc_pot,'xc_pot',subname)
-!!$
-!!$   allocate(extra_ref(n01*n02*n03+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,extra_ref,'extra_ref',subname)
-
 
    nullify(rhocore)
 
@@ -278,27 +267,7 @@ program PS_Check
 
    !call f_malloc_dump_status()
 
-!!$   i_all=-product(shape(pkernel))*kind(pkernel)
-!!$   deallocate(pkernel,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'pkernel',subname)
    call f_free(density,potential,pot_ion,extra_ref)
-
-!!$   i_all=-product(shape(density))*kind(density)
-!!$   deallocate(density,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'density',subname)
-!!$   i_all=-product(shape(potential))*kind(potential)
-!!$   deallocate(potential,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'potential',subname)
-!!$   i_all=-product(shape(pot_ion))*kind(pot_ion)
-!!$   deallocate(pot_ion,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'pot_ion',subname)
-!!$   i_all=-product(shape(xc_pot))*kind(xc_pot)
-!!$   deallocate(xc_pot,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'xc_pot',subname)
-!!$   i_all=-product(shape(extra_ref))*kind(extra_ref)
-!!$   deallocate(extra_ref,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'extra_ref',subname)
-
 
    call timing(pkernel%mpi_env%mpi_comm,'              ','RE')
 
@@ -316,13 +285,14 @@ program PS_Check
    !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
    
    call f_release_routine()
-   call f_lib_finalize()
    if (iproc==0) then
       call yaml_release_document()
       call yaml_close_all_streams()
    end if
 
    call MPI_FINALIZE(ierr)
+
+   call f_lib_finalize()
 
    !END PROGRAM PS_Check
 
@@ -333,7 +303,8 @@ program PS_Check
       use Poisson_Solver
       use dynamic_memory
       implicit none
-      character(len=1), intent(in) :: geocode,distcode
+      character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+      character(len=1), intent(in) :: distcode
       integer, intent(in) :: iproc,nproc,n01,n02,n03
       real(kind=8), intent(in) :: ehref,offset
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
@@ -444,7 +415,8 @@ program PS_Check
       use Poisson_Solver
       use dynamic_memory
       implicit none
-      character(len=1), intent(in) :: geocode,distcode
+      character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+      character(len=1), intent(in) :: distcode
       integer, intent(in) :: nproc,n01,n02,n03,nspden
       real(kind=8), intent(in) :: offset,ehref
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
@@ -605,8 +577,8 @@ program PS_Check
    END SUBROUTINE compare_with_reference
 
 
-   ! Compare arrays potential and density
-   ! if nproc == -1: serial version i.e. special comparison
+   !> Compare arrays potential and density
+   !! if nproc == -1: serial version i.e. special comparison
    subroutine compare(iproc,nproc,mpi_comm,n01,n02,n03,nspden,potential,density,description)
       implicit none
       include 'mpif.h'
@@ -691,24 +663,20 @@ program PS_Check
       max_diff=diff_par
 
    END SUBROUTINE compare
-   !!***
 
-   !!****f* PS_Check/test_functions
-   !! FUNCTION
-   !!    This subroutine builds some analytic functions that can be used for 
-   !!    testing the poisson solver.
-   !!    The default choice is already well-tuned for comparison.
-   !!    WARNING: not all the test functions can be used for all the boundary conditions of
-   !!    the poisson solver, in order to have a reliable analytic comparison.
-   !!    The parameters of the functions must be adjusted in order to have a sufficiently localized
-   !!    function in the isolated direction and an explicitly periodic function in the periodic ones.
-   !!    Beware of the high-frequency components that may false the results when hgrid is too high.
-   !! SOURCE
-   !!
+
+   !> This subroutine builds some analytic functions that can be used for 
+   !! testing the poisson solver.
+   !! The default choice is already well-tuned for comparison.
+   !! WARNING: not all the test functions can be used for all the boundary conditions of
+   !! the poisson solver, in order to have a reliable analytic comparison.
+   !! The parameters of the functions must be adjusted in order to have a sufficiently localized
+   !! function in the isolated direction and an explicitly periodic function in the periodic ones.
+   !! Beware of the high-frequency components that may false the results when hgrid is too high.
    subroutine test_functions(geocode,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,&
       density,potential,rhopot,pot_ion,offset)
       implicit none
-      character(len=1), intent(in) :: geocode
+      character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
       integer, intent(in) :: n01,n02,n03,nspden
       real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
       real(kind=8), intent(out) :: offset
@@ -971,15 +939,9 @@ program PS_Check
 
 
    END PROGRAM PS_Check
-   !!***
 
 
-!!****f* BigDFT/derf_local
-!! FUNCTION
-!!   Error function in double precision
-!!
-!! SOURCE
-!!
+!> Error function in double precision
 subroutine derf_local(derf_yy,yy)
   use poisson_solver
  implicit none
@@ -1100,4 +1062,3 @@ subroutine derf_local(derf_yy,yy)
  derf_yy = res
 
 end subroutine derf_local
-!!***

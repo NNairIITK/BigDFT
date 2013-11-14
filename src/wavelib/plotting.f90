@@ -321,18 +321,29 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
 !!$  nc2=2*(n2+nby)
 !!$  nc3=2*(n3+nbz)
 
+! A nonstandrd .CUBE file where the field is written with the maximum number of
+! decimal places can be obtained by uncommenting the writes to unit 23
   open(unit=22,file=trim(filename)//'.cube',status='unknown')
+!  open(unit=23,file=trim(filename)//'.CUBE',status='unknown')
   write(22,*)'CUBE file for ISF field'
   write(22,*)'Case for '//trim(message)
   write(22,'(i5,3(f12.6))') at%astruct%nat,0.0_gp,0.0_gp,0.0_gp
+!  write(23,*)'CUBE file for ISF field'
+!  write(23,*)'Case for '//trim(message)
+!  write(23,'(i5,3(f12.6))') at%astruct%nat,0.0_gp,0.0_gp,0.0_gp
   !grid and grid spacings
   write(22,'(i5,3(f12.6))') nc1,hxh,0.0_gp,0.0_gp
   write(22,'(i5,3(f12.6))') nc2,0.0_gp,hyh,0.0_gp
   write(22,'(i5,3(f12.6))') nc3,0.0_gp,0.0_gp,hzh
+!  write(23,'(i5,3(f12.6))') nc1,hxh,0.0_gp,0.0_gp
+!  write(23,'(i5,3(f12.6))') nc2,0.0_gp,hyh,0.0_gp
+!  write(23,'(i5,3(f12.6))') nc3,0.0_gp,0.0_gp,hzh
   !atomic number and positions
   do iat=1,at%astruct%nat
      write(22,'(i5,4(f12.6))') at%nzatom(at%astruct%iatype(iat)), at%nelpsp(at%astruct%iatype(iat))*1. &
           ,(rxyz(j,iat),j=1,3)
+!     write(23,'(i5,f12.6,3(f19.12))') at%nzatom(at%astruct%iatype(iat)), at%nelpsp(at%astruct%iatype(iat))*1. &
+!          ,(rxyz(j,iat),j=1,3)
   end do
 
 
@@ -352,10 +363,13 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
            !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
            write(22,'(1x,1pe13.6)',advance=advancestring)&
                 a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+!           write(23,'(1x,e24.17)',advance=advancestring)&
+!                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
         end do
      end do
   end do
   close(22)
+!  close(23)
   !average in x direction
   open(unit=23,file=trim(filename)//'_avg_x',status='unknown')
   !  do i1=0,2*n1+1
@@ -558,7 +572,7 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   use module_interfaces, except_this_one => read_density
   implicit none
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
@@ -688,7 +702,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(dp), dimension(n1i,n2i,max(n3p,1),nspin), intent(out) :: pot
   !local variables
@@ -740,7 +754,7 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
@@ -803,7 +817,7 @@ contains
     use module_types
     implicit none
     character(len=*), intent(in) :: filename
-    character(len=1), intent(in) :: geocode
+    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     integer, intent(in) :: nspin
     integer, intent(out) :: n1i,n2i,n3i
     real(gp), intent(out) :: hxh,hyh,hzh
@@ -911,7 +925,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1i,n2i,n3i
   real(dp), dimension(n1i*n2i*n3i) :: rho
   !local variables

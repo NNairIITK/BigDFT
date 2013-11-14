@@ -1,4 +1,5 @@
-!! Wrapper for the MPI call
+!> @file
+!! Wrapper for the MPI call (this file is preprocessed.)
 !! @author
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -11,7 +12,7 @@
 #include <config.inc>
 #endif
 
-!> Define routine which wrap the MPI calls
+!> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   use memory_profiling
@@ -27,22 +28,27 @@ module wrapper_MPI
   integer :: MPI_IN_PLACE = 0               !< Fake MPI_IN_PLACE variable to allow compilation in sumrho.
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
+
   include 'mpif.h'      !< MPI definitions and datatypes for density and wavefunctions
 
-  logical :: mpi_thread_funneled_is_supported=.false. !< control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
+  logical :: mpi_thread_funneled_is_supported=.false. !< Control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
 
-  !> interface for MPI_ALLREDUCE routine
+  !> Interface for MPI_ALLREDUCE routine
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real, &
           & mpiallred_double,mpiallred_double_1,mpiallred_double_2,&
           & mpiallred_log
   end interface
 
-  !> global MPI communicator
+  !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
-     integer :: mpi_comm
-     integer :: iproc,nproc
-     integer :: igroup,ngroup
+     integer :: mpi_comm !< MPI communicator
+     integer :: iproc    !< Process Id
+                         !! @ingroup RESERVED
+     integer :: nproc    !< Number of MPI processes (in the given communicator)
+                         !! @ingroup RESERVED
+     integer :: igroup   !< MPI Group Id
+     integer :: ngroup   !< Number of MPI groups
   end type mpi_environment
 
   public :: mpi_environment_null
@@ -109,12 +115,13 @@ contains
        do j=0,groupsize-1
           group_list(j+1)=mpi_env%igroup*groupsize+j
        enddo
-       call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,group_list,mpi_env%mpi_comm)
+       call create_group_comm(mpi_comm,groupsize,group_list,mpi_env%mpi_comm)
        if (iproc == 0) then
           call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
        end if
        call f_free(group_list)
     end if
+
     call f_release_routine()
   end subroutine mpi_environment_set
 
@@ -191,7 +198,7 @@ contains
     end if
 
     !call create_group_comm1(mpi_comm,nproc,mpi_env%igroup,ngroup,mpi_env%nproc,mpi_env%mpi_comm)
-    call create_group_comm(mpi_comm,nproc,mpi_env%igroup,mpi_env%nproc,group_list,mpi_env%mpi_comm)
+    call create_group_comm(mpi_comm,mpi_env%nproc,group_list,mpi_env%mpi_comm)
 !    if (iproc == 0) then
 !       call yaml_map('Total No. of Taskgroups created',ngroup)
 !    end if
@@ -200,12 +207,12 @@ contains
   end subroutine mpi_environment_set1
 
   !> create communicators associated to the groups of size group_size
-  subroutine create_group_comm(base_comm,nproc_base,group_id,group_size,group_list,group_comm)
+  subroutine create_group_comm(base_comm,group_size,group_list,group_comm)
     use yaml_output
     use dictionaries
 
     implicit none
-    integer, intent(in) :: base_comm,group_size,nproc_base,group_id
+    integer, intent(in) :: base_comm,group_size
     integer, dimension(group_size), intent(in) :: group_list !< list of id of the group identified by group_id in units of base_comm
     integer, intent(out) :: group_comm
     !local variables
@@ -277,12 +284,53 @@ subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,gr
   i_all=-product(shape(group_list ))*kind(group_list )
   deallocate(group_list,stat=i_stat)
   call memocc(i_stat,i_all,'group_list',subname)
-
-
 end subroutine create_group_comm1
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !> Create a communicator between proc of same rank between the taskgroups.
+  subroutine create_rank_comm(group_comm, rank_comm)
+    use yaml_output
+    implicit none
+    integer, intent(in) :: group_comm
+    integer, intent(out) :: rank_comm
+    !local variables
+    character(len=*), parameter :: subname='create_group_master'
+    integer :: iproc_group, nproc, nproc_group, ngroups
+    integer :: ierr, i_stat, i_all, i, j
+    integer, dimension(:), allocatable :: lrank, ids
 
+    call mpi_comm_rank(group_comm, iproc_group, ierr)
+    call mpi_comm_size(MPI_COMM_WORLD, nproc, ierr)
+    call mpi_comm_size(group_comm, nproc_group, ierr)
+    ngroups = nproc / nproc_group
+
+    ! Put in lrank the group rank of each process, indexed by global iproc.
+    allocate(lrank(nproc+ndebug), stat = i_stat)
+    call memocc(i_stat, lrank, 'lrank', subname)
+    call mpi_allgather(iproc_group, 1, MPI_INTEGER, lrank, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
+
+    ! Put in ids, the global iproc of each process that share the same group iproc.
+    allocate(ids(ngroups+ndebug), stat = i_stat)
+    call memocc(i_stat, ids, 'ids', subname)
+    j = 1
+    do i = 1, nproc
+       if (lrank(i) == iproc_group) then
+          ids(j) = i - 1
+          j = j + 1
+       end if
+    end do
+    i_all=-product(shape(lrank ))*kind(lrank )
+    deallocate(lrank,stat=i_stat)
+    call memocc(i_stat,i_all,'lrank',subname)
+
+!!$    call mpi_comm_rank(MPI_COMM_WORLD, iproc_group, ierr)
+!!$    write(*,*) iproc_group, "->", ids
+    
+    ! Create a new comminucator for the list of ids.
+    call create_group_comm(MPI_COMM_WORLD, ngroups, ids, rank_comm)
+    i_all=-product(shape(ids ))*kind(ids )
+    deallocate(ids,stat=i_stat)
+    call memocc(i_stat,i_all,'ids',subname)
+  END SUBROUTINE create_rank_comm
 
 
 

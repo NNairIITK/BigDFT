@@ -1,4 +1,76 @@
-/*! @file README for the BigDFT project
+/*! @file
+@brief README of the src directory for the project BigDFT.
+
+@mainpage BigDFT Package developer documentation
+@anchor README-MAIN
+<p>
+<a href="http://bigdft.org">BigDFT</a> is a DFT massively parallel electronic structure code 
+(<a href="http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html">GPL license</a>) using a wavelet basis set.
+Wavelets form a real space basis set distributed on an adaptive mesh (two
+levels of resolution in  our implementation).
+</p>
+
+<p>
+GTH or HGH pseudopotentials are used to remove the core electrons.
+Thanks to our Poisson solver based on a Green function formalism,  
+periodic systems, surfaces and isolated systems can be simulated with  
+the proper boundary conditions.
+</p>
+
+@section L Libraries
+The BigDFT code has a core part and internal components:
+- The @ref FLIB "flib library" which controls the low-level operation concerning memory, timing, errors
+  but provides also some tools as dictionaries objects and yaml output.
+- The @ref PSOLVER "PSolver library" is devoted to the resolution of the Poisson equation.
+- The @ref PSEUDO "pseudo program" is a standalone program which is used to generate the pseudopotential files.
+
+ @section B Binaries
+ - @link BigDFT.f90          BigDFT         @endlink  The main program
+ - @link memguess.f90        memguess       @endlink  Used by bigdft-tool script
+ - @link frequencies.f90     frequencies    @endlink  Calculation of the atomic frequencies by finite-difference
+ - @link distances.f90       MDanalysis     @endlink  Molecular Dynamics analysis 
+ - @link WaCo.f90            WaCo           @endlink  Wannier Constructors
+ - @link BigDFT2Wannier.f90  BigDFT2Wannier @endlink  Wannier analysis
+ - @link art.f90             bart           @endlink  EXPERIMENTAL, BigDFT + ART (Activation Relaxation Technique)
+ - @link abscalc.f90         abscalc        @endlink  EXPERIMENTAL, XANES spectrum calculation
+ - @link splinedsaddle.f90   splsad         @endlink  EXPERIMENTAL, Spline Saddle search program
+ - @link test_forces.f90     test_forces    @endlink  Test program
+ - @link sandbox.f90         sandbox        @endlink  Test for development purpose
+                        (browse the posout files generated during a molecular dynamic calculation to compute several quantities, 
+                        like the radial distribution g(r)).
+
+@section T Tools
+- bigdft-tool  (previously called memguess): 
+  read BigDFT inputs and provide an accurate estimation of memory requirement (for each CPU in case of MPI run). 
+  It can also do some simple jobs (see the --help option output):
+<pre>
+bigdft-tool -a memory-estimation [options]:
+    Performing memory estimation for a run of BigDFT.
+bigdft-tool -a rotate [options]:
+    Rotate the input file to use the smallest mesh possible using files
+bigdft-tool -a convert-field FROM TO:
+    Convert the given scalar field to another format, files FROM and TO
+    are of the form <file.{etsf,cube}>.
+bigdft-tool -a export-wf FILE:
+    Export the compressed wavefunction from FILE to a scalar-field
+    representation in Cube format.
+bigdft-tool -a export-grid [options]:
+    Export in XYZ format the positions of all grid points.
+bigdft-tool -a atomic-wf [options]:
+    Calculates the atomic wavefunctions of the first atom in the gatom
+    basis.
+</pre>
+- @link analyze_georelax.f90 analyze_georelax@endlink
+- @link fermi.f90 fermi @endlink
+- @link matchrotation.f90 matchrotation @endlink
+- @link wocc.f90 wocc @endlink
+- @link pseudo.f90 pseudo @endlink The pseudopotential generation tool
+
+@section D Documentation
+This documentation can be generated in the <tt>doc</tt> directory by typing <tt>make doxygen-doc</tt> using the tool
+doxygen. We describe the main rule to develop this documentation in the page 
+@ref DOCUMENTATION "Developing the BigDFT documentation and some coding rules".
+
 @author
      Copyright (C) 2008-2013 BigDFT Group
 
@@ -19,35 +91,9 @@
      the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 
-@mainpage BigDFT Package developer documentation
- The BigDFT project is an electronic structure calculations based on the Daubechies wavelet basis set.
 
-<p>
-<a href="http://bigdft.org">BigDFT</a> is a DFT massively parallel electronic structure code 
-(<a href="http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html">GPL license</a>) using a wavelet basis set.
-Wavelets form a real space basis set distributed on an adaptive mesh (two
-levels of resolution in  our implementation).
-</p>
-<p>
-GTH or HGH pseudopotentials are used to remove the core electrons.
-Thanks to our Poisson solver based on a Green function formalism,  
-periodic systems, surfaces and isolated systems can be simulated with  
-the proper boundary conditions.
-</p>
- Binaries:
- - <b> abscalc                 </b>   XANES calculation
- - <b> bart                    </b>   BigDFT + ART
- - <b> bigdft                  </b>   the main program
- - <b> bigdft-tool             </b>   Tool to check input files and to estimate memory use
- - <b> BigDFT2Wannier          </b>   Wannier analysis
- - <b> frequencies             </b>   Calculation of the atomic frequencies by finite-difference
- - <b> MDanalysis              </b>   Molecular Dynamics analysis
- - <b> memguess                </b>   Used by bigdft-tool script
- - <b> NEB                     </b>   Nudge-Elastic Band method (saddle point determination)
- - <b> oneatom                 </b>   Test program which runs non-self consistent calculations
- - <b> sandbox                 </b>   Test for development purpose
- - <b> splsad                  </b>   Spline Saddle search program
- - <b> rism                    </b>   Test program to calculate atomic charge with York's method
- - <b> test_forces             </b>   Test program
- - <b> WaCo                    </b>   Wannier Constructors
+@defgroup RESERVED Reserved Names of some common arguments
+@brief Convention of naming for some common arguments
+@details
+Some common names of arguments of routines are reserved.
 */

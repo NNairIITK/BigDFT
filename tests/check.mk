@@ -95,10 +95,8 @@ report:
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
 	@name=`basename $@ .memguess.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
-	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
-	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
-	   cat accel.perf >> $$file ; \
-	fi ; \
+	if test -f $$file ; then cp $$file $$file.bak ; fi ; \
+	if test -f accel.perf && ! grep -qs ACCEL $$file ; then cat accel.perf >> $$file ; fi ; \
 	echo outdir ./ >> $$file ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "$(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
@@ -110,10 +108,8 @@ report:
 %.out.out: $(abs_top_builddir)/src/bigdft
 	@name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then file=$$name.perf ; else file=input.perf ; fi ; \
-	if test -f accel.perf && ! grep -qs ACCEL $$file ; then \
-	   if test -f $$file ; then cp $$file $$file.bak ; fi ; \
-	   cat accel.perf >> $$file ; \
-	fi ; \
+	if test -f $$file ; then cp $$file $$file.bak ; fi ; \
+	if test -f accel.perf && ! grep -qs ACCEL $$file ; then cat accel.perf >> $$file ; fi ; \
 	if test -f list_posinp; then \
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \
@@ -121,12 +117,8 @@ report:
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
-	if test -f $$file.bak ; then \
-	   mv $$file.bak $$file ; else rm -f $$file ; \
-	fi ; \
-	if test -f list_posinp; then \
-	   cat `tail -n $$(($$(wc -l < list_posinp) - 1)) list_posinp | sed "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; \
-	fi
+	if test -f list_posinp; then cat `tail -n $$(($$(wc -l < list_posinp) - 1)) list_posinp | sed "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
+	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	@name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft
@@ -155,11 +147,11 @@ report:
 	name=`basename $@ .freq.out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
-	rm -f triH.NEB.it*
+	rm -f neb.it*
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(abs_top_builddir)/src/NEB < input | tee $@
-	cat triH.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml 
-	rm -rf triH.NEB.0*
+	$(abs_top_builddir)/src/NEB | tee $@
+	cat neb.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml 
+	rm -rf neb.NEB.0*
 	rm -f gen_output_file velocities_file
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"

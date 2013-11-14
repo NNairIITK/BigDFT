@@ -176,6 +176,8 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
 !!$                sum(hpsi(ispsi:&
 !!$                ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
     
+      !!write(*,'(a,i8,2es16.4)') 'iorb+orbs%isorb, orbs%occup(iorb+orbs%isorb), ekin', iorb+orbs%isorb, orbs%occup(iorb+orbs%isorb),ekin
+
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
       epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
            !print *,'iorb+orbs%isorb',iorb+orbs%isorb,ekin,epot
@@ -471,6 +473,7 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
       call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
            Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
    
+      !!write(*,'(a,i8,2es16.4)') 'iorb+orbs%isorb, orbs%occup(iorb+orbs%isorb), ekin', iorb+orbs%isorb, orbs%occup(iorb+orbs%isorb), ekin
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
 
       ispsi=ispsi+&
@@ -1859,7 +1862,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   real(gp), intent(inout) :: eproj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
   !local variables
-  character(len=*), parameter :: subname='apply_atproj_iorb'
+  !character(len=*), parameter :: subname='apply_atproj_iorb'
   integer :: ispinor,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,i,istart_c_i,ncplx,m,j,icplx
   real(gp) :: eproj_i
   real(wp), dimension(4,7,3,4) :: cproj,dproj !<scalar products with the projectors (always assumed to be complex and spinorial)
@@ -1905,9 +1908,11 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
   end do
 
   !Use special subroutines for these number of projectors
-  if (proj_count.eq.4 .or. proj_count.eq.5 .or. proj_count.eq.8 .or. proj_count.eq.13 &
-      .or. proj_count.eq.14 .or. proj_count.eq.18 .or. proj_count.eq.19 &
-      .or. proj_count.eq.20 .or. proj_count.eq.22) then
+!  if (proj_count.eq.4 .or. proj_count.eq.5 .or. proj_count.eq.8 .or. proj_count.eq.13 &
+!      .or. proj_count.eq.14 .or. proj_count.eq.18 .or. proj_count.eq.19 &
+!      .or. proj_count.eq.20 .or. proj_count.eq.22) then
+     !more elegant?
+  if (any(proj_count==(/4,5,8,13,14,18,19,20,22/))) then
 
     allocate(cproj_i(proj_count,ncplx))
 
@@ -2085,9 +2090,9 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
   type(gaussian_basis), intent(in) :: proj_G
   type(paw_objects),intent(inout)::paw
   !local variables
+  !character(len=*), parameter :: subname='apply_atproj_iorb'
   integer :: sij_opt
   integer :: ncplx
-  character(len=*), parameter :: subname='apply_atproj_iorb'
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   real(gp) :: eproj_i
 
@@ -2195,7 +2200,7 @@ subroutine ncplx_kpt(ikpt,orbs,ncplx)
 END SUBROUTINE ncplx_kpt
 
 
-!!!>   Calculate the action of the local hamiltonian on the orbitals
+!!!> Calculate the action of the local hamiltonian on the orbitals
 !!subroutine local_hamiltonianParabola(iproc,orbs,lr,hx,hy,hz,&
 !!     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, onWhichAtom, at)
 !!  use module_base

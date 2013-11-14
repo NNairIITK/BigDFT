@@ -1,88 +1,87 @@
-<html>
-<body>
-<!-- This file is a HTML rendering of the Wiki page
-     http://bigdft.org/Wiki/index.php?title=Installation -->
-Installation - 
-<p>The compilation and installation of BigDFT rely on the GNU standard building chain: &#8217;configure&#8217;, &#8217;make&#8217;, &#8217;make install&#8217;. BigDFT can be used as an independent program (as described in this manual), or as a library, to be embedded in other softwares, like inside ABINIT.
+/*! @file 
+@brief Installation of BigDFT
+
+@page INSTALL Installation of BigDFT
+@brief Instruction for the installation of BigDFT
+
+@tableofcontents
+
+  The compilation and installation of BigDFT rely on the GNU standard building chain: 
+  - <tt>configure</tt>
+  - <tt>make</tt>
+  - <tt>make</tt>
+
+<p>
+  BigDFT can be used as an independent program (as described in this manual), or as a library, to be embedded in other softwares, like inside ABINIT.
 </p>
-<table id="toc" class="toc"><tr><td><div id="toctitle"><h2>Contents</h2></div>
-<ul>
-<li class="toclevel-1 tocsection-1"><a href="#Building_the_executables"><span class="tocnumber">1</span> <span class="toctext">Building the executables</span></a>
-<ul>
-<li class="toclevel-2 tocsection-2"><a href="#Configure"><span class="tocnumber">1.1</span> <span class="toctext">Configure</span></a>
-<ul>
-<li class="toclevel-3 tocsection-3"><a href="#General_description_of_the_options"><span class="tocnumber">1.1.1</span> <span class="toctext">General description of the options</span></a></li>
-<li class="toclevel-3 tocsection-4"><a href="#Example_of_configure_output"><span class="tocnumber">1.1.2</span> <span class="toctext">Example of configure output</span></a></li>
-<li class="toclevel-3 tocsection-5"><a href="#Use_Intel_MKL_libraries"><span class="tocnumber">1.1.3</span> <span class="toctext">Use Intel MKL libraries</span></a></li>
-<li class="toclevel-3 tocsection-6"><a href="#MPI_compilation"><span class="tocnumber">1.1.4</span> <span class="toctext">MPI compilation</span></a></li>
-<li class="toclevel-3 tocsection-7"><a href="#OpenCL_compilation"><span class="tocnumber">1.1.5</span> <span class="toctext">OpenCL compilation</span></a></li>
-<li class="toclevel-3 tocsection-8"><a href="#CUDA_compilation"><span class="tocnumber">1.1.6</span> <span class="toctext">CUDA compilation</span></a></li>
-<li class="toclevel-3 tocsection-9"><a href="#NetCDF_I.2FO"><span class="tocnumber">1.1.7</span> <span class="toctext">NetCDF I/O</span></a></li>
-</ul>
-</li>
-<li class="toclevel-2 tocsection-10"><a href="#Compilation"><span class="tocnumber">1.2</span> <span class="toctext">Compilation</span></a>
-<ul>
-<li class="toclevel-3 tocsection-11"><a href="#Make"><span class="tocnumber">1.2.1</span> <span class="toctext">Make</span></a></li>
-<li class="toclevel-3 tocsection-12"><a href="#Install"><span class="tocnumber">1.2.2</span> <span class="toctext">Install</span></a></li>
-<li class="toclevel-3 tocsection-13"><a href="#Clean"><span class="tocnumber">1.2.3</span> <span class="toctext">Clean</span></a></li>
-</ul>
-</li>
-<li class="toclevel-2 tocsection-14"><a href="#The_executables"><span class="tocnumber">1.3</span> <span class="toctext">The executables</span></a></li>
-</ul>
-</li>
-<li class="toclevel-1 tocsection-15"><a href="#Building_a_library"><span class="tocnumber">2</span> <span class="toctext">Building a library</span></a></li>
-<li class="toclevel-1 tocsection-16"><a href="#Running_the_tests"><span class="tocnumber">3</span> <span class="toctext">Running the tests</span></a></li>
-</ul>
-</td></tr></table>
-<h1><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=1" title="Edit section: Building the executables">edit</a>]</span> <span class="mw-headline" id="Building_the_executables"> Building the executables </span></h1>
-<h2><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=2" title="Edit section: Configure">edit</a>]</span> <span class="mw-headline" id="Configure"> Configure </span></h2>
-<p>The BigDFT build system is based on standard GNU autotools. The end user does not need to have the autotools package installed on his computer, the <tt>configure</tt> script provided in the BigDFT package will create the appropriate <tt>Makefile</tt> and set all the compilation options, like: the optimization level, the associated libraries to link with, and so on.
-</p><p>After the package has been untarred, the sources should be configured to the local architecture of the system. Thanks to the autotools, it is possible to generate several builds from the same source tree. It is advised to create a compilation directory, either inside or outside the source tree. Lets call this directory <tt>compile-gFortran</tt> for instance. One starts the configure from there <tt>'source tree path'/configure</tt>.
+
+
+@section Building Building the executables
+
+@subsection S1.1 Configure
+<p>
+The BigDFT build system is based on standard GNU autotools. 
+The end user does not need to have the autotools package installed on his computer, the <tt>configure</tt> script provided in the BigDFT package 
+will create the appropriate <tt>Makefile</tt> and set all the compilation options, like: the optimization level,
+the associated libraries to link with, and so on.
 </p>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=3" title="Edit section: General description of the options">edit</a>]</span> <span class="mw-headline" id="General_description_of_the_options"> General description of the options </span></h3>
-<p>One can tune the compilation environment using the following options:
+
+<p>
+After the package has been untarred, the sources should be configured to the local architecture of the system. 
+Thanks to the autotools, it is possible to generate several builds from the same source tree. 
+It is advised to create a compilation directory, either inside or outside the source tree. 
+Lets call this directory <tt>compile-gFortran</tt> for instance. 
+One starts the configure from there <tt>'source tree path'/configure</tt>.
 </p>
-<ul><li> <tt>FC</tt>: Specify the compiler (including MPI aware wrappers).
-</li><li> <tt>FCFLAGS</tt>, <tt>CFLAGS</tt> and <tt>CXXFLAGS</tt>: Specify the flags, like the optimisation flags, to pass to the compilers (default are {-g -O2} for GNU compilers).
-</li><li> <tt>--prefix=DIR</tt>: Specify your installation directory (<tt>/usr/local</tt> is default).
-</li></ul>
-<ul><li> <b>Linear algebra options</b>:
-<ul><li> <tt>--with-ext-linalg</tt>: Give the name of the libraries replacing BLAS and LAPACK (default = none specified). Use the -l before the name(s).
-<ul><li> <tt>--with-ext-linalg-path</tt>: Give the path of the other linear algebra libraries (default = <tt>-L/usr/lib</tt>). Use the -L before the path(es).
-</li></ul>
-</li><li> <tt>--with-blacs</tt>: Use a parallelised version of Blas routines. If an argument is provided, this argument should provide the linking options (like <tt>-lblacs_provider</tt>. Use <tt>--with-blacs-path</tt> to specify a lookup path.
-</li><li> <tt>--with-scalapack</tt>: like <tt>--with-blacs</tt> for Scalapack.
-</li><li> <tt>--enable-dgemmsy</tt>: if the target machine supports SSE3 instruction set, this will compile an optimized version of dgemm operations for symmetric matrices.
-</li></ul>
-</li></ul>
-<ul><li> <b>Accelarators</b>:
-<ul><li> <tt>enable-cuda-gpu</tt>: Compile CUDA support for GPU computing.
-<ul><li> <tt>--with-cuda-path</tt>: Give the path to the NVIDIA CUDA tools (default is <tt>/usr/local/cuda</tt>).
-</li><li> <tt>--with-nvcc-flags</tt>: Specify the flags for the NVIDIA CUDA Compiler.
-</li></ul>
-</li><li> <tt>--enable-opencl</tt>: Compile OpenCL support for GPU computing (compatible with <tt>--enable-cuda-gpu</tt>).
-<ul><li> <tt>--with-ocl-path</tt>: Give the path to the OpenCL installation directory (default is <tt>/usr</tt>).
-</li></ul>
-</li><li> <tt>--enable-intel-mic</tt>: Compile Intel MIC support.
-<ul><li> <tt>--with-intel-mic-libs</tt>: Link MIC executable with the given addional libraries.
-</li></ul>
-</li></ul>
-</li></ul>
-<ul><li> <b>Additional features</b>:
-<ul><li> <tt>--with-etsf-io</tt>: Use ETSF file format (binary based on NetCDF) for densities, potentials and wavefunction files.
-</li><li> <tt>--with-archives</tt>: Use compression (tar.bz2) for position files during geometry optimisation.
-</li><li> <tt>--disable-bindings</tt>: C and Python bindings are enable by default.
-</li></ul>
-</li></ul>
-<p>The other available options can be browsed via the <tt>--help</tt> option. Some of them are listed here (and they can be of course combined with each other, when it does make sense):
+
+@subsection Options General description of the options
+One can tune the compilation environment using the following options:
+- <tt>FC</tt>: Specify the compiler (including MPI aware wrappers).
+- <tt>FCFLAGS</tt>, <tt>CFLAGS</tt> and <tt>CXXFLAGS</tt>: Specify the flags, like the optimisation flags, 
+  to pass to the compilers (default are {-g -O2} for GNU compilers).
+- <tt>--prefix=DIR</tt>: Specify your installation directory (<tt>/usr/local</tt> is default).
+- <b>Linear algebra options</b>:
+  + <tt>--with-ext-linalg</tt>: Give the name of the libraries replacing BLAS and LAPACK (default = none specified). 
+    Use the -l before the name(s).
+  + <tt>--with-ext-linalg-path</tt>: Give the path of the other linear algebra libraries (default = <tt>-L/usr/lib</tt>). 
+    Use the -L before the path(es).
+  + <tt>--with-blacs</tt>: Use a parallelised version of Blas routines. If an argument is provided, 
+    this argument should provide the linking options (like <tt>-lblacs_provider</tt>. 
+    Use <tt>--with-blacs-path</tt> to specify a lookup path.
+  + <tt>--with-scalapack</tt>: like <tt>--with-blacs</tt> for Scalapack.
+  + <tt>--enable-dgemmsy</tt>: if the target machine supports SSE3 instruction set, 
+    this will compile an optimized version of dgemm operations for symmetric matrices.
+- <b>Accelarators</b>:
+  + <tt>enable-cuda-gpu</tt>: Compile CUDA support for GPU computing.
+    * <tt>--with-cuda-path</tt>: Give the path to the NVIDIA CUDA tools (default is <tt>/usr/local/cuda</tt>).
+    * <tt>--with-nvcc-flags</tt>: Specify the flags for the NVIDIA CUDA Compiler.
+  + <tt>--enable-opencl</tt>: Compile OpenCL support for GPU computing (compatible with <tt>--enable-cuda-gpu</tt>).
+    * <tt>--with-ocl-path</tt>: Give the path to the OpenCL installation directory (default is <tt>/usr</tt>).
+  + <tt>--enable-intel-mic</tt>: Compile Intel MIC support.
+    * <tt>--with-intel-mic-libs</tt>: Link MIC executable with the given addional libraries.
+- <b>Additional features</b>:
+  + <tt>--with-etsf-io</tt>: Use ETSF file format (binary based on NetCDF) for densities, potentials and wavefunction files.
+  + <tt>--with-archives</tt>: Use compression (tar.bz2) for position files during geometry optimisation.
+  + <tt>--disable-bindings</tt>: C and Python bindings are enable by default.
+
+<p>
+The other available options can be browsed via the <tt>--help</tt> option. 
+Some of them are listed here (and they can be of course combined with each other, when it does make sense):
 </p>
-<ul><li> <tt>--disable-mpi</tt>: Force not to use MPI during build. By default the configure will try to detect if the compiler has some native MPI capabilities. If not MPI will be automatically disabled.
-</li><li> <tt>--enable-debug</tt>: Creates a slower version of the executable in which any of the array allocated is filled by <tt>NaN</tt> after its boundaries. Useful to detect runtime errors during developments
-</li><li> <tt>--with-memory-limit=&lt;mem&gt;</tt>: Creates a version of the executable which abort the run if one of the processes allocates more memory than <tt>&lt;mem&gt;</tt> (in Gb). This version is not necessarily slower that traditional copilation.
-</li></ul>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=4" title="Edit section: Example of configure output">edit</a>]</span> <span class="mw-headline" id="Example_of_configure_output"> Example of configure output </span></h3>
-<p>At the end of the configure script a summary is printed. It looks like that:
+- <tt>--disable-mpi</tt>: Force not to use MPI during build. By default the configure will try to detect if the compiler has some native MPI capabilities. 
+  If not MPI will be automatically disabled.
+- <tt>--enable-debug</tt>: Creates a slower version of the executable in which any of the array allocated is filled by <tt>NaN</tt> after its boundaries. 
+  Useful to detect runtime errors during developments
+- <tt>--with-memory-limit=&lt;mem&gt;</tt>: Creates a version of the executable which abort the run 
+  if one of the processes allocates more memory than <tt>&lt;mem&gt;</tt> (in Gb).
+  This version is not necessarily slower that traditional copilation.
+
+
+@subsection Configure Example of configure output
+<p>
+At the end of the configure script a summary is printed. It looks like that:
 </p>
+
 <pre>
 ~/bigdft-trunk/tmp-gfortran$ ../configure \
   FC=mpif90.openmpi \
@@ -141,36 +140,60 @@ Installation -
   Fortran modules:           ${prefix}/include/
   Documentation:             ${datarootdir}/doc/${PACKAGE_TARNAME}
 </pre>
-<p>Now, let's look at some most common cases...
+
+<p>
+Now, let's look at some most common cases...
 </p>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=5" title="Edit section: Use Intel MKL libraries">edit</a>]</span> <span class="mw-headline" id="Use_Intel_MKL_libraries"> Use Intel MKL libraries </span></h3>
-<p>The Intel compiler is usually provided with native Lapack and Blas implementations, called the MKL libraries. To use them, the option to pass to configure is <tt>--with-ext-linalg</tt>.
+
+
+@subsection MKL Use Intel MKL libraries
+<p>
+The Intel compiler is usually provided with native Lapack and Blas implementations, called the MKL libraries. 
+To use them, the option to pass to configure is <tt>--with-ext-linalg</tt>.
 </p>
 <pre>
   ../configure --with-ext-linalg=&quot;-lmkl_ia32 -lmkl_lapack&quot;
   --with-ext-linalg-path=&quot;-L/opt/intel/mkl72/lib/32&quot;
   --prefix=/home/caliste/usr FC=ifort
 </pre>
-<p>In this example, the <tt>--prefix</tt> option is not mandatory and is just provided  to specify the destination directory for installation.
+<p>
+In this example, the <tt>--prefix</tt> option is not mandatory and is just provided  to specify the destination directory for installation.
 </p>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=6" title="Edit section: MPI compilation">edit</a>]</span> <span class="mw-headline" id="MPI_compilation"> MPI compilation </span></h3>
-<p>MPI detection is enable by default and the current Fortran compiler (specified with <tt>FC</tt>) is tested with respect to MPI capabilities. MPI and MPI2 are supported. If MPI2 is not available a fallback has been implemented.
+
+
+@subsection MPI MPI compilation
+<p>
+MPI detection is enable by default and the current Fortran compiler (specified with <tt>FC</tt>) is tested with respect to MPI capabilities. 
+MPI and MPI2 are supported. If MPI2 is not available a fallback has been implemented.
 </p>
 <pre>
 ../configure FC=mpif90
 </pre>
-<p>If the Fortran compiler does not support MPI, a warning message is output by configure script. To remove this message, one needs to specify not to detect MPI capabilities with <tt>--disable-mpi</tt> option.
-</p><p>One can also pass all the options for the MPI link proceeding using the options <tt>--with-mpi-include</tt>, <tt>--with-mpi-ldflags</tt> and <tt>--with-mpi-libs</tt> (not recommended).
+<p>
+If the Fortran compiler does not support MPI, a warning message is output by configure script. 
+To remove this message, one needs to specify not to detect MPI capabilities with <tt>--disable-mpi</tt> option.
 </p>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=7" title="Edit section: OpenCL compilation">edit</a>]</span> <span class="mw-headline" id="OpenCL_compilation"> OpenCL compilation </span></h3>
-<p>Here is a example using the Intel Fortran compiler and OpenCL installed in <tt>/applications/cuda-3.2</tt>:
+<p>
+One can also pass all the options for the MPI link proceeding using the options <tt>--with-mpi-include</tt>, <tt>--with-mpi-ldflags</tt> 
+and <tt>--with-mpi-libs</tt> (not recommended).
+</p>
+
+
+@subsection OpenCL OpenCL compilation
+<p>
+Here is a example using the Intel Fortran compiler and OpenCL installed in <tt>/applications/cuda-3.2</tt>:
 </p>
 <pre>
   ../../sources/bigdft-1.5.1/configure FC=ifort
   --enable-opencl --with-ocl-path=/applications/cuda-3.2
 </pre>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=8" title="Edit section: CUDA compilation">edit</a>]</span> <span class="mw-headline" id="CUDA_compilation"> CUDA compilation </span></h3>
-<p>The compilation with CUDA currently required to compile the code with "second underscore". It is for the compiler to know how to link C and Fortran sources together. Here is a example using the Intel Fortran compiler and CUDA installed in /applications/cuda-2.2:
+
+
+@subsection CUDA CUDA compilation
+<p>
+The compilation with CUDA currently required to compile the code with "second underscore". 
+It is for the compiler to know how to link C and Fortran sources together. 
+Here is a example using the Intel Fortran compiler and CUDA installed in /applications/cuda-2.2:
 </p>
 <pre>
   ../../sources/bigdft-1.3.0-dev/configure
@@ -179,72 +202,73 @@ Installation -
   CFLAGS=&quot;-O2 -I/applications/cuda-2.2/include/&quot;
   --enable-cuda-gpu --with-cuda-path=/applications/cuda-2.2
 </pre>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=9" title="Edit section: NetCDF I/O">edit</a>]</span> <span class="mw-headline" id="NetCDF_I.2FO"> NetCDF I/O </span></h3>
-<p>Here is a example using the Intel Fortran compiler, NetCDF installed in <tt>/applications/netcdf-3.6.3</tt> and ETSF_IO compiled in a home directory:
+
+@subsection NetCDF NetCDF I/O
+<p>
+Here is a example using the Intel Fortran compiler, NetCDF installed in <tt>/applications/netcdf-3.6.3</tt> and ETSF_IO compiled in a home directory:
 </p>
 <pre>
   ../../sources/bigdft-1.5.1/configure FC=ifort --with-etsf-io
   --with-etsf-io-path=$HOME/usr
   --with-netcdf-path=/applications/netcdf-3.6.3
 </pre>
-<h2><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=10" title="Edit section: Compilation">edit</a>]</span> <span class="mw-headline" id="Compilation"> Compilation </span></h2>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=11" title="Edit section: Make">edit</a>]</span> <span class="mw-headline" id="Make"> Make </span></h3>
-<p>Make the package and create the &#8217;bigdft&#8217; executable, issuing <tt>make</tt>. The GNU option <i>-jn</i> is working with whatever value of <i>n</i> (tested up to 16).
+
+
+
+@section Compilation Compilation
+
+@subsection Make Make
+<p>
+Make the package and create the &#8217;bigdft&#8217; executable, issuing <tt>make</tt>. 
+The GNU option <i>-jn</i> is working with whatever value of <i>n</i> (tested up to 16).
 </p>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=12" title="Edit section: Install">edit</a>]</span> <span class="mw-headline" id="Install"> Install </span></h3>
-<p>To install the package, issue <tt>make install</tt>. It will copy all files to the specified prefix (see configure). Additionaly, another installation path can be specified by providing a <tt>prefix</tt> option.
+
+@subsection Install Install
+<p>
+To install the package, issue <tt>make install</tt>. 
+It will copy all files to the specified prefix (see configure). Additionaly, another installation path can be specified by providing a <tt>prefix</tt> option.
 </p>
 <pre>
 make install prefix=$HOME/usr
 </pre>
-<p>This example will install, binaries and documentation in <tt>$HOME/usr</tt> whatever the prefix specified at configuration time. The destination directory will be created automatically if not existing.
+<p>
+This example will install, binaries and documentation in <tt>$HOME/usr</tt> whatever the prefix specified at configuration time. 
+The destination directory will be created automatically if not existing.
 </p>
-<h3><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=13" title="Edit section: Clean">edit</a>]</span> <span class="mw-headline" id="Clean"> Clean </span></h3>
-<p>Clean the source tree of the &#8217;make&#8217; action by <tt>make clean</tt>.
+
+@subsection Clean Clean
+<p>
+Clean the source tree of the &#8217;make&#8217; action by <tt>make clean</tt>.
 </p>
-<h2><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=14" title="Edit section: The executables">edit</a>]</span> <span class="mw-headline" id="The_executables"> The executables </span></h2>
-<p>BigDFT provides the following executables:
+
+@subsection Executables The executables
+See the file @ref README-MAIN "README" for more explanations.
+
+
+@section Building Building a library
+<p>
+To avoid to create the binary executables, use <tt>--disable--build-binary</tt> option.
 </p>
-<ul><li> <tt><a href="http://bigdft.org/Wiki/index.php?title=Bigdft" title="Bigdft" class="mw-redirect">bigdft</a></tt> (previously called cluster): run DFT ground state calculations with or without geometry relaxations.
-</li><li> <tt><a href="http://bigdft.org/Wiki/index.php?title=Bigdft-tool" title="Bigdft-tool" class="mw-redirect">bigdft-tool</a></tt> (previously called memguess): read BigDFT inputs and provide an accurate estimation of memory requirement (for each CPU in case of MPI run). It can also do some simple jobs (see the <tt>--help</tt> option output): 
-</li></ul>
-<pre>
-bigdft-tool -a memory-estimation [options]:
-    Performing memory estimation for a run of BigDFT.
 
-bigdft-tool -a rotate [options]:
-    Rotate the input file to use the smallest mesh possible using files
-
-bigdft-tool -a convert-field FROM TO:
-    Convert the given scalar field to another format, files FROM and TO
-    are of the form &lt;file.{etsf,cube}&gt;.
-
-bigdft-tool -a export-wf FILE:
-    Export the compressed wavefunction from FILE to a scalar-field
-    representation in Cube format.
-
-bigdft-tool -a export-grid [options]:
-    Export in XYZ format the positions of all grid points.
-
-bigdft-tool -a atomic-wf [options]:
-    Calculates the atomic wavefunctions of the first atom in the gatom
-    basis.
-</pre>
-<ul><li> <tt><a href="http://bigdft.org/Wiki/index.php?title=NEB&amp;action=edit&amp;redlink=1" class="new" title="NEB (page does not exist)">NEB</a></tt>: run a NEB path search (requires to provide also NEB_driver.sh and NEB_include.sh).
-</li><li> <tt><a href="http://bigdft.org/Wiki/index.php?title=Splsad&amp;action=edit&amp;redlink=1" class="new" title="Splsad (page does not exist)">splsad</a></tt>: <i>to be explained</i>.
-</li><li> <tt><a href="http://bigdft.org/Wiki/index.php?title=Frequencies" title="Frequencies" class="mw-redirect">frequencies</a></tt>: run a finite difference calculation to find vibrations for a molecule.
-</li><li> <tt><a href="http://bigdft.org/Wiki/index.php?title=MDanaysis&amp;action=edit&amp;redlink=1" class="new" title="MDanaysis (page does not exist)">MDanaysis</a></tt>: browse the 'posout' files generated during a molecular dynamic to compute several quantities, like the radial distribution g(r).
-</li><li> <tt><a href="http://bigdft.org/Wiki/index.php?title=BigDFT2Wannier&amp;action=edit&amp;redlink=1" class="new" title="BigDFT2Wannier (page does not exist)">BigDFT2Wannier</a></tt> and <tt><a href="http://bigdft.org/Wiki/index.php?title=WaCo&amp;action=edit&amp;redlink=1" class="new" title="WaCo (page does not exist)">WaCo</a></tt>: <i>to be explained</i>.
-</li><li> <tt><a href="http://bigdft.org/Wiki/index.php?title=Bart&amp;action=edit&amp;redlink=1" class="new" title="Bart (page does not exist)">bart</a></tt>: EXPERIMENTAL, ART implementation using BigDFT for the force calculation.
-</li><li> <tt><a href="http://bigdft.org/Wiki/index.php?title=Abscalc" title="Abscalc" class="mw-redirect">abscalc</a></tt>: EXPERIMENTAL, compute XANES spectrum.
-</li></ul>
-<h1><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=15" title="Edit section: Building a library">edit</a>]</span> <span class="mw-headline" id="Building_a_library"> Building a library </span></h1>
-<p>To avoid to create the binary executables, use <tt>--disable--build-binary</tt> option.
-</p><p>The main subroutine of the BigDFT package is the {call\_bigdft}routine. For a given set of input coordinates and input parameters it returns the total energy and the forces acting on the nuclei. The <tt>BigDFT.f90</tt> main program calls the {call\_bigdft}routine and can also do a geometry optimization by calling the <tt>geopt</tt> routine (which in turn calls again {call\_bigdft}). For other standard applications other main programs exist. At present main programs to do a vibrational analysis, saddle point search and global optimization have been developed. Users are encouraged to write their own main programs for specific applications.
+<p>
+The main subroutine of the BigDFT package is the {call\_bigdft}routine. *
+For a given set of input coordinates and input parameters it returns the total energy and the forces acting on the nuclei. 
+The <tt>BigDFT.f90</tt> main program calls the {call\_bigdft}routine and can also do a geometry optimization by calling the <tt>geopt</tt> routine 
+(which in turn calls again {call\_bigdft}). 
+For other standard applications other main programs exist. 
+At present main programs to do a vibrational analysis, saddle point search and global optimization have been developed.
+Users are encouraged to write their own main programs for specific applications.
 </p>
-<h1><span class="editsection">[<a href="http://bigdft.org/Wiki/index.php?title=Installation&amp;action=edit&amp;section=16" title="Edit section: Running the tests">edit</a>]</span> <span class="mw-headline" id="Running_the_tests"> Running the tests </span></h1>
-<p>BigDFT is provided with several test cases (that can also be studied as examples). They are located in the <tt>tests</tt> directory. To run the tests, after compilation, issue <tt>make check</tt> in this directory.
-</p><p>To run tests with MPI support, use the environment variable <tt>run_parallel</tt> as:
+
+
+@section Tests Running the tests
+<p>
+BigDFT is provided with several test cases (that can also be studied as examples). 
+They are located in the <tt>tests</tt> directory. To run the tests, after compilation, issue <tt>make check</tt> in this directory.
+</p>
+
+<p>
+To run tests with MPI support, use the environment variable <tt>run_parallel</tt> as:
 </p>
 <pre>
 export run_parallel='mpirun -np 2'
@@ -254,17 +278,4 @@ export run_parallel='mpirun -np 2'
 <pre>
 export run_ocl='on'
 </pre>
-
-<!-- 
-NewPP limit report
-Preprocessor visited node count: 141/1000000
-Preprocessor generated node count: 268/1000000
-Post-expand include size: 0/2097152 bytes
-Template argument size: 0/2097152 bytes
-Highest expansion depth: 2/40
-Expensive parser function count: 0/100
--->
-
-<!-- Saved in parser cache with key l_sim_db-bigdft_wiki_:pcache:idhash:12-1!*!0!!en!*!* and timestamp 20130304105531 -->
-</body>
-</html>
+*/

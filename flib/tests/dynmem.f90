@@ -2,17 +2,21 @@
 subroutine test_dynamic_memory()
    use yaml_output
    use dynamic_memory
+   use dictionaries
    implicit none
    !logical :: fl
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
+  integer,dimension(:,:,:),allocatable :: weight
+  integer,dimension(:,:,:,:),allocatable :: orbital_id
+  external :: abort2
 
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
-   call f_malloc_set_status(memory_limit=0.e0)
+call yaml_comment('debug 1')
    call f_routine(id='PS_Check')
-
+call yaml_comment('debug 2')
    call f_routine(id='Routine 0')
    !Density
    density=f_malloc(3*2,id='density')
@@ -22,7 +26,14 @@ subroutine test_dynamic_memory()
    call f_release_routine()
 
    call f_routine(id='Routine A')
+weight=f_malloc((/1.to.8,1.to.8,2.to.4/),id='weight')
+weight(1,1,2)=5
+call f_free(weight)
    call f_release_routine()
+
+!!$   call yaml_open_map('Temporary')
+!!$    call f_malloc_dump_status()
+!!$    call yaml_close_map()
 
 !!$
 !!$!   call f_malloc_dump_status()
@@ -41,8 +52,24 @@ subroutine test_dynamic_memory()
      call f_release_routine()
     call f_release_routine()
     call f_routine(id='SubCase 3')
+      weight    =f_malloc((/1.to.1,1.to.1,-1.to.-1/),id='weight')
+      orbital_id=f_malloc((/1.to.1,1.to.1,1.to.7,0.to.0/),id='orbital_id')
+    call f_malloc_dump_status()
+      call f_free(weight)
+      call f_free(orbital_id)
     call f_release_routine()
    call f_release_routine()
+   !repeat it to see if it gives errors
+   !the point is what to do with a subroutine which is called like the parent routine
+   call yaml_comment('Test for debug')
+   call f_routine(id='PS_Check')
+   call f_release_routine()
+   call yaml_comment('End test for debug')
+   call f_routine(id='PS_Check')
+   call f_release_routine()
+   call yaml_comment('End test for debug2')
+   !call f_malloc_dump_status()
+
    call f_routine(id='Routine E')
     call f_free(density)
    call f_release_routine()
@@ -87,8 +114,6 @@ subroutine test_dynamic_memory()
    call f_release_routine()
 
    call f_malloc_dump_status()
-   call f_malloc_finalize()
-
 
 end subroutine test_dynamic_memory
 

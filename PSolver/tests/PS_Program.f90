@@ -8,7 +8,10 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Test program for the Poisson Solver
 program PSolver_Program
   use Poisson_Solver
   use wrapper_mpi
@@ -22,7 +25,7 @@ program PSolver_Program
   real(kind=8), parameter :: acell = 10.0d0
   real(kind=8), parameter :: EulerGamma = 0.5772156649015328d0
   character(len=50) :: chain
-  character(len=2) :: geocode
+  character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=1) :: datacode
   character(len=30) :: mode
   real(kind=8), dimension(:,:,:), allocatable :: density,rhopot,potential,pot_ion
@@ -479,11 +482,13 @@ program PSolver_Program
 
   call MPI_FINALIZE(ierr)
 
+
 contains
+
 
 subroutine regroup_data(geocode,hx,hy,hz)
   implicit none
-  character(len=2), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   real(kind=8), intent(in) :: hx,hy,hz
   !local variables
   real(kind=8) :: hgrid
@@ -506,6 +511,7 @@ subroutine regroup_data(geocode,hx,hy,hz)
  !      geocode,n01,n02,n03,hgrid,max_diff,tcp,tcm,tk,txc,pcp,pcm,pk,pxc,diff_parser
   
 end subroutine regroup_data
+
 
 subroutine compare(n01,n02,n03,potential,density,i1_max,i2_max,i3_max,max_diff)
   implicit none
@@ -537,18 +543,18 @@ subroutine compare(n01,n02,n03,potential,density,i1_max,i2_max,i3_max,max_diff)
 end subroutine compare
 
 
-! this subroutine builds some analytic functions that can be used for 
-! testing the poisson solver.
-! The default choice is already well-tuned for comparison.
-! WARNING: not all the test functions can be used for all the boundary conditions of
-! the poisson solver, in order to have a reliable analytic comparison.
-! The parameters of the functions must be adjusted in order to have a sufficiently localized
-! function in the isolated direction and an explicitly periodic function in the periodic ones.
-! Beware of the high-frequency components that may falsify the results when hgrid is too high.
+!> This subroutine builds some analytic functions that can be used for 
+!! testing the poisson solver.
+!! The default choice is already well-tuned for comparison.
+!! WARNING: not all the test functions can be used for all the boundary conditions of
+!! the poisson solver, in order to have a reliable analytic comparison.
+!! The parameters of the functions must be adjusted in order to have a sufficiently localized
+!! function in the isolated direction and an explicitly periodic function in the periodic ones.
+!! Beware of the high-frequency components that may falsify the results when hgrid is too high.
 subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
   implicit none
-  character(len=2), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: n01,n02,n03,ixc
   real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz,mu0
   !triclinic lattice
@@ -723,8 +729,6 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
      if (ixc==0) denval=0.d0
 
-
- 
 
 
   else if (trim(geocode) == 'S') then
@@ -1221,6 +1225,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
 end subroutine test_functions
 
+
 subroutine functions(x,a,b,f,f1,f2,whichone)
   implicit none
   integer, intent(in) :: whichone
@@ -1309,71 +1314,17 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
 
 end subroutine functions
 
-!!!fake ABINIT subroutines
-!!subroutine wrtout(unit,message,mode_paral)
-!!  implicit none
-!!
-!!  !Arguments ------------------------------------
-!!  integer,intent(in) :: unit
-!!  character(len=4),intent(in) :: mode_paral
-!!  character(len=500),intent(inout) :: message
-!!
-!!  print *,message
-!!end subroutine wrtout
-!!
-!!subroutine leave_new(mode_paral)
-!!  implicit none
-!!
-!!  !Arguments ------------------------------------
-!!  character(len=4),intent(in) :: mode_paral
-!!
-!!  print *,'exiting...'
-!!  stop
-!!end subroutine leave_new
 
-
-!the following is taken from 'meix.for'
-!(http://jin.ece.illinois.edu/routines/routines.html)
-! >>> some modifications have been done! <<<
-
-!         PROGRAM ME1XB
-! C
-! C       =========================================================
-! C       Purpose: This program computes the exponential integral 
-! C                E1(x) using subroutine E1XB
-! C       Input :  x  --- Argument of E1(x)  ( x > 0 )
-! C       Output:  E1 --- E1(x)
-! C       Example:
-! C                  x          E1(x)
-! C                -------------------------
-! C                 0.0     .1000000000+301
-! C                 1.0     .2193839344E+00
-! C                 2.0     .4890051071E-01
-! C                 3.0     .1304838109E-01
-! C                 4.0     .3779352410E-02
-! C                 5.0     .1148295591E-02
-! C       =========================================================
-! C
-!         DOUBLE PRECISION E1,X
-!         WRITE(*,*)'Please enter x '
-!         READ(*,*) X
-!         WRITE(*,*)'   x          E1(x)'
-!         WRITE(*,*)' -------------------------'
-!         CALL E1XB(X,E1)
-!         WRITE(*,10)X,E1
-! 10      FORMAT(1X,F5.1,E20.10)
-!         END
-
-
+!> Purpose: Compute exponential integral E1(x)
+!! Output:  
 subroutine e1xb(x,e1)
-  !
-  !       ============================================
-  !       Purpose: Compute exponential integral E1(x)
-  !       Input :  x  --- Argument of E1(x)
-  !       Output:  E1 --- E1(x)  ( x > 0 )
-  !       ============================================
-  !
-  implicit double precision (a-h,o-z)
+  implicit none
+  !Arguments
+  real(kind=8), intent(in) :: x   !< x  Argument of E1(x)
+  real(kind=8), intent(out) :: e1 !< E1 --- E1(x)  ( x > 0 )
+  !Local variables
+  real(kind=8), parameter :: ga=0.5772156649015328d0 !< EulerGamma
+  real(kind=8) :: r,t0,t
   integer :: k,m
 
   if (x.eq.0.0) then
@@ -1384,11 +1335,10 @@ subroutine e1xb(x,e1)
      do k=1,25
         r=-r*k*x/(k+1.0d0)**2
         e1=e1+r
-        if (dabs(r).le.dabs(e1)*1.0d-15) then 
+        if (abs(r) <= abs(e1)*1.0d-15) then 
            exit
         end if
      end do
-      ga=0.5772156649015328d0 ! <<< EulerGamma
       e1=-ga-dlog(x)+x*e1
    else
         m=20+int(80.0/x)
@@ -1400,11 +1350,6 @@ subroutine e1xb(x,e1)
            e1=dexp(-x)*t
         endif
         
-        return
-      
-      end subroutine e1xb
+end subroutine e1xb
       
 end program PSolver_Program
-!!***
-
-

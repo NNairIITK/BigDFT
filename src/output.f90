@@ -3,7 +3,7 @@
 !!  Routines which are present in this file should have *all* arguments as intent(in)
 !!  Also, the master process only should acces these routines
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -18,7 +18,7 @@ subroutine print_logo()
   integer :: namelen,ierr
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   integer :: nthreads
-  integer, parameter :: ln = 1024
+  !integer, parameter :: ln = 1024
 !$ integer :: omp_get_max_threads
 
 !  call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
@@ -136,7 +136,7 @@ subroutine print_general_parameters(in,atoms)
   use defs_basis
   use m_ab6_symmetry
   use yaml_output
-  use module_input, only: case_insensitive_equiv
+  use module_input_keys, only: input_keys_equal
   implicit none
   !Arguments
   type(input_variables), intent(in) :: in
@@ -323,7 +323,7 @@ subroutine print_general_parameters(in,atoms)
            call yaml_map('DIIS history', in%history)
         end if
      call yaml_close_map()
-     if (case_insensitive_equiv(trim(in%geopt_approach),"AB6MD")) then
+     if (input_keys_equal(trim(in%geopt_approach),"AB6MD")) then
         call yaml_open_map('Molecular Dynamics Parameters')
            call yaml_map('ionmov',in%ionmov)
            call yaml_map('dtion', in%dtion,fmt='(0pf7.0)')
@@ -386,24 +386,23 @@ subroutine print_general_parameters(in,atoms)
   if (atoms%astruct%geocode /= 'F') then
      call yaml_comment('K points description (Reduced and Brillouin zone coordinates, Weight)',hfill='-')
      !write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
-     if (in%disableSym .and. in%nkpt > 1) then
+     if (in%disableSym .and. in%gen_nkpt > 1) then
         call yaml_warning('symmetries have been disabled, k points are not irreductible.')
         !write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
      call yaml_open_sequence('K points')!,advance='no')
      !call yaml_comment('Reduced coordinates  BZ coordinates  weight',hfill=' ')
      !write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-     do i = 1, in%nkpt, 1
+     do i = 1, in%gen_nkpt, 1
         call yaml_sequence(advance='no')
         call yaml_open_map(flow=.true.)
           call yaml_map( 'Rc', &
-             & in%kpt(:, i) * (/ atoms%astruct%cell_dim(1), atoms%astruct%cell_dim(2), &
-             & atoms%astruct%cell_dim(3) /) / two_pi,&
+             & in%gen_kpt(:, i) * atoms%astruct%cell_dim / two_pi,&
              & fmt='(f7.4)')
           call yaml_map( 'Bz', &
-             & in%kpt(:, i), &
+             & in%gen_kpt(:, i), &
              & fmt='(f7.4)')
-          call yaml_map('Wgt',in%wkpt(i),fmt='(f6.4)')
+          call yaml_map('Wgt',in%gen_wkpt(i),fmt='(f6.4)')
         call yaml_close_map(advance='no')
         call yaml_comment(trim(yaml_toa(i,fmt='(i4.4)')))
         !write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
@@ -653,7 +652,7 @@ subroutine write_input_parameters(in)!,atoms)
 end subroutine write_input_parameters
 
 
-subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
+subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
   use module_base
   use module_types
   use yaml_output
@@ -662,9 +661,17 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
   type(energy_terms), intent(in) :: energs
   real(gp), intent(in) :: gnrm,gnrm_zero
   character(len=*), intent(in) :: comment
+  logical,intent(in),optional :: only_energies
   !local variables
+  logical :: write_only_energies
 
-  if (len(trim(comment)) > 0) then
+  if (present(only_energies)) then
+      write_only_energies=only_energies
+  else
+      write_only_energies=.false.
+  end if
+
+  if (len(trim(comment)) > 0 .and. .not.write_only_energies) then
      if (verbose >0) call yaml_newline()
      call write_iter()
      if (verbose >0) call yaml_comment(trim(comment))    
@@ -681,15 +688,15 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
           call yaml_map('Epot',energs%epot,fmt='(1pe18.11)')
      if (energs%eproj /= 0.0_gp)&
           call yaml_map('Enl',energs%eproj,fmt='(1pe18.11)')
-     if (energs%eh  /= 0.0_gp)&
+     if (energs%eh /= 0.0_gp)&
           call yaml_map('EH',energs%eh,fmt='(1pe18.11)')
-     if (energs%exc  /= 0.0_gp)&
-     call yaml_map('EXC',energs%exc,fmt='(1pe18.11)')
-     if (energs%evxc  /= 0.0_gp)&
+     if (energs%exc /= 0.0_gp)&
+          call yaml_map('EXC',energs%exc,fmt='(1pe18.11)')
+     if (energs%evxc /= 0.0_gp)&
           call yaml_map('EvXC',energs%evxc,fmt='(1pe18.11)')
-     if (energs%eexctX  /= 0.0_gp)&
+     if (energs%eexctX /= 0.0_gp)&
           call yaml_map('EexctX',energs%eexctX,fmt='(1pe18.11)')
-     if (energs%evsic  /= 0.0_gp)&
+     if (energs%evsic /= 0.0_gp)&
           call yaml_map('EvSIC',energs%evsic,fmt='(1pe18.11)')
      if (len(trim(comment)) > 0) then
         if (energs%eion /= 0.0_gp)&
@@ -703,14 +710,16 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment)
 
      end if
      call yaml_close_map()
-     call yaml_newline()
   end if
 
-  if (len(trim(comment)) == 0) then
-     call write_iter()
-     if (verbose >0) call yaml_newline()
-  else if (verbose > 1) then
-     call yaml_map('SCF criterion',iscf,fmt='(i6)')
+  if (.not.write_only_energies) then
+     call yaml_newline()
+     if (len(trim(comment)) == 0) then
+        call write_iter()
+        if (verbose >0) call yaml_newline()
+     else if (verbose > 1) then
+        call yaml_map('SCF criterion',iscf,fmt='(i6)')
+     end if
   end if
 
 
@@ -1195,7 +1204,7 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
 END SUBROUTINE write_orbital_data
 
 
-!> Write diis weights
+!> Write DIIS weights
 subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
   use module_base
   use yaml_output

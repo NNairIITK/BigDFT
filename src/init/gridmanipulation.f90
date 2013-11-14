@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to manipulate the grid
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -25,11 +25,11 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    type(locreg_descriptors), intent(out) :: Glr
    real(gp), dimension(3), intent(out) :: shift
    !Local variables
+   !character(len=*), parameter :: subname='system_size'
    integer, parameter :: lupfil=14
    real(gp), parameter ::eps_mach=1.e-12_gp
    integer :: iat,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
    real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
-   character(len=*), parameter :: subname='system_size'
 
    !check the geometry code with the grid spacings
    if (atoms%astruct%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
@@ -458,7 +458,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    use module_base
    implicit none
    !Arguments
-   character, intent(in) :: geocode(1)
+   character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,ntypes
    real(gp), intent(in) :: rmult,hx,hy,hz
    integer, dimension(nat), intent(in) :: iatype
@@ -471,7 +471,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    real(gp) :: dx,dy2,dz2,rad
 
    !some checks
-   if (geocode(1) /= 'F') then
+   if (geocode(1:1) /= 'F') then
       !the nbuf value makes sense only in the case of free BC
       if (nbuf /=0) then
          write(*,'(1x,a)')'ERROR: a nonzero value of nbuf is allowed only for Free BC (tails)'
@@ -484,7 +484,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       end if
    end if
 
-   if (geocode(1) == 'F') then
+   if (geocode(1:1) == 'F') then
       do i3=nl3,nu3 
          do i2=nl2,nu2 
             do i1=nl1,nu1
@@ -524,7 +524,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          mu3=floor((rxyz(3,iat)+rad)/hz + eps_mach)
 
          !for Free BC, there must be no incoherences with the previously calculated delimiters
-         if (geocode(1) == 'F') then
+         if (geocode(1:1) == 'F') then
            if (ml1 < nl1) then
                write(*,'(a,i0,3x,i0)')  'ERROR: ml1 < nl1  ', ml1, nl1
                stop

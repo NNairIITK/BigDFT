@@ -19,6 +19,7 @@ module module_xc
   use xc_f90_lib_m
   use interfaces_41_xc_lowlevel
   use yaml_output
+  use dictionaries, only: f_err_raise
 
   implicit none
 
@@ -46,6 +47,7 @@ module module_xc
   type(xc_info) :: xc      !< Global structure about the used xc functionals
 
   logical :: abinit_init = .false.            !< .True. if already ABINIT_XC_NAMES intialized
+  logical :: libxc_init = .false.             !< .true. wha the libXC library has been initalized
   character(len=500) :: ABINIT_XC_NAMES(0:28) !< Names of the xc functionals used by ABINIT
 
   private
@@ -134,6 +136,7 @@ contains
        if (xcObj%id(1) > 0) call xc_f90_func_end(xcObj%funcs(1)%conf)
        if (xcObj%id(2) > 0) call xc_f90_func_end(xcObj%funcs(2)%conf)
     end if
+
   end subroutine obj_free_
 
   subroutine obj_get_name_(xcObj, name)
@@ -205,7 +208,18 @@ contains
     integer, intent(in) :: nspden
     integer, intent(in) :: kind
     integer, intent(in) :: ixc
+    !local variables
+    integer :: ixc_prev
 
+    !check if we are trying to initialize the libXC to a different functional
+    if (libxc_init) then
+       ixc_prev=xc%id(1)+1000*xc%id(2)
+       if (f_err_raise(((xc%kind== XC_LIBXC .or. kind == XC_MIXED) .and. ixc/=-ixc_prev),&
+            'LibXC library has been already initialized with ixc='//trim(yaml_toa(ixc_prev))//&
+            ', finalize it first to reinitialize it with ixc='//trim(yaml_toa(ixc)),&
+            err_name='BIGDFT_RUNTIME_ERROR')) return
+    end if
+    libxc_init=.true.
     call obj_init_(xc, ixc, kind, nspden)
   end subroutine xc_init
 
@@ -250,7 +264,12 @@ contains
   subroutine xc_end()
     implicit none
 
-    call obj_free_(xc)
+    !here no exception is needed if finalization has already been done
+    if (libxc_init) then
+       call obj_free_(xc)
+       libxc_init=.false.
+    end if
+
   end subroutine xc_end
 
   !> Test function to identify whether the presently used functional
@@ -389,9 +408,12 @@ contains
        if (present(dvxci)) dvxci=real(0,dp)
 
        !Loop over points
-       !$omp parallel do default(private) &
-       !$omp & shared(npts,rho,grho2,nspden) &
-       !$omp & shared(xc,vxc,exc,vxcgr,dvxci) 
+       !$omp parallel do default(shared) &
+       !!$omp shared(npts,rho,grho2,nspden) &
+       !!$omp shared(xc,vxc,exc,vxcgr,dvxci) &
+       !$omp private(ipts,ipte,nb,sigma,j,rhotmp,v2rho2,v2rhosigma,v2sigma2) &
+       !$omp private(vsigma,i,exctmp,vxctmp)
+       
        do ipts = 1, npts, n_blocks
           ipte = min(ipts + n_blocks - 1, npts)
           nb = ipte - ipts + 1

@@ -48,7 +48,7 @@ struct _BigDFT_SignalsHandler
 
   BigDFT_Wf *wf, *tmb;
   BigDFT_LocalFields *denspot;
-  BigDFT_Energs *energs;
+  BigDFT_Goutput *energs;
   BigDFT_OptLoop *optloop;
 
   guint refCount;

@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to generate the input guess
 !! @author
-!!    Copyright (C) 2007-2011 (LG) BigDFT group
+!!    Copyright (C) 2007-2013 (LG) BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,7 +10,7 @@
 
 !> Generate the input guess via the inguess_generator
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
-      &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
+      &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks,iversion,mapping,quartic_prefactor)
    use module_base
    use module_types
    use module_interfaces, except_this_one => inputguess_gaussian_orbitals
@@ -27,6 +27,9 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    type(orbitals_data), intent(out) :: orbse
    type(gaussian_basis), intent(out) :: G
    real(wp), dimension(:,:,:), pointer :: psigau
+   integer,intent(in) :: iversion !< 1:cubic, 2:linear
+   integer,dimension(orbs%norb),intent(in),optional:: mapping
+   real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
    !n(c) integer, parameter :: ngx=31
@@ -88,9 +91,16 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !in the case of a spin-polarised calculation
    !also for non-collinear case
    !nspin*noncoll is always <= 2
-   call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-        nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
-        basedist=orbs%norb_par(0:,1:))
+   if (iversion==1) then
+       call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
+            basedist=orbs%norb_par(0:,1:))
+   else if (iversion==2) then
+       call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.)
+   else
+       stop 'wrong value of iversion'
+   end if
    do ikpt = 1, orbse%nkpts
       ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
       do ispin=1,nspin
@@ -130,8 +140,21 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    call memocc(i_stat,iorbtolr,'iorbtolr',subname)
 
    !fill just the interesting part of the orbital
-   call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
-        psigau(1,1,min(orbse%isorb+1,orbse%norb)),iorbtolr)
+   if (present(mapping)) then
+       ! this will be use for the linear scaling part
+       if(present(quartic_prefactor)) then
+           call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+                psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+                iorbtolr,mapping,quartic_prefactor)
+       else
+           call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+                psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+                iorbtolr,mapping)
+       end if
+   else
+       call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+            psigau(1,1,min(orbse%isorb+1,orbse%norb)),iorbtolr)
+   end if
 
    i_all=-product(shape(scorb))*kind(scorb)
    deallocate(scorb,stat=i_stat)
@@ -145,7 +168,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
 END SUBROUTINE inputguess_gaussian_orbitals
 
 
-
+!NOT USED ANY MORE
 !>   Generate the input guess via the inguess_generator
 ! This is the same as inputguess_gaussian_orbitals, but it redistrubutes the orbitals in a new way
 ! (used for O(N), the cubic distribution scheme does not always match the scheme assumed for O(N)).
@@ -174,7 +197,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
   !local variables
   character(len=*), parameter :: subname='inputguess_gaussian_orbitals_forLinear'
-  integer, parameter :: ngx=31
+  !integer, parameter :: ngx=31
   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
@@ -460,7 +483,7 @@ subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspin
   real(gp), dimension(at%astruct%nat), intent(out) :: locrad
   integer,dimension(orbsig%norb),intent(out):: onWhichAtom
   !local variables
-  character(len=*), parameter :: subname='readAtomicOrbitals'
+  !character(len=*), parameter :: subname='readAtomicOrbitals'
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   character(len=2) :: symbol
   integer :: ity,i,iatsc,iat,lsc
@@ -552,7 +575,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
-   integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32,nmax_occ=10!actually is 24
+   integer, parameter :: noccmax=2,lmax=4,nelecmax=32,nmax_occ=10!actually is 24
+   !integer, parameter :: nterm_max=3,nmax=6
    logical :: orbpol_nc,occeq
    integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
@@ -846,7 +870,9 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                         jorb=ikorb-orbse%isorb
                         orbse%occup(ikorb)=at%aocc(iocc,iat)
 
+                        !!write(*,'(a,4i6,2es12.4)') 'iat, l, m, iocc, at%aocc(iocc,iat), ek', iat, l, m, iocc, at%aocc(iocc,iat), ek
                         eks=eks+ek*at%aocc(iocc,iat)*orbse%kwgts(ikpts)
+                        !!write(*,*) 'iat, at%aocc(iocc,iat)', iat, at%aocc(iocc,iat)
                         if (present(mapping)) then
                            iiorb=mapping(iorb)
                            jjorb=iiorb-orbse%isorb
@@ -1302,6 +1328,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
 
    !!Just for extracting the covalent radius and rprb
    call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+   !!write(*,*) 'WARNING: multiply rprb with 5!!'
+   !!rprb=rprb*5.d0
 
    
    if(present(quartic_prefactor)) then
@@ -2519,7 +2547,7 @@ subroutine write_fraction_string(l,occ,string,nstring)
    end if
 else
    nstring=5
-   write(string,'(1x,f4.2)')occ
+   write(string,'(1x,f4.2)') occ
 end if
 
 END SUBROUTINE write_fraction_string

@@ -1,26 +1,18 @@
 !> @file
 !!  Define routines for timing
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group (LG)
+!!    Copyright (C) 2010-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!> module to profile the actions of the code as well as the internal operations defined by the f_lib
-!!$module time_profiling
-!!$  implicit none
-!!$  
-!!$  contains
-!!$
-!!$    subroutine f_time_category(name,class,info)
-!!$    end subroutine f_time_category
-!!$end module time_profiling
 
-!>    Contains variables used a timing for BigDFT
+
+!> Module containing variables used for the timing for BigDFT
 module timeData
 !  use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=124,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=132,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -138,10 +130,12 @@ module timeData
        'wfd_creation  ','Other         ' ,'Miscellaneous ' ,  & 
        'comm_llr      ','Communications' ,'Miscellaneous ' ,  &
        'AllocationProf','Other         ' ,'Allocate arrs ' ,  &
-       'dirmin_lagmat1','Linear Algebra' ,'allgatherv etc' ,  &
-       'dirmin_lagmat2','Linear Algebra' ,'allreduce etc ' ,  &
+       'dirmin_lagmat1','Linear Algebra' ,'grad calc     ' ,  &
+       'dirmin_lagmat2','Linear Algebra' ,'allgatherv    ' ,  &
        'dirmin_dgesv  ','Linear Algebra' ,'dgesv/pdgesv  ' ,  &
-       'dirmin_sddiis ','Linear Algebra' ,'allreduce etc ' ,  &
+       'dirmin_sddiis ','Linear Algebra' ,'Miscellaneous ' ,  &
+       'dirmin_allgat ','Linear Algebra' ,'allgatherv    ' ,  &
+       'dirmin_sdfit  ','Linear Algebra' ,'allgatherv etc' ,  &
        'chebyshev_comp','Linear Algebra' ,'matmul/matadd ' ,  &
        'chebyshev_comm','Communications' ,'allreduce     ' ,  &
        'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
@@ -151,9 +145,15 @@ module timeData
        'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
        'misc          ','Other         ' ,'Miscellaneous ' ,  &
        'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
+       'constraineddft','Other         ' ,'Miscellaneous ' ,  &
+       'transfer_int  ','Other         ' ,'Miscellaneous ' ,  &
        'Reformatting  ','Initialization' ,'Interpolation ' ,  &
        'restart_wvl   ','Initialization' ,'inguess    rst' ,  &
        'restart_rsp   ','Initialization' ,'inguess    rst' ,  &
+       'check_sumrho  ','Initialization' ,'unitary check ' ,  &
+       'ApplyLocPot   ','Convolutions  ' ,'OpenCL ported ' ,  &
+       'ApplyLocKin   ','Convolutions  ' ,'OpenCL ported ' ,  &
+       'kernel_init   ','Other         ' ,'Fragment calc ' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped

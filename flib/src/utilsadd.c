@@ -53,6 +53,7 @@ void FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(long long int * 
   return;
 }
 
+//Symbol duplications for fortran interfaces
 
 void FC_FUNC(geti1, GETI1)(void *ptr,long long int *address)
 {
@@ -68,6 +69,27 @@ void FC_FUNC(geti2, GETI2)(void *ptr,long long int *address)
   return;
 }
 
+void FC_FUNC(geti3, GETI3)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(geti4, GETI4)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getc1, GETC1)(int *len,void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
 void FC_FUNC(getl1, GETL1)(void *ptr,long long int *address)
 {
   *address=0;
@@ -76,6 +98,13 @@ void FC_FUNC(getl1, GETL1)(void *ptr,long long int *address)
 }
 
 void FC_FUNC(getl2, GETL2)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getl3, GETL3)(void *ptr,long long int *address)
 {
   *address=0;
   *address = (long long int)ptr;
@@ -109,6 +138,21 @@ void FC_FUNC(getdp4, GETDP4)(void *ptr,long long int *address)
   *address = (long long int)ptr;
   return;
 }
+
+void FC_FUNC(getdp5, GETDP5)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getdp6, GETDP6)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
 
 void FC_FUNC(getdp1ptr, GETDP1PTR)(void *ptr,long long int *address)
 {
@@ -153,6 +197,13 @@ void FC_FUNC(geti1ptr, GETI1PTR)(void *ptr,long long int *address)
 }
 
 void FC_FUNC(geti2ptr, GETI2PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getc1ptr, GETC1ptr)(int *len,void *ptr,long long int *address)
 {
   *address=0;
   *address = (long long int)ptr;

@@ -1,7 +1,7 @@
 !> @file
-!! Check psuedopotentials
+!! Check pseudopotentials
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,7 +9,7 @@
 
 
 !> Program to check pseudopotentials
-program krachboum
+program psp_test
   use module_base
 
   implicit none
@@ -61,4 +61,4 @@ program krachboum
 
   write(*,"(A,F12.6,A)") "OK (checksum is:", sum(psppar) + nzatom + nelpsp + npspcode, ")"
 
-end program krachboum
+end program psp_test

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Define a dictionary and the pure functionsits basic usage rules
+!> Module which defines a dictionary and the pure functions for its basic usage rules (no dependency)
 module dictionaries_base
 
   implicit none
@@ -16,6 +16,12 @@ module dictionaries_base
   integer, parameter, public :: max_field_length = 256
   character(len=max_field_length), parameter, public :: TYPE_DICT='__dict__'
   character(len=max_field_length), parameter, public :: TYPE_LIST='__list__'
+
+  character(len = max_field_length), parameter, private :: NOT_A_VALUE = "__not_a_value__"
+
+  !global variables associated to the number of dictionaries allocated
+  integer, private :: ndicts=0         !< number of dictionaries allocated simultaneously
+  integer, private :: ndicts_max=0     !< maximum number of dictionaries allocated
 
   type, public :: storage
      sequence
@@ -26,7 +32,7 @@ module dictionaries_base
      character(len=max_field_length) :: value
   end type storage
 
-  !> structure of the dictionary element (this internal structure is private)
+  !> structure of the dictionary element (this internal structure is in principle private)
   type, public :: dictionary
      type(storage) :: data
      type(dictionary), pointer :: parent => null()
@@ -38,9 +44,6 @@ module dictionaries_base
   !> operator to access and create a key in the dictionary
   interface operator(//)
      module procedure get_child_ptr,get_list_ptr
-  end interface
-  interface operator(.is.)
-     module procedure storage_data
   end interface
 
 contains
@@ -60,13 +63,13 @@ contains
     type(dictionary), intent(in) :: dict
     logical :: no_value
 
-    no_value=len(trim(dict%data%value)) == 0 .and. .not. associated(dict%child)
+    no_value=trim(dict%data%value) == NOT_A_VALUE .and. .not. associated(dict%child)
   end function no_value
 
   pure function storage_null() result(st)
     type(storage) :: st
     st%key=repeat(' ',max_field_length)
-    st%value=repeat(' ',max_field_length)
+    st%value(1:max_field_length)=NOT_A_VALUE
     st%item=-1
     st%nitems=0
     st%nelems=0
@@ -82,18 +85,29 @@ contains
   pure subroutine dict_init(dict)
     implicit none
     type(dictionary), pointer :: dict
-
     allocate(dict)
+!    ndicts=ndicts+1
+!    ndicts_max=max(ndicts_max,ndicts)
     call dictionary_nullify(dict)
-
   end subroutine dict_init
+
+  !> destroy only one level
+  pure subroutine dict_destroy(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+!    if (associated(dict)) then !in principle this conditional is not needed
+    deallocate(dict)
+!    ndicts=ndicts-1
+    nullify(dict)
+!    end if
+  end subroutine dict_destroy
 
   pure subroutine dict_free(dict)
     type(dictionary), pointer :: dict
 
     if (associated(dict)) then
        call dict_free_(dict)
-       deallocate(dict)
+       call dict_destroy(dict)
        nullify(dict)
     end if
 
@@ -106,14 +120,12 @@ contains
       !first destroy the children
       if (associated(dict%child)) then
          call dict_free_(dict%child)
-         deallocate(dict%child)
-         nullify(dict%child)
+         call dict_destroy(dict%child)
       end if
       !then destroy younger brothers
       if (associated(dict%next)) then
          call dict_free_(dict%next)
-         deallocate(dict%next)
-         nullify(dict%next)
+         call dict_destroy(dict%next)
       end if
       call dictionary_nullify(dict)
 
@@ -251,6 +263,8 @@ contains
           else if (dict%data%nelems > 0) then
              dict_value=TYPE_DICT
           end if
+       else if (trim(dict%data%value) == NOT_A_VALUE) then
+          dict_value=repeat(' ',len(dict_value))
        else
           dict_value=dict%data%value
        end if
@@ -283,7 +297,7 @@ contains
 
   !> this routine creates a key for the dictionary in case it is absent
   !! the it adds one to the number of elements of the parent dictionary
-  subroutine set_elem(dict,key)
+  pure subroutine set_elem(dict,key)
     implicit none
     type(dictionary), pointer :: dict !!TO BE VERIFIED
     character(len=*), intent(in) :: key
@@ -303,9 +317,9 @@ contains
   !! increment of the number of items
   !! this routine adds the check that the number of items is preserved
   !! for the moment this check is removed
-  subroutine set_item(dict,item)
+  pure subroutine set_item(dict,item)
     implicit none
-    type(dictionary) :: dict
+    type(dictionary), pointer :: dict !< recently modified, to be checked
     integer, intent(in) :: item
 
     dict%data%item=item
@@ -313,15 +327,15 @@ contains
        if (len_trim(dict%parent%data%value) > 0) dict%parent%data%value=repeat(' ',max_field_length)
        
        dict%parent%data%nitems=dict%parent%data%nitems+1
-       if (item+1 > dict%parent%data%nitems) then
+       !if (item+1 > dict%parent%data%nitems) then
           !if (exceptions) then
           !   last_error=DICT_ITEM_NOT_VALID
           !else
           !so far this error has never been found
-             write(*,*)'ERROR: item not valid',item,dict%parent%data%nitems
-             stop
+       !      write(*,*)'ERROR: item not valid',item,dict%parent%data%nitems
+       !      stop
           !end if
-       end if
+       !end if
     end if
 
   end subroutine set_item
@@ -472,5 +486,21 @@ contains
     end if
     
   end subroutine clean_subdict
-
 end module dictionaries_base
+
+!> Routines for bindings only (issue of module)
+subroutine dict_new(dict)
+  use dictionaries_base
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call dict_init(dict)
+end subroutine dict_new
+
+subroutine dict_free(dict)
+  use dictionaries_base, mod_dict_free => dict_free
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call mod_dict_free(dict)
+end subroutine dict_free

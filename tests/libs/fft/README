@@ -1,1 +1,7 @@
-Performs some tests on FFT library in serial.
+/* @file
+@brief README of the FFT tests.
+
+@dir ./tests/libs/fft
+@brief Performs some tests on FFT library in serial.
+
+*/

@@ -48,7 +48,7 @@ def ignore_key(key):
   ret = key in keys_to_ignore
   if (not(ret)):
     for p in patterns_to_ignore:
-      if key.find(p) > -1:
+      if str(key).find(p) > -1:
         ret=True
         exit
   return ret
@@ -166,17 +166,29 @@ def compare_scl(scl, ref, tols, always_fails = False):
   global failed_checks,discrepancy,biggest_tol
   failed = always_fails
   ret = (failed, None)
-  #print 'scl',scl,'ref',ref,'tols',tols
+#  print scl,ref,tols, type(ref), type(scl)
 #eliminate the character variables
   if type(ref) == type(""):
     if not(scl == ref):
       ret = (True, scl)
   elif not(always_fails):
-    if tols is None:
-      failed = not(math.fabs(scl - ref) <= epsilon)
+    # infinity case
+    if scl == ref:
+      failed = False
+      diff = 0.
     else:
-      failed = not(math.fabs(scl - ref) <= tols) 
-    discrepancy=max(discrepancy,math.fabs(scl - ref))
+      try:
+        diff = math.fabs(scl - ref)
+        ret_diff = diff
+        if tols is None:
+          failed = not(diff <= epsilon)
+        else:
+          failed = not(diff <= tols)
+      except TypeError:
+        ret_diff = "NOT SAME KIND"
+        diff = 0.
+        failed = True
+    discrepancy=max(discrepancy,diff)
 #    if (discrepancy > 1.85e-9):
 #    print 'test',scl,ref,tols,discrepancy,failed
 #      sys.exit(1)
@@ -186,7 +198,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       else:
         ret = (True, tols)
     else:
-      ret = (True, math.fabs(scl - ref))
+      ret = (True, ret_diff)
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
@@ -227,8 +239,10 @@ def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet)
 
 import yaml_hl
 
+#Class used to define options in order to hightlight the YAML output by mean of yaml_hl
 class Pouet:
   def __init__(self):
+    #Define a temporary file
     self.input = "report"
     self.output = None
     self.style = "ascii"
@@ -264,7 +278,6 @@ if __name__ == "__main__":
 
 
 #args=parse_arguments()
-
 #print args.ref,args.data,args.output
 #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
@@ -374,12 +387,13 @@ for i in range(len(references)):
   discrepancy=0.
   reference = references[i]
   #this executes the fldiff procedure
-  compare(datas[i], reference, tols)
+  #compare(datas[i], reference, tols)
   try:
     data = datas[i]
     compare(data, reference, tols)
-  except:
-      fatal_error(args,reports)
+  except Exception,e:
+    print str(e)
+    fatal_error(args,reports)
   try:
     doctime = data["Timings for root process"]["Elapsed time (s)"]
   except:
@@ -412,12 +426,19 @@ for i in range(len(references)):
   hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
   
-#create dictionary for the final report
-
-finres=document_report(hostname,biggest_tol,max_discrepancy,failed_documents,leak_memory,total_misses,total_missed_items,time)
+# Create dictionary for the final report
 if len(references)> 1:
-  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  finres=document_report(hostname,biggest_tol,max_discrepancy,failed_documents,leak_memory,total_misses,total_missed_items,time)
+  newreport = open("report", "w")
+  newreport.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  newreport.close()
+  reports.write(open("report", "rb").read())
+  Style = yaml_hl.Style
+  hl = yaml_hl.YAMLHighlight(options)
+  hl.highlight()
+
+#Then remove the file "report" (temporary file)
+os.remove("report")
 
 sys.exit(0)
 

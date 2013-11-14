@@ -1,7 +1,18 @@
+!> @file
+!!  Define a module to wrap the linear algebra routines
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Modules which defines wrappers for the linear alegra.
 module wrapper_linalg
+  !!@todo MOVE ME TO F_MALLOC
   ! MOVE ME TO F_MALLOC
-  !initialize to zero an array
+  !> initialize to zero an array
   interface to_zero
      module procedure put_to_zero_simple, &
           & put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
