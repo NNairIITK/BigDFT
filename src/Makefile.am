@@ -62,7 +62,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo NEB_images
+binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis global bart abscalc BigDFT2Wannier WaCo NEB_images
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -87,19 +87,6 @@ etsf_files = wavelib/plotting-etsf.f90 \
 else
 etsf_files = wavelib/etsf_fake.f90
 endif
-
-# Specific treatment for global (not distributed).
-if USE_MINIMA_HOPPING
-minima_hopping_sources = global
-else
-minima_hopping_sources =
-endif
-global_SOURCES = # Should be global.f90, but see below.
-global_LDADD = $(bigdft_library) @LINALG_LIBS@
-# Hack to avoid global.f90 inclusion into make dist.
-am_global_OBJECTS = global.$(OBJEXT)
-global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
-	$(LDFLAGS) -o $@
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
@@ -265,6 +252,11 @@ install-data-hook:
 
 bigdft_SOURCES = BigDFT.f90
 bigdft_LDADD = $(bigdft_library)
+
+global_SOURCES = global.f90
+global_LDADD = $(bigdft_library) @LINALG_LIBS@
+global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
+	$(LDFLAGS) -o $@
 
 NEB_images_SOURCES = BigDFT.f90
 NEB_images_LDADD = $(bigdft_library)

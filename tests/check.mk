@@ -169,7 +169,7 @@ report:
 	$(MAKE) -f ../Makefile $$name".post-out"
 
 $(PSPS):
-	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 
+	cp $(abs_top_srcdir)/utils/PSPfiles/$@ .
 
 %.clean:
 	@name=`basename $@ .clean` ; dir=$$name.test ; \
@@ -213,9 +213,11 @@ $(INS): in_message
 		if test -n "$(ocl_devices)" ; then \
 				echo "OCL_DEVICES $(ocl_devices)" >> $$dir/check.perf ; \
 		fi ; \
-	else echo "" > $$dir/check.perf ; fi ; \
-	echo outdir ./ >> $$dir/check.perf ; \
-	for i in $$dir/*.dft ; do cat $$dir/check.perf >> $$dir/`basename $$i .dft`.perf ; done ; \
+	else echo -n "" > $$dir/check.perf ; fi ; \
+	echo "outdir ./" >> $$dir/check.perf ; \
+	for i in $$dir/*.out.ref.yaml ; do \
+	    cat $$dir/check.perf >> $$dir/`basename $$i .out.ref.yaml`.perf ; \
+	done ; \
 	if [ ! -f $$dir/input.perf ] ; then cp $$dir/check.perf $$dir/input.perf ; fi ; \
     cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
     $(MAKE) -f ../Makefile $$dir".post-in"; \
