@@ -3188,4 +3188,13 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   energyDiff=energy-energyold
   energyold=energy
 
+  if(tmb%can_use_transposed) then
+      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+      deallocate(tmb%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_c', subname)
+      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+      deallocate(tmb%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_f', subname)
+  end if
+
 end subroutine build_ks_orbitals

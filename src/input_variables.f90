@@ -1352,5 +1352,7 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%check_sumrho = dict // CHECK_SUMRHO
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   in%experimental_mode = dict//EXPERIMENTAL_MODE
+  ! linear scaling: write KS orbitals for cubic restart
+  in%write_orbitals = dict//WRITE_ORBITALS
 END SUBROUTINE perf_input_analyse
 

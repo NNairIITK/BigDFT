@@ -126,6 +126,7 @@ module module_input_keys
   character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter, public :: CHECK_SUMRHO = "check_sumrho"
   character(len = *), parameter, public :: EXPERIMENTAL_MODE = "experimental_mode"
+  character(len = *), parameter, public :: WRITE_ORBITALS = "write_orbitals"
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0
@@ -934,6 +935,10 @@ contains
     
     call set(p//EXPERIMENTAL_MODE,dict_new(&
          COMMENT .is. 'linear scaling: activate the experimental mode', &
+         DEFAULT .is. 'No'))
+
+    call set(p//WRITE_ORBITALS,dict_new(&
+         COMMENT .is. 'linear scaling: write KS orbitals for cubic restart', &
          DEFAULT .is. 'No'))
     !the opportunity of entering this dictionary already in yaml format should be discussed
     !for example the above variable becomes:
