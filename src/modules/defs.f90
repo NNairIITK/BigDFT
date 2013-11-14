@@ -121,7 +121,7 @@ module module_defs
     end function uninitialized_dbl
 
     function fnrm_denpot(x,cplex,nfft,nspden,opt_denpot,user_data)
-      use m_ab6_mixing
+      use m_ab7_mixing
       implicit none
       !Arguments
       integer, intent(in) :: cplex,nfft,nspden,opt_denpot
@@ -132,7 +132,7 @@ module module_defs
       double precision :: fnrm_denpot, ar, nrm_local, dnrm2
 
       ! In case of density, we use nscatterarr.
-      if (opt_denpot == AB6_MIXING_DENSITY) then
+      if (opt_denpot == AB7_MIXING_DENSITY) then
          call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
          if (ierr /= 0) then
             call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
@@ -173,7 +173,7 @@ module module_defs
     end function fnrm_denpot
 
     function fdot_denpot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
-      use m_ab6_mixing
+      use m_ab7_mixing
       implicit none
       integer, intent(in) :: cplex,nfft,nspden,opt_denpot
       double precision, intent(in) :: x(*), y(*)
@@ -183,7 +183,7 @@ module module_defs
       double precision :: fdot_denpot, ar, dot_local, ddot
 
       ! In case of density, we use nscatterarr.
-      if (opt_denpot == AB6_MIXING_DENSITY) then
+      if (opt_denpot == AB7_MIXING_DENSITY) then
          call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
          if (ierr /= 0) then
             call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
