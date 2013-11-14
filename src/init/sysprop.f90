@@ -532,7 +532,6 @@ END SUBROUTINE init_atomic_values
 subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, read_radii, exists)
   use module_base
-  use defs_basis, only: tmp_unit
   implicit none
   
   character(len = *), intent(in) :: filename
@@ -553,31 +552,31 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   if (.not. exists) return
 
   ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
-  open(unit=tmp_unit,file=trim(filename),status='old',iostat=ierror)
+  open(unit=11,file=trim(filename),status='old',iostat=ierror)
   !Check the open statement
   if (ierror /= 0) then
      write(*,*) ': Failed to open the file (it must be in ABINIT format!): "',&
           trim(filename),'"'
      stop
   end if
-  read(tmp_unit,*)
-  read(tmp_unit,*) nzatom_dp, nelpsp_dp 
+  read(11,*)
+  read(11,*) nzatom_dp, nelpsp_dp
   nzatom=nzatom_dp; nelpsp=nelpsp_dp
-  read(tmp_unit,*) npspcode, ixcpsp
+  read(11,*) npspcode, ixcpsp
 
   psppar(:,:)=0._gp
   if (npspcode == 2) then !GTH case
-     read(tmp_unit,*) (psppar(0,j),j=0,4)
+     read(11,*) (psppar(0,j),j=0,4)
      do i=1,2
-        read(tmp_unit,*) (psppar(i,j),j=0,3-i)
+        read(11,*) (psppar(i,j),j=0,3-i)
      enddo
   else if (npspcode == 3) then !HGH case
-     read(tmp_unit,*) (psppar(0,j),j=0,4)
-     read(tmp_unit,*) (psppar(1,j),j=0,3)
+     read(11,*) (psppar(0,j),j=0,4)
+     read(11,*) (psppar(1,j),j=0,3)
      do i=2,4
-        read(tmp_unit,*) (psppar(i,j),j=0,3)
+        read(11,*) (psppar(i,j),j=0,3)
         !ALEX: Maybe this can prevent reading errors on CRAY machines?
-        read(tmp_unit,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
+        read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
      enddo
   else if (npspcode == 7) then !PAW Pseudos
      !call yaml_comment('Reading of PAW atomic-data, under development')
@@ -586,37 +585,37 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      call psp_from_file_paw()
      
   else if (npspcode == 10) then !HGH-K case
-     read(tmp_unit,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
-     read(tmp_unit,*) nlterms !number of channels of the pseudo
+     read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
+     read(11,*) nlterms !number of channels of the pseudo
      prjloop: do l=1,nlterms
-        read(tmp_unit,*) psppar(l,0),nprl,psppar(l,1),&
+        read(11,*) psppar(l,0),nprl,psppar(l,1),&
              (psppar(l,j+2),j=2,nprl) !h_ij terms
         do i=2,nprl
-           read(tmp_unit,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij 
+           read(11,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij 
         end do
         if (l==1) cycle
         do i=1,nprl
            !ALEX: Maybe this can prevent reading errors on CRAY machines?
-           read(tmp_unit,*)skip !k coefficients, not used
+           read(11,*)skip !k coefficients, not used
         end do
      end do prjloop
   !ALEX: Add support for reading NLCC from psppar
   else if (npspcode == 12) then !HGH-NLCC: Same as HGH-K + one additional line
-     read(tmp_unit,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
-     read(tmp_unit,*) nlterms !number of channels of the pseudo
+     read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
+     read(11,*) nlterms !number of channels of the pseudo
      do l=1,nlterms
-        read(tmp_unit,*) psppar(l,0),nprl,psppar(l,1),&
+        read(11,*) psppar(l,0),nprl,psppar(l,1),&
              (psppar(l,j+2),j=2,nprl) !h_ij terms
         do i=2,nprl
-           read(tmp_unit,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij
+           read(11,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij
         end do
         if (l==1) cycle
         do i=1,nprl
            !ALEX: Maybe this can prevent reading errors on CRAY machines?
-           read(tmp_unit,*) skip !k coefficients, not used
+           read(11,*) skip !k coefficients, not used
         end do
      end do 
-     read(tmp_unit,*) rcore, qcore
+     read(11,*) rcore, qcore
      !convert the core charge fraction qcore to the amplitude of the Gaussian
      !multiplied by 4pi. This is the convention used in nlccpar(1,:).
      fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
@@ -632,10 +631,10 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      stop
   end if
 
-  if (npspcode /= 7) return !Skip the rest for PAW
+  if (npspcode == 7) return !Skip the rest for PAW
 
   !old way of calculating the radii, requires modification of the PSP files
-  read(tmp_unit,'(a100)',iostat=ierror) line
+  read(11,'(a100)',iostat=ierror) line
   if (ierror /=0) then
      !if (iproc ==0) write(*,*)&
      !     ' WARNING: last line of pseudopotential missing, put an empty line'
@@ -646,7 +645,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
      radii_cf(3)=radii_cf(2)
   end if
-  close(tmp_unit)
+  close(11)
 
   read_radii = (ierror == 0)
 
@@ -702,7 +701,7 @@ subroutine psp_from_file_paw()
   pspso=0 !No spin-orbit for the moment
 
 ! Read PSP header:
-  rewind(tmp_unit)
+  rewind(11)
   call pawpsp_read_header(lloc,l_size,mmax,pspcod,pspxc,r2well,zionpsp,znuclpsp)
   call pawpsp_read_header_2(pspversion,basis_size,lmn_size)
 
@@ -741,7 +740,7 @@ subroutine psp_from_file_paw()
   call pawrad_nullify(pawrad)
   call pawtab_nullify(pawtab)
 
-  close(tmp_unit)
+  close(11)
 
   call pawpsp_main( &
 & pawrad,pawtab,&
@@ -893,7 +892,6 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   enddo
 END SUBROUTINE read_radii_variables
 
-
 subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   use module_base
   use module_types
@@ -916,7 +914,6 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
   character(len=100) :: radical
-
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
