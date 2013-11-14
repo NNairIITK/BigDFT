@@ -2801,19 +2801,23 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
                     if (ih<0) then
                        write(str,'(I2)') abs(ih)
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO-'//trim(adjustl(str))
+                       call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
                        call yaml_map('i',ifrag)
                        call yaml_map('s1','HOMO-'//trim(adjustl(str)))
                     else if (ih==0) then
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO  '
+                       call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
                        call yaml_map('i',ifrag)
                        call yaml_map('s1','HOMO')
                     else if (ih==1) then
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO  '
+                       call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
                        call yaml_map('i',ifrag)
                        call yaml_map('s1','LUMO')
                     else
                        write(str,'(I2)') ih-1
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO+'//trim(adjustl(str))
+                       call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
                        call yaml_map('i',ifrag)
                        call yaml_map('s1','LUMO+'//trim(adjustl(str)))
                     end if
@@ -2825,24 +2829,24 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
                        !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
                        !     ' HOMO-'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
-                       call yaml_map('j',ifrag)
+                       call yaml_map('j',jfrag)
                        call yaml_map('s1','HOMO-'//trim(adjustl(str)))
                     else if (jh==0) then
                        !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' HOMO  '
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
-                       call yaml_map('j',ifrag)
+                       call yaml_map('j',jfrag)
                        call yaml_map('s1','HOMO')
                     else if (jh==1) then
                        !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' LUMO  '
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
-                       call yaml_map('j',ifrag)
+                       call yaml_map('j',jfrag)
                        call yaml_map('s1','LUMO')
                     else
                        !write(str,'(I2)') jh-1
                        !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,&
                        !     ' LUMO+'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
-                       call yaml_map('j',ifrag)
+                       call yaml_map('j',jfrag)
                        call yaml_map('s1','LUMO+'//trim(adjustl(str)))
                     end if
                  end if
