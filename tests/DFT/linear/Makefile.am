@@ -13,7 +13,8 @@ TESTDIRS = Locreg \
        rotatesmall \
        cdft \
        hybrid-directmin \
-       experimentalmode
+       experimentalmode \
+	   linearcubic
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \
@@ -21,8 +22,7 @@ EXTRA_TESTDIRS = reformatcomplete \
 	deltascf \
 	reformat \
 	paracetamol \
-	rotate \
-	rotate2 
+	rotate
 #\
 #	noortho
 
@@ -66,21 +66,18 @@ rotatesmall_write.out.post-out:
 	cp -rf data-write data-read2/data-sih3
 	cp -f write.xyz data-read2/sih3.xyz
 
-rotate_read.out.out : rotate_write.out.out
+rotate_read1.out.out : rotate_write.out.out
+rotate_read2.out.out : rotate_write.out.out
 
 rotate_write.out.post-out: 
-	rm -rf data-read/data-benzene
-	mkdir -p data-read
-	mv -f data-write data-read/data-benzene
-	cp -f write.xyz data-read/benzene.xyz
-
-rotate2_read.out.out : rotate2_write.out.out
-
-rotate2_write.out.post-out: 
-	rm -rf data-read/data-benzene
-	mkdir -p data-read
-	mv -f data-write data-read/data-benzene
-	cp -f write.xyz data-read/benzene.xyz
+	rm -rf data-read1/data-benzene
+	mkdir -p data-read1
+	cp -rf data-write data-read1/data-benzene
+	cp -f write.xyz data-read1/benzene.xyz
+	rm -rf data-read2/data-benzene
+	mkdir -p data-read2
+	cp -rf data-write data-read2/data-benzene
+	cp -f write.xyz data-read2/benzene.xyz
 
 cdft_ohoh.out.out : cdft_oh-.out.out
 cdft_oh-.out.out : cdft_oh-a.out.out
@@ -115,6 +112,13 @@ reformatcomplete_write.out.post-out:
 	mkdir -p data-read35
 	mv -f data-write data-read35/data-h2o
 	cp -f write.xyz data-read35/h2o.xyz
+
+linearcubic_cubic.out.out : linearcubic_linear.out.out
+
+linearcubic_linear.out.post-out:
+	rm -rf data-cubic
+	mv data-linear data-cubic
+
 
 # Define the precision for specific directories.
 %.report: %.ref

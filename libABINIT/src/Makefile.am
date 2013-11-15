@@ -27,7 +27,8 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xrecv_mpi.F90 \
 	12_hide_mpi/xsend_mpi.F90 \
 	12_hide_mpi/xsum_master.F90 \
-	12_hide_mpi/xsum_mpi.F90
+	12_hide_mpi/xsum_mpi.F90 \
+        42_libpaw/abi_common_for_bigdft.h
 
 lib_LIBRARIES = libabinit.a
 

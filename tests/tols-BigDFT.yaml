@@ -422,6 +422,7 @@ fructose:
  Omega: 1.3e-10
  Total charge: 2.1e-10
  charge diff: 1.1e-10
+ multiplicator for the confinement: 1.4e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -470,3 +471,9 @@ rotatesmall_read1:
 
 rotatesmall_read2:
  Average noise forces: 1.1e-10 
+
+linearcubic_cubic:
+ Epsilon: 1.1e-10
+
+linearcubic_linear:
+ Epsilon: 1.1e-10

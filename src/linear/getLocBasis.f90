@@ -10,7 +10,8 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
+    calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, &
+    updatekernel)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
@@ -44,18 +45,34 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(cdft_data),intent(inout),optional :: cdft
   integer, intent(in) :: extra_states
   logical, optional, intent(in) :: reorder
+  logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
   integer :: istat, iall, iorb, info
   integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, evalsmall, work
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
+  real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
+  type(sparseMatrix) :: gradmat 
+  logical :: update_kernel
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
-  real(kind=8) :: deviation
+  real(kind=8) :: deviation, KSres
   integer :: iat, iiorb, jjorb, lwork,jorb
+
+  ! Option to only calculate the energy without updating the kernel
+  if (present(updatekernel)) then
+      update_kernel=updatekernel
+  else
+      update_kernel=.true.
+  end if
+
+  ! This is simply not yet implemented
+  if (.not.update_kernel .and. scf_mode==LINEAR_FOE) then
+      stop 'ERROR: for the moment, update_kernel must be true for FOE'
+  end if
 
    if (iproc==0) call yaml_open_map('Kernel update')
   ! should eventually make this an input variable
@@ -192,14 +209,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call memocc(istat, hpsit_f, 'hpsit_f', subname)
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
            tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+
+
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
-      iall=-product(shape(hpsit_c))*kind(hpsit_c)
-      deallocate(hpsit_c, stat=istat)
-      call memocc(istat, iall, 'hpsit_c', subname)
-      iall=-product(shape(hpsit_f))*kind(hpsit_f)
-      deallocate(hpsit_f, stat=istat)
-      call memocc(istat, iall, 'hpsit_f', subname)
+
+
+
 
       !! experimental by SM
       !if (iproc==0) write(*,*) 'deleting additional entries im ham.. SM'
@@ -306,6 +322,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       !!if(iproc==0) write(*,'(a)') 'done.'
 
+      !!tmb%coeff=0.d0
+      !!do iorb=1,tmb%orbs%norb
+      !!    tmb%coeff(iorb,iorb)=0.d0
+      !!end do
       call dcopy(tmb%orbs%norb*tmb%orbs%norb, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
       infoCoeff=0
   else
@@ -402,11 +422,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call timing(iproc,'getlocbasinit','ON') !lr408t
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.true.)
+         !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.true.)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs, &
+              update_kernel)
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.false.)
       end if
+
 
       call timing(iproc,'getlocbasinit','OF') !lr408t
 
@@ -427,6 +450,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
+  end if
+  if (calculate_ham) then
+      call get_KS_residue(iproc, nproc, tmb, orbs, hpsit_c, hpsit_f, KSres)
+      if (iproc==0) call yaml_map('Kohn-Sham residue',KSres,fmt='(es9.2)')
+      iall=-product(shape(hpsit_c))*kind(hpsit_c)
+      deallocate(hpsit_c, stat=istat)
+      call memocc(istat, iall, 'hpsit_c', subname)
+      iall=-product(shape(hpsit_f))*kind(hpsit_f)
+      deallocate(hpsit_f, stat=istat)
+      call memocc(istat, iall, 'hpsit_f', subname)
   end if
   if (iproc==0) call yaml_map('Coefficients available',scf_mode /= LINEAR_FOE)
 
@@ -794,7 +827,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
          call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
               meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
               hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
-              experimental_mode, hpsi_noprecond)
+              experimental_mode, orbs, hpsi_noprecond)
       !else
       !   call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, &
       !        fnrm, fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, &
@@ -1591,7 +1624,7 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
 end subroutine diagonalizeHamiltonian2
 
 subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
-       orbs, phismall, philarge)
+       orbs, phismall, philarge, to_global)
   use module_base
   use module_types
   implicit none
@@ -1602,10 +1635,19 @@ subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
   type(orbitals_data),intent(in) :: orbs
   real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
   real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
+  logical,intent(in),optional :: to_global
   
   ! Local variables
   integer :: ists, istl, iorb, ilr, sdim, ldim, nspin
-       call timing(iproc,'small2large','ON') ! lr408t 
+  logical :: global
+
+  if (present(to_global)) then
+      global=to_global
+  else
+      global=.false.
+  end if
+
+  call timing(iproc,'small2large','ON') ! lr408t 
   ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
   call to_zero(npsidim_orbs_large, philarge(1))
   ists=1
@@ -1613,19 +1655,30 @@ subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
   do iorb=1,orbs%norbp
       ilr = orbs%inWhichLocreg(orbs%isorb+iorb)
       sdim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
-      ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+      if (global) then
+          ldim=lzdsmall%glr%wfd%nvctr_c+7*lzdsmall%glr%wfd%nvctr_f
+      else
+          ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+      end if
       nspin=1 !this must be modified later
-      call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdlarge%llr(ilr), &
-           lzdsmall%llr(ilr), phismall(ists), philarge(istl))
-      ists=ists+lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
-      istl=istl+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+      if (global) then
+          call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdsmall%glr, &
+               lzdsmall%llr(ilr), phismall(ists), philarge(istl))
+      else
+          call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdlarge%llr(ilr), &
+               lzdsmall%llr(ilr), phismall(ists), philarge(istl))
+      end if
+      !!ists=ists+lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
+      !!istl=istl+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+      ists=ists+sdim
+      istl=istl+ldim
   end do
   if(orbs%norbp>0 .and. ists/=npsidim_orbs_small+1) then
       write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',ists,'=ists /= npsidim_orbs_small+1=',npsidim_orbs_small+1
       stop
   end if
   if(orbs%norbp>0 .and. istl/=npsidim_orbs_large+1) then
-      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istk /= npsidim_orbs_large+1=',npsidim_orbs_large+1
+      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istl /= npsidim_orbs_large+1=',npsidim_orbs_large+1
       stop
   end if
        call timing(iproc,'small2large','OF') ! lr408t 
@@ -2380,3 +2433,95 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
 
 end subroutine purify_kernel
+
+
+
+subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => get_KS_residue
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction) :: tmb
+  type(orbitals_data),intent(in) :: KSorbs
+  real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(in) :: hpsit_c
+  real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(in) :: hpsit_f
+  real(kind=8),intent(out) :: KSres
+
+  ! Local variables
+  integer :: iorb, istat, ierr
+  real(kind=8) :: norbtot, scale_factor
+  type(sparseMatrix) :: gradmat 
+  real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
+  character(len=*),parameter :: subname='get_KS_residue'
+
+  call f_routine(id='get_KS_residue')
+ 
+  call nullify_sparsematrix(gradmat)
+  call sparse_copy_pattern(tmb%linmat%ham, gradmat, iproc, subname)
+  gradmat%matrix_compr=f_malloc_ptr(gradmat%nvctr,id='gradmat%matrix_compr')
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+       hpsit_c, hpsit_c, hpsit_f, hpsit_f, gradmat)
+
+
+  gradmat%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='gradmat%matrix')
+  tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
+  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+  call uncompressMatrix(iproc,gradmat)
+  call uncompressMatrix(iproc,tmb%linmat%ham)
+  call uncompressMatrix(iproc,tmb%linmat%denskern)
+  KH=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='KH')
+  KHKH=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='KHKH')
+  Kgrad=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='Kgrad')
+
+
+  ! scale_factor takes into account the occupancies which are present in the kernel
+  if (KSorbs%nspin==1) then
+      ! closed shell, i.e. factor 2 is included in the kernel
+      scale_factor=0.5d0
+  else
+      scale_factor=1.0d0
+  end if
+
+  !!KHKH=0.d0
+  !!call dgemm('n', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
+  !!     tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, 0.d0, KH, tmb%orbs%norb)
+  !!call dgemm('n', 't', tmb%orbs%norbp, tmb%orbs%norbp, tmb%orbs%norb, scale_factor, KH, &
+  !!     tmb%orbs%norb, KH, tmb%orbs%norb, 0.d0, KHKH, tmb%orbs%norb)
+  !!call mpiallred(KHKH(1,1), tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
+  !!     tmb%orbs%norb, gradmat%matrix, tmb%orbs%norb, 0.d0, Kgrad, tmb%orbs%norb)
+
+  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
+       tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, 0.d0, KH, tmb%orbs%norb)
+  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, scale_factor, KH, &
+       tmb%orbs%norb, KH, tmb%orbs%norb, 0.d0, KHKH, tmb%orbs%norb)
+  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
+       tmb%orbs%norb, gradmat%matrix, tmb%orbs%norb, 0.d0, Kgrad, tmb%orbs%norb)
+
+  norbtot=0.d0
+  do iorb=1,KSorbs%norb
+      norbtot=norbtot+KSorbs%occup(iorb)
+  end do
+
+  KSres=0.d0
+  do iorb=1,tmb%orbs%norb
+      KSres=KSres+Kgrad(iorb,iorb)-KHKH(iorb,iorb)
+  end do
+  KSres=sqrt(KSres/norbtot)
+  !!if (iproc==0) write(*,*) 'KSgrad',sqrt(KSgrad/norbtot)
+  call f_free_ptr(gradmat%matrix)
+  call f_free_ptr(tmb%linmat%ham%matrix)
+  call f_free_ptr(tmb%linmat%denskern%matrix)
+  call f_free_ptr(gradmat%matrix_compr)
+  call deallocate_sparsematrix(gradmat, subname)
+
+  call f_free(KH)
+  call f_free(KHKH)
+  call f_free(Kgrad)
+
+  call f_release_routine()
+
+end subroutine get_KS_residue

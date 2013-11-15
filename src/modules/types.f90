@@ -332,6 +332,9 @@ module module_types
 
      !>linear scaling: activate the experimental mode
      logical :: experimental_mode
+
+     !> linear scaling: write KS orbitals for cubic restart
+     logical :: write_orbitals
   end type input_variables
 
   !> Contains all energy terms
