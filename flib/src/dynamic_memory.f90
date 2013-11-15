@@ -275,7 +275,7 @@ contains
 
   pure function mem_ctrl_init() result(mem)
     type(mem_ctrl) :: mem
-    mem=mem_ctrl_null()
+    call nullify_mem_ctrl(mem)
     call initialize_mem_ctrl(mem)
   end function mem_ctrl_init
   pure subroutine initialize_mem_ctrl(mem)

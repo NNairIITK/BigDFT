@@ -13,7 +13,8 @@ TESTDIRS = Locreg \
        rotatesmall \
        cdft \
        hybrid-directmin \
-       experimentalmode
+       experimentalmode \
+	   linearcubic
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \
@@ -111,6 +112,13 @@ reformatcomplete_write.out.post-out:
 	mkdir -p data-read35
 	mv -f data-write data-read35/data-h2o
 	cp -f write.xyz data-read35/h2o.xyz
+
+linearcubic_cubic.out.out : linearcubic_linear.out.out
+
+linearcubic_linear.out.post-out:
+	rm -rf data-cubic
+	mv data-linear data-cubic
+
 
 # Define the precision for specific directories.
 %.report: %.ref

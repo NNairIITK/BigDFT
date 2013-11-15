@@ -126,6 +126,7 @@ module module_input_keys
   character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter, public :: CHECK_SUMRHO = "check_sumrho"
   character(len = *), parameter, public :: EXPERIMENTAL_MODE = "experimental_mode"
+  character(len = *), parameter, public :: WRITE_ORBITALS = "write_orbitals"
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0
@@ -150,7 +151,9 @@ module module_input_keys
   public :: input_keys_equal, input_keys_get_source, input_keys_dump_def
   public :: input_keys_get_profiles
 
-  type(dictionary), pointer :: parameters
+  type(dictionary), pointer :: parameters=>null()
+  type(dictionary), pointer :: parsed_parameters=>null()
+
 
 contains
 
@@ -189,25 +192,33 @@ contains
     integer(kind = 8) :: cbuf_add !< address of c buffer
     character, dimension(:), allocatable :: params
 
-!!$    !alternative filling of parameters from hard-coded source file
-!!$    call getstaticinputdef(cbuf_add,params_size)
-!!$    !allocate array
-!!$    params=f_malloc_str(1,params_size,id='params')
-!!$    !fill it and parse dictionary
-!!$    call copycbuffer(params,cbuf_add,params_size)
-!!$    call yaml_parse_from_char_array(parameters,params)
-!!$    call f_free_str(1,params)
+    !alternative filling of parameters from hard-coded source file
+    !call getstaticinputdef(cbuf_add,params_size)
+    call getinputdefsize(params_size)
+    !allocate array
+    params=f_malloc_str(1,params_size,id='params')
+    !fill it and parse dictionary
+    !print *,'after', f_loc(params),f_loc(params(1)),'shape',shape(params),params_size
+    !print *,'cbuf_add',cbuf_add
+    call getinputdef(params)
+    !call copycbuffer(params,cbuf_add,params_size)
+    !print *,'there',params_size
+    call yaml_parse_from_char_array(parsed_parameters,params)
+    !there is only one document in the iniput variables specifications
+    parameters=>parsed_parameters//0
+    call f_free_str(1,params)
+
 !!$    call yaml_dict_dump_all(parameters,unit=17)
 !!$    call dict_free(parameters)
 
-    call dict_init(parameters)
-    call set(parameters // DFT_VARIABLES, get_dft_parameters())
-    call set(parameters // KPT_VARIABLES, get_kpt_parameters())
-    call set(parameters // GEOPT_VARIABLES, get_geopt_parameters())
-    call set(parameters // MIX_VARIABLES, get_mix_parameters())
-    call set(parameters // SIC_VARIABLES, get_sic_parameters())
-    call set(parameters // TDDFT_VARIABLES, get_tddft_parameters())
-    call set(parameters // PERF_VARIABLES, get_perf_parameters())
+!!$    call dict_init(parameters)
+!!$    call set(parameters // DFT_VARIABLES, get_dft_parameters())
+!!$    call set(parameters // KPT_VARIABLES, get_kpt_parameters())
+!!$    call set(parameters // GEOPT_VARIABLES, get_geopt_parameters())
+!!$    call set(parameters // MIX_VARIABLES, get_mix_parameters())
+!!$    call set(parameters // SIC_VARIABLES, get_sic_parameters())
+!!$    call set(parameters // TDDFT_VARIABLES, get_tddft_parameters())
+!!$    call set(parameters // PERF_VARIABLES, get_perf_parameters())
 
     !call yaml_dict_dump(parameters, comment_key = COMMENT)
     if (INPUT_VAR_NOT_IN_LIST == 0) then
@@ -234,7 +245,12 @@ contains
     use dictionaries
     implicit none
 
-    call dict_free(parameters)
+    if (associated(parsed_parameters)) then
+       call dict_free(parsed_parameters)
+       nullify(parameters)
+    else
+       call dict_free(parameters)
+    end if
   END SUBROUTINE input_keys_finalize
 
   !this function is going to disappear as soon as the input is hard-coded in yaml format
@@ -935,6 +951,10 @@ contains
     call set(p//EXPERIMENTAL_MODE,dict_new(&
          COMMENT .is. 'linear scaling: activate the experimental mode', &
          DEFAULT .is. 'No'))
+
+    call set(p//WRITE_ORBITALS,dict_new(&
+         COMMENT .is. 'linear scaling: write KS orbitals for cubic restart', &
+         DEFAULT .is. 'No'))
     !the opportunity of entering this dictionary already in yaml format should be discussed
     !for example the above variable becomes:
     !check_sumrho:
@@ -1103,11 +1123,13 @@ contains
 
   subroutine input_keys_fill_all(dict)
     use dictionaries
+    use dynamic_memory
+    use yaml_output
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict
 
-    !call yaml_dict_dump(dict)
+    call f_routine(id='input_keys_fill_all')
 
     ! Check and complete dictionary.
     call input_keys_init()
@@ -1121,10 +1143,14 @@ contains
     call input_keys_fill(dict//TDDFT_VARIABLES, TDDFT_VARIABLES)
 
     call input_keys_finalize()
+
+    call f_release_routine()
   end subroutine input_keys_fill_all
 
   subroutine input_keys_fill(dict, file, profile)
     use dictionaries
+    use dynamic_memory
+    use yaml_output
     implicit none
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file
@@ -1133,9 +1159,13 @@ contains
     integer :: i
     type(dictionary), pointer :: ref
     character(len=max_field_length), dimension(:), allocatable :: keys
+    
+!    call f_routine(id='input_keys_fill')
 
     ref => parameters // file
-    allocate(keys(dict_size(ref)))
+
+    keys=f_malloc_str(max_field_length,dict_size(ref),id='keys')
+
     keys = dict_keys(ref)
 
     if (present(profile)) then
@@ -1148,12 +1178,14 @@ contains
        end do
     end if
 
-    deallocate(keys)
+    call f_free_str(max_field_length,keys)
+!    call f_release_routine()
   END SUBROUTINE input_keys_fill
 
   subroutine input_keys_set(dict, file, key, profile)
     use dictionaries
     use yaml_output
+    use dynamic_memory
     implicit none
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file, key
@@ -1165,6 +1197,8 @@ contains
     character(len = max_field_length), dimension(:), allocatable :: keys
     double precision, dimension(2) :: rg
     logical :: found
+
+!    call f_routine(id='input_keys_set')
 
     ref => parameters // file // key
 
@@ -1185,9 +1219,15 @@ contains
     
     if (has_key(dict, key)) then
        ! Key should be present only for some unmet conditions.
-       if (f_err_raise(.not.set_(dict, ref), err_id = INPUT_VAR_ILLEGAL, &
-            & err_msg = trim(file) // "/" // trim(key) // " is not allowed in this context.")) return
-
+       if (.not.set_(dict, ref)) then
+          !to see if the f_release_routine has to be controlled automatically
+         ! call f_release_routine() !to be called before raising the error
+!!$       if (f_err_raise(.not.set_(dict, ref), err_id = INPUT_VAR_ILLEGAL, &
+!!$            & err_msg = trim(file) // "/" // trim(key) // " is not allowed in this context.")) then
+          call f_err_throw(err_id = INPUT_VAR_ILLEGAL, &
+               & err_msg = trim(file) // "/" // trim(key) // " is not allowed in this context.")
+          return
+       end if
        val = dict // key
        ! There is already a value in dict.
        if (has_key(ref, val)) then
@@ -1218,7 +1258,10 @@ contains
        end if
     else
        ! Key should be present only for some unmet conditions.
-       if (.not.set_(dict, ref)) return
+       if (.not.set_(dict, ref)) then
+!          call f_release_routine()
+          return
+       end if
 
        ! There is no value in dict, we take it from ref.
        if (.not. has_key(ref, profile_)) profile_ = DEFAULT
@@ -1230,6 +1273,8 @@ contains
          & call dict_copy(dict // (trim(key) // ATTRS) // COMMENT, ref // COMMENT)
     if (trim(profile_) /= DEFAULT) &
          & call set(dict // (trim(key) // ATTRS) // PROF_KEY, profile_)
+
+!    call f_release_routine()
 
   contains
 

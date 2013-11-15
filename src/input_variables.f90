@@ -16,6 +16,7 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   use module_input_keys
   use module_interfaces, only: merge_input_file_to_dict
   use input_old_text_format
+  use yaml_output
   implicit none
   character(len = *), intent(in) :: radical !< the name of the run. use "input" if empty
   type(mpi_environment), intent(in) :: mpi_env !< the environment where the variables have to be updated
@@ -25,6 +26,8 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   logical :: exists_default, exists_user
   character(len = max_field_length) :: fname
   character(len = 100) :: f0
+
+  call f_routine(id='read_input_dict_from_files')
 
   ! Handle error with master proc only.
   if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
@@ -73,10 +76,13 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   ! We put a barrier here to be sure that non master proc will be stop
   ! by any issue on the master proc.
   call mpi_barrier(mpi_env%mpi_comm, ierr)
+
+  call f_release_routine()
 end function read_input_dict_from_files
 
 !> Routine to read YAML input files and create input dictionary.
 subroutine merge_input_file_to_dict(dict, fname, mpi_env)
+  use module_base
   use module_input_keys
   use dictionaries
   use yaml_parse
@@ -92,6 +98,7 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
   character, dimension(:), allocatable :: fbuf
   type(dictionary), pointer :: udict
   
+  call f_routine(id='merge_input_file_to_dict')
   if (mpi_env%iproc == 0) then
      call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
      if (mpi_env%nproc > 1) &
@@ -99,7 +106,7 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
   else
      call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
   end if
-  allocate(fbuf(cbuf_len))
+  fbuf=f_malloc_str(1,int(cbuf_len),id='fbuf')
 
   if (mpi_env%iproc == 0) then
      call copyCBuffer(fbuf(1), cbuf, cbuf_len)
@@ -113,15 +120,17 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
   call f_err_open_try()
   call yaml_parse_from_char_array(udict, fbuf)
   ! Handle with possible partial dictionary.
-  deallocate(fbuf)
+  call f_free_str(1,fbuf)
   call dict_update(dict, udict // 0)
   call dict_free(udict)
-  
+
   ierr = 0
   if (f_err_check()) ierr = f_get_last_error(val)
   call f_err_close_try()
   !in the present implementation f_err_check is not cleaned after the close of the try
   if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
+  call f_release_routine()
+
 end subroutine merge_input_file_to_dict
 
 !> Fill the input_variables structure with the information
@@ -142,6 +151,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   !type(dictionary), pointer :: profs
   integer :: ierr
+  call f_routine(id='inputs_from_dict')
 
   call default_input_variables(in)
 
@@ -151,6 +161,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   ! Analyse the input dictionary and transfer it to in.
   call input_keys_fill_all(dict)
+
   call perf_input_analyse(bigdft_mpi%iproc, in, dict//PERF_VARIABLES)
   call dft_input_analyse(bigdft_mpi%iproc, in, dict//DFT_VARIABLES)
   call geopt_input_analyse(bigdft_mpi%iproc, in, dict//GEOPT_VARIABLES)
@@ -226,6 +237,8 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      call f_err_throw('Error in reading input variables from dictionary',&
           err_name='BIGDFT_INPUT_VARIABLES_ERROR')
   end if
+
+  call f_release_routine()
 
 end subroutine inputs_from_dict
 
@@ -1215,10 +1228,12 @@ subroutine perf_input_analyse(iproc,in,dict)
   !n(c) character(len=*), parameter :: subname='perf_input_variables'
   integer :: ierr,ipos,i,iproc_node,nproc_node
   character(len = 7) :: val
+  call f_routine(id='perf_input_analyse')
 
   ! Performance and setting-up options
   ! ----------------------------------
   in%debug = dict // DEBUG
+
   if (.not. in%debug) then
      call f_malloc_set_status(output_level=1)
   end if
@@ -1352,5 +1367,8 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%check_sumrho = dict // CHECK_SUMRHO
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   in%experimental_mode = dict//EXPERIMENTAL_MODE
+  ! linear scaling: write KS orbitals for cubic restart
+  in%write_orbitals = dict//WRITE_ORBITALS
+  call f_release_routine()
 END SUBROUTINE perf_input_analyse
 

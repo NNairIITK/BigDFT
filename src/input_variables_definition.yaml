@@ -24,7 +24,7 @@
      fast: [0.55, 0.55, 0.55]
      accurate: [0.30, 0.30, 0.30]
    rmult:
-     COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius
+     COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
      RANGE: [0., 100.]
      default: [5., 8.]
    ixc:
@@ -311,8 +311,8 @@
      COMMENT: temperature of molecular dynamics
      CONDITION:
        MASTER_KEY: ionmov
-       WHEN:
-       - 6
+       WHEN: [8, 9, 12, 13]
+#       - 6
      RANGE: [0, 1e9]
      default: 300.
    mdftemp:
