@@ -2246,7 +2246,7 @@ end subroutine nullify_DFT_local_fields
 subroutine deallocate_denspot_distribution(dpbox,subname)
   implicit none
   character(len=*), intent(in) :: subname
-  type(denspot_distribution),intent(out)::dpbox
+  type(denspot_distribution),intent(inout)::dpbox
   !local variables
   integer :: i_all,i_stat
   
