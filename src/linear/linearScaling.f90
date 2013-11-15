@@ -2647,7 +2647,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
 
   ! orthogonalize
-  coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_orthog')
+  coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')
   call dcopy(orbs%norb*nstates,homo_coeffs(1,1),1,coeffs_tmp(1,1),1)
   call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, 0, orbs, ovrlp, coeffs_tmp(1,1))
   coeffs_orthog=f_malloc((/orbs%norb,nstates/), id='coeffs_orthog')

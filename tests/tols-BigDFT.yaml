@@ -471,3 +471,9 @@ rotatesmall_read1:
 
 rotatesmall_read2:
  Average noise forces: 1.1e-10 
+
+linearcubic_cubic:
+ Epsilon: 1.1e-10
+
+linearcubic_linear:
+ Epsilon: 1.1e-10
