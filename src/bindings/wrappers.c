@@ -58,6 +58,7 @@ int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mp
 {
   int ierr;
 
+  FC_FUNC_(f_lib_initialize, F_LIB_INITIALIZE)();
   FC_FUNC_(bigdft_mpi_init, BIGDFT_MPI_INIT)(&ierr);
   ierr = bigdft_mpi_set_distribution(mpi_iproc, mpi_nproc, mpi_igroup, mpi_ngroup, mpi_groupsize);
 
@@ -106,8 +107,8 @@ int bigdft_finalize()
 {
   int ierr;
 
-  FC_FUNC_(f_lib_finalize, F_LIB_FINALIZE)();
   FC_FUNC_(bigdft_finalize, BIGDFT_FINALIZE)(&ierr);
+  FC_FUNC_(f_lib_finalize, F_LIB_FINALIZE)();
   return ierr;
 }
 

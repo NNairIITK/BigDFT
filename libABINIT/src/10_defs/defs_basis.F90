@@ -83,12 +83,15 @@ module defs_basis
 
 !UNIX unit numbers : standard input, standard output, ab_out, and a number for temporary access to a file.
  integer, parameter :: std_in=5,ab_in=5  ! Please, use these named constants instead of write(6,*),
- integer, parameter :: std_out=6         ! it makes the code more readable and easier to change.
+ integer, parameter :: std_out_default=6,ab_out_default=7
  integer, parameter :: std_err=0         
- integer, parameter :: ab_out=7
  integer, parameter :: dev_null=-1       ! Fake unit number used to skip the printing in wrtout.
  integer, parameter :: ab_xml_out = 50   ! this unit is used to print output into an XML file
  integer, parameter :: tmp_unit=9,tmp_unit2=10
+
+! These vars should be private and only modifiable via an appropriate method (see below)
+ integer, public, save :: ab_out = ab_out_default
+ integer, public, save :: std_out =  std_out_default
 
 !The 3x3 identity matrix
 !WARNING : this seem not to work ?!
@@ -241,6 +244,38 @@ module defs_basis
  integer, parameter, public :: IO_MODE_MPI            =  1
  integer, parameter, public :: IO_MODE_NETCDF         =  2 ! Only for legacy code, should not be used for new implementations.
  integer, parameter, public :: IO_MODE_ETSF           =  3
+
+!A collection of small datatypes for ragged arrays
+!A small datatype for ragged integer 1D-arrays
+ type coeffi1_type
+  integer :: size
+  integer, pointer :: value(:)  ! SET2NULL
+ end type coeffi1_type
+!A small datatype for ragged real 2D-arrays
+ type coeff2_type
+  real(dp), pointer :: value(:,:)  ! SET2NULL
+ end type coeff2_type
+!A small datatype for ragged complex 2D-arrays
+ type coeff2c_type
+  complex(dpc), pointer :: value(:,:) ! SET2NULL
+ end type coeff2c_type
+!A small datatype for ragged gwpc 2D-arrays
+ type coeff2_gwpc_type
+  complex(gwpc),pointer :: value(:,:) ! SET2NULL
+ end type coeff2_gwpc_type
+!A small datatype for ragged real 3D-arrays
+ type coeff3_type
+  real(dp), pointer :: value(:,:,:) ! SET2NULL
+ end type coeff3_type
+!A small datatype for ragged real 4D-arrays
+ type coeff4_type
+  real(dp), pointer :: value(:,:,:,:)  ! SET2NULL
+ end type coeff4_type
+!A small datatype for ragged real 5D-arrays.
+ type coeff5_type
+  real(dp), pointer :: value(:,:,:,:,:)  ! SET2NULL
+ end type coeff5_type
+
 
 CONTAINS  !==============================================================================
 !!***

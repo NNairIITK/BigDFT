@@ -69,7 +69,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,ixc,npts,nspden,&
 !Do not modify the following lines by hand.
  use interfaces_14_hidewrite
  use interfaces_16_hideleave
- use interfaces_56_xc, except_this_one => xchcth
+ use interfaces_41_xc_lowlevel, except_this_one => xchcth
 !End of the abilint section
 
  implicit none

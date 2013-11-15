@@ -1301,7 +1301,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
         istart_c=1
         if(at%npspcode(iatype)==7) then
           call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-               lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings,proj_G(iatype))
+               lr,hx,hy,hz,paw%rpaw(iatype),rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings,proj_G(iatype))
         else
           call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
                lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
