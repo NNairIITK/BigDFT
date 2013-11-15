@@ -765,8 +765,8 @@ subroutine psp_from_file_paw()
   write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%pfac(:,1:5)
 !
   write(*,'(a)') 'GTH parameters (for initial guess):'
-  write(*,'("radii_cf= ",3f10.7)'),radii_cf(:)
-  write(*,'("psppar(0:1,0)= ",2f10.7)'),psppar(0:1,0)
+  write(*,'("radii_cf= ",3f10.7)')radii_cf(:)
+  write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
 
 ! Destroy and deallocate objects
   call pawrad_destroy(pawrad)

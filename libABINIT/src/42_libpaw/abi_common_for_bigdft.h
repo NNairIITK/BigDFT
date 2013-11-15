@@ -1,8 +1,3 @@
-/*
-Contains only basic ABINIT macros:
-Author: TRangel.
-*/
-
 #  define ABI_ALLOCATE(ARR,SIZE) \
    allocate(ARR SIZE)
 #  define ABI_DEALLOCATE(ARR) \
