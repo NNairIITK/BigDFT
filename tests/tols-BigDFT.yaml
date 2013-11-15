@@ -417,6 +417,7 @@ fructose:
  Omega: 4.7e-11
  Total charge: 2.1e-10
  charge diff: 1.1e-10
+ multiplicator for the confinement: 1.4e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
