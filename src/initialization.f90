@@ -31,6 +31,7 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   character(len=*), parameter :: subname='bigdft_set_input'
   type(dictionary), pointer :: dict
 !!$  logical :: exist_list
+  call f_routine(id=subname)
 
   atoms=atoms_null()
   ! Read atomic file
@@ -70,7 +71,7 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
      in%last_run = 1
   end if
 
-
+  call f_release_routine()
 END SUBROUTINE bigdft_set_input
 
 

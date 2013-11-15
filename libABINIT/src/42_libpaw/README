@@ -1,0 +1,15 @@
+These files are copied directly from libPAW VERSION 1.0
+These should be synchronized constantly from ABINIT
+
+How to SYNCHRONIZE?
+1) copy files:
+ cp [ABINIT]/src/42_libpaw/*F90 .
+
+2) execute: ./run_format
+This is important for BigDFT.
+
+3) If new files have been added or removed:
+ update ../Makefile.am
+
+4) run makdep.sh as indicated in [BigDFT]/libABINIT/README
+

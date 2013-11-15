@@ -12,7 +12,7 @@
 !! and the routines of allocations and de-allocations
 module module_types
 
-  use m_ab6_mixing, only : ab6_mixing_object
+  use m_ab7_mixing, only : ab7_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
@@ -875,7 +875,7 @@ module module_types
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
      real(dp), dimension(:), pointer :: rhov          !< generic workspace. What is there is indicated by rhov_is
-     type(ab6_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
+     type(ab7_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
      !> Local fields which are associated to their name
      !! normally given in parallel distribution
      real(dp), dimension(:,:), pointer :: rho_psi     !< density as given by square of el. WFN
@@ -1197,6 +1197,7 @@ module module_types
     type(cprj_objects), dimension(:,:), allocatable :: cprj
     real(wp), dimension(:), pointer :: spsi
     real(wp), dimension(:,:), pointer :: sij
+    real(gp),dimension(:),pointer :: rpaw
   end type paw_objects
 
 contains
@@ -2286,11 +2287,85 @@ subroutine nullify_DFT_local_fields(denspot)
   
 end subroutine nullify_DFT_local_fields
 
+
+subroutine deallocate_denspot_distribution(dpbox,subname)
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(denspot_distribution),intent(out)::dpbox
+  !local variables
+  integer :: i_all,i_stat
+  
+  if(associated(dpbox%nscatterarr)) then
+    i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
+    deallocate(dpbox%nscatterarr,stat=i_stat)
+    call memocc(i_stat,i_all,'nscatterarr',subname)
+  end if
+  if(associated(dpbox%ngatherarr)) then
+    i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
+    deallocate(dpbox%ngatherarr,stat=i_stat)
+    call memocc(i_stat,i_all,'ngatherarr',subname)
+  end if
+
+end subroutine deallocate_denspot_distribution
+
 subroutine nullify_coulomb_operator(coul_op)
   implicit none
   type(coulomb_operator),intent(out) :: coul_op
   nullify(coul_op%kernel)
 end subroutine nullify_coulomb_operator
+
+subroutine copy_coulomb_operator(coul1,coul2,subname)
+  implicit none
+  type(coulomb_operator),intent(in)::coul1
+  type(coulomb_operator),intent(out)::coul2
+  character(len=*), intent(in) :: subname
+  !local variables
+  integer :: i_all,i_stat
+
+  if(associated(coul2%kernel)) then
+    i_all=-product(shape(coul2%kernel))*kind(coul2%kernel)
+    deallocate(coul2%kernel,stat=i_stat)
+    call memocc(i_stat,i_all,'coul%kernel',subname)
+  end if
+  coul2%kernel   =>coul1%kernel
+  coul2%itype_scf= coul1%itype_scf
+  coul2%mu       = coul1%mu
+  coul2%geocode  = coul1%geocode
+  coul2%ndims    = coul1%ndims
+  coul2%hgrids   = coul1%hgrids
+  coul2%angrad   = coul1%angrad
+  coul2%work1_GPU= coul1%work1_GPU
+  coul2%work2_GPU= coul1%work2_GPU
+  coul2%k_GPU    = coul1%k_GPU
+  coul2%plan     = coul1%plan
+  coul2%geo      = coul1%geo
+  coul2%igpu     = coul1%igpu
+  coul2%initCufftPlan=coul1%initCufftPlan
+  coul2%keepGPUmemory=coul1%keepGPUmemory
+! mpi_env:
+  coul2%mpi_env%mpi_comm = coul1%mpi_env%mpi_comm
+  coul2%mpi_env%iproc    = coul1%mpi_env%iproc
+  coul2%mpi_env%nproc    = coul1%mpi_env%nproc
+  coul2%mpi_env%igroup   = coul1%mpi_env%igroup
+  coul2%mpi_env%ngroup   = coul1%mpi_env%ngroup
+
+end subroutine copy_coulomb_operator
+
+subroutine deallocate_coulomb_operator(coul_op,subname)
+  implicit none
+  type(coulomb_operator),intent(out)::coul_op
+  character(len=*), intent(in) :: subname
+  !local variables
+  integer :: i_all,i_stat
+
+  if(associated(coul_op%kernel)) then
+    i_all=-product(shape(coul_op%kernel))*kind(coul_op%kernel)
+    deallocate(coul_op%kernel,stat=i_stat)
+    call memocc(i_stat,i_all,'coul_op%kernel',subname)
+  end if
+  call nullify_coulomb_operator(coul_op)
+end subroutine deallocate_coulomb_operator
+
 
 subroutine nullify_denspot_distribution(dpbox)
   implicit none
@@ -2396,6 +2471,7 @@ subroutine nullify_paw_objects(paw,rholoc)
   nullify(paw%indlmn) 
   nullify(paw%spsi) 
   nullify(paw%sij) 
+  nullify(paw%rpaw)
 
   if(present(rholoc)) then
    nullify(rholoc%msz)

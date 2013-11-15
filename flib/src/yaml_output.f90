@@ -87,7 +87,7 @@ module yaml_output
   !! @param fmt      (optional) format for the value
   interface yaml_map
      !general scalar
-     module procedure yaml_map
+     module procedure yaml_map,yaml_map_dict
      !other scalars
      module procedure yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l
      !vectors
@@ -1086,6 +1086,40 @@ contains
 
   end subroutine yaml_map
 
+  !> Create a yaml map with a scalar value
+  subroutine yaml_map_dict(mapname,mapvalue,label,unit,flow)
+    implicit none
+    character(len=*), intent(in) :: mapname             !< @copydoc doc::mapname
+    type(dictionary), pointer, intent(in) :: mapvalue   !< scalar value of the mapping may be of any scalar type
+                                                        !! it is internally converted to character with the usage of @link yaml_toa @endlink function
+    character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
+    integer, optional, intent(in) :: unit               !< @copydoc doc::unit
+    logical, optional, intent(in) :: flow               !< @copydoc doc::flow
+    !local variables
+    integer :: strm,unt
+    character(len=max_field_length) :: lbl
+
+    unt=0
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    lbl(1:len(lbl))=' '
+    if (present(label)) lbl(1:len(lbl))=label
+
+    if (associated(mapvalue)) then
+       if (present(flow)) then
+          call yaml_open_map(mapname,label=lbl,flow=flow,unit=unt)
+          call yaml_dict_dump(mapvalue,unit=unt,flow=flow)
+       else
+          call yaml_open_map(mapname,label=lbl,unit=unt)
+          call yaml_dict_dump(mapvalue,unit=unt)
+       end if
+       call yaml_close_map(unit=unt)
+    else
+       call yaml_map(mapname,'<nullified dictionary>',label=lbl,unit=unt)
+    end if
+  end subroutine yaml_map_dict
+
   subroutine yaml_map_li(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
     integer(kind=8), intent(in) :: mapvalue
@@ -1200,7 +1234,9 @@ contains
           if (present(istat)) then
              istat=YAML_STREAM_NOT_FOUND
           else
-             !otherwise initialize it, no pretty printing
+             !otherwise initialize it, no pretty printing, not default stream
+             !if it is the first activate stdout first
+             if (active_streams==0 .and. unt /=6) call yaml_set_stream(record_length=92,istat=ierr)
              prev_def=default_stream
              call yaml_set_stream(unit=unt,tabbing=0)
              strm=default_stream
@@ -1786,8 +1822,7 @@ contains
   subroutine yaml_dict_dump(dict,unit,flow,verbatim)
     implicit none
     type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
-    logical, intent(in), optional :: flow  !< if .true. use flow writing style, if .false. use yaml plain style
-                                           !! when absent the .false. style is used except for the last level
+    logical, intent(in), optional :: flow  !< @copydoc doc::flow
     logical, intent(in), optional :: verbatim  !< if .true. print as comments the calls performed
     integer, intent(in), optional :: unit   !< unit in which the dump has to be 
     !local variables

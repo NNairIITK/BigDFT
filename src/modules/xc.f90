@@ -17,7 +17,7 @@ module module_xc
   use xc_f90_types_m
   use libxc_funcs_m
   use xc_f90_lib_m
-  use interfaces_56_xc
+  use interfaces_41_xc_lowlevel
   use yaml_output
   use dictionaries, only: f_err_raise
 

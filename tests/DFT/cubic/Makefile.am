@@ -15,7 +15,7 @@ TESTDIRS = C \
 	  ElectronGas \
 	  NLCC \
 	  taskgroups \
-	  CH4-D3
+	  CH4-D3 
 
 EXTRA_TESTDIRS =
 
@@ -53,12 +53,9 @@ GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
-#SIC.psp: HGH/psppar.H \
-#	HGH/psppar.C \
-#	HGH/psppar.O \
-#	HGH/psppar.N
 
-SIC.post-in:
+
+SIC.test.post-in:
 	if [ ! -d data-PZ ] ; then mkdir data-PZ; fi
 	mv wavefunctions.gau data-PZ/
 

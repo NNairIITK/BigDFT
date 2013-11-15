@@ -670,14 +670,22 @@ subroutine inputs_get_linear(linear, inputPsiId)
 END SUBROUTINE inputs_get_linear
 subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, lorbs, iproc, nproc)
   use module_types
+  use module_fragments
+  use module_interfaces
   implicit none
   integer, intent(out) :: input_wf_format
   integer, intent(inout) :: inputpsi
   integer, intent(in) :: iproc, ln, nproc
   character(len = ln), intent(in) :: dir_output
   type(orbitals_data), intent(in) :: orbs, lorbs
+  !local variables
+  type(system_fragment), dimension(:), pointer :: ref_frags  !< number of orbitals for each fragment
+  character(len=100) :: frag_dir !< label for fragment subdirectories (blank if not a fragment calculation)
 
-  call input_check_psi_id(inputpsi, input_wf_format, trim(dir_output), orbs, lorbs, iproc, nproc)
+  nullify(ref_frags)
+  frag_dir(1:len(frag_dir))=' '
+  
+  call input_check_psi_id(inputpsi, input_wf_format, trim(dir_output), orbs, lorbs, iproc, nproc,0, frag_dir, ref_frags)
 END SUBROUTINE inputs_check_psi_id
 subroutine inputs_set_restart(in, id)
   use module_types
