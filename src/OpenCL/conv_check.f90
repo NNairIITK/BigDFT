@@ -51,6 +51,8 @@ program conv_check_ocl
    integer(kind=8) :: tsc0, tsc1
    character(len=500) :: field
    CHARACTER*1 zero
+
+   call f_lib_initialize()
    zero = CHAR(0)
 
    field=repeat(' ',len(field))
@@ -68,7 +70,7 @@ program conv_check_ocl
       write(*,*) "where:"
       write(*,*) "- n1 n2 n3 are the dimensions of the real space"
       write(*,*) "- ntimes is the number of convolutions"
-      stop
+      call f_err_severe()
    end if
 
    call yaml_new_document()
@@ -2049,7 +2051,7 @@ program conv_check_ocl
     !release the yaml document
     call yaml_release_document()
 
-
+    call f_lib_finalize()
    contains
 
    subroutine print_time(field,dims,time,nbelem,nop,ntimes)
