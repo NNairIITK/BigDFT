@@ -346,7 +346,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
 !  use vdwcorrection
-  use m_ab6_mixing
   use yaml_output
   use gaussians, only: gaussian_basis
   implicit none
@@ -409,6 +408,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   integer:: iatyp
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
   type(rholoc_objects)::rholoc_tmp
+
+  !debug
+  real(kind=8) :: ddot
 
   call nullify_rholoc_objects(rholoc_tmp)
 
@@ -683,6 +685,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
        inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
+
+  !!do i_stat=1,KSwfn%orbs%norb*(KSwfn%lzd%glr%wfd%nvctr_c+7*KSwfn%lzd%glr%wfd%nvctr_f)
+  !!    write(601,'(i10,es16.7)') i_stat, KSwfn%psi(i_stat)
+  !!end do
+  !!ierr=(KSwfn%lzd%glr%wfd%nvctr_c+7*KSwfn%lzd%glr%wfd%nvctr_f)
+  !!do i_stat=1,KSwfn%orbs%norb
+  !!    write(*,*) 'partial ddot', ddot(ierr, KSwfn%psi((i_stat-1)*ierr+1), 1, KSwfn%psi((i_stat-1)*ierr+1), 1)
+  !!end do 
+
+  !!write(*,*) 'GLOBAL DDOT',ddot(KSwfn%orbs%norb*ierr, KSwfn%psi, 1, KSwfn%psi, 1)
+
   !new position due to new input guess
   !!!call plotOrbitals(iproc, KSwfn, KSwfn%psi, atoms%astruct%nat, rxyz, .125d0, .125d0, .125d0, 0, 'cubi')
 
@@ -1518,7 +1531,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   use module_types
   use module_interfaces, except_this_one => kswfn_optimization_loop
   use yaml_output
-  use m_ab6_mixing
   implicit none
   real(dp), dimension(6), intent(out) :: xcstr
   integer, intent(in) :: iproc, nproc, idsx, inputpsi

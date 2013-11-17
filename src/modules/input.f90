@@ -1796,6 +1796,9 @@ contains
     call input_var("experimental_mode", .false., "linear scaling: activate the experimental mode", dummy_bool)
     call set(dict // EXPERIMENTAL_MODE, dummy_bool)
 
+    call input_var("write_orbitals", .false., "linear scaling: write KS orbitals for cubic restart", dummy_bool)
+    call set(dict // WRITE_ORBITALS, dummy_bool)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

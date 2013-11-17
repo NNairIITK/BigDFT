@@ -181,7 +181,7 @@ subroutine test_dictionaries1()
   use dictionaries
   implicit none
   !local variables
-   integer :: ival,i
+   integer :: ival,i,j
    type(dictionary), pointer :: dict2
    type(dictionary), pointer :: dict,dictA
    type(dictionary), pointer :: dictA2,dict_tmp
@@ -397,7 +397,7 @@ subroutine test_dictionaries1()
 !!$
    call yaml_open_sequence('List in a list')
    call yaml_dict_dump(dictA,verbatim=.true.)
-   call yaml_dict_dump(dictA)
+   call yaml_dict_dump(dictA,flow=.false.)
    call yaml_dict_dump(dictA,flow=.true.,verbatim=.true.)
    call yaml_dict_dump(dictA,flow=.true.)
    call yaml_close_sequence()
@@ -411,6 +411,25 @@ subroutine test_dictionaries1()
       dict_tmp=>dict_next(dict_tmp)
    end do
    call dict_free(dictA)
+
+!!$   !try to steel a argument (does not work, should arrange routine set to be full-proof)
+!!$   !fill a list and iterate over it
+!!$   dictA=>dict_new()
+!!$   do i=1,10
+!!$      call add(dictA,trim(yaml_toa((/ (j,j=i,i+3) /))))
+!!$   end do
+!!$
+!!$   call yaml_map('List before',dictA)
+!!$
+!!$   dict_tmp=>dict_new('ciao' .is. '1','hello' .is. '2')
+!!$   dictA2=>dictA//3
+!!$   call set(dict_tmp//'bonjour',dictA2)
+!!$
+!!$   call yaml_map('Thief dict',dict_tmp)
+!!$
+!!$   call yaml_map('List after',dictA)
+!!$   call dict_free(dictA)
+!!$   call dict_free(dict_tmp)
 
  end subroutine test_dictionaries1
 

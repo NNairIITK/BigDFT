@@ -18,7 +18,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
   use module_types
   use module_interfaces, fake_name => psitohpsi
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-  use m_ab6_mixing
+  use m_ab7_mixing
   use yaml_output
   use gaussians, only: gaussian_basis
   implicit none
@@ -147,7 +147,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
 
      !here the density can be mixed
      if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-        if (denspot%mix%kind == AB6_MIXING_DENSITY) then
+        if (denspot%mix%kind == AB7_MIXING_DENSITY) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
                 denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                 atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
@@ -222,7 +222,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
 
      !here the potential can be mixed
      if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
-        if (denspot%mix%kind == AB6_MIXING_POTENTIAL) then
+        if (denspot%mix%kind == AB7_MIXING_POTENTIAL) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
                 denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                 atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&!volume should be used 
@@ -770,7 +770,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                if(any(at%npspcode == 7)) then
                  call atom_projector_paw(ikpt,iat,0,istart_c,iproj,&
                       nlpspd%nprojel,&
-                      Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz(1,iat),at,orbs,&
+                      Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),paw%rpaw(iatype),rxyz(1,iat),at,orbs,&
                       nlpspd%plr(iat),proj,nwarnings,proj_G(iatype))
                else
                  call atom_projector(ikpt,iat,0,istart_c,iproj,&

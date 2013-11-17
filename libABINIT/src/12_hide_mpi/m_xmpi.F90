@@ -53,6 +53,8 @@ MODULE m_xmpi
  !integer,public,parameter :: xmpi_group_null     = MPI_GROUP_NULL ! invalid handle.
  !integer,public,parameter :: xmpi_group_empty    = MPI_GROUP_EMPTY ! valid handle.
  integer,public,parameter :: xmpi_msg_len= MPI_MAX_ERROR_STRING ! Length of fortran string used to store MPI error strings.
+! Length of fortran string used to store MPI error strings.
+ integer,public,parameter :: xmpi_paral=1
 #else
  ! Fake replacements for the sequential version.
  integer,public,parameter :: xmpi_world          = 0
@@ -63,6 +65,7 @@ MODULE m_xmpi
  !integer,public,parameter :: xmpi_group_null     =
  !integer,public,parameter :: xmpi_group_empty    = 
  integer,public,parameter :: xmpi_msg_len=1000
+ integer,public,parameter :: xmpi_paral=0
 #endif
 
  integer,save,private  :: xmpi_tag_ub=32767 
@@ -153,6 +156,8 @@ MODULE m_xmpi
  public :: xalltoallv_mpi
  public :: xcast_mpi
  public :: xexch_mpi
+ public :: xgather_mpi
+ public :: xgatherv_mpi
  public :: xmax_mpi
  public :: xmin_mpi
  public :: xrecv_mpi
@@ -255,6 +260,28 @@ interface xexch_mpi
   module procedure xexch_mpi_dpc_1d
   module procedure xexch_mpi_dpc_2d
 end interface xexch_mpi
+
+!----------------------------------------------------------------------
+
+interface xgather_mpi
+  module procedure xgather_mpi_int
+  module procedure xgather_mpi_int2d
+  module procedure xgather_mpi_dp
+  module procedure xgather_mpi_dp2d
+  module procedure xgather_mpi_dp3d
+  module procedure xgather_mpi_dp4d
+end interface xgather_mpi
+
+!----------------------------------------------------------------------
+
+interface xgatherv_mpi
+  module procedure xgatherv_mpi_int
+  module procedure xgatherv_mpi_int2d
+  module procedure xgatherv_mpi_dp
+  module procedure xgatherv_mpi_dp2d
+  module procedure xgatherv_mpi_dp3d
+  module procedure xgatherv_mpi_dp4d
+end interface xgatherv_mpi
 
 !----------------------------------------------------------------------
 
@@ -1054,6 +1081,10 @@ end subroutine xerror_string
 
 #include "xexch_mpi.F90"
 
+#include "xgather_mpi.F90"
+
+#include "xgatherv_mpi.F90"
+
 #include "xmax_mpi.F90"
 
 #include "xmin_mpi.F90"
@@ -1173,7 +1204,7 @@ subroutine xmpio_get_info_frm(bsize_frm,mpi_type_frm,comm)
      offset = rml + 4 * bsize_int
      call MPI_FILE_READ_AT(mpio_fh,offset,read_5ivals,5,MPI_INTEGER,statux,ierr)
      !write(std_out,*)read_5ivals
-     if ( ierr==MPI_SUCCESS .and. ALL(read_5ivals==ref_5ivals) ) bsize_frm=rml
+!     if ( ierr==MPI_SUCCESS .and. ALL(read_5ivals==ref_5ivals) ) bsize_frm=rml
    end do
 
    if (ii==iimax.and.bsize_frm<=0) then

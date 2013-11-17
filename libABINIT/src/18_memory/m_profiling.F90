@@ -63,6 +63,8 @@
     public :: memocc_set_memory_limit
     public :: memocc_report
     public :: d_nan,r_nan
+    integer, public :: ABI_ALLOC_STAT, ABI_ALLOC_SIZE
+    integer, public :: sz1, sz2, sz3, sz4, sz5, sz6, sz7
 
   contains
 

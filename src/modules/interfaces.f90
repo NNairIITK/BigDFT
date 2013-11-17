@@ -685,6 +685,7 @@ module module_interfaces
          real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
       END SUBROUTINE reformatmywaves
 
+
       subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
          !n(c) use module_base
          use module_types
@@ -1670,7 +1671,7 @@ module module_interfaces
            nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
         use module_base
         use module_xc
-        use interfaces_56_xc
+        use interfaces_41_xc_lowlevel
         implicit none
         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
         logical, intent(in) :: sumpion
@@ -2107,7 +2108,8 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft)
+         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,&
+         curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
       use module_base
       use module_types
       use constrained_dft
@@ -2138,6 +2140,7 @@ module module_interfaces
       type(cdft_data),intent(inout),optional :: cdft
       logical, optional, intent(in) :: reorder
       integer, intent(in) :: extra_states
+      logical, optional, intent(in) :: updatekernel
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
@@ -3222,7 +3225,6 @@ module module_interfaces
             energs,rpnrm,xcstr,proj_G,paw)
          use module_base
          use module_types
-         use m_ab6_mixing
          use gaussians, only: gaussian_basis
          implicit none
          logical, intent(in) :: scf
@@ -3363,7 +3365,7 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  energy_only, hpsi_small, experimental_mode, hpsi_noprecond)
+                  energy_only, hpsi_small, experimental_mode, ksorbs, hpsi_noprecond)
          use module_base
          use module_types
          implicit none
@@ -3382,6 +3384,7 @@ module module_interfaces
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
          logical, intent(in) :: energy_only, experimental_mode
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
+         type(orbitals_data),intent(in) :: ksorbs
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
 
@@ -5034,6 +5037,50 @@ module module_interfaces
           character(len=*), intent(in) :: comment
           logical,intent(in),optional :: only_energies
         end subroutine write_energies
+
+        subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+                 energs, nlpspd, proj, input, &
+                 energy, energyDiff, energyold)
+          use module_base
+          use module_types
+          implicit none
+          integer:: iproc, nproc
+          type(DFT_wavefunction),intent(in) :: tmb, KSwfn
+          type(atoms_data), intent(inout) :: at
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+          type(DFT_local_fields), intent(inout) :: denspot
+          type(GPU_pointers), intent(inout) :: GPU
+          type(energy_terms),intent(inout) :: energs
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+          type(input_variables),intent(in) :: input
+          real(kind=8),intent(out) :: energy, energyDiff, energyold
+        end subroutine build_ks_orbitals
+
+        subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
+               orbs, phismall, philarge, to_global)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
+          type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
+          type(orbitals_data),intent(in) :: orbs
+          real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
+          real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
+          logical,intent(in),optional :: to_global
+        end subroutine small_to_large_locreg
+
+        subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(DFT_wavefunction) :: tmb
+          type(orbitals_data),intent(in) :: KSorbs
+          real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(in) :: hpsit_c
+          real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(in) :: hpsit_f
+          real(kind=8),intent(out) :: KSres
+        end subroutine get_KS_residue
   
   end interface
 END MODULE module_interfaces

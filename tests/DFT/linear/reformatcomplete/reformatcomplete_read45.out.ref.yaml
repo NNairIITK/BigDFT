@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-05 18:00:56.956
+ Timestamp of this run                 : 2013-11-13 17:03:04.684
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -382,7 +382,7 @@
      Molecule was rotated              :  18
      Discrete operations               :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  9.201E+00,  9.226E+00 ]}
+   -  {Process:  0, Timing:  [  9.409E+00,  9.433E+00 ]}
    nstates_max                         :  16
    ksorbs%norb                         :  16
    tmb%orbs%norb                       :  24
@@ -431,7 +431,7 @@
  {e: -2.698785943401E-01, f:  2.0000},  # 00015
  {e: -2.698785943401E-01, f:  2.0000}] # 00016
    communication strategy kernel       : ALLREDUCE
-   Total charge                        :  3.199999495198E+01
+   Total charge                        :  3.199999497557E+01
    Poisson Solver:
      BC                                : Free
      Box                               :  [  135,  149,  129 ]
@@ -453,47 +453,47 @@
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
    Kernel update:
-     max dev from unity                :  2.18E-01
+     max dev from unity                :  2.23E-01
      Hamiltonian application required  :  Yes
      method                            : directmin
      expansion coefficients optimization: &it_coeff001_000_000
      -  { #-------------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.84E-02, eBS:  0.00000000000000000E+00, D: -1.617E+01, 
+ iter:  1, fnrm:  2.81E-02, eBS:  0.00000000000000000E+00, D: -1.595E+01, 
           alpha:  1.000E-01}
      Coefficients available            :  Yes
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  3.76843168770E+01, Epot: -4.83256149572E+01, Enl:  2.85952777653E+00}, 
+ Energies: {Ekin:  3.76841670768E+01, Epot: -4.80460490163E+01, Enl:  2.78099539238E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  4.68E-01, Omega: -6.85436203593920510E+01, D: -6.854E+01, 
+ iter:  1, fnrm:  4.17E-01, Omega: -6.85904518513046781E+01, D: -6.859E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
- Energies: {Ekin:  3.76843168770E+01, Epot: -4.83256149572E+01, Enl:  2.85952777653E+00}, 
- iter:  1, fnrm:  4.68E-01, Omega: -6.85436203593920510E+01, D: -6.854E+01}
+ Energies: {Ekin:  3.76841670768E+01, Epot: -4.80460490163E+01, Enl:  2.78099539238E+00}, 
+ iter:  1, fnrm:  4.17E-01, Omega: -6.85904518513046781E+01, D: -6.859E+01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #-------------------------------------------------------------------- kernel iter: 1
        Kernel update:
-         max dev from unity            :  2.18E-01
+         max dev from unity            :  2.23E-01
          Hamiltonian application required:  No
          method                        : directmin
          expansion coefficients optimization: &it_coeff001_001_001
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.51E-02, eBS: -1.61699879269494744E+01, D: -3.621E-03, 
+ iter:  1, fnrm:  2.57E-02, eBS: -1.59455832995515188E+01, D: -1.936E-03, 
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
- Energies: {Ekin:  3.76843168770E+01, Epot: -4.83256149572E+01, Enl:  2.85952777653E+00, 
-              EH:  1.42289623159E+02,  EXC: -1.65073710246E+01, EvXC: -2.16392534366E+01}, 
-    Total charge:  3.199999496764E+01, 
+ Energies: {Ekin:  3.76841670768E+01, Epot: -4.80460490163E+01, Enl:  2.78099539238E+00, 
+              EH:  1.42561480229E+02,  EXC: -1.65093314894E+01, EvXC: -2.16418348515E+01}, 
+    Total charge:  3.199999497654E+01, 
  Poisson Solver: {BC: Free, Box:  [  135,  149,  129 ], MPI tasks:  6}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
@@ -514,46 +514,46 @@
  {e: -2.698785943401E-01, f:  2.0000},  # 00015
  {e: -2.698785943401E-01, f:  2.0000}] # 00016
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  6.79E-08, energy: -6.85472408694754876E+01, D: -6.855E+01}]
+ iter:  1, delta:  3.48E-08, energy: -6.85923879324030139E+01, D: -6.859E+01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  6.79E-08, energy: -6.85472408694754876E+01, D: -6.855E+01}]}
+ iter:  2, delta:  3.48E-08, energy: -6.85923879324030139E+01, D: -6.859E+01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  6.785E-08, energy: -6.85472408694754876E+01, D: -6.855E+01}
+ iter high:  1, delta out:  3.481E-08, energy: -6.85923879324030139E+01, D: -6.859E+01}
    Weight analysis: [
   #coeff, occ, eval, frac for each frag
-  {iorb:  1, occ:  2.0000, eval: -0.921279, frac:  0.9897, frac:  0.0003, frac:  0.0099, 
+  {iorb:  1, occ:  2.0000, eval: -0.921279, frac:  0.9889, frac:  0.0003, frac:  0.0107, 
    frac:  0.0002}, 
   {iorb:  2, occ:  2.0000, eval: -0.921279, frac:  0.0059, frac:  0.9940, frac:  0.0000, 
    frac:  0.0001}, 
-  {iorb:  3, occ:  2.0000, eval: -0.921279, frac:  0.0004, frac:  0.0000, frac:  0.9994, 
+  {iorb:  3, occ:  2.0000, eval: -0.921279, frac:  0.0005, frac:  0.0000, frac:  0.9993, 
    frac:  0.0002}, 
-  {iorb:  4, occ:  2.0000, eval: -0.921279, frac:  0.0003, frac:  0.0001, frac:  0.0002, 
-   frac:  0.9994}, 
+  {iorb:  4, occ:  2.0000, eval: -0.921279, frac:  0.0004, frac:  0.0001, frac:  0.0003, 
+   frac:  0.9993}, 
   {iorb:  5, occ:  2.0000, eval: -0.482393, frac:  0.9998, frac:  0.0002, frac:  0.0001, 
    frac:  0.0000}, 
   {iorb:  6, occ:  2.0000, eval: -0.482393, frac:  0.0014, frac:  0.9985, frac:  0.0000, 
    frac:  0.0000}, 
-  {iorb:  7, occ:  2.0000, eval: -0.482393, frac:  0.0003, frac:  0.0000, frac:  0.9995, 
-   frac:  0.0002}, 
-  {iorb:  8, occ:  2.0000, eval: -0.482393, frac:  0.0005, frac:  0.0001, frac:  0.0002, 
-   frac:  0.9992}, 
-  {iorb:  9, occ:  2.0000, eval: -0.341792, frac:  0.9975, frac:  0.0004, frac:  0.0014, 
+  {iorb:  7, occ:  2.0000, eval: -0.482393, frac:  0.0003, frac:  0.0000, frac:  0.9994, 
+   frac:  0.0003}, 
+  {iorb:  8, occ:  2.0000, eval: -0.482393, frac:  0.0005, frac:  0.0002, frac:  0.0003, 
+   frac:  0.9991}, 
+  {iorb:  9, occ:  2.0000, eval: -0.341792, frac:  0.9974, frac:  0.0004, frac:  0.0014, 
    frac:  0.0007}, 
-  {iorb:  10, occ:  2.0000, eval: -0.341792, frac:  0.0089, frac:  0.9911, frac:  0.0000, 
+  {iorb:  10, occ:  2.0000, eval: -0.341792, frac:  0.0088, frac:  0.9911, frac:  0.0000, 
    frac:  0.0000}, 
-  {iorb:  11, occ:  2.0000, eval: -0.341792, frac:  0.0010, frac:  0.0000, frac:  0.9982, 
-   frac:  0.0007}, 
-  {iorb:  12, occ:  2.0000, eval: -0.341792, frac:  0.0001, frac:  0.0006, frac:  0.0008, 
+  {iorb:  11, occ:  2.0000, eval: -0.341792, frac:  0.0011, frac:  0.0000, frac:  0.9982, 
+   frac:  0.0008}, 
+  {iorb:  12, occ:  2.0000, eval: -0.341792, frac:  0.0001, frac:  0.0005, frac:  0.0009, 
    frac:  0.9985}, 
-  {iorb:  13, occ:  2.0000, eval: -0.269879, frac:  0.9786, frac:  0.0004, frac:  0.0209, 
+  {iorb:  13, occ:  2.0000, eval: -0.269879, frac:  0.9781, frac:  0.0004, frac:  0.0214, 
    frac:  0.0002}, 
-  {iorb:  14, occ:  2.0000, eval: -0.269879, frac:  0.0062, frac:  0.9933, frac:  0.0000, 
-   frac:  0.0006}, 
-  {iorb:  15, occ:  2.0000, eval: -0.269879, frac:  0.0002, frac:  0.0000, frac:  0.9995, 
+  {iorb:  14, occ:  2.0000, eval: -0.269879, frac:  0.0061, frac:  0.9934, frac:  0.0000, 
+   frac:  0.0005}, 
+  {iorb:  15, occ:  2.0000, eval: -0.269879, frac:  0.0002, frac:  0.0000, frac:  0.9994, 
    frac:  0.0003}, 
   {iorb:  16, occ:  2.0000, eval: -0.269879, frac:  0.0021, frac:  0.0000, frac:  0.0005, 
    frac:  0.9974}, 
@@ -561,12 +561,12 @@
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
- Energies: {Ekin:  3.76843168770E+01, Epot: -4.83256149572E+01, Enl:  2.85952777653E+00, 
-              EH:  1.42163876990E+02,  EXC: -1.64811463696E+01, EvXC: -2.16046221318E+01}, 
-       iter high:  1,            delta out:  6.785E-08, 
-          energy: -6.85472408694754876E+01,                       D:  0.000E+00,  #FINAL
+ Energies: {Ekin:  3.76841670768E+01, Epot: -4.80460490163E+01, Enl:  2.78099539238E+00, 
+              EH:  1.42539044425E+02,  EXC: -1.65045131096E+01, EvXC: -2.16354768419E+01}, 
+       iter high:  1,            delta out:  3.481E-08, 
+          energy: -6.85923879324030139E+01,                       D:  0.000E+00,  #FINAL
  }
- Total charge                          :  3.199999496764E+01
+ Total charge                          :  3.199999497654E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -574,34 +574,36 @@
    MPI tasks                           :  6
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  1.13757740E+00, y:  1.34224119E+00, z:  8.58384027E-01, 
-                    total:  1.95768151E+00}
- Clean forces norm (Ha/Bohr): {maxval:  3.545458451681E+00, fnrm2:  2.650150866068E+01}
- Raw forces norm (Ha/Bohr): {maxval:  4.020737218996E+00, fnrm2:  3.259673868876E+01}
+ Average noise forces: {x:  1.74018965E-01, y:  1.01060859E+00, z:  9.39706577E-01, 
+                    total:  1.39092083E+00}
+ Clean forces norm (Ha/Bohr): {maxval:  3.057292974902E+00, fnrm2:  1.807934746316E+01}
+ Raw forces norm (Ha/Bohr): {maxval:  3.944363491249E+00, fnrm2:  2.361809868865E+01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 3.100611212124E-01, -8.693759095471E-02,  1.627173110204E-01]} # 0001
- -  {H: [-4.009263298704E-01, -3.691399959222E-01, -3.971850328896E-01]} # 0002
- -  {H: [-1.734772957402E-01, -5.586870109296E-01, -1.928476230377E-01]} # 0003
- -  {O: [ 3.858830487120E-01,  1.855856222997E+00,  2.870146468697E-03]} # 0004
- -  {H: [-2.913495877884E-01, -1.174193393357E-01,  2.595257104974E-01]} # 0005
- -  {H: [-1.047805907086E-01, -3.537850793853E-01,  3.131718994727E-01]} # 0006
- -  {O: [-9.986269074931E-01,  2.350781573992E+00, -7.913221734197E-02]} # 0007
- -  {H: [-3.987942290114E-01, -4.913594165501E-01, -7.060749873250E-01]} # 0008
- -  {H: [-2.931720668090E-01, -6.916095212818E-01, -6.237802951526E-01]} # 0009
- -  {O: [ 2.856155500305E+00, -1.219465131330E+00,  1.710425731841E+00]} # 0010
- -  {H: [-5.402728889489E-01, -4.779898182987E-02, -2.283657350265E-01]} # 0011
- -  {H: [-3.506997738593E-01, -2.704357294687E-01, -2.213249085267E-01]} # 0012
+ -  {O: [ 5.409797134055E-01,  2.969104989122E-01, -9.862679311078E-02]} # 0001
+ -  {H: [-2.211949239010E-01, -8.988742253552E-02, -5.935458994135E-01]} # 0002
+ -  {H: [ 5.358729120778E-02, -2.963697801394E-01, -3.623178151558E-01]} # 0003
+ -  {O: [ 2.623974279392E-01,  1.907855021774E+00, -4.875098025238E-02]} # 0004
+ -  {H: [-5.339193125883E-01, -1.594246030852E-01,  2.619193054441E-01]} # 0005
+ -  {H: [-1.515285998745E-01, -4.066196559187E-01,  3.593146238665E-01]} # 0006
+ -  {O: [-1.228722065618E-01, -5.232498804952E-01,  3.009676447361E+00]} # 0007
+ -  {H: [ 3.299677041335E-01, -3.860149513660E-01, -6.789667352678E-01]} # 0008
+ -  {H: [ 3.909957984059E-01, -3.152396273448E-01, -7.591716250335E-01]} # 0009
+ -  {O: [-2.252454573561E-01,  5.831548680526E-01, -1.041118126809E+00]} # 0010
+ -  {H: [-2.868690290868E-01, -2.427995354497E-01, -4.915794661258E-02]} # 0011
+ -  {H: [-3.629840572352E-02, -3.683149324042E-01,  7.455449837141E-04]} # 0012
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  21.94
-   Elapsed time (s)                    :  22.00
+   CPU time (s)                        :  20.78
+   Elapsed time (s)                    :  20.85
   #-------------------------------- Warnings obtained during the run, check their relevance!
- WARNINGS: [Do not call check_communications in the linear scaling version!, 
- support function optimization not converged, density optimization not converged]
+ WARNINGS:
+ - Do not call check_communications in the linear scaling version!
+ - support function optimization not converged
+ - density optimization not converged
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-11-05 18:00:55.921
+     2013-11-13 17:03:03.646
    Process Id:
      0
  Memory Consumption Report:
