@@ -40,14 +40,19 @@ LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.
 endif
 endif
 
+psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a  @LINALG_LIBS@
+
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = -lPSolver-1 @LINALG_LIBS@ $(top_builddir)/flib/src/libflib.a
+PS_Check_LDADD = $(psolver_libraries)
+#PS_Check_LDADD = -lPSolver-1 @LINALG_LIBS@ $(top_builddir)/flib/src/libflib.a
 
 PS_Program_SOURCES = PS_Program.f90
-PS_Program_LDADD = -lPSolver-1
+PS_Program_LDADD = $(psolver_libraries)
+#PS_Program_LDADD = -lPSolver-1
 
 PS_Exercise_SOURCES = PS_Exercise.f90
-PS_Exercise_LDADD = -lPSolver-1
+PS_Exercise_LDADD = $(psolver_libraries)
+#PS_Exercise_LDADD = -lPSolver-1
 
 CLEANFILES = malloc.prc time.prc PS_Check.out.yaml fldiff.report.yaml
 

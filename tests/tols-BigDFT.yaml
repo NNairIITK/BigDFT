@@ -140,7 +140,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Average CG stepsize in terms of betax: 3.5e-4
+ Average CG stepsize in terms of betax: 3.501e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 5.31e-8
  Clean forces norm (Ha/Bohr): 3.6e-7
@@ -161,6 +161,7 @@ ElecField:
 
 FeHyb:
  EKS: 6.e-11
+ y: 1.51e-11
 
 Li+:
  EKS: 2.e-11

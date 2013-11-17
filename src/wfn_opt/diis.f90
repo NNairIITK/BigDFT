@@ -606,7 +606,9 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
      ! update all wavefunctions with the preconditioned gradient
      if (diis%energy > diis%energy_old) then
         diis%alpha=max(5.d-2,.5_wp*diis%alpha)
-        if (diis%alpha == 5.d-2 .and. iproc==0) write(*,*) ' WARNING: Convergence problem or limit'
+        if (diis%alpha == 5.d-2 .and. iproc==0) &
+             call yaml_warning('Convergence problem or limit for SD step reached')
+        !write(*,*) ' WARNING: Convergence problem or limit'
      else
         diis%alpha=min(1.05_wp*diis%alpha,diis%alpha_max)
      endif
