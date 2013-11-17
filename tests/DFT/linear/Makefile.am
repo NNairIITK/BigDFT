@@ -10,21 +10,21 @@ TESTDIRS = Locreg \
 	   geopt \
 	   testforces \
 	   fructose \
-       rotatesmall2 \
        rotatesmall \
        cdft \
        hybrid-directmin \
        experimentalmode
 
 EXTRA_TESTDIRS = reformatcomplete \
-   water \
+    water \
 	molecule \
 	deltascf \
 	reformat \
 	paracetamol \
 	rotate \
-	rotate2 \
-	noortho
+	rotate2 
+#\
+#	noortho
 
 
 EXTRA_DIST = 
@@ -53,21 +53,18 @@ deltascf_write_neut.out.post-out:
 	rm -rf data-read_charge
 	mv -f data-write_neut data-read_charge
 
-rotatesmall_read.out.out : rotatesmall_write.out.out
+rotatesmall_read1.out.out : rotatesmall_write.out.out
+rotatesmall_read2.out.out : rotatesmall_write.out.out
 
 rotatesmall_write.out.post-out: 
-	rm -rf data-read/data-sih3
-	mkdir -p data-read
-	mv -f data-write data-read/data-sih3
-	cp -f write.xyz data-read/sih3.xyz
-
-rotatesmall2_read.out.out : rotatesmall2_write.out.out
-
-rotatesmall2_write.out.post-out: 
-	rm -rf data-read/data-sih3
-	mkdir -p data-read
-	mv -f data-write data-read/data-sih3
-	cp -f write.xyz data-read/sih3.xyz
+	rm -rf data-read1/data-sih3
+	mkdir -p data-read1
+	cp -rf data-write data-read1/data-sih3
+	cp -f write.xyz data-read1/sih3.xyz
+	rm -rf data-read2/data-sih3
+	mkdir -p data-read2
+	cp -rf data-write data-read2/data-sih3
+	cp -f write.xyz data-read2/sih3.xyz
 
 rotate_read.out.out : rotate_write.out.out
 
@@ -152,7 +149,7 @@ reformatcomplete_write.out.post-out:
 	  rotatesmall.out*)           prec="1.1e-8" ;; \
 	  test.testforces.out*)       prec="1.1e-9" ;; \
 	  hybrid-directmin.out*)      prec="1.3e-9" ;; \
-	  experimentalmode.out*)      prec="1.0e-6" ;; \
+	  experimentalmode.out*)      prec="1.6e-6" ;; \
       *)                          prec="1.1e-10" ;; \
       esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

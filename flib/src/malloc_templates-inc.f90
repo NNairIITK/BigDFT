@@ -85,7 +85,28 @@ subroutine i4_all_free(array)
   include 'deallocate-inc.f90' 
 end subroutine i4_all_free
 
-include 'malloc_templates-c-inc.f90'
+!character arrays
+subroutine c1_all(array,m)
+  use metadata_interfaces, metadata_address => getc1
+  implicit none
+  type(malloc_information_str_all), intent(in) :: m
+  character(len=m%len), dimension(:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+  include 'allocate-c-inc.f90'
+end subroutine c1_all
+
+!subroutine c1_all_free(length,array)
+subroutine f_free_str(length,array)
+  use metadata_interfaces, metadata_address => getc1
+  implicit none
+  integer, intent(in) :: length
+  character(len=length), dimension(:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-c-inc.f90' 
+end subroutine f_free_str
+
 
 subroutine l1_all(array,m)
   use metadata_interfaces, metadata_address => getl1
@@ -125,6 +146,27 @@ subroutine l2_all_free(array)
   include 'deallocate-profile-inc.f90' 
   include 'deallocate-inc.f90' 
 end subroutine l2_all_free
+
+subroutine l3_all(array,m)
+  use metadata_interfaces, metadata_address => getl3
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  logical, dimension(:,:,:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+       m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine l3_all
+
+subroutine l3_all_free(array)
+  use metadata_interfaces, metadata_address => getl3
+  implicit none
+  logical, dimension(:,:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine l3_all_free
+
 
 subroutine d1_all(array,m)
   use metadata_interfaces, metadata_address => getdp1
@@ -204,6 +246,51 @@ subroutine d4_all_free(array)
   include 'deallocate-profile-inc.f90' 
   include 'deallocate-inc.f90' 
 end subroutine d4_all_free
+
+subroutine d5_all(array,m)
+  use metadata_interfaces, metadata_address => getdp5
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  double precision, dimension(:,:,:,:,:), allocatable, intent(inout) :: array
+  !local variables
+  include 'allocate-profile-inc.f90' 
+  allocate(array(m%lbounds(1):m%ubounds(1),&
+       m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3),&
+       m%lbounds(4):m%ubounds(4),m%lbounds(5):m%ubounds(5)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine d5_all
+
+subroutine d5_all_free(array)
+  use metadata_interfaces, metadata_address => getdp5
+  implicit none
+  double precision, dimension(:,:,:,:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine d5_all_free
+
+subroutine d6_all(array,m)
+  use metadata_interfaces, metadata_address => getdp6
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  double precision, dimension(:,:,:,:,:,:), allocatable, intent(inout) :: array
+  !local variables
+  include 'allocate-profile-inc.f90' 
+  allocate(array(m%lbounds(1):m%ubounds(1),&
+       m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3),&
+       m%lbounds(4):m%ubounds(4),m%lbounds(5):m%ubounds(5),&
+       m%lbounds(6):m%ubounds(6)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine d6_all
+
+subroutine d6_all_free(array)
+  use metadata_interfaces, metadata_address => getdp6
+  implicit none
+  double precision, dimension(:,:,:,:,:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine d6_all_free
+
+
 
 !test to see if this is convenient
 subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
@@ -396,3 +483,27 @@ subroutine d5_ptr_free(array)
   include 'deallocate-inc.f90'
   nullify(array)
 end subroutine d5_ptr_free
+
+!character arrays
+subroutine c1_ptr(array,m)
+  use metadata_interfaces, metadata_address => getc1ptr
+  implicit none
+  type(malloc_information_str_ptr), intent(in) :: m
+  character(len=m%len), dimension(:), pointer, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+  include 'allocate-c-inc.f90'
+end subroutine c1_ptr
+
+!subroutine c1_ptr_free(length,array)
+subroutine f_free_str_ptr(length,array)
+  use metadata_interfaces, metadata_address => getc1ptr
+  implicit none
+  integer, intent(in) :: length
+  character(len=length), dimension(:), pointer, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  if (.not. associated(array)) return
+  include 'deallocate-c-inc.f90'
+  nullify(array)
+end subroutine f_free_str_ptr

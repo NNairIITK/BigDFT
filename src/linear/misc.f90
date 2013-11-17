@@ -759,43 +759,54 @@ end subroutine local_potential_dimensions
 subroutine print_orbital_distribution(iproc, nproc, orbs)
 use module_base
 use module_types
+use yaml_output
 implicit none
 
 integer, intent(in) :: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
 
 ! Local variables
-integer :: jproc, len1, len2, space1, space2
+integer :: jproc, len1, len2, space1, space2, jpst, norb0,  norb1
 logical :: written
 
-write(*,'(1x,a)') '------------------------------------------------------------------------------------'
-written=.false.
-write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
-do jproc=1,nproc-1
-    if(orbs%norb_par(jproc,0)<orbs%norb_par(jproc-1,0)) then
-        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(orbs%norb_par(jproc-1,0)+1.d-5)))
-        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
-             ceiling(log10(dble(orbs%norb_par(jproc,0)+1.d-5)))
-        if(len1>=len2) then
-            space1=1
-            space2=1+len1-len2
-        else
-            space1=1+len2-len1
-            space2=1
-        end if
-        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
-        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
-        written=.true.
-        exit
+!!write(*,'(1x,a)') '------------------------------------------------------------------------------------'
+!!written=.false.
+!!write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
+call yaml_open_map('Support function repartition')
+jpst=0
+do jproc=0,nproc-1
+    norb0=orbs%norb_par(jproc,0)
+    norb1=orbs%norb_par(min(jproc+1,nproc-1),0)
+    if (norb0/=norb1 .or. jproc==nproc-1) then
+        call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+        jpst=jproc+1
     end if
+
+    !!if(orbs%norb_par(jproc,0)<orbs%norb_par(jproc-1,0)) then
+    !!    len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(orbs%norb_par(jproc-1,0)+1.d-5)))
+    !!    len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
+    !!         ceiling(log10(dble(orbs%norb_par(jproc,0)+1.d-5)))
+    !!    if(len1>=len2) then
+    !!        space1=1
+    !!        space2=1+len1-len2
+    !!    else
+    !!        space1=1+len2-len1
+    !!        space2=1
+    !!    end if
+    !!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+    !!        orbs%norb_par(jproc-1,0), ' orbitals,', repeat(' ', space1), '|'
+    !!    write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+    !!        orbs%norb_par(jproc,0),' orbitals.', repeat(' ', space2), '|'
+    !!    written=.true.
+    !!    exit
+    !!end if
 end do
-if(.not.written) then
-    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
-        ' treat ',orbs%norbp,' orbitals. |'!, &
-end if
-write(*,'(1x,a)') '-----------------------------------------------'
+call yaml_close_map()
+!!if(.not.written) then
+!!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+!!        ' treat ',orbs%norbp,' orbitals. |'!, &
+!!end if
+!!write(*,'(1x,a)') '-----------------------------------------------'
 
 !!written=.false.
 !!write(*,'(1x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'

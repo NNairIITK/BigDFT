@@ -13,11 +13,12 @@
 !! Each processors write its initial wavefunctions into the wavefunction file
 !! The files are then read by readwave
 subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-     rxyz, nlpspd, proj, GPU, orbs, tmb, denspot, rhopotold, energs)
+     rxyz, nlpspd, proj, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs)
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use yaml_output
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -29,7 +30,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   type(orbitals_data),intent(inout) :: orbs
-  type(DFT_wavefunction),intent(inout) :: tmb
+  type(DFT_wavefunction),intent(inout) :: kswfn, tmb
   type(DFT_local_fields), intent(inout) :: denspot
   real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) :: rhopotold
   type(energy_terms),intent(inout) :: energs
@@ -64,8 +65,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, fix_supportfunctions, reduce_conf
   type(localizedDIISParameters) :: ldiis
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
   call nullify_orbitals_data(orbs_gauss)
+  nullify(mom_vec_fake)
 
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
@@ -167,195 +170,201 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   nvirt=0
 
-  do ityp=1,at%astruct%ntypes
-     call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-     if(4.d0*rprb>input%lin%locrad_type(ityp)) then
-         if(iproc==0) write(*,'(3a,es10.2)') 'WARNING: locrad for atom type ',trim(symbol), &
-                      ' is too small; minimal value is ',4.d0*rprb
-     end if
-     if(input%lin%potentialPrefac_ao(ityp)>0.d0) then
-         x0=(70.d0/input%lin%potentialPrefac_ao(ityp))**.25d0
-         if(iproc==0) write(*,'(a,a,2es11.2,es12.3)') 'type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)', &
-                      trim(symbol),4.d0*rprb, x0, input%lin%locrad_type(ityp)
-         V3prb=input%lin%potentialPrefac_ao(ityp)*(4.d0*rprb)**4
-         if(iproc==0) write(*,'(a,es14.4)') 'V3prb',V3prb
-     end if
-  end do
 
-  ! #######################################################################
-  ! Estimate convergence criterion: kinetic energy for Gaussians and for
-  ! wavelets (i.e. with cutoff)
-  call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
-       at%astruct%nat, norbsPerAt, mapping, &
-       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks)!,1.d-7*input%lin%potentialPrefac_ao)
-  if (iproc==0) write(*,*) 'eks',eks
+! THIS OUTPUT SHOULD PROBABLY BE KEPT, BUT IS COMMENTED FOR THE MOMENT AS IT DOES NOT
+! SEEM TO BE RELEVANT ANY MORE
+  !!do ityp=1,at%astruct%ntypes
+  !!   call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+  !!   if(4.d0*rprb>input%lin%locrad_type(ityp)) then
+  !!       if(iproc==0) write(*,'(3a,es10.2)') 'WARNING: locrad for atom type ',trim(symbol), &
+  !!                    ' is too small; minimal value is ',4.d0*rprb
+  !!   end if
+  !!   if(input%lin%potentialPrefac_ao(ityp)>0.d0) then
+  !!       x0=(70.d0/input%lin%potentialPrefac_ao(ityp))**.25d0
+  !!       if(iproc==0) write(*,'(a,a,2es11.2,es12.3)') 'type, 4.d0*rprb, x0, input%lin%locrad_type(ityp)', &
+  !!                    trim(symbol),4.d0*rprb, x0, input%lin%locrad_type(ityp)
+  !!       V3prb=input%lin%potentialPrefac_ao(ityp)*(4.d0*rprb)**4
+  !!       if(iproc==0) write(*,'(a,es14.4)') 'V3prb',V3prb
+  !!   end if
+  !!end do
 
-  ! Create the potential. First calculate the charge density.
-  do iorb=1,tmb%orbs%norb
-      !if (iproc==0) write(*,*) 'WARNING: use mapping for occupation numbers!'
-      !tmb%orbs%occup(iorb)=orbs_gauss%occup(iorb)
-      tmb%orbs%occup(iorb)=orbs_gauss%occup(inversemapping(iorb))
-  end do
+! THIS IS SOMETHING EXPERIMENTAL TO ESTIMATE THE CONVERGENCE THRESHOLD. NOT
+! WORKING WELL, BUT STILL TO BE KEPT AS A TEMPLATE
+!!  ! #######################################################################
+!!  ! Estimate convergence criterion: kinetic energy for Gaussians and for
+!!  ! wavelets (i.e. with cutoff)
+!!  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
+!!       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,mapping)!,1.d-7*input%lin%potentialPrefac_ao)
+!!  if (iproc==0) write(*,*) 'eks',eks
+!!
+!!  ! Create the potential. First calculate the charge density.
+!!  do iorb=1,tmb%orbs%norb
+!!      !if (iproc==0) write(*,*) 'WARNING: use mapping for occupation numbers!'
+!!      !tmb%orbs%occup(iorb)=orbs_gauss%occup(iorb)
+!!      tmb%orbs%occup(iorb)=orbs_gauss%occup(inversemapping(iorb))
+!!  end do
+!!
+!!  ! Transform the atomic orbitals to the wavelet basis.
+!!
+!!  !!if (.false.) then
+!!      ! linear version
+!!
+!!      if (orbs_gauss%norb/=tmb%orbs%norb) stop 'orbs%gauss%norb does not match tmbs%orbs%norb'
+!!      orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
+!!      call wavefunction_dimension(tmb%lzd,orbs_gauss)
+!!      call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
+!!      call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
+!!           psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
+!!
+!!      ! Calculate kinetic energy
+!!      allocate(confdatarrtmp(tmb%orbs%norbp))
+!!      call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
+!!
+!!      call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
+!!           tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+!!           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+!!      if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+!!
+!!      call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+!!           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
+!!           energs,input%SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+!!      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
+!!           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+!!
+!!  !!else
+!!  !!    ! cubic version
+!!
+!!  !!    if (orbs_gauss%norb/=tmb%orbs%norb) stop 'orbs%gauss%norb does not match tmbs%orbs%norb'
+!!  !!    orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
+!!  !!    call wavefunction_dimension(tmb%lzd,orbs_gauss)
+!!  !!    call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
+!!  !!    call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
+!!  !!         psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
+!!
+!!  !!    ! Calculate kinetic energy
+!!  !!    allocate(confdatarrtmp(tmb%orbs%norbp))
+!!  !!    call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
+!!
+!!  !!    call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
+!!  !!         tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+!!  !!         tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+!!  !!    if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+!!
+!!  !!    call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+!!  !!         tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
+!!  !!         energs,input%SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+!!  !!    call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
+!!  !!         energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+!!
+!!  !!end if
+!!
+!!  if (iproc==0) write(*,*) 'eks, energs%ekin', eks, energs%ekin
+!!  if (iproc==0) write(*,*) 'conv crit:', abs(eks-energs%ekin)/dble(tmb%orbs%norb)
+!!  deallocate(confdatarrtmp)
+!!  iall=-product(shape(psigau))*kind(psigau)
+!!  deallocate(psigau,stat=istat)
+!!  call memocc(istat,iall,'psigau',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%onwhichatom))*kind(orbs_gauss%onwhichatom)
+!!  deallocate(orbs_gauss%onwhichatom,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%onwhichatom',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%norb_par))*kind(orbs_gauss%norb_par)
+!!  deallocate(orbs_gauss%norb_par,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%norb_par',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%kpts))*kind(orbs_gauss%kpts)
+!!  deallocate(orbs_gauss%kpts,stat=istat)
+!!  call memocc(istat,iall,'psigau',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%spinsgn))*kind(orbs_gauss%spinsgn)
+!!  deallocate(orbs_gauss%spinsgn,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%spinsgn',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%ikptproc))*kind(orbs_gauss%ikptproc)
+!!  deallocate(orbs_gauss%ikptproc,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%ikptproc',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%kwgts))*kind(orbs_gauss%kwgts)
+!!  deallocate(orbs_gauss%kwgts,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%kwgts',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%occup))*kind(orbs_gauss%occup)
+!!  deallocate(orbs_gauss%occup,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%occup',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%inwhichlocreg))*kind(orbs_gauss%inwhichlocreg)
+!!  deallocate(orbs_gauss%inwhichlocreg,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%inwhichlocreg',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%iokpt))*kind(orbs_gauss%iokpt)
+!!  deallocate(orbs_gauss%iokpt,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%iokpt',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%ispot))*kind(orbs_gauss%ispot)
+!!  deallocate(orbs_gauss%ispot,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%ispot',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%isorb_par))*kind(orbs_gauss%isorb_par)
+!!  deallocate(orbs_gauss%isorb_par,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%isorb_par',subname)
+!!
+!!  iall=-product(shape(orbs_gauss%onwhichmpi))*kind(orbs_gauss%onwhichmpi)
+!!  deallocate(orbs_gauss%onwhichmpi,stat=istat)
+!!  call memocc(istat,iall,'orbs_gauss%onwhichmpi',subname)
+!!
+!!  iall=-product(shape(G%ndoc))*kind(G%ndoc)
+!!  deallocate(G%ndoc,stat=istat)
+!!  call memocc(istat,iall,'G%ndoc',subname)
+!!
+!!  iall=-product(shape(G%nshell))*kind(G%nshell)
+!!  deallocate(G%nshell,stat=istat)
+!!  call memocc(istat,iall,'G%xp',subname)
+!!
+!!  iall=-product(shape(G%xp))*kind(G%xp)
+!!  deallocate(G%xp,stat=istat)
+!!  call memocc(istat,iall,'G%xp',subname)
+!!
+!!  iall=-product(shape(G%psiat))*kind(G%psiat)
+!!  deallocate(G%psiat,stat=istat)
+!!  call memocc(istat,iall,'G%psiat',subname)
+!!
+!!  iall=-product(shape(G%nam))*kind(G%nam)
+!!  deallocate(G%nam,stat=istat)
+!!  call memocc(istat,iall,'G%nam',subname)
+!!
+!!
+!!
+!!  !!call f_free(tmb%orbs%onwhichatom)
+!!  !!call f_free(tmb%orbs%norb_par)
+!!  !!call f_free(tmb%orbs%kpts)
+!!  !!call f_free(tmb%orbs%spinsgn)
+!!  !!call f_free(tmb%orbs%ikptproc)
+!!  !!call f_free(tmb%orbs%kwgts)
+!!  !!call f_free(tmb%orbs%occup)
+!!  !!call f_free(tmb%orbs%inwhichlocreg)
+!!  !!call f_free(tmb%orbs%iokpt)
+!!  !!call f_free(tmb%orbs%ispot)
+!!  !!call f_free(tmb%orbs%isorb_par)
+!!  !!call f_free(tmb%orbs%onwhichmpi)
+!!  !!call f_free(G%ndoc)
+!!  !!call f_free(G%nshell)
+!!  !!call f_free(G%xp)
+!!  !!call f_free(G%psiat)
+!!
+!!
+!!
+!!
+!!  ! #######################################################################
 
-  ! Transform the atomic orbitals to the wavelet basis.
-
-  !!if (.false.) then
-      ! linear version
-
-      if (orbs_gauss%norb/=tmb%orbs%norb) stop 'orbs%gauss%norb does not match tmbs%orbs%norb'
-      orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
-      call wavefunction_dimension(tmb%lzd,orbs_gauss)
-      call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
-      call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
-           psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
-
-      ! Calculate kinetic energy
-      allocate(confdatarrtmp(tmb%orbs%norbp))
-      call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
-
-      call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
-           tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
-      if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
-
-      call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
-           energs,input%SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
-           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
-
-  !!else
-  !!    ! cubic version
-
-  !!    if (orbs_gauss%norb/=tmb%orbs%norb) stop 'orbs%gauss%norb does not match tmbs%orbs%norb'
-  !!    orbs_gauss%inwhichlocreg=tmb%orbs%inwhichlocreg
-  !!    call wavefunction_dimension(tmb%lzd,orbs_gauss)
-  !!    call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
-  !!    call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
-  !!         psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
-
-  !!    ! Calculate kinetic energy
-  !!    allocate(confdatarrtmp(tmb%orbs%norbp))
-  !!    call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
-
-  !!    call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
-  !!         tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-  !!         tmb%orbs, tmb%psi, tmb%ham_descr%psi)
-  !!    if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
-
-  !!    call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-  !!         tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
-  !!         energs,input%SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-  !!    call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
-  !!         energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
-
-  !!end if
-
-  if (iproc==0) write(*,*) 'eks, energs%ekin', eks, energs%ekin
-  if (iproc==0) write(*,*) 'conv crit:', abs(eks-energs%ekin)/dble(tmb%orbs%norb)
-  deallocate(confdatarrtmp)
-  iall=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=istat)
-  call memocc(istat,iall,'psigau',subname)
-
-  iall=-product(shape(orbs_gauss%onwhichatom))*kind(orbs_gauss%onwhichatom)
-  deallocate(orbs_gauss%onwhichatom,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%onwhichatom',subname)
-
-  iall=-product(shape(orbs_gauss%norb_par))*kind(orbs_gauss%norb_par)
-  deallocate(orbs_gauss%norb_par,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%norb_par',subname)
-
-  iall=-product(shape(orbs_gauss%kpts))*kind(orbs_gauss%kpts)
-  deallocate(orbs_gauss%kpts,stat=istat)
-  call memocc(istat,iall,'psigau',subname)
-
-  iall=-product(shape(orbs_gauss%spinsgn))*kind(orbs_gauss%spinsgn)
-  deallocate(orbs_gauss%spinsgn,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%spinsgn',subname)
-
-  iall=-product(shape(orbs_gauss%ikptproc))*kind(orbs_gauss%ikptproc)
-  deallocate(orbs_gauss%ikptproc,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%ikptproc',subname)
-
-  iall=-product(shape(orbs_gauss%kwgts))*kind(orbs_gauss%kwgts)
-  deallocate(orbs_gauss%kwgts,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%kwgts',subname)
-
-  iall=-product(shape(orbs_gauss%occup))*kind(orbs_gauss%occup)
-  deallocate(orbs_gauss%occup,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%occup',subname)
-
-  iall=-product(shape(orbs_gauss%inwhichlocreg))*kind(orbs_gauss%inwhichlocreg)
-  deallocate(orbs_gauss%inwhichlocreg,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%inwhichlocreg',subname)
-
-  iall=-product(shape(orbs_gauss%iokpt))*kind(orbs_gauss%iokpt)
-  deallocate(orbs_gauss%iokpt,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%iokpt',subname)
-
-  iall=-product(shape(orbs_gauss%ispot))*kind(orbs_gauss%ispot)
-  deallocate(orbs_gauss%ispot,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%ispot',subname)
-
-  iall=-product(shape(orbs_gauss%isorb_par))*kind(orbs_gauss%isorb_par)
-  deallocate(orbs_gauss%isorb_par,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%isorb_par',subname)
-
-  iall=-product(shape(orbs_gauss%onwhichmpi))*kind(orbs_gauss%onwhichmpi)
-  deallocate(orbs_gauss%onwhichmpi,stat=istat)
-  call memocc(istat,iall,'orbs_gauss%onwhichmpi',subname)
-
-  iall=-product(shape(G%ndoc))*kind(G%ndoc)
-  deallocate(G%ndoc,stat=istat)
-  call memocc(istat,iall,'G%ndoc',subname)
-
-  iall=-product(shape(G%nshell))*kind(G%nshell)
-  deallocate(G%nshell,stat=istat)
-  call memocc(istat,iall,'G%xp',subname)
-
-  iall=-product(shape(G%xp))*kind(G%xp)
-  deallocate(G%xp,stat=istat)
-  call memocc(istat,iall,'G%xp',subname)
-
-  iall=-product(shape(G%psiat))*kind(G%psiat)
-  deallocate(G%psiat,stat=istat)
-  call memocc(istat,iall,'G%psiat',subname)
-
-  iall=-product(shape(G%nam))*kind(G%nam)
-  deallocate(G%nam,stat=istat)
-  call memocc(istat,iall,'G%nam',subname)
 
 
 
-  !!call f_free(tmb%orbs%onwhichatom)
-  !!call f_free(tmb%orbs%norb_par)
-  !!call f_free(tmb%orbs%kpts)
-  !!call f_free(tmb%orbs%spinsgn)
-  !!call f_free(tmb%orbs%ikptproc)
-  !!call f_free(tmb%orbs%kwgts)
-  !!call f_free(tmb%orbs%occup)
-  !!call f_free(tmb%orbs%inwhichlocreg)
-  !!call f_free(tmb%orbs%iokpt)
-  !!call f_free(tmb%orbs%ispot)
-  !!call f_free(tmb%orbs%isorb_par)
-  !!call f_free(tmb%orbs%onwhichmpi)
-  !!call f_free(G%ndoc)
-  !!call f_free(G%nshell)
-  !!call f_free(G%xp)
-  !!call f_free(G%psiat)
-
-
-
-
-  ! #######################################################################
-
-
-
-
-  call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
-       at%astruct%nat, norbsPerAt, mapping, &
-       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_ao)
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
+       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,input%lin%potentialPrefac_ao)
+  !!call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
+  !!     tmb%lzd%nlr,norbsPerAt,mapping, &
+  !!     tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_ao)
 
   ! Take inwhichlocreg from tmb (otherwise there might be problems after the restart...
   !do iorb=1,tmb%orbs%norb
@@ -392,7 +401,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   ! Create the potential. First calculate the charge density.
   do iorb=1,tmb%orbs%norb
-      if (iproc==0 .and. iorb==1) write(*,*) 'WARNING: use mapping for occupation numbers!'
+      !if (iproc==0 .and. iorb==1) write(*,*) 'WARNING: use mapping for occupation numbers!'
       !tmb%orbs%occup(iorb)=orbs_gauss%occup(iorb)
       tmb%orbs%occup(iorb)=orbs_gauss%occup(inversemapping(iorb))
   end do
@@ -468,7 +477,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (.not. input%lin%iterative_orthogonalization) then
       ! Standard orthonomalization
-      if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+      !!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
+      if (iproc==0) call yaml_map('orthonormalization of input guess','standard')
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       !write(*,'(a,i4,4i8)') 'IG: iproc, lbound, ubound, minval, maxval',&
       !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
@@ -481,7 +491,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  else
 
      ! Iterative orthonomalization
-     if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+     !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+     if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
      allocate(maxorbs_type(at%astruct%ntypes),stat=istat)
      call memocc(istat,maxorbs_type,'maxorbs_type',subname)
      allocate(minorbs_type(at%astruct%ntypes),stat=istat)
@@ -559,17 +570,44 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      ldiis%alphaSD=input%lin%alphaSD
      ldiis%alphaDIIS=input%lin%alphaDIIS
      energs%eexctX=0.d0 !temporary fix
+     trace_old=0.d0 !initialization
+     if (iproc==0) then
+         !call yaml_close_map()
+         call yaml_comment('Extended input guess for experimental mode',hfill='-')
+         call yaml_open_map('Extended input guess')
+         call yaml_open_sequence('support function optimization',label=&
+                                           'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
+     end if
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
          reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
          50,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop)
+     call yaml_close_sequence()
+     call yaml_close_map()
      call deallocateDIIS(ldiis)
+     !call yaml_open_map()
      ! END NEW ############################################################################
  end if
 
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
+
+  !!if (iproc==0) then
+  !!    call yaml_close_map()
+  !!end if
+
+  if (iproc==0) then
+      !call yaml_open_sequence('First kernel')
+      !call yaml_open_sequence('kernel optimization',label=&
+      !                          'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
+      !call yaml_sequence(advance='no')
+!      call yaml_open_map('Input Guess kernel ')
+!      call yaml_map('Generation method',input%lin%scf_mode) 
+      !call yaml_sequence(advance='no')
+      !call yaml_open_map(flow=.false.)
+      !call yaml_comment('kernel iter:'//yaml_toa(0,fmt='(i6)'),hfill='-')
+  end if
 
   if (input%lin%scf_mode==LINEAR_FOE) then
 
@@ -577,21 +615,40 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
       call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
 
-      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0)
+      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
          call deallocate_sparsematrix(ham_small,subname)
       end if
 
   else
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs%ebs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0)
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
+
+      call dcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+      call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+      if (bigdft_mpi%iproc ==0) then
+         call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
+      end if
+
   end if
+
 
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
+
+
+  if (iproc==0) then
+      call yaml_open_map('Hamiltonian update',flow=.true.)
+     ! Use this subroutine to write the energies, with some
+     ! fake number
+     ! to prevent it from writing too much
+    call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+  end if
+
+
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
@@ -600,7 +657,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Mix the density.
   if (input%lin%mixing_after_inputguess .and. (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
      if (input%experimental_mode) then
-         if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
+         !if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
+         if (iproc==0) call yaml_map('INFO mixing parameter for this step',1.d0)
          call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, 1.d0, &
               denspot, mixdiis, rhopotold, pnrm)
      else
@@ -612,9 +670,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
       call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
-
+  if (iproc==0) call yaml_newline()
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-
+  if(iproc==0) call yaml_close_map()
   ! Mix the potential.
   if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
      call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
@@ -641,7 +699,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
   end if
   
-  if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
+  !if (iproc==0) then
+  !    call yaml_close_map()
+      !call yaml_close_sequence()
+      !call yaml_close_sequence()
+  !end if
+  !!if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
+  if (iproc==0) call yaml_comment('Input guess generated',hfill='=')
   
   ! Deallocate all local arrays.
 

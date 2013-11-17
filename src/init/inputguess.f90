@@ -10,7 +10,7 @@
 
 !> Generate the input guess via the inguess_generator
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
-      &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
+      &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks,iversion,mapping,quartic_prefactor)
    use module_base
    use module_types
    use module_interfaces, except_this_one => inputguess_gaussian_orbitals
@@ -27,6 +27,9 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    type(orbitals_data), intent(out) :: orbse
    type(gaussian_basis), intent(out) :: G
    real(wp), dimension(:,:,:), pointer :: psigau
+   integer,intent(in) :: iversion !< 1:cubic, 2:linear
+   integer,dimension(orbs%norb),intent(in),optional:: mapping
+   real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
    !n(c) integer, parameter :: ngx=31
@@ -88,9 +91,16 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !in the case of a spin-polarised calculation
    !also for non-collinear case
    !nspin*noncoll is always <= 2
-   call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-        nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
-        basedist=orbs%norb_par(0:,1:))
+   if (iversion==1) then
+       call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
+            basedist=orbs%norb_par(0:,1:))
+   else if (iversion==2) then
+       call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.)
+   else
+       stop 'wrong value of iversion'
+   end if
    do ikpt = 1, orbse%nkpts
       ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
       do ispin=1,nspin
@@ -130,8 +140,21 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    call memocc(i_stat,iorbtolr,'iorbtolr',subname)
 
    !fill just the interesting part of the orbital
-   call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
-        psigau(1,1,min(orbse%isorb+1,orbse%norb)),iorbtolr)
+   if (present(mapping)) then
+       ! this will be use for the linear scaling part
+       if(present(quartic_prefactor)) then
+           call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+                psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+                iorbtolr,mapping,quartic_prefactor)
+       else
+           call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+                psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+                iorbtolr,mapping)
+       end if
+   else
+       call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+            psigau(1,1,min(orbse%isorb+1,orbse%norb)),iorbtolr)
+   end if
 
    i_all=-product(shape(scorb))*kind(scorb)
    deallocate(scorb,stat=i_stat)
@@ -145,7 +168,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
 END SUBROUTINE inputguess_gaussian_orbitals
 
 
-
+!NOT USED ANY MORE
 !>   Generate the input guess via the inguess_generator
 ! This is the same as inputguess_gaussian_orbitals, but it redistrubutes the orbitals in a new way
 ! (used for O(N), the cubic distribution scheme does not always match the scheme assumed for O(N)).

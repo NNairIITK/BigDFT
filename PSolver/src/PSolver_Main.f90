@@ -124,7 +124,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
       if (cudasolver) call yaml_map('GPU acceleration',.true.)
       call yaml_close_map()
-      call yaml_newline()
+!      call yaml_newline()
    end if
    
    if(kernel%geocode == 'P') then

@@ -44,8 +44,13 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti4
 
-     !template for character arrays of variable length
-     include 'getadd-c-inc.f90'
+     !character templates, not the length is added
+     subroutine getc1(length,array,iadd)
+       implicit none
+       integer, intent(in) :: length
+       character(len=length), dimension(:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getc1
 
      subroutine getl1(array,iadd)
        implicit none
@@ -58,6 +63,12 @@ module metadata_interfaces
        logical, dimension(:,:), allocatable, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
      end subroutine getl2
+
+     subroutine getl3(array,iadd)
+       implicit none
+       logical, dimension(:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getl3
 
      subroutine getdp1(array,iadd)
        implicit none
@@ -82,6 +93,18 @@ module metadata_interfaces
        double precision, dimension(:,:,:,:), allocatable, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
      end subroutine getdp4
+
+     subroutine getdp5(array,iadd)
+       implicit none
+       double precision, dimension(:,:,:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getdp5
+
+     subroutine getdp6(array,iadd)
+       implicit none
+       double precision, dimension(:,:,:,:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getdp6
 
      subroutine getdp1ptr(array,iadd)
        implicit none
@@ -125,25 +148,29 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti2ptr
 
+     subroutine getc1ptr(length,array,iadd)
+       implicit none
+       integer, intent(in) :: length
+       character(len=length), dimension(:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getc1ptr
+
+
   end interface
 
 interface pad_array
   module procedure pad_i1,pad_i2,pad_i3,pad_i4
   module procedure pad_c1
-  module procedure pad_l1,pad_l2
-  module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5
+  module procedure pad_l1,pad_l2,pad_l3
+  module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6
 end interface
 
 public :: pad_array,geti1,geti2,geti3,geti4
 public :: getc1
-!, getc1_2, getc1_3, getc1_4, getc1_5, getc1_6, getc1_7, getc1_8, getc1_9, &
-!!$     getc1_10, getc1_11, getc1_12, getc1_13, getc1_14, getc1_15, getc1_16, getc1_17, getc1_18, &
-!!$     getc1_19, getc1_20, getc1_21, getc1_22, getc1_23, getc1_24, getc1_25, getc1_26, getc1_27, &
-!!$     getc1_28, getc1_29, getc1_30, getc1_31, getc1_32, getc1_33, getc1_34, getc1_35, getc1_36, &
-!!$     getc1_37, getc1_38, getc1_39, getc1_40
-public :: getl1,getl2
-public :: getdp1,getdp2,getdp3,getdp4!,getlongaddress
+public :: getl1,getl2,getl3
+public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6!,getlongaddress
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr,geti2ptr
+public :: getc1ptr
 public :: address_toi,long_toa
 
 contains
@@ -225,6 +252,18 @@ contains
 
   end subroutine pad_l2
 
+  subroutine pad_l3(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(3), intent(in) :: shp
+    logical, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
+
+    call pad_logical(array,init_to_zero,product(shp),&
+         product(shp(1:2))*(shp(3)+ndebug))
+
+  end subroutine pad_l3
+
   subroutine pad_dp1(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
@@ -279,6 +318,18 @@ contains
     call pad_double(array,init_to_zero,product(shp),product(shp(1:4))*(shp(5)+ndebug))
 
   end subroutine pad_dp5
+
+  subroutine pad_dp6(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(6), intent(in) :: shp
+    double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5),shp(6)+ndebug), intent(out) :: array
+    
+    call pad_double(array,init_to_zero,product(shp),product(shp(1:5))*(shp(6)+ndebug))
+
+  end subroutine pad_dp6
+
 
   subroutine pad_double(array,init,ndim_tot,ndim_extra)
     implicit none
