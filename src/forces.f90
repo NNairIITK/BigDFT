@@ -314,6 +314,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
+
+
   call to_zero(6,strten(1))
 
   call to_zero(6*4,strtens(1,1))
@@ -417,7 +419,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
      if (iproc==0) call yaml_close_map()
   end if
-
 !!$  if (iproc == 0) then
 !!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
 !!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
@@ -809,7 +810,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
   type(gaussian_basis),dimension(at%astruct%ntypes)::proj_G
-
+call f_routine(id=subname)
   call to_zero(6,strten(1)) 
   
   !nullify PAW objects
@@ -988,6 +989,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                                !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
                              end do
                           end if
                        end do
@@ -1047,7 +1049,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                              !write(250+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
                              do idir=1,3
                                 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                !write(210+iproc,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
+                                !write(*,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
                                 !                                    &idir,fxyz_orb(idir,iat)', &
                                 !                                    iorb,jorb,icplx,0,m,i,l,iat,iat,&
                                 !                                    idir,fxyz_orb(idir,iat)
@@ -1155,6 +1157,8 @@ end do
   i_all=-product(shape(scalprod))*kind(scalprod)
   deallocate(scalprod,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod',subname)
+
+call f_release_routine()
 
 END SUBROUTINE nonlocal_forces
 
