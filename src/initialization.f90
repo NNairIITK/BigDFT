@@ -46,9 +46,9 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   call dict_free(dict)
 
   ! Generate the description of input variables.
-  if (bigdft_mpi%iproc == 0) then
-     call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
-  end if
+  !if (bigdft_mpi%iproc == 0) then
+  !   call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
+  !end if
 
   ! Read associated pseudo files.
   call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)

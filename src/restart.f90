@@ -394,6 +394,9 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
                 psi(1,ispinor,iorb),orbs%eval(orbs%isorb+iorb),psifscf)
            close(99)
         end do
+        do i_all=1,wfd%nvctr_c+7*wfd%nvctr_f
+            write(700+iorb,*) i_all, psi(i_all,1,iorb)
+        end do
 
      end do
 
@@ -409,6 +412,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
+
 
   if (iproc == 0) then 
      call yaml_open_sequence('Reading Waves Time')

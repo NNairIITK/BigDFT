@@ -12,7 +12,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-           energy_only, hpsi_small, experimental_mode, hpsi_noprecond)
+           energy_only, hpsi_small, experimental_mode, ksorbs, hpsi_noprecond)
   use module_base
   use module_types
   use yaml_output
@@ -35,6 +35,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
   logical, intent(in) :: energy_only, experimental_mode
   real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
+  type(orbitals_data),intent(in) :: ksorbs
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
 
   ! Local variables
@@ -390,7 +391,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   !!EXPERIMENTAL
   !!call calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
-  !call calculate_residue_ks(iproc, nproc, 0, tmb%orbs, tmb, hpsit_c, hpsit_f)
+  !!call calculate_residue_ks(iproc, nproc, 0, ksorbs, tmb, hpsit_c, hpsit_f)
   !!END EXPERIMENTAL
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
@@ -894,10 +895,11 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   ksres_sum=0.0d0
   do iorb=1,ksorbs%norb+num_extra
     ksres(iorb)=dsqrt(grad_coeff(iorb,iorb))
-    ksres_sum=ksres_sum+ksres(iorb)
+    !ksres_sum=ksres_sum+ksres(iorb)
+    ksres_sum=ksres_sum+grad_coeff(iorb,iorb)
     if (iproc==0) write(*,*) 'KS residue',iorb,ksres(iorb)!,tmb%orbs%occup(iorb)
   end do
-  if (iproc==0) write(*,*) 'Average KS residue',ksres_sum/real(ksorbs%norb+num_extra,gp)
+  if (iproc==0) write(*,*) 'Average KS residue',sqrt(ksres_sum/real(ksorbs%norb+num_extra,gp))
 
 
   !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &

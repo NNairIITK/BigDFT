@@ -1251,6 +1251,7 @@ subroutine perf_input_analyse(iproc,in,dict)
   use yaml_strings
   use yaml_output
   use dictionaries
+  use m_profiling, ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   implicit none
   integer, intent(in) :: iproc
   type(dictionary), pointer :: dict
@@ -1266,12 +1267,14 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%debug = dict // DEBUG
 
   if (.not. in%debug) then
+     call ab7_memocc_set_state(1)
      call f_malloc_set_status(output_level=1)
   end if
   in%ncache_fft = dict // FFTCACHE
   call set_cache_size(in%ncache_fft)
   in%verbosity = dict // VERBOSITY
   if (in%verbosity == 0 ) then
+     call ab7_memocc_set_state(0)
      call f_malloc_set_status(output_level=0)
   end if
   in%writing_directory = dict // OUTDIR
@@ -1398,6 +1401,8 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%check_sumrho = dict // CHECK_SUMRHO
 !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
   in%experimental_mode = dict//EXPERIMENTAL_MODE
+  ! linear scaling: write KS orbitals for cubic restart
+  in%write_orbitals = dict//WRITE_ORBITALS
   call f_release_routine()
 
 END SUBROUTINE perf_input_analyse

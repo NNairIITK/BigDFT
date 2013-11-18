@@ -1161,6 +1161,7 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   !!call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
 
 
+
   !try different solutions, one of these should always work
   irp=selection(rmat)
   !otherwise we have a problem

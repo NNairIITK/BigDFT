@@ -176,7 +176,6 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
 !!$                sum(hpsi(ispsi:&
 !!$                ispsi+(Lzd%Llr(ilr_orb)%wfd%nvctr_c+7*Lzd%Llr(ilr_orb)%wfd%nvctr_f)*orbs%nspinor-1))
     
-      !!write(*,'(a,i8,2es16.4)') 'iorb+orbs%isorb, orbs%occup(iorb+orbs%isorb), ekin', iorb+orbs%isorb, orbs%occup(iorb+orbs%isorb),ekin
 
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
       epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
@@ -473,7 +472,6 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
       call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
            Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
    
-      !!write(*,'(a,i8,2es16.4)') 'iorb+orbs%isorb, orbs%occup(iorb+orbs%isorb), ekin', iorb+orbs%isorb, orbs%occup(iorb+orbs%isorb), ekin
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
 
       ispsi=ispsi+&

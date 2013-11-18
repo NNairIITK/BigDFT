@@ -377,6 +377,9 @@ module module_types
 
      !>linear scaling: activate the experimental mode
      logical :: experimental_mode
+
+     !> linear scaling: write KS orbitals for cubic restart
+     logical :: write_orbitals
   end type input_variables
 
   !> Contains all energy terms
@@ -2291,7 +2294,7 @@ end subroutine nullify_DFT_local_fields
 subroutine deallocate_denspot_distribution(dpbox,subname)
   implicit none
   character(len=*), intent(in) :: subname
-  type(denspot_distribution),intent(out)::dpbox
+  type(denspot_distribution),intent(inout)::dpbox
   !local variables
   integer :: i_all,i_stat
   
