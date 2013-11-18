@@ -1220,6 +1220,7 @@ subroutine perf_input_analyse(iproc,in,dict)
   use yaml_strings
   use yaml_output
   use dictionaries
+  use m_profiling, ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   implicit none
   integer, intent(in) :: iproc
   type(dictionary), pointer :: dict
@@ -1235,12 +1236,14 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%debug = dict // DEBUG
 
   if (.not. in%debug) then
+     call ab7_memocc_set_state(1)
      call f_malloc_set_status(output_level=1)
   end if
   in%ncache_fft = dict // FFTCACHE
   call set_cache_size(in%ncache_fft)
   in%verbosity = dict // VERBOSITY
   if (in%verbosity == 0 ) then
+     call ab7_memocc_set_state(0)
      call f_malloc_set_status(output_level=0)
   end if
   in%writing_directory = dict // OUTDIR
