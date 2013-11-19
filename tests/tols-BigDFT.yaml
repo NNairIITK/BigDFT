@@ -201,7 +201,7 @@ test.minhop.ref.yaml:
  maxval: 7.1e-11
  Atomic Forces (Ha/Bohr): 2.0e-11
  Average noise forces: 1.0e-10
- etot: 1.84e-11
+ etot: 1.85e-11
  Orbitals: 6.1e-9
  Keys to ignore:
    - (MH) cpu(hrs)
