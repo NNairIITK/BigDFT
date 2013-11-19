@@ -703,16 +703,6 @@
    default                             : value of the default, written as a string
    profile1                            : value1
    profile2                            : value2
-   - Value1                            : comments of value1
-   - Value2                            : comment of value2
-   CONDITION:
-     MASTER_KEY                        : foo
-     WHEN:
-     - fooval1
-     - fooval2
-   default                             : value of the default, written as a string
-   profile1                            : value1
-   profile2                            : value2
  Memory Consumption Report:
    Tot. No. of Allocations             :  7
    Tot. No. of Deallocations           :  7
