@@ -70,10 +70,10 @@ MODULE matrix_mod
 
     n=SIZE(V)
 
-!    IF(n .ne. SIZE(M,2)) THEN
-!      WRITE(*,*) 'ERROR: matrix-vector multiplication dimensions do not match'
-!      STOP
-!    END IF
+    IF(n .ne. SIZE(M,2)) THEN
+      WRITE(*,*) 'ERROR: matrix-vector multiplication dimensions do not match'
+      STOP
+    END IF
 
     Vp=0._q2
     DO i=1,n

@@ -891,7 +891,7 @@ MODULE bader_mod
                   dv_dir = (v-chg%org_lat)/REAL(chg%npts,q2) - ions%r_dir(atom,:)
                   !            CALL dpbc_dir(ions,dv_dir)
                   !            CALL dpbc_dir_org(dv_dir)
-                  CALL matrix_vector(ions%dir2car, dv_dir, dv_car)
+                  CALL matrix_vector_inline(ions%dir2car, dv_dir, dv_car)
                   CALL dpbc_car(ions, dv_car)
                   dist = DOT_PRODUCT(dv_car, dv_car)
                   IF ((bdr%minsurfdist(atom) == 0.0_q2) .OR.  &
@@ -911,6 +911,24 @@ MODULE bader_mod
       WRITE(*,'(2/,1A12,1F7.2,1A8)') 'RUN TIME: ', (t2-t1)/REAL(cr,q2), ' SECONDS'
 
       RETURN
+contains
+
+     !> Multiply the matrix M with the vector V and return the product Vp
+     pure subroutine matrix_vector_inline(m,v,vp)
+
+       real(q2),intent(in),dimension(3,3) :: m
+       real(q2),intent(in),dimension(3) :: v
+       real(q2),intent(out),dimension(3) :: vp
+
+       integer :: i
+
+       vp=0._q2
+       do i=1,3
+         vp=vp+v(i)*m(:,i)
+       end do
+
+     end subroutine matrix_vector_inline
+
    END SUBROUTINE bader_mindist
 
    !-----------------------------------------------------------------------------------!
