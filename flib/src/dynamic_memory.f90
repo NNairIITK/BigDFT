@@ -137,6 +137,7 @@ module dynamic_memory
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all,l3_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all
+     module procedure r1_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
      module procedure i1_ptr,i2_ptr
      !strings and pointers for characters
@@ -159,6 +160,7 @@ module dynamic_memory
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free
+     module procedure r1_all_free
   end interface
 
   interface f_free_ptr

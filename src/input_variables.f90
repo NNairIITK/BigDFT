@@ -11,7 +11,7 @@
 !> This function returns a dictionary with all the input variables of a BigDFT run filled
 !! this dictionary is constructed from a updated version of the input variables dictionary
 !! following the input files as defined  by the user
-function read_input_dict_from_files(radical, mpi_env) result(dict)
+subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
   use wrapper_MPI
   use module_input_keys
@@ -21,19 +21,23 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   implicit none
   character(len = *), intent(in) :: radical !< the name of the run. use "input" if empty
   type(mpi_environment), intent(in) :: mpi_env !< the environment where the variables have to be updated
-
+  type(dictionary), pointer :: dict !< input dictionary, has to be nullified at input
+  !local variables
   integer :: ierr
-  type(dictionary), pointer :: dict
   logical :: exists_default, exists_user
   character(len = max_field_length) :: fname
   character(len = 100) :: f0
 
   call f_routine(id='read_input_dict_from_files')
 
+  if (f_err_raise(associated(dict),'The output dictionary should be nullified at input',&
+       err_name='BIGDFT_RUNTIME_ERROR')) return
+
+  nullify(dict) !this is however put in the case the dictionary comes undefined
+
   ! Handle error with master proc only.
   if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
-  
-  nullify(dict)
+
   ! We try first default.yaml
   inquire(file = "default.yaml", exist = exists_default)
   if (exists_default) call merge_input_file_to_dict(dict, "default.yaml", mpi_env)
@@ -79,7 +83,7 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   call mpi_barrier(mpi_env%mpi_comm, ierr)
 
   call f_release_routine()
-end function read_input_dict_from_files
+end subroutine read_input_dict_from_files
 
 
 !> Routine to read YAML input files and create input dictionary.
@@ -1251,7 +1255,7 @@ subroutine perf_input_analyse(iproc,in,dict)
   use yaml_strings
   use yaml_output
   use dictionaries
-  use m_profiling, ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
+  use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   implicit none
   integer, intent(in) :: iproc
   type(dictionary), pointer :: dict

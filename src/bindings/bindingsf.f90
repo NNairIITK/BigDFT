@@ -144,21 +144,20 @@ subroutine close_file(unitwf)
   close(unit = unitwf)
 END SUBROUTINE close_file
 
-!!$subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-!!$  use module_types, only
-!!$  use Poisson_Solver, only: ck => createKernel
-!!$  implicit none
-!!$  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-!!$  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
-!!$  real(kind=8), intent(in) :: hx,hy,hz
-!!$  real(kind=8), pointer :: kernel(:)
-!!$  logical, intent(in) :: wrtmsg
-!!$
-!!$  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
-!!$end subroutine createKernel
+!subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+!  use Poisson_Solver, only: ck => createKernel
+!  implicit none
+!  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+!  integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
+!  real(kind=8), intent(in) :: hx,hy,hz
+!  real(kind=8), pointer :: kernel(:)
+!  logical, intent(in) :: wrtmsg
+!
+!  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
+!end subroutine createKernel
 
 subroutine deallocate_double_1D(array)
-  use module_base
+  use BigDFT_API
   implicit none
 
   double precision, dimension(:), pointer :: array
@@ -172,7 +171,7 @@ subroutine deallocate_double_1D(array)
 end subroutine deallocate_double_1D
 
 subroutine deallocate_double_2D(array)
-  use module_base
+  use BigDFT_API
   implicit none
 
   double precision, dimension(:,:), pointer :: array
@@ -332,9 +331,9 @@ END SUBROUTINE glr_set_wfd_dims
 
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
-   use module_base
+   use module_base, only: gp
    use module_types
-   use module_interfaces
+   use module_interfaces, only:createWavefunctionsDescriptors
    implicit none
    !Arguments
    type(atoms_data), intent(in) :: atoms
@@ -508,6 +507,7 @@ subroutine inputs_set_at(dict, file, key, i, val)
   ! This is a patch for Intel, to be corrected properly later.
   call set(dict // file // key // i, val(1:len(val)))
 END SUBROUTINE inputs_set_at
+
 subroutine inputs_set_at2(dict, file, key, i, j, val)
   use dictionaries
   use module_types
@@ -515,20 +515,22 @@ subroutine inputs_set_at2(dict, file, key, i, j, val)
   type(dictionary), pointer :: dict
   integer, intent(in) :: i, j
   character(len = *), intent(in) :: file, key, val
-
   ! This is a patch for Intel, to be corrected properly later.
   call set(dict // file // key // i // j, val(1:len(val)))
 END SUBROUTINE inputs_set_at2
+
 subroutine inputs_set_from_file(dict, fname)
-  use dictionaries
+  use dictionaries, only: dictionary
   use module_interfaces, only: read_input_dict_from_files
-  use module_defs
+  use module_defs, only: bigdft_mpi
   implicit none
   type(dictionary), pointer :: dict
   character(len = *), intent(in) :: fname
+  nullify(dict)
 
-  dict => read_input_dict_from_files(fname, bigdft_mpi)
+  call read_input_dict_from_files(fname, bigdft_mpi,dict)
 end subroutine inputs_set_from_file
+
 subroutine inputs_fill_all(inputs_values)
   use module_input_keys
   use dictionaries
@@ -671,7 +673,7 @@ END SUBROUTINE inputs_get_linear
 subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, lorbs, iproc, nproc)
   use module_types
   use module_fragments
-  use module_interfaces
+  use module_interfaces, only: input_check_psi_id
   implicit none
   integer, intent(out) :: input_wf_format
   integer, intent(inout) :: inputpsi
@@ -712,7 +714,7 @@ subroutine orbs_init(orbs)
 END SUBROUTINE orbs_init
 subroutine orbs_free(orbs)
   use module_types
-  use memory_profiling
+!  use memory_profiling
   implicit none
   type(orbitals_data), pointer :: orbs
 
@@ -728,7 +730,7 @@ END SUBROUTINE orbs_empty
 subroutine orbs_comm_new(comms)
   use module_base
   use module_types
-  use module_interfaces
+!  use module_interfaces
   implicit none
   type(communications_arrays), pointer :: comms
 
@@ -738,7 +740,7 @@ end subroutine orbs_comm_new
 subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: orbitals_communicators
   implicit none
   integer, intent(in) :: iproc,nproc
   type(locreg_descriptors), intent(in) :: lr
@@ -750,7 +752,7 @@ end subroutine orbs_comm_init
 subroutine orbs_comm_free(comms)
   use module_base
   use module_types
-  use module_interfaces
+!  use module_interfaces
   implicit none
   type(communications_arrays), pointer :: comms
 
@@ -759,7 +761,7 @@ end subroutine orbs_comm_free
 subroutine orbs_comm_empty(comms)
   use module_base
   use module_types
-  use module_interfaces
+!  use module_interfaces
   implicit none
   type(communications_arrays), intent(inout) :: comms
 
@@ -845,7 +847,7 @@ subroutine orbs_get_onwhichatom(orbs, atom)
 END SUBROUTINE orbs_get_onwhichatom
 subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
   use module_types
-  use module_interfaces
+  use module_interfaces, only: open_filename_of_iorb
   implicit none
   type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: unitwf, ln, iformat, iorbp, ispinor

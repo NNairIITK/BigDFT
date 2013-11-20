@@ -32,13 +32,14 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   type(dictionary), pointer :: dict
 !!$  logical :: exist_list
   call f_routine(id=subname)
-
+  
+  nullify(dict)
   atoms=atoms_null()
   ! Read atomic file
   call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
 
   !read the input file(s) and transform them in the 
-  dict => read_input_dict_from_files(trim(radical), bigdft_mpi)
+  call read_input_dict_from_files(trim(radical), bigdft_mpi,dict)
 
   call standard_inputfile_names(in,trim(radical))
   call inputs_from_dict(in, atoms, dict, .true.)

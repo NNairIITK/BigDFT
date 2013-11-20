@@ -196,7 +196,7 @@ END SUBROUTINE calc_rhocore_iat
 !! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function charge_from_gaussians(expo,rhoc)
-  use module_base
+  use module_base, only:gp
   implicit none
   real(gp), intent(in) :: expo
   real(gp), dimension(4), intent(in) :: rhoc
@@ -212,7 +212,7 @@ end function charge_from_gaussians
 !! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function spherical_gaussian_value(r2,expo,rhoc,ider)
-  use module_base
+  use module_base, only: gp
   implicit none
   integer, intent(in) :: ider
   real(gp), intent(in) :: expo,r2
@@ -261,7 +261,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   !Rename dp into except_dp in order to avoid conflict with the definitions provided by module_base
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   !Idem
-  use module_interfaces, fake_name => XC_potential
+  use module_interfaces, only: calc_gradient
   use module_xc
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -364,17 +364,17 @@ call to_zero(6,rhocstr(1))
      return
   end if
   
-!!$  !if rhocore is associated we should add it on the charge density
-!!$  if (associated(rhocore)) then
-!!$     if (nspin == 1) then
-!!$        !sum the complete core density for non-spin polarised calculations
-!!$        call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
-!!$     else if (nspin==2) then
-!!$        !for spin-polarised calculation consider half per spin index
-!!$        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
-!!$        call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
-!!$     end if
-!!$  end if
+!!$ ! !if rhocore is associated we should add it on the charge density
+!!$ ! if (associated(rhocore)) then
+!!$ !    if (nspin == 1) then
+!!$ !       !sum the complete core density for non-spin polarised calculations
+!!$ !       call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
+!!$ !    else if (nspin==2) then
+!!$ !       !for spin-polarised calculation consider half per spin index
+!!$ !       call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
+!!$ !       call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
+!!$ !    end if
+!!$ ! end if
  
   !if rhohat is present, substract it from charge density
   if (present(rhohat)) then
@@ -682,7 +682,7 @@ contains
 subroutine substract_from_vexcu(rhoin)
  implicit none
  real(wp),dimension(:,:,:,:),intent(in)::rhoin
-
+ 
  vexcuRC=0.0_gp
  do i3=1,nxc
     do i2=1,m3
@@ -710,7 +710,7 @@ subroutine substract_from_vexcu(rhoin)
  vexcuRC=vexcuRC*real(hx*hy*hz,gp)
  !subtract this value from the vexcu
  vexcuLOC=vexcuLOC-vexcuRC
- 
+
 end subroutine substract_from_vexcu
 
 !This routine is slightly different than 'substract_from_vexcu',
@@ -744,7 +744,7 @@ subroutine add_to_vexcu(rhoin)
  vexcuRC=vexcuRC*real(hx*hy*hz,gp)
  !add this value to the vexcu
  vexcuLOC=vexcuLOC+vexcuRC
- 
+
 end subroutine add_to_vexcu
 
 

@@ -15,7 +15,7 @@
 !> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
-  use memory_profiling
+  !use memory_profiling!, only: ndebug
   use dynamic_memory
   ! TO BE REMOVED with f_malloc
 
@@ -253,8 +253,8 @@ subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,gr
   integer :: grp,ierr,i,j,base_grp,temp_comm,i_stat,i_all
   integer, dimension(:), allocatable :: group_list
 
-  allocate(group_list(group_size+ndebug),stat=i_stat)
-  call memocc(i_stat,group_list,'group_list',subname)
+! allocate(group_list(group_size+ndebug),stat=i_stat)
+  group_list = f_malloc(group_size,id='group_list')
 
   !take the base group
   call MPI_COMM_GROUP(base_comm,base_grp,ierr)
@@ -281,9 +281,9 @@ subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,gr
      if (i.eq. group_id) group_comm=temp_comm
   enddo
 
-  i_all=-product(shape(group_list ))*kind(group_list )
-  deallocate(group_list,stat=i_stat)
-  call memocc(i_stat,i_all,'group_list',subname)
+!i_all=-product(shape(group_list ))*kind(group_list )
+! deallocate(group_list,stat=i_stat)
+  call f_free(group_list)
 end subroutine create_group_comm1
 
   !> Create a communicator between proc of same rank between the taskgroups.
@@ -304,13 +304,13 @@ end subroutine create_group_comm1
     ngroups = nproc / nproc_group
 
     ! Put in lrank the group rank of each process, indexed by global iproc.
-    allocate(lrank(nproc+ndebug), stat = i_stat)
-    call memocc(i_stat, lrank, 'lrank', subname)
+!   allocate(lrank(nproc+ndebug), stat = i_stat)
+    lrank = f_malloc(nproc,id='lrank')
     call mpi_allgather(iproc_group, 1, MPI_INTEGER, lrank, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr)
 
     ! Put in ids, the global iproc of each process that share the same group iproc.
-    allocate(ids(ngroups+ndebug), stat = i_stat)
-    call memocc(i_stat, ids, 'ids', subname)
+!   allocate(ids(ngroups+ndebug), stat = i_stat)
+    ids = f_malloc(ngroups,id='ids')
     j = 1
     do i = 1, nproc
        if (lrank(i) == iproc_group) then
@@ -318,18 +318,18 @@ end subroutine create_group_comm1
           j = j + 1
        end if
     end do
-    i_all=-product(shape(lrank ))*kind(lrank )
-    deallocate(lrank,stat=i_stat)
-    call memocc(i_stat,i_all,'lrank',subname)
+!  i_all=-product(shape(lrank ))*kind(lrank )
+!   deallocate(lrank,stat=i_stat)
+    call f_free(lrank)
 
 !!$    call mpi_comm_rank(MPI_COMM_WORLD, iproc_group, ierr)
 !!$    write(*,*) iproc_group, "->", ids
     
     ! Create a new comminucator for the list of ids.
     call create_group_comm(MPI_COMM_WORLD, ngroups, ids, rank_comm)
-    i_all=-product(shape(ids ))*kind(ids )
-    deallocate(ids,stat=i_stat)
-    call memocc(i_stat,i_all,'ids',subname)
+!  i_all=-product(shape(ids ))*kind(ids )
+!   deallocate(ids,stat=i_stat)
+    call f_free(ids)
   END SUBROUTINE create_rank_comm
 
 
@@ -351,8 +351,8 @@ end subroutine create_group_comm1
     integer, dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
-    allocate(copybuf(ntot+ndebug),stat=i_stat)
-    call memocc(i_stat,copybuf,'copybuf',subname)
+!   allocate(copybuf(ntot+ndebug),stat=i_stat)
+    copybuf = f_malloc(ntot,id='copybuf')
 
     !not appropriate for integers, to be seen if it works
     call scopy(ntot,buffer,1,copybuf,1) 
@@ -360,9 +360,9 @@ end subroutine create_group_comm1
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_INTEGER,mpi_op,mpi_comm,ierr)
 
-    i_all=-product(shape(copybuf))*kind(copybuf)
-    deallocate(copybuf,stat=i_stat)
-    call memocc(i_stat,i_all,'copybuf',subname)
+!  i_all=-product(shape(copybuf))*kind(copybuf)
+!   deallocate(copybuf,stat=i_stat)
+    call f_free(copybuf)
 #endif
     if (ierr /=0) stop 'MPIALLRED_INT'
 
@@ -384,17 +384,17 @@ end subroutine create_group_comm1
     real(kind=4), dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
-    allocate(copybuf(ntot+ndebug),stat=i_stat)
-    call memocc(i_stat,copybuf,'copybuf',subname)
+!   allocate(copybuf(ntot+ndebug),stat=i_stat)
+    copybuf = f_malloc(ntot,id='copybuf')
 
     call scopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_REAL,mpi_op,mpi_comm,ierr)
 
-    i_all=-product(shape(copybuf))*kind(copybuf)
-    deallocate(copybuf,stat=i_stat)
-    call memocc(i_stat,i_all,'copybuf',subname)
+!  i_all=-product(shape(copybuf))*kind(copybuf)
+!   deallocate(copybuf,stat=i_stat)
+    call f_free(copybuf)
 #endif
     if (ierr /=0) stop 'MPIALLRED_REAL'
 
@@ -416,17 +416,17 @@ end subroutine create_group_comm1
     real(kind=8), dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
-    allocate(copybuf(ntot+ndebug),stat=i_stat)
-    call memocc(i_stat,copybuf,'copybuf',subname)
+!   allocate(copybuf(ntot+ndebug),stat=i_stat)
+    copybuf = f_malloc(ntot,id='copybuf')
 
     call dcopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
 
-    i_all=-product(shape(copybuf))*kind(copybuf)
-    deallocate(copybuf,stat=i_stat)
-    call memocc(i_stat,i_all,'copybuf',subname)
+!  i_all=-product(shape(copybuf))*kind(copybuf)
+!   deallocate(copybuf,stat=i_stat)
+    call f_free(copybuf)
 #endif
     if (ierr /=0) stop 'MPIALLRED_DBL'
   end subroutine mpiallred_double
@@ -447,17 +447,17 @@ end subroutine create_group_comm1
     real(kind=8), dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
-    allocate(copybuf(ntot+ndebug),stat=i_stat)
-    call memocc(i_stat,copybuf,'copybuf',subname)
+!   allocate(copybuf(ntot+ndebug),stat=i_stat)
+    copybuf = f_malloc(ntot,id='copybuf')
 
     call dcopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
 
-    i_all=-product(shape(copybuf))*kind(copybuf)
-    deallocate(copybuf,stat=i_stat)
-    call memocc(i_stat,i_all,'copybuf',subname)
+!  i_all=-product(shape(copybuf))*kind(copybuf)
+!   deallocate(copybuf,stat=i_stat)
+    call f_free(copybuf)
 #endif
     if (ierr /=0) stop 'MPIALLRED_DBL'
   end subroutine mpiallred_double_1
@@ -478,17 +478,17 @@ end subroutine create_group_comm1
     real(kind=8), dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
-    allocate(copybuf(ntot+ndebug),stat=i_stat)
-    call memocc(i_stat,copybuf,'copybuf',subname)
+!   allocate(copybuf(ntot+ndebug),stat=i_stat)
+    copybuf = f_malloc(ntot,id='copybuf')
 
     call dcopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
 
-    i_all=-product(shape(copybuf))*kind(copybuf)
-    deallocate(copybuf,stat=i_stat)
-    call memocc(i_stat,i_all,'copybuf',subname)
+!  i_all=-product(shape(copybuf))*kind(copybuf)
+!   deallocate(copybuf,stat=i_stat)
+    call f_free(copybuf)
 #endif
     if (ierr /=0) stop 'MPIALLRED_DBL'
   end subroutine mpiallred_double_2
@@ -509,8 +509,8 @@ end subroutine create_group_comm1
     logical, dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
-    allocate(copybuf(ntot+ndebug),stat=i_stat)
-    call memocc(i_stat,copybuf,'copybuf',subname)
+!   allocate(copybuf(ntot+ndebug),stat=i_stat)
+    copybuf = f_malloc(ntot,id='copybuf')
 
     !not appropriate for logical, to be seen if it works
     call scopy(ntot,buffer,1,copybuf,1) 
@@ -518,9 +518,9 @@ end subroutine create_group_comm1
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_LOGICAL,mpi_op,mpi_comm,ierr)
 
-    i_all=-product(shape(copybuf))*kind(copybuf)
-    deallocate(copybuf,stat=i_stat)
-    call memocc(i_stat,i_all,'copybuf',subname)
+!  i_all=-product(shape(copybuf))*kind(copybuf)
+!   deallocate(copybuf,stat=i_stat)
+    call f_free(copybuf)
 #endif
 
     !inform and stop if an error occurs
