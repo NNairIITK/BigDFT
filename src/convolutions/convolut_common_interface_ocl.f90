@@ -46,7 +46,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='allocate_data_OCL'
-  logical, parameter :: pin=.true.
+  logical, parameter :: pin=.false.
   integer :: n1b, n2b, n3b, i_stat,iorb,ispinor
   integer, dimension(3) :: periodic
 
@@ -115,18 +115,22 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_c*4,GPU%keyv_c)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_f*4*2,GPU%keyg_f)
   call ocl_create_read_buffer(GPU%context,wfd%nseg_f*4,GPU%keyv_f)
+  
   if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_c*4*2,wfd%keygloc,GPU%keyg_c_host)
-  if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_c*4,wfd%keyvloc,GPU%keyv_c_host)
   call ocl_enqueue_write_buffer(GPU%queue,GPU%keyg_c,wfd%nseg_c*2*4,wfd%keygloc)
-  call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_c,wfd%nseg_c*4,wfd%keyvloc)
   if (pin) call ocl_release_mem_object(GPU%keyg_c_host)
+
+  if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_c*4,wfd%keyvloc,GPU%keyv_c_host)
+  call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_c,wfd%nseg_c*4,wfd%keyvloc)
   if (pin) call ocl_release_mem_object(GPU%keyv_c_host)
+
   if (wfd%nseg_f > 0) then
      if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_f*4*2,wfd%keygloc(1,wfd%nseg_c+1),GPU%keyg_f_host)
-     if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_f*4,wfd%keyvloc(wfd%nseg_c+1),GPU%keyv_f_host)
      call ocl_enqueue_write_buffer(GPU%queue,GPU%keyg_f,wfd%nseg_f*2*4,wfd%keygloc(1,wfd%nseg_c+1))
-     call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_f,wfd%nseg_f*4,wfd%keyvloc(wfd%nseg_c+1))
      if (pin) call ocl_release_mem_object(GPU%keyg_f_host)
+  
+     if (pin) call ocl_pin_read_buffer_async(GPU%context,GPU%queue,wfd%nseg_f*4,wfd%keyvloc(wfd%nseg_c+1),GPU%keyv_f_host)
+     call ocl_enqueue_write_buffer(GPU%queue,GPU%keyv_f,wfd%nseg_f*4,wfd%keyvloc(wfd%nseg_c+1))
      if (pin) call ocl_release_mem_object(GPU%keyv_f_host)
   end if
 
@@ -199,7 +203,7 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='free_gpu_OCL'
-  logical, parameter :: pin=.true.
+  logical, parameter :: pin=.false.
   integer :: i_stat,i_all,iorb,ispinor
 
   call f_free_ptr(GPU%ekin)
@@ -407,7 +411,7 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_OCL'
-  logical, parameter :: pin=.true.
+  logical, parameter :: pin=.false.
   integer :: iorb,isf
   real(gp), dimension(3) :: hgrids
   integer, dimension(3) :: periodic
@@ -628,7 +632,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='preconditionall_OCL'
-  logical, parameter :: pin=.true.
+  logical, parameter :: pin=.false.
   integer ::  iorb,jorb,i_stat,ncplx,i_all,inds,isf,ikpt,ispinor,ioff_c,ioff_f,ioff_ci,ioff_fi
   real(wp) :: scpr
   real(gp) :: cprecr,eval_zero,evalmax
@@ -845,7 +849,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
               call ocl_unmap_mem_object(GPU%queue, GPU%hpsicf_host(1,1), hpsi(1,inds,iorb))
            end if
 
-           call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1),ioff_f,7*lr%wfd%nvctr_f*8)
+           if (pin) call ocl_map_read_buffer_async(GPU%queue, GPU%hpsicf_host(1,1),ioff_f,7*lr%wfd%nvctr_f*8)
            call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,hpsi(isf,inds,iorb))
            if (pin) then
               !call ocl_release_mem_object(GPU%hpsicf_host(2,iorb))
@@ -907,7 +911,7 @@ subroutine local_partial_density_OCL(orbs,&
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,nspin), intent(inout) :: rho_p
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
-  logical, parameter :: pin=.true.
+  logical, parameter :: pin=.false.
   integer:: iorb,iorb_r,isf,ispinor
   real(gp) :: hfac
   integer, dimension(3) :: periodic

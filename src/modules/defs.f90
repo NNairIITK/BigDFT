@@ -121,7 +121,7 @@ module module_defs
     end function uninitialized_dbl
 
     function fnrm_denpot(x,cplex,nfft,nspden,opt_denpot,user_data)
-      use m_ab7_mixing
+      use m_ab7_mixing, only: AB7_MIXING_DENSITY
       implicit none
       !Arguments
       integer, intent(in) :: cplex,nfft,nspden,opt_denpot

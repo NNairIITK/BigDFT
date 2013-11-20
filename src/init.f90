@@ -1838,7 +1838,7 @@ END SUBROUTINE input_memory_linear
            character(len=*), parameter :: subname='input_wf_diag'
            logical :: switchGPUconv,switchOCLconv
    integer :: ii,jj
-           integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin
+           integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin,ikpt
            real(gp) :: hxh,hyh,hzh,etol,accurex,eks
            type(orbitals_data) :: orbse
            type(communications_arrays) :: commse
@@ -2265,10 +2265,6 @@ END SUBROUTINE input_memory_linear
              call memocc(i_stat,passmat,'passmat',subname)
           !!print '(a,10i5)','iproc,passmat',iproc,ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),&
           !!     orbs%nspinor,orbs%nkptsp,orbse%norbu,orbse%norbd,orbs%norbu,orbs%norbd
-            if (.false.) then
-               call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzde%Glr%wfd,comms,&
-                  psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
-            end if
 
             if (iproc==0) call yaml_newline()
 
@@ -2282,24 +2278,18 @@ END SUBROUTINE input_memory_linear
              call memocc(i_stat,i_all,'passmat',subname)
 
            if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
-
-        !commented out, this part has already been done in LDiagHam     
-        !!$      !clean the array of the IG eigenvalues
-        !!$      call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))
-        !!$      !put the actual values on it
-        !!$      call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
-        !!$
-        !!$      !add a small displacement in the eigenvalues
-        !!$      do iorb=1,orbs%norb*orbs%nkpts
-        !!$         tt=builtin_rand(idum)
-        !!$         orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
-        !!$      end do
-        !!$
-        !!$      !correct the occupation numbers wrt fermi level
-        !!$      call evaltoocc(iproc,nproc,.false.,input%Tel,orbs,input%occopt)
-
-              !restore the occupations 
-              call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1)
+              
+              !restore the occupations as they are extracted from DiagHam
+              !use correct copying due to k-points
+              do ikpt=1,orbs%nkpts
+                 call vcopy(orbs%norbu,orbse%occup((ikpt-1)*orbse%norb+1),1,&
+                      orbs%occup((ikpt-1)*orbs%norb+1),1)
+                 if (orbs%norbd > 0) then
+                    call vcopy(orbs%norbd,orbse%occup((ikpt-1)*orbse%norb+orbse%norbu+1),1,&
+                         orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1)
+                 end if
+              end do
+              !call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1) !this is not good with k-points
               !associate the entropic energy contribution
               orbs%eTS=orbse%eTS
               

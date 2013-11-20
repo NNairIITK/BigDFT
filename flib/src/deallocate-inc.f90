@@ -33,8 +33,8 @@
      dict_add=>find_key(mems(ictrl)%dict_routine,trim(address))
      if (.not. associated(dict_add)) then
         dict_add=>find_key(mems(ictrl)%dict_global,trim(address))
-        if (f_err_raise(.not. associated(dict_add),'address'//trim(address)//&
-             'not present in dictionary',ERR_INVALID_MALLOC)) then
+        if (f_err_raise(.not. associated(dict_add),'address '//trim(address)//&
+             ' not present in dictionary',ERR_INVALID_MALLOC)) then
            return
         else
            use_global=.true.
