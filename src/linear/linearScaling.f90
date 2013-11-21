@@ -86,6 +86,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: ind, i_all, i_stat, nspinor, ix, iy, iz, iix, iiy, iiz
   real(gp) :: psix, psiy, psiz, xcent, ycent, zcent
 
+  character(len=12) :: orbname
+  real(gp), allocatable, dimension(:) :: psi2, gpsi, gpsi2
+  real(gp), allocatable, dimension(:,:,:,:) :: psir2
+  real(gp) :: tmb_diff, max_tmb_diff
+  integer :: j, k, n1i, n2i, n3i, i1, i2, i3
+
   call timing(iproc,'linscalinit','ON') !lr408t
 
   call f_routine(id='linear_scaling')
@@ -1144,6 +1150,276 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !   ind=ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
   !end do
   ! END DEBUG
+
+  ! write tmbs in isf format as well
+  if (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
+     ! DEBUG - daub_to_isf, write_cube, read_cube, isf_to_daub check the same as starting psi
+     ind=1
+     !allocate(psi2(tmb%npsidim_orbs),stat=i_stat)
+     !call memocc(i_stat,psi2,'psi2',subname)
+     do iorb=1,tmb%orbs%norbp
+        iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
+        ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+     
+        allocate(psir(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, 1+ndebug),stat=i_stat)
+        call memocc(i_stat,psir,'psir',subname)
+        !allocate(psir2(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, 1+ndebug),stat=i_stat)
+        !call memocc(i_stat,psir,'psir2',subname)
+        call initialize_work_arrays_sumrho(tmb%lzd%llr(ilr),w)
+     
+        call daub_to_isf(tmb%lzd%llr(ilr),w,tmb%psi(ind),psir)
+     
+        write(orbname,*) iorb+tmb%orbs%isorb
+        !call write_cube_fields('tmbisf'//trim(adjustl(orbname)),'tmb in isf',at,1.0d0,rxyz,&
+        !     tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i,&
+        !     tmb%lzd%llr(ilr)%nsi1,tmb%lzd%llr(ilr)%nsi2,tmb%lzd%llr(ilr)%nsi3,&
+        !     tmb%Lzd%hgrids(1)*0.5d0,tmb%Lzd%hgrids(2)*0.5d0,tmb%Lzd%hgrids(3)*0.5d0,&
+        !     1.0_gp,psir,1,0.0_gp,psir)
+
+        open(99,file=trim(input%dir_output)//'tmbisf'//trim(adjustl(orbname))//'.dat')
+        write(99,*) 'Tmb in isf format, to be used in conjunction with minbasis files'
+        write(99,*) tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i
+        write(99,*) tmb%lzd%llr(ilr)%nsi1,tmb%lzd%llr(ilr)%nsi2,tmb%lzd%llr(ilr)%nsi3
+        do k=1,tmb%lzd%llr(ilr)%d%n3i
+           do j=1,tmb%lzd%llr(ilr)%d%n2i
+              do i=1,tmb%lzd%llr(ilr)%d%n1i
+                   write(99,*) psir(i,j,k,1)
+              end do
+           end do
+        end do
+        close(99)
+
+        !!call read_cube_field('tmbisf'//trim(adjustl(orbname)),tmb%lzd%llr(ilr)%geocode,&
+        !!     tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i,psir2)
+
+        !open(370,file='tmbisf'//trim(adjustl(orbname))//'.dat')
+        !do i=1,tmb%lzd%llr(ilr)%d%n1i
+        !do j=1,tmb%lzd%llr(ilr)%d%n2i
+        !do k=1,tmb%lzd%llr(ilr)%d%n3i
+        !   read(370,*) psir2(i,j,k,1)
+        !end do
+        !end do
+        !end do
+        !close(370)
+
+        !call razero(tmb%npsidim_orbs,psi2)
+        !call isf_to_daub(tmb%lzd%llr(ilr),w,psir2,psi2(ind))
+     
+        !!tmb_diff=0.0d0
+        !!max_tmb_diff=0.0d0
+        !!do i=1,tmb%lzd%llr(ilr)%d%n1i
+        !!do j=1,tmb%lzd%llr(ilr)%d%n2i
+        !!do k=1,tmb%lzd%llr(ilr)%d%n3i
+        !!   tmb_diff=tmb_diff+dabs(psir(i,j,k,1)-psir2(i,j,k,1))
+        !!   max_tmb_diff=max(max_tmb_diff,dabs(psir(i,j,k,1)-psir2(i,j,k,1)))
+        !!!   write(370+iorb+tmb%orbs%isorb,*) psir(i,j,k,1),psir2(i,j,k,1),dabs(psir(i,j,k,1)-psir2(i,j,k,1))
+        !!end do
+        !!end do
+        !!end do
+        !!print*,'tmbr diff',iorb+tmb%orbs%isorb,tmb_diff,max_tmb_diff
+
+        !tmb_diff=0.0d0
+        !max_tmb_diff=0.0d0
+        !n1i=tmb%lzd%llr(ilr)%d%n1i
+        !n2i=tmb%lzd%llr(ilr)%d%n2i
+        !n3i=tmb%lzd%llr(ilr)%d%n3i
+        !do i=0,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f-1
+        !   i3=(i/(n1i*n2i))+1
+        !   i2=(i-(i3-1)*n1i*n2i)/n1i+1
+        !   i1=mod(i,n1i)+1
+        !   tmb_diff=tmb_diff+dabs(tmb%psi(ind+i)-psi2(ind+i))
+        !   max_tmb_diff=max(max_tmb_diff,dabs(tmb%psi(ind+i)-psi2(ind+i)))
+        !   !write(270+iorb+tmb%orbs%isorb,*) tmb%psi(ind+i),psi2(ind+i),dabs(tmb%psi(ind+i)-psi2(ind+i))
+        !   !if (dabs(tmb%psi(ind+i)-psi2(ind+i))>1.0d-5) print*,'large error',iorb+tmb%orbs%isorb,&
+        !   !     tmb%psi(ind+i),psi2(ind+i),dabs(tmb%psi(ind+i)-psi2(ind+i)),i1,i2,i3,n1i,n2i,n3i
+        !end do
+        !print*,'tmb diff',iorb+tmb%orbs%isorb,tmb_diff/(tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f),max_tmb_diff
+
+        ind=ind+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+        call deallocate_work_arrays_sumrho(w)
+        i_all=-product(shape(psir))*kind(psir)
+        deallocate(psir,stat=i_stat)
+        call memocc(i_stat,i_all,'psir',subname)
+        !i_all=-product(shape(psir2))*kind(psir2)
+        !deallocate(psir2,stat=i_stat)
+        !call memocc(i_stat,i_all,'psir2',subname)
+     end do
+     !i_all=-product(shape(psi2))*kind(psi2)
+     !deallocate(psi2,stat=i_stat)
+     !call memocc(i_stat,i_all,'psi2',subname)
+  end if
+
+
+  !!ind=1
+  !!allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
+  !!call memocc(i_stat,gpsi,'gpsi',subname)
+
+  !!allocate (gpsi2(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
+  !!call memocc(i_stat,gpsi2,'gpsi2',subname)
+
+  !!do iorb=1,tmb%orbs%norbp
+  !!   iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
+  !!   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+  !!
+  !!   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+  !!   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !!        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !!        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+
+  !!   allocate(psir(tmb%lzd%glr%d%n1i, tmb%lzd%glr%d%n2i, tmb%lzd%glr%d%n3i, 1+ndebug),stat=i_stat)
+  !!   call memocc(i_stat,psir,'psir',subname)
+  !!   allocate(psir2(tmb%lzd%glr%d%n1i, tmb%lzd%glr%d%n2i, tmb%lzd%glr%d%n3i, 1+ndebug),stat=i_stat)
+  !!   call memocc(i_stat,psir,'psir2',subname)
+  !!   call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
+  !!
+  !!   call daub_to_isf(tmb%lzd%glr,w,gpsi,psir)
+  !!
+  !!   write(orbname,*) iorb+tmb%orbs%isorb
+  !!   !call write_cube_fields('tmbisf'//trim(adjustl(orbname)),'tmb in isf',at,1.0d0,rxyz,&
+  !!   !     tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i,&
+  !!   !     tmb%lzd%llr(ilr)%nsi1,tmb%lzd%llr(ilr)%nsi2,tmb%lzd%llr(ilr)%nsi3,&
+  !!   !     tmb%Lzd%hgrids(1)*0.5d0,tmb%Lzd%hgrids(2)*0.5d0,tmb%Lzd%hgrids(3)*0.5d0,&
+  !!   !     1.0_gp,psir,1,0.0_gp,psir)
+
+  !!   open(370,file='tmbisf'//trim(adjustl(orbname))//'.dat')
+  !!   do i=1,tmb%lzd%glr%d%n1i
+  !!   do j=1,tmb%lzd%glr%d%n2i
+  !!   do k=1,tmb%lzd%glr%d%n3i
+  !!      write(370,*) psir(i,j,k,1)
+  !!   end do
+  !!   end do
+  !!   end do
+  !!   close(370)
+
+  !!   !call read_cube_field('tmbisf'//trim(adjustl(orbname)),tmb%lzd%llr(ilr)%geocode,&
+  !!   !     tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i,psir2)
+
+  !!   open(370,file='tmbisf'//trim(adjustl(orbname))//'.dat')
+  !!   do i=1,tmb%lzd%glr%d%n1i
+  !!   do j=1,tmb%lzd%glr%d%n2i
+  !!   do k=1,tmb%lzd%glr%d%n3i
+  !!      read(370,*) psir2(i,j,k,1)
+  !!   end do
+  !!   end do
+  !!   end do
+  !!   close(370)
+
+  !!   call razero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi2)
+  !!   call isf_to_daub(tmb%lzd%glr,w,psir2,gpsi2)
+  !!
+  !!   !tmb_diff=0.0d0
+  !!   !max_tmb_diff=0.0d0
+  !!   !do i=1,tmb%lzd%llr(ilr)%d%n1i
+  !!   !do j=1,tmb%lzd%llr(ilr)%d%n2i
+  !!   !do k=1,tmb%lzd%llr(ilr)%d%n3i
+  !!   !   tmb_diff=tmb_diff+dabs(psir(i,j,k,1)-psir2(i,j,k,1))
+  !!   !   max_tmb_diff=max(max_tmb_diff,dabs(psir(i,j,k,1)-psir2(i,j,k,1)))
+  !!   !   write(370+iorb+tmb%orbs%isorb,*) psir(i,j,k,1),psir2(i,j,k,1),dabs(psir(i,j,k,1)-psir2(i,j,k,1))
+  !!   !end do
+  !!   !end do
+  !!   !end do
+  !!   !print*,'tmbr diff',iorb+tmb%orbs%isorb,tmb_diff,max_tmb_diff
+
+  !!   tmb_diff=0.0d0
+  !!   max_tmb_diff=0.0d0
+  !!   n1i=tmb%lzd%glr%d%n1i
+  !!   n2i=tmb%lzd%glr%d%n2i
+  !!   n3i=tmb%lzd%glr%d%n3i
+  !!   do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !!      i3=(i/(n1i*n2i))+1
+  !!      i2=(i-(i3-1)*n1i*n2i)/n1i+1
+  !!      i1=mod(i,n1i)+1
+  !!      tmb_diff=tmb_diff+dabs(gpsi(i)-gpsi2(i))
+  !!      max_tmb_diff=max(max_tmb_diff,dabs(gpsi(i)-gpsi2(i)))
+  !!      !write(370+iorb+tmb%orbs%isorb,*) gpsi(i),gpsi2(i),dabs(gpsi(i)-gpsi2(i))
+  !!      !if (dabs(gpsi(i)-gpsi2(i))>1.0d-5) print*,'large error',iorb+tmb%orbs%isorb,&
+  !!      !     gpsi(i),psi2(i),dabs(gpsi(i)-gpsi2(i)),i1,i2,i3,n1i,n2i,n3i
+  !!   end do
+  !!   print*,'gtmb diff',iorb+tmb%orbs%isorb,tmb_diff/(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f),max_tmb_diff
+
+  !!   ind=ind+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!   call deallocate_work_arrays_sumrho(w)
+  !!   i_all=-product(shape(psir))*kind(psir)
+  !!   deallocate(psir,stat=i_stat)
+  !!   call memocc(i_stat,i_all,'psir',subname)
+  !!   i_all=-product(shape(psir2))*kind(psir2)
+  !!   deallocate(psir2,stat=i_stat)
+  !!   call memocc(i_stat,i_all,'psir2',subname)
+  !!end do
+
+  !!i_all=-product(shape(gpsi))*kind(gpsi)
+  !!deallocate(gpsi,stat=i_stat)
+  !!call memocc(i_stat,i_all,'gpsi',subname)
+
+  !!i_all=-product(shape(gpsi2))*kind(gpsi2)
+  !!deallocate(gpsi2,stat=i_stat)
+  !!call memocc(i_stat,i_all,'gpsi2',subname)
+  !!! END DEBUG
+
+  !!ind=1
+  !!allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
+  !!call memocc(i_stat,gpsi,'gpsi',subname)
+
+  !!allocate (gpsi2(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
+  !!call memocc(i_stat,gpsi2,'gpsi2',subname)
+
+  !!do iorb=1,tmb%orbs%norbp
+  !!   iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
+  !!   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+  !!
+  !!   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+  !!   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !!        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !!        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+
+  !!   allocate(psir(tmb%lzd%glr%d%n1i, tmb%lzd%glr%d%n2i, tmb%lzd%glr%d%n3i, 1+ndebug),stat=i_stat)
+  !!   call memocc(i_stat,psir,'psir',subname)
+  !!   allocate(psir2(tmb%lzd%glr%d%n1i, tmb%lzd%glr%d%n2i, tmb%lzd%glr%d%n3i, 1+ndebug),stat=i_stat)
+  !!   call memocc(i_stat,psir,'psir2',subname)
+  !!   call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
+  !!
+  !!   call daub_to_isf(tmb%lzd%glr,w,gpsi,psir)
+
+  !!   ! psir is now starting point
+  !!   call razero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+  !!   call isf_to_daub(tmb%lzd%glr,w,psir,gpsi)
+  !!   call daub_to_isf(tmb%lzd%glr,w,gpsi,psir2)
+  !!
+  !!   tmb_diff=0.0d0
+  !!   max_tmb_diff=0.0d0
+  !!   do k=1,tmb%lzd%glr%d%n3i
+  !!   do j=1,tmb%lzd%glr%d%n2i
+  !!   do i=1,tmb%lzd%glr%d%n1i
+  !!      tmb_diff=tmb_diff+dabs(psir(i,j,k,1)-psir2(i,j,k,1))
+  !!      max_tmb_diff=max(max_tmb_diff,dabs(psir(i,j,k,1)-psir2(i,j,k,1)))
+  !!      if (dabs(psir(i,j,k,1)-psir2(i,j,k,1))>1.0d-6) print*,'grlarge error',iorb+tmb%orbs%isorb,&
+  !!           psir(i,j,k,1),psir2(i,j,k,1),dabs(psir(i,j,k,1)-psir2(i,j,k,1)),i,j,k,&
+  !!           tmb%lzd%glr%d%n1i,tmb%lzd%glr%d%n2i,tmb%lzd%glr%d%n3i
+  !!   end do
+  !!   end do
+  !!   end do
+  !!   print*,'gtmbr diff',iorb+tmb%orbs%isorb,tmb_diff/(tmb%lzd%glr%d%n3i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i),max_tmb_diff
+
+
+  !!   ind=ind+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!   call deallocate_work_arrays_sumrho(w)
+  !!   i_all=-product(shape(psir))*kind(psir)
+  !!   deallocate(psir,stat=i_stat)
+  !!   call memocc(i_stat,i_all,'psir',subname)
+  !!   i_all=-product(shape(psir2))*kind(psir2)
+  !!   deallocate(psir2,stat=i_stat)
+  !!   call memocc(i_stat,i_all,'psir2',subname)
+  !!end do
+
+  !!i_all=-product(shape(gpsi))*kind(gpsi)
+  !!deallocate(gpsi,stat=i_stat)
+  !!call memocc(i_stat,i_all,'gpsi',subname)
+
+  !!i_all=-product(shape(gpsi2))*kind(gpsi2)
+  !!deallocate(gpsi2,stat=i_stat)
+  !!call memocc(i_stat,i_all,'gpsi2',subname)
+  !!! END DEBUG
+
 
   ! check why this is here!
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &

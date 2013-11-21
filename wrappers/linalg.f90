@@ -797,9 +797,9 @@ contains
     !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
 
     !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+    !if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
     call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+    !if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
   end subroutine put_to_zero_double
 
   subroutine put_to_zero_double_1(n,da)

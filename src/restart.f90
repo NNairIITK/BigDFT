@@ -1185,9 +1185,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
                tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nseg_f,&
                tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,jstart,tmb%psi(jstart),phigold)
 
-          call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp)%wfd,tmb%lzd%llr(ilr_tmp)%geocode,&
+          call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),tmb%lzd%llr(ilr_tmp)%geocode,&
                tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
-               frag_trans,psi_tmp(jstart_tmp))
+               frag_trans,psi_tmp(jstart_tmp:))
 
 
           i_all = -product(shape(frag_trans%discrete_operations))*kind(frag_trans%discrete_operations)
@@ -1447,9 +1447,9 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
                  tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nseg_f,&
                  tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,istart,tmb%psi(jstart),phigold)
 
-            call reformat_one_supportfunction(tmb%lzd%llr(jlr)%wfd,tmb%lzd%llr(jlr)%geocode,&
+            call reformat_one_supportfunction(tmb%lzd%llr(jlr),tmb%lzd%llr(ilr),tmb%lzd%llr(jlr)%geocode,&
                  tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,nj,centre_old_box,centre_new_box,da,&
-                 frag_trans,psi_tmp(jstart))
+                 frag_trans,psi_tmp(jstart:))
 
             i_all = -product(shape(frag_trans%discrete_operations))*kind(frag_trans%discrete_operations)
             deallocate(frag_trans%discrete_operations,stat=i_stat)
@@ -1644,9 +1644,9 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
 
 END SUBROUTINE writemywaves_linear
 
-
+!possibly broken
 subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
-     & hgrids,at,wfd,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
+     & hgrids,at,llr,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
      & confPotprefac,psi,eval,onwhichatom,lr,glr,reformat_reason)
   use module_base
   use module_types
@@ -1658,7 +1658,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iorb,iproc
   integer, dimension(3), intent(in) :: n,ns
-  type(wavefunctions_descriptors), intent(in) :: wfd
+  !type(wavefunctions_descriptors), intent(in) :: wfd
+  type(locreg_descriptors), intent(in) :: llr
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: hgrids
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
@@ -1708,7 +1709,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
 
   call reformat_check(reformat,reformat_reason,tol,at,hgrids,hgrids_old,&
-       nvctr_c_old,nvctr_f_old,wfd%nvctr_c,wfd%nvctr_f,&
+       nvctr_c_old,nvctr_f_old,llr%wfd%nvctr_c,llr%wfd%nvctr_f,&
        n_old,n,ns_old,ns,frag_trans,centre_old_box,centre_new_box,da)  
 
   if (.not. reformat) then
@@ -1744,7 +1745,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      enddo
 
      ! NB assuming here geocode is the same in glr and llr
-     call reformat_one_supportfunction(wfd,at%astruct%geocode,hgrids_old,n_old,psigold,hgrids,n, &
+     call reformat_one_supportfunction(llr,llr,at%astruct%geocode,hgrids_old,n_old,psigold,hgrids,n, &
          centre_old_box,centre_new_box,da,frag_trans,psi)
 
      i_all = -product(shape(frag_trans%discrete_operations))*kind(frag_trans%discrete_operations)
@@ -1762,7 +1763,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   !call memocc(i_stat,gpsi,'gpsi',subname)
   !
   !call to_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
-  !call Lpsi_to_global2(iproc, lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
+  !call Lpsi_to_global2(iproc, llr%%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
   !     1, 1, 1, glr, lr, psi, gpsi)
   !
   !write(orbname,*) iorb
@@ -2442,7 +2443,8 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   end if
 
 
-  call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,psi_old,phi_array_old)
+  call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
+       psi_old,trim(dir_output)//trim(input_frag%dirname(ifrag_ref)),phi_array_old)
 
   do iorbp=1,tmb%orbs%norbp
      if (associated(frag_trans_orb(iorbp)%discrete_operations)) then
@@ -2876,7 +2878,7 @@ END SUBROUTINE copy_old_inwhichlocreg
 !> Reformat wavefunctions if the mesh have changed (in a restart)
 !! NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
 subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-       frag_trans,psi_old,phi_array_old)
+       frag_trans,psi_old,input_dir,phi_array_old)
   use module_base
   use module_types
   use module_fragments
@@ -2891,17 +2893,24 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
   logical, intent(in) :: add_derivatives
+  character(len=*), intent(in) :: input_dir
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
   integer :: iorb,j,i_stat,i_all,jstart,jstart_old,iiorb,ilr,iiat
-  integer:: idir,jstart_old_der,ncount,ilr_old
+  integer:: idir,jstart_old_der,ncount,ilr_old,i,k
   integer, dimension(3) :: ns_old,ns,n_old,n
   real(gp), dimension(3) :: centre_old_box,centre_new_box,da
   real(gp) :: tt,tol
   real(wp), dimension(:,:,:,:,:,:), pointer :: phigold
   real(wp), dimension(:), allocatable :: phi_old_der
   integer, dimension(0:7) :: reformat_reason
+  character(len=12) :: orbname, dummy
+  real(wp), allocatable, dimension(:,:,:) :: psirold
+  logical :: psirold_ok
+  integer, dimension(3) :: nl, nr
+  logical, dimension(3) :: per
+
 !  real(gp) :: dnrm2
 !  integer :: iat
 
@@ -3010,10 +3019,65 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
           !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
           !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
 
+          ! read psir_old directly from files (don't have lzd_old to rebuild it)
+          psirold_ok=.true.
+          write(orbname,*) iiorb
+          ! first check if file exists
+          inquire(file=trim(input_dir)//'tmbisf'//trim(adjustl(orbname))//'.dat',exist=psirold_ok)
+          if (.not. psirold_ok) print*,"psirold doesn't exist for reformatting",iiorb
+
+          ! read in psirold
+          if (psirold_ok) then
+             open(99,file=trim(input_dir)//'tmbisf'//trim(adjustl(orbname))//'.dat')
+             read(99,*) dummy
+             read(99,*) lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i
+             read(99,*) lzd_old%llr(ilr_old)%nsi1,lzd_old%llr(ilr_old)%nsi2,lzd_old%llr(ilr_old)%nsi3
+             psirold=f_malloc((/lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i/),id='psirold')
+             do k=1,lzd_old%llr(ilr_old)%d%n3i
+                do j=1,lzd_old%llr(ilr_old)%d%n2i
+                   do i=1,lzd_old%llr(ilr_old)%d%n1i
+                      read(99,*) psirold(i,j,k)
+                   end do
+                end do
+             end do
+             close(99)
+          end if
+
           call timing(iproc,'Reformatting ','ON')
-          call reformat_one_supportfunction(tmb%lzd%llr(ilr)%wfd,tmb%lzd%llr(ilr)%geocode,lzd_old%hgrids,&
-               n_old,phigold,tmb%lzd%hgrids,n,centre_old_box,centre_new_box,da,&
-               frag_trans(iorb),tmb%psi(jstart))
+          if (psirold_ok) then
+             print*,'using psirold to reformat',iiorb
+             ! recalculate centres
+             !conditions for periodicity in the three directions
+             per(1)=(at%astruct%geocode /= 'F')
+             per(2)=(at%astruct%geocode == 'P')
+             per(3)=(at%astruct%geocode /= 'F')
+
+             !buffers related to periodicity
+             !WARNING: the boundary conditions are not assumed to change between new and old
+             call ext_buffers(per(1),nl(1),nr(1))
+             call ext_buffers(per(2),nl(2),nr(2))
+             call ext_buffers(per(3),nl(3),nr(3))
+
+             ! centre of rotation with respect to start of box
+             centre_old_box(1)=frag_trans(iorb)%rot_center(1)-0.5d0*lzd_old%hgrids(1)*(lzd_old%llr(ilr_old)%nsi1-nl(1))
+             centre_old_box(2)=frag_trans(iorb)%rot_center(2)-0.5d0*lzd_old%hgrids(2)*(lzd_old%llr(ilr_old)%nsi2-nl(2))
+             centre_old_box(3)=frag_trans(iorb)%rot_center(3)-0.5d0*lzd_old%hgrids(3)*(lzd_old%llr(ilr_old)%nsi3-nl(3))
+
+             centre_new_box(1)=frag_trans(iorb)%rot_center_new(1)-0.5d0*tmb%lzd%hgrids(1)*(tmb%lzd%llr(ilr)%nsi1-nl(1))
+             centre_new_box(2)=frag_trans(iorb)%rot_center_new(2)-0.5d0*tmb%lzd%hgrids(2)*(tmb%lzd%llr(ilr)%nsi2-nl(2))
+             centre_new_box(3)=frag_trans(iorb)%rot_center_new(3)-0.5d0*tmb%lzd%hgrids(3)*(tmb%lzd%llr(ilr)%nsi3-nl(3))
+
+             da=centre_new_box-centre_old_box-(lzd_old%hgrids-tmb%lzd%hgrids)*0.5d0
+
+             call reformat_one_supportfunction(tmb%lzd%llr(ilr),lzd_old%llr(ilr_old),tmb%lzd%llr(ilr)%geocode,&
+                  lzd_old%hgrids,n_old,phigold,tmb%lzd%hgrids,n,centre_old_box,centre_new_box,da,&
+                  frag_trans(iorb),tmb%psi(jstart:),psirold)
+             call f_free(psirold)
+          else ! don't have psirold from file, so reformat using old way
+             call reformat_one_supportfunction(tmb%lzd%llr(ilr),lzd_old%llr(ilr_old),tmb%lzd%llr(ilr)%geocode,&
+                  lzd_old%hgrids,n_old,phigold,tmb%lzd%hgrids,n,centre_old_box,centre_new_box,da,&
+                  frag_trans(iorb),tmb%psi(jstart:))
+          end if
           call timing(iproc,'Reformatting ','OF')
           jstart=jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 

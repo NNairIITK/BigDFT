@@ -1608,7 +1608,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          call memocc(i_stat,frag_trans(iorb)%discrete_operations,'frag_trans(iorb)%discrete_operations',subname)
      end do
 
-     call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,tmb_old%psi)
+     call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
+          tmb_old%psi,input%dir_output)
 
      do iorb=1,tmb%orbs%norbp
         i_all = -product(shape(frag_trans(iorb)%discrete_operations)*kind(frag_trans(iorb)%discrete_operations))
