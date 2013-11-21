@@ -476,6 +476,7 @@ rotatesmall_read2:
 
 linearcubic_cubic:
  Epsilon: 1.1e-10
+ Ekin: 1.0e-9
 
 linearcubic_linear:
  Epsilon: 1.1e-10
