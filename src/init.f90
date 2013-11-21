@@ -2277,7 +2277,7 @@ END SUBROUTINE input_memory_linear
              deallocate(passmat,stat=i_stat)
              call memocc(i_stat,i_all,'passmat',subname)
 
-        !!$   if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
+           if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
               
               !restore the occupations as they are extracted from DiagHam
               !use correct copying due to k-points
@@ -2290,10 +2290,10 @@ END SUBROUTINE input_memory_linear
                  end if
               end do
               !call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1) !this is not good with k-points
-         !!$    !associate the entropic energy contribution
-         !!$    orbs%eTS=orbse%eTS
+              !associate the entropic energy contribution
+              orbs%eTS=orbse%eTS
               
-         !!$  end if
+           end if
 
         !!$   !yaml output
         !!$   if (iproc ==0) then
