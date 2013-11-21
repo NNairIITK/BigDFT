@@ -395,7 +395,7 @@ hybrid-directmin:
  energy: 4.4e-09
  multiplicator for the confinement: 7.3e-11
  Epot: 3.1e-09
- EH: 3.0e-9
+ EH: 3.1e-9
  EXC: 3.1e-10
  EvXC: 4.1e-10
  Ekin: 1.1e-09
