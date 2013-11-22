@@ -2206,9 +2206,9 @@ logical ,dimension(nat) :: onsurface
 ! occupied space= nonzero
     do iat=1,nat
         ic=nint((pos(2,iat)-ymin)*4.d0)  ! ygrid spacing=.25
-         ib=2.0d0*rcov(iat)*4.d0
-         if (ic-ib.lt.-100) stop "#MH error fixfrag_slab -100"
-         if (ic+ib.gt.1000) stop "#MH error fixfrag_slab 1000"
+         ib=nint(2.0d0*rcov(iat)*4.d0)
+         if (ic-ib < -100) stop "#MH error fixfrag_slab -100"
+         if (ic+ib > 1000) stop "#MH error fixfrag_slab 1000"
          do i=ic-ib,ic+ib
          ygrid(i)=ygrid(i)+1
          enddo
