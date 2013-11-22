@@ -1549,7 +1549,7 @@ END SUBROUTINE input_wf_memory
 
 
 subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
-           rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU)
+           rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU, ref_frags)
 
   use module_base
   use module_types
@@ -1570,6 +1570,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   type(GPU_pointers), intent(inout) :: GPU
+  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat
@@ -1609,7 +1610,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      end do
 
      call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
-          tmb_old%psi,input%dir_output)
+          tmb_old%psi,input%dir_output,input%frag,ref_frags)
 
      do iorb=1,tmb%orbs%norbp
         i_all = -product(shape(frag_trans(iorb)%discrete_operations)*kind(frag_trans(iorb)%discrete_operations))
@@ -2604,7 +2605,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call yaml_open_map("Input Hamiltonian")
      end if
       call input_memory_linear(iproc, nproc, atoms, KSwfn, tmb, tmb_old, denspot, in, &
-           rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU)
+           rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU, ref_frags)
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&

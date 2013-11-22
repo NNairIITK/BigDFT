@@ -2444,7 +2444,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
 
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
-       psi_old,trim(dir_output)//trim(input_frag%dirname(ifrag_ref)),phi_array_old)
+       psi_old,trim(dir_output),input_frag,ref_frags,phi_array_old)
 
   do iorbp=1,tmb%orbs%norbp
      if (associated(frag_trans_orb(iorbp)%discrete_operations)) then
@@ -2878,7 +2878,7 @@ END SUBROUTINE copy_old_inwhichlocreg
 !> Reformat wavefunctions if the mesh have changed (in a restart)
 !! NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
 subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-       frag_trans,psi_old,input_dir,phi_array_old)
+       frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
   use module_base
   use module_types
   use module_fragments
@@ -2894,6 +2894,8 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
   logical, intent(in) :: add_derivatives
   character(len=*), intent(in) :: input_dir
+  type(fragmentInputParameters), intent(in) :: input_frag
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
@@ -2910,6 +2912,9 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   logical :: psirold_ok
   integer, dimension(3) :: nl, nr
   logical, dimension(3) :: per
+  character(len=100) :: fragdir
+  integer :: ifrag, ifrag_ref, iforb, isforb
+  
 
 !  real(gp) :: dnrm2
 !  integer :: iat
@@ -3021,14 +3026,35 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
 
           ! read psir_old directly from files (don't have lzd_old to rebuild it)
           psirold_ok=.true.
-          write(orbname,*) iiorb
+
+          ! allow for fragment calculation
+          if (input_frag%nfrag>1) then
+             isforb=0
+             do ifrag=1,input_frag%nfrag
+                ! find reference fragment this corresponds to
+                ifrag_ref=input_frag%frag_index(ifrag)
+                ! loop over orbitals of this fragment
+                do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+                   if (iiorb==iforb+isforb) exit
+                end do
+                if (iforb/=ref_frags(ifrag_ref)%fbasis%forbs%norb+1) exit
+                isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+             end do
+             write(orbname,*) iforb
+             fragdir=trim(input_frag%dirname(ifrag_ref))
+          else
+             write(orbname,*) iiorb
+             fragdir=trim(input_frag%dirname(1))
+          end if
+
           ! first check if file exists
-          inquire(file=trim(input_dir)//'tmbisf'//trim(adjustl(orbname))//'.dat',exist=psirold_ok)
-          if (.not. psirold_ok) print*,"psirold doesn't exist for reformatting",iiorb
+          inquire(file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',exist=psirold_ok)
+          if (.not. psirold_ok) print*,"psirold doesn't exist for reformatting",iiorb,&
+               trim(input_dir)//'tmbisf'//trim(adjustl(orbname))//'.dat'
 
           ! read in psirold
           if (psirold_ok) then
-             open(99,file=trim(input_dir)//'tmbisf'//trim(adjustl(orbname))//'.dat')
+             open(99,file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat')
              read(99,*) dummy
              read(99,*) lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i
              read(99,*) lzd_old%llr(ilr_old)%nsi1,lzd_old%llr(ilr_old)%nsi2,lzd_old%llr(ilr_old)%nsi3

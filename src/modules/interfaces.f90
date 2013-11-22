@@ -4273,9 +4273,10 @@ module module_interfaces
         end subroutine copy_old_supportfunctions
 
         subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
-                   rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU)
+                   rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU, ref_frags)
           use module_base
           use module_types
+          use module_fragments
           implicit none
           integer,intent(in) :: iproc, nproc
           type(atoms_data), intent(inout) :: at
@@ -4289,6 +4290,7 @@ module module_interfaces
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
           real(kind=8), dimension(:), pointer :: proj
           type(GPU_pointers), intent(inout) :: GPU
+          type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
         end subroutine input_memory_linear
 
         subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
@@ -4306,7 +4308,7 @@ module module_interfaces
         end subroutine copy_old_inwhichlocreg
 
         subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-               frag_trans,psi_old,input_dir,phi_array_old)
+               frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
           use module_base
           use module_types
           use module_fragments
@@ -4321,6 +4323,8 @@ module module_interfaces
           type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
           logical, intent(in) :: add_derivatives
           character(len=*), intent(in) :: input_dir
+          type(fragmentInputParameters), intent(in) :: input_frag
+          type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
         end subroutine reformat_supportfunctions
 
         subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,& 
