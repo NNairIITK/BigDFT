@@ -215,7 +215,7 @@ $(INS): in_message
 		fi ; \
 	else echo -n "" > $$dir/check.perf ; fi ; \
 	echo "outdir ./" >> $$dir/check.perf ; \
-	chmod u+w $$dir/*.perf ; \
+	chmod u+w $$dir/* ; \
 	for i in $$dir/*.out.ref.yaml ; do \
 	    base=`basename $$i .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	    if test -n "$$base" ; then cat $$dir/check.perf >> $$dir/$$base.perf ; fi ; \
