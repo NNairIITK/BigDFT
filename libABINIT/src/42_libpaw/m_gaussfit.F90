@@ -310,7 +310,7 @@ CONTAINS
      if(option==2) ngauss=nterm*4
      if(option==3) ngauss=nterm*2
      if(option==4) ngauss=nterm*2
-     write(message,'(i4,2x,e13.6,x)')ngauss,&
+     write(message,'(i4,2x,e13.6,1x)')ngauss,&
 &     chisq_array(map_nterm(nterm))
      call wrtout(std_out,message,'COLL')
    end do
@@ -357,7 +357,7 @@ CONTAINS
    if(option==2) ngauss=nterm*4
    if(option==3) ngauss=nterm*2
    if(option==4) ngauss=nterm*2
-   write(message,'(i4,2x,e13.6,x)')ngauss,chisq
+   write(message,'(i4,2x,e13.6,1x)')ngauss,chisq
    call wrtout(std_out,message,'COLL')
  end if
 
@@ -867,13 +867,13 @@ end subroutine gaussfit_main
  do iterm=nterm_bounds(2),nterm_bounds(1),-1
      ngauss=iterm*2
      call gaussfit_mpi_set_weight(weight,iterm)
-     write(message,'(3(i4,x))') ngauss,proc_dist(iterm),weight
+     write(message,'(3(i4,1x))') ngauss,proc_dist(iterm),weight
      call wrtout(std_out,message,'COLL')
  end do
  write(message,'(a)') 'Load per processor: '
  call wrtout(std_out,message,'COLL')
  do iproc=1,nproc
-   write(message,'(i5,x,i10)') iproc,proc_load(iproc)
+   write(message,'(i5,1x,i10)') iproc,proc_load(iproc)
    call wrtout(std_out,message,'COLL')
  end do
 !
@@ -993,7 +993,7 @@ subroutine gaussfit_fit(chisq,constrains,&
 !  per_error=0.d0
    do ix=1, nx
      rerror=abs(y(ix)-y_out(ix))
-     write(wfn_unit,'(6(e20.12,x))')x(ix),y(ix),y_out(ix),rerror
+     write(wfn_unit,'(6(e20.12,1x))')x(ix),y(ix),y_out(ix),rerror
    end do
    close(wfn_unit)
 !  

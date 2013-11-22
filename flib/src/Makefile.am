@@ -5,8 +5,10 @@ module_DATA = $(modules)
 # Source code.
 if HAVE_FC_FLUSH
 flush_files = flush.f90
+flush_object= flush.o
 else
 flush_files = flush_fake.f90
+flush_object= flush_fake.o
 endif
 if USE_MPI
 mpi_source =
@@ -89,6 +91,7 @@ dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o mem_profiling.o $(DYN_IN
 mem_profiling.o: yaml_output.o $(mpi_include)
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)
+$(flush_object): yaml_output.o dictionaries.o
 
 time.o: $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 

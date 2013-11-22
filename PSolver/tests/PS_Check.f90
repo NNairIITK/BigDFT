@@ -15,6 +15,7 @@ program PS_Check
    use Poisson_Solver
    use yaml_output
    use dynamic_memory
+   use dictionaries
 
    implicit none
    !include 'mpif.h'
@@ -219,7 +220,9 @@ program PS_Check
       density,potential,pkernel)
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0)call yaml_close_map()
 
-   call timing(pkernel%mpi_env%mpi_comm,'Parallel','PR')
+
+   call timing(MPI_COMM_WORLD,'Parallel','PR')
+
    call pkernel_free(pkernel,subname)
 
    if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
@@ -263,13 +266,13 @@ program PS_Check
      call yaml_close_map()
    endif
 
-   call timing(pkernel%mpi_env%mpi_comm,'Serial','PR')
+   call timing(MPI_COMM_WORLD,'Serial','PR')
 
    !call f_malloc_dump_status()
 
    call f_free(density,potential,pot_ion,extra_ref)
 
-   call timing(pkernel%mpi_env%mpi_comm,'              ','RE')
+   call timing(MPI_COMM_WORLD,'              ','RE')
 
    !Final timing
    call cpu_time(tcpu1)

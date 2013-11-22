@@ -7,13 +7,44 @@ subroutine test_dynamic_memory()
    !logical :: fl
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
-  integer,dimension(:,:,:),allocatable :: weight
+   integer, dimension(:), allocatable :: i1_all
+   integer, dimension(:), pointer :: i1_ptr,ptr1,ptr2
+
+   integer,dimension(:,:,:),allocatable :: weight
   integer,dimension(:,:,:,:),allocatable :: orbital_id
   external :: abort2
 
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
+!!$   i1_all=f_malloc(0,id='i1_all')
+!!$   call yaml_map('Address of first element',f_loc(i1_all))
+!!$!   call yaml_map('Address of first element, explicit',f_loc(i1_all(1)))
+!!$
+!!$   nullify(ptr1,ptr2)
+!!$   call yaml_map('Associated',(/associated(ptr1),associated(ptr2)/))
+!!$
+!!$   i1_ptr=f_malloc_ptr(0,id='i1_ptr')
+!!$
+!!$   ptr1=>i1_ptr
+!!$
+!!$   ptr2=>ptr1
+!!$   call yaml_map('Associated',(/associated(ptr1),associated(ptr2)/))
+!!$
+!!$   call yaml_map('Address of first element',f_loc(i1_ptr))
+!!$   call yaml_map('Address of first element, explicit',f_loc(ptr1))
+!!$   call yaml_map('Address of first element, explicit',f_loc(ptr2))
+!!$
+!!$
+!!$   !call f_free_ptr(ptr2) !this one would crash
+!!$   call f_free_ptr(i1_ptr)
+!!$
+!!$   call yaml_map('Associated',(/associated(ptr1),associated(ptr2),associated(i1_ptr)/))
+!!$
+!!$
+!!$
+!!$   call f_malloc_dump_status()
+!!$stop
 call yaml_comment('debug 1')
    call f_routine(id='PS_Check')
 call yaml_comment('debug 2')

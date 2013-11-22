@@ -119,8 +119,9 @@ MODULE NEB_routines
          tolerance,           &
          convergence,         &
          num_of_images
-
+      
       call f_lib_initialize()
+      nullify(dict)
       call bigdft_init(mpi_info, nconfig, run_id, ierr)
       neb_mpi = mpi_environment_null()
       neb_mpi%igroup = mpi_info(1)
@@ -203,7 +204,7 @@ MODULE NEB_routines
             read_posinp(i) = .true.
          end if
 
-         dict => read_input_dict_from_files(trim(arr_radical(i)), bigdft_mpi)
+         call read_input_dict_from_files(trim(arr_radical(i)), bigdft_mpi,dict)
          call standard_inputfile_names(ins(i),trim(arr_radical(i)))
          call inputs_from_dict(ins(i), atoms(i), dict, .true.)
          call dict_free(dict)
