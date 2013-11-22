@@ -215,11 +215,13 @@ $(INS): in_message
 		fi ; \
 	else echo -n "" > $$dir/check.perf ; fi ; \
 	echo "outdir ./" >> $$dir/check.perf ; \
+	chmod u+w $$dir/*.perf ; \
 	for i in $$dir/*.out.ref.yaml ; do \
 	    base=`basename $$i .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	    if test -n "$$base" ; then cat $$dir/check.perf >> $$dir/$$base.perf ; fi ; \
 	done ; \
 	cat $$dir/check.perf >> $$dir/input.perf ; \
+	ls -l $$dir ; \
     cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
     $(MAKE) -f ../Makefile $$dir".post-in"; \
     echo "Input prepared in "$$dir" dir. make $$name.run available"
