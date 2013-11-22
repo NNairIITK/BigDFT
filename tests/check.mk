@@ -221,7 +221,6 @@ $(INS): in_message
 	    if test -n "$$base" ; then cat $$dir/check.perf >> $$dir/$$base.perf ; fi ; \
 	done ; \
 	cat $$dir/check.perf >> $$dir/input.perf ; \
-	ls -l $$dir ; \
     cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
     $(MAKE) -f ../Makefile $$dir".post-in"; \
     echo "Input prepared in "$$dir" dir. make $$name.run available"
