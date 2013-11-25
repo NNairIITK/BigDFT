@@ -46,9 +46,6 @@ out_static_library =  \
 	$(top_builddir)/PSolver/src/libPSolver-1.a \
 	$(top_builddir)/wrappers/libwrappers.a \
 	$(top_builddir)/flib/src/libflib.a
-if BUILD_LIBYAML
-out_static_library += $(top_builddir)/yaml-0.1.4/src/.libs/libyaml.a
-endif
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
 bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@

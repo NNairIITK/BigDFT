@@ -865,8 +865,7 @@ if test x"$ac_use_libyaml" != x"no" ; then
          AC_MSG_WARN([libyaml is not available, building internal one.])
          ac_use_libyaml="yes"
          LIB_YAML_CFLAGS="-I\$(top_srcdir)"/yaml-0.1.4/include
-         dnl We will include libyaml.a inside libbigdft-1.a in that case.
-         LIB_YAML_LIBS=""
+         LIB_YAML_LIBS="\$(top_builddir)/yaml-0.1.4/src/.libs/libyaml.a"
          tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
       else
          AC_MSG_WARN([libyaml is not available.])
@@ -1016,7 +1015,7 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
