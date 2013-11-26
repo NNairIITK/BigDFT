@@ -163,6 +163,8 @@ contains
   end subroutine gaussian_basis_free
 
   !> Prepare the array for the evaluation with the interpolating Scaling Functions
+  !! one might add also the function to be converted and the 
+  !! prescription for integrating knowing the scaling relation of the function
   subroutine initialize_real_space_conversion(npoints,isf_m)
     implicit none
     integer, intent(in), optional :: npoints,isf_m
