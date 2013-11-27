@@ -3,7 +3,9 @@
 
 #include <string>
 #include <sstream>
+#include "class_utils.h"
 
+/*
 inline void getHostName(std::string& h)
 {
   const int HOST_NAME_SIZE = 300;
@@ -12,7 +14,7 @@ inline void getHostName(std::string& h)
 
   h = hostname;
 }
-
+*/
 
 template<class E>
 inline void check(bool i,const std::string& st,const char* file,int line)
