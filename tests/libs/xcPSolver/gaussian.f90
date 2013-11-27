@@ -12,8 +12,8 @@ program MP_gaussian
   use gaussians
   use yaml_output
   implicit none
-  integer, parameter :: nmoms=16,nsteps=1
-  integer :: npts,j,imoms,pow
+  integer, parameter :: nmoms=16,nstep=100
+  integer :: npts,j,imoms,pow,istep
   real(gp) :: hgrid,pgauss,x0,reference
   real(gp), dimension(0:nmoms,2) :: moments
   real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
@@ -48,7 +48,12 @@ program MP_gaussian
 
   call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
-  call evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
+  do istep=1,nstep
+     x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+     call yaml_map('x0',x0,advance='no')
+     call yaml_comment('Step No.'//trim(yaml_toa(istep)),tabbing=70)
+     call evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
+
 !!$  !print moments value
 !!$  do imoms=0,nmoms
 !!$     reference=gauint0(pgauss,imoms+pow)
@@ -63,16 +68,23 @@ program MP_gaussian
 !!$  end do
 
   !calculate average, maximum and minimum
-  do j=1,2
-     do imoms=0,nmoms
-        avgmaxmin(1,j,imoms)=avgmaxmin(1,j,imoms)+moments(imoms,j)/real(nsteps,gp)
-        avgmaxmin(2,j,imoms)=max(moments(imoms,j),avgmaxmin(2,j,imoms))
-        avgmaxmin(3,j,imoms)=min(moments(imoms,j),avgmaxmin(3,j,imoms))
+     do j=1,2
+        do imoms=0,nmoms
+           reference=gauint0(pgauss,imoms+pow)
+           if (reference /=0.0_gp) then
+              moments(imoms,j)=abs((moments(imoms,j)-reference)/reference)
+           else
+              moments(imoms,j)=abs(moments(imoms,j))
+           end if
+           avgmaxmin(1,j,imoms)=avgmaxmin(1,j,imoms)+moments(imoms,j)/real(nstep,gp)
+           avgmaxmin(2,j,imoms)=max(moments(imoms,j),avgmaxmin(2,j,imoms))
+           avgmaxmin(3,j,imoms)=min(moments(imoms,j),avgmaxmin(3,j,imoms))
+        end do
      end do
   end do
-  
 
-  call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)))
+
+  call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
 
   call finalize_real_space_conversion('Main program')
   

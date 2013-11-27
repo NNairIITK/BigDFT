@@ -1789,7 +1789,80 @@ end subroutine sumrho_for_TMBs
 !!$
 !!$end subroutine fill_global_density
 
+!> perform the communication needed for the potential and verify that the results is as expected
+subroutine check_communication_potential(denspot,tmb)
+  use module_base, only:dp,bigdft_mpi
+  use module_types
+  implicit none
+  type(DFT_wavefunction), intent(inout) :: tmb
+  type(DFT_local_fields), intent(inout) :: denspot
+  !local variables
+  logical :: dosome
+  integer :: i1,i2,i3,ind,i3s,n3p,ilr,iorb,ilr_orb,n2i,n1i
+  real(dp) :: maxdiff,testval
 
+  !assign constants
+  i3s=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,3)+1 !< starting point of the planes in the z direction
+  n3p=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,2) !< number of planes for the potential
+  n2i=denspot%dpbox%ndims(2) !< size of the global domain in y direction
+  n1i=denspot%dpbox%ndims(1) !< size of the global domain in x direction
+
+
+  !fill the values of the rhov array
+  ind=0
+  do i3=i3s,i3s+n3p+1
+     do i2=1,n2i
+        do i1=1,n1i
+           ind=ind+1
+           denspot%rhov(ind)=real(i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
+        end do
+     end do
+  end do
+
+  !calculate the dimensions and communication of the potential element with mpi_get
+  call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+  call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
+       tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+
+  !check the fetching of the potential element, destroy the MPI window, results in pot_work
+  call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,&
+       2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
+       tmb%ham_descr%comgp)
+
+  maxdiff=0.0_dp
+  loop_lr: do ilr=1,tmb%ham_descr%Lzd%nlr
+     !check if this localisation region is used by one of the orbitals
+     dosome=.false.
+     do iorb=1,tmb%orbs%norbp
+        dosome = (tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb) == ilr)
+        if (dosome) exit
+     end do
+     if (.not. dosome) cycle loop_lr
+
+     loop_orbs: do iorb=1,tmb%orbs%norbp
+        ilr_orb=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+        if (ilr_orb /= ilr) cycle loop_orbs
+
+
+        ind=tmb%orbs%ispot(iorb)-1
+        do i3=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n3i
+           do i2=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n2i
+              do i1=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n1i
+                 ind=ind+1
+                 testval=real(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
+                      (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
+                      (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i,dp)
+                 testval=abs(denspot%pot_work(ind)-testval)
+                 maxdiff=max(maxdiff,testval)
+              end do
+           end do
+        end do
+
+     enddo loop_orbs
+
+  end do loop_lr
+
+end subroutine check_communication_potential
 
 
 subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, check_sumrho)

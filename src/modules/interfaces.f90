@@ -4311,7 +4311,7 @@ module module_interfaces
           type(atoms_data), intent(in) :: at
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
           type(DFT_wavefunction), intent(inout) :: tmb
-          type(local_zone_descriptors), intent(in) :: lzd_old
+          type(local_zone_descriptors), intent(inout) :: lzd_old
           type(fragment_transformation), dimension(tmb%orbs%norbp), intent(in) :: frag_trans
           real(wp), dimension(:), pointer :: psi_old
           type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
@@ -5098,6 +5098,29 @@ module module_interfaces
           real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(in) :: hpsit_f
           real(kind=8),intent(out) :: KSres
         end subroutine get_KS_residue
+
+        subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
+             rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum,&
+             proj_G,paw)
+          use module_base
+          use module_types
+          use gaussians, only:gaussian_basis
+          implicit none
+          integer, intent(in) :: iproc
+          real(gp), intent(in) :: hx,hy,hz
+          type(atoms_data), intent(in) :: at
+          type(orbitals_data), intent(in) :: orbs
+          type(wavefunctions_descriptors), intent(in) :: wfd
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          type(locreg_descriptors),intent(in) :: lr
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+          real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+          real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
+          real(gp), intent(out) :: eproj_sum
+          real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+          type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
+          type(paw_objects),optional,intent(inout)::paw
+        end subroutine applyprojectorsonthefly
   
   end interface
 END MODULE module_interfaces
