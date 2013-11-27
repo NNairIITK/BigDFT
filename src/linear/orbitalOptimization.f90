@@ -282,6 +282,8 @@ ldiis%icountDIISFailureCons=0
 
 allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norbp), stat=istat)
 call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
+if (ldiis%isx**2*orbs%norbp>0) call to_zero(ldiis%isx**2*orbs%norbp,ldiis%mat(1,1,1))
+
 ii=0
 do iorb=1,orbs%norbp
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
