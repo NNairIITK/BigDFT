@@ -1129,6 +1129,9 @@ contains
     implicit none
     type(dictionary), pointer :: dict
 
+    if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
+         err_name='BIGDFT_RUNTIME_ERROR')) return
+
     call f_routine(id='input_keys_fill_all')
 
     ! Check and complete dictionary.

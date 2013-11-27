@@ -1023,8 +1023,8 @@ END SUBROUTINE writeonewave
 
 
 !> Make frag_trans the argument so can eliminate need for interface
-subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,& 
-     hgrids,n,centre_old,centre_new,da,frag_trans,psi)
+subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,& 
+     hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold)
   use module_base
   use module_types
   use module_fragments
@@ -1032,12 +1032,14 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   implicit none
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
-  type(wavefunctions_descriptors), intent(in) :: wfd
+  !type(wavefunctions_descriptors), intent(in) :: wfd
+  type(locreg_descriptors), intent(in) :: llr, llr_old
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   real(gp), dimension(3), intent(inout) :: centre_old,centre_new,da
   type(fragment_transformation), intent(in) :: frag_trans
   real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+  real(wp), dimension(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f), intent(out) :: psi
+  real(wp), dimension(llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i), optional, intent(in) :: psirold
 
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
@@ -1045,51 +1047,52 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   integer :: i_stat,i_all
   integer, dimension(3) :: nb, ndims_tmp
   real(gp), dimension(3) :: hgridsh,hgridsh_old
-  !!real(wp) :: dnrm2
+  real(wp) :: dnrm2
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:), allocatable :: x_phi
   real(wp), dimension(:,:), allocatable :: y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
-  real(wp), dimension(:,:,:), pointer :: psifscfold, psifscf, psifscf_tmp
+  real(wp), dimension(:,:,:), pointer :: psifscfold, psifscf
   integer :: itype, nd, nrange,isgn,i,iz
   real(gp), dimension(3) :: rrow
   real(gp), dimension(3,3) :: rmat !< rotation matrix
   real(gp) :: sint,cost,onemc,ux,uy,uz
   integer, dimension(3) :: irp
 
+  ! isf version
+  type(workarr_sumrho) :: w
+  real(wp), dimension(:,:,:), pointer :: psir
+
   call f_routine(id=subname)
 
-  !if (size(frag_trans%discrete_operations)>0) then
-  !   print*,'Error discrete operations not yet implemented',size(frag_trans%discrete_operations),&
-  !        frag_trans%discrete_operations(1)
-  !   stop
-  !end if
+  ! old reformatting, otherwise in ISF
+  if (.not. present(psirold)) then
+     !conditions for periodicity in the three directions
+     per(1)=(geocode /= 'F')
+     per(2)=(geocode == 'P')
+     per(3)=(geocode /= 'F')
 
-  !conditions for periodicity in the three directions
-  per(1)=(geocode /= 'F')
-  per(2)=(geocode == 'P')
-  per(3)=(geocode /= 'F')
+     !buffers related to periodicity
+     !WARNING: the boundary conditions are not assumed to change between new and old
+     call ext_buffers_coarse(per(1),nb(1))
+     call ext_buffers_coarse(per(2),nb(2))
+     call ext_buffers_coarse(per(3),nb(3))
 
-  !buffers related to periodicity
-  !WARNING: the boundary conditions are not assumed to change between new and old
-  call ext_buffers_coarse(per(1),nb(1))
-  call ext_buffers_coarse(per(2),nb(2))
-  call ext_buffers_coarse(per(3),nb(3))
+     psifscf = f_malloc_ptr(-nb.to.2*n+1+nb,id='psifscf')
+     psifscfold = f_malloc_ptr(-nb.to.2*n_old+1+nb,id='psifscfold')
 
-  psifscf = f_malloc_ptr(-nb.to.2*n+1+nb,id='psifscf')
-  psifscfold = f_malloc_ptr(-nb.to.2*n_old+1+nb,id='psifscfold')
+     wwold = f_malloc((2*n_old(1)+2+2*nb(1))*(2*n_old(2)+2+2*nb(2))*(2*n_old(3)+2+2*nb(3)),id='wwold')
 
-  wwold = f_malloc((2*n_old(1)+2+2*nb(1))*(2*n_old(2)+2+2*nb(2))*(2*n_old(3)+2+2*nb(3)),id='wwold')
+     if (geocode=='F') then
+        call synthese_grow(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
+     else if (geocode=='S') then     
+        call synthese_slab(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
+     else if (geocode=='P') then     
+        call synthese_per(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
+     end if
 
-  if (geocode=='F') then
-     call synthese_grow(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
-  else if (geocode=='S') then     
-     call synthese_slab(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
-  else if (geocode=='P') then     
-     call synthese_per(n_old(1),n_old(2),n_old(3),wwold,psigold,psifscfold) 
+     call f_free(wwold)
   end if
-
-  call f_free(wwold)
 
   ! transform to new structure    
   hgridsh=.5_gp*hgrids
@@ -1109,21 +1112,6 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
   endif
 
   call f_free(x_phi)
-
-  nullify(psifscf_tmp)
-  if (size(frag_trans%discrete_operations)==0) then
-     psifscf_tmp => psifscfold
-     ndims_tmp=(2*n_old+2+2*nb)
-  else if (size(frag_trans%discrete_operations)==1) then
-     psifscf_tmp = f_malloc_ptr(-nb.to.2*n_old+1+nb,id='psifscf_tmp')
-     !not used anymore I suppose
-     !call switch_axes(nd,nrange,y_phi,centre_old,hgridsh_old,(2*n_old+2+2*nb),psifscfold,&
-     !     hgridsh,ndims_tmp,psifscf_tmp,frag_trans%discrete_operations(1),da)
-  else if (size(frag_trans%discrete_operations)==2) then
-     stop 'only 1 discrete operation allowed right now'
-  else if (size(frag_trans%discrete_operations)==3) then
-     stop 'only 1 discrete operation allowed right now'
-  end if
 
   !call field_rototranslation(nd,nrange,y_phi,da,frag_trans%rot_axis,centre_old,centre_new,frag_trans%theta,&
   !     hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
@@ -1155,11 +1143,10 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 
   !write some output on the screen
   !print matrix elements, to be moved at the moment of identification of the transformation
-  !!call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
-  !!call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
-  !!call yaml_map('Translation vector',da,fmt='(1pg20.12)')
-  !!call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
-
+  call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
+  call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
+  !call yaml_map('Translation vector',da,fmt='(1pg20.12)')
+  call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
 
 
   !try different solutions, one of these should always work
@@ -1185,59 +1172,69 @@ subroutine reformat_one_supportfunction(wfd,geocode,hgrids_old,n_old,psigold,&
 
 
 !!$  !traditional case, for testing
-!!$  irp(1)=1
-!!$  irp(2)=2
-!!$  irp(3)=3
+  !irp(1)=-2
+  !irp(2)=-3
+  !irp(3)=1
+  if (present(psirold)) irp(:)=abs(irp)
 
-  !!print the suggested order
-  !!call yaml_map('Suggested order for the transformation',irp)
+  !print the suggested order
+  call yaml_map('Suggested order for the transformation',irp)
 
-  call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,&
-       centre_old,centre_new,sint,cost,onemc,irp,&
-       hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
+  if (.not. present(psirold)) then
+     call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,&
+          centre_old,centre_new,sint,cost,onemc,irp,&
+          hgridsh_old,(2*n_old+2+2*nb),psifscfold,hgridsh,(2*n+2+2*nb),psifscf)
+  else
+     psir=f_malloc_ptr((/llr%d%n1i,llr%d%n2i,llr%d%n3i/),id='psir')
+     call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,&
+          centre_old,centre_new,sint,cost,onemc,irp,&
+          hgridsh_old,(/llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i/),psirold,&
+          hgridsh,(/llr%d%n1i,llr%d%n2i,llr%d%n3i/),psir)
+  end if
   !call yaml_map('Centre old',centre_old,fmt='(1pg18.10)')
   !call yaml_map('Centre new',centre_new,fmt='(1pg18.10)')
   !call field_rototranslation3D_interpolation(da,frag_trans%rot_axis,centre_old,centre_new,&
   !     sint,cost,onemc,hgridsh_old,ndims_tmp,psifscf_tmp,hgridsh,(2*n+2+2*nb),psifscf)
 
-
-  if (size(frag_trans%discrete_operations)>0) then
-     call f_free_ptr(psifscf_tmp)
-  else
-     nullify(psifscf_tmp)    
-  end if
-
   call f_free(y_phi)
 
   !!print*, 'norm of psifscf ',dnrm2((2*n(1)+16)*(2*n(2)+16)*(2*n(3)+16),psifscf,1)
-  call f_free_ptr(psifscfold)
+  if (.not. present(psirold)) then
+     call f_free_ptr(psifscfold)
+     psig = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='psig')
+     ww = f_malloc((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(2))*(2*n(3)+2+2*nb(3)),id='ww')
 
-  psig = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='psig')
-  ww = f_malloc((2*n(1)+2+2*nb(1))*(2*n(2)+2+2*nb(2))*(2*n(3)+2+2*nb(3)),id='ww')
+     if (geocode=='F') then
+        call analyse_shrink(n(1),n(2),n(3),ww,psifscf,psig)
+     else if (geocode == 'S') then
+        call analyse_slab(n(1),n(2),n(3),ww,psifscf,psig)
+     else if (geocode == 'P') then
+        call analyse_per(n(1),n(2),n(3),ww,psifscf,psig)
+     end if
 
-  if (geocode=='F') then
-     call analyse_shrink(n(1),n(2),n(3),ww,psifscf,psig)
-  else if (geocode == 'S') then
-     call analyse_slab(n(1),n(2),n(3),ww,psifscf,psig)
-  else if (geocode == 'P') then
-     call analyse_per(n(1),n(2),n(3),ww,psifscf,psig)
+     call f_free_ptr(psifscf)
+
+    !!print*, 'norm new psig ',dnrm2(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig,1),n(1),n(2),n(3)
+     call compress_plain(n(1),n(2),0,n(1),0,n(2),0,n(3),  &
+          llr%wfd%nseg_c,llr%wfd%nvctr_c,llr%wfd%keygloc(1,1),llr%wfd%keyvloc(1),   &
+          llr%wfd%nseg_f,llr%wfd%nvctr_f,&
+          llr%wfd%keygloc(1,llr%wfd%nseg_c+min(1,llr%wfd%nseg_f)),&
+          llr%wfd%keyvloc(llr%wfd%nseg_c+min(1,llr%wfd%nseg_f)),   &
+          psig,psi(1),psi(llr%wfd%nvctr_c+min(1,llr%wfd%nvctr_f)))
+
+     call f_free(psig)
+     call f_free(ww)
+  else
+     call initialize_work_arrays_sumrho(llr,w)
+     call razero(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f,psi)
+     call isf_to_daub(llr,w,psir,psi)
+     call deallocate_work_arrays_sumrho(w)
+     call f_free_ptr(psir)
   end if
 
-  call f_free_ptr(psifscf)
-
-  !!print*, 'norm new psig ',dnrm2(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig,1),n(1),n(2),n(3)
-  call compress_plain(n(1),n(2),0,n(1),0,n(2),0,n(3),  &
-       wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),   &
-       wfd%nseg_f,wfd%nvctr_f,&
-       wfd%keygloc(1,wfd%nseg_c+min(1,wfd%nseg_f)),&
-       wfd%keyvloc(wfd%nseg_c+min(1,wfd%nseg_f)),   &
-       psig,psi(1),psi(wfd%nvctr_c+min(1,wfd%nvctr_f)))
-  !!print*, 'norm of reformatted psi ',dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,psi,1),wfd%nvctr_c,wfd%nvctr_f
-  !!print*, 'norm of reformatted psic ',dnrm2(wfd%nvctr_c,psi,1)
-  !!print*, 'norm of reformatted psif ',dnrm2(wfd%nvctr_f*7,psi(wfd%nvctr_c+min(1,wfd%nvctr_f)),1)
-
-  call f_free(psig)
-  call f_free(ww)
+  !!print*, 'norm of reformatted psi ',dnrm2(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f,psi,1),llr%wfd%nvctr_c,llr%wfd%nvctr_f
+  !!print*, 'norm of reformatted psic ',dnrm2(llr%wfd%nvctr_c,psi,1)
+  !!print*, 'norm of reformatted psif ',dnrm2(llr%wfd%nvctr_f*7,psi(llr%wfd%nvctr_c+min(1,llr%wfd%nvctr_f)),1)
 
   call f_release_routine()
 
