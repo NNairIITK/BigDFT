@@ -616,6 +616,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
 
      if (in%check_sumrho>0) then
+         call check_communication_potential(denspot,tmb)
          call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
               denspot, tmb%linmat%denskern, in%check_sumrho)
      end if
