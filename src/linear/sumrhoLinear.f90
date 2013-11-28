@@ -2232,11 +2232,15 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! Determine the difference between the two versions
       sumdiff=0.d0
       maxdiff=0.d0
+      !$omp parallel default(none) shared(lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
+      !$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
       do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
           tt=abs(rho(i)-rho_check(i))
           sumdiff = sumdiff + tt**2
           if (tt>maxdiff) maxdiff=tt
       end do
+      !$omp end do
+      !$omp end parallel
     
       ! Reduce the results
       if (nproc>1) then
