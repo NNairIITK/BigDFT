@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.0.32
- Timestamp of this run                 : 2013-11-13 17:01:21.617
+ Version Number                        : 1.7.0.92
+ Timestamp of this run                 : 2013-11-27 18:09:24.247
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
  OpenMP parallelization                :  No
@@ -51,10 +51,10 @@
    blas                                : No #     CUBLAS acceleration
    projrad                             : 15.000 # Radius of the projector as a function of the maxrad
    exctxpar                            : OP2P #   Exact exchange parallelisation scheme
-   ig_diag                             : Yes #    Input guess: (T:Direct, F:Iterative) diag. of Ham.
-   ig_norbp                            : 5 #      Input guess: Orbitals per process for iterative diag.
-   ig_blocks: [300, 800] #                        Input guess: Block sizes for orthonormalisation
-   ig_tol                              : 0.1E-03 # Input guess: Tolerance criterion
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 0.1E-03 # Input guess Tolerance criterion
    methortho                           : 0 #      Orthogonalisation
    rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
    psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
@@ -65,8 +65,8 @@
    signaling                           : No #     Expose calculation results on Network
    signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
    domain                              : ~ #      Domain to add to the hostname to find the IP
-   inguess_geopt                       : 0 #      0= wavlet input guess, 1= real space input guess
-   store_index                         : Yes #    linear scaling: store indices or recalculate them
+   inguess_geopt                       : 0 #      input guess to be used during the optimization
+   store_index                         : Yes #    store indices or recalculate them for linear scaling
    verbosity                           : 2 #      verbosity of the output
    outdir                              : ./ #     Writing directory
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
@@ -74,34 +74,35 @@
    pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 0.10E-19 # FOE: max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 0.10E+02 # FOE: max charge difference for interpolation
+   ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 0.10E+02 # FOE max charge difference for interpolation
    mixing_after_inputguess             : Yes #    mixing step after linear input guess (T/F)
    iterative_orthogonalization         : No #     iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      enables linear sumrho check
-   experimental_mode                   : No #     linear scaling: activate the experimental mode
+   experimental_mode                   : No #     activate the experimental mode in linear scaling
+   write_orbitals                      : No #     linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
  dft:
    hgrids: [0.30000, 0.30000, 0.30000] #          grid spacing in the three directions (bohr)
-   rmult: [5.00, 7.00] #                          c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius
+   rmult: [5.00, 7.00] #                          c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
    ncharge                             : 0 #      charge of the system
    elecfield: [0.0000, 0.0000, 0.0000] #          electric field (Ex,Ey,Ez)
    nspin                               : 1 #      spin polarization
    mpol                                : 0 #      total magnetic moment
    gnrm_cv                             : 0.1E-04 # convergence criterion gradient
-   itermax                             : 100 #    max. # of wfn. opt. steps
-   nrepmax                             : 2 #      max. # of re-diag. runs
-   ncong                               : 6 #      # of CG it. for preconditioning eq.
+   itermax                             : 100 #    max.
+   nrepmax                             : 2 #      max.
+   ncong                               : 6
    idsx                                : 6 #      wfn. diis history
    dispersion                          : 0 #      dispersion correction potential (values 1,2,3,4,5), 0=none
    inputpsiid                          : 100
    output_wf                           : 0
    output_denspot                      : 0
    rbuf                                : 0.00 #   length of the tail (AU)
-   ncongt                              : 30 #     # tail CG iterations
+   ncongt                              : 30
    norbv                               : 0 #      Davidson subspace dim.
-   nvirt                               : 0 #      # of opt. orbs
-   nplot                               : 0 #      # of plottec orbs
+   nvirt                               : 0
+   nplot                               : 0
    disablesym                          : No #     disable the symmetry detection
  kpt:
    method                              : manual # K-point sampling method
@@ -336,6 +337,11 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
    Maxdiff for uncompress              :  0.00000000000000000E+00
+ Checking operations for potential communication:
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  0.000000000000000000E+00
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  0.000000000000000000E+00
  Checking operations for sumrho:
    Tolerance for the following test    :  9.999999999999999988E-15
    transposition check, mean error     :  0.000000000000000000E+00
@@ -373,6 +379,7 @@
      method                            : diagonalization
      mode                              : sequential
      communication strategy kernel     : ALLREDUCE
+     Kohn-Sham residue                 :  2.14E-01
      Coefficients available            :  Yes
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
@@ -451,6 +458,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.28E-01, eBS:  0.00000000000000000E+00, D: -3.163E+00, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  8.76E-02
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  8.92253950936E+00, Epot: -1.09999433727E+01, Enl:  6.35910883973E-01, 
@@ -476,6 +484,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  4.77E-02, eBS: -3.16346069761256210E+00, D: -1.360E+00, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  1.41E-01
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
        energydiff                      :  0.15541793105021284
@@ -503,6 +512,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.63E-02, eBS: -4.52375161088811950E+00, D:  5.479E-02, 
           alpha:  1.000E-01}
+         Kohn-Sham residue             :  1.38E-01
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
        energydiff                      : -1.49558924945836225E-004
@@ -530,6 +540,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.11E-02, eBS: -4.46896377426698788E+00, D:  1.284E-02, 
           alpha:  1.100E-01}
+         Kohn-Sham residue             :  1.37E-01
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
        energydiff                      : -1.73702061907476946E-004
@@ -557,6 +568,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.69E-02, eBS: -4.45612278256110805E+00, D:  1.036E-02, 
           alpha:  1.210E-01}
+         Kohn-Sham residue             :  1.36E-01
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
        energydiff                      : -1.22211982642284056E-004
@@ -584,6 +596,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.35E-02, eBS: -4.44575968040829217E+00, D:  8.031E-03, 
           alpha:  1.331E-01}
+         Kohn-Sham residue             :  1.36E-01
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
        energydiff                      : -8.66640563614851089E-005
@@ -611,6 +624,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.09E-02, eBS: -4.43772911383515023E+00, D:  5.920E-03, 
           alpha:  1.464E-01}
+         Kohn-Sham residue             :  1.36E-01
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
        energydiff                      : -6.24519107148557850E-005
@@ -638,6 +652,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  8.88E-03, eBS: -4.43180887565411119E+00, D:  4.094E-03, 
           alpha:  1.611E-01}
+         Kohn-Sham residue             :  1.35E-01
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
        energydiff                      : -4.57696889100134285E-005
@@ -715,6 +730,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  5.20E-02, eBS: -4.42771526475969779E+00, D: -8.394E-02, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  4.33E-02
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.27721735681E+01, Enl:  7.29001220577E-01, 
@@ -740,6 +756,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.53E-01, eBS: -4.51165977862709777E+00, D:  1.537E+00, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  1.28E-01
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
        energydiff                      :  6.80161672144095064E-002
@@ -767,6 +784,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  9.03E-02, eBS: -2.97473448731557255E+00, D: -2.645E-01, 
           alpha:  1.000E-01}
+         Kohn-Sham residue             :  1.09E-01
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
        energydiff                      : -1.21967363995878486E-003
@@ -794,6 +812,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  7.28E-02, eBS: -3.23919695874712854E+00, D: -7.706E-02, 
           alpha:  1.100E-01}
+         Kohn-Sham residue             :  1.03E-01
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
        energydiff                      : -2.05015988911938507E-003
@@ -821,6 +840,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  5.78E-02, eBS: -3.31626124897449870E+00, D: -6.625E-02, 
           alpha:  1.210E-01}
+         Kohn-Sham residue             :  9.83E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
        energydiff                      : -1.40966572255507572E-003
@@ -848,6 +868,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  4.55E-02, eBS: -3.38251308114479254E+00, D: -5.543E-02, 
           alpha:  1.331E-01}
+         Kohn-Sham residue             :  9.44E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
        energydiff                      : -9.49434207402788388E-004
@@ -875,6 +896,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  3.55E-02, eBS: -3.43794636028922129E+00, D: -4.509E-02, 
           alpha:  1.464E-01}
+         Kohn-Sham residue             :  9.13E-02
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
        energydiff                      : -6.32032745571109444E-004
@@ -902,6 +924,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.76E-02, eBS: -3.48303816213450679E+00, D: -3.564E-02, 
           alpha:  1.611E-01}
+         Kohn-Sham residue             :  8.90E-02
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
        energydiff                      : -4.19775660592591748E-004
@@ -938,6 +961,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.15E-02, eBS: -3.51868097767621890E+00, D: -2.739E-02, 
           alpha:  1.772E-01}
+     Kohn-Sham residue                 :  8.72E-02
      Coefficients available            :  Yes
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
@@ -999,6 +1023,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.48E-01, eBS: -3.58536719219908218E+00, D: -1.345E+00, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  1.47E-01
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
        energydiff                      :  4.81248953728368178E-002
@@ -1026,6 +1051,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  7.98E-02, eBS: -4.92993308753738102E+00, D:  2.191E-01, 
           alpha:  1.000E-01}
+         Kohn-Sham residue             :  1.32E-01
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
        energydiff                      : -6.65901790050327236E-004
@@ -1053,6 +1079,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  6.27E-02, eBS: -4.71080112054924349E+00, D:  5.557E-02, 
           alpha:  1.100E-01}
+         Kohn-Sham residue             :  1.28E-01
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
        energydiff                      : -1.49768267252170517E-003
@@ -1080,6 +1107,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  4.84E-02, eBS: -4.65522665293738136E+00, D:  4.728E-02, 
           alpha:  1.210E-01}
+         Kohn-Sham residue             :  1.25E-01
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
        energydiff                      : -9.68970265713409162E-004
@@ -1107,6 +1135,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  3.67E-02, eBS: -4.60794841321172122E+00, D:  3.926E-02, 
           alpha:  1.331E-01}
+         Kohn-Sham residue             :  1.22E-01
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
        energydiff                      : -6.04733818800440304E-004
@@ -1134,6 +1163,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.73E-02, eBS: -4.56868944001413535E+00, D:  3.176E-02, 
           alpha:  1.464E-01}
+         Kohn-Sham residue             :  1.20E-01
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
        energydiff                      : -3.64358646244511419E-004
@@ -1161,6 +1191,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.00E-02, eBS: -4.53693092023138167E+00, D:  2.498E-02, 
           alpha:  1.611E-01}
+         Kohn-Sham residue             :  1.19E-01
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
        energydiff                      : -2.12303421228909883E-004
@@ -1245,6 +1276,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  9.42E-02, eBS: -4.53811225323467404E+00, D:  1.021E+00, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  8.69E-02
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
        energydiff                      :  2.29507022852750708E-002
@@ -1272,6 +1304,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  5.19E-02, eBS: -3.51706043388442957E+00, D: -1.574E-01, 
           alpha:  1.000E-01}
+         Kohn-Sham residue             :  7.90E-02
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
        energydiff                      : -2.91647322988808355E-004
@@ -1299,6 +1332,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  4.05E-02, eBS: -3.67447984441831244E+00, D: -4.383E-02, 
           alpha:  1.100E-01}
+         Kohn-Sham residue             :  7.68E-02
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
        energydiff                      : -6.22179415550760950E-004
@@ -1326,6 +1360,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  3.10E-02, eBS: -3.71830921486865229E+00, D: -3.726E-02, 
           alpha:  1.210E-01}
+         Kohn-Sham residue             :  7.52E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
        energydiff                      : -3.93045211612985668E-004
@@ -1353,6 +1388,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.32E-02, eBS: -3.75557024570417131E+00, D: -3.078E-02, 
           alpha:  1.331E-01}
+         Kohn-Sham residue             :  7.41E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
        energydiff                      : -2.38208494337754928E-004
@@ -1380,6 +1416,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.71E-02, eBS: -3.78634526119386372E+00, D: -2.464E-02, 
           alpha:  1.464E-01}
+         Kohn-Sham residue             :  7.32E-02
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
        energydiff                      : -1.39461782673322432E-004
@@ -1407,6 +1444,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.24E-02, eBS: -3.81098297841028932E+00, D: -1.908E-02, 
           alpha:  1.611E-01}
+         Kohn-Sham residue             :  7.26E-02
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
        energydiff                      : -7.97380990746887619E-005
@@ -1491,6 +1529,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.21E-02, eBS: -3.85531260130290576E+00, D: -2.317E-01, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  1.66E-02
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
        energydiff                      :  1.24790352072423616E-003
@@ -1518,6 +1557,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.14E-02, eBS: -4.08703153564247224E+00, D:  3.626E-02, 
           alpha:  1.000E-01}
+         Kohn-Sham residue             :  1.58E-02
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
        energydiff                      : -7.80214416096214336E-006
@@ -1545,6 +1585,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  8.68E-03, eBS: -4.05076726641086893E+00, D:  9.244E-03, 
           alpha:  1.100E-01}
+         Kohn-Sham residue             :  1.56E-02
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
        energydiff                      : -2.80921474313799990E-005
@@ -1572,6 +1613,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  6.46E-03, eBS: -4.04152336298169601E+00, D:  7.735E-03, 
           alpha:  1.210E-01}
+         Kohn-Sham residue             :  1.55E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
        energydiff                      : -1.68067747665645584E-005
@@ -1599,6 +1641,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  4.69E-03, eBS: -4.03378883224861262E+00, D:  6.285E-03, 
           alpha:  1.331E-01}
+         Kohn-Sham residue             :  1.55E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
        energydiff                      : -9.52437435941533295E-006
@@ -1626,6 +1669,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  3.32E-03, eBS: -4.02750418242632868E+00, D:  4.943E-03, 
           alpha:  1.464E-01}
+         Kohn-Sham residue             :  1.55E-02
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
        energydiff                      : -5.11652497436898557E-006
@@ -1653,6 +1697,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.29E-03, eBS: -4.02256125010248677E+00, D:  3.750E-03, 
           alpha:  1.611E-01}
+         Kohn-Sham residue             :  1.55E-02
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
        energydiff                      : -2.61628554198978236E-006
@@ -1737,6 +1782,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.57E-03, eBS: -4.01624198397478427E+00, D: -1.492E-02, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  8.66E-03
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
        energydiff                      :  1.82766289213986965E-006
@@ -1764,6 +1810,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.48E-03, eBS: -4.03115959355895725E+00, D:  4.026E-03, 
           alpha:  1.000E-01}
+         Kohn-Sham residue             :  8.65E-03
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
        energydiff                      : -3.17875521460564414E-007
@@ -1791,6 +1838,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.19E-03, eBS: -4.02713332644678257E+00, D:  1.092E-03, 
           alpha:  1.100E-01}
+         Kohn-Sham residue             :  8.65E-03
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
        energydiff                      : -5.44724226614334839E-007
@@ -1818,6 +1866,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  9.38E-04, eBS: -4.02604139530195937E+00, D:  9.344E-04, 
           alpha:  1.210E-01}
+         Kohn-Sham residue             :  8.65E-03
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
        energydiff                      : -3.69302906477741999E-007
@@ -1845,6 +1894,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  7.29E-04, eBS: -4.02510697073351498E+00, D:  7.799E-04, 
           alpha:  1.331E-01}
+         Kohn-Sham residue             :  8.65E-03
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
        energydiff                      : -2.42553063856121298E-007
@@ -1872,6 +1922,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  5.58E-04, eBS: -4.02432710342079503E+00, D:  6.335E-04, 
           alpha:  1.464E-01}
+         Kohn-Sham residue             :  8.65E-03
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
        energydiff                      : -1.54476072822262722E-007
@@ -1899,6 +1950,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  4.20E-04, eBS: -4.02369360454726710E+00, D:  4.999E-04, 
           alpha:  1.611E-01}
+         Kohn-Sham residue             :  8.65E-03
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
        energydiff                      : -9.55195922358598182E-008
@@ -1983,6 +2035,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.06E-03, eBS: -4.02283623891981801E+00, D: -8.736E-03, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  6.73E-03
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
        energydiff                      :  1.05698248731300737E-006
@@ -2010,6 +2063,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  6.07E-04, eBS: -4.03157208186743254E+00, D:  1.690E-03, 
           alpha:  1.000E-01}
+         Kohn-Sham residue             :  6.72E-03
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
        energydiff                      : -4.98939236592832458E-008
@@ -2037,6 +2091,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  4.88E-04, eBS: -4.02988231772153593E+00, D:  4.577E-04, 
           alpha:  1.100E-01}
+         Kohn-Sham residue             :  6.72E-03
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
        energydiff                      : -9.20572027496291412E-008
@@ -2064,6 +2119,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  3.87E-04, eBS: -4.02942466205452376E+00, D:  3.917E-04, 
           alpha:  1.210E-01}
+         Kohn-Sham residue             :  6.72E-03
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
        energydiff                      : -6.32984864523677970E-008
@@ -2091,6 +2147,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  3.05E-04, eBS: -4.02903295959258756E+00, D:  3.272E-04, 
           alpha:  1.331E-01}
+         Kohn-Sham residue             :  6.72E-03
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
        energydiff                      : -4.27246504841605201E-008
@@ -2118,6 +2175,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.38E-04, eBS: -4.02870580953105950E+00, D:  2.662E-04, 
           alpha:  1.464E-01}
+         Kohn-Sham residue             :  6.71E-03
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
        energydiff                      : -2.84871184419444035E-008
@@ -2145,6 +2203,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.85E-04, eBS: -4.02843961525112526E+00, D:  2.107E-04, 
           alpha:  1.611E-01}
+         Kohn-Sham residue             :  6.71E-03
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
        energydiff                      : -1.88847657511814759E-008
@@ -2229,6 +2288,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  3.61E-04, eBS: -4.02807249644938281E+00, D: -2.935E-03, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  6.15E-03
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
        energydiff                      :  8.09983546901094087E-008
@@ -2256,6 +2316,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.17E-04, eBS: -4.03100728870851821E+00, D:  5.610E-04, 
           alpha:  1.000E-01}
+         Kohn-Sham residue             :  6.15E-03
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
        energydiff                      : -7.95440868728292116E-009
@@ -2283,6 +2344,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.79E-04, eBS: -4.03044630913427770E+00, D:  1.540E-04, 
           alpha:  1.100E-01}
+         Kohn-Sham residue             :  6.15E-03
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
        energydiff                      : -1.25580363885546831E-008
@@ -2310,6 +2372,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.46E-04, eBS: -4.03029233265579645E+00, D:  1.326E-04, 
           alpha:  1.210E-01}
+         Kohn-Sham residue             :  6.15E-03
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
        energydiff                      : -9.21821197152894456E-009
@@ -2337,6 +2400,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.19E-04, eBS: -4.03015971351615843E+00, D:  1.117E-04, 
           alpha:  1.331E-01}
+         Kohn-Sham residue             :  6.15E-03
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
        energydiff                      : -6.72941879997779324E-009
@@ -2421,6 +2485,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.28E-04, eBS: -4.02995843854151214E+00, D: -7.966E-04, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  5.92E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
        energydiff                      : -2.56541454746184172E-010
@@ -2448,6 +2513,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  8.62E-05, eBS: -4.03075508044287290E+00, D:  1.769E-04, 
           alpha:  2.200E-01}
+         Kohn-Sham residue             :  5.92E-03
          Coefficients available        :  Yes
        alpha                           :  0.24200000000000005
        energydiff                      : -4.92368101845386263E-009
@@ -2475,6 +2541,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  6.09E-05, eBS: -4.03057819099332448E+00, D:  1.103E-04, 
           alpha:  2.420E-01}
+         Kohn-Sham residue             :  5.92E-03
          Coefficients available        :  Yes
        alpha                           :  0.26620000000000005
        energydiff                      : -2.83625567476519791E-009
@@ -2559,6 +2626,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  5.32E-05, eBS: -4.03040236873788604E+00, D: -3.168E-04, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  5.80E-03
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
        energydiff                      :  4.86416240619291784E-010
@@ -2643,6 +2711,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  3.10E-05, eBS: -4.03065760027963282E+00, D: -3.113E-05, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  5.74E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
        energydiff                      : -1.08812514554301742E-010
@@ -2727,6 +2796,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.14E-05, eBS: -4.03066716260198987E+00, D: -4.568E-05, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  5.71E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
        energydiff                      : -2.89183788027003175E-010
@@ -2811,6 +2881,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  1.31E-05, eBS: -4.03069694039520598E+00, D: -2.445E-07, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  5.69E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
        energydiff                      : -1.43700162880122662E-010
@@ -2895,6 +2966,7 @@
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  8.25E-06, eBS: -4.03069006885571479E+00, D: -7.986E-06, 
           alpha:  2.000E-01}
+         Kohn-Sham residue             :  5.68E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
        energydiff                      : -7.42232941775000654E-011
@@ -2982,6 +3054,7 @@
      method                            : diagonalization
      mode                              : sequential
      communication strategy kernel     : ALLREDUCE
+     Kohn-Sham residue                 :  5.67E-03
      Coefficients available            :  Yes
     #========================================================================= final results
    self consistency summary:
@@ -2995,7 +3068,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.840E-01,  1.870E-01 ]}
+ -  {Process:  0, Timing:  [  1.880E-01,  1.880E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -3024,8 +3097,8 @@
  -  {H: [-3.451224885995E-04,  9.166991086056E-05,  9.417068403398E-05]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  61.00
-   Elapsed time (s)                    :  61.60
+   CPU time (s)                        :  69.24
+   Elapsed time (s)                    :  69.85
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -3061,12 +3134,12 @@
  - density optimization not converged
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2013-11-13 17:01:20.580
+     2013-11-27 18:09:23.208
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  13259
-   Tot. No. of Deallocations           :  13259
+   Tot. No. of Allocations             :  14213
+   Tot. No. of Deallocations           :  14213
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  191

@@ -1795,6 +1795,7 @@ subroutine check_communication_potential(denspot,tmb)
   use module_types
   use module_interfaces
   use yaml_output
+  use dictionaries, only:f_err_throw
   implicit none
   type(DFT_wavefunction), intent(inout) :: tmb
   type(DFT_local_fields), intent(inout) :: denspot
@@ -1868,7 +1869,7 @@ subroutine check_communication_potential(denspot,tmb)
 
   end do loop_lr
 
-  sumdiff = sumdiff/numtot
+  if (numtot>0) sumdiff = sumdiff/numtot
 
   ! Reduce the results
   if (bigdft_mpi%nproc>1) then
@@ -1891,6 +1892,8 @@ subroutine check_communication_potential(denspot,tmb)
       call yaml_map('Tolerance for the following test',tol_calculation_max,fmt='(1es25.18)')
       if (sumdiff>tol_calculation_max) then
          call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
+	      call f_err_throw('The communication of the potential is not correct for this setup, check communication routines',&
+                 err_name='BIGDFT_MPI_ERROR')
       else
          call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
       end if

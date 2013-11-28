@@ -1141,12 +1141,12 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   !third row (zp)
   rmat(:,3)=(/ux*uz*onemc-uy*sint,uy*uz*onemc+ux*sint,cost+onemc*uz**2   /)
 
-  !write some output on the screen
-  !print matrix elements, to be moved at the moment of identification of the transformation
-  call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
-  call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
-  !call yaml_map('Translation vector',da,fmt='(1pg20.12)')
-  call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
+  !!write some output on the screen
+  !!print matrix elements, to be moved at the moment of identification of the transformation
+  !call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
+  !call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
+  !!call yaml_map('Translation vector',da,fmt='(1pg20.12)')
+  !call yaml_map('Rotation matrix elements',rmat,fmt='(1pg20.12)')
 
 
   !try different solutions, one of these should always work
@@ -1177,8 +1177,8 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   !irp(3)=1
   if (present(psirold)) irp(:)=abs(irp)
 
-  !print the suggested order
-  call yaml_map('Suggested order for the transformation',irp)
+  !!print the suggested order
+  !call yaml_map('Suggested order for the transformation',irp)
 
   if (.not. present(psirold)) then
      call field_rototranslation3D(nd+1,nrange,y_phi,da,frag_trans%rot_axis,&
