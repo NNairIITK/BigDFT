@@ -12,8 +12,7 @@ SUBDIRS =
 # This is required for testing.
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
-PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-SUBDIRS += yaml-0.1.4 PyYAML-3.10
+SUBDIRS += yaml-0.1.4
 endif
 
 # Low level libraries provided by BigDFT team.
@@ -49,6 +48,10 @@ SUBDIRS += \
 
 if BUILD_LIB_BIGDFT
 if BUILD_BINARIES
+if BUILD_LIBYAML
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
+SUBDIRS += PyYAML-3.10
+endif
 SUBDIRS += tests
 endif
 endif
