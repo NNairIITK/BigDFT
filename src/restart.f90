@@ -3071,7 +3071,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
 
           call timing(iproc,'Reformatting ','ON')
           if (psirold_ok) then
-             print*,'using psirold to reformat',iiorb
+             !print*,'using psirold to reformat',iiorb
              ! recalculate centres
              !conditions for periodicity in the three directions
              per(1)=(at%astruct%geocode /= 'F')
