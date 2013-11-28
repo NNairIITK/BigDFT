@@ -792,14 +792,6 @@ subroutine orbs_get_inwhichlocreg(orbs, locreg)
   
   locreg => orbs%inwhichlocreg
 END SUBROUTINE orbs_get_inwhichlocreg
-subroutine orbs_get_onwhichmpi(orbs, mpi)
-  use module_types
-  implicit none
-  type(orbitals_data) :: orbs
-  integer, dimension(:), pointer :: mpi
-  
-  mpi => orbs%onwhichmpi
-END SUBROUTINE orbs_get_onwhichmpi
 subroutine orbs_get_onwhichatom(orbs, atom)
   use module_types
   implicit none

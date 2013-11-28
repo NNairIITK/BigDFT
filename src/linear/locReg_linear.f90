@@ -160,11 +160,13 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
-  integer :: ii, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, iilr
+  integer :: ii, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, iilr, jproc, iiorb
   integer,dimension(3) :: outofzone
-  integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg
+  integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg, onwhichmpi, onwhichmpider
   real(8),dimension(:,:),allocatable :: locregCenter
   type(orbitals_data) :: orbsder
+
+  call f_routine(id='determine_locregSphere_parallel')
 
   allocate(rootarr(nlr), stat=istat)
   call memocc(istat, rootarr, 'rootarr', subname)
@@ -174,6 +176,29 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   !determine the limits of the different localisation regions
   rootarr=1000000000
   iilr=0
+
+  ! Ugly hack as onwhichmpi is done for iorb, not ilr, need to fix this
+  ! make a local copy to avoid changing intents, only used here and in calling routine
+  onwhichmpi=f_malloc(nlr,id='onwhichmpi')
+
+  iiorb=0
+  do jproc=0,nproc-1
+      do iorb=1,orbs%norb_par(jproc,0)
+          iiorb=iiorb+1
+          onWhichMPI(iiorb)=jproc
+      end do
+  end do
+
+  !onwhichmpi=0
+  !do iorb=1,orbs%norbp
+  !   ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+  !   onwhichmpi(ilr)=iproc
+  !   print*,'iproc,iorbp,isorb,iorb,inwhichlocreg,onwhichmpi',iproc,iorb,orbs%isorb,iorb+orbs%isorb,&
+  !        ilr,onwhichmpi(ilr)
+  !end do
+  !call mpiallred(onwhichmpi(1), nlr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !print*,'iproc,onwhichmpi2',iproc,onwhichmpi
+  !call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   call timing(iproc,'wfd_creation  ','ON')  
   do ilr=1,nlr
@@ -187,7 +212,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      zperiodic = .false. 
 
      !if(mod(ilr-1,nproc)==iproc) then
-     if(orbs%onwhichmpi(ilr)==iproc) then
+     if(onwhichmpi(ilr)==iproc) then
      !if (ilr>orbs%isorb .and. iilr<orbs%norbp) then
      !    iilr=iilr+1
      !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
@@ -196,7 +221,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               llr(ilr)%locrad, llr(ilr)%locregCenter, &
-               glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
+              glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
     
          ln1 = iex-isx
          ln2 = iey-isy
@@ -379,23 +404,49 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   ! This communication is uneffective. Instead of using bcast we should be using mpialltoallv.
   call timing(iproc,'comm_llr      ','ON')
   if (nproc > 1) then
+
+  !iiorb=0
+  !do jproc=0,nproc-1
+  !    do iorb=1,orbs%norb_par(jproc,0)
+  !        iiorb=iiorb+1
+  !        onWhichMPI(iiorb)=jproc
+  !    end do
+  !end do
+
+
      call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
      
      ! Communicate those parts of the locregs that all processes need.
      call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
 
-
      ! Now communicate those parts of the locreg that only some processes need (the keys).
      ! For this we first need to create orbsder that describes the derivatives.
      call create_orbsder()
 
+     !onwhichmpider=f_malloc(nlr,id='onwhichmpider')
+     !onwhichmpider=0
+     !do iorb=1,orbsder%norbp
+     !   ilr=orbsder%inwhichlocreg(iorb+orbsder%isorb)
+     !   onwhichmpider(ilr)=iproc
+     !end do
+     !call mpiallred(onwhichmpider(1), nlr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+     iiorb=0
+     onwhichmpider=f_malloc(orbsder%norb,id='onwhichmpider')
+     do jproc=0,nproc-1
+        do iorb=1,orbsder%norb_par(jproc,0)
+          iiorb=iiorb+1
+          onWhichMPIder(iiorb)=jproc
+        end do
+     end do
+
      ! Now communicate the keys
-     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr, onwhichmpi, onwhichmpider)
 
      call deallocate_orbitals_data(orbsder, subname)
+     call f_free(onwhichmpider)
   end if
   call timing(iproc,'comm_llr      ','OF')
-
 
   !create the bound arrays for the locregs we need on the MPI tasks
   call timing(iproc,'calc_bounds   ','ON') 
@@ -406,15 +457,15 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
          end if
   end do
+
   call timing(iproc,'calc_bounds   ','OF') 
 
+  iall = -product(shape(rootarr))*kind(rootarr)
+  deallocate(rootarr,stat=istat)
+  call memocc(istat,iall,'rootarr',subname)
 
-
-iall = -product(shape(rootarr))*kind(rootarr)
-deallocate(rootarr,stat=istat)
-call memocc(istat,iall,'rootarr',subname)
-
-
+  call f_free(onwhichmpi)
+  call f_release_routine()
 
 contains 
   subroutine create_orbsder()

@@ -561,7 +561,7 @@ module module_types
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
+     integer, dimension(:), pointer :: inwhichlocreg,onwhichatom
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -1431,9 +1431,6 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
     deallocate(orbs%isorb_par,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%isorb_par',subname)
-    i_all=-product(shape(orbs%onWhichMPI))*kind(orbs%onWhichMPI)
-    deallocate(orbs%onWhichMPI,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%onWhichMPI',subname)
     if (associated(orbs%ispot)) then
        i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
        deallocate(orbs%ispot,stat=i_stat)
