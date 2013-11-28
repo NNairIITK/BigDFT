@@ -942,7 +942,7 @@ module module_interfaces
          real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
          real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
-         real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
+         real(kind=8), dimension(nlpspd%nprojel), intent(inout) :: proj
          real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
          real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
          type(gaussian_basis),optional,intent(in),dimension(at%astruct%ntypes)::proj_G
