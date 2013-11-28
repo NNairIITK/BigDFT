@@ -840,26 +840,28 @@ AC_ARG_WITH([yaml],
 AC_ARG_WITH([yaml-path],
             AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
             [ac_path_yaml=$withval])
-AC_ARG_ENABLE(internal-libyaml, AS_HELP_STRING([--disable-internal-libyaml], [Do not build and link with internal libyaml library (default = yes).]), ac_internal_libyaml=$enableval, ac_internal_libyaml="yes")
+AC_ARG_ENABLE(internal-libyaml, AS_HELP_STRING([--disable-internal-libyaml], [Do not build and link with internal libyaml library (default = yes).]), ac_internal_libyaml=$enableval, ac_internal_libyaml="auto")
 ac_build_libyaml=$ac_internal_libyaml
 if test x"$ac_use_libyaml" != x"no" ; then
    if test x"$ac_path_yaml" == x"" ; then
       ac_path_yaml="/usr"
    fi
-   LDFLAGS_SVG="$LDFLAGS"
-   AC_LANG_PUSH(C)
-   LDFLAGS="-L$ac_path_yaml/lib"
-   AC_CHECK_LIB([yaml], [yaml_parser_parse],
-                [ac_use_libyaml=yes], [ac_use_libyaml=warn])
-   if test x"$ac_use_libyaml" = x"yes"; then
-      if test x"$ac_path_yaml" != x"/usr" ; then
-         LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
-         LIB_YAML_LIBS="-L$ac_path_yaml/lib "
+   if test x"$ac_internal_libyaml" != x"yes" ; then
+      LDFLAGS_SVG="$LDFLAGS"
+      AC_LANG_PUSH(C)
+      LDFLAGS="-L$ac_path_yaml/lib"
+      AC_CHECK_LIB([yaml], [yaml_parser_parse],
+                   [ac_use_libyaml=yes], [ac_use_libyaml=warn])
+      if test x"$ac_use_libyaml" = x"yes"; then
+         if test x"$ac_path_yaml" != x"/usr" ; then
+            LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
+            LIB_YAML_LIBS="-L$ac_path_yaml/lib "
+         fi
+         LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
       fi
-      LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
+      AC_LANG_POP(C)
+      LDFLAGS="$LDFLAGS_SVG"
    fi
-   AC_LANG_POP(C)
-   LDFLAGS="$LDFLAGS_SVG"
    if test x"$ac_use_libyaml" != x"yes" ; then
       if test x"$ac_internal_libyaml" = x"yes" ; then
          AC_MSG_WARN([libyaml is not available, building internal one.])
