@@ -876,49 +876,59 @@ AC_SUBST(LIB_YAML_CFLAGS)
 AC_SUBST(LIB_YAML_LIBS)
 
 dnl Test the libXC library
-ac_internal_libxc="yes"
-ac_use_libxc="no"
-ac_build_libxc="no"
+ac_use_libxc="yes"
+ac_build_libxc="auto"
 AC_ARG_WITH(libxc, AS_HELP_STRING([--without-libxc], [Do not link with libXC library (default = yes).]), ac_use_libxc=$withval, ac_use_libxc=$ac_build_lib_BigDFT)
-AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_internal_libxc=$enableval, ac_internal_libxc="yes")
-AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
-            ac_libxc_dir=$withval, ac_libxc_dir=)
+AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_build_libxc=$enableval, ac_build_libxc="auto")
+AC_ARG_WITH(libxc-libs, AS_HELP_STRING([--with-libxc-libs], [Give the compiler include flags for an external libXC library (default = None).]), ac_libxc_libdir=$withval, ac_libxc_libdir=)
+AC_ARG_WITH(libxc-incs, AS_HELP_STRING([--with-libxc-incs], [Give the linker flags for an external libXC modules (default = None).]), ac_libxc_incdir=$withval, ac_libxc_incdir=)
 if test x"$ac_use_libxc" = x"yes" ; then
-  ac_build_libxc=$ac_internal_libxc
-  if test "$ac_internal_libxc" = "yes" ; then
-    ac_build_libxc="yes"
-    ac_use_libxc="yes"
-    ac_libxc_dir="$top_builddir"/libxc-2.0.x/src
-    AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-2.0.x/src)
-    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-2.0.x/src)
-    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-2.0.x/src/.libs"
-    LIBXC_LIBS="-lxc"
-  else
-    if test -n "$ac_libxc_dir" ; then
-      LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
-      
-      dnl Test the given implementation of libXC.
+  if test x"$ac_build_libxc" != x"yes" ; then
+    dnl Run the detection.
+    if test -n "$ac_libxc_libdir" -a -n "$ac_libxc_incdir" ; then
+      dnl Test the modules for compilation
+      AC_LINK_IFELSE([[program main
+  use xc_f90_types_m
+  use libxc_funcs_m
+  use xc_f90_lib_m
+
+  write(*,*) XC_FAMILY_GGA
+end program]], withlibxcmod=yes, withlibxcmod=no)
+        
+      dnl Test the library of libXC.
+      LDFLAGS="$LDFLAGS $ac_libxc_libdir"
       ac_libxc_libname="xc"
-      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
       if test x"$withlibxc" = x"no" ; then
         ac_libxc_libname="dft_xc"
-        AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+        AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
       fi
-      AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$ax_fc_mod_ext, funcs="yes", funcs="no")
-      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$ax_fc_mod_ext, lib="yes", lib="no")
-      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$ax_fc_mod_ext, types="yes", types="no")
-      if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
-        ac_use_libxc="yes"
-        AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
-        AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+  
+      if test "$ac_use_libxc" = "yes" -a "$withlibxcmod" = "yes" ; then
+        AC_SUBST(LIBXC_INCLUDE, $ac_libxc_incdir)
         LIBXC_LIBS="-l"$ac_libxc_libname
+        ac_build_libxc="no"
+      else
+        AC_MSG_WARN([No libXC build the internal one.])
+        ac_build_libxc="yes"
       fi
     else
       LIBXC_CFLAGS="-I/usr/include"
       PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
       AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
+      ac_build_libxc="no"
     fi
   fi
+
+  if test x"$ac_build_libxc" = x"yes" ; then
+    ac_use_libxc="yes"
+    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-2.0.x/src)
+    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-2.0.x/src/.libs"
+    LIBXC_LIBS="-lxc"
+  fi
+else
+  ac_use_libxc="no"
+  ac_build_libxc="no"
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
 AM_CONDITIONAL(USE_LIBXC, test x"$ac_use_libxc" = x"yes")
