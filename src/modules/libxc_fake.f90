@@ -24,123 +24,220 @@ module xc_f90_lib_m
 
   implicit none
 
-contains
+  interface
+     integer function xc_f90_info_flags(xc_info)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: xc_info
+     end function xc_f90_info_flags
 
-  integer function xc_f90_info_flags(xc_info)
-    type(xc_f90_pointer_t), intent(in) :: xc_info
+     integer function xc_f90_info_kind(xc_info)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: xc_info
+     end function xc_f90_info_kind
 
-    xc_f90_info_flags = 0
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end function xc_f90_info_flags
+     subroutine xc_f90_info_name(xc_info, name)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: xc_info
+       character(len = *), intent(out) :: name
+     end subroutine xc_f90_info_name
 
-  integer function xc_f90_info_kind(xc_info)
-    type(xc_f90_pointer_t), intent(in) :: xc_info
+     subroutine xc_f90_info_refs(xc_info, ii, str, name)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: xc_info, str
+       integer, intent(inout) :: ii
+       character(len = *), intent(out) :: name
+     end subroutine xc_f90_info_refs
 
-    xc_f90_info_kind = 0
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end function xc_f90_info_kind
+     integer function xc_f90_family_from_id(xc_id)
+       integer, intent(in) :: xc_id
+     end function xc_f90_family_from_id
 
-  subroutine xc_f90_info_name(xc_info, name)
-    type(xc_f90_pointer_t), intent(in) :: xc_info
-    character(len = *), intent(out) :: name
+     subroutine xc_f90_func_init(conf, info, ixc, nspden)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(out) :: conf, info
+       integer, intent(in) :: ixc, nspden
+     end subroutine xc_f90_func_init
 
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_info_name
+     subroutine xc_f90_func_end(conf)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(inout) :: conf
+     end subroutine xc_f90_func_end
 
-  subroutine xc_f90_info_refs(xc_info, ii, str, name)
-    type(xc_f90_pointer_t), intent(in) :: xc_info, str
-    integer, intent(inout) :: ii
-    character(len = *), intent(out) :: name
+     subroutine xc_f90_lda_vxc(conf,npts,rho,vxc)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: conf
+       integer, intent(in) :: npts
+       double precision, intent(in) :: rho
+       double precision, intent(out) :: vxc
+     end subroutine xc_f90_lda_vxc
 
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_info_refs
+     subroutine xc_f90_lda_fxc(conf,npts,rho,fxc)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: conf
+       integer, intent(in) :: npts
+       double precision, intent(in) :: rho
+       double precision, intent(out) :: fxc
+     end subroutine xc_f90_lda_fxc
 
-  integer function xc_f90_family_from_id(xc_id)
-    integer, intent(in) :: xc_id
+     subroutine xc_f90_lda_exc_vxc(conf,npts,rho,exc,vxc)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: conf
+       integer, intent(in) :: npts
+       double precision, intent(in) :: rho
+       double precision, intent(out) :: exc,vxc
+     end subroutine xc_f90_lda_exc_vxc
 
-    xc_f90_family_from_id = 0
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end function xc_f90_family_from_id
+     subroutine xc_f90_gga_vxc(conf,npts,rho,sigma,vxc,vsigma)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: conf
+       integer, intent(in) :: npts
+       double precision, intent(in) :: rho, sigma
+       double precision, intent(out) :: vxc, vsigma
+     end subroutine xc_f90_gga_vxc
 
-  subroutine xc_f90_func_init(conf, info, ixc, nspden)
-    type(xc_f90_pointer_t), intent(out) :: conf, info
-    integer, intent(in) :: ixc, nspden
+     subroutine xc_f90_gga_fxc(conf,npts,rho,sigma,fxc,fxc2,fxc3)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: conf
+       integer, intent(in) :: npts
+       double precision, intent(in) :: rho,sigma
+       double precision, intent(out) :: fxc,fxc2,fxc3
+     end subroutine xc_f90_gga_fxc
 
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_func_init
-
-  subroutine xc_f90_func_end(conf)
-    type(xc_f90_pointer_t), intent(inout) :: conf
-
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_func_end
-
-  subroutine xc_f90_lda_vxc(conf,npts,rho,vxc)
-    type(xc_f90_pointer_t), intent(in) :: conf
-    integer, intent(in) :: npts
-    double precision, intent(in) :: rho
-    double precision, intent(out) :: vxc
-    
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_lda_vxc
-
-  subroutine xc_f90_lda_fxc(conf,npts,rho,fxc)
-    type(xc_f90_pointer_t), intent(in) :: conf
-    integer, intent(in) :: npts
-    double precision, intent(in) :: rho
-    double precision, intent(out) :: fxc
-    
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_lda_fxc
-
-  subroutine xc_f90_lda_exc_vxc(conf,npts,rho,exc,vxc)
-    type(xc_f90_pointer_t), intent(in) :: conf
-    integer, intent(in) :: npts
-    double precision, intent(in) :: rho
-    double precision, intent(out) :: exc,vxc
-    
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_lda_exc_vxc
-
-
-  subroutine xc_f90_gga_vxc(conf,npts,rho,sigma,vxc,vsigma)
-    type(xc_f90_pointer_t), intent(in) :: conf
-    integer, intent(in) :: npts
-    double precision, intent(in) :: rho, sigma
-    double precision, intent(out) :: vxc, vsigma
-    
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_gga_vxc
-
-  subroutine xc_f90_gga_fxc(conf,npts,rho,sigma,fxc,fxc2,fxc3)
-    type(xc_f90_pointer_t), intent(in) :: conf
-    integer, intent(in) :: npts
-    double precision, intent(in) :: rho,sigma
-    double precision, intent(out) :: fxc,fxc2,fxc3
-    
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_gga_fxc
-
-  subroutine xc_f90_gga_exc_vxc(conf,npts,rho,sigma,exc,vxc,vsigma)
-    type(xc_f90_pointer_t), intent(in) :: conf
-    integer, intent(in) :: npts
-    double precision, intent(in) :: rho,sigma
-    double precision, intent(out) :: exc,vxc,vsigma
-    
-    write(0, *) "No LibXC support at compile time, abort."
-    stop
-  end subroutine xc_f90_gga_exc_vxc
+     subroutine xc_f90_gga_exc_vxc(conf,npts,rho,sigma,exc,vxc,vsigma)
+       use xc_f90_types_m
+       type(xc_f90_pointer_t), intent(in) :: conf
+       integer, intent(in) :: npts
+       double precision, intent(in) :: rho,sigma
+       double precision, intent(out) :: exc,vxc,vsigma
+     end subroutine xc_f90_gga_exc_vxc
+  end interface
 
 end module xc_f90_lib_m
+
+integer function xc_f90_info_flags(xc_info)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: xc_info
+
+  xc_f90_info_flags = 0
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end function xc_f90_info_flags
+
+integer function xc_f90_info_kind(xc_info)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: xc_info
+
+  xc_f90_info_kind = 0
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end function xc_f90_info_kind
+
+subroutine xc_f90_info_name(xc_info, name)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: xc_info
+  character(len = *), intent(out) :: name
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_info_name
+
+subroutine xc_f90_info_refs(xc_info, ii, str, name)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: xc_info, str
+  integer, intent(inout) :: ii
+  character(len = *), intent(out) :: name
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_info_refs
+
+integer function xc_f90_family_from_id(xc_id)
+  integer, intent(in) :: xc_id
+
+  xc_f90_family_from_id = 0
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end function xc_f90_family_from_id
+
+subroutine xc_f90_func_init(conf, info, ixc, nspden)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(out) :: conf, info
+  integer, intent(in) :: ixc, nspden
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_func_init
+
+subroutine xc_f90_func_end(conf)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(inout) :: conf
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_func_end
+
+subroutine xc_f90_lda_vxc(conf,npts,rho,vxc)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: conf
+  integer, intent(in) :: npts
+  double precision, intent(in) :: rho
+  double precision, intent(out) :: vxc
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_lda_vxc
+
+subroutine xc_f90_lda_fxc(conf,npts,rho,fxc)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: conf
+  integer, intent(in) :: npts
+  double precision, intent(in) :: rho
+  double precision, intent(out) :: fxc
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_lda_fxc
+
+subroutine xc_f90_lda_exc_vxc(conf,npts,rho,exc,vxc)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: conf
+  integer, intent(in) :: npts
+  double precision, intent(in) :: rho
+  double precision, intent(out) :: exc,vxc
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_lda_exc_vxc
+
+subroutine xc_f90_gga_vxc(conf,npts,rho,sigma,vxc,vsigma)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: conf
+  integer, intent(in) :: npts
+  double precision, intent(in) :: rho, sigma
+  double precision, intent(out) :: vxc, vsigma
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_gga_vxc
+
+subroutine xc_f90_gga_fxc(conf,npts,rho,sigma,fxc,fxc2,fxc3)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: conf
+  integer, intent(in) :: npts
+  double precision, intent(in) :: rho,sigma
+  double precision, intent(out) :: fxc,fxc2,fxc3
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_gga_fxc
+
+subroutine xc_f90_gga_exc_vxc(conf,npts,rho,sigma,exc,vxc,vsigma)
+  use xc_f90_types_m
+  type(xc_f90_pointer_t), intent(in) :: conf
+  integer, intent(in) :: npts
+  double precision, intent(in) :: rho,sigma
+  double precision, intent(out) :: exc,vxc,vsigma
+
+  write(0, *) "No LibXC support at compile time, abort."
+  stop
+end subroutine xc_f90_gga_exc_vxc
