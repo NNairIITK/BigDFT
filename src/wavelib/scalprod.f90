@@ -3335,12 +3335,17 @@ subroutine wpdot(  &
   keyag_c_lin = keyag_c(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
   keyag_f_lin = keyag_f(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
 
-  ! NOTE SM:
-  ! The OpenMP parallelization has been modified by using reduction clauses.
-  ! This avoids a bug seen with Intel13, however it is not sure whether this is
-  ! really the best solution.
 
   scpr=0.0_dp
+
+!$omp parallel default (none) private(scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7)&
+!$omp shared (maseg_c,keyav_c,keyag_c,keyag_c_lin,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
+!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f)&
+!$omp shared (apsi_f,scpr) &
+!!$omp parallel default(shared) &
+!$omp private(i,jaj,iaoff,length,ja1,ja0,jb1,jb0,iboff) &
+!$omp private(jbj,ibseg,iaseg0)
+
   scpr0=0.0_dp
   scpr1=0.0_dp
   scpr2=0.0_dp
@@ -3350,22 +3355,13 @@ subroutine wpdot(  &
   scpr6=0.0_dp
   scpr7=0.0_dp
 
-!$omp parallel default (none) shared(scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7)&
-!$omp shared (maseg_c,keyav_c,keyag_c,keyag_c_lin,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
-!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f)&
-!$omp shared (apsi_f,scpr) &
-!!$omp parallel default(shared) &
-!$omp private(i,jaj,iaoff,length,ja1,ja0,jb1,jb0,iboff) &
-!$omp private(jbj,ibseg,iaseg0)
-
-
 
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
   iaseg0=1 
 
 !coarse part. Loop on the projectors segments
-!$omp do reduction(+:scpr0)
+!$omp do schedule(static)
    do ibseg=1,mbseg_c
      jbj=keybv_c(ibseg)
 !     jb0=keybg_c(1,ibseg) !starting point of projector segment
@@ -3378,7 +3374,8 @@ subroutine wpdot(  &
      !warning: hunt is assuming that the variable is always found
      !if it is not, iaseg0 is put to maseg + 1 so that the loop is disabled
 !     call hunt1(.true.,keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
-     call hunt1(.true.,keyag_c_lin,maseg_c,jb0,iaseg0)
+!     call hunt1(.true.,keyag_c_lin,maseg_c,jb0,iaseg0)
+     call hunt_inline(keyag_c_lin,maseg_c,jb0,iaseg0)
      if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
         iaseg0=1
         cycle     
@@ -3423,7 +3420,7 @@ subroutine wpdot(  &
 
 iaseg0=1
 
-!$omp do reduction(+:scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7)
+!$omp do schedule(static)
    do ibseg=1,mbseg_f
      jbj=keybv_f(ibseg)
      !jb0=keybg_f(1,ibseg)
@@ -3432,7 +3429,7 @@ iaseg0=1
      iboff = max(jb0-keybg_f(1,ibseg),0)
 !    print *,'huntenter',ibseg,jb0,jb1
      !call hunt1(.true.,keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
-     call hunt1(.true.,keyag_f_lin,maseg_f,jb0,iaseg0)
+     call hunt_inline(keyag_f_lin,maseg_f,jb0,iaseg0)
      if (iaseg0==0) then  !segment not belonging to the wavefunctions, go further
         iaseg0=1
         cycle     
@@ -3469,16 +3466,99 @@ iaseg0=1
    enddo
 !$omp end do !!!implicit barrier 
 
-!$omp end parallel
    scpr0=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
 
+!$omp critical 
    scpr=scpr+scpr0
+!$omp end critical
 
+!$omp end parallel
 
 !!!    call system_clock(ncount2,ncount_rate,ncount_max)
 !!!    tel=dble(ncount2-ncount0)/dble(ncount_rate)
 !!!    write(97,*) 'wpdot:',tel
 !!!    close(97)
+
+ contains
+
+   !> Search the segments which intersect each other
+   !! @todo Modify this routine to have also the end as result.
+   pure subroutine hunt_inline(xx,n,x,jlo)
+     implicit none
+     integer, intent(in) :: x                !< Starting point in grid coordinates
+     integer, intent(in) :: n                !< Number of segments
+     integer, dimension(n), intent(in) :: xx !< Array of segment starting points
+     integer, intent(inout) :: jlo           !< Input: starting segment, 
+     !! Output: closest segment corresponding to x
+     !! @warning if jlo is outside range, routine is disabled
+     !local variables
+     integer :: inc,jhi,jm
+
+     !check array extremes
+     if (jlo > n) return
+
+     !start searching
+     if(x == xx(1))then
+        jlo=1
+        return
+     end if
+     if(x == xx(n)) then 
+        jlo=n
+        return
+     end if
+
+     !increment of the segment
+     inc=1
+     !target is above starting point
+     if (x >= xx(jlo)) then
+        guess_end: do
+           jhi=jlo+inc
+           !number of segments is over
+           if(jhi > n)then
+              jhi=n+1
+              exit guess_end
+              !increase until the target is below
+           else if(x >= xx(jhi))then
+              jlo=jhi
+              inc=inc+inc
+           else
+              exit guess_end
+           endif
+        end do guess_end
+     else
+        !target is below, invert start and end
+        jhi=jlo
+        guess_start: do
+           jlo=jhi-inc
+           !segment are over (from below)
+           if (jlo < 1) then
+              jlo=0
+              exit guess_start
+              !decrease until the target is above
+           else if(x < xx(jlo))then
+              jhi=jlo
+              inc=inc+inc
+           else
+              exit guess_start
+           endif
+        end do guess_start
+     endif
+
+     binary_search: do
+        !the end and the beginning are contiguous: segment number has been found
+        if (jhi-jlo == 1) exit binary_search
+        !mean point (integer division, rounded towards jhi)
+        jm=(jhi+jlo)/2
+        !restrict search from the bottom of from the top
+        if (x >= xx(jm)) then
+           jlo=jm
+        else
+           jhi=jm
+        endif
+     end do binary_search
+
+   END SUBROUTINE hunt_inline
+
 
 END SUBROUTINE wpdot
 

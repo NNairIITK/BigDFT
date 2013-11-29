@@ -902,7 +902,7 @@ call f_routine(id=subname)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
-              print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(proj)
+              !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(proj)
  
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
@@ -926,8 +926,8 @@ call f_routine(id=subname)
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
-                                write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',&
-                                     idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
+                                !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',&
+                                !     idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
                              end do
                           end if
                        end do
