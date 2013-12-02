@@ -33,7 +33,7 @@ $(EXTRA_DIST):
 posinp.yaml: wrappers.out.yaml
 
 wrappers.out.yaml: check_wrappers
-	-$(run_parallel) ./check_wrappers > $@
+	-$(run_parallel) ./check_wrappers | grep -v "Unable to read mpd.hosts" > $@
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs

@@ -12,9 +12,9 @@ program MP_gaussian
   use gaussians
   use yaml_output
   implicit none
-  integer, parameter :: nmoms=16,nsteps=1
-  integer :: npts,j,imoms,pow
-  real(gp) :: hgrid,pgauss,x0,reference
+  integer, parameter :: nmoms=16,nstep=100,nsigma=300
+  integer :: npts,j,imoms,pow,istep,isigma
+  real(gp) :: hgrid,pgauss,x0,reference,max1
   real(gp), dimension(0:nmoms,2) :: moments
   real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
   real(gp), dimension(:), allocatable :: fj_phi,fj_coll,fj_phi2
@@ -25,30 +25,36 @@ program MP_gaussian
   !number of points of the array
   npts=1000
   hgrid=1.0_gp
-  pgauss=8.0e-3_dp*1.25_dp**(6*(6-1))
   x0=0.1_gp
   pow=1
 
-  call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
-  !plot function
-  do j=-npts,npts
-     if (pow /= 0) then
-        write(16,*)j,exp(-pgauss*(j*hgrid-x0)**2)*((j*hgrid-x0)**pow)
-     else
-        write(16,*)j,exp(-pgauss*(j*hgrid-x0)**2)
-     end if
-  end do
-
-  avgmaxmin=0.d0
-  avgmaxmin(3,:,:)=1.d100
-
+  !pgauss=0.5_gp/((0.1_gp*hgrid)**2)!8.0e-3_dp*1.25_dp**(6*(8-1))
   !array where we have to write the value of the discretization
   fj_phi=f_malloc(-npts .to. npts,id='fj_phi')
   fj_coll=f_malloc(-npts .to. npts,id='fj_coll')
-
   call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
-  call evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
+  do isigma=1,nsigma
+     pgauss=0.5_gp/((0.01_gp+0.01_gp*(isigma-1)*hgrid)**2)
+     call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
+     !plot function
+     do j=-npts,npts
+        if (pow /= 0) then
+           write(16,*)j,exp(-pgauss*(j*hgrid-x0)**2)*((j*hgrid-x0)**pow)
+        else
+           write(16,*)j,exp(-pgauss*(j*hgrid-x0)**2)
+        end if
+     end do
+
+     avgmaxmin=0.d0
+     avgmaxmin(3,:,:)=1.d100
+     max1=0.0_gp
+     do istep=1,nstep
+        x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+        !call yaml_map('x0',x0,advance='no')
+        !call yaml_comment('Step No.'//trim(yaml_toa(istep)),tabbing=70)
+        call evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
+        max1=max(max1,maxval(abs(fj_coll-fj_phi)))
 !!$  !print moments value
 !!$  do imoms=0,nmoms
 !!$     reference=gauint0(pgauss,imoms+pow)
@@ -62,17 +68,28 @@ program MP_gaussian
 !!$     call yaml_comment('Ref: '//trim(yaml_toa(reference,fmt='(1pe22.14)')))
 !!$  end do
 
-  !calculate average, maximum and minimum
-  do j=1,2
-     do imoms=0,nmoms
-        avgmaxmin(1,j,imoms)=avgmaxmin(1,j,imoms)+moments(imoms,j)/real(nsteps,gp)
-        avgmaxmin(2,j,imoms)=max(moments(imoms,j),avgmaxmin(2,j,imoms))
-        avgmaxmin(3,j,imoms)=min(moments(imoms,j),avgmaxmin(3,j,imoms))
+        !calculate average, maximum and minimum
+        do j=1,2
+           do imoms=0,nmoms
+              reference=gauint0(pgauss,imoms+pow)
+              if (reference /=0.0_gp) then
+                 moments(imoms,j)=abs((moments(imoms,j)-reference)/reference)
+              else
+                 moments(imoms,j)=abs(moments(imoms,j))
+              end if
+              avgmaxmin(1,j,imoms)=avgmaxmin(1,j,imoms)+moments(imoms,j)/real(nstep,gp)
+              avgmaxmin(2,j,imoms)=max(moments(imoms,j),avgmaxmin(2,j,imoms))
+              avgmaxmin(3,j,imoms)=min(moments(imoms,j),avgmaxmin(3,j,imoms))
+           end do
+        end do
      end do
-  end do
-  
 
-  call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)))
+     write(17,'(104(1pe14.5))')sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin
+     print *,'maxdiff',sqrt(0.5_gp/pgauss)/hgrid,max1
+  end do
+  call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
+
+
 
   call finalize_real_space_conversion('Main program')
   

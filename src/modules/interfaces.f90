@@ -942,7 +942,7 @@ module module_interfaces
          real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
          real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
-         real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
+         real(kind=8), dimension(nlpspd%nprojel), intent(inout) :: proj
          real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
          real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
          type(gaussian_basis),optional,intent(in),dimension(at%astruct%ntypes)::proj_G
@@ -5102,6 +5102,29 @@ module module_interfaces
           real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(in) :: hpsit_f
           real(kind=8),intent(out) :: KSres
         end subroutine get_KS_residue
+
+        subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
+             rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum,&
+             proj_G,paw)
+          use module_base
+          use module_types
+          use gaussians, only:gaussian_basis
+          implicit none
+          integer, intent(in) :: iproc
+          real(gp), intent(in) :: hx,hy,hz
+          type(atoms_data), intent(in) :: at
+          type(orbitals_data), intent(in) :: orbs
+          type(wavefunctions_descriptors), intent(in) :: wfd
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          type(locreg_descriptors),intent(in) :: lr
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+          real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+          real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
+          real(gp), intent(out) :: eproj_sum
+          real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+          type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
+          type(paw_objects),optional,intent(inout)::paw
+        end subroutine applyprojectorsonthefly
   
   end interface
 END MODULE module_interfaces

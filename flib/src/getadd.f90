@@ -75,6 +75,18 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine getr1
 
+     subroutine getr2(array,iadd)
+       implicit none
+       real, dimension(:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getr2
+
+     subroutine getr3(array,iadd)
+       implicit none
+       real, dimension(:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getr3
+
      subroutine getdp1(array,iadd)
        implicit none
        double precision, dimension(:), allocatable, intent(in) :: array
@@ -167,14 +179,14 @@ interface pad_array
   module procedure pad_i1,pad_i2,pad_i3,pad_i4
   module procedure pad_c1
   module procedure pad_l1,pad_l2,pad_l3
-  module procedure pad_r1
+  module procedure pad_r1,pad_r2,pad_r3
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6
 end interface
 
 public :: pad_array,geti1,geti2,geti3,geti4
 public :: getc1
 public :: getl1,getl2,getl3
-public :: getr1
+public :: getr1,getr2,getr3
 public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6!,getlongaddress
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,geti1ptr,geti2ptr
 public :: getc1ptr
@@ -282,6 +294,28 @@ contains
 
   end subroutine pad_r1
 
+  subroutine pad_r2(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(2), intent(in) :: shp
+    real, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
+    
+    call pad_simple(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
+
+  end subroutine pad_r2
+
+  subroutine pad_r3(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(3), intent(in) :: shp
+    real, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
+
+    call pad_simple(array,init_to_zero,product(shp),&
+         product(shp(1:2))*(shp(3)+ndebug))
+
+  end subroutine pad_r3
 
   subroutine pad_dp1(array,init_to_zero,shp,ndebug)
     implicit none
