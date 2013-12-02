@@ -398,7 +398,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
 
      ! Now communicate those parts of the locreg that only some processes need (the keys).
      ! For this we first need to create orbsder that describes the derivatives.
-     call create_orbsder()
+     !call create_orbsder()
 
      !iiorb=0
      !onwhichmpider=f_malloc(orbsder%norb,id='onwhichmpider')
