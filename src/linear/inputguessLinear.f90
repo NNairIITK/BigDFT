@@ -309,10 +309,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 !!  deallocate(orbs_gauss%isorb_par,stat=istat)
 !!  call memocc(istat,iall,'orbs_gauss%isorb_par',subname)
 !!
-!!  iall=-product(shape(orbs_gauss%onwhichmpi))*kind(orbs_gauss%onwhichmpi)
-!!  deallocate(orbs_gauss%onwhichmpi,stat=istat)
-!!  call memocc(istat,iall,'orbs_gauss%onwhichmpi',subname)
-!!
 !!  iall=-product(shape(G%ndoc))*kind(G%ndoc)
 !!  deallocate(G%ndoc,stat=istat)
 !!  call memocc(istat,iall,'G%ndoc',subname)
@@ -346,7 +342,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 !!  !!call f_free(tmb%orbs%iokpt)
 !!  !!call f_free(tmb%orbs%ispot)
 !!  !!call f_free(tmb%orbs%isorb_par)
-!!  !!call f_free(tmb%orbs%onwhichmpi)
 !!  !!call f_free(G%ndoc)
 !!  !!call f_free(G%nshell)
 !!  !!call f_free(G%xp)

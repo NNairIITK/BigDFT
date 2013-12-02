@@ -170,7 +170,7 @@ subroutine communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
 end subroutine communicate_locreg_descriptors_basics
 
 
-subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr, onwhichmpi, onwhichmpider)
    use module_base
    use module_types
    implicit none
@@ -181,6 +181,9 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
    type(orbitals_data),intent(in) :: orbs, orbsder
    integer,dimension(orbs%norb),intent(in) :: rootarr
+   !integer,dimension(nlr),intent(in) :: onwhichmpi, onwhichmpider
+   integer,dimension(orbs%norb),intent(in) :: onwhichmpi
+   integer,dimension(orbsder%norb),intent(in) :: onwhichmpider
 
    ! Local variables
    integer:: ierr, istat, iall, iorb, jorb, ilr, jlr, itask, jtask, root, isend, irecv, jtaskder
@@ -202,12 +205,12 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    !!irecv=0
    !!do iorb=1,orbs%norb
    !!    ilr=orbs%inwhichlocreg(iorb)
-   !!    itask=orbs%onwhichmpi(iorb)
+   !!    itask=onwhichmpi(iorb)
    !!    root=rootarr(ilr)
    !!    covered=.false.
    !!    do jorb=1,orbs%norb
    !!        jlr=orbs%inwhichlocreg(jorb)
-   !!        jtask=orbs%onwhichmpi(jorb)
+   !!        jtask=onwhichmpi(jorb)
    !!        if (covered(jtask)) cycle
    !!        !unambiguous mpi tags
    !!        itags(1)=jtask+nproc*itask+(nproc**2)
@@ -251,7 +254,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
 
    !!    do jorb=1,orbsder%norb
    !!        jlr=orbsder%inwhichlocreg(jorb)
-   !!        jtaskder=orbsder%onwhichmpi(jorb)
+   !!        jtaskder=onwhichmpider(jorb)
    !!        if (covered(jtaskder)) cycle
    !!        !unambiguous mpi tags
    !!        itags(1)=jtaskder+nproc*itask+(nproc**2)
@@ -301,12 +304,12 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
 
    !!do iorb=1,orbs%norb
    !!    ilr=orbs%inwhichlocreg(iorb)
-   !!    itask=orbs%onwhichmpi(iorb)
+   !!    itask=onwhichmpi(iorb)
    !!    root=rootarr(ilr)
    !!    covered=.false.
    !!    do jorb=1,orbs%norb
    !!        jlr=orbs%inwhichlocreg(jorb)
-   !!        jtask=orbs%onwhichmpi(jorb)
+   !!        jtask=onwhichmpi(jorb)
    !!        if (covered(jtask)) cycle
    !!        call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
    !!        if (isoverlap) then
@@ -319,7 +322,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    !!    end do
    !!    do jorb=1,orbsder%norb
    !!        jlr=orbsder%inwhichlocreg(jorb)
-   !!        jtaskder=orbsder%onwhichmpi(jorb)
+   !!        jtaskder=onwhichmpider(jorb)
    !!        if (covered(jtaskder)) cycle
    !!        call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
    !!        if (isoverlap) then
@@ -338,12 +341,12 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    !!irecv=0
    !!do iorb=1,orbs%norb
    !!    ilr=orbs%inwhichlocreg(iorb)
-   !!    itask=orbs%onwhichmpi(iorb)
+   !!    itask=onwhichmpi(iorb)
    !!    root=rootarr(ilr)
    !!    covered=.false.
    !!    do jorb=1,orbs%norb
    !!        jlr=orbs%inwhichlocreg(jorb)
-   !!        jtask=orbs%onwhichmpi(jorb)
+   !!        jtask=onwhichmpi(jorb)
    !!        if (covered(jtask)) cycle
    !!        !unambiguous mpi tags
    !!        itags(1)=jtask+nproc*itask+(nproc**2)
@@ -387,7 +390,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    !!     end do
    !!     do jorb=1,orbsder%norb
    !!        jlr=orbsder%inwhichlocreg(jorb)
-   !!        jtaskder=orbsder%onwhichmpi(jorb)
+   !!        jtaskder=onwhichmpider(jorb)
    !!        if (covered(jtaskder)) cycle
    !!        !unambiguous mpi tags
    !!        itags(1)=jtaskder+nproc*itask+(nproc**2)
@@ -441,13 +444,13 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    irecv=0
    do iorb=1,orbs%norb
        ilr=orbs%inwhichlocreg(iorb)
-       itask=orbs%onwhichmpi(iorb)
+       itask=onwhichmpi(iorb)
        root=rootarr(ilr)
        if (iproc/=root) cycle
        covered=.false.
        do jorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jorb)
-           jtask=orbs%onwhichmpi(jorb)
+           jtask=onwhichmpi(jorb)
            if (covered(jtask)) cycle
            !unambiguous mpi tags
            itags(1)=jtask+nproc*itask+(nproc**2)
@@ -492,7 +495,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
 
        do jorb=1,orbsder%norb
            jlr=orbsder%inwhichlocreg(jorb)
-           jtaskder=orbsder%onwhichmpi(jorb)
+           jtaskder=onwhichmpider(jorb)
            if (covered(jtaskder)) cycle
            !unambiguous mpi tags
            itags(1)=jtaskder+nproc*itask+(nproc**2)
@@ -541,12 +544,12 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    do iorb=1,orbs%norbp
        iiorb=orbs%isorb+iorb
        ilr=orbs%inwhichlocreg(iiorb)
-       itask=orbs%onwhichmpi(iiorb)
+       itask=onwhichmpi(iiorb)
        !!if (iproc/=root) cycle
        do jorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jorb)
            root=rootarr(jlr)
-           jtask=orbs%onwhichmpi(jorb)
+           jtask=onwhichmpi(jorb)
            if (covered(jlr)) cycle
            !unambiguous mpi tags
            itags(1)=jtask+nproc*itask+(nproc**2)
@@ -592,12 +595,12 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    do iorb=1,orbsder%norbp
        iiorb=orbsder%isorb+iorb
        ilr=orbsder%inwhichlocreg(iiorb)
-       itask=orbsder%onwhichmpi(iiorb)
+       itask=onwhichmpider(iiorb)
        !do jorb=1,orbsder%norb
        do jorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jorb)
            root=rootarr(jlr)
-           jtaskder=orbs%onwhichmpi(jorb)
+           jtaskder=onwhichmpi(jorb)
            !write(*,'(a,7i9,l4)') 'der: iproc, iorb, jorb, jlr, root, jtaskder, itask, covered(jlr)', iproc, iorb, jorb, jlr, root, jtaskder, itask, covered(jlr)
            if (covered(jlr)) cycle
            !unambiguous mpi tags
@@ -653,11 +656,11 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    do iorb=1,orbs%norbp
        iiorb=orbs%isorb+iorb
        ilr=orbs%inwhichlocreg(iiorb)
-       itask=orbs%onwhichmpi(iiorb)
+       itask=onwhichmpi(iiorb)
        do jorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jorb)
            root=rootarr(jlr)
-           jtask=orbs%onwhichmpi(jorb)
+           jtask=onwhichmpi(jorb)
            if (covered(jlr)) cycle
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
@@ -673,11 +676,11 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    do iorb=1,orbsder%norbp
        iiorb=orbsder%isorb+iorb
        ilr=orbsder%inwhichlocreg(iiorb)
-       itask=orbsder%onwhichmpi(iiorb)
+       itask=onwhichmpider(iiorb)
        do jorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jorb)
            root=rootarr(jlr)
-           jtaskder=orbs%onwhichmpi(jorb)
+           jtaskder=onwhichmpi(jorb)
            if (covered(jlr)) cycle
            call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
            if (isoverlap) then
@@ -697,13 +700,13 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    irecv=0
    do iorb=1,orbs%norb
        ilr=orbs%inwhichlocreg(iorb)
-       itask=orbs%onwhichmpi(iorb)
+       itask=onwhichmpi(iorb)
        root=rootarr(ilr)
        if (iproc/=root) cycle
        covered=.false.
        do jorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jorb)
-           jtask=orbs%onwhichmpi(jorb)
+           jtask=onwhichmpi(jorb)
            if (covered(jtask)) cycle
            !unambiguous mpi tags
            itags(1)=jtask+nproc*itask+(nproc**2)
@@ -748,7 +751,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
         end do
         do jorb=1,orbsder%norb
            jlr=orbsder%inwhichlocreg(jorb)
-           jtaskder=orbsder%onwhichmpi(jorb)
+           jtaskder=onwhichmpider(jorb)
            if (covered(jtaskder)) cycle
            !unambiguous mpi tags
            itags(1)=jtaskder+nproc*itask+(nproc**2)
@@ -797,11 +800,11 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    do iorb=1,orbs%norbp
        iiorb=orbs%isorb+iorb
        ilr=orbs%inwhichlocreg(iiorb)
-       itask=orbs%onwhichmpi(iiorb)
+       itask=onwhichmpi(iiorb)
        do jorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jorb)
            root=rootarr(jlr)
-           jtask=orbs%onwhichmpi(jorb)
+           jtask=onwhichmpi(jorb)
            if (covered(jlr)) cycle
            !unambiguous mpi tags
            itags(1)=jtask+nproc*itask+(nproc**2)
@@ -848,12 +851,12 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    do iorb=1,orbsder%norbp
        iiorb=orbsder%isorb+iorb
        ilr=orbsder%inwhichlocreg(iiorb)
-       itask=orbsder%onwhichmpi(iiorb)
+       itask=onwhichmpider(iiorb)
         !do jorb=1,orbsder%norb
         do jorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jorb)
            root=rootarr(jlr)
-           jtaskder=orbs%onwhichmpi(jorb)
+           jtaskder=onwhichmpi(jorb)
            if (covered(jlr)) cycle
            !unambiguous mpi tags
            itags(1)=jtaskder+nproc*itask+(nproc**2)

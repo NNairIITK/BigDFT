@@ -301,6 +301,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     !---------------------------------------------------------------------------
     !pnow%ncount=1
     !pnow%ncount_ll=0
+    nullify(dict)
     ncount_bigdft=0
     pnow%ifile=ifile
     parmin%ifile=ifile
@@ -322,9 +323,9 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     endif
     !-----------------------------------------------------------
     if(trim(pnow%hybrid)=='yes') then
-       dict => read_input_dict_from_files("ll_input", bigdft_mpi)
+       call read_input_dict_from_files("ll_input", bigdft_mpi,dict)
     else
-       dict => read_input_dict_from_files("input", bigdft_mpi)
+       call read_input_dict_from_files("input", bigdft_mpi,dict)
     endif
     call standard_inputfile_names(ll_inputs,'input')
     call inputs_from_dict(ll_inputs, atoms, dict, .true.)

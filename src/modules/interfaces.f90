@@ -15,7 +15,6 @@ module module_interfaces
    implicit none
 
    interface
-
       subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
          !n(c) use module_base
          use module_types
@@ -213,21 +212,21 @@ module module_interfaces
 
       subroutine merge_input_file_to_dict(dict, fname, mpi_env)
         use dictionaries
-        use wrapper_MPI
+        use wrapper_MPI, only: mpi_environment
         implicit none
         type(dictionary), pointer :: dict
         character(len = *), intent(in) :: fname
         type(mpi_environment), intent(in) :: mpi_env
       end subroutine merge_input_file_to_dict
 
-      function read_input_dict_from_files(radical, mpi_env) result(dict)
-        use dictionaries
-        use wrapper_MPI
+      subroutine read_input_dict_from_files(radical, mpi_env,dict)
+        use dictionaries, only: dictionary
+        use wrapper_MPI, only: mpi_environment
         implicit none
         character(len = *), intent(in) :: radical
         type(mpi_environment), intent(in) :: mpi_env
         type(dictionary), pointer :: dict
-      end function read_input_dict_from_files
+      end subroutine read_input_dict_from_files
 
       subroutine inputs_from_dict(in, atoms, dict, dump)
         use module_types
@@ -1024,20 +1023,18 @@ module module_interfaces
         real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
       end subroutine davidson
 
-      subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
-            &   ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat,nvirte,psivirt)
-         use module_base
-         implicit none
-         !Arguments
-         integer, intent(in) :: norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,nspinore
-         integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
-         real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
-         real(wp), dimension(nvctrp,norbe), intent(in) :: psi
-         real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
-         real(wp), dimension(*), intent(out) :: passmat
-         integer, dimension(2), intent(in), optional :: nvirte
-         real(wp), dimension(*), optional :: psivirt
-      END SUBROUTINE build_eigenvectors
+!!$      subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
+!!$            &   ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat)
+!!$         use module_base
+!!$         implicit none
+!!$         !Arguments
+!!$         integer, intent(in) :: norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,nspinore
+!!$         integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
+!!$         real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
+!!$         real(wp), dimension(nvctrp,norbe), intent(in) :: psi
+!!$         real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
+!!$         real(wp), dimension(*), intent(out) :: passmat
+!!$      END SUBROUTINE build_eigenvectors
 
       subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
          !n(c) use module_base
@@ -2362,26 +2359,23 @@ module module_interfaces
 
      subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
           psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory
-          orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
+          orbse,commse,etol,norbsc_arr) !optional
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
        real(gp), intent(in) :: Tel
-       type(local_zone_descriptors) :: Lzd        !> Information about the locregs after LIG
-       type(local_zone_descriptors) :: Lzde       !> Informtation about the locregs for LIG
-       type(communications_arrays), target, intent(in) :: comms
-       type(orbitals_data), target, intent(inout) :: orbs
-       type(orthon_data),intent(in):: orthpar 
+       type(local_zone_descriptors) :: Lzd        !< Information about the locregs after LIG
+       type(local_zone_descriptors) :: Lzde       !< Information about the locregs for LIG
+       type(communications_arrays), intent(in) :: comms
+       type(orbitals_data), intent(inout) :: orbs
+       type(orthon_data), intent(in):: orthpar 
        real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
        real(wp), dimension(:), pointer :: psi,hpsi,psit
-       !optional arguments
-       real(gp), optional, intent(in) :: etol
-       type(orbitals_data), optional, intent(in) :: orbsv
-       type(orbitals_data), optional, target, intent(inout) :: orbse
-       type(communications_arrays), optional, target, intent(in) :: commse
-       integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
-       real(wp), dimension(:), pointer, optional :: psivirt
+       real(gp), intent(in) :: etol
+       type(orbitals_data), intent(inout) :: orbse
+       type(communications_arrays), intent(in) :: commse
+       integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
      end subroutine LDiagHam
 
      subroutine updatePotential(ixc,nspin,denspot,ehart,eexcu,vexcu)
@@ -4273,9 +4267,10 @@ module module_interfaces
         end subroutine copy_old_supportfunctions
 
         subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
-                   rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU)
+                   rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU, ref_frags)
           use module_base
           use module_types
+          use module_fragments
           implicit none
           integer,intent(in) :: iproc, nproc
           type(atoms_data), intent(inout) :: at
@@ -4289,6 +4284,7 @@ module module_interfaces
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
           real(kind=8), dimension(:), pointer :: proj
           type(GPU_pointers), intent(inout) :: GPU
+          type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
         end subroutine input_memory_linear
 
         subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
@@ -4306,7 +4302,7 @@ module module_interfaces
         end subroutine copy_old_inwhichlocreg
 
         subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-               frag_trans,psi_old,phi_array_old)
+               frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
           use module_base
           use module_types
           use module_fragments
@@ -4315,12 +4311,33 @@ module module_interfaces
           type(atoms_data), intent(in) :: at
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
           type(DFT_wavefunction), intent(inout) :: tmb
-          type(local_zone_descriptors), intent(in) :: lzd_old
+          type(local_zone_descriptors), intent(inout) :: lzd_old
           type(fragment_transformation), dimension(tmb%orbs%norbp), intent(in) :: frag_trans
           real(wp), dimension(:), pointer :: psi_old
           type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
           logical, intent(in) :: add_derivatives
+          character(len=*), intent(in) :: input_dir
+          type(fragmentInputParameters), intent(in) :: input_frag
+          type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
         end subroutine reformat_supportfunctions
+
+        subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,& 
+             hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold)
+          use module_base
+          use module_types
+          use module_fragments
+          implicit none
+          integer, dimension(3), intent(in) :: n,n_old
+          real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
+          !type(wavefunctions_descriptors), intent(in) :: wfd
+          type(locreg_descriptors), intent(in) :: llr, llr_old
+          character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+          real(gp), dimension(3), intent(inout) :: centre_old,centre_new,da
+          type(fragment_transformation), intent(in) :: frag_trans
+          real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
+          real(wp), dimension(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f), intent(out) :: psi
+          real(wp), dimension(llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i), optional, intent(in) :: psirold
+        end subroutine reformat_one_supportfunction
 
         subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
           use module_base
@@ -4361,7 +4378,8 @@ module module_interfaces
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel
 
-        subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+        subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr, &
+             onwhichmpi, onwhichmpider)
            use module_base
            use module_types
            implicit none
@@ -4370,6 +4388,9 @@ module module_interfaces
            type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
            type(orbitals_data),intent(in) :: orbs, orbsder
            integer,dimension(orbs%norb),intent(in) :: rootarr
+           !integer,dimension(nlr),intent(in) :: onwhichmpi, onwhichmpider
+           integer,dimension(orbs%norb),intent(in) :: onwhichmpi
+           integer,dimension(orbsder%norb),intent(in) :: onwhichmpider
         end subroutine communicate_locreg_descriptors_keys
 
         subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
