@@ -580,6 +580,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   use module_base
   use module_types
   use yaml_output
+  !use gaussians
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
@@ -599,6 +600,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
+
+  !call initialize_real_space_conversion()
   
   pi=4.d0*atan(1.d0)
 
@@ -696,6 +699,11 @@ charge=charge*hxh*hyh*hzh
                  call ind_positions(perx,i1,n1,j1,gox)
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
+
+                 !use multipole-preserving function
+!!$                 xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+!!$                      mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+!!$                      mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
                  xp=exp(-.5d0*arg)
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
@@ -770,6 +778,8 @@ charge=charge*hxh*hyh*hzh
      call yaml_map('Leaked force',trim(yaml_toa(forceleaked,fmt='(1pe12.5)')))
      call yaml_close_map()
   end if
+
+  !call finalize_real_space_conversion('local_forces')
 
 END SUBROUTINE local_forces
 

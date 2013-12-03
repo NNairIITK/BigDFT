@@ -533,6 +533,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   use module_base
   use module_types
   use yaml_output
+  !use gaussians
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
@@ -563,6 +564,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   !real(dp), dimension(:), allocatable :: den_aux
 
   call timing(iproc,'CrtLocPot     ','ON')
+
+  !call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
   pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)
@@ -618,6 +621,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     call ind_positions(perx,i1,n1,j1,gox)
                     r2=x**2+y**2+z**2
                     arg=r2/rloc**2
+                    !use multipole-preserving function
+!!$                    xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+!!$                         mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+!!$                         mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
                     xp=exp(-.5d0*arg)
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                        ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
@@ -654,6 +661,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     else
                       !Take the HGH form for rho_L (long range)
                       arg=r2/rloc**2
+                      !use multipole-preserving function
+!!$                      xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+!!$                           mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+!!$                           mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
                       xp=exp(-.5d0*arg)
                       raux=-xp*charge
                     end if
@@ -840,6 +851,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                              if (gox) then
                                 r2=x**2+y**2+z**2
                                 arg=r2/rloc**2
+
+                                !use multipole-preserving function
+!!$                                xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+!!$                                     mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+!!$                                     mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
                                 xp=exp(-.5d0*arg)
                                 tt=at%psppar(0,nloc,ityp)
                                 do iloc=nloc-1,1,-1
@@ -993,6 +1009,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
      end if
   end if
+
+  !call finalize_real_space_conversion(subname)
 
   call timing(iproc,'CrtLocPot     ','OF')
 
@@ -1160,6 +1178,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
+  !use gaussians
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n3pi,i3s
@@ -1185,6 +1204,8 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(gp), dimension(:,:), allocatable :: radii_cf
 
   call timing(iproc,'CrtLocPot     ','ON')
+
+  !call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -1263,6 +1284,11 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
                  call ind_positions(perx,i1,grid%n1,j1,gox)
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
+
+                 !multipole-preserving approach
+!!$                 xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+!!$                      mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+!!$                      mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
                  xp=exp(-.5d0*arg)
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*grid%n1i+(j3-i3s+1-1)*grid%n1i*grid%n2i
@@ -1401,6 +1427,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call memocc(i_stat,i_all,'at%astruct%rxyz',subname)
 
 
+  !call finalize_real_space_conversion(subname)
   call timing(iproc,'CrtLocPot     ','OF')
 
 END SUBROUTINE CounterIonPotential

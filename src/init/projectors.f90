@@ -847,6 +847,7 @@ subroutine crtproj(geocode,nterm,lr, &
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,gau_cut)
   use module_base
   use module_types
+  !use gaussians
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nterm,mvctr_c,mvctr_f,mseg_c,mseg_f
@@ -879,6 +880,8 @@ subroutine crtproj(geocode,nterm,lr, &
   !$ integer :: omp_get_thread_num,omp_get_num_threads
 
 !!  integer :: ncount0,ncount_rate,ncount_max,ncount1,ncount2
+
+  !call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
   ! rename region boundaries
   ns1 = lr%ns1
@@ -1350,7 +1353,7 @@ subroutine crtproj(geocode,nterm,lr, &
 !  i_all=-product(shape(work))*kind(work)
 !  deallocate(work,stat=i_stat)
 !  call memocc(i_stat,i_all,'work',subname)
-
+  !call finalize_real_space_conversion(subname)
 contains
   !> Real part of the complex product
   pure function re_cmplx_prod(a,b,c)

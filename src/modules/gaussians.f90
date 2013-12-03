@@ -55,7 +55,7 @@ module gaussians
   end type gaussian_basis_new
 
   public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
-  public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf
+  public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf,mp_exp
 
 contains
 
@@ -208,6 +208,33 @@ contains
     call memocc(i_stat,i_all,'scf_data',subname)
 
   end subroutine finalize_real_space_conversion
+
+  !> multipole-preserving gaussian function
+  !! chooses between traditional exponential and scfdotf 
+  !! according to the value of the exponent in units of the grid spacing
+  !! the function is supposed to be x**pow*exp(-expo*x**2)
+  !! where x=hgrid*j-x0
+  !! this function is also elemental to ease its evaluation, though 
+  !! the usage for vector argument is discouraged: dedicated routines has to be 
+  !! written to meet performance
+  elemental pure function mp_exp(hgrid,x0,expo,j,pow,modified)
+    implicit none
+    logical, intent(in) :: modified !< switch to scfdotf if true
+    integer, intent(in) :: j,pow
+    real(gp), intent(in) :: hgrid,x0,expo
+    real(gp) :: mp_exp
+    !local variables
+    real(gp) :: x
+
+    !added failsafe to avoid segfaults
+    if (modified .and. allocated(scf_data)) then
+       mp_exp=scfdotf(j,hgrid,expo,x0,pow)
+    else
+       x=hgrid*j-x0
+       mp_exp=exp(-expo*x**2)
+       if (pow /=0) mp_exp=mp_exp*(x**pow)
+    end if
+  end function mp_exp
 
   !> This function calculates the scalar product between a ISF and a 
   !input function, which is a gaussian times a power centered

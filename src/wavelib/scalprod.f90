@@ -3321,9 +3321,13 @@ subroutine wpdot(  &
   !local variables
   integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,iboff,length,i,ja0,ja1
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
-  integer :: iaseg0
+  integer :: iaseg0,ibsegs,ibsege
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
   integer, dimension(maseg_f) :: keyag_f_lin !>linear version of second indices of keyag_f
+  !Variables for OpenMP
+  !$ integer :: ithread,nthread,nchunk
+  !$ integer :: omp_get_thread_num,omp_get_num_threads
+
 !!!    integer :: ncount0,ncount2,ncount_rate,ncount_max
 !!!    real(gp) :: tel
 
@@ -3344,7 +3348,7 @@ subroutine wpdot(  &
 !$omp shared (apsi_f,scpr) &
 !!$omp parallel default(shared) &
 !$omp private(i,jaj,iaoff,length,ja1,ja0,jb1,jb0,iboff) &
-!$omp private(jbj,ibseg,iaseg0)
+!$omp private(jbj,ibseg,iaseg0)!!!,ithread,nthread,ibsegs,ibsege,nchunk)
 
   scpr0=0.0_dp
   scpr1=0.0_dp
@@ -3355,12 +3359,23 @@ subroutine wpdot(  &
   scpr6=0.0_dp
   scpr7=0.0_dp
 
+!LG  ibsegs=1
+!LG  ibsege=mbseg_c
+
+!LG  !$ ithread=omp_get_thread_num()
+!LG  !$ nthread=omp_get_num_threads() 
+
 
 !!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
   iaseg0=1 
 
 !coarse part. Loop on the projectors segments
+!LG  !separate in chunks the loop among the threads
+!LG  !$ nchunck=max(mbseg_c/nthread,1)
+!LG  !$ isegbs=min(ithread*nchunck,mbseg_c+1)
+!LG  !$ isegbe=min((ithread+1)*nchunck,mbseg_c)
+
 !$omp do schedule(static)
    do ibseg=1,mbseg_c
      jbj=keybv_c(ibseg)
@@ -3410,15 +3425,21 @@ subroutine wpdot(  &
      end do nonconvex_loop_c
      !disable loop if the end is reached
      if (iaseg0 == maseg_c .and. keybg_c(1,ibseg)> keyag_c_lin(maseg_c)) iaseg0=iaseg0+1
-
-
    enddo
 !stop
 !$omp end do nowait
 
 ! fine part
+!LG  ibsegs=1
+!LG  ibsege=mbseg_f
 
 iaseg0=1
+
+!LG  !separate in chunks the loop among the threads
+!LG  !$ nchunck=max(mbseg_f/nthread,1)
+!LG  !$ isegbs=min(ithread*nchunck,mbseg_f+1)
+!LG  !$ isegbe=min((ithread+1)*nchunck,mbseg_f)
+
 
 !$omp do schedule(static)
    do ibseg=1,mbseg_f
