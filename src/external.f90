@@ -30,7 +30,6 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   !Initalize the global mpi environment
   call bigdft_mpi_init(ierr)
   if (ierr /= MPI_SUCCESS) return
-  
 
   call bigdft_init_errors()
 
