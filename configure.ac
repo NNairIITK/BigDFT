@@ -887,36 +887,41 @@ if test x"$ac_use_libxc" = x"yes" ; then
     dnl Run the detection.
     if test -n "$ac_libxc_libdir" -a -n "$ac_libxc_incdir" ; then
       dnl Test the modules for compilation
-      AC_LINK_IFELSE([[program main
+      AC_MSG_CHECKING([for libXC modules])
+      FCFLAGS_SVG=$FCFLAGS
+      FCFLAGS="$FCFLAGS $ac_libxc_incdir"
+      AC_COMPILE_IFELSE([[program main
   use xc_f90_types_m
   use libxc_funcs_m
   use xc_f90_lib_m
 
   write(*,*) XC_FAMILY_GGA
 end program]], withlibxcmod=yes, withlibxcmod=no)
+      AC_MSG_RESULT($withlibxcmod)
+      FCFLAGS=$FCFLAGS_SVG
         
       dnl Test the library of libXC.
+      LDFLAGS_SVG=$LDFLAGS
       LDFLAGS="$LDFLAGS $ac_libxc_libdir"
-      ac_libxc_libname="xc"
-      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
-      if test x"$withlibxc" = x"no" ; then
-        ac_libxc_libname="dft_xc"
-        AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
-      fi
+      AC_CHECK_LIB(xc, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
+      LDFLAGS=$LDFLAGS_SVG
   
       if test "$ac_use_libxc" = "yes" -a "$withlibxcmod" = "yes" ; then
         AC_SUBST(LIBXC_INCLUDE, $ac_libxc_incdir)
-        LIBXC_LIBS="-l"$ac_libxc_libname
+        LIBXC_LIBS=$ac_libxc_libdir
         ac_build_libxc="no"
       else
-        AC_MSG_WARN([No libXC build the internal one.])
-        ac_build_libxc="yes"
+        ac_use_libxc="no"
       fi
     else
       LIBXC_CFLAGS="-I/usr/include"
       PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
       AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
-      ac_build_libxc="no"
+    fi
+
+    if test "$ac_use_libxc" = "no" ; then
+      AC_MSG_WARN([No working libXC build the internal one.])
+      ac_build_libxc="yes"
     fi
   fi
 
