@@ -647,7 +647,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   integer :: ierr, istat, iall, ipt
   real(kind=8) :: weight_tot, weight_ideal
   integer,dimension(:,:),allocatable :: istartend
-  character(len=*),parameter :: subname='determine_weights_sumrho'
+  character(len=*),parameter :: subname='init_collective_comms_sumro'
   real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
 
   ! Note: all weights are double precision to avoid integer overflow

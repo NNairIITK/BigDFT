@@ -177,10 +177,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   rootarr=1000000000
   iilr=0
 
-  ! Ugly hack as onwhichmpi is done for iorb, not ilr, need to fix this
-  ! make a local copy to avoid changing intents, only used here and in calling routine
   onwhichmpi=f_malloc(nlr,id='onwhichmpi')
-
   iiorb=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc,0)
@@ -188,17 +185,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
           onWhichMPI(iiorb)=jproc
       end do
   end do
-
-  !onwhichmpi=0
-  !do iorb=1,orbs%norbp
-  !   ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
-  !   onwhichmpi(ilr)=iproc
-  !   print*,'iproc,iorbp,isorb,iorb,inwhichlocreg,onwhichmpi',iproc,iorb,orbs%isorb,iorb+orbs%isorb,&
-  !        ilr,onwhichmpi(ilr)
-  !end do
-  !call mpiallred(onwhichmpi(1), nlr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !print*,'iproc,onwhichmpi2',iproc,onwhichmpi
-  !call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   call timing(iproc,'wfd_creation  ','ON')  
   do ilr=1,nlr
@@ -212,10 +198,11 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      zperiodic = .false. 
 
      !if(mod(ilr-1,nproc)==iproc) then
-     if(onwhichmpi(ilr)==iproc) then
+     !if(onwhichmpi(ilr)==iproc) then
      !if (ilr>orbs%isorb .and. iilr<orbs%norbp) then
      !    iilr=iilr+1
      !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
+     if(calculateBounds(ilr)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
     
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
@@ -404,16 +391,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   ! This communication is uneffective. Instead of using bcast we should be using mpialltoallv.
   call timing(iproc,'comm_llr      ','ON')
   if (nproc > 1) then
-
-  !iiorb=0
-  !do jproc=0,nproc-1
-  !    do iorb=1,orbs%norb_par(jproc,0)
-  !        iiorb=iiorb+1
-  !        onWhichMPI(iiorb)=jproc
-  !    end do
-  !end do
-
-
      call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
      
      ! Communicate those parts of the locregs that all processes need.
@@ -421,30 +398,23 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
 
      ! Now communicate those parts of the locreg that only some processes need (the keys).
      ! For this we first need to create orbsder that describes the derivatives.
-     call create_orbsder()
+     !call create_orbsder()
 
-     !onwhichmpider=f_malloc(nlr,id='onwhichmpider')
-     !onwhichmpider=0
-     !do iorb=1,orbsder%norbp
-     !   ilr=orbsder%inwhichlocreg(iorb+orbsder%isorb)
-     !   onwhichmpider(ilr)=iproc
+     !iiorb=0
+     !onwhichmpider=f_malloc(orbsder%norb,id='onwhichmpider')
+     !do jproc=0,nproc-1
+     !   do iorb=1,orbsder%norb_par(jproc,0)
+     !     iiorb=iiorb+1
+     !     onWhichMPIder(iiorb)=jproc
+     !   end do
      !end do
-     !call mpiallred(onwhichmpider(1), nlr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
-     iiorb=0
-     onwhichmpider=f_malloc(orbsder%norb,id='onwhichmpider')
-     do jproc=0,nproc-1
-        do iorb=1,orbsder%norb_par(jproc,0)
-          iiorb=iiorb+1
-          onWhichMPIder(iiorb)=jproc
-        end do
-     end do
 
      ! Now communicate the keys
-     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr, onwhichmpi, onwhichmpider)
+     !call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr, onwhichmpi, onwhichmpider)
+     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
 
-     call deallocate_orbitals_data(orbsder, subname)
-     call f_free(onwhichmpider)
+     !call deallocate_orbitals_data(orbsder, subname)
+     !call f_free(onwhichmpider)
   end if
   call timing(iproc,'comm_llr      ','OF')
 
