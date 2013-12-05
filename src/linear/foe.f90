@@ -23,12 +23,12 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   type(foe_data),intent(inout) :: foe_obj
   real(kind=8),intent(inout) :: tmprtr
   integer,intent(in) :: mode
-  type(sparseMatrix),intent(in) :: ovrlp, ham
+  type(sparseMatrix),intent(inout) :: ovrlp, ham !to be able to deallocate
   type(sparseMatrix),intent(inout) :: fermi
   real(kind=8),intent(out) :: ebs
 
   ! Local variables
-  integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver!, iorb
+  integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver, iorb
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge, nsize_polynomial
   integer,parameter :: nplx=5000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials
@@ -45,6 +45,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
   integer :: jproc
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
+  real(kind=8),dimension(:,:),allocatable :: SminusI
+  real(kind=8),dimension(:,:,:),allocatable :: workmat
 
   !!real(8),dimension(100000) ::  work, eval, hamtmp, ovrlptmp
 
@@ -87,6 +89,60 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           end if
       end do  
   end do
+
+  ! Taylor approximation of S^-1/2 up to higher order
+  allocate(ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
+  !write(*,*) 'before uncompress 1'
+  call uncompressMatrix(iproc,ovrlp)
+  !write(*,*) 'after uncompress 1'
+  allocate(SminusI(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, SminusI, 'SminusI', subname)
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          if (iorb==jorb) then
+              SminusI(jorb,iorb)=ovrlp%matrix(jorb,iorb)-1.d0
+          else
+              SminusI(jorb,iorb)=ovrlp%matrix(jorb,iorb)
+          end if
+      end do
+  end do
+  allocate(workmat(orbs%norb,orbs%norb,3), stat=istat)
+  call memocc(istat, workmat, 'workmat', subname)
+  call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, &
+       ovrlp%matrix(1,1), orbs%norb, ovrlp%matrix(1,1), orbs%norb, 0.d0, &
+       workmat(1,1,1), orbs%norb)
+  call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, &
+       ovrlp%matrix(1,1), orbs%norb, workmat(1,1,1), orbs%norb, 0.d0, &
+       workmat(1,1,2), orbs%norb)
+  workmat(:,:,3)=ovrlp%matrix(:,:) ! keep a copy of the overlap matrix
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          if (iorb==jorb) then
+              ovrlp%matrix(jorb,iorb)=1.d0-0.5d0*SminusI(jorb,iorb)+3.d0/8.d0*workmat(jorb,iorb,1)-5.d0/16.d0*workmat(jorb,iorb,2)
+          else
+              ovrlp%matrix(jorb,iorb)=-0.5d0*SminusI(jorb,iorb)+3.d0/8.d0*workmat(jorb,iorb,1)-5.d0/16.d0*workmat(jorb,iorb,2)
+          end if
+      end do
+  end do
+  !write(*,*) 'before compress 1'
+  call compress_matrix_for_allreduce(iproc,ovrlp)
+  !write(*,*) 'after compress 1'
+  ovrlpeff_compr=ovrlp%matrix_compr
+  ovrlp%matrix(:,:)=workmat(:,:,3) ! get back the original
+  call compress_matrix_for_allreduce(iproc,ovrlp)
+  iall=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
+  deallocate(ovrlp%matrix,stat=istat)
+  call memocc(istat,iall,'ovrlp%matrix',subname)
+  iall=-product(shape(SminusI))*kind(SminusI)
+  deallocate(SminusI,stat=istat)
+  call memocc(istat,iall,'SminusI',subname)
+  iall=-product(shape(workmat))*kind(workmat)
+  deallocate(workmat,stat=istat)
+  call memocc(istat,iall,'workmat',subname)
+
+  
+
 
   allocate(hamscal_compr(ham%nvctr), stat=istat)
   call memocc(istat, hamscal_compr, 'hamscal_compr', subname)

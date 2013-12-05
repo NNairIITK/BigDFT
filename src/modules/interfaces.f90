@@ -4522,7 +4522,7 @@ module module_interfaces
           type(foe_data),intent(inout) :: foe_obj
           real(kind=8),intent(inout) :: tmprtr
           integer,intent(in) :: mode
-          type(sparseMatrix),intent(in) :: ovrlp, ham
+          type(sparseMatrix),intent(inout) :: ovrlp, ham
           type(sparseMatrix),intent(inout) :: fermi
           real(kind=8),intent(out) :: ebs
         end subroutine foe
@@ -5122,6 +5122,22 @@ module module_interfaces
           type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
           type(paw_objects),optional,intent(inout)::paw
         end subroutine applyprojectorsonthefly
+
+        subroutine compress_matrix_for_allreduce(iproc,sparsemat)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc
+          type(sparseMatrix),intent(inout) :: sparsemat
+        end subroutine compress_matrix_for_allreduce
+
+        subroutine uncompressMatrix(iproc,sparsemat)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc
+          type(sparseMatrix), intent(inout) :: sparsemat
+        end subroutine uncompressMatrix
   
   end interface
 END MODULE module_interfaces
