@@ -882,7 +882,7 @@ AC_ARG_WITH(libxc, AS_HELP_STRING([--without-libxc], [Do not link with libXC lib
 AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_build_libxc=$enableval, ac_build_libxc="auto")
 AC_ARG_WITH(libxc-libs, AS_HELP_STRING([--with-libxc-libs], [Give the compiler include flags for an external libXC library (default = None).]), ac_libxc_libdir=$withval, ac_libxc_libdir=)
 AC_ARG_WITH(libxc-incs, AS_HELP_STRING([--with-libxc-incs], [Give the linker flags for an external libXC modules (default = None).]), ac_libxc_incdir=$withval, ac_libxc_incdir=)
-if test x"$ac_use_libxc" = x"yes" ; then
+if test x"$ac_use_libxc" != x"no" ; then
   if test x"$ac_build_libxc" != x"yes" ; then
     dnl Run the detection.
     if test -n "$ac_libxc_libdir" -a -n "$ac_libxc_incdir" ; then
