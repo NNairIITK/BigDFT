@@ -375,6 +375,7 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		--no-libtool \
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \
+		$(GLIB_LIBS) \
 		$(srcdir)/modules/bigdft.h \
 		$(srcdir)/modules/bigdft_input_keys.h \
 		$(builddir)/modules/bigdft_cst.h \

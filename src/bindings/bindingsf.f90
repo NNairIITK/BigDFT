@@ -468,7 +468,7 @@ subroutine inputs_set(dict, file, key, val)
   character(len = *), intent(in) :: file, key, val
 
   ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file // key, val(1:len(val)))
+  call set(dict // file(1:len(file)) // key(1:len(key)), val(1:len(val)))
 END SUBROUTINE inputs_set
 subroutine inputs_set_at(dict, file, key, i, val)
   use dictionaries
@@ -479,7 +479,7 @@ subroutine inputs_set_at(dict, file, key, i, val)
   character(len = *), intent(in) :: file, key, val
 
   ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file // key // i, val(1:len(val)))
+  call set(dict // file(1:len(file)) // key(1:len(key)) // i, val(1:len(val)))
 END SUBROUTINE inputs_set_at
 
 subroutine inputs_set_from_file(dict, fname)
