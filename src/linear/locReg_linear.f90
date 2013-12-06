@@ -160,7 +160,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
-  integer :: ii, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, iilr, jproc, iiorb
+  integer :: ii, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, jproc, iiorb
   integer,dimension(3) :: outofzone
   integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg, onwhichmpi, onwhichmpider
   real(8),dimension(:,:),allocatable :: locregCenter
@@ -175,7 +175,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   ii=ceiling(dble(nlr)/dble(nproc))
   !determine the limits of the different localisation regions
   rootarr=1000000000
-  iilr=0
 
   onwhichmpi=f_malloc(nlr,id='onwhichmpi')
   iiorb=0
@@ -197,11 +196,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      yperiodic = .false.
      zperiodic = .false. 
 
-     !if(mod(ilr-1,nproc)==iproc) then
-     !if(onwhichmpi(ilr)==iproc) then
-     !if (ilr>orbs%isorb .and. iilr<orbs%norbp) then
-     !    iilr=iilr+1
-     !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
      if(calculateBounds(ilr)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
     
@@ -410,7 +404,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      !end do
 
      ! Now communicate the keys
-     !call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr, onwhichmpi, onwhichmpider)
      call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
 
      !call deallocate_orbitals_data(orbsder, subname)

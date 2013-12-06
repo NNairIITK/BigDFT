@@ -892,6 +892,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 ! CDFT: calculate Tr[Kw]-Nc
                 call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
                      ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+                call timing(iproc,'constraineddft','OFF')
              end if
 
              ! Write some informations.
@@ -1176,14 +1177,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         !     tmb%Lzd%hgrids(1)*0.5d0,tmb%Lzd%hgrids(2)*0.5d0,tmb%Lzd%hgrids(3)*0.5d0,&
         !     1.0_gp,psir,1,0.0_gp,psir)
 
-        open(99,file=trim(input%dir_output)//'tmbisf'//trim(adjustl(orbname))//'.dat')
-        write(99,*) 'Tmb in isf format, to be used in conjunction with minbasis files'
-        write(99,*) tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i
-        write(99,*) tmb%lzd%llr(ilr)%nsi1,tmb%lzd%llr(ilr)%nsi2,tmb%lzd%llr(ilr)%nsi3
+        open(99,file=trim(input%dir_output)//'tmbisf'//trim(adjustl(orbname))//'.dat',&
+                  form="unformatted",status='unknown')
+        write(99) 'Tmb in isf format, to be used in conjunction with minbasis files'
+        write(99) tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i
+        write(99) tmb%lzd%llr(ilr)%nsi1,tmb%lzd%llr(ilr)%nsi2,tmb%lzd%llr(ilr)%nsi3
         do k=1,tmb%lzd%llr(ilr)%d%n3i
            do j=1,tmb%lzd%llr(ilr)%d%n2i
               do i=1,tmb%lzd%llr(ilr)%d%n1i
-                   write(99,*) psir(i,j,k,1)
+                   write(99) psir(i,j,k,1)
               end do
            end do
         end do

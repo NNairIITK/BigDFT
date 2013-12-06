@@ -1702,8 +1702,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !overlap_calculated = .false.
       !nullify(tmb%psit_c)
       !nullify(tmb%psit_f)
-      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-           KSwfn%orbs, tmb, overlap_calculated)
+      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, &
+           tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
       i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
       deallocate(tmb%psit_c,stat=i_stat)
       call memocc(i_stat,i_all,'tmb%psit_c',subname)
@@ -2777,11 +2777,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
      if (in%lin%diag_start) then
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             tmb%orbs, tmb, overlap_calculated)  
+        ! not worrying about this case as not currently used anyway
+        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+             tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
      else
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             KSwfn%orbs, tmb, overlap_calculated)     
+        ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
+        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, &
+             tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
      !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
      !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
@@ -2904,8 +2906,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end do
 
         ! use the coeffs from the more balanced kernel to get the correctly occupied kernel (maybe reconstruct not needed?)
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-            KSwfn%orbs, tmb, overlap_calculated)     
+        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)     
         !then redo density and potential with correct charge? - for ease doing in linear scaling
      end if
 

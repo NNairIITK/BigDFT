@@ -161,9 +161,10 @@ contains
     inv_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='inv_ovrlp_half')
 
     ! ideally need interface here... but should change to newer version anyway (and more approximate?!)
-    call overlapPowerPlusMinusOneHalf_old(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, 0,  &
-         tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, &
-         inv_ovrlp_half, .false., tmb%orbs)
+    call overlapPowerPlusMinusOneHalf_old(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+         0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+         tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp_half, .false., tmb%orbs)
+
 
     ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
 
