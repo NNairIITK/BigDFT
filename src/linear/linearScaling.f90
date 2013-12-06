@@ -892,7 +892,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 ! CDFT: calculate Tr[Kw]-Nc
                 call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
                      ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
-                call timing(iproc,'constraineddft','OFF')
+                call timing(iproc,'constraineddft','OF')
              end if
 
              ! Write some informations.

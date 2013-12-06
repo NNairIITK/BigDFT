@@ -1807,6 +1807,8 @@ subroutine check_communication_potential(denspot,tmb)
   real(dp),parameter :: tol_calculation_max=1.d-10
   character(len=200), parameter :: subname='check_communication_potential'
 
+  call timing(bigdft_mpi%iproc,'check_pot','ON')
+
   !assign constants
   i3s=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,3)+1 !< starting point of the planes in the z direction
   n3p=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,2) !< number of planes for the potential
@@ -1904,6 +1906,8 @@ subroutine check_communication_potential(denspot,tmb)
   deallocate(denspot%pot_work,stat=i_stat)
   call memocc(i_stat,i_all,'denspot%pot_work',subname)
   nullify(denspot%pot_work)
+
+  call timing(bigdft_mpi%iproc,'check_pot','OF')
 
 end subroutine check_communication_potential
 

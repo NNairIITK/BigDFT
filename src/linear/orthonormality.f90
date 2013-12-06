@@ -903,6 +903,7 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
   integer:: iorb, jorb
   real(8):: error
 
+  call timing(iproc,'dev_from_unity','ON') 
   deviation=0.d0
   do iorb=1,norb
      do jorb=1,norb
@@ -916,6 +917,7 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
         end if
      end do
   end do
+  call timing(iproc,'dev_from_unity','OF') 
 
 end subroutine deviation_from_unity
 

@@ -330,6 +330,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   type(sparseMatrix) :: weight_matrix
   character(len=256) :: subname='coeff_weight_analysis'
 
+  call timing(iproc,'weightanalysis','ON')
   call nullify_sparsematrix(weight_matrix)
   call sparse_copy_pattern(tmb%linmat%ham, weight_matrix, iproc, subname)
   allocate(weight_matrix%matrix_compr(weight_matrix%nvctr), stat=istat)
@@ -340,7 +341,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
-     call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,.false.)
+     call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
+          .false.,tmb%orthpar%methTransformOverlap)
      allocate(weight_matrix%matrix(weight_matrix%full_dim1,weight_matrix%full_dim1), stat=istat)
      call memocc(istat, weight_matrix%matrix, 'weight_matrix%matrix', subname)
      call uncompressmatrix(iproc,weight_matrix)
@@ -379,6 +381,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   iall=-product(shape(weight_coeff))*kind(weight_coeff)
   deallocate(weight_coeff,stat=istat)
   call memocc(istat,iall,'weight_coeff',subname)
+  call timing(iproc,'weightanalysis','OF')
 
 end subroutine coeff_weight_analysis
 
@@ -834,6 +837,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern)
   end if
 
+  call timing(iproc,'calc_energy','ON')
   energy=0.0_gp
   do iorbp=1,tmb_orbs%norbp
      iorb=iorbp+tmb_orbs%isorb
@@ -847,7 +851,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
   if (nproc>1) then
      call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
-
+  call timing(iproc,'calc_energy','OF')
 
 end subroutine calculate_kernel_and_energy
 
