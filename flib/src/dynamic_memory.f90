@@ -275,12 +275,14 @@ contains
     nullify(mem%dict_codepoint)
   end subroutine nullify_mem_ctrl
 
-  pure function mem_ctrl_init() result(mem)
+  !pure 
+  function mem_ctrl_init() result(mem)
     type(mem_ctrl) :: mem
     call nullify_mem_ctrl(mem)
     call initialize_mem_ctrl(mem)
   end function mem_ctrl_init
-  pure subroutine initialize_mem_ctrl(mem)
+  !pure 
+  subroutine initialize_mem_ctrl(mem)
     implicit none
     type(mem_ctrl), intent(out) :: mem
     mem%profile_initialized=.true.
@@ -639,12 +641,14 @@ contains
   end subroutine f_malloc_set_status
 
   !> Finalize f_malloc (Display status)
-  subroutine f_malloc_finalize(dump)
+  subroutine f_malloc_finalize(dump,process_id)
     use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
     implicit none
     !Arguments
     logical, intent(in), optional :: dump !< Dump always information, 
                                           !! otherwise only for Process Id == 0 and errors
+    integer, intent(out), optional :: process_id !< retrieve the process_id  
+                                                 !! useful to dump further information after finalization
     !local variables
     integer :: pid
     logical :: dump_status
@@ -654,6 +658,8 @@ contains
          'ERROR (f_malloc_finalize): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
 
+    if (present(process_id)) process_id=-1
+
     !quick return if variables not associated
     if (associated(mems(ictrl)%dict_global)) then
        !put the last values in the dictionary if not freed
@@ -661,6 +667,7 @@ contains
           call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
           nullify(mems(ictrl)%dict_routine)
        end if
+       if (present(process_id)) process_id = mems(ictrl)%dict_global//processid
 
        if (present(dump)) then
           dump_status=.true.
