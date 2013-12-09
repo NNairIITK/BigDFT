@@ -459,12 +459,12 @@
    accel:
      COMMENT: acceleration
      EXCLUSIVE:
-       no: no material acceleration
+       NO: no material acceleration
        CUDAGPU: CUDA
        OCLGPU: OpenCL on GPU
        OCLCPU: OpenCL on CPU
        OCLACC: ???
-     default: no
+     default: NO
    ocl_platform:
      COMMENT: Chosen OCL platform
      default: ~

@@ -1157,7 +1157,7 @@ contains
   !! of the one provided as an indication on the understood variables
   subroutine input_minimal(dict,minimal)
     use dictionaries
-!    use yaml_output
+    use yaml_output
     implicit none
     type(dictionary), pointer, intent(in) :: dict
     type(dictionary), pointer, intent(out) :: minimal
@@ -1195,8 +1195,8 @@ contains
         type(dictionary), pointer :: vars,input,minim
         !local variables
         logical :: profile_found
-        character(len=max_field_length) :: def_var,in_var,var_prof,empty
-        type(dictionary), pointer :: defvar,var
+        character(len=max_field_length) :: def_var,in_var,var_prof
+        type(dictionary), pointer :: defvar,var,empty
         nullify(minim)
 
         var=>dict_iter(vars)
@@ -1233,7 +1233,7 @@ contains
                  defvar => dict_next(defvar)
               end do check_profile
               !the key has not been found, among the profiles, therefore it should be entered as is
-              if (.not. profile_found) then
+              if (.not. profile_found .and. len_trim(dict_value(input//def_var))/=0) then
                  if (.not. associated(minim)) call dict_init(minim)
                  call dict_copy(minim//def_var,input//def_var)
               end if
