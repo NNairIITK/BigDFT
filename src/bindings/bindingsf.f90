@@ -525,12 +525,16 @@ subroutine inputs_dump_to_file(iostat, dict, fname, userOnly)
   open(unit = iunit, file = fname(1:len(fname)), iostat = iostat)
   if (iostat /= 0) return
 
-  call yaml_set_stream(unit=iunit, tabbing = 40, record_length = 100, istat = iostat)
+  call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)
   if (iostat /= 0) return
 
+  call yaml_new_document(unit = iunit)
   call input_keys_dump(dict, userOnly)
 
+  call yaml_close_stream(iunit, iostat)
+  if (iostat /= 0) return
   close(unit = iunit)
+
   call yaml_set_default_stream(iunit_def, iostat)
 end subroutine inputs_dump_to_file
 

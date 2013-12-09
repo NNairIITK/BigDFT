@@ -1848,7 +1848,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
      intrep=.false.
      !the repartition is not obvious, some processors take nobj_max_kpt objects, others take the previous integer.
      !to understand how many, we round the percentage of processors which is given by
-     rounding_ratio=(robjp-real(floor(robjp)))
+     rounding_ratio=(robjp-real(floor(robjp), gp))
      !then this is the number of processors which will take the floor
      nprocs_with_floor=ceiling((1.0_gp-rounding_ratio)*real(nproc,gp))!nproc-(nobj*nkpts-floor(robjp)*nproc)
      !print *,'rounding_ratio,nprocs_with_floor',rounding_ratio,nprocs_with_floor
