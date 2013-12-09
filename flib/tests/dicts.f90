@@ -184,7 +184,7 @@ subroutine test_dictionaries1()
    integer :: ival,i,j
    type(dictionary), pointer :: dict2
    type(dictionary), pointer :: dict,dictA
-   type(dictionary), pointer :: dictA2,dict_tmp
+   type(dictionary), pointer :: dictA2,dict_tmp,zero1,zero2
 
    !testing add
    call dict_init(dict)
@@ -351,6 +351,19 @@ subroutine test_dictionaries1()
    !verify the equality between dictionaries
    call yaml_map('Test1 and and Test2 are equal',dict2//'Test1' == dict2//'Test2')
 
+   !also test the possibility two arrays filled with zeroes
+   zero1=>list_new(.item. list_new(.item. '0.0000000000000000',&
+        .item. '0.0000000000000000',.item. '0.0000000000000000'))
+   zero2=>list_new(.item. list_new(.item. '0.',.item. '0.',.item. '0.'))
+
+   call yaml_map('List of list of zeroes, first version',zero1)
+   call yaml_map('List of list of zeroes, second version',zero2)
+
+      !verify the equality between dictionaries
+   call yaml_map('Zero1 and and Zero2 are equal',zero1==zero2)
+
+   call dict_free(zero1)
+   call dict_free(zero2)
 
    call yaml_map('Keys of first dict',dict_keys(dictA))
    call yaml_map('Keys of second dict',dict_keys(dict2))

@@ -378,7 +378,7 @@ contains
      implicit none
      type(dictionary), pointer, intent(in) :: dict1,dict2
      logical :: equal
-
+     
      !no next for the first level
      equal=nodes_are_equal(dict1,dict2)
 
@@ -400,6 +400,8 @@ contains
          
          !same (type of) value
          yes = dict_value(dict1) == dict_value(dict2)
+         !print *,'debug',dict_value(dict1),' and ',dict_value(dict2), 'also',&
+         !     is_atof(dict_value(dict1)), is_atof(dict_value(dict2)),yes
          if (.not. yes) then 
             !investigate if the values are just written differenty
             !integer case
@@ -420,8 +422,8 @@ contains
          end if
          yes = (dict_size(dict1) == dict_size(dict2)) .and. & !both are (or not) mappings
               (dict_len(dict1) == dict_len(dict2)) !.and. & !both are (or not) lists
+         !print *,'here',yes,dict_size(dict1),dict_size(dict2),dict_len(dict1),dict_len(dict2)
          if (.not. yes) return
-         
          yes=dicts_are_equal_(dict1%child,dict2%child) 
        end function nodes_are_equal
 

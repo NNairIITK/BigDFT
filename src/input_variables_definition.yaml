@@ -163,7 +163,7 @@
        MASTER_KEY: method
        WHEN:
        - MPGrid
-     default: [0., 0., 0.]
+     default: [[0., 0., 0.]]
    kpt:
      COMMENT: Kpt coordinates
      CONDITION:

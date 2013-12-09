@@ -55,6 +55,11 @@ subroutine test_yaml_output1()
   call yaml_map('Is ./ a integer string',is_atoi('./'))
   call yaml_map('Is ./ a logical string',is_atol('./'))
 
+  call yaml_map('Is 0. a real string',is_atof(' 0.'))
+  call yaml_map('Is 0. a integer string',is_atoi(' 0.'))
+
+  call yaml_map('Is 0.000000000E+00 a real string',is_atof(' 0.0000000000000000'))
+  call yaml_map('Is 0.000000000E+00 a integer string',is_atoi(' 0.0000000000000000'))
 
 end subroutine test_yaml_output1
 

@@ -413,7 +413,7 @@ contains
   !>find if a string is an integer
   !! use the portable mode described in 
   !! http://flibs.sourceforge.net/fortran_aspects.html#check_integers
-  function is_atoi(str) result(yes)
+  pure function is_atoi(str) result(yes)
     implicit none
     character(len=*), intent(in) :: str
     logical :: yes
@@ -431,7 +431,7 @@ contains
   !>check if str contains a floating point number. 
   !!note that in principle this function gives positive answer also 
   !!if the number in str is an integer. Therefore is_atoi should be used to check before
-  function is_atof(str) result(yes)
+  pure function is_atof(str) result(yes)
     implicit none
     character(len=*), intent(in) :: str
     logical :: yes
@@ -439,17 +439,18 @@ contains
     integer :: ierr,is,ie
     double precision :: rval
 
-    ie=len(trim(str))
-    is=max(scan(trim(str),' '),1)
+    ie=len_trim(str)
+    is=scan(trim(str),' ')+1
     yes=scan(str(is:ie),' ') ==0 !there is no other space in the string
     if (yes) then
        read(str(is:ie),*,iostat=ierr)rval
        yes=ierr==0 .and. str(ie:ie)/='/' !the slash terminator is not allowed
     end if
+
   end function is_atof
 
   !> check if str contains a logical in yaml specification (Yes=.true. and No=.false.)
-  function is_atol(str) result(yes)
+  pure function is_atol(str) result(yes)
     implicit none
     character(len=*), intent(in) :: str
     logical :: yes

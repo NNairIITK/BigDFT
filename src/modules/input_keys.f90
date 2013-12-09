@@ -1194,7 +1194,7 @@ contains
         type(dictionary), pointer :: vars,input,minim
         !local variables
         logical :: profile_found
-        character(len=max_field_length) :: def_var,in_var,var_prof
+        character(len=max_field_length) :: def_var,in_var,var_prof,prof_var
         type(dictionary), pointer :: defvar,var,empty
         nullify(minim)
 
@@ -1207,25 +1207,36 @@ contains
            
            !search if the input data have values among the profiles
            if (has_key(input,def_var)) then
+              profile_found=.false.
+              !see if the dictionary has the PROF_KEY in thier possibilities
+              prof_var(1:len(prof_var))=' '
+              if (has_key(var,PROF_KEY)) then
+                 if (has_key(input,dict_value(var//PROF_KEY))) &
+                    prof_var=dict_value(input//dict_value(var//PROF_KEY))
+              end if
+
               defvar => dict_iter(var)
               !              call yaml_map('var dict inside',defvar)
-              profile_found=.false.
               check_profile: do while(associated(defvar))
                  !exclude keys for definition of the variable
                  var_prof=dict_key(defvar)
 !              call yaml_map('key',var_prof)
                  if (trim(var_prof)/=COMMENT .and. trim(var_prof)/=COND .and.&
-                      trim(var_prof)/=RANGE .and. trim(var_prof)/=PROF_KEY .and.&
+                      trim(var_prof)/=RANGE .and. trim(var_prof)/=PROF_KEY .and. &
                       trim(var_prof)/=EXCLUSIVE) then
                     !check if some profile meets desired values
 !call yaml_map('defvar',defvar)
 !call yaml_map('input',input//def_var)
 !call yaml_map('result',defvar == input//def_var)
+!call yaml_map('var_prof',var_prof)
+!call yaml_map('test',trim(var_prof) /= DEFAULT .and. var_prof /= prof_var)
+!print *,'key',def_var
+
                     if (defvar == input//def_var) then
                        profile_found=.true.
-                       if (var_prof /= DEFAULT) then
+                       if (trim(var_prof) /= DEFAULT .and. var_prof /= prof_var) then
                           if (.not. associated(minim)) call dict_init(minim)
-                          call dict_copy(minim//def_var,defvar)
+                          call set(minim//def_var,var_prof)
                           exit check_profile
                        end if
                     end if
@@ -1239,6 +1250,10 @@ contains
               end if
            end if
            var => dict_next(var)
+!if (trim(def_var) == 'shiftk') then
+!   call yaml_map('Finally',minim//def_var)
+!stop
+!end if
         end do
       end subroutine minimal_category
       

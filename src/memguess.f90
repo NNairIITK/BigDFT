@@ -325,11 +325,10 @@ program memguess
    call bigdft_set_input(radical,posinp,in,atoms)
    !initialize memory counting
    !call memocc(0,0,'count','start')
-
    if (in%ixc < 0) then
-      call xc_init(in%ixc, XC_MIXED, nspin)
+      call xc_init(in%ixc, XC_MIXED, in%nspin)
    else
-      call xc_init(in%ixc, XC_ABINIT, nspin)
+      call xc_init(in%ixc, XC_ABINIT, in%nspin)
    end if
 
    call print_general_parameters(in,atoms)
