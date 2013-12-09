@@ -423,7 +423,7 @@ contains
     
     !fill the string describing the format to be used for reading
     !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
-    form(1:len(form))='(i'//trim(adjustl(yaml_toa(len(trim(str)),fmt='(i17)')))//')' 
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoi
@@ -438,8 +438,7 @@ contains
     !local variables
     integer :: ierr,is,ie
     double precision :: rval
-    !fill the string describing the format to be used for reading
-    !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
+
     ie=len(trim(str))
     is=max(scan(trim(str),' '),1)
     yes=scan(str(is:ie),' ') ==0 !there is no other space in the string
