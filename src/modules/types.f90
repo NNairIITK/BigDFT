@@ -959,6 +959,7 @@ module module_types
      type(input_variables), pointer    :: inputs
      type(atoms_data), pointer         :: atoms
      type(restart_objects), pointer    :: rst
+     real(gp), dimension(:,:), pointer :: radii_cf
   end type run_objects
 
   !> Used to store results of a DFT calculation.

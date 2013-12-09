@@ -29,8 +29,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
   integer :: i_all,i_stat,i1,i2,i3,iat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  logical :: my_output_denspot
-  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+  logical :: output_denspot_
+  logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
 
   call timing(iproc,'CrtDescriptors','ON')
 
@@ -110,44 +110,11 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      call yaml_close_map()
   end if
 
-  ! Create the file grid.xyz to visualize the grid of functions
-  my_output_denspot = .false.
-  if (present(output_denspot)) my_output_denspot = output_denspot
-  if (my_output_denspot) then
-     open(unit=22,file='grid.xyz',status='unknown')
-     write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
-     if (atoms%astruct%geocode=='F') then
-                write(22,*)'complete simulation grid with low and high resolution points'
-     else if (atoms%astruct%geocode =='S') then
-        write(22,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3)
-     else if (atoms%astruct%geocode =='P') then
-        write(22,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
-             atoms%astruct%cell_dim(3)
-     end if
-     do iat=1,atoms%astruct%nat
-        write(22,'(a6,2x,3(1x,e12.5),3x)') &
-           &   trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
-     enddo
-     do i3=0,n3  
-        do i2=0,n2  
-           do i1=0,n1
-              if (logrid_c(i1,i2,i3))&
-                 &   write(22,'(a4,2x,3(1x,e10.3))') &
-                 &   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
-           enddo
-        enddo
-     end do
-     do i3=0,n3 
-        do i2=0,n2 
-           do i1=0,n1
-              if (logrid_f(i1,i2,i3))&
-                 &   write(22,'(a4,2x,3(1x,e10.3))') &
-                 &   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
-           enddo
-        enddo
-     enddo
-     close(22)
-  endif
+  output_denspot_ = .false.
+  if (present(output_denspot)) output_denspot_ = output_denspot
+  if (output_denspot_) then
+     call export_grids("grid.xyz", atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
+  end if
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
@@ -295,111 +262,120 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
 end subroutine wfd_from_grids
 
 
-        !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
+!> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
-         & radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_G,proj)
-     use module_base
-     use module_types
-     use gaussians, only: gaussian_basis
-     implicit none
-     integer, intent(in) :: iproc
-     real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
-     type(locreg_descriptors),intent(in) :: lr
-     type(atoms_data), intent(in) :: at
-     type(orbitals_data), intent(in) :: orbs
-     real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-     real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
-     type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-     real(wp), dimension(:), pointer :: proj
-     type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
-     !local variables
-     character(len=*), parameter :: subname='createProjectorsArrays'
-     integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
-     integer :: iat,i_stat,i_all,iseg
-     logical, dimension(:,:,:), allocatable :: logrid
+         & radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nlpspd,proj_G,proj)
+  use module_base
+  use module_types
+  use gaussians, only: gaussian_basis
+  implicit none
+  integer, intent(in) :: iproc
+  real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+  type(locreg_descriptors),intent(in) :: lr
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+  real(wp), dimension(:), pointer :: proj
+  type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
+  logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
+  !local variables
+  character(len=*), parameter :: subname='createProjectorsArrays'
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+  integer :: iat,i_stat,i_all,iseg
+  logical, dimension(:,:,:), allocatable :: logrid
 
-     !allocate the different localization regions of the projectors
-     nlpspd%natoms=at%astruct%nat
-     allocate(nlpspd%plr(at%astruct%nat),stat=i_stat)
-     do iat=1,at%astruct%nat
-        nlpspd%plr(iat)=locreg_null() !< set in types
-     end do
+  !allocate the different localization regions of the projectors
+  nlpspd%natoms=at%astruct%nat
+  allocate(nlpspd%plr(at%astruct%nat),stat=i_stat)
+  do iat=1,at%astruct%nat
+     nlpspd%plr(iat)=locreg_null() !< set in types
+  end do
 
-    ! define the region dimensions
-      n1 = lr%d%n1
-      n2 = lr%d%n2
-      n3 = lr%d%n3
+  ! define the region dimensions
+  n1 = lr%d%n1
+  n2 = lr%d%n2
+  n3 = lr%d%n3
 
-     ! determine localization region for all projectors, but do not yet fill the descriptor arrays
-     allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-     call memocc(i_stat,logrid,'logrid',subname)
+  ! determine localization region for all projectors, but do not yet fill the descriptor arrays
+  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid,'logrid',subname)
 
-     call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
-          rxyz,radii_cf,logrid,at,orbs,nlpspd,proj_G)
+  call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
+       rxyz,radii_cf,logrid,at,orbs,nlpspd,proj_G)
 
-     !here the allocation is possible
-     do iat=1,nlpspd%natoms
-        !for the moments the bounds are not needed for projectors
-        call allocate_wfd(nlpspd%plr(iat)%wfd,subname)
-     end do
+  if (dry_run) then
+     i_all=-product(shape(logrid))*kind(logrid)
+     deallocate(logrid,stat=i_stat)
+     call memocc(i_stat,i_all,'logrid',subname)
 
-     allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
-     call memocc(i_stat,proj,'proj',subname)
-     if (nlpspd%nprojel >0) call to_zero(nlpspd%nprojel,proj(1))
+     return
+  end if
 
-     ! After having determined the size of the projector descriptor arrays fill them
-    do iat=1,at%astruct%nat
-       if(at%npspcode(at%astruct%iatype(iat))==7) then  
-          call numb_proj_paw_tr(at%astruct%iatype(iat),at%astruct%ntypes,proj_G(at%astruct%iatype(iat)),mproj)
-       else
-         call numb_proj(at%astruct%iatype(iat),at%astruct%ntypes,at%psppar,at%npspcode,mproj)
-       end if
-       if (mproj.ne.0) then 
+  !here the allocation is possible
+  do iat=1,nlpspd%natoms
+     !for the moments the bounds are not needed for projectors
+     call allocate_wfd(nlpspd%plr(iat)%wfd,subname)
+  end do
 
-          call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
-               nl1,nl2,nl3,nu1,nu2,nu3)         
+  allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
+  call memocc(i_stat,proj,'proj',subname)
+  if (nlpspd%nprojel >0) call to_zero(nlpspd%nprojel,proj(1))
 
-          call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-               at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
-               cpmult,hx,hy,hz,logrid)
+  ! After having determined the size of the projector descriptor arrays fill them
+  do iat=1,at%astruct%nat
+     if(at%npspcode(at%astruct%iatype(iat))==7) then  
+        call numb_proj_paw_tr(at%astruct%iatype(iat),at%astruct%ntypes,proj_G(at%astruct%iatype(iat)),mproj)
+     else
+        call numb_proj(at%astruct%iatype(iat),at%astruct%ntypes,at%psppar,at%npspcode,mproj)
+     end if
+     if (mproj.ne.0) then 
 
-          call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
-               nlpspd%plr(iat)%wfd%nseg_c,&
-               nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keyvglob(1))
+        call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
+             nl1,nl2,nl3,nu1,nu2,nu3)         
 
-          call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),nlpspd%plr(iat)%wfd%nseg_c,&
-               nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keygloc(1,1))
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+             cpmult,hx,hy,hz,logrid)
 
-          ! fine grid quantities
-          call bounds_to_plr_limits(.false.,2,nlpspd%plr(iat),&
-               nl1,nl2,nl3,nu1,nu2,nu3)         
+        call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
+             nlpspd%plr(iat)%wfd%nseg_c,&
+             nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keyvglob(1))
 
-          call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+        call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),nlpspd%plr(iat)%wfd%nseg_c,&
+             nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keygloc(1,1))
+
+        ! fine grid quantities
+        call bounds_to_plr_limits(.false.,2,nlpspd%plr(iat),&
+             nl1,nl2,nl3,nu1,nu2,nu3)         
+
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              & at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,2),&
-               fpmult,hx,hy,hz,logrid)
+             fpmult,hx,hy,hz,logrid)
 
-          mseg=nlpspd%plr(iat)%wfd%nseg_f
-          iseg=nlpspd%plr(iat)%wfd%nseg_c+1
+        mseg=nlpspd%plr(iat)%wfd%nseg_f
+        iseg=nlpspd%plr(iat)%wfd%nseg_c+1
 
-          if (mseg > 0) then
-             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-                  logrid,mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
-                  nlpspd%plr(iat)%wfd%keyvglob(iseg))
+        if (mseg > 0) then
+           call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+                logrid,mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
+                nlpspd%plr(iat)%wfd%keyvglob(iseg))
 
-             call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
-                  nlpspd%plr(iat)%wfd%keygloc(1,iseg)) 
-          end if
-       endif
-    enddo
+           call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
+                nlpspd%plr(iat)%wfd%keygloc(1,iseg)) 
+        end if
+     endif
+  enddo
 
-    i_all=-product(shape(logrid))*kind(logrid)
-    deallocate(logrid,stat=i_stat)
-    call memocc(i_stat,i_all,'logrid',subname)
-    !fill the projectors if the strategy is a distributed calculation
-    if (.not. DistProjApply) then
-       !calculate the wavelet expansion of projectors
-      call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
-    end if
+  i_all=-product(shape(logrid))*kind(logrid)
+  deallocate(logrid,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid',subname)
+  !fill the projectors if the strategy is a distributed calculation
+  if (.not. DistProjApply) then
+     !calculate the wavelet expansion of projectors
+     call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
+  end if
 
 END SUBROUTINE createProjectorsArrays
 

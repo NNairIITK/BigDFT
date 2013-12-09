@@ -9,9 +9,9 @@
 
 
 !> Initialize the objects needed for the computation: basis sets, allocate required space
-subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,dry_run,in,atoms,rxyz,&
      orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
-     ref_frags,inwhichlocreg_old, onwhichatom_old)
+     ref_frags,inwhichlocreg_old, onwhichatom_old,output_grid)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -32,24 +32,30 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
   type(communications_arrays), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
+  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   real(wp), dimension(:), pointer :: proj
   type(system_fragment), dimension(:), pointer :: ref_frags
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
+  logical, intent(in) :: dry_run
+  logical, intent(in), optional :: output_grid
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp!,i_stat,i_all
-  real(gp) :: peakmem
+  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp,i_stat,i_all,nspin_ig,norbe,norbsc
   real(gp), dimension(3) :: h_input
-  logical:: present_inwhichlocreg_old, present_onwhichatom_old
+  logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
+  integer, dimension(:,:), allocatable :: norbsc_arr
+  logical, dimension(:,:,:), allocatable :: scorb
+  real(kind=8), dimension(:), allocatable :: locrad
   !Note proj_G should be filled for PAW:
-  type(gaussian_basis),dimension(atoms%astruct%nat)::proj_G
+  type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
 
   !nullify dummy variables only used for PAW:
   do iatyp=1,atoms%astruct%ntypes
     call nullify_gaussian_basis(proj_G(iatyp))
   end do
 
+  output_grid_ = .false.
+  if (present(output_grid)) output_grid_ = output_grid
 
   ! Dump XC functionals (done now in output.f90)
   !if (iproc == 0) call xc_dump()
@@ -58,7 +64,6 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
 !!$     write( *,'(1x,a)')&
 !!$          &   '------------------------------------------------------------------ System Properties'
 !!$  end if
-  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
   if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
 
   Lzd=default_lzd()
@@ -77,18 +82,20 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
   if (iproc == 0) call vdwcorrection_warnings(atoms, in)
 
-  call initialize_DFT_local_fields(denspot)
+  if (.not. dry_run) then
+     call initialize_DFT_local_fields(denspot)
 
-  !here the initialization of dpbox can be set up
-  call dpbox_set(denspot%dpbox,Lzd,iproc,nproc,bigdft_mpi%mpi_comm,in,atoms%astruct%geocode)
+     !here the initialization of dpbox can be set up
+     call dpbox_set(denspot%dpbox,Lzd,iproc,nproc,bigdft_mpi%mpi_comm,in,atoms%astruct%geocode)
 
-  ! Create the Poisson solver kernels.
-  call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
-  call system_createKernels(denspot, (verbose > 1))
+     ! Create the Poisson solver kernels.
+     call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
+     call system_createKernels(denspot, (verbose > 1))
+  end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
-       rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr)
+       rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr, output_grid_)
 
   ! Create global orbs data structure.
   call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs)
@@ -125,6 +132,69 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
          !i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
          !deallocate(onwhichatom_old,stat=i_stat)
          !call memocc(i_stat,i_all,'onwhichatom_old',subname)
+     end if
+  end if
+
+  !In the case in which the number of orbitals is not "trivial" check whether they are too many
+  if (in%inputpsiId /= INPUT_PSI_RANDOM) then
+
+     ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
+     allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
+     call memocc(i_stat,scorb,'scorb',subname)
+     allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
+     allocate(locrad(atoms%astruct%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,locrad,'locrad',subname)
+
+     !calculate the inputguess orbitals
+     !spin for inputguess orbitals
+     if (in%nspin==4) then
+        nspin_ig=1
+     else
+        nspin_ig=in%nspin
+     end if
+
+     ! Read the inguess.dat file or generate the input guess via the inguess_generator
+     call readAtomicOrbitals(atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
+          &   scorb,norbsc_arr,locrad)
+
+     if (in%nspin==4) then
+        !in that case the number of orbitals doubles
+        norbe=2*norbe
+     end if
+
+     ! De-allocations
+     i_all=-product(shape(locrad))*kind(locrad)
+     deallocate(locrad,stat=i_stat)
+     call memocc(i_stat,i_all,'locrad',subname)
+     i_all=-product(shape(scorb))*kind(scorb)
+     deallocate(scorb,stat=i_stat)
+     call memocc(i_stat,i_all,'scorb',subname)
+     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+     deallocate(norbsc_arr,stat=i_stat)
+     call memocc(i_stat,i_all,'norbsc_arr',subname)
+
+     ! Check the maximum number of orbitals
+     if (in%nspin==1 .or. in%nspin==4) then
+        if (orbs%norb>norbe) then
+           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
+                &   ') must not be greater than the number of orbitals (',norbe,&
+                &   ') generated from the input guess.'
+           stop
+        end if
+     else if (in%nspin == 2) then
+        if (orbs%norbu > norbe) then
+           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
+                &   ') must not be greater than the number of orbitals (',norbe,&
+                &   ') generated from the input guess.'
+           stop
+        end if
+        if (orbs%norbd > norbe) then
+           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
+                &   ') must not be greater than the number of orbitals (',norbe,&
+                &   ') generated from the input guess.'
+           stop
+        end if
      end if
   end if
 
@@ -186,14 +256,10 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-       Lzd%hgrids(3),nlpspd,proj_G,proj)
+       Lzd%hgrids(3),dry_run,nlpspd,proj_G,proj)
   !calculate the partitioning of the orbitals between the different processors
-  !memory estimation, to be rebuilt in a more modular way
-  if (iproc==0 .and. verbose > 0) then
-     call MemoryEstimator(nproc,in%idsx,Lzd%Glr,&
-          atoms%astruct%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
-          in%nspin,in%itrpmax,in%iscf,peakmem)
-  end if
+
+  if (dry_run) return
   
   !here dpbox can be put as input
   call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
@@ -685,7 +751,7 @@ subroutine psp_from_file_paw()
 !!Here we can use bigdft variables
 ! real(dp)::gth_psppar(0:4,0:6),gth_radii_cf(3)
  integer:: gth_semicore
- integer:: mesh_size,ij_size,lmn2_size
+ integer:: mesh_size
  real(dp)::gth_radii_cov
  logical:: gth_hasGeometry
 

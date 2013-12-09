@@ -314,6 +314,7 @@ contains
     nullify(img%delta_pos)
     nullify(img%vel)
 
+    call run_objects_nullify(img%run)
     call run_objects_associate(img%run, inputs, atoms, rst)
     call init_global_output(img%outs, atoms%astruct%nat)
 

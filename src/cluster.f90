@@ -145,7 +145,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         runObj%inputs%inputPsiId=0 !the first run always restart from IG
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
-     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, &
+     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, runObj%radii_cf, &
           & outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
           runObj%rst%KSwfn,runObj%rst%tmb,&!psi,runObj%rst%Lzd,runObj%rst%gaucoeffs,runObj%rst%gbd,runObj%rst%orbs,&
           runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
@@ -222,6 +222,7 @@ subroutine run_objects_nullify(runObj)
   nullify(runObj%inputs)
   nullify(runObj%atoms)
   nullify(runObj%rst)
+  nullify(runObj%radii_cf)
 END SUBROUTINE run_objects_nullify
 
 subroutine run_objects_free(runObj, subname)
@@ -231,6 +232,8 @@ subroutine run_objects_free(runObj, subname)
   implicit none
   type(run_objects), intent(inout) :: runObj
   character(len = *), intent(in) :: subname
+
+  integer :: i_all, i_stat
 
   if (associated(runObj%rst)) then
      call free_restart_objects(runObj%rst,subname)
@@ -244,6 +247,11 @@ subroutine run_objects_free(runObj, subname)
      call free_input_variables(runObj%inputs)
      deallocate(runObj%inputs)
   end if
+  if (associated(runObj%radii_cf)) then
+     i_all=-product(shape(runObj%radii_cf))*kind(runObj%radii_cf)
+     deallocate(runObj%radii_cf,stat=i_stat)
+     call memocc(i_stat,i_all,'radii_cf',subname)
+  end if
   ! to be inserted again soon call f_lib_finalize()
   !call yaml_close_all_streams()
 END SUBROUTINE run_objects_free
@@ -255,23 +263,37 @@ subroutine run_objects_free_container(runObj)
   implicit none
   type(run_objects), intent(inout) :: runObj
 
-  ! Currently do except nullifying everything.
+  integer :: i_all, i_stat
+
+  ! Radii_cf are always owned by run objects.
+  if (associated(runObj%radii_cf)) then
+     i_all=-product(shape(runObj%radii_cf))*kind(runObj%radii_cf)
+     deallocate(runObj%radii_cf,stat=i_stat)
+     call memocc(i_stat,i_all,'radii_cf',"run_objects_free_container")
+  end if
+  ! Currently do nothing except nullifying everything.
   call run_objects_nullify(runObj)
 END SUBROUTINE run_objects_free_container
 
 subroutine run_objects_init_from_files(runObj, radical, posinp)
   use module_types
-  use module_interfaces, only: atoms_new, rst_new, inputs_new
+  use module_interfaces, only: atoms_new, rst_new, inputs_new, bigdft_set_input
   implicit none
   type(run_objects), intent(out) :: runObj
   character(len = *), intent(in) :: radical, posinp
 
+  integer :: i_stat
   integer(kind = 8) :: dummy
 
   call run_objects_nullify(runObj)
   call atoms_new(runObj%atoms)
   call inputs_new(runObj%inputs)
   call bigdft_set_input(radical, posinp, runObj%inputs, runObj%atoms)
+
+  allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
+  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
+       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 
   call rst_new(dummy, runObj%rst)
   call restart_objects_new(runObj%rst)
@@ -309,13 +331,20 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   type(restart_objects), intent(in), target :: rst
   real(gp), intent(in), optional :: rxyz0
 
-  call run_objects_nullify(runObj)
+  integer :: i_stat
+
+  call run_objects_free_container(runObj)
   runObj%atoms  => atoms
   runObj%inputs => inputs
   runObj%rst    => rst
   if (present(rxyz0)) then
      call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
   end if
+
+  allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
+  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
+       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 END SUBROUTINE run_objects_associate
 
 !>  Main routine which does self-consistent loop.
@@ -336,7 +365,7 @@ END SUBROUTINE run_objects_associate
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
+subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fnoise,pressure,&
      KSwfn,tmb,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
@@ -357,6 +386,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(DFT_wavefunction), intent(inout) :: KSwfn, tmb
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
+  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   integer, intent(out) :: infocode
   type(energy_terms), intent(out) :: energs
   real(gp), intent(out) :: energy,fnoise,pressure
@@ -385,7 +415,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(cdft_data) :: cdft
   real(gp), dimension(3) :: shift
   real(dp), dimension(6) :: ewaldstr,xcstr
-  real(gp), dimension(:,:), allocatable :: radii_cf,thetaphi,band_structure_eval
+  real(gp), dimension(:,:), allocatable :: thetaphi,band_structure_eval
   real(gp), dimension(:,:), pointer :: fdisp,fion,fpulay
   ! Charge density/potential,ionic potential, pkernel
   type(DFT_local_fields) :: denspot
@@ -398,6 +428,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   real(wp), dimension(:), pointer :: psi_old, psi_constrained
   real(gp), dimension(:), pointer :: in_frag_charge
   real(gp) :: energy_constrained
+  real(gp) :: peakmem
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj,gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
@@ -524,9 +555,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   ! grid spacing (same in x,y and z direction)
  
-  allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,radii_cf,'radii_cf',subname)
-
   ! only needed for linear restart
   if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
      allocate(ref_frags(in%frag%nfrag_ref))
@@ -538,15 +566,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   end if
 
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-    call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+    call system_initialization(iproc,nproc,inputpsi,input_wf_format,.false.,in,atoms,rxyz,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
          KSwfn%comms,shift,proj,radii_cf,ref_frags,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
   else
-    call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+    call system_initialization(iproc,nproc,inputpsi,input_wf_format,.false.,in,atoms,rxyz,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
          KSwfn%comms,shift,proj,radii_cf,ref_frags)
   end if
 
+  !memory estimation, to be rebuilt in a more modular way
+  if (iproc==0 .and. verbose > 0) then
+     call MemoryEstimator(nproc,in%idsx,KSwfn%Lzd%Glr,&
+          atoms%astruct%nat,KSwfn%orbs%norb,KSwfn%orbs%nspinor,KSwfn%orbs%nkpts,&
+          nlpspd%nprojel,in%nspin,in%itrpmax,in%iscf,peakmem)
+  end if
 
   if (in%lin%fragment_calculation .and. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
      call output_fragment_rotations(iproc,nproc,atoms%astruct%nat,rxyz,1,trim(in%dir_output),in%frag,ref_frags)
@@ -1091,7 +1125,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
            call createProjectorsArrays(iproc,KSwfn%Lzd%Glr,rxyz,atoms,VTwfn%orbs,&
-                radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),nlpspd,proj_G,proj) 
+                radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),.false.,nlpspd,proj_G,proj) 
            call timing(iproc,'CrtProjectors ','OF') 
 
         else
@@ -1466,11 +1500,6 @@ contains
     else
        !deallocate(tmb%confdatarr)
     end if
-
-    ! Free radii_cf
-    i_all=-product(shape(radii_cf))*kind(radii_cf)
-    deallocate(radii_cf,stat=i_stat)
-    call memocc(i_stat,i_all,'radii_cf',subname)
 
     ! Free projectors.
     call deallocate_proj_descr(nlpspd,subname)

@@ -386,7 +386,7 @@ module module_interfaces
       END SUBROUTINE createWavefunctionsDescriptors
 
      subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
-            &   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_G,proj)
+            &   radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nlpspd,proj_G,proj)
          !n(c) use module_base
          use module_types
          use gaussians, only: gaussian_basis
@@ -398,6 +398,7 @@ module module_interfaces
        type(locreg_descriptors),intent(in) :: lr
          real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+         logical, intent(in) :: dry_run
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
        type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
          real(kind=8), dimension(:), pointer :: proj
@@ -1102,20 +1103,6 @@ module module_interfaces
          real(wp), dimension(:), pointer, optional :: work
          real(wp), intent(out), optional :: outadd
       END SUBROUTINE untranspose_v
-
-     subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*) :: orbname
-         integer, intent(in) :: nexpo
-       real(dp), intent(in) :: factor
-         real(gp), intent(in) :: hx,hy,hz
-         type(atoms_data), intent(in) :: at
-         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-         type(locreg_descriptors), intent(in) :: lr
-         real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
-      END SUBROUTINE plot_wf
 
       subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
             &   hfac,nscatterarr,spinsgn,psir,rho_p,ibyyzz_r) !ex-optional argument
@@ -3135,9 +3122,21 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
        end subroutine create_LzdLIG
 
-       subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
+       subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
+         use module_types
+         implicit none
+         character(len = *), intent(in) :: fname
+         type(atoms_data), intent(in) :: atoms
+         real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+         real(gp), intent(in) :: hx, hy, hz
+         integer, intent(in) :: n1, n2, n3
+         logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid_c
+         logical, dimension(0:n1,0:n2,0:n3), intent(in), optional :: logrid_f
+       end subroutine export_grids
+
+       subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,dry_run,in,atoms,rxyz,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
-            ref_frags, inwhichlocreg_old, onwhichatom_old)
+            ref_frags, inwhichlocreg_old, onwhichatom_old, output_grid)
          use module_base
          use module_types
          use module_fragments
@@ -3153,10 +3152,12 @@ module module_interfaces
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
          type(communications_arrays), intent(out) :: comms
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
-         real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
+         real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
          real(wp), dimension(:), pointer :: proj
          type(system_fragment), dimension(:), pointer :: ref_frags
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
+         logical, intent(in) :: dry_run
+         logical, intent(in), optional :: output_grid
        end subroutine system_initialization
 
        subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs, iproc, nproc, nfrag, frag_dir, ref_frags)

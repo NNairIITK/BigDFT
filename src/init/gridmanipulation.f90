@@ -450,6 +450,74 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
    !mseg=nend
 END SUBROUTINE segkeys
 
+subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
+  use module_types
+  implicit none
+  character(len = *), intent(in) :: fname
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), intent(in) :: hx, hy, hz
+  integer, intent(in) :: n1, n2, n3
+  logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid_c
+  logical, dimension(0:n1,0:n2,0:n3), intent(in), optional :: logrid_f
+
+  integer :: nvctr, iat, i3, i2, i1
+
+  nvctr = 0
+  do i3=0,n3  
+     do i2=0,n2  
+        do i1=0,n1
+           if (logrid_c(i1,i2,i3)) nvctr = nvctr + 1
+        enddo
+     enddo
+  end do
+  if (present(logrid_f)) then
+     do i3=0,n3  
+        do i2=0,n2  
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3)) nvctr = nvctr + 1
+           enddo
+        enddo
+     end do
+  end if
+
+  ! Create the file grid.xyz to visualize the grid of functions
+  open(unit=22,file=fname,status='unknown')
+  write(22,*) nvctr+atoms%astruct%nat,' atomic'
+  if (atoms%astruct%geocode=='F') then
+     write(22,*)'complete simulation grid with low and high resolution points'
+  else if (atoms%astruct%geocode =='S') then
+     write(22,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3)
+  else if (atoms%astruct%geocode =='P') then
+     write(22,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+          atoms%astruct%cell_dim(3)
+  end if
+  do iat=1,atoms%astruct%nat
+     write(22,'(a6,2x,3(1x,e12.5),3x)') &
+          &   trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+  enddo
+  do i3=0,n3  
+     do i2=0,n2  
+        do i1=0,n1
+           if (logrid_c(i1,i2,i3))&
+                &   write(22,'(a4,2x,3(1x,e10.3))') &
+                &   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+        enddo
+     enddo
+  end do
+  if (present(logrid_f)) then
+     do i3=0,n3 
+        do i2=0,n2 
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3))&
+                   &   write(22,'(a4,2x,3(1x,e10.3))') &
+                   &   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+           enddo
+        enddo
+     enddo
+  end if
+  close(22)
+END SUBROUTINE export_grids
 
 !> Set up an array logrid(i1,i2,i3) that specifies whether the grid point
 !! i1,i2,i3 is the center of a scaling function/wavelet

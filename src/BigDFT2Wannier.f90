@@ -167,7 +167,7 @@ program BigDFT2Wannier
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-      &   atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
+      & atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
 
    ! don't need radii_cf anymore
    i_all = -product(shape(radii_cf))*kind(radii_cf)

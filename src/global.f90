@@ -189,6 +189,7 @@ program MINHOP
   inputs_opt%inputPsiId=0
 
   call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst,subname)
+  call run_objects_nullify(runObj)
   call run_objects_associate(runObj, inputs_md, atoms, rst)
   call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 

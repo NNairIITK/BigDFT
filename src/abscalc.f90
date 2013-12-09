@@ -512,7 +512,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
    call createProjectorsArrays(iproc,KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_tmp,proj)
+        radii_cf,cpmult,fpmult,hx,hy,hz,.false.,nlpspd,proj_tmp,proj)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)
 
