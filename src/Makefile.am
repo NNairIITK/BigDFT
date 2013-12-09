@@ -114,7 +114,7 @@ high_level = cluster.f90 \
 	init.f90 \
 	initialization.f90 \
 	input_variables.f90 \
-	input_variables_old.f90 \
+	input_variables_text.f90 \
 	sumrho.f90 \
 	hpsiortho.f90 \
 	forces.f90 \
@@ -375,7 +375,6 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		--no-libtool \
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \
-		$(GLIB_LIBS) \
 		$(srcdir)/modules/bigdft.h \
 		$(srcdir)/modules/bigdft_input_keys.h \
 		$(builddir)/modules/bigdft_cst.h \
