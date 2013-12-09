@@ -91,6 +91,7 @@ typedef void _rho_descriptors;
 typedef void _rholoc_objects;
 typedef void _wavefunctions_descriptors;
 typedef void _gaussian_basis;
+typedef void _cdft_data;
 
 /***************************/
 /* Generic pointer arrays. */

@@ -481,6 +481,16 @@ subroutine inputs_set_at(dict, file, key, i, val)
   ! This is a patch for Intel, to be corrected properly later.
   call set(dict // file(1:len(file)) // key(1:len(key)) // i, val(1:len(val)))
 END SUBROUTINE inputs_set_at
+subroutine inputs_set_at2(dict, file, key, i, j, val)
+  use dictionaries
+  use module_types
+  implicit none
+  type(dictionary), pointer :: dict
+  integer, intent(in) :: i, j
+  character(len = *), intent(in) :: file, key, val
+  ! This is a patch for Intel, to be corrected properly later.
+  call set(dict // file(1:len(file)) // key(1:len(key)) // i // j, val(1:len(val)))
+END SUBROUTINE inputs_set_at2
 
 subroutine inputs_set_from_file(dict, fname)
   use dictionaries, only: dictionary
@@ -493,6 +503,36 @@ subroutine inputs_set_from_file(dict, fname)
 
   call read_input_dict_from_files(fname, bigdft_mpi,dict)
 end subroutine inputs_set_from_file
+subroutine inputs_dump_to_file(iostat, dict, fname, userOnly)
+  use dictionaries, only: dictionary
+  use module_input_keys, only: input_keys_dump
+  use yaml_output
+  implicit none
+  integer, intent(out) :: iostat
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: fname
+  logical, intent(in) :: userOnly
+
+  integer, parameter :: iunit = 756841 !< Hopefully being unique...
+  integer :: iunit_def
+
+  call yaml_get_default_stream(iunit_def)
+  if (iunit_def == iunit) then
+     iostat = 1
+     return
+  end if
+  
+  open(unit = iunit, file = fname(1:len(fname)), iostat = iostat)
+  if (iostat /= 0) return
+
+  call yaml_set_stream(unit=iunit, tabbing = 40, record_length = 100, istat = iostat)
+  if (iostat /= 0) return
+
+  call input_keys_dump(dict, userOnly)
+
+  close(unit = iunit)
+  call yaml_set_default_stream(iunit_def, iostat)
+end subroutine inputs_dump_to_file
 
 subroutine inputs_fill_all(inputs_values)
   use module_input_keys
