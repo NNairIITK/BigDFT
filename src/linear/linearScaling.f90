@@ -3480,3 +3480,124 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   end if
 
 end subroutine build_ks_orbitals
+
+
+
+
+subroutine scalprod_on_boundary(tmb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(DFT_wavefunction),intent(in) :: tmb
+
+  ! Local variables
+  integer :: ishift, iorb, iiorb, ilr, iseg, jj_prev, j0_prev, j1_prev, ii_prev, i3_prev, i2_prev, i1_prev, i0_prev
+  integer :: jj, j0, j1, ii, i3, i2, i1, i0
+  real(kind=8),dimension(:),allocatable :: phi_delta
+  logical,dimension(:,:,:),allocatable :: boundaryarray
+  real(kind=8) :: dist, crit
+
+  ! First copy the boundary elements of the first array to a temporary array,
+  ! filling the remaining part with zeros.
+  phi_delta=f_malloc(tmb%orbs%npsidim_orbs)
+  ishift=0
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      boundaryarray=f_malloc((/0.to.tmb%lzd%llr(ilr)%d%n1,0.to.tmb%lzd%llr(ilr)%d%n2,0.to.tmb%lzd%llr(ilr)%d%n3/))
+      boundaryarray=.false.
+
+      ! First check whether the boundary elements 
+
+      ! coarse part
+      do iseg=2,tmb%lzd%llr(ilr)%wfd%nseg_c
+          jj_prev=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg-1)
+          j0_prev=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg-1)
+          j1_prev=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg-1)
+          ii_prev=j0_prev-1
+          i3_prev=ii_prev/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+          ii_prev=ii_prev-i3_prev*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+          i2_prev=ii_prev/(tmb%lzd%llr(ilr)%d%n1+1)
+          i0_prev=ii_prev-i2_prev*(tmb%lzd%llr(ilr)%d%n1+1)
+          i1_prev=i0_prev+j1_prev-j0_prev
+
+          jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+          j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+          j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+          ii=j0-1
+          i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+          ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+          i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+          i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+          i1=i0+j1-j0
+
+          if (i2/=i2_prev .or. i3/=i3_prev) then
+              ! Segment starts on a new line, i.e. this is a boundary element.
+              ! Furthermore the last element of the previous segment must be a
+              ! boundary element as well. However this is only true if the
+              ! distance from teh locreg center corresponds to the cutoff
+              ! radius, otherwise it is only a boundary elemrnt of the global
+              ! grid and not of the localization region.
+              dist= sqrt((i1_prev-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+                        +(i2_prev-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+                        +(i3_prev-tmb%lzd%llr(ilr)%locregcenter(3))**2)
+              crit=tmb%lzd%llr(ilr)%locrad-sqrt(tmb%lzd%hgrids(1)**2+tmb%lzd%hgrids(2)**2+tmb%lzd%hgrids(3)**2)
+              if (dist>=crit) then
+                  ! boundary element of the locreg
+                  phi_delta(ishift+jj-1)=tmb%psi(ishift+jj-1)
+                  boundaryarray(i0_prev,i2_prev,i3_prev)=.true.
+              end if
+              dist= sqrt((i1-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+                        +(i2-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+                        +(i3-tmb%lzd%llr(ilr)%locregcenter(3))**2)
+              crit=tmb%lzd%llr(ilr)%locrad-sqrt(tmb%lzd%hgrids(1)**2+tmb%lzd%hgrids(2)**2+tmb%lzd%hgrids(3)**2)
+              if (dist>=crit) then
+                  phi_delta(ishift+jj)=tmb%psi(ishift+jj)
+                  boundaryarray(i0,i2,i3)=.true.
+              end if
+          end if
+      end do
+
+      ! fine part
+      do iseg=tmb%lzd%llr(ilr)%wfd%nseg_c+1,tmb%lzd%llr(ilr)%wfd%nseg_c+tmb%lzd%llr(ilr)%wfd%nseg_f
+          jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+          j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+          j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+          ii=j0-1
+          i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+          ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+          i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+          i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+          i1=i0+j1-j0
+          ! The segments goes now from i0 to i1
+          ! Check the beginnig of the segment. If it was a boundary element of
+          ! the coarse grid, copy its content also for the fine part.
+          if (boundaryarray(i0,i2,i3)) then
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+2)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+2)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+3)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+3)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+4)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+4)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+5)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+5)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7)
+          end if
+          ! Check the end of the segment. If it was a boundary element of
+          ! the coarse grid, copy its content also for the fine part.
+          if (boundaryarray(i1,i2,i3)) then
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+2)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+2)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+3)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+3)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+4)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+4)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+5)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+5)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6)
+              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7)=tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7)
+          end if
+      end do
+
+      ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      call f_free(boundaryarray)
+  end do
+
+end subroutine scalprod_on_boundary
