@@ -145,7 +145,6 @@ module module_input_keys
   character(len = *), parameter :: COND = "CONDITION", WHEN = "WHEN"
   character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
 
-
   public :: input_keys_init, input_keys_finalize
   public :: input_keys_set, input_keys_fill, input_keys_fill_all, input_keys_dump
   public :: input_keys_equal, input_keys_get_source, input_keys_dump_def
@@ -1215,8 +1214,9 @@ contains
                  !exclude keys for definition of the variable
                  var_prof=dict_key(defvar)
 !              call yaml_map('key',var_prof)
-                 if (.not. any(var_prof == (/&
-                      COMMENT, COND, RANGE, PROF_KEY, EXCLUSIVE /))) then
+                 if (trim(var_prof)/=COMMENT .and. trim(var_prof)/=COND .and.&
+                      trim(var_prof)/=RANGE .and. trim(var_prof)/=PROF_KEY .and.&
+                      trim(var_prof)/=EXCLUSIVE) then
                     !check if some profile meets desired values
 !call yaml_map('defvar',defvar)
 !call yaml_map('input',input//def_var)
