@@ -1195,7 +1195,7 @@ contains
         type(dictionary), pointer :: vars,input,minim
         !local variables
         logical :: profile_found
-        character(len=max_field_length) :: def_var,in_var,var_prof
+        character(len=max_field_length) :: def_var,in_var,var_prof,empty
         type(dictionary), pointer :: defvar,var
         nullify(minim)
 

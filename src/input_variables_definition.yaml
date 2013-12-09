@@ -464,7 +464,7 @@
        OCLGPU: OpenCL on GPU
        OCLCPU: OpenCL on CPU
        OCLACC: ???
-     default: No
+     default: no
    ocl_platform:
      COMMENT: Chosen OCL platform
      default: ~
