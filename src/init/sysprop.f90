@@ -9,7 +9,7 @@
 
 
 !> Initialize the objects needed for the computation: basis sets, allocate required space
-subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,dry_run,in,atoms,rxyz,&
+subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,in,atoms,rxyz,&
      orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
      ref_frags,inwhichlocreg_old, onwhichatom_old,output_grid)
   use module_base
@@ -36,7 +36,7 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,dry_run,in
   real(wp), dimension(:), pointer :: proj
   type(system_fragment), dimension(:), pointer :: ref_frags
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
-  logical, intent(in) :: dry_run
+  logical, intent(in) :: dry_run, dump
   logical, intent(in), optional :: output_grid
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
@@ -64,7 +64,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,dry_run,in
 !!$     write( *,'(1x,a)')&
 !!$          &   '------------------------------------------------------------------ System Properties'
 !!$  end if
-  if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
+  if (iproc == 0 .And. dump) &
+       & call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
 
   Lzd=default_lzd()
 
@@ -203,10 +204,10 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,dry_run,in
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
   if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
       .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
-     if(iproc==0) call print_orbital_distribution(iproc, nproc, lorbs)
+     if(iproc==0 .and. dump) call print_orbital_distribution(iproc, nproc, lorbs)
   end if
 
-  if (iproc == 0) then
+  if (iproc == 0 .and. dump) then
      nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
      nMB=nB/1024/1024
      nKB=(nB-nMB*1024*1024)/1024

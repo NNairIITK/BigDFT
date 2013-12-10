@@ -3134,7 +3134,7 @@ module module_interfaces
          logical, dimension(0:n1,0:n2,0:n3), intent(in), optional :: logrid_f
        end subroutine export_grids
 
-       subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,dry_run,in,atoms,rxyz,&
+       subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,in,atoms,rxyz,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
             ref_frags, inwhichlocreg_old, onwhichatom_old, output_grid)
          use module_base
@@ -3156,7 +3156,7 @@ module module_interfaces
          real(wp), dimension(:), pointer :: proj
          type(system_fragment), dimension(:), pointer :: ref_frags
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
-         logical, intent(in) :: dry_run
+         logical, intent(in) :: dry_run, dump
          logical, intent(in), optional :: output_grid
        end subroutine system_initialization
 

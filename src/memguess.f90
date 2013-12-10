@@ -34,19 +34,17 @@ program memguess
    integer :: norbgpu,ng
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
    real(gp) :: peakmem,hx,hy,hz,energy
-   type(input_variables) :: in
-   type(atoms_data) :: atoms
-   type(restart_objects) :: rst
+   type(run_objects) :: runObj
    type(DFT_local_fields) :: denspot
    type(orbitals_data) :: orbstst
    type(nonlocal_psp_descriptors) :: nlpspd
    type(gaussian_basis) :: G !basis for davidson IG
+   type(atoms_data) :: at
    type(denspot_distribution) :: dpbox
    real(gp), dimension(3) :: shift
    real(gp), dimension(:,:), pointer :: fxyz
    real(wp), dimension(:), allocatable :: rhoexpo
    real(wp), dimension(:,:,:,:), pointer :: rhocoeff
-   real(kind=8), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(:), pointer :: gbd_occ
    real(wp), dimension(:), pointer :: proj
    type(system_fragment), dimension(:), pointer :: ref_frags
@@ -264,47 +262,47 @@ program memguess
    !call print_logo()
 
    if (convert) then
-      atoms%astruct%geocode = "P"
+      at%astruct%geocode = "P"
       write(*,*) "Read density file..."
-      call read_density(trim(fileFrom), atoms%astruct%geocode, &
+      call read_density(trim(fileFrom), at%astruct%geocode, &
            & dpbox%ndims(1), dpbox%ndims(2), dpbox%ndims(3), &
            & nspin, dpbox%hgrids(1), dpbox%hgrids(2), dpbox%hgrids(3), &
-           & rhocoeff, atoms%astruct%nat, atoms%astruct%rxyz, atoms%astruct%iatype, atoms%nzatom)
-      atoms%astruct%ntypes = size(atoms%nzatom) - ndebug
+           & rhocoeff, at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
+      at%astruct%ntypes = size(at%nzatom) - ndebug
       write(*,*) "Write new density file..."
       allocate(dpbox%ngatherarr(0:0,2+ndebug),stat=i_stat)
       call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
 
-      call plot_density(0,1,trim(fileTo),atoms,atoms%astruct%rxyz,dpbox,nspin,rhocoeff)
+      call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
       write(*,*) "Done"
       stop
    end if
    if (convertpos) then
-      call read_atomic_file(trim(fileFrom),0,atoms%astruct,i_stat,fcomment,energy,fxyz)
+      call read_atomic_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
       if (i_stat /=0) stop 'error on input file parsing' 
       !find the format of the output file
       if (index(fileTo,'.xyz') > 0) then
          irad=index(fileTo,'.xyz')
-         atoms%astruct%inputfile_format='xyz  '
+         at%astruct%inputfile_format='xyz  '
       else if (index(fileTo,'.ascii') > 0) then
          irad=index(fileTo,'.ascii')
-         atoms%astruct%inputfile_format='ascii'
+         at%astruct%inputfile_format='ascii'
       else if (index(fileTo,'.yaml') > 0) then
          irad=index(fileTo,'.yaml')
-         atoms%astruct%inputfile_format='yaml '
+         at%astruct%inputfile_format='yaml '
       else
          irad = len(trim(fileTo)) + 1
       end if
       
       if (associated(fxyz)) then
-         call write_atomic_file(fileTo(1:irad-1),energy,atoms%astruct%rxyz,atoms,&
+         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")", fxyz)
 
          i_all=-product(shape(fxyz))*kind(fxyz)
          deallocate(fxyz,stat=i_stat)
          call memocc(i_stat,i_all,'fxyz',subname)
       else
-         call write_atomic_file(fileTo(1:irad-1),energy,atoms%astruct%rxyz,atoms,&
+         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
       end if
       stop
@@ -318,62 +316,55 @@ program memguess
       posinp=trim(radical)
    end if
 
-   call bigdft_set_input(radical,posinp,in,atoms)
-
-   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-   call memocc(i_stat,radii_cf,'radii_cf',subname)
-
-   call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
-   !initialize memory counting
-   !call memocc(0,0,'count','start')
+   call run_objects_init_from_files(runObj, radical, posinp)
 
    if (optimise) then
-      if (atoms%astruct%geocode =='F') then
-         call optimise_volume(atoms,in%crmult,in%frmult,in%hx,in%hy,in%hz,atoms%astruct%rxyz,radii_cf)
+      if (runObj%atoms%astruct%geocode =='F') then
+         call optimise_volume(runObj%atoms,&
+              & runObj%inputs%crmult,runObj%inputs%frmult,&
+              & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,&
+              & runObj%atoms%astruct%rxyz,runObj%radii_cf)
       else
-         call shift_periodic_directions(atoms,atoms%astruct%rxyz,radii_cf)
+         call shift_periodic_directions(runObj%atoms,runObj%atoms%astruct%rxyz,runObj%radii_cf)
       end if
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-      call write_atomic_file('posopt',0.d0,atoms%astruct%rxyz,atoms,trim(comment))
+      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment))
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 
-   call print_dft_parameters(in,atoms)
+   call print_dft_parameters(runObj%inputs,runObj%atoms)
 
    !Time initialization
    !call cpu_time(tcpu0)
    !call system_clock(ncount0,ncount_rate,ncount_max)
 
-
-
-
-
-   call init_restart_objects(0,in,atoms,rst,subname)
-
-   call system_initialization(0, nproc, inputpsi, input_wf_format, .true., in, &
-        & atoms, atoms%astruct%rxyz, &
-        & rst%KSwfn%orbs, rst%tmb%npsidim_orbs, rst%tmb%npsidim_comp, &
-        & rst%tmb%orbs, rst%KSwfn%Lzd, rst%tmb%Lzd, denspot, nlpspd, rst%KSwfn%comms, &
-        & shift, proj, radii_cf, ref_frags, output_grid = (output_grid > 0))
+   nullify(ref_frags)
+   call system_initialization(0, nproc, .false.,inputpsi, input_wf_format, .true., &
+        & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, &
+        & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
+        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, denspot, nlpspd, runObj%rst%KSwfn%comms, &
+        & shift, proj, runObj%radii_cf, ref_frags, output_grid = (output_grid > 0))
    
    if (.not. exportwf) then
-      call MemoryEstimator(nproc,in%idsx,rst%KSwfn%Lzd%Glr,&
-           atoms%astruct%nat,rst%KSwfn%orbs%norb,rst%KSwfn%orbs%nspinor,rst%KSwfn%orbs%nkpts,nlpspd%nprojel,&
-           in%nspin,in%itrpmax,in%iscf,peakmem)
+      call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
+           runObj%atoms%astruct%nat,runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
+           & runObj%rst%KSwfn%orbs%nkpts,nlpspd%nprojel,&
+           runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,peakmem)
    else
-      allocate(rst%KSwfn%psi((rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
-           & 7*rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*rst%KSwfn%orbs%nspinor+ndebug),stat=i_stat)
-      call memocc(i_stat,rst%KSwfn%psi,'psi',subname)
+      allocate(runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor+ndebug),stat=i_stat)
+      call memocc(i_stat,runObj%rst%KSwfn%psi,'psi',subname)
 
       ! Optionally compute iorbp from arguments in case of ETSF.
-      if (export_wf_ikpt < 1 .or. export_wf_ikpt > rst%KSwfn%orbs%nkpts) stop "Wrong k-point"
-      if (export_wf_ispin < 1 .or. export_wf_ispin > rst%KSwfn%orbs%nspin) stop "Wrong spin"
+      if (export_wf_ikpt < 1 .or. export_wf_ikpt > runObj%rst%KSwfn%orbs%nkpts) stop "Wrong k-point"
+      if (export_wf_ispin < 1 .or. export_wf_ispin > runObj%rst%KSwfn%orbs%nspin) stop "Wrong spin"
       if ((export_wf_ispin == 1 .and. &
-           & (export_wf_iband < 1 .or. export_wf_iband > rst%KSwfn%orbs%norbu)) .or. &
+           & (export_wf_iband < 1 .or. export_wf_iband > runObj%rst%KSwfn%orbs%norbu)) .or. &
            & (export_wf_ispin == 0 .and. &
-           & (export_wf_iband < 1 .or. export_wf_iband > rst%KSwfn%orbs%norbd))) stop "Wrong orbital"
-      iorbp = (export_wf_ikpt - 1) * rst%KSwfn%orbs%norb + (export_wf_ispin - 1) * rst%KSwfn%orbs%norbu + export_wf_iband
+           & (export_wf_iband < 1 .or. export_wf_iband > runObj%rst%KSwfn%orbs%norbd))) stop "Wrong orbital"
+      iorbp = (export_wf_ikpt - 1) * runObj%rst%KSwfn%orbs%norb + &
+           & (export_wf_ispin - 1) * runObj%rst%KSwfn%orbs%norbu + export_wf_iband
 
       ! ref_frags to be allocated here
       i = index(filename_wfn, "/",back=.true.)+1
@@ -383,14 +374,15 @@ program memguess
       end if
 
       call yaml_map("Export wavefunction from file", trim(filename_wfn))
-      call take_psi_from_file(filename_wfn,in%frag,hx,hy,hz,rst%KSwfn%Lzd%Glr, &
-           & atoms,atoms%astruct%rxyz,rst%KSwfn%orbs,rst%KSwfn%psi,iorbp,export_wf_ispinor,ref_frags)
-      call filename_of_iorb(.false.,"wavefunction",rst%KSwfn%orbs,iorbp, &
+      call take_psi_from_file(filename_wfn,runObj%inputs%frag,hx,hy,hz,runObj%rst%KSwfn%Lzd%Glr, &
+           & runObj%atoms,runObj%atoms%astruct%rxyz,runObj%rst%KSwfn%orbs,runObj%rst%KSwfn%psi,&
+           & iorbp,export_wf_ispinor,ref_frags)
+      call filename_of_iorb(.false.,"wavefunction",runObj%rst%KSwfn%orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
 
-      call plot_wf(filename_wfn,1,atoms,1.0_wp,rst%KSwfn%Lzd%Glr,hx,hy,hz,atoms%astruct%rxyz, &
-           & rst%KSwfn%psi((rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
-           & 7*rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
+      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr,hx,hy,hz,runObj%atoms%astruct%rxyz, &
+           & runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
    end if
 
    if (GPUtest) then
@@ -399,7 +391,7 @@ program memguess
       !test orbitals
       nspin=1
       if (norbgpu == 0) then
-         norb=rst%KSwfn%orbs%norb
+         norb=runObj%rst%KSwfn%orbs%norb
       else
          norb=norbgpu
       end if
@@ -407,8 +399,8 @@ program memguess
       norbd=0
       nspinor=1
 
-      call orbitals_descriptors(0,nproc,norb,norbu,norbd,in%nspin,nspinor, &
-           in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbstst,.false.)
+      call orbitals_descriptors(0,nproc,norb,norbu,norbd,runObj%inputs%nspin,nspinor, &
+           runObj%inputs%gen_nkpt,runObj%inputs%gen_kpt,runObj%inputs%gen_wkpt,orbstst,.false.)
       allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
       call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
       do iorb=1,orbstst%norbp
@@ -420,16 +412,18 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in%linear,rst%KSwfn%Lzd,atoms,orbstst,in%nspin,atoms%astruct%rxyz)
+      call check_linear_and_create_Lzd(0,1,runObj%inputs%linear,runObj%rst%KSwfn%Lzd,&
+           & runObj%atoms,orbstst,runObj%inputs%nspin,runObj%atoms%astruct%rxyz)
 
       !for the given processor (this is only the cubic strategy)
-      orbstst%npsidim_orbs=(rst%KSwfn%Lzd%Glr%wfd%nvctr_c+7*rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
+      orbstst%npsidim_orbs=(runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
       orbstst%npsidim_comp=1
 
 
-      call compare_cpu_gpu_hamiltonian(0,1,in%matacc,atoms,&
-           orbstst,nspin,in%ncong,in%ixc,&
-           rst%KSwfn%Lzd,hx,hy,hz,atoms%astruct%rxyz,ntimes)
+      call compare_cpu_gpu_hamiltonian(0,1,runObj%inputs%matacc,runObj%atoms,&
+           orbstst,nspin,runObj%inputs%ncong,runObj%inputs%ixc,&
+           runObj%rst%KSwfn%Lzd,hx,hy,hz,runObj%atoms%astruct%rxyz,ntimes)
 
       call deallocate_orbs(orbstst,subname)
 
@@ -446,7 +440,7 @@ program memguess
       !ng=31
       !plot the wavefunctions for the pseudo atom
       nullify(G%rxyz)
-      call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,atoms%astruct%rxyz,G,gbd_occ)
+      call gaussian_pswf_basis(ng,.false.,0,runObj%inputs%nspin,runObj%atoms,runObj%atoms%astruct%rxyz,G,gbd_occ)
       !for the moment multiply the number of coefficients for each channel
       allocate(rhocoeff((ng*(ng+1))/2,4,1,1+ndebug),stat=i_stat)
       call memocc(i_stat,rhocoeff,'rhocoeff',subname)
@@ -466,10 +460,10 @@ program memguess
 
       !!$  !plot the wavefunctions for the AE atom
       !!$  !not possible, the code should recognize the AE eleconf
-      !!$  call razero(35,atoms%psppar(0,0,atoms%astruct%iatype(1)))
-      !!$  atoms%psppar(0,0,atoms%astruct%iatype(1))=0.01_gp
+      !!$  call razero(35,runObj%atoms%psppar(0,0,runObj%atoms%astruct%iatype(1)))
+      !!$  runObj%atoms%psppar(0,0,runObj%atoms%astruct%iatype(1))=0.01_gp
       !!$  nullify(G%rxyz)
-      !!$  call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,atoms%astruct%rxyz,G,gbd_occ)
+      !!$  call gaussian_pswf_basis(ng,.false.,0,runObj%inputs%nspin,atoms,runObj%atoms%astruct%rxyz,G,gbd_occ)
       !!$  !for the moment multiply the number of coefficients for each channel
       !!$  allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
       !!$  call memocc(i_stat,rhocoeff,'rhocoeff',subname)
@@ -498,23 +492,16 @@ program memguess
 
    ! Add the comparison between cuda hamiltonian and normal one if it is the case
 
-   call deallocate_atoms(atoms,subname)
-
-   i_all=-product(shape(radii_cf))*kind(radii_cf)
-   deallocate(radii_cf,stat=i_stat)
-   call memocc(i_stat,i_all,'radii_cf',subname)
-
    ! De-allocations
-   call deallocate_Lzd_except_Glr(rst%KSwfn%Lzd, subname)
-   call deallocate_comms(rst%KSwfn%comms,subname)
-   call deallocate_orbs(rst%KSwfn%orbs,subname)
-   call free_restart_objects(rst, subname)
+   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
+   call deallocate_comms(runObj%rst%KSwfn%comms,subname)
+   call deallocate_orbs(runObj%rst%KSwfn%orbs,subname)
    call deallocate_proj_descr(nlpspd,subname)  
 
    !remove the directory which has been created if it is possible
-   call deldir(in%dir_output,len(trim(in%dir_output)),ierror)
-   call free_input_variables(in)  
+   call deldir(runObj%inputs%dir_output,len(trim(runObj%inputs%dir_output)),ierror)
 
+   call run_objects_free(runObj)
 !   !finalize memory counting
 !   call memocc(0,0,'count','stop')
 
