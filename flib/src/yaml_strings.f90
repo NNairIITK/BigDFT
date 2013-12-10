@@ -110,6 +110,14 @@ contains
     if (lgt_add+string_pos > string_lgt) then
        !try to eliminate trailing spaces
        lgt_add=len_trim(buffer)
+    end if
+
+    if (lgt_add+string_pos > string_lgt) then
+       !ic corrections August 23rd 2013
+       !If the string is too long, truncate the length to the length of String: string_lgt-string_pos
+       !write in stderr that a problem is produced (not compatible with pure procedures
+       !write(0,*)'WARNING: Length of Buffer is too long: ',lgt_add
+       !write(0,*)'WARNING: Missing string: ',buffer(string_lgt-string_pos:lgt_add)
        if (present(istat)) then
           istat=-1
           return
