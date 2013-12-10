@@ -1134,11 +1134,11 @@
 !           abinit to libxc
             if(ixcpp==1)then
                 write(6,*)'LDA pade: ixc = 1 or -20 are equivalent.'
-                ixcpp=-20
+!                ixcpp=-20
             end if
             if(ixcpp==11)then
                 write(6,*)'PBE: ixc = 11 or -101130 are equivalent.'
-                ixcpp=-101130
+!                ixcpp=-101130
             end if
 
 
