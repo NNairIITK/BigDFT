@@ -14,7 +14,8 @@ TESTDIRS = Locreg \
        cdft \
        hybrid-directmin \
        experimentalmode \
-	   linearcubic
+	   linearcubic \
+	   highertaylor
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \

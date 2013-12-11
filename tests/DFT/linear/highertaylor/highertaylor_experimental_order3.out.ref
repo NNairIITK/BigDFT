@@ -1,0 +1,49 @@
+ <BigDFT> log of the run will be written in logfile: ./log-experimental_order3.yaml
+ PURIFYING THE KERNEL
+ diff from idempotency  0.164013221550970     
+ PURIFYING THE KERNEL
+ diff from idempotency  2.797730499291934E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  1.450405605201178E-003
+ PURIFYING THE KERNEL
+ diff from idempotency  0.308627631594411     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.244141923333200     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.237852284025358     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.397264031359637     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.267833188575798     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.230793266265828     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.209741975408951     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.162998469444671     
+ PURIFYING THE KERNEL
+ diff from idempotency  9.867342108425943E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  4.698447523808814E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  3.115645373974536E-003
+ PURIFYING THE KERNEL
+ diff from idempotency  2.345802632427452E-005
+ PURIFYING THE KERNEL
+ diff from idempotency  0.380645415096387     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.240528870876405     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.198842958050194     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.155149166661652     
+ PURIFYING THE KERNEL
+ diff from idempotency  8.491333633649860E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  2.433458558882414E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  0.379385289153935     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.262357520207071     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.236415337872848     

@@ -1,0 +1,79 @@
+ <BigDFT> log of the run will be written in logfile: ./log-experimental_order2.yaml
+ PURIFYING THE KERNEL
+ diff from idempotency  0.387670086644325     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.165366027050564     
+ PURIFYING THE KERNEL
+ diff from idempotency  7.079034166261458E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  0.430619395197977     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.183597923764130     
+ PURIFYING THE KERNEL
+ diff from idempotency  6.079726709905515E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  0.551375701826836     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.250559153923837     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.139116100271063     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.703708071015950     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.444225525415415     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.352610060043113     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.297001342188081     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.214077296274164     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.149425005973184     
+ PURIFYING THE KERNEL
+ diff from idempotency  9.837093823247943E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  2.023308235282229E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  1.208232971160855E-003
+ PURIFYING THE KERNEL
+ diff from idempotency  8.152302069786009E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  7.383940133938723E-003
+ PURIFYING THE KERNEL
+ diff from idempotency  9.904254466359553E-005
+ PURIFYING THE KERNEL
+ diff from idempotency  0.455253852732678     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.185078522080973     
+ PURIFYING THE KERNEL
+ diff from idempotency  6.679110327600031E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  6.764724046542328E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  4.718211663537995E-003
+ PURIFYING THE KERNEL
+ diff from idempotency  3.167613627835558E-005
+ PURIFYING THE KERNEL
+ diff from idempotency  4.664852308566552E-002
+ PURIFYING THE KERNEL
+ diff from idempotency  2.189098921535520E-003
+ PURIFYING THE KERNEL
+ diff from idempotency  6.431740073393076E-006
+ PURIFYING THE KERNEL
+ diff from idempotency  0.476683608971652     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.323136676386008     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.264613011844605     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.248177385296400     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.214096641874149     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.178951267375237     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.383509171612760     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.225878381239531     
+ PURIFYING THE KERNEL
+ diff from idempotency  0.156786223155107     
