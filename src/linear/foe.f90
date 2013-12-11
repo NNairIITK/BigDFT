@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
-           ham, ovrlp, fermi, ebs, itout, it_scc)
+           ham, ovrlp, fermi, ebs, itout, it_scc, order_taylor)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
@@ -18,7 +18,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc,itout,it_scc
+  integer,intent(in) :: iproc, nproc,itout,it_scc, order_taylor
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(inout) :: foe_obj
   real(kind=8),intent(inout) :: tmprtr
@@ -50,6 +50,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
   !!real(8),dimension(100000) ::  work, eval, hamtmp, ovrlptmp
 
+  write(*,*) 'order taylor', order_taylor
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 

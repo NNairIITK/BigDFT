@@ -173,8 +173,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%evlow,'-.5d0',ranges=(/-10.d0,-1.d-10/))
   call input_var(in%lin%evhigh,'-.5d0',ranges=(/1.d-10,10.d0/),comment=comments)
 
-  comments='number of iterations in the preconditioner'
-  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment=comments)
+  comments='number of iterations in the preconditioner, order of Taylor approximations'
+  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/))
+  call input_var(in%lin%order_taylor,'1',ranges=(/1,3/),comment=comments)
   
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'

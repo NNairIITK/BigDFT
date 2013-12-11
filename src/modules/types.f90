@@ -182,7 +182,7 @@ module module_types
     integer :: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization
     logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
-    integer :: extra_states
+    integer :: extra_states, order_taylor
   end type linearInputParameters
 
   type,public:: fragmentInputParameters

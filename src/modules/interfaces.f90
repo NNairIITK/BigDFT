@@ -2104,17 +2104,17 @@ module module_interfaces
     end subroutine psimix
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-         energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,&
-         curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
+        energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+        calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,&
+        convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
+      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
       use constrained_dft
       use diis_sd_optimization
+      use yaml_output
       implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft
+      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft, order_taylor
       type(orbitals_data),intent(inout) :: orbs
       type(atoms_data),intent(in) :: at
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -2135,8 +2135,8 @@ module module_interfaces
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
       logical, intent(in), optional :: curvefit_dmin ! for dmin only
       type(cdft_data),intent(inout),optional :: cdft
-      logical, optional, intent(in) :: reorder
       integer, intent(in) :: extra_states
+      logical, optional, intent(in) :: reorder
       logical, optional, intent(in) :: updatekernel
     end subroutine get_coeff
 
@@ -4513,11 +4513,11 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, orbs, foe_obj, &
-                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout, it_scc)
+                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout, it_scc, order_taylor)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc, itout, it_scc
+          integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(inout) :: foe_obj
           real(kind=8),intent(inout) :: tmprtr
