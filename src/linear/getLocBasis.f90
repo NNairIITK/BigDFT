@@ -2495,17 +2495,23 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   !!     tmb%orbs%norb, gradmat%matrix, tmb%orbs%norb, 0.d0, Kgrad, tmb%orbs%norb)
 
   ! Parallelized version
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
-       tmb%orbs%norb, tmb%linmat%ham%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-       0.d0, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+  if (tmb%orbs%norbp>0) then
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
+           tmb%orbs%norb, tmb%linmat%ham%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+           0.d0, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+  end if
   call mpiallred(KH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, scale_factor, KH, &
-       tmb%orbs%norb, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-       0.d0, KHKH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+  if (tmb%orbs%norbp>0) then
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, scale_factor, KH, &
+           tmb%orbs%norb, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+           0.d0, KHKH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+  end if
   call mpiallred(KHKH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
-       tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-       0.d0, Kgrad(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+  if (tmb%orbs%norbp>0) then
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
+           tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+           0.d0, Kgrad(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+  end if
   call mpiallred(Kgrad(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   !!if (iproc==0) then
   !!  do iorb=1,tmb%orbs%norb
