@@ -31,7 +31,7 @@ int main(int argc, const char **argv)
   if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml");
 
   ins = bigdft_inputs_new("");
-  bigdft_inputs_set(ins, INPUTS_IXC, "PBE");
+  bigdft_inputs_set(ins, INPUTS_IXC, "PBE (ABINIT)");
   bigdft_inputs_set_array(ins, INPUTS_HGRIDS, hgrids);
   bigdft_inputs_set(ins, INPUTS_NSPIN, "2");
   bigdft_inputs_set(ins, INPUTS_ITERMAX, "4");
