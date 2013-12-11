@@ -960,14 +960,14 @@ subroutine crtproj(geocode,nterm,lr, &
      !!$ ichunk=ichunk+1
      !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
-     call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
+     call gauss_to_daub_k(hy,ky*hy,ncplx_w,1,ncplx_k,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
           wprojy(1,0,1,iterm),work,nw,pery,gau_cut) 
      !!$ endif
 
      !!$ ichunk=ichunk+1
      !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
-     call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
+     call gauss_to_daub_k(hz,kz*hz,ncplx_w,1,ncplx_k,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
           wprojz(1,0,1,iterm),work,nw,perz,gau_cut)
      !!$ endif
   end do

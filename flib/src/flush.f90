@@ -21,5 +21,9 @@ subroutine bigdft_utils_flush(unit)
   inquire(unit=unit,opened=unit_is_connected,iostat=ierr)
   if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
         err_name='YAML_INVALID')) return
-  if (unit_is_connected) flush(unit=unit)
+  ! Please let this if on three lines, because flush() maybe a function
+  ! for some compilers.
+  if (unit_is_connected) then
+     flush(unit=unit)
+  end if
 END SUBROUTINE bigdft_utils_flush
