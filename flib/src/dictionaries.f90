@@ -49,6 +49,10 @@ module dictionaries
    interface operator(==)
       module procedure dicts_are_equal
    end interface
+   interface operator(/=)
+      module procedure dicts_are_not_equal
+   end interface
+
 
    interface assignment(=)
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg!,get_dict, xlf does not like
@@ -83,7 +87,7 @@ module dictionaries
    public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_iter,has_key,dict_keys
    public :: dict_new,list_new
    !> Public elements of dictionary_base
-   public :: operator(.is.),operator(.item.),operator(==)
+   public :: operator(.is.),operator(.item.),operator(==),operator(/=)
    public :: dictionary,max_field_length,dict_get_num
 
    !header of error handling part
@@ -370,6 +374,15 @@ contains
         nullify(dict_next)
      end if
    end function dict_next
+
+   function dicts_are_not_equal(dict1,dict2) result(notequal)
+     use yaml_strings, only: is_atoi,is_atof,is_atol
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict1,dict2
+     logical :: notequal
+     
+     notequal= .not. dicts_are_equal(dict1,dict2)
+   end function dicts_are_not_equal
 
    !> function verifying the dictionaries are equal to each other
    !! this function is not checking whether the dictionary are deep copy of each other or not
