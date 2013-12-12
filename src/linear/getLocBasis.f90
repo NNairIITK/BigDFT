@@ -1268,8 +1268,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    orbs, tmb, overlap_calculated)
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
           else if (experimental_mode) then
+              if (iproc==0) then
+                  call yaml_map('purify kernel',.true.)
+                  call yaml_newline()
+              end if
               call purify_kernel(iproc, nproc, tmb, overlap_calculated)
-              if (iproc==0) call yaml_map('purify kernel',.true.)
           end if
       !!end if
           !!if(iproc==0) then
@@ -2269,6 +2272,7 @@ end subroutine estimate_energy_change
 subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   use module_base
   use module_types
+  use yaml_output
   use module_interfaces, except_this_one => purify_kernel
   implicit none
 
@@ -2282,7 +2286,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel, overlap
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
-  real(kind=8) :: dnrm2
+  real(kind=8) :: dnrm2, diff
 
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
@@ -2340,7 +2344,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
 
-  do it=1,3
+  if (iproc==0) call yaml_open_sequence('purification process')
+
+  do it=1,20
 
       !!if (iproc==0) then
       !!    do iorb=1,tmb%orbs%norb
@@ -2378,7 +2384,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
                  tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, 0.d0, ksk(1,1), tmb%orbs%norb)
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
                  ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
-      if (iproc==0) write(*,*) 'PURIFYING THE KERNEL'
+      !if (iproc==0) write(*,*) 'PURIFYING THE KERNEL'
       !!if (iproc==0) then
       !!    do istat=1,tmb%orbs%norb
       !!        do iall=1,tmb%orbs%norb
@@ -2390,8 +2396,18 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       !!    end do
       !!end if
       overlap=ksk-tmb%linmat%denskern%matrix
-      if (iproc==0) write(*,*) 'diff from idempotency', dnrm2(tmb%orbs%norb**2, overlap, 1)
+      diff=dnrm2(tmb%orbs%norb**2, overlap, 1)
+      !if (iproc==0) write(*,*) 'diff from idempotency', diff
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          call yaml_map('iter',it)
+          call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
+          call yaml_close_map()
+      end if
       tmb%linmat%denskern%matrix = 3*ksk-2*ksksk
+      if (diff<1.d-10) exit
       !tmb%linmat%denskern%matrix = tmb%linmat%denskern%matrix/1.1d0
       !!if (iproc==0) then
       !!    do istat=1,tmb%orbs%norb
@@ -2405,6 +2421,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       !call uncompressMatrix(iproc,tmb%linmat%denskern)
 
   end do
+  if (iproc==0) call yaml_close_sequence
   tmb%linmat%denskern%matrix=2.0d0*tmb%linmat%denskern%matrix
   !!if (iproc==0) then
   !!    do istat=1,tmb%orbs%norb

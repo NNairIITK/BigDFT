@@ -125,9 +125,12 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           do iorb=1,orbs%norb
               do jorb=1,orbs%norb
                   if (iorb==jorb) then
-                      ovrlp%matrix(jorb,iorb)=1.d0-0.5d0*SminusI(jorb,iorb)+3.d0/8.d0*workmat(jorb,iorb,1)
+                      ovrlp%matrix(jorb,iorb) = 1.d0 &
+                                              - 0.5d0*SminusI(jorb,iorb) &
+                                              + 3.d0/8.d0*workmat(jorb,iorb,1)
                   else
-                      ovrlp%matrix(jorb,iorb)=-0.5d0*SminusI(jorb,iorb)+3.d0/8.d0*workmat(jorb,iorb,1)
+                      ovrlp%matrix(jorb,iorb) = -0.5d0*SminusI(jorb,iorb) &
+                                               +3.d0/8.d0*workmat(jorb,iorb,1)
                   end if
               end do
           end do
@@ -135,9 +138,14 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           do iorb=1,orbs%norb
               do jorb=1,orbs%norb
                   if (iorb==jorb) then
-                      ovrlp%matrix(jorb,iorb)=1.d0-0.5d0*SminusI(jorb,iorb)+3.d0/8.d0*workmat(jorb,iorb,1)-5.d0/16.d0*workmat(jorb,iorb,2)
+                      ovrlp%matrix(jorb,iorb) = 1.d0 & 
+                                              - 0.5d0*SminusI(jorb,iorb) &
+                                              + 3.d0/8.d0*workmat(jorb,iorb,1) &
+                                              - 5.d0/16.d0*workmat(jorb,iorb,2)
                   else
-                      ovrlp%matrix(jorb,iorb)=-0.5d0*SminusI(jorb,iorb)+3.d0/8.d0*workmat(jorb,iorb,1)-5.d0/16.d0*workmat(jorb,iorb,2)
+                      ovrlp%matrix(jorb,iorb) = -0.5d0*SminusI(jorb,iorb) &
+                                              +3.d0/8.d0*workmat(jorb,iorb,1) &
+                                              -5.d0/16.d0*workmat(jorb,iorb,2)
                   end if
               end do
           end do

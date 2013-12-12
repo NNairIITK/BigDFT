@@ -23,7 +23,7 @@
 1.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
 0 F F F                          output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; Pulay correction ; diag at end
 F F F 0                          fragment calculation; calculate transfer integrals; constrained DFT calculation; extra states to optimize (dmin only)
-C  4 3.9d-2 3.9d-2 3.9d-2 3.5 3.5 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
-N  4 3.9d-2 3.9d-2 3.9d-2 3.5 3.5 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
-O  4 3.9d-2 3.9d-2 3.9d-2 3.5 3.5 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
-H  1 3.9d-2 3.9d-2 3.9d-2 3.5 3.5 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+C  4 3.8d-2 3.8d-2 3.8d-2 3.5 3.5 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+N  4 3.8d-2 3.8d-2 3.8d-2 3.5 3.5 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+O  4 3.8d-2 3.8d-2 3.8d-2 3.5 3.5 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+H  1 3.8d-2 3.8d-2 3.8d-2 3.5 3.5 12.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
