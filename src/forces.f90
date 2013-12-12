@@ -314,6 +314,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
+
+
   call to_zero(6,strten(1))
 
   call to_zero(6*4,strtens(1,1))
@@ -417,7 +419,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
      if (iproc==0) call yaml_close_map()
   end if
-
 !!$  if (iproc == 0) then
 !!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
 !!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
@@ -579,6 +580,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   use module_base
   use module_types
   use yaml_output
+  !use gaussians
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
@@ -598,6 +600,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
+
+  !call initialize_real_space_conversion()
   
   pi=4.d0*atan(1.d0)
 
@@ -695,6 +699,11 @@ charge=charge*hxh*hyh*hzh
                  call ind_positions(perx,i1,n1,j1,gox)
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
+
+                 !use multipole-preserving function
+!!$                 xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+!!$                      mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+!!$                      mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
                  xp=exp(-.5d0*arg)
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
@@ -770,6 +779,8 @@ charge=charge*hxh*hyh*hzh
      call yaml_close_map()
   end if
 
+  !call finalize_real_space_conversion('local_forces')
+
 END SUBROUTINE local_forces
 
 
@@ -809,7 +820,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
   type(gaussian_basis),dimension(at%astruct%ntypes)::proj_G
-
+call f_routine(id=subname)
   call to_zero(6,strten(1)) 
   
   !nullify PAW objects
@@ -901,7 +912,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
-!              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
+              !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(proj)
  
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
@@ -925,6 +936,8 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                                !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',&
+                                !     idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
                              end do
                           end if
                        end do
@@ -988,6 +1001,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                                      nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                                !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
                              end do
                           end if
                        end do
@@ -1047,7 +1061,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                              !write(250+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
                              do idir=1,3
                                 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                !write(210+iproc,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
+                                !write(*,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
                                 !                                    &idir,fxyz_orb(idir,iat)', &
                                 !                                    iorb,jorb,icplx,0,m,i,l,iat,iat,&
                                 !                                    idir,fxyz_orb(idir,iat)
@@ -1155,6 +1169,8 @@ end do
   i_all=-product(shape(scalprod))*kind(scalprod)
   deallocate(scalprod,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod',subname)
+
+call f_release_routine()
 
 END SUBROUTINE nonlocal_forces
 

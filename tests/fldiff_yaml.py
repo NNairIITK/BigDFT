@@ -89,19 +89,26 @@ def compare(data, ref, tols = None, always_fails = False):
 def compare_seq(seq, ref, tols, always_fails = False):
   global failed_checks
   if tols is not None:
-    for i in range(len(ref)):
-      #print 'here',ref[i],seq[i],tols[0]
-      (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
+    if len(ref) == len(seq):
+      for i in range(len(ref)):
+        #print 'here',ref[i],seq[i],tols[0]
+        (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
 # Add to the tolerance dictionary a failed result      
-      if failed:
-        if type(newtols)== type({}): # and type(tols) == type({}):
-          #print seq,ref,'tols',tols,'newtols',newtols,type(tols)
-          if (type(tols[0]) != type(1.0)):
-            tols[0].update(newtols)
-        elif type(newtols) == type([]):
-          tols[0] = newtols   
-        else:
-          tols[0] = max(newtols,tols[0])
+        if failed:
+          if type(newtols)== type({}): # and type(tols) == type({}):
+            #print seq,ref,'tols',tols,'newtols',newtols,type(tols)
+            if (type(tols[0]) != type(1.0)):
+              tols[0].update(newtols)
+          elif type(newtols) == type([]):
+            tols[0] = newtols   
+          else:
+            tols[0] = max(newtols,tols[0])
+    else:
+      failed_checks+=1
+      if len(tols) == 0:
+        tols.append("NOT SAME LENGTH")
+      else:
+        tols[0] = "NOT SAME LENGTH"
   else:
     tols = []
     if len(ref) == len(seq):
@@ -145,7 +152,7 @@ def compare_map(map, ref, tols, always_fails = False):
         (failed, newtols) = compare(value, ref[key], always_fails = always_fails)
 # add to the tolerance dictionary a failed result              
       if failed:
-        if key in tols:
+        if type(tols) == type({}) and key in tols:
           if type(newtols)== type({}):
             if type(tols[key]) == type({}):
               tols[key].update(newtols)
@@ -155,7 +162,7 @@ def compare_map(map, ref, tols, always_fails = False):
             tols[key]=newtols
           else:
             tols[key] = max(newtols,tols[key])
-        else:
+        elif type(tols) == type({}):
           tols[key] = newtols
   return (len(tols) > 0, tols)  
   
@@ -279,7 +286,7 @@ if __name__ == "__main__":
 
 #args=parse_arguments()
 #print args.ref,args.data,args.output
-#datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+#datas      = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
 try:
   datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]

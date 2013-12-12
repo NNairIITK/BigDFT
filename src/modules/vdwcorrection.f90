@@ -128,7 +128,10 @@ contains
 
        select case (ixc)
    
-       case(11)
+    !ic corrections November 12th 2013
+       case(11, -101130)
+    !  case(11)
+    !ic corrections November 12th 2013
    
           pbedamp: select case (dispersion)
    
@@ -500,7 +503,10 @@ contains
    
           end select revpbedamp
    
-       case(200)  ! qoh: FIXME: with proper number for PW91
+!      ic corrections November 12th 2013
+       case(-109134)
+!      case(200)  ! qoh: FIXME: with proper number for PW91
+!      ic corrections November 12th 2013
    
           pw91damp: select case (dispersion)
    
@@ -844,20 +850,24 @@ contains
        vdwparams%alpha=20.0000_GP
 
        select case (ixc)
+    !ic corrections November 12th 2013
+!       case(11, -101130)
+    !  case(11)
+    !ic corrections November 12th 2013
 !!s6
-       case(11)            ! pbe
+       case(11, -101130)        ! pbe
           vdwparams%s6=0.7500_GP
        case(14)            ! revpbe
           vdwparams%s6=1.2500_GP
-       case(-406000)       ! pbe0
+       case(-406000, -406)       ! pbe0
           vdwparams%s6=0.6000_GP
-       case(-170000)       ! b97-d
+       case(-170000,-170)       ! b97-d
           vdwparams%s6=1.2500_GP
        case(-106132)       ! b-p
           vdwparams%s6=1.0500_GP
-       case(-416000)       ! b-lyp
+       case(-416000,-416)       ! b-lyp
           vdwparams%s6=1.2000_GP
-       case(-402000)       ! b3-lyp
+       case(-402000,-402)       ! b3-lyp
           vdwparams%s6=1.0500_GP
        case(-202231)       ! tpss
           vdwparams%s6=1.0000_GP
@@ -1343,27 +1353,49 @@ contains
     ! qoh: Atomic numbers of elements with optimised dispersion parameters:
     integer, parameter :: optimised(5) = (/1,6,7,8,16/)
     ! qoh: XC functionals with optimised parameters:
-    integer, parameter :: xcfoptimised(4) = (/11,14,15,200/)
+!   ic corrections November 12th 2013
+    integer, parameter :: xcfoptimised(5) = (/11,-101130,14,15,-109134/)
+    integer, parameter :: xcfoptimisedgrimme(13) = (/11,-101130,14,-406000,-406,-170000,-170,&
+                          -106132,-416000,-416,-402000,-402,-202231/) 
+!   integer, parameter :: xcfoptimised(4) = (/11,14,15,200/)
 
-    if (in%dispersion /= 0) then 
+!   if (in%dispersion /= 0) then 
+    if (0 < in%dispersion .and. in%dispersion < 4) then 
+!   ic corrections November 12th 2013
 
        ! qoh: Loop over types to check we have parameters
        do itype=1,atoms%astruct%ntypes
           if (any(unoptimised == atoms%nzatom(itype)) .and. &
                any(xcfoptimised == in%ixc)) then 
-             write(*,'(a,a2)') 'WARNING: Unoptimised dispersion &
-                  &parameters used for ', atoms%astruct%atomnames(itype)
+!   ic corrections November 12th 2013
+             write(*,'(a,a7)') 'WARNING: Unoptimised dispersion &
+              &parameters used for ', atoms%astruct%atomnames(itype)
+!            write(*,'(a,a2)') 'WARNING: Unoptimised dispersion &
+!   ic corrections November 12th 2013
           elseif (.not. any(optimised == atoms%nzatom(itype)) .and. &
                .not. any(unoptimised == atoms%nzatom(itype))) then
-             write(*,'(a,a2)') 'WARNING: No dispersion parameters &
+!   ic corrections November 12th 2013
+             write(*,'(a,a7)') 'WARNING: No dispersion parameters &
                   &available for ', atoms%astruct%atomnames(itype) 
+!            write(*,'(a,a2)') 'WARNING: No dispersion parameters &
+!   ic corrections November 12th 2013
           end if
        end do
 
        if (.not. any(xcfoptimised == in%ixc)) &
-            write(*,'(a,i2)') 'WARNING: No optimised dispersion parameters &
+!           ic corrections August 26th 2013
+            write(*,'(a,i7)') 'WARNING: No optimised Hill-Skylaris dispersion parameters &
+!           write(*,'(a,i2)') 'WARNING: No optimised dispersion parameters &
+!           ic corrections August 26th 2013
             &available for ixc=', in%ixc
     end if
+!   ic corrections November 12th 2013
+    if (in%dispersion == 4) then 
+       if (.not. any(xcfoptimisedgrimme == in%ixc)) &
+            write(*,'(a,i7)') 'WARNING: No optimised Grimme dispersion parameters &
+            &available for ixc=', in%ixc
+    end if
+!   ic corrections November 12th 2013
   END SUBROUTINE vdwcorrection_warnings
 
 

@@ -937,7 +937,7 @@ module module_interfaces
          real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
          real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
-         real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
+         real(kind=8), dimension(nlpspd%nprojel), intent(inout) :: proj
          real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
          real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
          type(gaussian_basis),optional,intent(in),dimension(at%astruct%ntypes)::proj_G
@@ -4262,9 +4262,10 @@ module module_interfaces
         end subroutine copy_old_supportfunctions
 
         subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
-                   rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU)
+                   rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU, ref_frags)
           use module_base
           use module_types
+          use module_fragments
           implicit none
           integer,intent(in) :: iproc, nproc
           type(atoms_data), intent(inout) :: at
@@ -4278,6 +4279,7 @@ module module_interfaces
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
           real(kind=8), dimension(:), pointer :: proj
           type(GPU_pointers), intent(inout) :: GPU
+          type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
         end subroutine input_memory_linear
 
         subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
@@ -4295,7 +4297,7 @@ module module_interfaces
         end subroutine copy_old_inwhichlocreg
 
         subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-               frag_trans,psi_old,phi_array_old)
+               frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
           use module_base
           use module_types
           use module_fragments
@@ -4304,12 +4306,33 @@ module module_interfaces
           type(atoms_data), intent(in) :: at
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
           type(DFT_wavefunction), intent(inout) :: tmb
-          type(local_zone_descriptors), intent(in) :: lzd_old
+          type(local_zone_descriptors), intent(inout) :: lzd_old
           type(fragment_transformation), dimension(tmb%orbs%norbp), intent(in) :: frag_trans
           real(wp), dimension(:), pointer :: psi_old
           type(phi_array), dimension(tmb%orbs%norbp), optional, intent(in) :: phi_array_old
           logical, intent(in) :: add_derivatives
+          character(len=*), intent(in) :: input_dir
+          type(fragmentInputParameters), intent(in) :: input_frag
+          type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
         end subroutine reformat_supportfunctions
+
+        subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,& 
+             hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold)
+          use module_base
+          use module_types
+          use module_fragments
+          implicit none
+          integer, dimension(3), intent(in) :: n,n_old
+          real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
+          !type(wavefunctions_descriptors), intent(in) :: wfd
+          type(locreg_descriptors), intent(in) :: llr, llr_old
+          character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+          real(gp), dimension(3), intent(inout) :: centre_old,centre_new,da
+          type(fragment_transformation), intent(in) :: frag_trans
+          real(wp), dimension(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2), intent(in) :: psigold
+          real(wp), dimension(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f), intent(out) :: psi
+          real(wp), dimension(llr_old%d%n1i,llr_old%d%n2i,llr_old%d%n3i), optional, intent(in) :: psirold
+        end subroutine reformat_one_supportfunction
 
         subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
           use module_base
@@ -5070,6 +5093,29 @@ module module_interfaces
           real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(in) :: hpsit_f
           real(kind=8),intent(out) :: KSres
         end subroutine get_KS_residue
+
+        subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
+             rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum,&
+             proj_G,paw)
+          use module_base
+          use module_types
+          use gaussians, only:gaussian_basis
+          implicit none
+          integer, intent(in) :: iproc
+          real(gp), intent(in) :: hx,hy,hz
+          type(atoms_data), intent(in) :: at
+          type(orbitals_data), intent(in) :: orbs
+          type(wavefunctions_descriptors), intent(in) :: wfd
+          type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+          type(locreg_descriptors),intent(in) :: lr
+          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+          real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+          real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
+          real(gp), intent(out) :: eproj_sum
+          real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+          type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
+          type(paw_objects),optional,intent(inout)::paw
+        end subroutine applyprojectorsonthefly
   
   end interface
 END MODULE module_interfaces

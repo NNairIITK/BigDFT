@@ -452,6 +452,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
      nstart,nmax,n_left,n_right,c,& 
      ww,nwork,periodic,gau_cut)      !added work arrays ww with dimension nwork
   use module_base
+  !use gaussians, only: mp_exp
   implicit none
   logical, intent(in) :: periodic
   integer, intent(in) :: n_gau,nmax,nwork,nstart
@@ -638,6 +639,7 @@ contains
              r2=r2*r2
              r2=0.5_gp*r2
              func=dexp(-r2)
+             !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
              ww(i-leftx,1,icplx)=func
           enddo
        else
@@ -649,6 +651,7 @@ contains
              r2=r2*r2
              r2=0.5_gp*r2
              func=dexp(-r2)
+             !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
              func=coeff*func
              ww(i-leftx,1,icplx)=func
           enddo
@@ -672,6 +675,7 @@ contains
           r2=0.5_gp*r2
           cval=cos(kval*rk)
           func=dexp(-r2)
+          !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
           ww(i-leftx,1,1)=func*cval
           sval=sin(kval*rk)
           ww(i-leftx,1,2)=func*sval
@@ -687,6 +691,7 @@ contains
           r2=0.5_gp*r2
           cval=cos(kval*rk)
           func=dexp(-r2)
+          !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
           func=coeff*func
           ww(i-leftx,1,1)=func*cval
           sval=sin(kval*rk)

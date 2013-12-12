@@ -129,29 +129,18 @@ program conv_check_ocl
    ekin=0.0_wp
 
    !allocate arrays
-   allocate(psi_in(n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_in,'psi_in',subname)
-   allocate(psi_out(n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_out,'psi_out',subname)
-   allocate(psi_gemm(n1,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_in,'psi_gemm',subname)
-   allocate(psi_gemmsy(n1,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_in,'psi_gemmsy',subname)
-   allocate(psi_cuda_gemm(n1,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_out,'psi_cuda_gemm',subname)
+   psi_in = f_malloc((/ n1, n2*n3, 1 /),id='psi_in')
+   psi_out = f_malloc((/ n2*n3, n1, 1 /),id='psi_out')
+   psi_gemm = f_malloc((/ n1, n1, 1 /),id='psi_gemm')
+   psi_gemmsy = f_malloc((/ n1, n1, 1 /),id='psi_gemmsy')
+   psi_cuda_gemm = f_malloc((/ n1, n1, 1 /),id='psi_cuda_gemm')
 
-   allocate(psi_cuda(n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-   allocate(psi_cuda_str(n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_str,'psi_cuda_str',subname)
-   allocate(v_cuda(n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda,'v_cuda',subname)
-   allocate(v_cuda_str(n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda_str,'v_cuda_str',subname)
-   allocate(psi_cuda_l(n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_l,'psi_cuda_l',subname)
-   allocate(v_cuda_l(n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda_l,'v_cuda_l',subname)
+   psi_cuda = f_malloc((/ n1, n2*n3, 1 /),id='psi_cuda')
+   psi_cuda_str = f_malloc((/ n2*n3, n1, 1 /),id='psi_cuda_str')
+   v_cuda = f_malloc((/ n2*n3, n1, 1 /),id='v_cuda')
+   v_cuda_str = f_malloc((/ n1, n2*n3, 1 /),id='v_cuda_str')
+   psi_cuda_l = f_malloc((/ n1, n2*n3, 1 /),id='psi_cuda_l')
+   v_cuda_l = f_malloc((/ n2*n3, n1, 1 /),id='v_cuda_l')
 
    !initialise array
    sigma2=0.25d0*((n1*hx)**2)
@@ -690,17 +679,12 @@ program conv_check_ocl
    n2bis = n2
    n3bis = n3
 !   write(*,'(a,i6,i6,i6)')'CPU Convolutions 3D, dimensions:',n1bis,n2bis,n3bis
-   allocate(psi_k_in_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_k_in_a,'psi_k_in_a',subname)
-   allocate(psi_cuda_k_in_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_k_in_a,'psi_cuda_k_in_a',subname)
-   allocate(pot_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,pot_a,'pot_a',subname)
+   psi_k_in_a = f_malloc((/ n1bis, n2bis, n3bis, 1 /),id='psi_k_in_a')
+   psi_cuda_k_in_a = f_malloc((/ n1bis, n2bis, n3bis, 1 /),id='psi_cuda_k_in_a')
+   pot_a = f_malloc((/ n1bis, n2bis, n3bis, 1 /),id='pot_a')
 
-   allocate(psi_k_out_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_k_out_a,'psi_k_out_a',subname)
-   allocate(psi_cuda_k_out_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_k_out_a,'psi_cuda_k_out_a',subname)
+   psi_k_out_a = f_malloc((/ n1bis, n2bis, n3bis, 1 /),id='psi_k_out_a')
+   psi_cuda_k_out_a = f_malloc((/ n1bis, n2bis, n3bis, 1 /),id='psi_cuda_k_out_a')
 
    sigma2=0.25d0*((n1bis*hx)**2)
    do i3=1,n3bis
@@ -967,46 +951,28 @@ program conv_check_ocl
 
    endif
 
-   i_all=-product(shape(psi_k_in_a))
-   deallocate(psi_k_in_a,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_k_in_a',subname)
-   i_all=-product(shape(psi_cuda_k_in_a))
-   deallocate(psi_cuda_k_in_a,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda_k_in_a',subname)
-   i_all=-product(shape(pot_a))
-   deallocate(pot_a,stat=i_stat)
-   call memocc(i_stat,i_all,'pot_a',subname)
+   call f_free(psi_k_in_a)
+   call f_free(psi_cuda_k_in_a)
+   call f_free(pot_a)
 
-   i_all=-product(shape(psi_k_out_a))
-   deallocate(psi_k_out_a,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_k_out_a',subname)
-   i_all=-product(shape(psi_cuda_k_out_a))
-   deallocate(psi_cuda_k_out_a,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda_k_out_a',subname)
+   call f_free(psi_k_out_a)
+   call f_free(psi_cuda_k_out_a)
 
 
 
 !   write(*,'(a,i6,i6)')'CPU Convolutions shrink, dimensions:',n1-15,n2*n3
 
-   allocate(psi_in_s(n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_in_s,'psi_in_s',subname)
-   allocate(v_cuda_s(n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda_s,'v_cuda_s',subname)
+   psi_in_s = f_malloc((/ n1, n2*n3, 1 /),id='psi_in_s')
+   v_cuda_s = f_malloc((/ n2*n3, n1, 1 /),id='v_cuda_s')
 
-   allocate(psi_in_t(n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_in_t,'psi_in_t',subname)
-   allocate(v_cuda_t(n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda_t,'v_cuda_t',subname)
+   psi_in_t = f_malloc((/ n2*n3, n1, 1 /),id='psi_in_t')
+   v_cuda_t = f_malloc((/ n1, n2*n3, 1 /),id='v_cuda_t')
 
-   allocate(psi_out_s(n2*n3,n1-15,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_out_s,'psi_out_s',subname)
-   allocate(psi_cuda_s(n1-15,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_s,'psi_cuda_s',subname)
+   psi_out_s = f_malloc((/ n2*n3, n1-15, 1 /),id='psi_out_s')
+   psi_cuda_s = f_malloc((/ n1-15, n2*n3, 1 /),id='psi_cuda_s')
 
-   allocate(psi_out_t(n1-15,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_out_t,'psi_out_t',subname)
-   allocate(psi_cuda_t(n2*n3,n1-15,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_t,'psi_cuda_t',subname)
+   psi_out_t = f_malloc((/ n1-15, n2*n3, 1 /),id='psi_out_t')
+   psi_cuda_t = f_malloc((/ n2*n3, n1-15, 1 /),id='psi_cuda_t')
 
    do i=1,n2*n3
       do i1=1,n1
@@ -1095,33 +1061,17 @@ program conv_check_ocl
 
    call compare_time('MF Grow',(/n1-15,n2*n3/),CPUtime,GPUtime,(n1-15)*n2*n3,32,ntimes,maxdiff,1.d-9)
 
-   i_all=-product(shape(psi_out_s))
-   deallocate(psi_out_s,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_out_s',subname)
-   i_all=-product(shape(psi_cuda_s))
-   deallocate(psi_cuda_s,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda_s',subname)
+   call f_free(psi_out_s)
+   call f_free(psi_cuda_s)
 
-   i_all=-product(shape(psi_in_s))
-   deallocate(psi_in_s,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_in_s',subname)
-   i_all=-product(shape(v_cuda_s))
-   deallocate(v_cuda_s,stat=i_stat)
-   call memocc(i_stat,i_all,'v_cuda_s',subname)
+   call f_free(psi_in_s)
+   call f_free(v_cuda_s)
 
-   i_all=-product(shape(psi_in_t))
-   deallocate(psi_in_t,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_in_t',subname)
-   i_all=-product(shape(v_cuda_t))
-   deallocate(v_cuda_t,stat=i_stat)
-   call memocc(i_stat,i_all,'v_cuda_t',subname)
+   call f_free(psi_in_t)
+   call f_free(v_cuda_t)
 
-   i_all=-product(shape(psi_out_t))
-   deallocate(psi_out_t,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_out_t',subname)
-   i_all=-product(shape(psi_cuda_t))
-   deallocate(psi_cuda_t,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda_t',subname)
+   call f_free(psi_out_t)
+   call f_free(psi_cuda_t)
 
 
 
@@ -1131,17 +1081,12 @@ program conv_check_ocl
    n3bis = n3
 !   write(*,'(a,i6,i6,i6)')'CPU Kinetic k 3D, dimensions:',n1bis,n2bis,n3bis
 
-   allocate(psi_k_in(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_k_in,'psi_k_in',subname)
-   allocate(psi_cuda_k_in(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_k_in,'psi_cuda_k_in',subname)
-   allocate(psi_cuda_k_in_bis(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_k_in_bis,'psi_cuda_k_in_bis',subname)
+   psi_k_in = f_malloc((/ 2, n1bis, n2bis, n3bis, 1 /),id='psi_k_in')
+   psi_cuda_k_in = f_malloc((/ 2, n1bis, n2bis, n3bis, 1 /),id='psi_cuda_k_in')
+   psi_cuda_k_in_bis = f_malloc((/ 2, n1bis, n2bis, n3bis, 1 /),id='psi_cuda_k_in_bis')
 
-   allocate(psi_k_out(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_k_out,'psi_k_out',subname)
-   allocate(psi_cuda_k_out(2,n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_k_out,'psi_cuda_k_out',subname)
+   psi_k_out = f_malloc((/ 2, n1bis, n2bis, n3bis, 1 /),id='psi_k_out')
+   psi_cuda_k_out = f_malloc((/ 2, n1bis, n2bis, n3bis, 1 /),id='psi_cuda_k_out')
 
    sigma2=0.25d0*((n1bis*hx)**2)
    do i3=1,n3bis
@@ -1210,30 +1155,19 @@ program conv_check_ocl
    call compare_time('Kinetic k 3D',(/n1bis,n2bis,n3bis/),&
         CPUtime,GPUtime,n1bis*n2bis*n3bis,4*3*45,ntimes,maxdiff,1.d-9)
 
-   i_all=-product(shape(psi_k_in))
-   deallocate(psi_k_in,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_k_in',subname)
-   i_all=-product(shape(psi_cuda_k_in))
-   deallocate(psi_cuda_k_in,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda_k_in',subname)
-   i_all=-product(shape(psi_cuda_k_in_bis))
-   deallocate(psi_cuda_k_in_bis,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda_k_in_bis',subname)
+   call f_free(psi_k_in)
+   call f_free(psi_cuda_k_in)
+   call f_free(psi_cuda_k_in_bis)
 
-   i_all=-product(shape(psi_k_out))
-   deallocate(psi_k_out,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_k_out',subname)
-   i_all=-product(shape(psi_cuda_k_out))
-   deallocate(psi_cuda_k_out,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda_k_out',subname)
+   call f_free(psi_k_out)
+   call f_free(psi_cuda_k_out)
 
 
 
 
 !   write(*,'(a,i6,i6)')'CPU Kinetic, dimensions:',n1,n2*n3
 
-   allocate(modarr(lowfilK:n1-1+lupfilK+ndebug),stat=i_stat)
-   call memocc(i_stat,modarr,'modarr',subname)
+   modarr = f_malloc(lowfilK.to.n1-1+lupfilK,id='modarr')
    call fill_mod_arr(modarr,lowfilK,n1-1+lupfilK,n1)
 
 
@@ -1247,9 +1181,7 @@ program conv_check_ocl
    end do
    call nanosec(tsc1)
 
-   i_all=-product(shape(modarr))
-   deallocate(modarr,stat=i_stat)
-   call memocc(i_stat,i_all,'modarr',subname)
+   call f_free(modarr)
 
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -1295,15 +1227,11 @@ program conv_check_ocl
       n3bis = n3
 !      write(*,'(a,i6,i6,i6)')'CPU Analysis 3D, dimensions:',n1bis,n2bis,n3bis
 
-      allocate(psi_k_in_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_k_in_a,'psi_k_in_a',subname)
-      allocate(psi_cuda_k_in_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_cuda_k_in_a,'psi_cuda_k_in_a',subname)
+      psi_k_in_a = f_malloc((/ n1bis, n2bis, n3bis, 1 /),id='psi_k_in_a')
+      psi_cuda_k_in_a = f_malloc((/ n1bis, n2bis, n3bis, 1 /),id='psi_cuda_k_in_a')
 
-      allocate(psi_k_out_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_k_out_a,'psi_k_out_a',subname)
-      allocate(psi_cuda_k_out_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_k_out_a,'psi_cuda_k_out_a',subname)
+      psi_k_out_a = f_malloc((/ n1bis, n2bis, n3bis, 1 /),id='psi_k_out_a')
+      psi_cuda_k_out_a = f_malloc((/ n1bis, n2bis, n3bis, 1 /),id='psi_cuda_k_out_a')
 
       sigma2=0.25d0*((n1bis*hx)**2)
       do i3=1,n3bis
@@ -1448,19 +1376,11 @@ program conv_check_ocl
       call compare_time('Synthesis 3D',(/n1bis,n2bis,n3bis/),&
            CPUtime,GPUtime,n1bis*n2bis*n3bis,3*32,ntimes,maxdiff,1.d-9)
 
-      i_all=-product(shape(psi_k_in_a))
-      deallocate(psi_k_in_a,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_k_in_a',subname)
-      i_all=-product(shape(psi_cuda_k_in_a))
-      deallocate(psi_cuda_k_in_a,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_cuda_k_in_a',subname)
+      call f_free(psi_k_in_a)
+      call f_free(psi_cuda_k_in_a)
 
-      i_all=-product(shape(psi_k_out_a))
-      deallocate(psi_k_out_a,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_k_out_a',subname)
-      i_all=-product(shape(psi_cuda_k_out_a))
-      deallocate(psi_cuda_k_out_a,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_cuda_k_out_a',subname)
+      call f_free(psi_k_out_a)
+      call f_free(psi_cuda_k_out_a)
 
 !      write(*,'(a,i6,i6)')'CPU Analysis, dimensions:',n1,n2*n3
 
@@ -1577,25 +1497,17 @@ program conv_check_ocl
 
 !      write(*,'(a,i6,i6)')'CPU Analysis shrink, dimensions:',n1-14,n2*n3
 
-      allocate(psi_in_s(n1,n2*n3,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_in_s,'psi_in_s',subname)
-      allocate(v_cuda_s(n2*n3,n1,1+ndebug),stat=i_stat)
-      call memocc(i_stat,v_cuda_s,'v_cuda_s',subname)
+      psi_in_s = f_malloc((/ n1, n2*n3, 1 /),id='psi_in_s')
+      v_cuda_s = f_malloc((/ n2*n3, n1, 1 /),id='v_cuda_s')
 
-      allocate(psi_in_t(n2*n3,n1,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_in_t,'psi_in_t',subname)
-      allocate(v_cuda_t(n1,n2*n3,1+ndebug),stat=i_stat)
-      call memocc(i_stat,v_cuda_t,'v_cuda_t',subname)
+      psi_in_t = f_malloc((/ n2*n3, n1, 1 /),id='psi_in_t')
+      v_cuda_t = f_malloc((/ n1, n2*n3, 1 /),id='v_cuda_t')
 
-      allocate(psi_out_s(n2*n3,n1-14,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_out_s,'psi_out_s',subname)
-      allocate(psi_cuda_s(n1-14,n2*n3,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_cuda_s,'psi_cuda_s',subname)
+      psi_out_s = f_malloc((/ n2*n3, n1-14, 1 /),id='psi_out_s')
+      psi_cuda_s = f_malloc((/ n1-14, n2*n3, 1 /),id='psi_cuda_s')
 
-      allocate(psi_out_t(n1-14,n2*n3,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_out_t,'psi_out_t',subname)
-      allocate(psi_cuda_t(n2*n3,n1-14,1+ndebug),stat=i_stat)
-      call memocc(i_stat,psi_cuda_t,'psi_cuda_t',subname)
+      psi_out_t = f_malloc((/ n1-14, n2*n3, 1 /),id='psi_out_t')
+      psi_cuda_t = f_malloc((/ n2*n3, n1-14, 1 /),id='psi_cuda_t')
 
       do i=1,n2*n3
          do i1=1,n1
@@ -1685,56 +1597,28 @@ program conv_check_ocl
       call compare_time('Synthesis grow',(/n1-14,n2*n3/),&
            CPUtime,GPUtime,(n1-14)*n2*n3,32,ntimes,maxdiff,1.d-9)
 
-      i_all=-product(shape(psi_out_s))
-      deallocate(psi_out_s,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_out_s',subname)
-      i_all=-product(shape(psi_cuda_s))
-      deallocate(psi_cuda_s,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_cuda_s',subname)
+      call f_free(psi_out_s)
+      call f_free(psi_cuda_s)
 
-      i_all=-product(shape(psi_in_s))
-      deallocate(psi_in_s,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_in_s',subname)
-      i_all=-product(shape(v_cuda_s))
-      deallocate(v_cuda_s,stat=i_stat)
-      call memocc(i_stat,i_all,'v_cuda_s',subname)
+      call f_free(psi_in_s)
+      call f_free(v_cuda_s)
 
-      i_all=-product(shape(psi_in_t))
-      deallocate(psi_in_t,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_in_t',subname)
-      i_all=-product(shape(v_cuda_t))
-      deallocate(v_cuda_t,stat=i_stat)
-      call memocc(i_stat,i_all,'v_cuda_t',subname)
+      call f_free(psi_in_t)
+      call f_free(v_cuda_t)
 
-      i_all=-product(shape(psi_out_t))
-      deallocate(psi_out_t,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_out_t',subname)
-      i_all=-product(shape(psi_cuda_t))
-      deallocate(psi_cuda_t,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_cuda_t',subname)
+      call f_free(psi_out_t)
+      call f_free(psi_cuda_t)
 
 
 
    end if
 
-   i_all=-product(shape(psi_out))
-   deallocate(psi_out,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_out',subname)
-   i_all=-product(shape(psi_in))
-   deallocate(psi_in,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_in',subname)
-   i_all=-product(shape(psi_cuda))
-   deallocate(psi_cuda,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda',subname)
-   i_all=-product(shape(v_cuda))
-   deallocate(v_cuda,stat=i_stat)
-   call memocc(i_stat,i_all,'v_cuda',subname)
-   i_all=-product(shape(psi_cuda_l))
-   deallocate(psi_cuda_l,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda_l',subname)
-   i_all=-product(shape(v_cuda_l))
-   deallocate(v_cuda_l,stat=i_stat)
-   call memocc(i_stat,i_all,'v_cuda_l',subname)
+   call f_free(psi_out)
+   call f_free(psi_in)
+   call f_free(psi_cuda)
+   call f_free(v_cuda)
+   call f_free(psi_cuda_l)
+   call f_free(v_cuda_l)
 
    !**************************************************compression-decompression
    !create keys arrays
@@ -1743,10 +1627,8 @@ program conv_check_ocl
 
 !   print *,'nseg=',nseg
 
-   allocate(keyg(2,nseg+ndebug),stat=i_stat)
-   call memocc(i_stat,keyg,'keyg',subname)
-   allocate(keyv(nseg+ndebug),stat=i_stat)
-   call memocc(i_stat,keyv,'keyv',subname)
+   keyg = f_malloc((/ 2, nseg /),id='keyg')
+   keyv = f_malloc(nseg,id='keyv')
 
    !take a rectangle of a cubic region
    i1s=5
@@ -1762,12 +1644,9 @@ program conv_check_ocl
    end do
    nvctr_cf=keyv(nseg)+i1e-i1s
 
-   allocate(psi(8*nvctr_cf+ndebug),stat=i_stat)
-   call memocc(i_stat,psi,'psi',subname)
-   allocate(psi_l(8*nvctr_cf+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_l,'psi_l',subname)
-   allocate(psi_d(8*nvctr_cf+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_d,'psi_d',subname)
+   psi = f_malloc(8*nvctr_cf,id='psi')
+   psi_l = f_malloc(8*nvctr_cf,id='psi_l')
+   psi_d = f_malloc(8*nvctr_cf,id='psi_d')
    !determine the values for psi function
    do i=1,nvctr_cf
       psi(i)=real(i,kind=8)
@@ -1780,16 +1659,12 @@ program conv_check_ocl
       end do
    end do
 
-   allocate(psi_in((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_in,'psi_in',subname)
-   allocate(psi_out((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_in,'psi_out',subname)
+   psi_in = f_malloc((/ (2*n1+2), (2*n1+2), (2*n1+2) /),id='psi_in')
+   psi_out = f_malloc((/ (2*n1+2), (2*n1+2), (2*n1+2) /),id='psi_out')
 
-   allocate(psi_cuda((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+   psi_cuda = f_malloc((/ (2*n1+2), (2*n1+2), (2*n1+2) /),id='psi_cuda')
 
-   allocate(psi_cuda_l((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda,'psi_cuda_l',subname)
+   psi_cuda_l = f_malloc((/ (2*n1+2), (2*n1+2), (2*n1+2) /),id='psi_cuda_l')
 
 
 !  write(*,'(a,3(i6))')'CPU Uncompress, dimensions:',n1,n1,n1
@@ -2025,21 +1900,20 @@ program conv_check_ocl
 
    call compare_time('Compress Scal',(/n1,n1,n1/),CPUtime,GPUtime,8*nvctr_cf,1,ntimes,maxdiff,1.d-9)
 
-   i_all=-product(shape(psi))
-   deallocate(psi,stat=i_stat)
-   call memocc(i_stat,i_all,'psi',subname)
-   i_all=-product(shape(psi_in))
-   deallocate(psi_in,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_in',subname)
-   i_all=-product(shape(psi_cuda))
-   deallocate(psi_cuda,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_cuda',subname)
-   i_all=-product(shape(keyg))
-   deallocate(keyg,stat=i_stat)
-   call memocc(i_stat,i_all,'keyg',subname)
-   i_all=-product(shape(keyv))
-   deallocate(keyv,stat=i_stat)
-   call memocc(i_stat,i_all,'keyv',subname)
+   call f_free(psi)
+   call f_free(psi_in)
+   call f_free(psi_cuda)
+   call f_free(keyg)
+   call f_free(keyv)
+   call f_free(psi_gemm)
+   call f_free(psi_gemmsy)
+   call f_free(psi_cuda_gemm)
+   call f_free(psi_cuda_str)
+   call f_free(v_cuda_str)
+   call f_free(psi_l)   
+   call f_free(psi_d)
+   call f_free(psi_out)
+   call f_free(psi_cuda_l)
 
    !Need in order to have the last lines (TD,2011-11-10)
    call flush(6)

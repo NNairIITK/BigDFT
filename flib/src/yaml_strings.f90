@@ -35,7 +35,7 @@ module yaml_strings
 
   !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
-  public :: yaml_date_and_time_toa,yaml_time_toa
+  public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol
 
 contains
 
@@ -111,6 +111,14 @@ contains
     if (lgt_add+string_pos > string_lgt) then
        !try to eliminate trailing spaces
        lgt_add=len_trim(buffer)
+    end if
+
+    if (lgt_add+string_pos > string_lgt) then
+       !ic corrections August 23rd 2013
+       !If the string is too long, truncate the length to the length of String: string_lgt-string_pos
+       !write in stderr that a problem is produced (not compatible with pure procedures
+       !write(0,*)'WARNING: Length of Buffer is too long: ',lgt_add
+       !write(0,*)'WARNING: Missing string: ',buffer(string_lgt-string_pos:lgt_add)
        if (present(istat)) then
           istat=-1
           return
@@ -415,6 +423,62 @@ contains
     end if
 
   end function yaml_adjust
+
+  !>find if a string is an integer
+  !! use the portable mode described in 
+  !! http://flibs.sourceforge.net/fortran_aspects.html#check_integers
+  pure function is_atoi(str) result(yes)
+    implicit none
+    character(len=*), intent(in) :: str
+    logical :: yes
+    !local variables
+    integer :: ierr,ival
+    character(len=20) :: form
+    
+    !fill the string describing the format to be used for reading
+    !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
+    read(str,trim(form),iostat=ierr)ival
+    yes=ierr==0
+  end function is_atoi
+
+  !>check if str contains a floating point number. 
+  !!note that in principle this function gives positive answer also 
+  !!if the number in str is an integer. Therefore is_atoi should be used to check before
+  pure function is_atof(str) result(yes)
+    implicit none
+    character(len=*), intent(in) :: str
+    logical :: yes
+    !local variables
+    integer :: ierr,is,ie
+    double precision :: rval
+
+    ie=len_trim(str)
+    is=scan(trim(str),' ')+1
+    yes=scan(str(is:ie),' ') ==0 !there is no other space in the string
+    if (yes) then
+       read(str(is:ie),*,iostat=ierr)rval
+       yes=ierr==0 .and. str(ie:ie)/='/' !the slash terminator is not allowed
+    end if
+
+  end function is_atof
+
+  !> check if str contains a logical in yaml specification (Yes=.true. and No=.false.)
+  pure function is_atol(str) result(yes)
+    implicit none
+    character(len=*), intent(in) :: str
+    logical :: yes
+    !local variables
+    integer :: is,ie
+    !fill the string describing the format to be used for reading
+    !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
+    ie=len(trim(str))
+    is=max(scan(trim(str),' '),1)
+    yes=scan(str(is:ie),' ') ==0 !there is no other space in the string
+    if (yes) yes= (ie-is+1==3 .and. str(is:ie)=='Yes') .or. (ie-is+1==2 .and. str(is:ie)=='No')
+  end function is_atol
+
+
 
   !> Shifts characters in in the string 'str' n positions (positive values
   !! denote a right shift and negative values denote a left shift). Characters

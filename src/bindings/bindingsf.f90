@@ -536,8 +536,12 @@ subroutine inputs_fill_all(inputs_values)
   use dictionaries
   implicit none
   type(dictionary), pointer :: inputs_values
+  !local variable
+  type(dictionary), pointer :: input_minimal
 
-  call input_keys_fill_all(inputs_values)
+  call input_keys_fill_all(inputs_values,input_minimal)
+
+  if (associated(input_minimal)) call dict_free(input_minimal)
 end subroutine inputs_fill_all
 subroutine inputs_get_naming(in, run_name, file_occnum, file_igpop, file_lin)
   use module_types

@@ -30,7 +30,7 @@
   else
      call yaml_open_sequence(mapname,advance=adv,unit=unt)
   end if
-  do irow=1,size(mapvalue,2)
+  do irow=lbound(mapvalue,1),ubound(mapvalue,2)
      if (present(fmt)) then
         call yaml_sequence(trim(yaml_toa(mapvalue(:,irow),fmt=fmt)),&
              advance=adv,unit=unt)

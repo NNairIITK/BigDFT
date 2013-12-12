@@ -488,10 +488,11 @@ module module_input
 
 
    !> Routines for compulsory file
-   subroutine var_double_compulsory(var,default,ranges,exclusive,comment,input_iostat)
+   subroutine var_double_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       real(kind=8), intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       real(kind=8), dimension(2), intent(in), optional :: ranges
@@ -579,20 +580,26 @@ module module_input
                   call leave()
                end if
             end if
-         end if 
+         end if
 
          !increment the line if comment is present, do not touch the input file
          if (present(comment)) then
             call process_line(line_comment=comment)
          end if
-      end if   
-   END SUBROUTINE var_double_compulsory
+      end if
+
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+
+    END SUBROUTINE var_double_compulsory
 
 
-   subroutine var_real_compulsory(var,default,ranges,exclusive,comment,input_iostat)
+   subroutine var_real_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       real(kind=4), intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       real(kind=4), dimension(2), intent(in), optional :: ranges
@@ -689,13 +696,18 @@ module module_input
             call process_line(line_comment=comment)
          end if
       end if   
+
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+
    END SUBROUTINE var_real_compulsory
 
-
-   subroutine var_int_compulsory(var,default,ranges,exclusive,comment,input_iostat)
+   subroutine var_int_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       integer, intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       integer, dimension(2), intent(in), optional :: ranges
@@ -790,13 +802,19 @@ module module_input
             call process_line(line_comment=comment)
          end if
       end if   
+
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+      
    END SUBROUTINE var_int_compulsory
 
 
-   subroutine var_char_compulsory(var,default,exclusive,comment,input_iostat)
+   subroutine var_char_compulsory(var,default,dict,exclusive,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       character(len=*), intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       character(len=*), dimension(:), intent(in), optional :: exclusive
@@ -874,13 +892,18 @@ module module_input
             call process_line(line_comment=comment)
          end if
       end if   
+
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+
    END SUBROUTINE var_char_compulsory
 
-
-   subroutine var_logical_compulsory(var,default,comment,input_iostat)
+   subroutine var_logical_compulsory(var,default,dict,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       logical, intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       !Local variables
@@ -920,6 +943,11 @@ module module_input
             call process_line(line_comment=comment)
          end if
       end if   
+      
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+
    END SUBROUTINE var_logical_compulsory
 
 
@@ -1235,106 +1263,109 @@ contains
     if (.not. associated(dict)) call dict_init(dict)
 
     !grid spacings
-    call input_var(dummy_real3(1),'0.45',ranges=hgrid_rng)
-    call input_var(dummy_real3(2),'0.45',ranges=hgrid_rng)
-    call input_var(dummy_real3(3),'0.45',ranges=hgrid_rng,comment='hx,hy,hz: grid spacing in the three directions')
-    call set(dict//HGRIDS//0, dummy_real3(1), fmt = "(F7.5)")
-    call set(dict//HGRIDS//1, dummy_real3(2), fmt = "(F7.5)")
-    call set(dict//HGRIDS//2, dummy_real3(3), fmt = "(F7.5)")
+    call input_var(dummy_real3(1),'0.45',dict//HGRIDS//0,ranges=hgrid_rng)
+    call input_var(dummy_real3(2),'0.45',dict//HGRIDS//1,ranges=hgrid_rng)
+    call input_var(dummy_real3(3),'0.45',dict//HGRIDS//2,ranges=hgrid_rng,&
+         comment='hx,hy,hz: grid spacing in the three directions')
+!!$    call set(dict//HGRIDS//0, dummy_real3(1), fmt = "(F7.5)")
+!!$    call set(dict//HGRIDS//1, dummy_real3(2), fmt = "(F7.5)")
+!!$    call set(dict//HGRIDS//2, dummy_real3(3), fmt = "(F7.5)")
 !!$  call input_var(dummy_real3,'0.45',ranges=hgrid_rng,key='hx,hy,hz',comment='grid spacing in the three directions'
 
     !coarse and fine radii around atoms
-    call input_var(dummy_real,'5.0',ranges=xrmult_rng)
-    call set(dict//RMULT//0, dummy_real, fmt = "(F5.2)")
-    call input_var(dummy_real,'8.0',ranges=xrmult_rng,&
+    call input_var(dummy_real,'5.0',dict//RMULT//0,ranges=xrmult_rng)
+    !call set(dict//RMULT//0, dummy_real, fmt = "(F5.2)")
+    call input_var(dummy_real,'8.0',dict//RMULT//1,ranges=xrmult_rng,&
          comment='c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius')
-    call set(dict//RMULT//1, dummy_real, fmt = "(F5.2)")
+    !call set(dict//RMULT//1, dummy_real, fmt = "(F5.2)")
 
     !XC functional (ABINIT XC codes)
-    call input_var(dummy_int,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
-    call set(dict//IXC, dummy_int)
+    call input_var(dummy_int,'1',dict//IXC,comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
+    !call set(dict//IXC, dummy_int)
 
     !charge and electric field
-    call input_var(dummy_int,'0',ranges=(/-500,500/))
-    call set(dict//NCHARGE, dummy_int)
-    call input_var(dummy_real3(1),'0.')
-    call input_var(dummy_real3(2),'0.')
-    call input_var(dummy_real3(3),'0.',comment='charge of the system, Electric field (Ex,Ey,Ez)')
-    call set(dict//ELECFIELD//0, dummy_real3(1), fmt = "(F6.4)")
-    call set(dict//ELECFIELD//1, dummy_real3(2), fmt = "(F6.4)")
-    call set(dict//ELECFIELD//2, dummy_real3(3), fmt = "(F6.4)")
+    call input_var(dummy_int,'0',dict//NCHARGE,ranges=(/-500,500/))
+    !call set(dict//NCHARGE, dummy_int)
+    call input_var(dummy_real3(1),'0.',dict//ELECFIELD//0)
+    call input_var(dummy_real3(2),'0.',dict//ELECFIELD//1)
+    call input_var(dummy_real3(3),'0.',dict//ELECFIELD//2,&
+         comment='charge of the system, Electric field (Ex,Ey,Ez)')
+!!$    call set(dict//ELECFIELD//0, dummy_real3(1), fmt = "(F6.4)")
+!!$    call set(dict//ELECFIELD//1, dummy_real3(2), fmt = "(F6.4)")
+!!$    call set(dict//ELECFIELD//2, dummy_real3(3), fmt = "(F6.4)")
     !call input_var(in%elecfield(3),'0.',comment='ncharge: charge of the system, Electric field (Ex,Ey,Ez)')
 
     !spin and polarization
-    call input_var(dummy_int,'1',exclusive=(/1,2,4/))
-    call set(dict//NSPIN, dummy_int)
-    call input_var(dummy_int,'0',comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
-    call set(dict//MPOL, dummy_int)
+    call input_var(dummy_int,'1',dict//NSPIN,exclusive=(/1,2,4/))
+    !call set(dict//NSPIN, dummy_int)
+    call input_var(dummy_int,'0',dict//MPOL,comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
+    !call set(dict//MPOL, dummy_int)
 
     !convergence parameters
-    call input_var(dummy_real,'1.e-4',ranges=(/1.e-20_gp,1.0_gp/),&
+    call input_var(dummy_real,'1.e-4',dict//GNRM_CV,ranges=(/1.e-20_gp,1.0_gp/),&
          comment='gnrm_cv: convergence criterion gradient')
-    call set(dict//GNRM_CV, dummy_real, fmt = "(E8.1)")
-    call input_var(dummy_int,'50',ranges=(/0,10000/))
-    call set(dict//ITERMAX, dummy_int)
-    call input_var(dummy_int,'1',ranges=(/0,1000/),&
+    !call set(dict//GNRM_CV, dummy_real, fmt = "(E8.1)")
+    call input_var(dummy_int,'50',dict//ITERMAX,ranges=(/0,10000/))
+    !call set(dict//ITERMAX, dummy_int)
+    call input_var(dummy_int,'1',dict//NREPMAX,ranges=(/0,1000/),&
          comment='itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs')
-    call set(dict//NREPMAX, dummy_int)
+    !call set(dict//NREPMAX, dummy_int)
 
     !convergence parameters
-    call input_var(dummy_int,'6',ranges=(/0,20/))
-    call set(dict//NCONG, dummy_int)
-    call input_var(dummy_int,'6',ranges=(/0,15/),&
+    call input_var(dummy_int,'6',dict//NCONG,ranges=(/0,20/))
+    !call set(dict//NCONG, dummy_int)
+    call input_var(dummy_int,'6',dict//IDSX,ranges=(/0,15/),&
          comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
-    call set(dict//IDSX, dummy_int)
+    !call set(dict//IDSX, dummy_int)
 
     !dispersion parameter
-    call input_var(dummy_int,'0',ranges=(/0,5/),&
+    call input_var(dummy_int,'0',dict//DISPERSION,ranges=(/0,5/),&
          comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
-    call set(dict//DISPERSION, dummy_int)
+    !call set(dict//DISPERSION, dummy_int)
 
     ! Now the variables which are to be used only for the last run
-    call input_var(dummy_int,'0',exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
+    call input_var(dummy_int,'0',dict//INPUTPSIID,&
+         exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
     ! Validate inputPsiId value (Can be added via error handling exception)
     if (ierror /=0 .and. iproc == 0) then
        write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', dummy_int, ').'
        call input_psi_help()
        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
     end if
-    call set(dict//INPUTPSIID, dummy_int)
+    !call set(dict//INPUTPSIID, dummy_int)
 
-    call input_var(dummy_int,'0',exclusive=(/0,1,2,3/),input_iostat=ierror)
+    call input_var(dummy_int,'0',dict//OUTPUT_WF,exclusive=(/0,1,2,3/),input_iostat=ierror)
     ! Validate output_wf value.
     if (ierror /=0 .and. iproc == 0) then
        write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', dummy_int, ').'
        call output_wf_format_help()
        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
     end if
-    call set(dict//OUTPUT_WF, dummy_int)
+    !call set(dict//OUTPUT_WF, dummy_int)
 
-    call input_var(dummy_int,'0',exclusive=(/0,1,2,10,11,12,20,21,22/),&
+    call input_var(dummy_int,'0',dict//OUTPUT_DENSPOT,exclusive=(/0,1,2,10,11,12,20,21,22/),&
          comment='InputPsiId, output_wf, output_denspot')
-    call set(dict//OUTPUT_DENSPOT, dummy_int)
+    !call set(dict//OUTPUT_DENSPOT, dummy_int)
 
     ! Tail treatment.
-    call input_var(dummy_real,'0.0',ranges=(/0.0_gp,10.0_gp/))
-    call set(dict//RBUF, dummy_real, fmt = "(F5.2)")
-    call input_var(dummy_int,'30',ranges=(/1,50/),&
+    call input_var(dummy_real,'0.0',dict//RBUF,ranges=(/0.0_gp,10.0_gp/))
+    !call set(dict//RBUF, dummy_real, fmt = "(F5.2)")
+    call input_var(dummy_int,'30',dict//NCONGT,ranges=(/1,50/),&
          comment='rbuf, ncongt: length of the tail (AU),# tail CG iterations')
-    call set(dict//NCONGT, dummy_int)
+    !call set(dict//NCONGT, dummy_int)
 
     !davidson treatment
-    call input_var(dummy_int,'0',ranges=(/-9999,9999/))
-    call set(dict//NORBV, dummy_int)
-    call input_var(dummy_int,'0')
-    call set(dict//NVIRT, dummy_int)
-    call input_var(dummy_int,'0',&
+    call input_var(dummy_int,'0',dict//NORBV,ranges=(/-9999,9999/))
+    !call set(dict//NORBV, dummy_int)
+    call input_var(dummy_int,'0',dict//NVIRT)
+    !call set(dict//NVIRT, dummy_int)
+    call input_var(dummy_int,'0',dict//NPLOT,&
          comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
-    call set(dict//NPLOT, dummy_int)
+    !call set(dict//NPLOT, dummy_int)
 
     ! Line to disable automatic behaviours (currently only symmetries).
-    call input_var(dummy_bool,'F',comment='disable the symmetry detection')
-    call set(dict//DISABLE_SYM, dummy_bool)
+    call input_var(dummy_bool,'F',dict//DISABLE_SYM,comment='disable the symmetry detection')
+    !call set(dict//DISABLE_SYM, dummy_bool)
 
     call input_free(.false.)
 
@@ -1372,70 +1403,71 @@ contains
        return
     end if
 
-    call input_var(dummy_str,"BFGS", comment = "")
-    call set(dict // GEOPT_METHOD, dummy_str)
-    call input_var(dummy_int,'1', comment="")
-    call set(dict // NCOUNT_CLUSTER_X, dummy_int)
+    call input_var(dummy_str,"BFGS",dict // GEOPT_METHOD, comment = "")
+    !call set(dict // GEOPT_METHOD, dummy_str)
+    call input_var(dummy_int,'1',dict // NCOUNT_CLUSTER_X,comment="")
+    !call set(dict // NCOUNT_CLUSTER_X, dummy_int)
 
-    call input_var(dummy_real,'1.0')
-    call set(dict // FRAC_FLUCT, dummy_real, fmt = "(E8.2)")
-    call input_var(dummy_real,'0.0',comment="")
-    call set(dict // FORCEMAX, dummy_real, fmt = "(E8.2)")
-    call input_var(dummy_real,'0.0',comment="")
-    call set(dict // RANDDIS, dummy_real, fmt = "(E8.2)")
+    call input_var(dummy_real,'1.0',dict // FRAC_FLUCT)
+    !call set(dict // FRAC_FLUCT, dummy_real, fmt = "(E8.2)")
+    call input_var(dummy_real,'0.0',dict // FORCEMAX,comment="")
+    !call set(dict // FORCEMAX, dummy_real, fmt = "(E8.2)")
+    call input_var(dummy_real,'0.0',dict // RANDDIS,comment="")
+    !call set(dict // RANDDIS, dummy_real, fmt = "(E8.2)")
 
     if (input_keys_equal(trim(dummy_str),"AB6MD")) then
-       call input_var(ionmov_,'6',comment="")
-       call set(dict // IONMOV, ionmov_)
-       call input_var(dummy_real,'20.670689',comment="")
-       call set(dict // DTION, dummy_real)
+       call input_var(ionmov_,'6',dict // IONMOV,comment="")
+       !call set(dict // IONMOV, ionmov_)
+       call input_var(dummy_real,'20.670689',dict // DTION,comment="")
+       !call set(dict // DTION, dummy_real)
        if (ionmov_ == 6) then
-          call input_var(dummy_real,'300',comment="")
-          call set(dict // MDITEMP, dummy_real)
+          call input_var(dummy_real,'300',dict // MDITEMP,comment="")
+          !call set(dict // MDITEMP, dummy_real)
        elseif (ionmov_ > 7) then
-          call input_var(dummy_real,'300')
-          call set(dict // MDITEMP, dummy_real)
-          call input_var(dummy_real,'300',comment="")
-          call set(dict // MDFTEMP, dummy_real)
+          call input_var(dummy_real,'300',dict // MDITEMP)
+          !call set(dict // MDITEMP, dummy_real)
+          call input_var(dummy_real,'300',dict // MDFTEMP,comment="")
+          !call set(dict // MDFTEMP, dummy_real)
        end if
 
        if (ionmov_ == 8) then
-          call input_var(dummy_real,'1.e5',comment="")
-          call set(dict // NOSEINERT, dummy_real)
+          call input_var(dummy_real,'1.e5',dict // NOSEINERT,comment="")
+          !call set(dict // NOSEINERT, dummy_real)
        else if (ionmov_ == 9) then
-          call input_var(dummy_real,'1.e-3',comment="")
-          call set(dict // FRICTION, dummy_real)
-          call input_var(dummy_real,'1.e4',comment="")
-          call set(dict // MDWALL, dummy_real)
+          call input_var(dummy_real,'1.e-3',dict // FRICTION,comment="")
+          !call set(dict // FRICTION, dummy_real)
+          call input_var(dummy_real,'1.e4',dict // MDWALL,comment="")
+          !call set(dict // MDWALL, dummy_real)
        else if (ionmov_ == 13) then
+          !here no dictionary
           call input_var(dummy_int,'0',ranges=(/0,100/),comment="")
           do i=1,dummy_int-1
-             call input_var(dummy_real,'0.0')
-             call set(dict // QMASS // (i-1), dummy_real)
+             call input_var(dummy_real,'0.0',dict // QMASS // (i-1))
+             !call set(dict // QMASS // (i-1), dummy_real)
           end do
           if (dummy_int > 0) then
-             call input_var(dummy_real,'0.0',comment="")
-             call set(dict // QMASS // (dummy_int-1), dummy_real)
+             call input_var(dummy_real,'0.0',dict // QMASS // (dummy_int-1),comment="")
+             !call set(dict // QMASS // (dummy_int-1), dummy_real)
           end if
-          call input_var(dummy_real,'10')
-          call set(dict // BMASS, dummy_real)
-          call input_var(dummy_real,'1.0',comment="")
-          call set(dict // VMASS, dummy_real)
+          call input_var(dummy_real,'10',dict // BMASS)
+          !call set(dict // BMASS, dummy_real)
+          call input_var(dummy_real,'1.0',dict // VMASS,comment="")
+          !call set(dict // VMASS, dummy_real)
        end if
     else if (input_keys_equal(trim(dummy_str),"DIIS")) then
-       call input_var(dummy_real,'2.0')
-       call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
-       call input_var(dummy_int,'4',comment="")
-       call set(dict // HISTORY, dummy_int)
+       call input_var(dummy_real,'2.0',dict // BETAX)
+       !call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
+       call input_var(dummy_int,'4',dict // HISTORY,comment="")
+       !call set(dict // HISTORY, dummy_int)
     else
-       call input_var(dummy_real,'4.0',comment="")
-       call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
+       call input_var(dummy_real,'4.0',dict // BETAX,comment="")
+       !call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
     end if
     if (input_keys_equal(trim(dummy_str),"FIRE")) then
-       call input_var(dummy_real,'0.75')
-       call set(dict // DTINIT, dummy_real, fmt = "(F6.3)")
-       call input_var(dummy_real, '1.5',comment="")
-       call set(dict // DTMAX, dummy_real, fmt = "(F6.3)")
+       call input_var(dummy_real,'0.75',dict // DTINIT)
+       !call set(dict // DTINIT, dummy_real, fmt = "(F6.3)")
+       call input_var(dummy_real, '1.5',dict // DTMAX,comment="")
+       !call set(dict // DTMAX, dummy_real, fmt = "(F6.3)")
     endif
 
     call input_free(.false.)
@@ -1473,22 +1505,22 @@ contains
     if (.not. associated(dict)) call dict_init(dict)
 
     !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
-    call input_var(dummy_int,'0',comment="")
-    call set(dict // ISCF, dummy_int)
-    call input_var(dummy_int,'1',comment="")
-    call set(dict // ITRPMAX, dummy_int)
-    call input_var(dummy_real,'1.e-4',comment="")
-    call set(dict // RPNRM_CV, dummy_real, fmt = "(E8.1)")
-    call input_var(dummy_int,'0')
-    call set(dict // NORBSEMPTY, dummy_int)
-    call input_var(dummy_real,'0.0') 
-    call set(dict // TEL, dummy_real, fmt = "(E9.2)")
-    call input_var(dummy_int,'1',comment="")
-    call set(dict // OCCOPT, dummy_int)
-    call input_var(dummy_real,'0.0')
-    call set(dict // ALPHAMIX, dummy_real, fmt = "(F6.3)")
-    call input_var(dummy_real,'2.0',comment="")
-    call set(dict // ALPHADIIS, dummy_real, fmt = "(F6.3)")
+    call input_var(dummy_int,'0',dict // ISCF,comment="")
+    !call set(dict // ISCF, dummy_int)
+    call input_var(dummy_int,'1',dict // ITRPMAX,comment="")
+    !call set(dict // ITRPMAX, dummy_int)
+    call input_var(dummy_real,'1.e-4',dict // RPNRM_CV,comment="")
+    !call set(dict // RPNRM_CV, dummy_real, fmt = "(E8.1)")
+    call input_var(dummy_int,'0',dict // NORBSEMPTY)
+    !call set(dict // NORBSEMPTY, dummy_int)
+    call input_var(dummy_real,'0.0',dict // TEL) 
+    !call set(dict // TEL, dummy_real, fmt = "(E9.2)")
+    call input_var(dummy_int,'1',dict // OCCOPT,comment="")
+    !call set(dict // OCCOPT, dummy_int)
+    call input_var(dummy_real,'0.0',dict // ALPHAMIX)
+    !call set(dict // ALPHAMIX, dummy_real, fmt = "(F6.3)")
+    call input_var(dummy_real,'2.0',dict // ALPHADIIS,comment="")
+    !call set(dict // ALPHADIIS, dummy_real, fmt = "(F6.3)")
 
     call input_free(.false.)
   END SUBROUTINE read_mix_from_text_format
@@ -1516,14 +1548,14 @@ contains
        return
     end if
 
-    call input_var(dummy_str,'NONE',comment='')
-    call set(dict // SIC_APPROACH, dummy_str)
-    call input_var(dummy_real,'0.0',comment='')
-    call set(dict // SIC_ALPHA, dummy_real, fmt = "(E8.2)")
+    call input_var(dummy_str,'NONE',dict // SIC_APPROACH,comment='')
+    !call set(dict // SIC_APPROACH, dummy_str)
+    call input_var(dummy_real,'0.0',dict // SIC_ALPHA,comment='')
+    !call set(dict // SIC_ALPHA, dummy_real, fmt = "(E8.2)")
     
     if (input_keys_equal(trim(dummy_str),'NK')) then
-       call input_var(dummy_real,'0.0',comment='')
-       call set(dict // SIC_FREF, dummy_real, fmt = "(E8.2)")
+       call input_var(dummy_real,'0.0',dict // SIC_FREF,comment='')
+       !call set(dict // SIC_FREF, dummy_real, fmt = "(E8.2)")
     end if
 
     call input_free(.false.)
@@ -1553,8 +1585,8 @@ contains
 
     if (.not. associated(dict)) call dict_init(dict)
 
-    call input_var(dummy_str,"NONE",comment="")
-    call set(dict // TDDFT_APPROACH, dummy_str)
+    call input_var(dummy_str,"NONE",dict // TDDFT_APPROACH,comment="")
+    !call set(dict // TDDFT_APPROACH, dummy_str)
 
     call input_free(.false.)
 
@@ -1592,47 +1624,49 @@ contains
     if (.not. associated(dict)) call dict_init(dict)
 
     !if the file does exist, we fill up the dictionary.
-    call input_var(dummy_str, 'manual', comment='K-point sampling method')
-    call set(dict//KPT_METHOD, trim(dummy_str))
+    call input_var(dummy_str, 'manual',dict//KPT_METHOD, comment='K-point sampling method')
+    !call set(dict//KPT_METHOD, trim(dummy_str))
 
     if (input_keys_equal(trim(dummy_str),'auto')) then
-       call input_var(dummy_real,'0.0', comment='Equivalent length of K-space resolution (Bohr)')
-       call set(dict//KPTRLEN, dummy_real)
+       call input_var(dummy_real,'0.0',dict//KPTRLEN, comment='Equivalent length of K-space resolution (Bohr)')
+       !call set(dict//KPTRLEN, dummy_real)
     else if (input_keys_equal(trim(dummy_str),'mpgrid')) then
        !take the points of Monckorst-pack grid
-       call input_var(dummy_int3(1),'1')
-       call input_var(dummy_int3(2),'1')
-       call input_var(dummy_int3(3),'1', comment='No. of Monkhorst-Pack grid points')
-       call set(dict//NGKPT//0, dummy_int3(1))
-       call set(dict//NGKPT//1, dummy_int3(2))
-       call set(dict//NGKPT//2, dummy_int3(3))
+       call input_var(dummy_int3(1),'1',dict//NGKPT//0)
+       call input_var(dummy_int3(2),'1',dict//NGKPT//1)
+       call input_var(dummy_int3(3),'1',dict//NGKPT//2, comment='No. of Monkhorst-Pack grid points')
+       !call set(dict//NGKPT//0, dummy_int3(1))
+       !call set(dict//NGKPT//1, dummy_int3(2))
+       !call set(dict//NGKPT//2, dummy_int3(3))
        !shift
+       !no dict here
        call input_var(dummy_int,'1',ranges=(/1,8/),comment='No. of different shifts')
        !read the shifts
        do i=1,dummy_int
-          call input_var(dummy_real3(1),'0.')
-          call input_var(dummy_real3(2),'0.')
-          call input_var(dummy_real3(3),'0.',comment=' ')
-          call set(dict//SHIFTK//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
-          call set(dict//SHIFTK//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
-          call set(dict//SHIFTK//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
+          call input_var(dummy_real3(1),'0.',dict//SHIFTK//(i-1)//0)
+          call input_var(dummy_real3(2),'0.',dict//SHIFTK//(i-1)//1)
+          call input_var(dummy_real3(3),'0.',dict//SHIFTK//(i-1)//2,comment=' ')
+          !call set(dict//SHIFTK//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
+          !call set(dict//SHIFTK//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
+          !call set(dict//SHIFTK//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
        end do
     else if (input_keys_equal(trim(dummy_str),'manual')) then
        call input_var(dummy_int,'1',ranges=(/1,10000/),&
             comment='Number of K-points')
        do i=1,dummy_int
-          call input_var( dummy_real3(1),'0.')
-          call input_var( dummy_real3(2),'0.')
-          call input_var( dummy_real3(3),'0.')
-          call set(dict//KPT//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
-          call set(dict//KPT//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
-          call set(dict//KPT//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
-          call input_var( dummy_real,'1.',comment='K-pt coords, K-pt weigth')
-          call set(dict//WKPT//(i-1), dummy_real, fmt = "(F6.4)")
+          call input_var(dummy_real3(1),'0.',dict//KPT//(i-1)//0)
+          call input_var(dummy_real3(2),'0.',dict//KPT//(i-1)//1)
+          call input_var(dummy_real3(3),'0.',dict//KPT//(i-1)//2)
+          !call set(dict//KPT//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
+          !call set(dict//KPT//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
+          !call set(dict//KPT//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
+          call input_var(dummy_real,'1.',dict//WKPT//(i-1),comment='K-pt coords, K-pt weigth')
+          !call set(dict//WKPT//(i-1), dummy_real, fmt = "(F6.4)")
        end do
     end if
 
     ! Now read the band structure definition. do it only if the file exists
+    !no dictionary here
     call input_var(dummy_str,'bands',comment='For doing band structure calculation',&
          input_iostat=ierror)
     call set(dict//BANDS, (ierror==0))
@@ -1641,29 +1675,30 @@ contains
             comment='# of segments of the BZ path')
        !number of points for each segment, parallel granularity
        do i=1,nseg
-          call input_var(dummy_int,'1')
-          call set(dict//ISEG, dummy_int)
+          call input_var(dummy_int,'1',dict//ISEG)
+          !call set(dict//ISEG, dummy_int)
        end do
-       call input_var(dummy_int,'1',&
+       call input_var(dummy_int,'1',dict//NGRANULARITY,&
             comment='points for each segment, # of points done for each group')
-       call set(dict//NGRANULARITY, dummy_int)
+       !call set(dict//NGRANULARITY, dummy_int)
 
-       call input_var(dummy_real3(1),'0.')
-       call input_var(dummy_real3(2),'0.')
-       call input_var(dummy_real3(3),'0.',comment=' ')
-       call set(dict//KPTV//0//0, dummy_real3(1))
-       call set(dict//KPTV//0//1, dummy_real3(2))
-       call set(dict//KPTV//0//2, dummy_real3(3))
+       call input_var(dummy_real3(1),'0.',dict//KPTV//0//0)
+       call input_var(dummy_real3(2),'0.',dict//KPTV//0//1)
+       call input_var(dummy_real3(3),'0.',dict//KPTV//0//2,comment=' ')
+!       call set(dict//KPTV//0//0, dummy_real3(1))
+!       call set(dict//KPTV//0//1, dummy_real3(2))
+!       call set(dict//KPTV//0//2, dummy_real3(3))
        do i=1,nseg
-          call input_var(dummy_real3(1),'0.5')
-          call input_var(dummy_real3(2),'0.5')
-          call input_var(dummy_real3(3),'0.5.',comment=' ')
-          call set(dict//KPTV//(i-1)//0, dummy_real3(1))
-          call set(dict//KPTV//(i-1)//1, dummy_real3(2))
-          call set(dict//KPTV//(i-1)//2, dummy_real3(3))
+          call input_var(dummy_real3(1),'0.5',dict//KPTV//(i-1)//0)
+          call input_var(dummy_real3(2),'0.5',dict//KPTV//(i-1)//1)
+          call input_var(dummy_real3(3),'0.5',dict//KPTV//(i-1)//2,comment=' ')
+          !call set(dict//KPTV//(i-1)//0, dummy_real3(1))
+          !call set(dict//KPTV//(i-1)//1, dummy_real3(2))
+          !call set(dict//KPTV//(i-1)//2, dummy_real3(3))
        end do
 
        !read an optional line to see if there is a file associated
+       !no dict for the moment
        call input_var(dummy_str,' ',&
             comment=' ',input_iostat=ierror)
        if (ierror == 0) then

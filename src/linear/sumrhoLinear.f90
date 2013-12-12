@@ -1789,7 +1789,123 @@ end subroutine sumrho_for_TMBs
 !!$
 !!$end subroutine fill_global_density
 
+!> perform the communication needed for the potential and verify that the results is as expected
+subroutine check_communication_potential(denspot,tmb)
+  use module_base, only:dp,bigdft_mpi,mpi_sum,mpi_max,mpiallred
+  use module_types
+  use module_interfaces
+  use yaml_output
+  use dictionaries, only:f_err_throw
+  implicit none
+  type(DFT_wavefunction), intent(inout) :: tmb
+  type(DFT_local_fields), intent(inout) :: denspot
+  !local variables
+  logical :: dosome
+  integer :: i1,i2,i3,ind,i3s,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,i_stat,i_all
+  real(dp) :: maxdiff,sumdiff,testval
+  real(dp),parameter :: tol_calculation_mean=1.d-12
+  real(dp),parameter :: tol_calculation_max=1.d-10
+  character(len=200), parameter :: subname='check_communication_potential'
 
+  !assign constants
+  i3s=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,3)+1 !< starting point of the planes in the z direction
+  n3p=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,2) !< number of planes for the potential
+  n2i=denspot%dpbox%ndims(2) !< size of the global domain in y direction
+  n1i=denspot%dpbox%ndims(1) !< size of the global domain in x direction
+
+  !fill the values of the rhov array
+  ind=0
+  do i3=i3s,i3s+n3p-1
+     do i2=1,n2i
+        do i1=1,n1i
+           ind=ind+1
+           denspot%rhov(ind)=real(i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
+        end do
+     end do
+  end do
+
+  !calculate the dimensions and communication of the potential element with mpi_get
+  call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+  call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
+       tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+
+  !check the fetching of the potential element, destroy the MPI window, results in pot_work
+  call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,&
+       2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+
+  maxdiff=0.0_dp
+  sumdiff=0.0_dp
+  numtot=0
+  loop_lr: do ilr=1,tmb%ham_descr%Lzd%nlr
+     !check if this localisation region is used by one of the orbitals
+     dosome=.false.
+     do iorb=1,tmb%orbs%norbp
+        dosome = (tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb) == ilr)
+        if (dosome) exit
+     end do
+     if (.not. dosome) cycle loop_lr
+
+     loop_orbs: do iorb=1,tmb%orbs%norbp
+        ilr_orb=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
+        if (ilr_orb /= ilr) cycle loop_orbs
+
+        ind=tmb%orbs%ispot(iorb)-1
+        do i3=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n3i
+           do i2=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n2i
+              do i1=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n1i
+                 ind=ind+1
+                 testval=real(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
+                      (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
+                      (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i,dp)
+                 testval=abs(denspot%pot_work(ind)-testval)
+                 maxdiff=max(maxdiff,testval)
+                 sumdiff=sumdiff+testval
+                 numtot=numtot+1
+              end do
+           end do
+        end do
+
+     enddo loop_orbs
+
+  end do loop_lr
+
+  if (numtot>0) sumdiff = sumdiff/numtot
+
+  ! Reduce the results
+  if (bigdft_mpi%nproc>1) then
+      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  end if
+    
+  ! Get mean value for the sum
+  sumdiff=sqrt(sumdiff)
+
+  if (bigdft_mpi%iproc==0) call yaml_open_map('Checking operations for potential communication')    
+  ! Print the results
+  if (bigdft_mpi%iproc==0) then
+      call yaml_map('Tolerance for the following test',tol_calculation_mean,fmt='(1es25.18)')
+      if (sumdiff>tol_calculation_mean) then
+         call yaml_warning('CALCULATION ERROR: total difference of '//trim(yaml_toa(sumdiff,fmt='(1es25.18)')))
+      else
+         call yaml_map('calculation check, error sum', sumdiff,fmt='(1es25.18)')
+      end if
+      call yaml_map('Tolerance for the following test',tol_calculation_max,fmt='(1es25.18)')
+      if (sumdiff>tol_calculation_max) then
+         call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
+	      call f_err_throw('The communication of the potential is not correct for this setup, check communication routines',&
+                 err_name='BIGDFT_MPI_ERROR')
+      else
+         call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
+      end if
+  end if
+  if (bigdft_mpi%iproc==0) call yaml_close_map()
+
+  i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+  deallocate(denspot%pot_work,stat=i_stat)
+  call memocc(i_stat,i_all,'denspot%pot_work',subname)
+  nullify(denspot%pot_work)
+
+end subroutine check_communication_potential
 
 
 subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, check_sumrho)
@@ -2116,11 +2232,15 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! Determine the difference between the two versions
       sumdiff=0.d0
       maxdiff=0.d0
+      !$omp parallel default(none) shared(lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
+      !$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
       do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
           tt=abs(rho(i)-rho_check(i))
           sumdiff = sumdiff + tt**2
           if (tt>maxdiff) maxdiff=tt
       end do
+      !$omp end do
+      !$omp end parallel
     
       ! Reduce the results
       if (nproc>1) then

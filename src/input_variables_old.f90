@@ -81,6 +81,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
   real(gp):: ppao, ppl, pph, lrl, lrh, kco
   real(gp),dimension(atoms%astruct%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
+  type(dictionary), pointer :: dict
+
+  !this variable is temporay for the moment, it should integrate the input dictionary
+  call dict_init(dict)
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
@@ -88,12 +92,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   ! number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
   comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
-  call input_var(in%lin%nlevel_accuracy,'2',ranges=(/1,2/),comment=comments)
+  call input_var(in%lin%nlevel_accuracy,'2',dict//'nlevel_accuracy',ranges=(/1,2/),comment=comments)
 
   ! number of iterations
   comments = 'outer loop iterations (low, high)'
-  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,100000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,100000/),comment=comments)
+  call input_var(in%lin%nit_lowaccuracy,'15',dict//'nit_lowaccuracy',ranges=(/0,100000/))
+  call input_var(in%lin%nit_highaccuracy,'1',dict//'nit_highaccuracy',ranges=(/0,100000/),comment=comments)
 
   comments = 'basis iterations (low, high)'
   call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
@@ -289,6 +293,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
       end do
   end do
   
+
+  call dict_free(dict)
 
   call input_free((iproc == 0) .and. dump)
 END SUBROUTINE lin_input_variables_new

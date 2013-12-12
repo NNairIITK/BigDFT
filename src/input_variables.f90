@@ -158,6 +158,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   !type(dictionary), pointer :: profs
   integer :: ierr
+  type(dictionary), pointer :: dict_minimal
   call f_routine(id='inputs_from_dict')
 
   call default_input_variables(in)
@@ -167,7 +168,8 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 
   ! Analyse the input dictionary and transfer it to in.
-  call input_keys_fill_all(dict)
+  ! extract also the minimal dictionary which is necessary to do this run
+  call input_keys_fill_all(dict,dict_minimal)
 
   call perf_input_analyse(bigdft_mpi%iproc, in, dict//PERF_VARIABLES)
   call dft_input_analyse(in, dict//DFT_VARIABLES)
@@ -185,7 +187,23 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
   
-  if (bigdft_mpi%iproc == 0 .and. dump) call input_keys_dump(dict)
+  if (bigdft_mpi%iproc == 0 .and. dump) then
+     call input_keys_dump(dict)
+     if (associated(dict_minimal)) then
+        call yaml_set_stream(unit=71,filename=trim(in%writing_directory)//'/input_minimal.yaml',&
+             record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
+        if (ierr==0) then
+           call yaml_comment('Minimal input file',hfill='-',unit=71)
+           call yaml_comment('This file indicates the minimal set of input variables which has to be given '//&
+                'to perform the run. The code would produce the same output if this file is used as input.',unit=71)
+           call yaml_dict_dump(dict_minimal,unit=71)
+           call yaml_close_stream(unit=71)
+        else
+           call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
+        end if
+     end if
+  end if
+  if (associated(dict_minimal)) call dict_free(dict_minimal)
 
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
      if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')

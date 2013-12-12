@@ -414,6 +414,7 @@ cdft_oh-a:
 fructose:
  Epot: 1.1e-09
  Ekin: 1.1e-09
+ Enl: 1.01e-10
  Epsilon: 1.1e-11
  D: 1.1e-10
  D eF: 1.1e-9
@@ -477,8 +478,13 @@ rotatesmall_read2:
 linearcubic_cubic:
  Epsilon: 1.1e-10
  Ekin: 1.0e-9
+ EH: 1.01e-9
+ energy: 1.83e-10
+ EKS: 2.44e-10
 
 linearcubic_linear:
  Epsilon: 1.1e-10
  EH: 1.0-e9
  Epot: 1.01e-9
+ energy: 1.83e-10
+ Omega: 1.81e-10
