@@ -494,36 +494,41 @@ highertaylor_experimental_order2:
  Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.1e-9
  Raw forces norm (Ha/Bohr): 1.1e-09
- charge diff: 1.3e-7
+ charge diff: 2.2e-06
  multiplicator for the confinement: 2.9e-11
- Omega: 6.6e-08
- Tr(K): 1.3e-07
- eF: 3.8e-09
- D Tr: 1.1e-7
- D eF: 1.1e-09
- energy: 8.4e-09
+ Omega: 1.2e-06
+ Tr(K): 2.2e-06
+ eF: 6.6e-08
+ D Tr: 1.6e-06
+ D eF: 7.1e-08
+ energy: 1.5e-07
  Ekin: 1.1e-10
- EH: 8.0e-08
- EXC: 1.6e-08
- Ekin: 7.0e-09
- Enl: 8.6e-10
- Epot: 7.3e-08
- EvXC: 2.1e-08
+ EH: 1.4e-06
+ EXC: 2.8e-07
+ Ekin: 1.3e-07
+ Enl: 1.6e-08
+ Epot: 1.3e-06
+ EvXC: 3.7e-07
+ D: 1.1e-07
 
 highertaylor_experimental_order3:
- Atomic Forces (Ha/Bohr): 1.6e-11
- Clean forces norm (Ha/Bohr): 1.9e-11
- EH: 2.1e-09
- EXC: 3.1e-10
- Ekin: 1.1e-10
- Enl: 2.1e-11
- Epot: 1.5e-09
- EvXC: 4.1e-10
- energy: 1.5e-10
- Tr(K): 1.1e-08
- charge diff: 2.5e-09
- eF: 1.1e-10
- D Tr: 1.1e-08
- D eF: 1.1e-10
- Omega: 1.3e-09
- Raw forces norm (Ha/Bohr): 2.1e-11
+ Atomic Forces (Ha/Bohr): 6.8e-10
+ Clean forces norm (Ha/Bohr): 1.6e-08
+ Raw forces norm (Ha/Bohr): 1.7e-08
+ Average noise forces: 3.1e-09
+ EH: 1.3e-06
+ EXC: 2.7e-07
+ Ekin: 1.1e-07
+ Enl: 1.3e-08
+ Epot: 1.2e-06
+ EvXC: 3.5e-07
+ energy: 1.3e-07
+ Tr(K): 2.1e-06
+ charge diff: 2.1e-06
+ eF: 5.3e-08
+ D Tr: 1.3e-06
+ D eF: 5.1e-08
+ Omega: 1.1e-06
+ D: 2.1e-10
+ delta: 1.1e-10
+ multiplicator for the confinement: 4.7e-10
