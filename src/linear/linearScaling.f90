@@ -3510,24 +3510,27 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
 
   ! Local variables
   integer :: ishift, iorb, iiorb, ilr, iseg, jj_prev, j0_prev, j1_prev, ii_prev, i3_prev, i2_prev, i1_prev, i0_prev
-  integer :: jj, j0, j1, ii, i3, i2, i1, i0, jorb, korb, istat, idir, iat, i
-  real(kind=8),dimension(:,:),allocatable :: phi_delta, energykernel, tempmat, overlap, phi_delta_large, fpulay
+  integer :: jj, j0, j1, ii, i3, i2, i1, i0, jorb, korb, istat, idir, iat, i, isize
+  real(kind=8),dimension(:,:),allocatable :: phi_delta, energykernel, tempmat, phi_delta_large, fpulay
   real(kind=8),dimension(:),allocatable :: hphit_c, hphit_f, denskern_tmp, delta_phit_c, delta_phit_f
   logical,dimension(:,:,:),allocatable :: boundaryarray
   real(kind=8),dimension(:,:,:,:,:,:),allocatable :: temparr
   real(kind=8) :: dist, crit, xsign, ysign, zsign, tt
   character(len=*),parameter :: subname='scalprod_on_boundary'
 
+  call f_routine(id='scalprod_on_boundary')
+
   ! First copy the boundary elements of the first array to a temporary array,
   ! filling the remaining part with zeros.
-  !phi_delta=f_malloc0(3,size(tmb%psi))
-  allocate(phi_delta(size(tmb%psi),3))
+  isize=size(tmb%psi)
+  phi_delta=f_malloc((/isize,3/),id='phi_delta')
   phi_delta=0.d0
   ishift=0
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
-      boundaryarray=f_malloc((/0.to.tmb%lzd%llr(ilr)%d%n1,0.to.tmb%lzd%llr(ilr)%d%n2,0.to.tmb%lzd%llr(ilr)%d%n3/))
+      boundaryarray=f_malloc((/0.to.tmb%lzd%llr(ilr)%d%n1,0.to.tmb%lzd%llr(ilr)%d%n2,0.to.tmb%lzd%llr(ilr)%d%n3/), &
+                             id='boundaryarray')
       boundaryarray=.false.
 
 
@@ -3760,6 +3763,7 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
 
       ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
       call f_free(boundaryarray)
+      !deallocate(boundaryarray)
   end do
 
   !!!! TEST #################
@@ -3778,7 +3782,7 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
 
 
   ! calculate the "energy kernel"
-  allocate(energykernel(tmb%orbs%norb,tmb%orbs%norb))
+  energykernel=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='energykernel')
   energykernel=0.d0
   do iorb=1,tmb%orbs%norb
       do jorb=1,tmb%orbs%norb
@@ -3791,28 +3795,37 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
 
   ! calculate the overlap matrix
   if(.not.associated(tmb%psit_c)) then
-      allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+      !allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+      !call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+      isize=sum(tmb%collcom%nrecvcounts_c)
+      tmb%psit_c=f_malloc_ptr(isize,id='tmb%psit_c')
   end if
   if(.not.associated(tmb%psit_f)) then
-      allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+      !allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+      !call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+      isize=7*sum(tmb%collcom%nrecvcounts_f)
+      tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
   end if
   call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
        tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
        tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
 
+  call f_free_ptr(tmb%psit_c)
+  !deallocate(tmb%psit_c)
+  call f_free_ptr(tmb%psit_f)
+  !deallocate(tmb%psit_f)
 
   ! Construct the array chi
-  allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb))
-  allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+  tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
+  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
   call uncompressMatrix(iproc,tmb%linmat%ovrlp)
-  allocate(overlap(tmb%orbs%norb,tmb%orbs%norb))
   call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
-             energykernel, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
+             tmb%linmat%ovrlp%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
              0.d0, tempmat, tmb%orbs%norb)
+  call f_free(energykernel)
+  call f_free_ptr(tmb%linmat%ovrlp%matrix)
+  !deallocate(energykernel)
   !!!! TEST #################
   !!do iorb=1,tmb%orbs%norb
   !!    do jorb=1,tmb%orbs%norb
@@ -3833,8 +3846,10 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
   !!    ishift=ishift+tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
   !!end do
   !!!! END TEST #############
-  allocate(hphit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-  allocate(hphit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
+  isize=sum(tmb%ham_descr%collcom%nrecvcounts_c)
+  hphit_c=f_malloc(isize,id='hphit_c')
+  isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
+  hphit_f=f_malloc(isize,id='hphit_f')
   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                            tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
   !!!! TEST #################
@@ -3849,15 +3864,22 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
   !!    ishift=ishift+tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
   !!end do
   !!!! END TEST #############
-  allocate(denskern_tmp(size(tmb%linmat%denskern%matrix_compr)))
+  isize=size(tmb%linmat%denskern%matrix_compr)
+  denskern_tmp=f_malloc(isize,id='denskern_tmp')
   denskern_tmp=tmb%linmat%denskern%matrix_compr
-  allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
   tmb%linmat%denskern%matrix=tempmat
   call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
-  deallocate(tmb%linmat%denskern%matrix)
+  call f_free_ptr(tmb%linmat%denskern%matrix)
+  !deallocate(tmb%linmat%denskern%matrix)
   call build_linear_combination_transposed(tmb%ham_descr%collcom, &
        tmb%linmat%denskern, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
   tmb%linmat%denskern%matrix_compr=denskern_tmp
+
+  call f_free(tempmat)
+  !deallocate(tempmat)
+  call f_free(denskern_tmp)
+  !deallocate(denskern_tmp)
 
   !!!! TEST #################
   !!call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom,  hphit_c, hphit_f, tmb%hpsi, tmb%ham_descr%lzd)
@@ -3873,7 +3895,7 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
   !!!! END TEST #############
 
   ! transform phi_delta to the shamop region
-  allocate(phi_delta_large(tmb%ham_descr%npsidim_orbs,3))
+  phi_delta_large=f_malloc((/tmb%ham_descr%npsidim_orbs,3/),id='phi_delta_large')
   call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
                       tmb%orbs, phi_delta(1,1), phi_delta_large(1,1))
   call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
@@ -3881,10 +3903,12 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
   call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
                       tmb%orbs, phi_delta(1,3), phi_delta_large(1,3))
 
-  allocate(delta_phit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-  allocate(delta_phit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-  allocate(fpulay(3,at%astruct%nat))
-  allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
+  isize=sum(tmb%ham_descr%collcom%nrecvcounts_c)
+  delta_phit_c=f_malloc(isize,id='delta_phit_c')
+  isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
+  delta_phit_f=f_malloc(isize,id='delta_phit_f')
+  fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
+  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
   call uncompressMatrix(iproc,tmb%linmat%denskern)
   fpulay=0.d0
   do idir=1,3
@@ -3925,7 +3949,7 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
       !!    write(650+iproc,*) iorb,tmb%linmat%ham%matrix_compr(iorb)
       !!end do
       !!!! END TEST #############
-      allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
+      tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
       call uncompressMatrix(iproc,tmb%linmat%ham)
 
       do iiorb=1,tmb%orbs%norb
@@ -3938,9 +3962,11 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
           end do  
           fpulay(idir,iat)=fpulay(idir,iat)+tt
       end do
-      deallocate(tmb%linmat%ham%matrix)
+      call f_free_ptr(tmb%linmat%ham%matrix)
+      !deallocate(tmb%linmat%ham%matrix)
   end do
-  deallocate(tmb%linmat%denskern%matrix)
+  call f_free_ptr(tmb%linmat%denskern%matrix)
+  !deallocate(tmb%linmat%denskern%matrix)
 
   if (iproc==0) then
       do iat=1,at%astruct%nat
@@ -3971,5 +3997,14 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
 !!          call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
 !!               delta_phit_c, tmb%psit_f, delta_phit_f, tmb%linmat%ovrlp)
     
+call f_free(phi_delta)
+call f_free(phi_delta_large)
+call f_free(hphit_c)
+call f_free(hphit_f)
+call f_free(delta_phit_c)
+call f_free(delta_phit_f)
+call f_free(fpulay)
+
+call f_release_routine()
 
 end subroutine scalprod_on_boundary
