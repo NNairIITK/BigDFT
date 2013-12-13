@@ -29,15 +29,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   !n(c) logical :: cmplxprojs
   integer :: istart,ityp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
   integer :: ikpt,nkptsproj,ikptp,izero
-  real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
-  
-  if (iproc == 0) then
-     call yaml_open_map('NonLocal PSP Projectors Descriptors')
-     !write(*,'(1x,a)')&
-     !     '------------------------------------------------------------ PSP Projectors Creation'
-     !write(*,'(1x,a4,4x,a4,2(1x,a))')&
-     !     'Type','Name','Number of atoms','Number of projectors'
-  end if
+  real(gp) :: maxfullvol,totfullvol,totzerovol,fullvol,maxrad,maxzerovol,rad
   
   istart=1
   nlpspd%nproj=0
@@ -168,32 +160,32 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
         maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/15.0_gp*radii_cf(ityp,3))
-        zerovol=0.0_gp
+        nlpspd%zerovol=0.0_gp
         fullvol=0.0_gp
         do l=1,4
            do i=1,3
               if (at%psppar(l,i,ityp) /= 0.0_gp) then
                  rad=min(at%psppar(l,0,ityp),cpmult/15.0_gp*radii_cf(ityp,3))
-                 zerovol=zerovol+(maxrad**3-rad**3)
+                 nlpspd%zerovol=nlpspd%zerovol+(maxrad**3-rad**3)
                  fullvol=fullvol+maxrad**3
               end if
            end do
         end do
         if (fullvol >= maxfullvol .and. fullvol > 0.0_gp) then
-           maxzerovol=zerovol/fullvol
+           maxzerovol=nlpspd%zerovol/fullvol
            maxfullvol=fullvol
         end if
-        totzerovol=totzerovol+zerovol
+        totzerovol=totzerovol+nlpspd%zerovol
         totfullvol=totfullvol+fullvol
      end do
 
      !assign the total quantity per atom
-     zerovol=0.d0
+     nlpspd%zerovol=0.d0
      if (totfullvol /= 0.0_gp) then
         if (DistProjApply) then
-           zerovol=maxzerovol
+           nlpspd%zerovol=maxzerovol
         else
-           zerovol=totzerovol/totfullvol
+           nlpspd%zerovol=totzerovol/totfullvol
         end if
      end if
   end if !npspcode==7
@@ -232,25 +224,6 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   nlpspd%nprojel=nkptsproj*nlpspd%nprojel
 
   !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
-
-  if (iproc == 0) then
-     if (DistProjApply) then
-        call yaml_map('Creation strategy','On-the-fly')
-        !write(*,'(44x,a)') '------  On-the-fly projectors application'
-     else
-        call yaml_map('Creation strategy','Once-and-for-all')
-        !write(*,'(44x,a)') '------'
-     end if
-     call yaml_map('Total number of projectors',nlpspd%nproj)
-     call yaml_map('Total number of components',nlpspd%nprojel)
-     call yaml_map('Percent of zero components',nint(100.0_gp*zerovol))
-
-!!$     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
-!!$     write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
-!!$     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
-     call yaml_close_map()
-  end if
-
 END SUBROUTINE localize_projectors
 
 

@@ -107,7 +107,7 @@ AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@MPI_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@ -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ -Wno-deprecated-declarations -Wno-cpp
-AM_CFLAGS = @CUDA_INCLUDE@ @LIB_YAML_CFLAGS@
+AM_CFLAGS = @CUDA_INCLUDE@
 
 #objects which depends from module_types
 high_level = cluster.f90 \
@@ -215,8 +215,7 @@ low_level = \
 
 # C objects
 c_level = posfiles.c \
-	input_variables_description.c \
-	init/atoms_yaml.c init/atoms_yaml.h
+	input_variables_description.c
 
 libmain_a_SOURCES = \
 	$(c_level) \

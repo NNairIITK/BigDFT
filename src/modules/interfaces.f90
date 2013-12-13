@@ -86,12 +86,11 @@ module module_interfaces
          real(gp), dimension(at%astruct%ntypes,3), intent(out) :: radii_cf
       END SUBROUTINE system_properties
 
-      subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+      subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
          !n(c) use module_base
          use module_types
          implicit none
          type(atoms_data), intent(inout) :: atoms
-         integer, intent(in) :: iproc
          real(gp), intent(in) :: crmult,frmult
          real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
          real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
@@ -198,6 +197,18 @@ module module_interfaces
         real(gp), dimension(:,:), pointer :: fxyz_
         character(len = 1024), intent(out) :: comment_
       END SUBROUTINE read_yaml_positions
+
+      subroutine read_dict_positions(dict, astruct, comment, energy, fxyz)
+        use module_types, only: atomic_structure
+        use module_defs, only: gp
+        use dictionaries
+        implicit none
+        type(dictionary), pointer :: dict
+        type(atomic_structure), intent(inout) :: astruct
+        real(gp), intent(out) :: energy
+        real(gp), dimension(:,:), pointer :: fxyz
+        character(len = 1024), intent(out) :: comment
+      END SUBROUTINE read_dict_positions
 
       subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
          !n(c) use module_base
@@ -315,15 +326,15 @@ module module_interfaces
         type(input_variables), intent(inout) :: in
       end subroutine tddft_input_analyse
 
-      subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
+      subroutine MemoryEstimator(nproc,idsx,lr,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,mem)
          !n(c) use module_base
          use module_types
          implicit none
          !Arguments
-         integer, intent(in) :: nproc,idsx,nat,norb,nspin,nprojel
+         integer, intent(in) :: nproc,idsx,norb,nspin,nprojel
          integer, intent(in) :: nkpt,nspinor,itrpmax,iscf
          type(locreg_descriptors), intent(in) :: lr
-         real(kind=8), intent(out) :: peakmem
+         type(memory_estimation), intent(out) :: mem
       END SUBROUTINE MemoryEstimator
 
       subroutine check_closed_shell(orbs,lcs)
@@ -3135,8 +3146,8 @@ module module_interfaces
        end subroutine export_grids
 
        subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,in,atoms,rxyz,&
-            orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
-            ref_frags, inwhichlocreg_old, onwhichatom_old, output_grid)
+            orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpspd,comms,shift,proj,radii_cf,&
+            ref_frags, denspot, inwhichlocreg_old, onwhichatom_old, output_grid)
          use module_base
          use module_types
          use module_fragments
@@ -3148,7 +3159,7 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
          type(orbitals_data), intent(inout) :: orbs,lorbs
          type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
-         type(DFT_local_fields), intent(out) :: denspot
+         type(DFT_local_fields), intent(out), optional :: denspot
          type(nonlocal_psp_descriptors), intent(out) :: nlpspd
          type(communications_arrays), intent(out) :: comms
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions

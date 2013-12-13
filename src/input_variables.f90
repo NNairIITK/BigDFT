@@ -155,7 +155,18 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   !type(dictionary), pointer :: profs
   integer :: ierr
+
+  real(gp) :: energy
+  real(gp), dimension(:,:), pointer :: forces
+  character(len = 1024) :: comment
+
   call f_routine(id='inputs_from_dict')
+
+  call yaml_dict_dump(dict)
+  call read_dict_positions(dict, atoms%astruct, comment, energy, forces)
+  atoms%astruct%inputfile_format = "yaml"
+  call write_atomic_file("toto", energy, atoms%astruct%rxyz, atoms, comment, forces)
+  stop
 
   call default_input_variables(in)
 

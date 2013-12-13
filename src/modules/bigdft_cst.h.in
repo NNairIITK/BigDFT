@@ -63,6 +63,7 @@ typedef struct _GObject {guint ref_count;} GObject;
 /* Internal types for Fortran datatypes. */
 /* Basic types, used for minimal bindings only. */
 typedef void _dictionary;
+typedef void _memory_estimation;
 typedef void _atoms_data;
 typedef void _atomic_structure;
 typedef void _symmetry_data;

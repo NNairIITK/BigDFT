@@ -52,6 +52,9 @@ int main(int argc, const char **argv)
   bigdft_inputs_unref(ins);
   bigdft_atoms_unref(atoms);
 
+  /* bigdft_run_memoryEstimation(run, iproc, nproc); */
+  /* print_memory_estimation_(run->mem.data); */
+
   outs = bigdft_run_calculate(run, iproc, nproc);
 
   bigdft_run_unref(run);

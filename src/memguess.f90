@@ -33,9 +33,9 @@ program memguess
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: peakmem,hx,hy,hz,energy
+   real(gp) :: hx,hy,hz,energy
+   type(memory_estimation) :: mem
    type(run_objects) :: runObj
-   type(DFT_local_fields) :: denspot
    type(orbitals_data) :: orbstst
    type(nonlocal_psp_descriptors) :: nlpspd
    type(gaussian_basis) :: G !basis for davidson IG
@@ -54,6 +54,7 @@ program memguess
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror
+
    call f_lib_initialize()
 
    ! Get arguments
@@ -339,18 +340,18 @@ program memguess
    !call cpu_time(tcpu0)
    !call system_clock(ncount0,ncount_rate,ncount_max)
 
-   nullify(ref_frags)
    call system_initialization(0, nproc, .false.,inputpsi, input_wf_format, .true., &
         & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, &
         & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
-        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, denspot, nlpspd, runObj%rst%KSwfn%comms, &
+        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, nlpspd, runObj%rst%KSwfn%comms, &
         & shift, proj, runObj%radii_cf, ref_frags, output_grid = (output_grid > 0))
+   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
+        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
+        & runObj%rst%KSwfn%orbs%nkpts,nlpspd%nprojel,&
+        runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
    
    if (.not. exportwf) then
-      call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
-           runObj%atoms%astruct%nat,runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
-           & runObj%rst%KSwfn%orbs%nkpts,nlpspd%nprojel,&
-           runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,peakmem)
+      call print_memory_estimation(mem)
    else
       allocate(runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
            & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor+ndebug),stat=i_stat)
@@ -541,7 +542,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
 
    allocate(txyz(3,atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,txyz,'txyz',subname)
-   call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
    !call volume(nat,rxyz,vol)
    vol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
    write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -592,7 +593,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
          txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
       enddo
 
-      call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+      call system_size(atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
       tvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
       !call volume(nat,txyz,tvol)
       if (tvol < vol) then

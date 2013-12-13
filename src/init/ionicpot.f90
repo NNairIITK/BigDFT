@@ -1225,7 +1225,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   !read the specifications of the counter ions from pseudopotentials
   call read_radii_variables(at, radii_cf, in%crmult, in%frmult, in%projrad)
-  if (iproc == 0) call print_atomic_variables(at, radii_cf, max(in%hx,in%hy,in%hz), in%ixc)
+  if (iproc == 0) call print_atomic_variables(at, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
 
   pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)

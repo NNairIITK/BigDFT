@@ -1328,14 +1328,14 @@ contains
   !! @author
   ! Written by Quintin Hill on 13/02/2009.
   ! Quintin Hill added functional check on 23/02/2009.
-  subroutine vdwcorrection_warnings(atoms,in)
+  subroutine vdwcorrection_warnings(atoms,dispersion,ixc)
 
     use module_types, only: input_variables, atoms_data
 
     implicit none
 
     type(atoms_data),        intent(in) :: atoms
-    type(input_variables),   intent(in) :: in
+    integer,                 intent(in) :: dispersion, ixc
 
     integer            :: itype ! Type counter
     ! qoh: Atomic numbers of elements with unoptimised dispersion parameters:
@@ -1345,12 +1345,12 @@ contains
     ! qoh: XC functionals with optimised parameters:
     integer, parameter :: xcfoptimised(4) = (/11,14,15,200/)
 
-    if (in%dispersion /= 0) then 
+    if (dispersion /= 0) then 
 
        ! qoh: Loop over types to check we have parameters
        do itype=1,atoms%astruct%ntypes
           if (any(unoptimised == atoms%nzatom(itype)) .and. &
-               any(xcfoptimised == in%ixc)) then 
+               any(xcfoptimised == ixc)) then 
              write(*,'(a,a2)') 'WARNING: Unoptimised dispersion &
                   &parameters used for ', atoms%astruct%atomnames(itype)
           elseif (.not. any(optimised == atoms%nzatom(itype)) .and. &
@@ -1360,9 +1360,9 @@ contains
           end if
        end do
 
-       if (.not. any(xcfoptimised == in%ixc)) &
+       if (.not. any(xcfoptimised == ixc)) &
             write(*,'(a,i2)') 'WARNING: No optimised dispersion parameters &
-            &available for ixc=', in%ixc
+            &available for ixc=', ixc
     end if
   END SUBROUTINE vdwcorrection_warnings
 

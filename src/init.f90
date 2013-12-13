@@ -34,12 +34,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 
   call timing(iproc,'CrtDescriptors','ON')
 
-  if (iproc == 0) then
-     call yaml_open_map('Wavefunctions Descriptors, full simulation domain')
-     !write(*,'(1x,a)')&
-     !   &   '------------------------------------------------- Wavefunctions Descriptors Creation'
-  end if
-
   !assign the dimensions to improve (a little) readability
   n1=Glr%d%n1
   n2=Glr%d%n2
@@ -72,15 +66,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   end if
   call wfd_from_grids(logrid_c,logrid_f,Glr)
 
-  if (iproc == 0) then
-     !write(*,'(2(1x,a,i10))') &
-     !     &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
-     call yaml_open_map('Coarse resolution grid')!,flow=.true.)
-     call yaml_map('No. of segments',Glr%wfd%nseg_c)
-     call yaml_map('No. of points',Glr%wfd%nvctr_c)
-     call yaml_close_map()
-  end if
-
   if (atoms%astruct%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
      if (iproc ==0) then
         call yaml_warning('The coarse grid does not fill the entire periodic box')
@@ -98,16 +83,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
         !        end if
         stop
      end if
-  end if
-
-  if (iproc == 0) then
-     !write(*,'(2(1x,a,i10))')
-     !'  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
-     call yaml_open_map('Fine resolution grid')!,flow=.true.)
-     call yaml_map('No. of segments',Glr%wfd%nseg_f)
-     call yaml_map('No. of points',Glr%wfd%nvctr_f)
-     call yaml_close_map()
-     call yaml_close_map()
   end if
 
   output_denspot_ = .false.

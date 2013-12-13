@@ -148,8 +148,10 @@ program WaCo
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(iproc,atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         Glr,shift)
+   if (iproc == 0) &
+        & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
    
    box(1) = atoms%astruct%cell_dim(1)*b2a !Glr%d%n1*input%hx * b2a
    box(2) = atoms%astruct%cell_dim(2)*b2a !Glr%d%n2*input%hy * b2a
@@ -158,6 +160,7 @@ program WaCo
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
         atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
+   if (iproc == 0) call print_wfd(Glr%wfd)
 
    ! don't need radii_cf anymore
    i_all = -product(shape(radii_cf))*kind(radii_cf)
