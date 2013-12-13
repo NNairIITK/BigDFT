@@ -1075,7 +1075,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
       infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
       .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor)
-  call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at)
+  call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
   !! END TEST ######################
 
 
@@ -1115,7 +1115,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !!! Testing energy corrections due to locrad
       !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff) 
       ! Calculate Pulay correction to the forces
-      call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
+      write(*,*) 'WARNING: COMMENTED OLD PULAY CORRECTION!'
+      !call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpspd, proj, input%SIC, denspot, GPU, tmb, fpulay)
   else
       call to_zero(3*at%astruct%nat, fpulay(1,1))
   end if
@@ -3496,7 +3497,7 @@ end subroutine build_ks_orbitals
 
 
 
-subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
+subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at, fpulay)
   use module_base
   use module_types
   use module_interfaces
@@ -3507,15 +3508,16 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
   type(DFT_wavefunction),intent(inout) :: tmb
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data),intent(in) :: at
+  real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
 
   ! Local variables
   integer :: ishift, iorb, iiorb, ilr, iseg, jj_prev, j0_prev, j1_prev, ii_prev, i3_prev, i2_prev, i1_prev, i0_prev
   integer :: jj, j0, j1, ii, i3, i2, i1, i0, jorb, korb, istat, idir, iat, i, isize
-  real(kind=8),dimension(:,:),allocatable :: phi_delta, energykernel, tempmat, phi_delta_large, fpulay
+  real(kind=8),dimension(:,:),allocatable :: phi_delta, energykernel, tempmat, phi_delta_large
   real(kind=8),dimension(:),allocatable :: hphit_c, hphit_f, denskern_tmp, delta_phit_c, delta_phit_f
   logical,dimension(:,:,:),allocatable :: boundaryarray
-  real(kind=8),dimension(:,:,:,:,:,:),allocatable :: temparr
-  real(kind=8) :: dist, crit, xsign, ysign, zsign, tt
+  real(kind=8),dimension(:,:,:,:,:,:,:),allocatable :: temparr
+  real(kind=8) :: dist, crit, xsign, ysign, zsign, tt, tt2
   character(len=*),parameter :: subname='scalprod_on_boundary'
 
   call f_routine(id='scalprod_on_boundary')
@@ -3581,9 +3583,10 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
                   crit=tmb%lzd%llr(ilr)%locrad-sqrt(tmb%lzd%hgrids(1)**2+tmb%lzd%hgrids(2)**2+tmb%lzd%hgrids(3)**2)
                   if (dist>=crit) then
                       ! boundary element of the locreg
-                      xsign=(tmb%lzd%llr(ilr)%ns1+i1_prev)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1)/dist
-                      ysign=(tmb%lzd%llr(ilr)%ns2+i2_prev)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2)/dist
-                      zsign=(tmb%lzd%llr(ilr)%ns3+i3_prev)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3)/dist
+                      xsign=((tmb%lzd%llr(ilr)%ns1+i1_prev)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))/dist
+                      ysign=((tmb%lzd%llr(ilr)%ns2+i2_prev)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))/dist
+                      zsign=((tmb%lzd%llr(ilr)%ns3+i3_prev)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))/dist
+                      !xsign=1.d0 ; ysign=1.d0 ; zsign=1.d0
                       phi_delta(ishift+jj-1,1)=xsign*tmb%psi(ishift+jj-1)
                       phi_delta(ishift+jj-1,2)=ysign*tmb%psi(ishift+jj-1)
                       phi_delta(ishift+jj-1,3)=zsign*tmb%psi(ishift+jj-1)
@@ -3595,9 +3598,10 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
                         +((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2)
               crit=tmb%lzd%llr(ilr)%locrad-sqrt(tmb%lzd%hgrids(1)**2+tmb%lzd%hgrids(2)**2+tmb%lzd%hgrids(3)**2)
               if (dist>=crit) then
-                  xsign=(tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1)/dist
-                  ysign=(tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2)/dist
-                  zsign=(tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3)/dist
+                  xsign=((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))/dist
+                  ysign=((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))/dist
+                  zsign=((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))/dist
+                  !xsign=1.d0 ; ysign=1.d0 ; zsign=1.d0
                   phi_delta(ishift+jj,1)=xsign*tmb%psi(ishift+jj)
                   phi_delta(ishift+jj,2)=ysign*tmb%psi(ishift+jj)
                   phi_delta(ishift+jj,3)=zsign*tmb%psi(ishift+jj)
@@ -3624,9 +3628,10 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
               dist= sqrt(((tmb%lzd%llr(ilr)%ns1+i0)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
                         +((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
                         +((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2)
-              xsign=(tmb%lzd%llr(ilr)%ns1+i0)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1)/dist
-              ysign=(tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2)/dist
-              zsign=(tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3)/dist
+              xsign=((tmb%lzd%llr(ilr)%ns1+i0)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))/dist
+              ysign=((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))/dist
+              zsign=((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))/dist
+              !xsign=1.d0 ; ysign=1.d0 ; zsign=1.d0
               ! x direction
               phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1,1) = &
                   xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1)
@@ -3679,9 +3684,10 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
               dist= sqrt(((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
                         +((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
                         +((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2)
-              xsign=(tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1)/dist
-              ysign=(tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2)/dist
-              zsign=(tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3)/dist
+              xsign=((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))/dist
+              ysign=((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))/dist
+              zsign=((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))/dist
+              !xsign=1.d0 ; ysign=1.d0 ; zsign=1.d0
               ! x direction
               phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1,1) = &
                   xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1)
@@ -3730,35 +3736,51 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
           end if
       end do
       
-      !!allocate(temparr(0:tmb%lzd%llr(ilr)%d%n1,2,0:tmb%lzd%llr(ilr)%d%n2,2,0:tmb%lzd%llr(ilr)%d%n3,2))
-      !!call uncompress(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
-      !!                tmb%lzd%llr(ilr)%wfd%nseg_c, tmb%lzd%llr(ilr)%wfd%nvctr_c, &
-      !!                tmb%lzd%llr(ilr)%wfd%keygloc, tmb%lzd%llr(ilr)%wfd%keyvloc, &
-      !!                tmb%lzd%llr(ilr)%wfd%nseg_f, tmb%lzd%llr(ilr)%wfd%nvctr_f, &
-      !!                tmb%lzd%llr(ilr)%wfd%keygloc(1,tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
-      !!                tmb%lzd%llr(ilr)%wfd%keyvloc(tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
-      !!                phi_delta(1,ishift+1), phi_delta(1,ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+min(1,tmb%lzd%llr(ilr)%wfd%nvctr_f)), &
-      !!                temparr)
-      !!do i3=0,tmb%lzd%llr(ilr)%d%n3
-      !!    do i2=0,tmb%lzd%llr(ilr)%d%n3
-      !!        do i1=0,tmb%lzd%llr(ilr)%d%n3
-      !!            dist = ((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
-      !!                 + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
-      !!                 + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
-      !!            dist=sqrt(dist)
-      !!            tt = temparr(i1,1,i2,1,i3,1) &
-      !!                +temparr(i1,2,i2,1,i3,1) &
-      !!                +temparr(i1,1,i2,2,i3,1) &
-      !!                +temparr(i1,2,i2,2,i3,1) &
-      !!                +temparr(i1,1,i2,1,i3,2) &
-      !!                +temparr(i1,2,i2,1,i3,2) &
-      !!                +temparr(i1,1,i2,2,i3,2) &
-      !!                +temparr(i1,2,i2,2,i3,2)
-      !!            write(1000+iiorb,*) dist, tt
-      !!        end do
-      !!    end do
-      !!end do
-      !!deallocate(temparr)
+      allocate(temparr(0:tmb%lzd%llr(ilr)%d%n1,2,0:tmb%lzd%llr(ilr)%d%n2,2,0:tmb%lzd%llr(ilr)%d%n3,2,2))
+      call uncompress(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
+                      tmb%lzd%llr(ilr)%wfd%nseg_c, tmb%lzd%llr(ilr)%wfd%nvctr_c, &
+                      tmb%lzd%llr(ilr)%wfd%keygloc, tmb%lzd%llr(ilr)%wfd%keyvloc, &
+                      tmb%lzd%llr(ilr)%wfd%nseg_f, tmb%lzd%llr(ilr)%wfd%nvctr_f, &
+                      tmb%lzd%llr(ilr)%wfd%keygloc(1,tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
+                      tmb%lzd%llr(ilr)%wfd%keyvloc(tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
+                      phi_delta(ishift+1,1), phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+min(1,tmb%lzd%llr(ilr)%wfd%nvctr_f),1), &
+                      temparr(0,1,0,1,0,1,1))
+      call uncompress(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
+                      tmb%lzd%llr(ilr)%wfd%nseg_c, tmb%lzd%llr(ilr)%wfd%nvctr_c, &
+                      tmb%lzd%llr(ilr)%wfd%keygloc, tmb%lzd%llr(ilr)%wfd%keyvloc, &
+                      tmb%lzd%llr(ilr)%wfd%nseg_f, tmb%lzd%llr(ilr)%wfd%nvctr_f, &
+                      tmb%lzd%llr(ilr)%wfd%keygloc(1,tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
+                      tmb%lzd%llr(ilr)%wfd%keyvloc(tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
+                      tmb%psi(ishift+1), tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+min(1,tmb%lzd%llr(ilr)%wfd%nvctr_f)), &
+                      temparr(0,1,0,1,0,1,2))
+      do i3=0,tmb%lzd%llr(ilr)%d%n3
+          do i2=0,tmb%lzd%llr(ilr)%d%n2
+              do i1=0,tmb%lzd%llr(ilr)%d%n1
+                  dist = ((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+                       + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+                       + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
+                  dist=sqrt(dist)
+                  tt = temparr(i1,1,i2,1,i3,1,1) &
+                      +temparr(i1,2,i2,1,i3,1,1) &
+                      +temparr(i1,1,i2,2,i3,1,1) &
+                      +temparr(i1,2,i2,2,i3,1,1) &
+                      +temparr(i1,1,i2,1,i3,2,1) &
+                      +temparr(i1,2,i2,1,i3,2,1) &
+                      +temparr(i1,1,i2,2,i3,2,1) &
+                      +temparr(i1,2,i2,2,i3,2,1)
+                  tt2 = temparr(i1,1,i2,1,i3,1,2) &
+                       +temparr(i1,2,i2,1,i3,1,2) &
+                       +temparr(i1,1,i2,2,i3,1,2) &
+                       +temparr(i1,2,i2,2,i3,1,2) &
+                       +temparr(i1,1,i2,1,i3,2,2) &
+                       +temparr(i1,2,i2,1,i3,2,2) &
+                       +temparr(i1,1,i2,2,i3,2,2) &
+                       +temparr(i1,2,i2,2,i3,2,2)
+                  write(1000+iiorb,*) dist, tt, tt2
+              end do
+          end do
+      end do
+      deallocate(temparr)
 
 
       ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
@@ -3795,14 +3817,10 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
 
   ! calculate the overlap matrix
   if(.not.associated(tmb%psit_c)) then
-      !allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-      !call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
       isize=sum(tmb%collcom%nrecvcounts_c)
       tmb%psit_c=f_malloc_ptr(isize,id='tmb%psit_c')
   end if
   if(.not.associated(tmb%psit_f)) then
-      !allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-      !call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
       isize=7*sum(tmb%collcom%nrecvcounts_f)
       tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
   end if
@@ -3812,9 +3830,7 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
        tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
 
   call f_free_ptr(tmb%psit_c)
-  !deallocate(tmb%psit_c)
   call f_free_ptr(tmb%psit_f)
-  !deallocate(tmb%psit_f)
 
   ! Construct the array chi
   tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
@@ -3907,7 +3923,7 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
   delta_phit_c=f_malloc(isize,id='delta_phit_c')
   isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
   delta_phit_f=f_malloc(isize,id='delta_phit_f')
-  fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
+  !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
   tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
   call uncompressMatrix(iproc,tmb%linmat%denskern)
   fpulay=0.d0
@@ -3942,8 +3958,10 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
       !!    ishift=ishift+tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
       !!end do
       !!!! END TEST #############
+      !call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+      !     delta_phit_c, hphit_c, delta_phit_f, hphit_f, tmb%linmat%ham)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-           delta_phit_c, hphit_c, delta_phit_f, hphit_f, tmb%linmat%ham)
+           hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%ham)
       !!!! TEST #################
       !!do iorb=1,size(tmb%linmat%ham%matrix_compr)
       !!    write(650+iproc,*) iorb,tmb%linmat%ham%matrix_compr(iorb)
@@ -3952,13 +3970,19 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at)
       tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
       call uncompressMatrix(iproc,tmb%linmat%ham)
 
+      do iorb=1,tmb%orbs%norb
+          do jorb=1,tmb%orbs%norb
+              write(200+iproc,'(2i5,2es16.7)') iorb, jorb, tmb%linmat%ham%matrix(jorb,iorb), tmb%linmat%ham%matrix(iorb,jorb)
+          end do
+      end do
+
       do iiorb=1,tmb%orbs%norb
           iat=tmb%orbs%onwhichatom(iiorb)
           tt=0.d0
           do jorb=1,tmb%orbs%norb
-              !tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(iiorb,jorb)
+              !tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
               tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
-              if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
+              !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
           end do  
           fpulay(idir,iat)=fpulay(idir,iat)+tt
       end do
@@ -4003,7 +4027,7 @@ call f_free(hphit_c)
 call f_free(hphit_f)
 call f_free(delta_phit_c)
 call f_free(delta_phit_f)
-call f_free(fpulay)
+!call f_free(fpulay)
 
 call f_release_routine()
 
