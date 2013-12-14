@@ -858,10 +858,11 @@ contains
    end function list_new_elems
 
    !> get the value from the dictionary
+   !! 
    subroutine get_value(val,dict)
      implicit none
      character(len=*), intent(out) :: val
-     type(dictionary), intent(in) :: dict
+     type(dictionary), pointer, intent(in) :: dict
      val(1:len(val))=' '
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      if (f_err_raise(no_value(dict),'The key is "'//trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)) return
@@ -884,8 +885,10 @@ contains
 
    !set and get routines for different types (this routine can be called from error_check also)
    recursive subroutine get_integer(ival,dict)
+     use yaml_strings, only: is_atoi
+     implicit none
      integer, intent(out) :: ival
-     type(dictionary), intent(in) :: dict
+     type(dictionary), pointer, intent(in) :: dict
      !local variables
      integer :: ierror
      character(len=max_field_length) :: val
@@ -901,13 +904,14 @@ contains
            return
         end if
      end if
-     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
+     if (f_err_raise(ierror/=0 .or. .not. is_atoi(val),'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
    end subroutine get_integer
 
    !set and get routines for different types
    subroutine get_long(ival,dict)
+     implicit none
      integer(kind=8), intent(out) :: ival
-     type(dictionary), intent(in) :: dict
+     type(dictionary), pointer, intent(in) :: dict
      !local variables
      integer :: ierror
      character(len=max_field_length) :: val
@@ -920,6 +924,20 @@ contains
      if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
 
    end subroutine get_long
+
+   !>routine to retrieve an array from a dictionary
+   subroutine get_rvec(arr,dict)
+     implicit none
+     double precision, dimension(:), intent(out) :: arr
+     type(dictionary), pointer, intent(in) :: dict
+
+     !first check if the dictionary contains a scalar or a list
+     if (dict_len(dict) > 0) then
+     else if (f_err_raise(dict_size(dict) > 0,&
+          'Cannot convert mapping value',err_id=DICT_CONVERSION_ERROR)) then
+        return
+     end if
+   end subroutine get_rvec
 
    !> Read a real or real/real, real:real 
    !! Here the fraction is indicated by the ':' or '/'
@@ -976,7 +994,7 @@ contains
    !set and get routines for different types
    subroutine get_lg(ival,dict)
      logical, intent(out) :: ival
-     type(dictionary), intent(in) :: dict
+     type(dictionary), pointer, intent(in) :: dict
      !local variables
      character(len=max_field_length) :: val
 
@@ -996,7 +1014,7 @@ contains
    !set and get routines for different types
    subroutine get_double(dval,dict)
      real(kind=8), intent(out) :: dval
-     type(dictionary), intent(in) :: dict
+     type(dictionary), pointer, intent(in) :: dict
      !local variables
      integer :: ierror
      character(len=max_field_length) :: val
