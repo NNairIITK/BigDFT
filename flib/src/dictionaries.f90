@@ -55,7 +55,8 @@ module dictionaries
 
 
    interface assignment(=)
-      module procedure get_value,get_integer,get_real,get_double,get_long,get_lg!,get_dict, xlf does not like
+      module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
+      module procedure get_rvec
    end interface
    interface pop
       module procedure pop_dict,pop_item,pop_last
@@ -858,11 +859,11 @@ contains
    end function list_new_elems
 
    !> get the value from the dictionary
-   !! 
+   !! here the dictionary has to be associated
    subroutine get_value(val,dict)
      implicit none
      character(len=*), intent(out) :: val
-     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), intent(in) :: dict
      val(1:len(val))=' '
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      if (f_err_raise(no_value(dict),'The key is "'//trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)) return
@@ -888,7 +889,7 @@ contains
      use yaml_strings, only: is_atoi
      implicit none
      integer, intent(out) :: ival
-     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), intent(in) :: dict
      !local variables
      integer :: ierror
      character(len=max_field_length) :: val
@@ -911,7 +912,7 @@ contains
    subroutine get_long(ival,dict)
      implicit none
      integer(kind=8), intent(out) :: ival
-     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), intent(in) :: dict
      !local variables
      integer :: ierror
      character(len=max_field_length) :: val
@@ -929,13 +930,33 @@ contains
    subroutine get_rvec(arr,dict)
      implicit none
      double precision, dimension(:), intent(out) :: arr
-     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     double precision :: tmp
+     type(dictionary), pointer :: dict_tmp
+     integer :: i
 
      !first check if the dictionary contains a scalar or a list
-     if (dict_len(dict) > 0) then
-     else if (f_err_raise(dict_size(dict) > 0,&
-          'Cannot convert mapping value',err_id=DICT_CONVERSION_ERROR)) then
+     if (dict%data%nitems > 0) then
+        if (f_err_raise(dict%data%nitems/=size(arr),&
+             'Array and dictionary have differing shapes',&
+             err_id=DICT_CONVERSION_ERROR)) return
+        !start iterating in the list
+        dict_tmp=>dict%child
+        i=1
+        do while(associated(dict_tmp))
+           arr(i)=dict_tmp
+           i=i+1
+           dict_tmp=>dict_next(dict_tmp)
+        end do
+     else if (f_err_raise(dict%data%nelems > 0,&
+          'Cannot convert mapping value in to arrays',&
+          err_id=DICT_CONVERSION_ERROR)) then
         return
+     else
+        !scalar value, to be applied to all the values of the array
+        tmp=dict
+        arr=tmp
      end if
    end subroutine get_rvec
 
@@ -994,7 +1015,7 @@ contains
    !set and get routines for different types
    subroutine get_lg(ival,dict)
      logical, intent(out) :: ival
-     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), intent(in) :: dict
      !local variables
      character(len=max_field_length) :: val
 
@@ -1014,7 +1035,7 @@ contains
    !set and get routines for different types
    subroutine get_double(dval,dict)
      real(kind=8), intent(out) :: dval
-     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), intent(in) :: dict
      !local variables
      integer :: ierror
      character(len=max_field_length) :: val
