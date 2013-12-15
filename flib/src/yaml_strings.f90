@@ -452,7 +452,7 @@ contains
     yes=scan(str(is:ie),' ') ==0 !there is no other space in the string
     if (yes) then
        read(str(is:ie),*,iostat=ierr)rval
-       yes=ierr==0 .and. str(ie:ie)/='/' !the slash terminator is not allowed
+       yes=ierr==0 .and. str(max(ie,1):ie)/='/' !the slash terminator is not allowed
     end if
 
   end function is_atof

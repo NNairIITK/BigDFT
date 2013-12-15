@@ -30,8 +30,14 @@
    ixc:
      COMMENT: exchange-correlation parameter (LDA=1,PBE=11)
      default: 1
-     PBE: 11
-     Hybrid: -406
+#here follow a number of possibilities for the different XC functionals
+     LDA (ABINIT): 1
+     PBE (ABINIT): 11
+     LDA: -20
+     PBE: -101130
+     PBE0: -406
+     B97-D: -170 #to be verified
+     B3LYP: -402
    ncharge:
      COMMENT: charge of the system
      RANGE: [-500., 500.]
