@@ -928,6 +928,7 @@ contains
 
    !>routine to retrieve an array from a dictionary
    subroutine get_rvec(arr,dict)
+     use yaml_strings, only: yaml_toa
      implicit none
      double precision, dimension(:), intent(out) :: arr
      type(dictionary), intent(in) :: dict 
@@ -939,7 +940,9 @@ contains
      !first check if the dictionary contains a scalar or a list
      if (dict%data%nitems > 0) then
         if (f_err_raise(dict%data%nitems/=size(arr),&
-             'Array and dictionary have differing shapes',&
+             'Array and dictionary differs in shape ( '//&
+             trim(yaml_toa(size(arr)))//' and '//&
+             trim(yaml_toa(dict%data%nitems))//')',&
              err_id=DICT_CONVERSION_ERROR)) return
         !start iterating in the list
         dict_tmp=>dict%child
