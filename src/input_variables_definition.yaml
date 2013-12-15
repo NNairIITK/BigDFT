@@ -163,7 +163,7 @@
        MASTER_KEY: method
        WHEN:
        - MPGrid
-     default: [0., 0., 0.]
+     default: [[0., 0., 0.]]
    kpt:
      COMMENT: Kpt coordinates
      CONDITION:
@@ -459,12 +459,12 @@
    accel:
      COMMENT: acceleration
      EXCLUSIVE:
-       no: no material acceleration
+       NO: no material acceleration
        CUDAGPU: CUDA
        OCLGPU: OpenCL on GPU
        OCLCPU: OpenCL on CPU
        OCLACC: ???
-     default: No
+     default: NO
    ocl_platform:
      COMMENT: Chosen OCL platform
      default: ~
@@ -610,3 +610,4 @@
    write_orbitals:
      COMMENT: linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
      default: No
+

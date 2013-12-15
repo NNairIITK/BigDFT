@@ -2,7 +2,7 @@
 
 EXTRA_DIST = PS_Check.ref.yaml tols.yaml
 
-check_PROGRAMS = PS_Check PS_Integral
+check_PROGRAMS = PS_Check PS_Integral gaussian
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
@@ -22,6 +22,9 @@ PS_Check_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 PS_Integral_SOURCES = PS_Integral.f90 fisf.f90
 PS_Integral_LDADD = -lbigdft-1 @LINALG_LIBS@
+
+gaussian_SOURCES = gaussian.f90
+gaussian_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
 CLEANFILES = PS_Check.out.yaml fldiff.report.yaml malloc.prc time.prc

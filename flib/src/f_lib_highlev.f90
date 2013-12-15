@@ -92,13 +92,20 @@ end subroutine f_lib_initialize
 
 !>routine which finalize f_lib 
 subroutine f_lib_finalize()
-  use dictionaries, only: f_err_finalize
+  use dictionaries, only: f_err_finalize,dict_get_num
   use dynamic_memory, only: f_malloc_finalize
-  use yaml_output, only: yaml_close_all_streams
+  use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_toa
   implicit none
-  call f_malloc_finalize()
-
-  !general finalization, the f_lib should come back to uninitialized status
+  !local variables
+  integer :: ndict,ndict_max,iproc
+  call f_malloc_finalize(process_id=iproc)
+  !print maximal value of dictionary usage
+  if (iproc == 0) then
+     call dict_get_num(ndict,ndict_max)
+     call yaml_map('Max No. of dictionaries used',ndict_max, advance='no')
+     call yaml_comment('( '//trim(yaml_toa(ndict))//' still in use)')
+     !general finalization, the f_lib should come back to uninitialized status
+  end if
   call yaml_close_all_streams()
   call f_err_finalize()
 

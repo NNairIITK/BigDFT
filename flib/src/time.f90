@@ -158,9 +158,9 @@ module timeData
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped
   real(kind=8) :: time0,t0
-  real(kind=8), dimension(ncat+1) :: timesum
-  real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
-  character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
+  real(kind=8), dimension(ncat+1) :: timesum=0.0d0
+  real(kind=8), dimension(ncat) :: pctimes=0.0d0 !total times of the partial counters
+  character(len=10), dimension(ncat) :: pcnames=repeat(' ',10) !names of the partial counters, to be assigned
   character(len=50) :: formatstring,strextra
   character(len=128) :: filename_time
 
@@ -192,7 +192,6 @@ module timeData
       endif
       if (iproc == 0) then
         
-
          !regroup the data for each category in any processor
          do icls=1,ncls
             timecls(icls,0:nproc)=0.d0 

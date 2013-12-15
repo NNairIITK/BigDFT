@@ -1891,7 +1891,7 @@ logical :: occured,niter
 real(8)::  dist, mindist, angle, vec(3), cmass(3), velcm(3), bondlength, bfactor,rnrmi,scpr
 real(8):: ekin,vcm1,vcm2,vcm3,ekin0,scale
 real(8), allocatable:: cm_frags(:,:), vel_frags(:,:)
-integer::iat, jat, nmax(1), imin(2),ifrag
+integer::iat, jat, natfragx(1), imin(2),ifrag
 integer, allocatable:: fragcount(:)
 integer, allocatable:: nat_frags(:)
 integer, dimension(nat):: fragarr
@@ -1973,17 +1973,17 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
             endif
          enddo
       enddo
-      nmax=maxloc(fragcount(:))
-      if(iproc==0) call yaml_map('(MH) The main Fragment index is', nmax(1))
+      natfragx=maxloc(fragcount(:))
+      if(iproc==0) call yaml_map('(MH) The main Fragment index is', natfragx(1))
 
       !Find the minimum distance between the clusters
       do ifrag=1,nfrag
          mindist=1.d100
-         if(ifrag.ne.nmax(1)) then
+         if(ifrag.ne.natfragx(1)) then
             do iat=1,nat
                if(fragarr(iat)==ifrag) then
                   do jat=1,nat
-                     if(fragarr(jat)==nmax(1)) then
+                     if(fragarr(jat)==natfragx(1)) then
                         dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
                         if(dist<mindist**2) then
                            mindist=sqrt(dist)
@@ -2009,7 +2009,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
             do iat=1,nat        !Move fragments back towards the main fragment 
                if(fragarr(iat)==ifrag) then
                   pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.5d0*bondlength)/mindist)
-                  fragarr(iat)=nmax(1)
+                  fragarr(iat)=natfragx(1)
                endif
             enddo
 

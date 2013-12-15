@@ -10,7 +10,7 @@
 !> this function returns a dictionary with all the input variables of a BigDFT run filled
 !! this dictionary is constructed from a updated version of the input variables dictionary
 !! following the input files as defined  by the user
-function read_input_dict_from_files(radical, mpi_env) result(dict)
+subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
   use wrapper_MPI
   use module_input_keys
@@ -20,19 +20,23 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   implicit none
   character(len = *), intent(in) :: radical !< the name of the run. use "input" if empty
   type(mpi_environment), intent(in) :: mpi_env !< the environment where the variables have to be updated
-
+  type(dictionary), pointer :: dict !< input dictionary, has to be nullified at input
+  !local variables
   integer :: ierr
-  type(dictionary), pointer :: dict
   logical :: exists_default, exists_user
   character(len = max_field_length) :: fname
   character(len = 100) :: f0
 
   call f_routine(id='read_input_dict_from_files')
 
+  if (f_err_raise(associated(dict),'The output dictionary should be nullified at input',&
+       err_name='BIGDFT_RUNTIME_ERROR')) return
+
+  nullify(dict) !this is however put in the case the dictionary comes undefined
+
   ! Handle error with master proc only.
   if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
-  
-  nullify(dict)
+
   ! We try first default.yaml
   inquire(file = "default.yaml", exist = exists_default)
   if (exists_default) call merge_input_file_to_dict(dict, "default.yaml", mpi_env)
@@ -78,7 +82,7 @@ function read_input_dict_from_files(radical, mpi_env) result(dict)
   call mpi_barrier(mpi_env%mpi_comm, ierr)
 
   call f_release_routine()
-end function read_input_dict_from_files
+end subroutine read_input_dict_from_files
 
 !> Routine to read YAML input files and create input dictionary.
 subroutine merge_input_file_to_dict(dict, fname, mpi_env)
@@ -151,6 +155,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   !type(dictionary), pointer :: profs
   integer :: ierr
+  type(dictionary), pointer :: dict_minimal
   call f_routine(id='inputs_from_dict')
 
   call default_input_variables(in)
@@ -160,7 +165,8 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 
   ! Analyse the input dictionary and transfer it to in.
-  call input_keys_fill_all(dict)
+  ! extract also the minimal dictionary which is necessary to do this run
+  call input_keys_fill_all(dict,dict_minimal)
 
   call perf_input_analyse(bigdft_mpi%iproc, in, dict//PERF_VARIABLES)
   call dft_input_analyse(bigdft_mpi%iproc, in, dict//DFT_VARIABLES)
@@ -178,7 +184,23 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
   
-  if (bigdft_mpi%iproc == 0 .and. dump) call input_keys_dump(dict)
+  if (bigdft_mpi%iproc == 0 .and. dump) then
+     call input_keys_dump(dict)
+     if (associated(dict_minimal)) then
+        call yaml_set_stream(unit=71,filename=trim(in%writing_directory)//'/input_minimal.yaml',&
+             record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
+        if (ierr==0) then
+           call yaml_comment('Minimal input file',hfill='-',unit=71)
+           call yaml_comment('This file indicates the minimal set of input variables which has to be given '//&
+                'to perform the run. The code would produce the same output if this file is used as input.',unit=71)
+           call yaml_dict_dump(dict_minimal,unit=71)
+           call yaml_close_stream(unit=71)
+        else
+           call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
+        end if
+     end if
+  end if
+  if (associated(dict_minimal)) call dict_free(dict_minimal)
 
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
      if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
@@ -1220,6 +1242,7 @@ subroutine perf_input_analyse(iproc,in,dict)
   use yaml_strings
   use yaml_output
   use dictionaries
+  use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   implicit none
   integer, intent(in) :: iproc
   type(dictionary), pointer :: dict
@@ -1235,12 +1258,14 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%debug = dict // DEBUG
 
   if (.not. in%debug) then
+     call ab7_memocc_set_state(1)
      call f_malloc_set_status(output_level=1)
   end if
   in%ncache_fft = dict // FFTCACHE
   call set_cache_size(in%ncache_fft)
   in%verbosity = dict // VERBOSITY
   if (in%verbosity == 0 ) then
+     call ab7_memocc_set_state(0)
      call f_malloc_set_status(output_level=0)
   end if
   in%writing_directory = dict // OUTDIR

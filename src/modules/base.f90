@@ -15,6 +15,7 @@ module module_base
   use module_defs
   use dictionaries, dict_set => set !error_handling
   use dynamic_memory
+  use memory_profiling, only: memocc,ndebug
   !use m_profiling
 
   implicit none  

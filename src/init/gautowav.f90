@@ -1002,7 +1002,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: psi
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
-  real(wp) :: re_cmplx_prod,im_cmplx_prod
+!  real(wp) :: re_cmplx_prod,im_cmplx_prod
   !!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   !the filling of the wavefunction should be different if ncplx==1 or 2
@@ -1178,65 +1178,38 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
 
   !!$omp end parallel
 
+contains 
+  !> Real part of the complex product
+  pure function re_cmplx_prod(a,b,c)
+    use module_base, only: wp
+    implicit none
+    real(wp), dimension(2), intent(in) :: a,b,c
+    real(wp) :: re_cmplx_prod
+
+    re_cmplx_prod=a(1)*b(1)*c(1) &
+         -a(1)*b(2)*c(2) &
+         -a(2)*b(1)*c(2) &
+         -a(2)*b(2)*c(1)
+
+  END FUNCTION re_cmplx_prod
+
+
+  !>   Imaginary part of the complex product
+  pure function im_cmplx_prod(a,b,c)
+    use module_base, only: wp
+    implicit none
+    real(wp), dimension(2), intent(in) :: a,b,c
+    real(wp) :: im_cmplx_prod
+
+    im_cmplx_prod=-a(2)*b(2)*c(2) &
+         +a(2)*b(1)*c(1) &
+         +a(1)*b(2)*c(1) &
+         +a(1)*b(1)*c(2)
+
+  END FUNCTION im_cmplx_prod
+
+
 END SUBROUTINE wfn_from_tensprod
-
-
-function re_re_cmplx_prod(a,b,c)
-  use module_base
-  implicit none
-  real(wp), dimension(2,2), intent(in) :: a,b,c
-  real(wp) :: re_re_cmplx_prod
-  real(wp) :: re_cmplx_prod
-  
-  re_re_cmplx_prod=re_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
-       -re_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
-       -re_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
-       -re_cmplx_prod( a(1,2),b(1,2),c(1,1))
-END FUNCTION re_re_cmplx_prod
-
-
-function im_re_cmplx_prod(a,b,c)
-  use module_base
-  implicit none
-  real(wp), dimension(2,2), intent(in) :: a,b,c
-  real(wp) :: im_re_cmplx_prod
-  real(wp) :: re_cmplx_prod
-  
-  im_re_cmplx_prod=-re_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
-                   +re_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
-                   +re_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
-                   +re_cmplx_prod(a(1,1),b(1,1),c(1,2))
-  
-END FUNCTION im_re_cmplx_prod
-
-
-function re_im_cmplx_prod(a,b,c)
-  use module_base
-  implicit none
-  real(wp), dimension(2,2), intent(in) :: a,b,c
-  real(wp) :: re_im_cmplx_prod
-  real(wp) :: im_cmplx_prod
-  
-  re_im_cmplx_prod=im_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
-       -im_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
-       -im_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
-       -im_cmplx_prod( a(1,2),b(1,2),c(1,1))
-  
-END FUNCTION re_im_cmplx_prod
-
-
-function im_im_cmplx_prod(a,b,c)
-  use module_base
-  implicit none
-  real(wp), dimension(2,2), intent(in) :: a,b,c
-  real(wp) :: im_im_cmplx_prod
-  real(wp) :: im_cmplx_prod
-  
-  im_im_cmplx_prod=-im_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
-                   +im_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
-                   +im_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
-                   +im_cmplx_prod(a(1,1),b(1,1),c(1,2))  
-END FUNCTION im_im_cmplx_prod
 
 
 !> Accumulate 3d projector in real form from a tensor produc decomposition
@@ -1255,8 +1228,8 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: psi
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
-  real(wp) :: re_cmplx_prod,im_cmplx_prod
-  real(wp) :: re_re_cmplx_prod,re_im_cmplx_prod,im_re_cmplx_prod,im_im_cmplx_prod 
+  !real(wp) :: re_cmplx_prod,im_cmplx_prod
+  !real(wp) :: re_re_cmplx_prod,re_im_cmplx_prod,im_re_cmplx_prod,im_im_cmplx_prod 
 
   !!$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
   !!$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
@@ -1524,10 +1497,98 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
         end do
 
      end do
-
+     
   end if
 
-  !!$omp end parallel
+!!$omp end parallel
+
+contains 
+  !> Real part of the complex product
+  pure function re_cmplx_prod(a,b,c)
+    use module_base, only: wp
+    implicit none
+    real(wp), dimension(2), intent(in) :: a,b,c
+    real(wp) :: re_cmplx_prod
+
+    re_cmplx_prod=a(1)*b(1)*c(1) &
+         -a(1)*b(2)*c(2) &
+         -a(2)*b(1)*c(2) &
+         -a(2)*b(2)*c(1)
+
+  END FUNCTION re_cmplx_prod
+
+
+  !>   Imaginary part of the complex product
+  pure function im_cmplx_prod(a,b,c)
+    use module_base, only: wp
+    implicit none
+    real(wp), dimension(2), intent(in) :: a,b,c
+    real(wp) :: im_cmplx_prod
+
+    im_cmplx_prod=-a(2)*b(2)*c(2) &
+         +a(2)*b(1)*c(1) &
+         +a(1)*b(2)*c(1) &
+         +a(1)*b(1)*c(2)
+
+  END FUNCTION im_cmplx_prod
+
+  pure function re_re_cmplx_prod(a,b,c)
+    use module_base
+    implicit none
+    real(wp), dimension(2,2), intent(in) :: a,b,c
+    real(wp) :: re_re_cmplx_prod
+    !  real(wp) :: re_cmplx_prod
+
+    re_re_cmplx_prod=re_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
+         -re_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
+         -re_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
+         -re_cmplx_prod( a(1,2),b(1,2),c(1,1))
+  END FUNCTION re_re_cmplx_prod
+
+
+  pure function im_re_cmplx_prod(a,b,c)
+    use module_base
+    implicit none
+    real(wp), dimension(2,2), intent(in) :: a,b,c
+    real(wp) :: im_re_cmplx_prod
+    !real(wp) :: re_cmplx_prod
+
+    im_re_cmplx_prod=-re_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
+         +re_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
+         +re_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
+         +re_cmplx_prod(a(1,1),b(1,1),c(1,2))
+
+  END FUNCTION im_re_cmplx_prod
+
+
+  pure function re_im_cmplx_prod(a,b,c)
+    use module_base
+    implicit none
+    real(wp), dimension(2,2), intent(in) :: a,b,c
+    real(wp) :: re_im_cmplx_prod
+    !real(wp) :: im_cmplx_prod
+
+    re_im_cmplx_prod=im_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
+         -im_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
+         -im_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
+         -im_cmplx_prod( a(1,2),b(1,2),c(1,1))
+
+  END FUNCTION re_im_cmplx_prod
+
+
+  pure function im_im_cmplx_prod(a,b,c)
+    use module_base
+    implicit none
+    real(wp), dimension(2,2), intent(in) :: a,b,c
+    real(wp) :: im_im_cmplx_prod
+    !real(wp) :: im_cmplx_prod
+
+    im_im_cmplx_prod=-im_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
+         +im_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
+         +im_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
+         +im_cmplx_prod(a(1,1),b(1,1),c(1,2))  
+  END FUNCTION im_im_cmplx_prod
+
 
 END SUBROUTINE wfn_from_tensprod_cossin
 

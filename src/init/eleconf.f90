@@ -20,7 +20,7 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
   real(kind=8), intent(out) :: ehomo       !< Highest occupied molecular orbital energy
                                            !! See <a>http://physics.nist.gov/PhysRefData/DFTdata/Tables/ptable.html</a>
   real(kind=8), intent(out) :: amu         !< Atomic mass unit (use values coming from ABINIT/11util/atmdata.F90)
-  integer, parameter :: nmax=6,lmax=3
+  integer, parameter :: nmax=7,lmax=3
   real(kind=8), dimension(nmax,0:lmax), intent(out) :: neleconf !< Occupation number (electronic configuration of the atom)
   integer, intent(out) :: nsccode !< Semicore orbitals, indicated as an integer.
                                   !! The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
@@ -693,6 +693,7 @@ rcov=2.30d0
 rprb=4.60d0
 ehomo=-0.245806d0
 neleconf(4,0)=2
+neleconf(5,0)=1.d-18
 neleconf(4,1)=4
 amu=78.96d0
 
@@ -1604,6 +1605,7 @@ rcov=3.30d0
 rprb=6.60d0
 ehomo=-0.141831d0
 neleconf(6,0)=2
+neleconf(7,0)=1.d-18
 neleconf(6,1)=2
 amu=207.2d0
 

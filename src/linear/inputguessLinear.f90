@@ -46,7 +46,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
   logical,dimension(:),allocatable :: covered, type_covered
   real(kind=8),dimension(:,:),allocatable :: aocc
-  integer, parameter :: nmax=6,lmax=3
+  integer, parameter :: nmax=7,lmax=3
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb
   integer :: infoCoeff

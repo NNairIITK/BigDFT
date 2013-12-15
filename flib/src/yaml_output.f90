@@ -153,6 +153,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
+  public :: is_atoi,is_atof,is_atol
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -337,7 +338,6 @@ contains
                   YAML_STREAM_ALREADY_PRESENT)
           end if
        end if
-       
        open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
        if (present(istat)) then
           istat=ierr

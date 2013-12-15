@@ -137,6 +137,7 @@ module bigdft_forces
       integer :: natoms_calcul
       type(dictionary), pointer :: dict
       !_______________________
+      nullify(dict)
 
       me = me_
       nproc = nproc_
@@ -156,7 +157,7 @@ module bigdft_forces
          call initialize_atomic_file(me_,runObj%atoms,runObj%atoms%astruct%rxyz)
       endif
 
-      dict => read_input_dict_from_files("input", bigdft_mpi)
+      call read_input_dict_from_files("input", bigdft_mpi,dict)
       call standard_inputfile_names(runObj%inputs,'input')
       call inputs_from_dict(runObj%inputs, runObj%atoms, dict, .true.)
       call dict_free(dict)

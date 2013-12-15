@@ -401,7 +401,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    real(gp), dimension(at%astruct%nat), intent(out) :: locrad
    !local variables
    !n(c) character(len=*), parameter :: subname='readAtomicOrbitals'
-   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+   integer, parameter :: nmax=7,lmax=3,noccmax=2,nelecmax=32
    character(len=2) :: symbol
    integer :: ity,i,iatsc,iat,lsc
    integer :: nsccode,mxpl,mxchg
@@ -484,7 +484,7 @@ subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspin
   integer,dimension(orbsig%norb),intent(out):: onWhichAtom
   !local variables
   !character(len=*), parameter :: subname='readAtomicOrbitals'
-  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+  integer, parameter :: nmax=7,lmax=3,noccmax=2,nelecmax=32
   character(len=2) :: symbol
   integer :: ity,i,iatsc,iat,lsc
   integer :: nsccode,mxpl,mxchg
@@ -576,7 +576,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
    integer, parameter :: noccmax=2,lmax=4,nelecmax=32,nmax_occ=10!actually is 24
-   !integer, parameter :: nterm_max=3,nmax=6
+   !integer, parameter :: nterm_max=3,nmax=7
    logical :: orbpol_nc,occeq
    integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff

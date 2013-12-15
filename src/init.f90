@@ -510,13 +510,15 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
    integer :: jorb, ncplx, istart_c
    real(wp), dimension(PAWD%G%ncoeff ) :: Gocc
    character(len=*), parameter :: subname='fillPawProjOnTheFly'
+  integer, parameter :: nmax=7
+  integer, parameter :: lmax=3
 
 
    !!Just for extracting the covalent radius and rprb
    integer :: nsccode,mxpl,mxchg
    real(gp) ::amu,rprb,ehomo,rcov, cutoff
    character(len=2) :: symbol
-   real(kind=8), dimension(6,4) :: neleconf
+   real(kind=8), dimension(nmax,0:lmax) :: neleconf
 
    istart_c=initial_istart_c
 
@@ -1549,7 +1551,7 @@ END SUBROUTINE input_wf_memory
 
 
 subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
-           rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU)
+           rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU, ref_frags)
 
   use module_base
   use module_types
@@ -1570,6 +1572,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   type(GPU_pointers), intent(inout) :: GPU
+  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat
@@ -1608,7 +1611,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          call memocc(i_stat,frag_trans(iorb)%discrete_operations,'frag_trans(iorb)%discrete_operations',subname)
      end do
 
-     call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,tmb_old%psi)
+     call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
+          tmb_old%psi,input%dir_output,input%frag,ref_frags)
 
      do iorb=1,tmb%orbs%norbp
         i_all = -product(shape(frag_trans(iorb)%discrete_operations)*kind(frag_trans(iorb)%discrete_operations))
@@ -1838,7 +1842,7 @@ END SUBROUTINE input_memory_linear
            character(len=*), parameter :: subname='input_wf_diag'
            logical :: switchGPUconv,switchOCLconv
    integer :: ii,jj
-           integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin
+           integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin,ikpt
            real(gp) :: hxh,hyh,hzh,etol,accurex,eks
            type(orbitals_data) :: orbse
            type(communications_arrays) :: commse
@@ -2265,10 +2269,6 @@ END SUBROUTINE input_memory_linear
              call memocc(i_stat,passmat,'passmat',subname)
           !!print '(a,10i5)','iproc,passmat',iproc,ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),&
           !!     orbs%nspinor,orbs%nkptsp,orbse%norbu,orbse%norbd,orbs%norbu,orbs%norbd
-            if (.false.) then
-               call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzde%Glr%wfd,comms,&
-                  psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
-            end if
 
             if (iproc==0) call yaml_newline()
 
@@ -2282,24 +2282,18 @@ END SUBROUTINE input_memory_linear
              call memocc(i_stat,i_all,'passmat',subname)
 
            if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
-
-        !commented out, this part has already been done in LDiagHam     
-        !!$      !clean the array of the IG eigenvalues
-        !!$      call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))
-        !!$      !put the actual values on it
-        !!$      call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
-        !!$
-        !!$      !add a small displacement in the eigenvalues
-        !!$      do iorb=1,orbs%norb*orbs%nkpts
-        !!$         tt=builtin_rand(idum)
-        !!$         orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
-        !!$      end do
-        !!$
-        !!$      !correct the occupation numbers wrt fermi level
-        !!$      call evaltoocc(iproc,nproc,.false.,input%Tel,orbs,input%occopt)
-
-              !restore the occupations 
-              call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1)
+              
+              !restore the occupations as they are extracted from DiagHam
+              !use correct copying due to k-points
+              do ikpt=1,orbs%nkpts
+                 call vcopy(orbs%norbu,orbse%occup((ikpt-1)*orbse%norb+1),1,&
+                      orbs%occup((ikpt-1)*orbs%norb+1),1)
+                 if (orbs%norbd > 0) then
+                    call vcopy(orbs%norbd,orbse%occup((ikpt-1)*orbse%norb+orbse%norbu+1),1,&
+                         orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1)
+                 end if
+              end do
+              !call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1) !this is not good with k-points
               !associate the entropic energy contribution
               orbs%eTS=orbse%eTS
               
@@ -2603,7 +2597,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call yaml_open_map("Input Hamiltonian")
      end if
       call input_memory_linear(iproc, nproc, atoms, KSwfn, tmb, tmb_old, denspot, in, &
-           rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU)
+           rxyz_old, rxyz, denspot0, energs, nlpspd, proj, GPU, ref_frags)
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
@@ -3097,6 +3091,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: hhx_old,hhy_old,hhz_old,hhx,hhy,hhz,dgrid1,dgrid2,dgrid3,expfct,x,y,z,s1,s2,s3
   real(wp) :: s1d1,s1d2,s1d3,s2d1,s2d2,s2d3,s3d1,s3d2,s3d3,norm_1,norm_2,norm_3,norm,radius,jacdet
   real(wp), dimension(-1:1) :: coeff,ipv,ipv2
+  integer, parameter :: nmax=7
+  integer, parameter :: lmax=3
 
   !To reduce the size, use real(kind=4)
   real(kind=4), dimension(:,:), allocatable :: shift
@@ -3107,7 +3103,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   !Atom description (needed for call to eleconf)
   integer ::nzatom,nvalelec,nsccode,mxpl,mxchg
-  real(wp) :: rcov,rprb,ehomo,amu,neleconf(6,0:3)
+  real(wp) :: rcov,rprb,ehomo,amu,neleconf(nmax,0:lmax)
   character(len=2) :: symbol
 
   if (lzd_old%Glr%geocode .ne. 'F') then

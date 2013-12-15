@@ -13,7 +13,7 @@ static const char bigdft_input_vars_def[] =
   ;
 
 // function to recuperate the size of the definition of the input variables
-void FC_FUNC(getinputdefsize, GETINPUTDEFSIZE)(long long int *pt_len) {
+void FC_FUNC(getinputdefsize, GETINPUTDEFSIZE)(int *pt_len) {
   *pt_len = strlen(bigdft_input_vars_def);
 }
 
@@ -24,7 +24,7 @@ void FC_FUNC(getinputdef, GETINPUTDEF)(char *to)
 
 
 // function to recuperate the address and the size of the definition of the input variables
-void FC_FUNC(getstaticinputdef, GETSTATICINPUTDEF)( long long int *pt, long long int *pt_len) {
+void FC_FUNC(getstaticinputdef, GETSTATICINPUTDEF)( long long int *pt, int *pt_len) {
   //  *pt = (void*)bigdft_input_vars_def; // it was void **
   *pt = (long long int) bigdft_input_vars_def;
   *pt_len = strlen(bigdft_input_vars_def);
