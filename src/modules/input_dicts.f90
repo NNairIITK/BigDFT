@@ -745,7 +745,9 @@ contains
        pos => dict // "Properties"
        if (has_key(pos, "Energy (Ha)") .and. present(energy)) energy = pos // "Energy (Ha)"
        if (has_key(pos, "Info") .and. present(comment)) comment = pos // "Info"
+       if (has_key(pos, "Format")) astruct%inputfile_format = pos // "Format"
     end if
+
   end subroutine astruct_set_from_dict
 
   subroutine astruct_file_merge_to_dict(dict, key, filename)
