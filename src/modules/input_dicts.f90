@@ -674,11 +674,10 @@ contains
           if (trim(str) == "Frozen") then
              str = dict_value(at)
              call frozen_ftoi(str(1:4), astruct%ifrztyp(iat))
-             write(*,*) "#############", trim(str), astruct%ifrztyp(iat), iat
           else if (trim(str) == "IGSpin") then
-             igspin = at // str
+             igspin = at
           else if (trim(str) == "IGChg") then
-             igchrg = at // str
+             igchrg = at
              if (igchrg >= 0) then
                 nsgn = 1
              else
