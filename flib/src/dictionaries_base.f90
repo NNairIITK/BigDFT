@@ -331,24 +331,14 @@ contains
     dict%data%item=item
     if (associated(dict%parent)) then
        if (len_trim(dict%parent%data%value) > 0) dict%parent%data%value=repeat(' ',max_field_length)
-       
        dict%parent%data%nitems=dict%parent%data%nitems+1
-       !if (item+1 > dict%parent%data%nitems) then
-          !if (exceptions) then
-          !   last_error=DICT_ITEM_NOT_VALID
-          !else
-          !so far this error has never been found
-       !      write(*,*)'ERROR: item not valid',item,dict%parent%data%nitems
-       !      stop
-          !end if
-       !end if
     end if
 
   end subroutine set_item
 
   !> Retrieve the pointer to the dictionary which has this key.
   !! If the key does not exists, create it in the child chain
-  function get_child_ptr(dict,key) result (subd_ptr)
+  function get_child_ptr(dict,key) result(subd_ptr)
     implicit none
     type(dictionary), intent(in), pointer :: dict !hidden inout
     character(len=*), intent(in) :: key
