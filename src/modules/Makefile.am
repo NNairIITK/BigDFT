@@ -29,6 +29,7 @@ libmodules_a_SOURCES = base.f90 \
 	defs.f90 \
 	gaussians.f90 \
 	input_keys.f90 \
+	input_dicts.f90 \
 	types.f90 \
 	input.f90 \
 	interfaces.f90 \
@@ -62,7 +63,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	CONSTRAINED_DFT.@MODULE_EXT@ \
 	DIIS_SD_OPTIMIZATION.@MODULE_EXT@ \
 	INPUT_OLD_TEXT_FORMAT.@MODULE_EXT@ \
-	MODULE_INPUT_KEYS.@MODULE_EXT@
+	MODULE_INPUT_KEYS.@MODULE_EXT@ \
+	MODULE_INPUT_DICTS.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -79,7 +81,8 @@ modules = module_base.@MODULE_EXT@ \
 	constrained_dft.@MODULE_EXT@ \
 	diis_sd_optimization.@MODULE_EXT@ \
 	input_old_text_format.@MODULE_EXT@ \
-	module_input_keys.@MODULE_EXT@
+	module_input_keys.@MODULE_EXT@ \
+	module_input_dicts.@MODULE_EXT@
 endif
 
 
@@ -116,6 +119,7 @@ vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 fragments.o diis_module.o: base.o types.o
 constrained_dft.o: base.o types.o fragments.o
+input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o interfaces.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
