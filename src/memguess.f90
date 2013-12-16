@@ -340,7 +340,7 @@ program memguess
    !call cpu_time(tcpu0)
    !call system_clock(ncount0,ncount_rate,ncount_max)
 
-   call system_initialization(0, nproc, .false.,inputpsi, input_wf_format, .true., &
+   call system_initialization(0, nproc, .true.,inputpsi, input_wf_format, .true., &
         & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, &
         & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
         & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, nlpspd, runObj%rst%KSwfn%comms, &
