@@ -196,9 +196,9 @@ def compare_scl(scl, ref, tols, always_fails = False):
         diff = 0.
         failed = True
     discrepancy=max(discrepancy,diff)
-#    if (discrepancy > 1.85e-9):
-#    print 'test',scl,ref,tols,discrepancy,failed
-#      sys.exit(1)
+#    if (discrepancy > 1.85e-6):
+#    	print 'test',scl,ref,tols,discrepancy,failed
+#      	sys.exit(1)
     if not(failed):
       if tols is None:
         ret = (always_fails, None)
@@ -209,7 +209,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
-#    print 'hereAAA',scl,ref,tols,discrepancy
+    print 'hereAAA',scl,ref,tols,discrepancy,biggest_tol
     failed_checks +=1
   return ret
 
@@ -412,7 +412,7 @@ for i in range(len(references)):
 
   sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %\
                   (i, failed_checks,discrepancy,docmiss,docleaks,doctime))
-#  print "failed checks",failed_checks,"max diff",discrepancy
+  print "failed checks",failed_checks,"max diff",discrepancy
   max_discrepancy=max(discrepancy,max_discrepancy)
   #print total time
   time += doctime
