@@ -457,158 +457,15 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
 END SUBROUTINE calculate_rhocore
 
-
-!> Initialization of the atoms_data values especially nullification of the pointers
-subroutine init_atomic_values(verb, atoms, ixc)
-  use module_base
-  use module_types
-  implicit none
-  
-  integer, intent(in) :: ixc
-  logical, intent(in) :: verb
-  type(atoms_data), intent(inout) :: atoms
-
-  !local variables
-  character(len=*), parameter :: subname='init_atomic_values'
-  real(gp), dimension(3) :: radii_cf
-  real(gp):: rcore(atoms%astruct%ntypes), qcore(atoms%astruct%ntypes)
-  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat,i_all,ierr
-  integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
-  logical :: exists, read_radii,exist_all
-  character(len=27) :: filename
-  
-  ! Read values from pseudo files.
-  nlcc_dim=0
-  atoms%donlcc=.false.
-  paw_tot_l=0
-  paw_tot_q=0
-  paw_tot_coefficients=0
-  paw_tot_matrices=0
-
-  !True if there are atoms
-  exist_all=(atoms%astruct%ntypes > 0)
-  !@todo: eliminate the pawpatch from psppar
-  nullify(atoms%paw_NofL)
-  do ityp=1,atoms%astruct%ntypes
-     filename = 'psppar.'//atoms%astruct%atomnames(ityp)
-     !ALEX: if npspcode==12, nlccpar are read from psppar.Xy via rcore and qcore 
-     call psp_from_file(filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
-           & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
-           & atoms%donlcc, rcore(ityp), qcore(ityp), radii_cf, read_radii, exists)
-     !To eliminate the runtime warning due to the copy of the array (TD)
-     atoms%radii_cf(ityp,:)=radii_cf(:)
-
-     if (exists) then
-        !ALEX: Count Gaussians for rhocore
-        if(atoms%npspcode(ityp)==12) nlcc_dim=nlcc_dim+1
-        !! first time just for dimension ( storeit = . false.)
-        call pawpatch_from_file( filename, atoms,ityp,&
-             paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
-     end if
-     exist_all=exist_all .and. exists
-
-     if (.not. read_radii) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
-     if (.not. exists) then
-        atoms%ixcpsp(ityp) = ixc
-        call psp_from_data(atoms%astruct%atomnames(ityp), atoms%nzatom(ityp), &
-             & atoms%nelpsp(ityp), atoms%npspcode(ityp), atoms%ixcpsp(ityp), &
-             & atoms%psppar(:,:,ityp), exists)
-        if (.not. exists) then
-           call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-           if (verb) write(*,'(1x,5a)')&
-                'ERROR: The pseudopotential parameter file "',trim(filename),&
-                '" is lacking, and no registered pseudo found for "', &
-                & trim(atoms%astruct%atomnames(ityp)), '", exiting...'
-           stop
-        end if
-     end if
-     filename ='nlcc.'//atoms%astruct%atomnames(ityp)
-     call nlcc_dim_from_file(filename, atoms%nlcc_ngv(ityp), &
-          atoms%nlcc_ngc(ityp), nlcc_dim, exists)
-     atoms%donlcc = (atoms%donlcc .or. exists)
-  end do
-  !deallocate the paw_array if not all the atoms are present
-  if (.not. exist_all .and. associated(atoms%paw_NofL)) then
-     i_all=-product(shape(atoms%paw_NofL ))*kind(atoms%paw_NofL )
-     deallocate(atoms%paw_NofL,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%paw_NofL',subname)
-     nullify(atoms%paw_NofL)
-  end if
-
-  if (exist_all) then
-     do ityp=1,atoms%astruct%ntypes
-        filename = 'psppar.'//atoms%astruct%atomnames(ityp)
-        !! second time allocate and then store
-        call pawpatch_from_file( filename, atoms,ityp,&
-             paw_tot_l,   paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .true.)
-     end do
-  else
-     nullify(atoms%paw_l,atoms%paw_NofL,atoms%paw_nofchannels)
-     nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
-     nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
-  end if
-  !process the nlcc parameters if present 
-  !(allocation is performed also with zero size)
-  allocate(atoms%nlccpar(0:4,max(nlcc_dim,1)+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%nlccpar,'atoms%nlccpar',subname)
-  !start again the file inspection to fill nlcc parameters
-  if (atoms%donlcc) then
-     nlcc_dim=0
-     fill_nlcc: do ityp=1,atoms%astruct%ntypes
-        !ALEX: These are preferably read from psppar.Xy, as stored in the
-        !local variables rcore and qcore
-        if(atoms%npspcode(ityp)==12) then
-           nlcc_dim=nlcc_dim+1
-           atoms%nlcc_ngc(ityp)=1
-           atoms%nlcc_ngv(ityp)=0
-           atoms%nlccpar(0,nlcc_dim)=rcore(ityp)
-           atoms%nlccpar(1,nlcc_dim)=qcore(ityp)
-           atoms%nlccpar(2:4,nlcc_dim)=0.0_gp 
-        end if
-        filename = 'nlcc.'//atoms%astruct%atomnames(ityp)
-        inquire(file=filename,exist=exists)
-        !ALEX: For now we still allow this file. If nlccpar was already read from psppar.Xy 
-        !and nlcc.Xy is present as well, then use the latter and print a WARNING message.
-        !Maybe we should also give a warning if no nlcc is present in psppar.Xy.
-        if(exists .and. atoms%npspcode(ityp)==12) then
-           write(*,'(1x,a,a)')"WARNING: The deprecated input file ",filename,&
-                "is present, and NLCC data contained in psppar are overridden!"
-        end if
-        if (exists) then
-           !read the values of the gaussian for valence and core densities
-           open(unit=79,file=filename,status='unknown')
-           read(79,*)ngv
-           do ig=1,(ngv*(ngv+1))/2
-              nlcc_dim=nlcc_dim+1
-              read(79,*)(atoms%nlccpar(j,nlcc_dim),j=0,4)!rhovxp(ig),(rhovc(ig,j),j=1,4)
-           end do
-           read(79,*)ngc
-           do ig=1,(ngc*(ngc+1))/2
-              nlcc_dim=nlcc_dim+1
-              read(79,*)(atoms%nlccpar(j,nlcc_dim),j=0,4)!rhocxp(ig),(rhocc(ig,j),j=1,4)
-           end do
-           close(unit=79)
-        end if
-     !ALEX: Cheap work-around: If npspcode is 12, we set it to 10 here.
-     !This is only to test if things are working correctly until all if clauses for
-     !npspcode 10 also work for npspcode 12, which is exactly the same except for the
-     !addition of a line for NLCC read from the psppar file.
-     !if(atoms%npspcode(ityp)==12)  atoms%npspcode(ityp)=10
-     end do fill_nlcc
-  end if
-  
-END SUBROUTINE init_atomic_values
-
-
 subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
-     & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, read_radii, exists)
+     & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
   use module_base
   implicit none
   
   character(len = *), intent(in) :: filename
   integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
   real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
-  logical, intent(out) :: read_radii, exists
+  logical, intent(out) :: exists, pawpatch
   logical, intent(inout) ::  donlcc
   !ALEX: Some local variables
   real(gp):: fourpi, sqrt2pi
@@ -618,7 +475,8 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   real(dp) :: nelpsp_dp,nzatom_dp
   character(len=100) :: line
 
-  read_radii = .false.
+  radii_cf = UNINITIALIZED(1._gp)
+  pawpatch = .false.
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) return
 
@@ -632,7 +490,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   end if
   read(11,*)
   read(11,*) nzatom_dp, nelpsp_dp
-  nzatom=nzatom_dp; nelpsp=nelpsp_dp
+  nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
   read(11,*) npspcode, ixcpsp
 
   psppar(:,:)=0._gp
@@ -716,9 +574,13 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
      radii_cf(3)=radii_cf(2)
   end if
+  pawpatch = (trim(line) == "PAWPATCH")
+  do
+     read(11,'(a100)',iostat=ierror) line
+     if (ierror /= 0 .or. pawpatch) exit
+     pawpatch = (trim(line) == "PAWPATCH")
+  end do
   close(11)
-
-  read_radii = (ierror == 0)
 
 contains
 

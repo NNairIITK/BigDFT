@@ -1177,6 +1177,8 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use module_input_dicts
+  use dictionaries
   use yaml_output
   !use gaussians
   implicit none
@@ -1199,6 +1201,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(wp) :: maxdiff
   real(gp) :: ehart
   type(atoms_data) :: at
+  type(dictionary), pointer :: dict
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
   real(gp), dimension(:,:), allocatable :: radii_cf
@@ -1212,13 +1215,20 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
           '--------------------------------------------------- Counter Ionic Potential Creation'
   end if
 
+  call atoms_nullify(at)
   !read the positions of the counter ions from file
-  call read_atomic_file('posinp_ci',iproc,at%astruct)
-  call allocate_atoms_nat(at, subname)
-  call allocate_atoms_ntypes(at, subname)
+  call dict_init(dict)
+  call astruct_file_merge_to_dict(dict, "posinp", 'posinp_ci')
+  call astruct_set_from_dict(dict // "posinp", at%astruct)
+
+  call atoms_file_merge_to_dict(dict)
+  do ityp = 1, at%astruct%ntypes, 1
+     call psp_dict_fill_all(dict, at%astruct%atomnames(ityp), in%ixc)
+  end do
+  call psp_dict_analyse(dict, at)
   ! Read associated pseudo files.
-  call init_atomic_values((iproc == 0), at, in%ixc)
   call read_atomic_variables(at, 'input.occup', in%nspin)
+  call dict_free(dict)
 
   allocate(radii_cf(at%astruct%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)

@@ -88,6 +88,7 @@ end subroutine atoms_nullify
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
+  use dynamic_memory
   implicit none
   character(len=*), intent(in) :: subname
   type(atoms_data), intent(inout) :: atoms
@@ -127,6 +128,9 @@ subroutine deallocate_atoms(atoms,subname)
      i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
      deallocate(atoms%rloc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%rloc',subname)
+     i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+     deallocate(atoms%amu,stat=i_stat)
+     call memocc(i_stat,i_all,'atoms%amu',subname)
   end if
   if (associated(atoms%iasctype)) then
      i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
@@ -135,14 +139,9 @@ subroutine deallocate_atoms(atoms,subname)
      i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
      deallocate(atoms%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%aocc',subname)
-     i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-     deallocate(atoms%amu,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%amu',subname)
   end if
   if (associated(atoms%nlccpar)) then
-     i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
-     deallocate(atoms%nlccpar,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%nlccpar',subname)
+     call f_free_ptr(atoms%nlccpar)
   end if
 
   !  Free data for pawpatch
@@ -248,8 +247,6 @@ subroutine allocate_atoms_nat(atoms, subname)
   integer, parameter :: nelecmax=32
 
   ! Allocate geometry related stuff.
-  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   ! semicores useful only for the input guess
   allocate(atoms%iasctype(atoms%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
@@ -305,6 +302,8 @@ subroutine allocate_atoms_ntypes(atoms, subname)
 
   ! Allocate pseudo related stuff.
   ! store PSP parameters, modified to accept both GTH and HGHs pseudopotential types
+  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   allocate(atoms%psppar(0:4,0:6,atoms%astruct%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%psppar,'atoms%psppar',subname)
   allocate(atoms%nelpsp(atoms%astruct%ntypes+ndebug),stat=i_stat)
@@ -958,177 +957,6 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   astruct%atomnames(1:astruct%ntypes)=atomnames(1:astruct%ntypes)
 END SUBROUTINE read_ascii_positions
 
-subroutine read_dict_positions(dict, astruct, comment, energy, fxyz)
-  use module_types, only: atomic_structure
-  use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
-  use dictionaries
-  use dynamic_memory
-  implicit none
-  type(dictionary), pointer :: dict
-  type(atomic_structure), intent(inout) :: astruct
-  real(gp), intent(out) :: energy
-  real(gp), dimension(:,:), pointer :: fxyz
-  character(len = 1024), intent(out) :: comment
-
-  !local variables
-  character(len=*), parameter :: subname='read_dict_positions'
-  type(dictionary), pointer :: atoms, pos, at
-  character(len = max_field_length) :: str
-  integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
-  character(len=20), dimension(100) :: atomnames
-
-  astruct%nat = -1
-  energy = UNINITIALIZED(energy)
-  write(comment, "(A)") " "
-  if (.not. has_key(dict, "Atomic structure")) return
-
-  atoms => dict // "Atomic structure"
-  ! The units
-  units = 0
-  write(astruct%units, "(A)") "bohr"
-  if (has_key(atoms, "Units")) astruct%units = atoms // "Units"
-  select case(trim(astruct%units))
-  case('atomic','atomicd0','bohr','bohrd0')
-     units = 0
-  case('angstroem','angstroemd0')
-     units = 1
-  case('reduced')
-     units = 2
-  end select
-  ! The cell
-  astruct%cell_dim = 0.0_gp
-  if (.not. has_key(atoms, "Cell")) then
-     astruct%geocode = 'F'
-  else
-     astruct%geocode = 'P'
-     ! z
-     astruct%cell_dim(3) = atoms // "Cell" // 2
-     ! y
-     str = atoms // "Cell" // 1
-     if (trim(str) == ".inf") then
-        astruct%geocode = 'S'
-     else
-        astruct%cell_dim(2) = atoms // "Cell" // 1
-     end if
-     ! x
-     str = atoms // "Cell" // 0
-     if (trim(str) == ".inf") then
-        astruct%geocode = 'W'
-     else
-        astruct%cell_dim(1) = atoms // "Cell" // 0
-     end if
-  end if
-  if (units == 1) astruct%cell_dim = astruct%cell_dim / Bohr_Ang
-  ! The atoms
-  if (.not. has_key(atoms, "Positions")) return
-  pos => atoms // "Positions"
-  astruct%nat = dict_len(pos)
-  call astruct_set_n_atoms(astruct, astruct%nat, subname)
-  ntyp = 0
-  do iat = 1, astruct%nat
-     at => pos // (iat - 1)
-     igspin = 0
-     igchrg = 0
-     nsgn   = 1
-     at => at%child
-     do while(associated(at))
-        str = dict_key(at)
-        if (trim(str) == "Frozen") then
-           str = dict_value(at)
-           call frozen_ftoi(str(1:4), astruct%ifrztyp(iat))
-        else if (trim(str) == "IGSpin") then
-           igspin = at // str
-        else if (trim(str) == "IGChg") then
-           igchrg = at // str
-           if (igchrg >= 0) then
-              nsgn = 1
-           else
-              nsgn = -1
-           end if
-        else if (dict_len(at) == 3) then
-           do ityp=1,ntyp
-              if (str(1:20) == atomnames(ityp)) then
-                 astruct%iatype(iat)=ityp
-                 exit
-              endif
-           enddo
-           if (ityp > ntyp) then
-              ntyp=ntyp+1
-              if (ntyp > 100) then
-                 write(*,*) 'more than 100 atomnames not permitted'
-                 astruct%nat = -1
-                 return
-              end if
-              atomnames(ityp)=str(1:20)
-              astruct%iatype(iat)=ntyp
-           end if
-           astruct%rxyz(1, iat) = at // 0
-           astruct%rxyz(2, iat) = at // 1
-           astruct%rxyz(3, iat) = at // 2
-        end if
-        at => dict_next(at)
-     end do
-     astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
-     if (units == 1) then
-        astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
-        astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang
-        astruct%rxyz(3,iat) = astruct%rxyz(3,iat) / Bohr_Ang
-     endif
-     if (units == 2) then !add treatment for reduced coordinates
-        if (astruct%cell_dim(1) > 0.) astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),1.0_gp) * astruct%cell_dim(1)
-        if (astruct%cell_dim(2) > 0.) astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),1.0_gp) * astruct%cell_dim(2)
-        if (astruct%cell_dim(3) > 0.) astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),1.0_gp) * astruct%cell_dim(3)
-     else if (astruct%geocode == 'P') then
-        astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
-        astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
-        astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     else if (astruct%geocode == 'S') then
-        astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
-        astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     else if (astruct%geocode == 'W') then
-        astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     end if
-  end do
-  if (has_key(atoms, "Forces")) then
-     fxyz = f_malloc_ptr((/ 3, astruct%nat /), subname)
-     pos => atoms // "Forces"
-     do iat = 1, astruct%nat
-        at => pos // (iat - 1)
-        fxyz(1, iat) = at // 0
-        fxyz(2, iat) = at // 1
-        fxyz(3, iat) = at // 2
-     end do
-  end if
-
-  call astruct_set_n_types(astruct, ntyp, subname)
-  astruct%atomnames(1:ntyp) = atomnames(1:ntyp)
-
-  if (has_key(atoms, "Properties")) then
-     pos => atoms // "Properties"
-     if (has_key(pos, "Energy (Ha)")) energy = pos // "Energy (Ha)"
-     if (has_key(pos, "Info")) comment = pos // "Info"
-  end if
-end subroutine read_dict_positions
-
-subroutine read_yaml_positions(filename, astruct, comment, energy, fxyz)
-  use module_base
-  use module_types
-  use dictionaries
-  implicit none
-  character(len = *), intent(in) :: filename
-  type(atomic_structure), intent(inout) :: astruct
-  real(gp), intent(out) :: energy
-  real(gp), dimension(:,:), pointer :: fxyz
-  character(len = 1024), intent(out) :: comment
-
-  !local variables
-  character(len=*), parameter :: subname='read_yaml_positions'
-  type(dictionary), pointer :: dict
-
-  !call merge_input_file_to_dict(dict, trim(filename), mpi_env)
-END SUBROUTINE read_yaml_positions
-
-
 !> Find extra information
 subroutine find_extra_info(line,extra)
   implicit none
@@ -1587,6 +1415,26 @@ subroutine frozen_itof(ifrztyp,frzchain)
         
 END SUBROUTINE frozen_itof
 
+subroutine astruct_dict_get_types(dict, types)
+  use dictionaries
+  implicit none
+  type(dictionary), pointer :: dict, types
+  
+  type(dictionary), pointer :: atoms, at
+  character(len = max_field_length) :: str
+  integer :: iat
+
+  call dict_init(types)
+  atoms => dict // "Positions"
+  do iat = 1, dict_len(atoms), 1
+     at => dict_iter(atoms // iat)
+     do while(associated(at))
+        str = dict_key(at)
+        if (dict_len(at) == 3 .and. .not. has_key(types, str)) call add(types, str)
+        at => dict_next(at)
+     end do
+  end do
+end subroutine astruct_dict_get_types
 
 !> Write yaml atomic file.
 subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
@@ -2353,12 +2201,8 @@ subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
       end if
    else if (astruct%inputfile_format == "yaml") then
       !read atomic positions
-      if (.not.archive) then
-         call read_yaml_positions(trim(filename),astruct,comment_,energy_,fxyz_)
-      else
-         write(*,*) "Atomic input file in YAML not yet supported in archive file."
-         stop
-      end if
+      write(*,*) "Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead."
+      stop
    end if
 
    !Check the number of atoms

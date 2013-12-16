@@ -122,6 +122,7 @@ module bigdft_forces
    !! Routine to initialize all BigDFT stuff
    subroutine bigdft_init_art( nat, me_, nproc_, my_gnrm,passivate,total_nb_atoms )
      use dictionaries
+     use module_input_dicts
       implicit none
 
       !Arguments
@@ -156,15 +157,16 @@ module bigdft_forces
          call copy_atoms_object(atoms_all,runObj%atoms,runObj%atoms%astruct%rxyz,natoms_calcul,total_nb_atoms,posquant)
          call initialize_atomic_file(me_,runObj%atoms,runObj%atoms%astruct%rxyz)
       endif
+      call astruct_merge_to_dict(dict, runObj%atoms%astruct, runObj%atoms%astruct%rxyz)
+
+      call atoms_file_merge_to_dict(dict)
 
       call read_input_dict_from_files("input", bigdft_mpi,dict)
       call standard_inputfile_names(runObj%inputs,'input')
       call inputs_from_dict(runObj%inputs, runObj%atoms, dict, .true.)
+
       call dict_free(dict)
       
-      call init_atomic_values((me_ == 0), runObj%atoms, runObj%inputs%ixc)
-      call read_atomic_variables(runObj%atoms, trim(runObj%inputs%file_igpop),runObj%inputs%nspin)
-
       ! Transfer "at" data to ART variables.
       gnrm_l = runObj%inputs%gnrm_cv
       if ( my_gnrm == 1.0d0 ) then 

@@ -198,18 +198,6 @@ module module_interfaces
         character(len = 1024), intent(out) :: comment_
       END SUBROUTINE read_yaml_positions
 
-      subroutine read_dict_positions(dict, astruct, comment, energy, fxyz)
-        use module_types, only: atomic_structure
-        use module_defs, only: gp
-        use dictionaries
-        implicit none
-        type(dictionary), pointer :: dict
-        type(atomic_structure), intent(inout) :: astruct
-        real(gp), intent(out) :: energy
-        real(gp), dimension(:,:), pointer :: fxyz
-        character(len = 1024), intent(out) :: comment
-      END SUBROUTINE read_dict_positions
-
       subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
          !n(c) use module_base
          use module_types
@@ -245,7 +233,7 @@ module module_interfaces
         use dictionaries
         implicit none
         type(input_variables), intent(inout) :: in
-        type(atoms_data), intent(inout) :: atoms
+        type(atoms_data), intent(out) :: atoms
         type(dictionary), pointer :: dict
         logical, intent(in) :: dump
       end subroutine inputs_from_dict
@@ -1457,7 +1445,6 @@ module module_interfaces
          type(input_variables),intent(in) :: in
 
       END SUBROUTINE cg_spectra
-
 
       subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
          implicit none

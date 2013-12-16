@@ -147,32 +147,26 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   use module_interfaces, except => inputs_from_dict
   use dictionaries
   use module_input_keys
+  use module_input_dicts
+  use dynamic_memory
   implicit none
   type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
+  type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
   logical, intent(in) :: dump
 
   !type(dictionary), pointer :: profs
-  integer :: ierr
+  integer :: ierr, ityp
   type(dictionary), pointer :: dict_minimal
-  real(gp) :: energy
-  real(gp), dimension(:,:), pointer :: forces
-  character(len = 1024) :: comment
 
   call f_routine(id='inputs_from_dict')
 
-!!$  call yaml_dict_dump(dict)
-!!$  call read_dict_positions(dict, atoms%astruct, comment, energy, forces)
-!!$  atoms%astruct%inputfile_format = "yaml"
-!!$  call write_atomic_file("toto", energy, atoms%astruct%rxyz, atoms, comment, forces)
-!!$  stop
+  ! Atoms case.
+  atoms = atoms_null()
+  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
 
+  ! Input variables case.
   call default_input_variables(in)
-
-  ! To avoid race conditions where procs create the default file and other test its
-  ! presence, we put a barrier here.
-  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 
   ! Analyse the input dictionary and transfer it to in.
   ! extract also the minimal dictionary which is necessary to do this run
@@ -193,6 +187,11 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
+
+  ! Add missing pseudos.
+  do ityp = 1, atoms%astruct%ntypes, 1
+     call psp_dict_fill_all(dict, atoms%astruct%atomnames(ityp), in%ixc)
+  end do
   
   if (bigdft_mpi%iproc == 0 .and. dump) then
      call input_keys_dump(dict)
@@ -230,12 +229,9 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
-  ! This should be moved to init_atomic_values, but we can't since
-  ! input.lin needs some arrays allocated here.
-  if (.not. associated(atoms%nzatom)) then
-     call allocate_atoms_nat(atoms, "inputs_from_dict")
-     call allocate_atoms_ntypes(atoms, "inputs_from_dict")
-  end if
+  ! Read associated pseudo files.
+  call psp_dict_analyse(dict, atoms)
+  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
 
   ! Linear scaling (if given)
   !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
