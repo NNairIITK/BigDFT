@@ -15,8 +15,8 @@ TESTDIRS = Locreg \
        hybrid-directmin \
        experimentalmode \
 	   linearcubic \
-	   highertaylor #\
-	   #newpulay
+	   highertaylor \
+	   newpulay
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \

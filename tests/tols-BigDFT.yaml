@@ -532,3 +532,11 @@ highertaylor_experimental_order3:
  D: 2.1e-10
  delta: 1.1e-10
  multiplicator for the confinement: 4.7e-10
+
+newpulay:
+ EXC: 1.1e-10
+ energy: 2.8e-11
+ Omega: 3.1e-11
+ Ekin: 1.1e-9
+ Enl: 1.1e-10
+ Total ionic charge: 1.8e-11
