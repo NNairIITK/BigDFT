@@ -76,6 +76,10 @@ program yaml_test
    !test the yaml parsing
    call yaml_parse_file_and_string()
 
+   call yaml_new_document()
+   call test_dictionary_for_atoms()
+   call yaml_release_document()
+
    !prepare the finalization of the library
    call f_lib_finalize()
 end program yaml_test

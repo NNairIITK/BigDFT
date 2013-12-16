@@ -512,3 +512,45 @@ subroutine test_dictionaries1()
 
    call dict_free(dict)
  end subroutine test_copy_merge
+
+subroutine test_dictionary_for_atoms()
+  use yaml_output
+  implicit none
+
+  character(len = 50) :: gu
+  double precision, dimension(3) :: cell, xred, hgrids
+
+  call yaml_open_map("Atomic structure")
+
+  cell = 20.345752999999998
+  call yaml_map('Cell', cell)
+
+  hgrids = cell / (/ 54, 40, 40 /)
+
+  call yaml_open_sequence('Positions')
+
+  call yaml_sequence(advance='no')
+  xred = (/ 0.2516085125D-05,  0.5826606155D-05,  20.34574212d0 /)
+  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
+  xred = xred / hgrids
+  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 1
+  call yaml_comment(gu)
+
+  call yaml_sequence(advance='no')
+  xred = (/ 5.094032326d0,  5.153107111d0,  0.3047989908d-01 /)
+  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
+  xred = xred / hgrids
+  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 2
+  call yaml_comment(gu)
+
+  call yaml_sequence(advance='no')
+  xred = (/ 0.3049344014d-01,  5.153107972d0,  5.094018600d0 /)
+  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
+  xred = xred / hgrids
+  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 3
+  call yaml_comment(gu)
+
+  call yaml_close_sequence()
+
+  call yaml_close_map()
+end subroutine test_dictionary_for_atoms
