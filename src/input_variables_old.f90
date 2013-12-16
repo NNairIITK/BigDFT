@@ -187,13 +187,19 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-           'calculate dipole ; pulay correction; diagonalization at the end (dmin, FOE)'
+           'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
   call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
   call input_var(in%lin%pulay_correction,'T')
+  call input_var(in%lin%new_pulay_correction,'F')
   call input_var(in%lin%diag_end,'F',comment=comments)
   ! not sure whether to actually make this an input variable or not so just set to false for now
   in%lin%diag_start=.false.
+
+  ! It is not possible to use both the old and the new Pulay correction at the same time
+  if (in%lin%pulay_correction .and. in%lin%new_pulay_correction) then
+      stop 'It is not possible to use both the old and the new Pulay correction at the same time!'
+  end if
 
 
   !fragment calculation and transfer integrals: true or false
