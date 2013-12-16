@@ -1196,8 +1196,8 @@ contains
         type(dictionary), pointer :: vars,input,minim
         !local variables
         logical :: profile_found
-        character(len=max_field_length) :: def_var,in_var,var_prof,prof_var
-        type(dictionary), pointer :: defvar,var,empty
+        character(len=max_field_length) :: def_var,var_prof,prof_var
+        type(dictionary), pointer :: defvar,var
         nullify(minim)
 
         var=>dict_iter(vars)
@@ -1546,7 +1546,8 @@ contains
          ! Dictionary case
          if (userOnly_ .and. .not.userDef) return
 
-         call yaml_open_map(trim(dict%data%key),flow=.false.)
+         if (len_trim(dict%data%key) > 0) &
+              & call yaml_open_map(trim(dict%data%key),flow=.false.)
          iter => dict_next(dict)
          allocate(keys(dict_size(dict)))
          keys = dict_keys(dict)
@@ -1554,7 +1555,7 @@ contains
             call dict_dump_(dict // keys(i))
          end do
          deallocate(keys)
-         call yaml_close_map()
+         if (len_trim(dict%data%key) > 0) call yaml_close_map()
       else if (associated(dict)) then
          ! Leaf case.
          if (dict%data%item >= 0) then
