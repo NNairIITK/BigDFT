@@ -1471,8 +1471,10 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
      call yaml_map('Units','angstroem', unit = iunit)
      factor=Bohr_Ang
   case('reduced')
-     call yaml_map('Units','reduced', unit = iunit)
-     reduced=.true. .and. .not. wrtlog
+     if (.not. wrtlog) then
+        call yaml_map('Units','reduced', unit = iunit)
+        reduced=.true.
+     end if
   case('atomic','atomicd0','bohr','bohrd0')
      ! Default
      !call yaml_map('Units','bohr')

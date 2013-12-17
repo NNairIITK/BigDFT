@@ -11,6 +11,7 @@ module module_input_dicts
   ! Types from dictionaries
   public :: psp_set_from_dict, nlcc_set_from_dict
   public :: astruct_set_from_dict
+  public :: aocc_from_dict
 
   ! Dictionaries to types
   public :: psp_data_merge_to_dict
@@ -552,6 +553,7 @@ contains
        factor=Bohr_Ang
     case('reduced')
        call set(dict // "Units", 'reduced')
+       reduced = .true.
     case('atomic','atomicd0','bohr','bohrd0')
        ! Default, store nothing
     end select Units
@@ -802,5 +804,138 @@ contains
        call deallocate_atomic_structure(astruct, "astruct_file_merge_to_dict")
     end if
   end subroutine astruct_file_merge_to_dict
+
+  subroutine aocc_from_dict(dict,nspin,nspinor,nelecmax,lmax,nmax,aocc,nsccode)
+    use module_defs, only: gp
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: nelecmax,lmax,nmax,nspinor,nspin
+    integer, intent(out) :: nsccode
+    real(gp), dimension(nelecmax), intent(out) :: aocc
+
+    !local variables
+    character(len = max_field_length) :: key
+    character(max_field_length), dimension(:), allocatable :: keys
+    integer :: i, ln
+    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc
+    integer, dimension(lmax) :: nl,nlsc
+    real(gp), dimension(2*(2*lmax-1),nmax,lmax) :: allocc
+
+    nl(:)=0
+    nlsc(:)=0
+
+    !if non-collinear it is like nspin=1 but with the double of orbitals
+    if (nspinor == 4) then
+       noncoll=2
+    else
+       noncoll=1
+    end if
+
+    allocate(keys(dict_size(dict)))
+    keys = dict_keys(dict)
+    do i = 1, dict_size(dict), 1
+       key = keys(i)
+       ln = len_trim(key)
+       is = 1
+       if (key(1:1) == "(" .and. key(ln:ln) == ")") is = 2
+       ! Read the major quantum number
+       read(key(is:is), "(I1)") n
+       is = is + 1
+       ! Read the channel
+       select case(key(is:is))
+       case('s')
+          l=1
+       case('p')
+          l=2
+       case('d')
+          l=3
+       case('f')
+          l=4
+       case default
+          stop "wrong channel"
+       end select
+       nl(l) = nl(l) + 1
+       if (is == 3) nlsc(l) = nlsc(l) + 1
+       if (nlsc(l) > 2) stop 'cannot admit more than two semicore orbitals per channel'
+
+       !read the different atomic occupation numbers
+       if (dict_len(dict // key) /= nspin*noncoll*(2*l-1)) stop 'Not enough aocc'
+       do m = 1, nspin*noncoll*(2*l-1), 1
+          allocc(m, n, l) = dict // key // (m - 1)
+       end do
+    end do
+    deallocate(keys)
+
+    !put the values in the aocc array
+    aocc(:)=0.0_gp
+    iocc=0
+    do l=1,lmax
+       iocc=iocc+1
+       aocc(iocc)=real(nl(l),gp)
+       do inl=1,nmax
+          do ispin=1,nspin
+             do m=1,2*l-1
+                do icoll=1,noncoll !non-trivial only for nspinor=4
+                   iocc=iocc+1
+                   aocc(iocc)=allocc(icoll+(m-1)*noncoll+(ispin-1)*(2*l-1)*noncoll,inl,l)
+                end do
+             end do
+          end do
+       end do
+    end do
+
+    !then calculate the nsccode
+    nsccode=0
+    do lsc=1,4
+       do i=1,nlsc(lsc)
+          nsccode=nsccode+4**(lsc-1)
+       end do
+    end do
+  end subroutine aocc_from_dict
+
+!!$  subroutine atomic_data_set_from_dict(dict, atoms)
+!!$    use module_defs, only: gp
+!!$    use module_types, only: atoms_data
+!!$    use dictionaries
+!!$    use dynamic_memory
+!!$    implicit none
+!!$    type(dictionary), pointer :: dict
+!!$    type(atoms_data), intent(inout) :: atoms
+!!$
+!!$    character(max_field_length), dimension(:), allocatable :: keys
+!!$    integer :: iat, ityp, nsccode, mxpl, mxchg
+!!$    integer, parameter :: nelecmax=32,nmax=6,lmax=4
+!!$    character(len=2) :: symbol
+!!$    real(gp) :: rcov,rprb,ehomo
+!!$    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+!!$    character(len = max_field_length) :: key
+!!$
+!!$    do ityp = 1, atoms%astruct%ntypes, 1
+!!$       call eleconf(atoms%nzatom(ityp), atoms%nelpsp(ityp), symbol,rcov,rprb,ehomo,&
+!!$            neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
+!!$       !define the localization radius for the Linear input guess
+!!$       atoms%rloc(ityp,:) = rcov * 10.0
+!!$
+!!$       do iat = 1, atoms%astruct%nat, 1
+!!$          if (atoms%astruct%iatype(iat) /= ityp) cycle
+!!$
+!!$          write(key, "(A,I0)") "Atom ", iat
+!!$          if (has_key(dict, key)) then
+!!$             ! Case with an atom specific aocc
+!!$             call aocc_from_dict(dict // key, nspin, nspinor, nelecmax, lmax, nmax, &
+!!$                  & at%aocc(1,iat), at%iasctype(iat))
+!!$          else if (has_key(dict, trim(atoms%astruct%atomnames(ityp)))) then
+!!$             ! Case with a element specific aocc
+!!$             call aocc_from_dict(dict // trim(atoms%astruct%atomnames(ityp)), &
+!!$                  & nspin, nspinor, nelecmax, lmax, nmax, &
+!!$                  & at%aocc(1,iat), at%iasctype(iat))
+!!$          else
+!!$             ! Generic case from eleconf
+!!$             
+!!$          end if
+!!$       end do
+!!$    end do
+!!$  end subroutine aocc_set_from_dict
 
 end module module_input_dicts

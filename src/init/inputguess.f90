@@ -2650,6 +2650,103 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
       end do
    end do
 
-   write(*,*) "#########################"
-   call print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
 END SUBROUTINE read_eleconf
+
+
+!!$!> Print the electronic configuration, with the semicore orbitals
+!!$subroutine aocc_to_dict(dict, nzatom, nelpsp, nspin, nspinor, aocc, nsccode)
+!!$   use module_defs, only: gp
+!!$   use dictionaries
+!!$   implicit none
+!!$   integer, parameter :: nelecmax=32
+!!$   type(dictionary), pointer :: dict
+!!$   integer, intent(in) :: nzatom,nelpsp,nspinor,nspin,nsccode
+!!$   real(gp), dimension(nelecmax), intent(in) :: aocc
+!!$   !local variables
+!!$   character(len=10) :: tmp
+!!$   character(len=500) :: string
+!!$   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
+!!$   logical, dimension(4,2) :: scorb
+!!$
+!!$   !if non-collinear it is like nspin=1 but with the double of orbitals
+!!$   if (nspinor == 4) then
+!!$      noncoll=2
+!!$   else
+!!$      noncoll=1
+!!$   end if
+!!$   scorb=.false.
+!!$   if (nsccode/=0) then !the atom has some semicore orbitals
+!!$      niasc=nsccode
+!!$      do lsc=4,1,-1
+!!$         nlsc=niasc/4**(lsc-1)
+!!$         do i=1,nlsc
+!!$            scorb(lsc,i)=.true.
+!!$         end do
+!!$         niasc=niasc-nlsc*4**(lsc-1)
+!!$      end do
+!!$   end if
+!!$
+!!$   call dict_init(dict)
+!!$
+!!$   !initalise string
+!!$   string=repeat(' ',len(string))
+!!$
+!!$   is=1
+!!$   do i=1,noccmax
+!!$      iocc=0
+!!$      do l=1,lmax
+!!$         iocc=iocc+1
+!!$         nl=nint(aocc(iocc))
+!!$         do inl=1,nl
+!!$            !write to the string the angular momentum
+!!$            if (inl == i) then
+!!$               iss=is
+!!$               if (scorb(l,inl)) then
+!!$                  string(is:is)='('
+!!$                  is=is+1
+!!$               end if
+!!$               select case(l)
+!!$               case(1)
+!!$                  string(is:is)='s'
+!!$               case(2)
+!!$                  string(is:is)='p'
+!!$               case(3)
+!!$                  string(is:is)='d'
+!!$               case(4)
+!!$                  string(is:is)='f'
+!!$               case default
+!!$                  stop 'l not admitted'
+!!$               end select
+!!$               is=is+1
+!!$               if (scorb(l,inl)) then
+!!$                  string(is:is)=')'
+!!$                  is=is+1
+!!$               end if
+!!$               call yaml_open_sequence(string(iss:is))
+!!$            end if
+!!$            do ispin=1,nspin
+!!$               do m=1,2*l-1
+!!$                  do icoll=1,noncoll !non-trivial only for nspinor=4
+!!$                     iocc=iocc+1
+!!$                     !write to the string the value of the occupation numbers
+!!$                     if (inl == i) then
+!!$                        call write_fraction_string(l,aocc(iocc),tmp,ntmp)
+!!$                        string(is:is+ntmp-1)=tmp(1:ntmp)
+!!$                        call yaml_sequence(tmp(1:ntmp))
+!!$                        is=is+ntmp
+!!$                     end if
+!!$                  end do
+!!$               end do
+!!$            end do
+!!$            if (inl == i) then
+!!$               string(is:is+2)=' , '
+!!$               is=is+3
+!!$               call yaml_close_sequence()
+!!$            end if
+!!$         end do
+!!$      end do
+!!$   end do
+!!$
+!!$   !write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
+!!$
+!!$ END SUBROUTINE aocc_to_dict
