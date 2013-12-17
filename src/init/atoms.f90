@@ -349,7 +349,7 @@ END SUBROUTINE astruct_set_n_types
 
 
 !> Calculate the symmetries and update
-subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield)
+subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   use module_base
   use module_types
   use defs_basis
@@ -359,6 +359,7 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield)
   logical, intent(in) :: disableSym
   real(gp), intent(in) :: tol
   real(gp), intent(in) :: elecfield(3)
+  integer, intent(in) :: nspin
   !local variables
   character(len=*), parameter :: subname='astruct_set_symmetries'
   integer :: i_stat, ierr, i_all
@@ -402,6 +403,13 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield)
      !   call symmetry_set_field(astruct%sym%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
      if (elecfield(2) /= 0) then
         call symmetry_set_field(astruct%sym%symObj, (/ 0._gp, elecfield(2), 0._gp /), ierr)
+     end if
+     if (nspin == 2) then
+        call symmetry_set_collinear_spin(astruct%sym%symObj, astruct%nat, &
+             & astruct%input_polarization, ierr)
+!!$     else if (in%nspin == 4) then
+!!$        call symmetry_set_spin(atoms%astruct%sym%symObj, atoms%astruct%nat, &
+!!$             & atoms%astruct%input_polarization, ierror)
      end if
      if (disableSym) then
         call symmetry_set_n_sym(astruct%sym%symObj, 1, &

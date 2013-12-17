@@ -321,12 +321,12 @@ gboolean bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *
  *
  */
 void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active,
-                                 double tol, double elecfield[3])
+                                 double tol, double elecfield[3], guint nspin)
 {
   int disable;
 
   disable = (!active);
-  FC_FUNC_(astruct_set_symmetries, ASTRUCT_SET_SYMMETRIES)(atoms->astruct, &disable, &tol, elecfield);
+  FC_FUNC_(astruct_set_symmetries, ASTRUCT_SET_SYMMETRIES)(atoms->astruct, &disable, &tol, elecfield, (int*)&nspin);
 }
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)

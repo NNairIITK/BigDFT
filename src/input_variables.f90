@@ -183,15 +183,19 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   call astruct_set_displacement(atoms%astruct, in%randdis)
   if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
   ! Update atoms with symmetry information
-  call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield)
+  call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield, in%nspin)
 
   call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
 
-  ! Add missing pseudos.
+  ! Add missing pseudo information.
   do ityp = 1, atoms%astruct%ntypes, 1
      call psp_dict_fill_all(dict, atoms%astruct%atomnames(ityp), in%ixc)
   end do
+
+  ! Update atoms with pseudo information.
+  call psp_dict_analyse(dict, atoms)
+  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
   
   if (bigdft_mpi%iproc == 0 .and. dump) then
      call input_keys_dump(dict)
@@ -228,10 +232,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
-
-  ! Read associated pseudo files.
-  call psp_dict_analyse(dict, atoms)
-  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
 
   ! Linear scaling (if given)
   !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information

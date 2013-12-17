@@ -2650,4 +2650,6 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
       end do
    end do
 
+   write(*,*) "#########################"
+   call print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
 END SUBROUTINE read_eleconf
