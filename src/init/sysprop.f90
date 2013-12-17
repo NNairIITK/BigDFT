@@ -1313,6 +1313,7 @@ subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
   if (ngc==UNINITIALIZED(1)) ngc=0
 END SUBROUTINE nlcc_start_position
 
+
 !!!!> Define the descriptors of the orbitals from a given norb
 !!!!! It uses the cubic strategy for partitioning the orbitals
 !!!subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)

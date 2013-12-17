@@ -1462,7 +1462,6 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
   integer :: iat,ichg,ispol
   real(gp) :: factor
   real(gp) :: xred(3)
-  character(len = 50) :: gu
   
   reduced=.false.
   factor=1.0_gp
