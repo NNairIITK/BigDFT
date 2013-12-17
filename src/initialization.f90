@@ -17,8 +17,9 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   use module_types
   use module_interfaces, except_this_one => bigdft_set_input
   use module_input_keys
+  use module_input_dicts
   use yaml_output
-  use dictionaries, only: dictionary
+  use dictionaries, only: dictionary, set
   implicit none
 
   !Arguments
@@ -29,19 +30,26 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
 
   character(len=*), parameter :: subname='bigdft_set_input'
   type(dictionary), pointer :: dict
+  integer :: ierr
+
 !!$  logical :: exist_list
   call f_routine(id=subname)
   
   nullify(dict)
-  atoms=atoms_null()
-  ! Read atomic file
-  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
+  !read the input file(s) and transform them into a dictionary
+  call read_input_dict_from_files(trim(radical), bigdft_mpi, dict)
+  !Add old posinp formats
+  if (.not. has_key(dict, "posinp")) then
+     call astruct_file_merge_to_dict(dict, "posinp", trim(posinp))
+  end if
+  ! Add old psppar
+  call atoms_file_merge_to_dict(dict)
 
-  !read the input file(s) and transform them in the 
-  call read_input_dict_from_files(trim(radical), bigdft_mpi,dict)
-
+  ! Work on an input dictionary (only).
   call standard_inputfile_names(in,trim(radical))
-
+  ! To avoid race conditions where procs create the default file and other test its
+  ! presence, we put a barrier here.
+  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
   call inputs_from_dict(in, atoms, dict, .true.)
 
   call dict_free(dict)
@@ -50,10 +58,6 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   !if (bigdft_mpi%iproc == 0) then
   !   call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
   !end if
-
-  ! Read associated pseudo files.
-  call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)
-  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
 
   ! Start the signaling loop in a thread if necessary.
   if (in%signaling .and. bigdft_mpi%iproc == 0) then
@@ -287,7 +291,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   integer, intent(out) :: iproc_node,nproc_node
   !local variables
   character(len=*), parameter :: subname='processor_id_per_node'
-  integer :: ierr,namelen,i_stat,i_all,jproc
+  integer :: ierr,namelen,jproc
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
 

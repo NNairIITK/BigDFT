@@ -364,6 +364,20 @@ module module_types
      integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
   end type energy_terms
 
+  !> Memory estimation requirements
+  type, public :: memory_estimation
+     double precision :: submat
+     integer :: ncomponents, norb, norbp
+     double precision :: oneorb, allpsi_mpi, psistorage
+     double precision :: projarr
+     double precision :: grid
+     double precision :: workarr
+
+     double precision :: kernel, density, psolver, ham
+
+     double precision :: peak
+  end type memory_estimation
+
   !> Bounds for coarse and fine grids for kinetic operations
   !! Useful only for isolated systems AND in CPU
   type, public :: kinetic_bounds
@@ -429,6 +443,7 @@ module module_types
   !> Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
      integer :: nproj,nprojel,natoms                  !< Number of projectors and number of elements
+     real(gp) :: zerovol !< Proportion of zero components.
      type(locreg_descriptors), dimension(:), pointer :: plr !< pointer which indicates the different localization region per processor
   end type nonlocal_psp_descriptors
 
@@ -959,6 +974,7 @@ module module_types
      type(input_variables), pointer    :: inputs
      type(atoms_data), pointer         :: atoms
      type(restart_objects), pointer    :: rst
+     real(gp), dimension(:,:), pointer :: radii_cf
   end type run_objects
 
   !> Used to store results of a DFT calculation.

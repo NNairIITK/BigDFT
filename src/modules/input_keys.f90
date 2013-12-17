@@ -138,7 +138,9 @@ module module_input_keys
 !!$  character(len = *), parameter :: DEFAULT = "default", COMMENT = "__comment__"
 !!$  character(len = *), parameter :: COND = "__condition__", WHEN = "__when__"
 !!$  character(len = *), parameter :: MASTER_KEY = "__master_key__"
-  character(len = *), parameter :: PROF_KEY = "PROFILE_FROM", ATTRS = "_attributes",USER_DEFINED = "__user__"
+  character(len = *), parameter :: ATTRS = "_attributes"
+  character(len = *), parameter :: PROF_KEY = "PROFILE_FROM"
+  character(len = *), parameter :: USER_KEY = "USER_DEFINED"
 
   character(len = *), parameter :: RANGE = "RANGE", EXCLUSIVE = "EXCLUSIVE"
   character(len = *), parameter :: DEFAULT = "default", COMMENT = "COMMENT"
@@ -146,7 +148,7 @@ module module_input_keys
   character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
 
   public :: input_keys_init, input_keys_finalize
-  public :: input_keys_set, input_keys_fill, input_keys_fill_all, input_keys_dump
+  public :: input_keys_fill_all, input_keys_dump
   public :: input_keys_equal, input_keys_get_source, input_keys_dump_def
   public :: input_keys_get_profiles
 
@@ -188,7 +190,7 @@ contains
     implicit none
     !local variables
     integer :: params_size
-    integer(kind = 8) :: cbuf_add !< address of c buffer
+    !integer(kind = 8) :: cbuf_add !< address of c buffer
     character, dimension(:), allocatable :: params
 
     !alternative filling of parameters from hard-coded source file
@@ -974,7 +976,7 @@ contains
     character(len = *), intent(in), optional :: file !<subsection of the input to be printed (old input.file)
     !local variables
     integer, parameter :: unt=789159 !to be sure is not opened
-    integer :: iunit_def, ierr
+    integer :: ierr !, iunit_def
 
     ! Switch YAML output stream (not needed anymore)
     !call yaml_get_default_stream(iunit_def)
@@ -1136,13 +1138,13 @@ contains
     ! Check and complete dictionary.
     call input_keys_init()
 
-    call input_keys_fill(dict//PERF_VARIABLES, PERF_VARIABLES)
-    call input_keys_fill(dict//DFT_VARIABLES, DFT_VARIABLES)
-    call input_keys_fill(dict//KPT_VARIABLES, KPT_VARIABLES)
-    call input_keys_fill(dict//GEOPT_VARIABLES, GEOPT_VARIABLES)
-    call input_keys_fill(dict//MIX_VARIABLES, MIX_VARIABLES)
-    call input_keys_fill(dict//SIC_VARIABLES, SIC_VARIABLES)
-    call input_keys_fill(dict//TDDFT_VARIABLES, TDDFT_VARIABLES)
+    call input_keys_fill(dict, PERF_VARIABLES)
+    call input_keys_fill(dict, DFT_VARIABLES)
+    call input_keys_fill(dict, KPT_VARIABLES)
+    call input_keys_fill(dict, GEOPT_VARIABLES)
+    call input_keys_fill(dict, MIX_VARIABLES)
+    call input_keys_fill(dict, SIC_VARIABLES)
+    call input_keys_fill(dict, TDDFT_VARIABLES)
 
     !create a shortened dictionary which will be associated to the given run
     call input_minimal(dict,dict_minimal)
@@ -1194,8 +1196,8 @@ contains
         type(dictionary), pointer :: vars,input,minim
         !local variables
         logical :: profile_found
-        character(len=max_field_length) :: def_var,in_var,var_prof,prof_var
-        type(dictionary), pointer :: defvar,var,empty
+        character(len=max_field_length) :: def_var,var_prof,prof_var
+        type(dictionary), pointer :: defvar,var
         nullify(minim)
 
         var=>dict_iter(vars)
@@ -1267,6 +1269,7 @@ contains
     character(len = *), intent(in) :: file
 
     integer :: i
+    logical :: user, hasUserDef
     type(dictionary), pointer :: ref
     character(len=max_field_length), dimension(:), allocatable :: keys
     
@@ -1274,23 +1277,26 @@ contains
 
     ref => parameters // file
 
-    keys=f_malloc_str(max_field_length,dict_size(ref),id='keys')
-
+    keys = f_malloc_str(max_field_length,dict_size(ref),id='keys')
     keys = dict_keys(ref)
 
+    hasUserDef = .false.
     do i = 1, size(keys), 1
-       call input_keys_set(dict, file, keys(i))
+          call input_keys_set(user, dict // file, file, keys(i))
+          hasUserDef = (hasUserDef .or. user)
     end do
+    call set(dict // (trim(file) // ATTRS) // USER_KEY, hasUserDef)
 
-    call f_free_str(max_field_length,keys)
+    call f_free_str(max_field_length, keys)
 !    call f_release_routine()
   END SUBROUTINE input_keys_fill
 
-  subroutine input_keys_set(dict, file, key)
+  subroutine input_keys_set(userDef, dict, file, key)
     use dictionaries
     use yaml_output
     use dynamic_memory
     implicit none
+    logical, intent(out) :: userDef
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file, key
 
@@ -1306,16 +1312,10 @@ contains
     ref => parameters // file // key
 
     profile_(1:max_field_length) = " "
-    ! Hard-coded profile from key.
-    if (has_key(ref, PROF_KEY)) then
-       val = ref // PROF_KEY
-       if (has_key(dict, val)) then
-          profile_ = dict // val
-       end if
-    end if
     if (trim(profile_) == "") profile_(1:max_field_length) = DEFAULT
     
-    if (has_key(dict, key)) then
+    userDef = (has_key(dict, key))
+    if (userDef) then
        ! Key should be present only for some unmet conditions.
        if (.not.set_(dict, ref)) then
           !to see if the f_release_routine has to be controlled automatically
@@ -1353,7 +1353,6 @@ contains
                   & err_msg = trim(key) // " = '" // trim(val) // "' is not allowed.")) return
              nullify(failed_exclusive)
           end if
-          profile_(1:max_field_length) = USER_DEFINED
        end if
     else
        ! Key should be present only for some unmet conditions.
@@ -1361,6 +1360,14 @@ contains
 !          call f_release_routine()
           return
        end if
+       ! Hard-coded profile from key.
+       if (has_key(ref, PROF_KEY)) then
+          val = ref // PROF_KEY
+          if (has_key(dict, val)) then
+             profile_ = dict // val
+          end if
+       end if
+
        ! There is no value in dict, we take it from ref.
        if (.not. has_key(ref, profile_)) profile_ = DEFAULT
        call dict_copy(dict // key, ref // profile_)
@@ -1369,9 +1376,11 @@ contains
     ! Copy the comment.
     if (has_key(ref, COMMENT)) &
          & call dict_copy(dict // (trim(key) // ATTRS) // COMMENT, ref // COMMENT)
-    if (trim(profile_) /= DEFAULT) then
-       call set(dict // (trim(key) // ATTRS) // PROF_KEY, profile_)
-    end if
+    ! Save the source.
+    if (userDef) &
+         & call set(dict // (trim(key) // ATTRS) // USER_KEY, .true.)
+    if (profile_ /= DEFAULT) &
+         & call set(dict // (trim(key) // ATTRS) // PROF_KEY, profile_)
 
 !    call f_release_routine()
 
@@ -1443,15 +1452,20 @@ contains
   !> Dump the dictionary of the input variables.
   !! Should dump only the keys relative to the iunput variables and
   !! print out warnings for the ignored keys
-  subroutine input_keys_dump(dict)
+  subroutine input_keys_dump(dict, userOnly)
     use yaml_output
     use dictionaries
     implicit none
     type(dictionary), pointer :: dict   !< Dictionary to dump
+    logical, intent(in), optional :: userOnly
 
     !local variables
     integer :: i
     character(max_field_length), dimension(:), allocatable :: keys
+    logical :: userOnly_
+
+    userOnly_ = .false.
+    if (present(userOnly)) userOnly_ = userOnly
 
     call yaml_comment("Input parameters", hfill = "-")
     !TEST (the first dictionary has no key)
@@ -1483,27 +1497,33 @@ contains
       implicit none
       type(dictionary), pointer :: dict
 
-      logical :: flow
+      logical :: flow, userDef
       integer :: i
       type(dictionary), pointer :: parent, attr, iter
-      character(max_field_length) :: descr, tag
+      character(max_field_length) :: descr, tag, prof, output
       character(max_field_length), dimension(:), allocatable :: keys
 
       if (index(dict%data%key, ATTRS) > 0) return
 
       descr = " "
       tag = " "
+      prof = " "
+      userDef = .false.
       parent => dict%parent
       if (associated(parent)) then
          if (has_key(parent, trim(dict%data%key) // ATTRS)) then
             attr => parent // (trim(dict%data%key) // ATTRS)
             if (has_key(attr, COMMENT)) descr = attr // COMMENT
             !if (has_key(attr, PROF_KEY)) tag = attr // PROF_KEY
+            if (has_key(attr, PROF_KEY)) prof = attr // PROF_KEY
+            if (has_key(attr, USER_KEY)) userDef = attr // USER_KEY
          end if
       end if
-
+      
       if (dict_len(dict) > 0) then
          ! List case.
+         if (userOnly_ .and. .not.userDef .and. trim(dict%data%key) /= "") return
+
          flow = (.not.associated(dict%child%child))
          if (.not.flow .and. trim(descr) /= "") then
             call yaml_open_sequence(trim(dict%data%key), tag = tag, advance = "no")
@@ -1523,7 +1543,10 @@ contains
          end if
       else if (dict_size(dict) > 0) then
          ! Dictionary case
-         call yaml_open_map(trim(dict%data%key),flow=.false.)
+         if (userOnly_ .and. .not.userDef) return
+
+         if (len_trim(dict%data%key) > 0) &
+              & call yaml_open_map(trim(dict%data%key),flow=.false.)
          iter => dict_next(dict)
          allocate(keys(dict_size(dict)))
          keys = dict_keys(dict)
@@ -1531,17 +1554,26 @@ contains
             call dict_dump_(dict // keys(i))
          end do
          deallocate(keys)
-         call yaml_close_map()
+         if (len_trim(dict%data%key) > 0) call yaml_close_map()
       else if (associated(dict)) then
          ! Leaf case.
          if (dict%data%item >= 0) then
+            ! List entry
             call yaml_sequence(trim(dict%data%value))
          else
+            ! Dictionary entry
+            if (userOnly_ .and. .not.userDef) return
+
+            if (userOnly_ .and. trim(prof) /= "") then
+               output = prof
+            else
+               output = dict%data%value
+            end if
             if (trim(descr) /= "") then
-               call yaml_map(trim(dict%data%key), trim(dict%data%value), tag = tag, advance = "no")
+               call yaml_map(trim(dict%data%key), trim(output), tag = tag, advance = "no")
                call yaml_comment(trim(descr), tabbing = 50)
             else
-               call yaml_map(trim(dict%data%key), trim(dict%data%value), tag = tag)
+               call yaml_map(trim(dict%data%key), trim(output), tag = tag)
             end if
          end if
       end if

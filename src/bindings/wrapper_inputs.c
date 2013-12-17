@@ -197,6 +197,16 @@ void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
   FC_FUNC_(create_dir_output, CREATE_DIR_OUTPUT)((int*)&iproc, in->data);
   _sync_output(in);
 }
+gboolean bigdft_inputs_dump(BigDFT_Inputs *in, const gchar *filename, gboolean useronly)
+{
+  int iostat;
+
+  FC_FUNC_(inputs_dump_to_file, INPUTS_DUMP_TO_FILE)(&iostat,
+                                                     &in->input_values,
+                                                     filename, &useronly,
+                                                     strlen(filename));
+  return (iostat != 0);
+}
 
 /**
  * bigdft_set_input:
@@ -244,7 +254,8 @@ void bigdft_inputs_set(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar *v
  *
  * 
  **/
-void bigdft_inputs_set_array(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar **value)
+void bigdft_inputs_set_array(BigDFT_Inputs *in, BigDFT_InputsKeyIds id,
+                             const gchar **value)
 {
   const gchar *name, *file;
   guint i;
@@ -254,4 +265,26 @@ void bigdft_inputs_set_array(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gc
   for (i = 0; value[i]; i++)
     FC_FUNC_(inputs_set_at, INPUTS_SET_AT)(&in->input_values, file, name, (gint*)&i, value[i],
                                            strlen(file), strlen(name), strlen(value[i]));
+}
+/**
+ * bigdft_inputs_set_array_at:
+ * @in: 
+ * @id: 
+ * @at:
+ * @value: (array zero-terminated=1):
+ *
+ * 
+ **/
+void bigdft_inputs_set_array_at(BigDFT_Inputs *in, BigDFT_InputsKeyIds id,
+                                guint at, const gchar **value)
+{
+  const gchar *name, *file;
+  guint i;
+
+  name = _input_keys[id];
+  file = _input_keys[_input_files[id]];
+  for (i = 0; value[i]; i++)
+    FC_FUNC_(inputs_set_at2, INPUTS_SET_AT2)(&in->input_values, file, name,
+                                             (gint*)&at, (gint*)&i, value[i],
+                                             strlen(file), strlen(name), strlen(value[i]));
 }

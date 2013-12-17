@@ -29,7 +29,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   real(gp), dimension(6) :: strten
   integer, dimension(:), allocatable :: kmoves
   real(gp), dimension(:), allocatable :: functional,dfunctional
-  real(gp), dimension(:,:), allocatable :: rxyz_ref,fxyz_fake
+  real(gp), dimension(:,:), allocatable :: radii_cf, rxyz_ref,fxyz_fake
 
 !!$  interface !not needed anymore
 !!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
@@ -111,12 +111,15 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   call memocc(i_stat,rxyz_ref,'rxyz_ref',subname)
   allocate(fxyz_fake(3,atoms%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz_fake,'fxyz_fake',subname)
-
+  allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
+  call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   call razero(3*atoms%astruct%nat,dfunctional)
 
   !write reference in the array
   call dcopy(3*atoms%astruct%nat,rst%rxyz_new,1,rxyz_ref,1)
+  call read_radii_variables(atoms, radii_cf, &
+       & inputs%crmult, inputs%frmult, inputs%projrad)
 
   do iat=1,atoms%astruct%nat
 
@@ -161,7 +164,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            end if
            inputs%inputPsiId=1
            !here we should call cluster
-           call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz_fake,strten,fnoise,&
+           call cluster(nproc,iproc,atoms,rst%rxyz_new,radii_cf,energy,fxyz_fake,strten,fnoise,&
                 rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
                 rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
 
@@ -238,6 +241,9 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   i_all=-product(shape(fxyz_fake))*kind(fxyz_fake)
   deallocate(fxyz_fake,stat=i_stat)
   call memocc(i_stat,i_all,'fxyz_fake',subname)
+  i_all=-product(shape(radii_cf))*kind(radii_cf)
+  deallocate(radii_cf,stat=i_stat)
+  call memocc(i_stat,i_all,'radii_cf',subname)
 
 contains
   

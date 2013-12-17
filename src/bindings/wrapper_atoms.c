@@ -356,7 +356,7 @@ void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar
       bigdft_atoms_get_ntypes_arrays(atoms);
     }
 
-  FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(&verb, atoms->data, &ixc);
+  /* FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(&verb, atoms->data, &ixc); */
   FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA)
     (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc));
   ln = (occup)?strlen(occup):0;

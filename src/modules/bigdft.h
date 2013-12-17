@@ -184,6 +184,10 @@ void           bigdft_inputs_set              (BigDFT_Inputs *in,
                                                BigDFT_InputsKeyIds id, const gchar *value);
 void           bigdft_inputs_set_array        (BigDFT_Inputs *in,
                                                BigDFT_InputsKeyIds id, const gchar **value);
+void           bigdft_inputs_set_array_at     (BigDFT_Inputs *in,
+                                               BigDFT_InputsKeyIds id, guint at, const gchar **value);
+gboolean       bigdft_inputs_dump             (BigDFT_Inputs *in, const gchar *filename,
+                                               gboolean useronly);
 void           bigdft_inputs_analyse          (BigDFT_Inputs *in, BigDFT_Atoms *atoms,
                                                gboolean dump);
 void           bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc);
@@ -280,6 +284,34 @@ void            bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartM
 /*********************************/
 
 /*********************************/
+/* BigDFT_Memory data structure */
+/*********************************/
+/**
+ * BigDFT_Memory:
+ * @data: (skip):
+ */
+typedef struct _BigDFT_Memory BigDFT_Memory;
+struct _BigDFT_Memory
+{
+  double submat;
+  int ncomponents, norb, norbp;
+  double oneorb, allpsi_mpi, psistorage;
+  double projarr, grid, workarr;
+
+  double kernel, density, psolver, ham;
+
+  double peak;
+
+  /* Private. */
+  guint ref;
+  _memory_estimation *data;
+};
+#ifdef GLIB_MAJOR_VERSION
+GType bigdft_memory_get_type(void);
+#endif
+/*********************************/
+
+/*********************************/
 /* BigDFT_Run data structure */
 /*********************************/
 #ifdef GLIB_MAJOR_VERSION
@@ -314,6 +346,9 @@ BigDFT_Run*     bigdft_run_new();
 BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
 BigDFT_Run*     bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inputs,
                                             BigDFT_Restart *rst, guint iproc, gboolean dump);
+gboolean        bigdft_run_dump            (BigDFT_Run *run, const gchar *filename,
+                                            const gchar *comment, gboolean full);
+BigDFT_Memory*  bigdft_run_memoryEstimation(BigDFT_Run *run, guint iproc, guint nproc);
 BigDFT_Goutput* bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint nproc);
 BigDFT_Atoms*   bigdft_run_get_atoms       (BigDFT_Run *run);
 BigDFT_Inputs*  bigdft_run_get_inputs      (BigDFT_Run *run);

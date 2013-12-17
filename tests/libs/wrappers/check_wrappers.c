@@ -11,6 +11,9 @@ int main(int argc, const char **argv)
 
   BigDFT_Inputs *ins;
   const gchar *hgrids[] = {"2/5", "0.55", "0.55", NULL};
+  /* const gchar *ngkpt[] = {"2", "3", "4", NULL}; */
+  /* const gchar *shiftk1[] = {"0.", "0.", "0.", NULL}; */
+  /* const gchar *shiftk2[] = {"0.1", "-0.2", "0.2", NULL}; */
 
   BigDFT_Run *run;
 
@@ -39,10 +42,18 @@ int main(int argc, const char **argv)
   /* bigdft_inputs_set(ins, INPUTS_INPUTPSIID, "-500"); */
   /* bigdft_inputs_set(ins, INPUTS_GEOPT_METHOD, "DIIS"); */
   /* bigdft_inputs_set(ins, INPUTS_BETAX, "1."); */
+  /* bigdft_inputs_set(ins, INPUTS_KPT_METHOD, "MPGrid"); */
+  /* bigdft_inputs_set_array(ins, INPUTS_NGKPT, ngkpt); */
+  /* bigdft_inputs_set_array_at(ins, INPUTS_SHIFTK, 0, shiftk1); */
+  /* bigdft_inputs_set_array_at(ins, INPUTS_SHIFTK, 1, shiftk2); */
 
   run = bigdft_run_new_from_objects(atoms, ins, NULL, iproc, TRUE);
+  bigdft_inputs_dump(ins, "input.yaml", TRUE);
   bigdft_inputs_unref(ins);
   bigdft_atoms_unref(atoms);
+
+  /* bigdft_run_memoryEstimation(run, iproc, nproc); */
+  /* print_memory_estimation_(run->mem.data); */
 
   outs = bigdft_run_calculate(run, iproc, nproc);
 
