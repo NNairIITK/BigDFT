@@ -531,8 +531,9 @@ subroutine test_dictionary_for_atoms()
   use yaml_output
   implicit none
 
-  character(len = 50) :: gu
+  character(len = 50) :: gu,fmts
   double precision, dimension(3) :: cell, xred, hgrids
+  double precision :: tt
 
 
   call yaml_open_map("Atomic structure")
@@ -567,6 +568,19 @@ subroutine test_dictionary_for_atoms()
   call yaml_close_sequence()
 
   call yaml_close_map()
+
+  !now print some double precision values to understand which is the best format
+  tt=sin(0.5678d0)
+  call yaml_map('Real without format',tt)
+  fmts(1:len(fmts))='(1pe25.17)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(1pe24.16)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(es23.16)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(es24.17)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+
 
   contains
 
