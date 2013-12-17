@@ -53,10 +53,9 @@ module dictionaries
       module procedure dicts_are_not_equal
    end interface
 
-
    interface assignment(=)
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
-      module procedure get_rvec
+      module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec
    end interface
    interface pop
       module procedure pop_dict,pop_item,pop_last
@@ -927,41 +926,59 @@ contains
    end subroutine get_long
 
    !>routine to retrieve an array from a dictionary
-   subroutine get_rvec(arr,dict)
+   subroutine get_dvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      double precision, dimension(:), intent(out) :: arr
      type(dictionary), intent(in) :: dict 
      !local variables
      double precision :: tmp
-     type(dictionary), pointer :: dict_tmp
-     integer :: i
+     include 'dict_getvec-inc.f90'
+   end subroutine get_dvec
 
-     !first check if the dictionary contains a scalar or a list
-     if (dict%data%nitems > 0) then
-        if (f_err_raise(dict%data%nitems/=size(arr),&
-             'Array and dictionary differs in shape ( '//&
-             trim(yaml_toa(size(arr)))//' and '//&
-             trim(yaml_toa(dict%data%nitems))//')',&
-             err_id=DICT_CONVERSION_ERROR)) return
-        !start iterating in the list
-        dict_tmp=>dict%child
-        i=1
-        do while(associated(dict_tmp))
-           arr(i)=dict_tmp
-           i=i+1
-           dict_tmp=>dict_next(dict_tmp)
-        end do
-     else if (f_err_raise(dict%data%nelems > 0,&
-          'Cannot convert mapping value in to arrays',&
-          err_id=DICT_CONVERSION_ERROR)) then
-        return
-     else
-        !scalar value, to be applied to all the values of the array
-        tmp=dict
-        arr=tmp
-     end if
+   !>routine to retrieve an array from a dictionary
+   subroutine get_rvec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     real, dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     real :: tmp
+     include 'dict_getvec-inc.f90'
    end subroutine get_rvec
+
+   !>routine to retrieve an array from a dictionary
+   subroutine get_ivec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     integer, dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     integer :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_ivec
+
+   !>routine to retrieve an array from a dictionary
+   subroutine get_ilvec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     integer(kind=8), dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     integer(kind=8) :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_ilvec
+
+   !>routine to retrieve an array from a dictionary
+   subroutine get_lvec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     logical, dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     logical :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_lvec
 
    !> Read a real or real/real, real:real 
    !! Here the fraction is indicated by the ':' or '/'

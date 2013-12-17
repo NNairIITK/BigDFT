@@ -3003,10 +3003,10 @@ module module_interfaces
                  xya_c, xyc_c, xza_c, xzc_c, &
                  yza_c, yzc_c, xya_f, xyb_f, xyc_f, xye_f, &
                  xza_f, xzb_f, xzc_f, xze_f, yza_f, yzb_f, yzc_f, yze_f, &
-                 aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, &
-                 ceff0, ceff1, ceff2, ceff3, eeff0, eeff1, eeff2, eeff3, &
-                 aeff0_2, aeff1_2, aeff2_2, aeff3_2, beff0_2, beff1_2, beff2_2, beff3_2, &
-                 ceff0_2, ceff1_2, ceff2_2, ceff3_2, eeff0_2, eeff1_2, eeff2_2, eeff3_2, & 
+!                 aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, &
+!                 ceff0, ceff1, ceff2, ceff3, eeff0, eeff1, eeff2, eeff3, &
+!                 aeff0_2, aeff1_2, aeff2_2, aeff3_2, beff0_2, beff1_2, beff2_2, beff3_2, &
+!                 ceff0_2, ceff1_2, ceff2_2, ceff3_2, eeff0_2, eeff1_2, eeff2_2, eeff3_2, & 
                  y_c, y_f)
         use module_base
         use module_types
@@ -3053,11 +3053,11 @@ module module_interfaces
         real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzb_f
         real(wp),dimension(3,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yzc_f
         real(wp),dimension(4,nfl3:nfu3,nfl1:nfu1,nfl2:nfu2):: yze_f
-        real(wp),dimension(35):: aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, ceff0, ceff1, ceff2, ceff3
-        real(wp),dimension(29):: eeff0, eeff1, eeff2, eeff3
-        real(wp),dimension(35):: aeff0_2, aeff1_2, aeff2_2, aeff3_2, beff0_2, beff1_2, beff2_2, beff3_2
-        real(wp),dimension(35):: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-        real(wp),dimension(29):: eeff0_2, eeff1_2, eeff2_2, eeff3_2
+!        real(wp),dimension(35):: aeff0, aeff1, aeff2, aeff3, beff0, beff1, beff2, beff3, ceff0, ceff1, ceff2, ceff3
+!        real(wp),dimension(29):: eeff0, eeff1, eeff2, eeff3
+!        real(wp),dimension(35):: aeff0_2, aeff1_2, aeff2_2, aeff3_2, beff0_2, beff1_2, beff2_2, beff3_2
+!        real(wp),dimension(35):: ceff0_2, ceff1_2, ceff2_2, ceff3_2
+!        real(wp),dimension(29):: eeff0_2, eeff1_2, eeff2_2, eeff3_2
         real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
         real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
       end subroutine ConvolQuartic4
