@@ -45,6 +45,7 @@ contains
     real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
     type(dictionary), pointer :: radii
     real(gp), dimension(3) :: radii_cf
+    character(len = max_field_length) :: source
 
     filename = 'psppar.' // atomname
 
@@ -80,7 +81,8 @@ contains
        stop
     end if
 
-    if (any(radii_cf == UNINITIALIZED(1.0_gp))) then
+    write(source, "(A)") "User-defined"
+    if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
        !see whether the atom is semicore or not
        !and consider the ground state electronic configuration
        call eleconf(nzatom, nelpsp,symbol,rcov,rprb,ehomo,&
@@ -88,6 +90,9 @@ contains
 
        !assigning the radii by calculating physical parameters
        radii_cf(1)=1._gp/sqrt(abs(2._gp*ehomo))
+       write(source, "(A)") "Hard-coded"
+    end if
+    if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
        radfine = dict // filename // "Local Pseudo Potential (HGH convention)" // "Rloc"
        do i=1, dict_len(dict // filename // "NonLocal PSP Parameters")
           rad = dict // filename // "NonLocal PSP Parameters" // (i - 1) // "Rloc"
@@ -96,15 +101,17 @@ contains
           end if
        end do
        radii_cf(2)=radfine
-       radii_cf(3)=radfine
-       radii => dict // filename // "Radii of active regions (AU)"
-       call set(radii // "Coarse", radii_cf(1))
-       call set(radii // "Fine", radii_cf(2))
-       call set(radii // "Coarse PSP", radii_cf(3))
-       call set(radii // "Source", "Hard-coded")
-    else
-       call set(radii // "Source", "User-defined")
+       write(source, "(A)") "Hard-coded"
     end if
+    if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
+       radii_cf(3)=radfine
+       write(source, "(A)") "Hard-coded"
+    end if
+    radii => dict // filename // "Radii of active regions (AU)"
+    call set(radii // "Coarse", radii_cf(1))
+    call set(radii // "Fine", radii_cf(2))
+    call set(radii // "Coarse PSP", radii_cf(3))
+    call set(radii // "Source", source)
   end subroutine psp_dict_fill_all
 
   subroutine psp_dict_analyse(dict, atoms)
@@ -135,7 +142,8 @@ contains
        !To eliminate the runtime warning due to the copy of the array (TD)
        atoms%radii_cf(ityp,:)=radii_cf(:)
 
-       l = dict // filename // "PAW patch"
+       l = .false.
+       if (has_key(dict // filename, "PAW patch")) l = dict // filename // "PAW patch"
        pawpatch = pawpatch .and. l
     end do
     call nlcc_set_from_dict(dict, atoms)
@@ -393,6 +401,8 @@ contains
 
   subroutine atoms_file_merge_to_dict(dict)
     use dictionaries
+    use dictionaries_base, only: TYPE_DICT, TYPE_LIST
+    use yaml_output, only: yaml_warning
     implicit none
     type(dictionary), pointer :: dict
 
@@ -400,7 +410,7 @@ contains
     character(len = max_field_length) :: str
     integer :: iat
     character(max_field_length), dimension(:), allocatable :: keys
-    character(len=27) :: filename
+    character(len=27) :: key
     logical :: exists
 
     ! Loop on types for atomic data.
@@ -416,15 +426,26 @@ contains
     allocate(keys(dict_size(types)))
     keys = dict_keys(types)
     do iat = 1, dict_size(types), 1
-       filename = 'psppar.' // trim(keys(iat))
+       key = 'psppar.' // trim(keys(iat))
 
-       exists = has_key(dict, filename)
-       if (exists) exists = has_key(dict // filename, 'Pseudopotential XC')
-       if (.not. exists) call psp_file_merge_to_dict(dict, filename, filename)
+       exists = has_key(dict, key)
+       if (exists) then
+          str = dict_value(dict // key)
+          if (trim(str) /= "" .and. trim(str) /= TYPE_LIST .and. trim(str) /= TYPE_DICT) then
+             call psp_file_merge_to_dict(dict, key, trim(str))
+             if (.not. has_key(dict // key, 'Pseudopotential XC')) then
+                call yaml_warning("Pseudopotential file '" // trim(str) // &
+                     & "' not found. Fallback to file '" // trim(key) // &
+                     & "' or hard-coded pseudopotential.")
+             end if
+          end if
+          exists = has_key(dict // key, 'Pseudopotential XC')
+       end if
+       if (.not. exists) call psp_file_merge_to_dict(dict, key, key)
 
-       exists = has_key(dict, filename)
-       if (exists) exists = has_key(dict // filename, 'Non Linear Core Correction term')
-       if (.not. exists) call nlcc_file_merge_to_dict(dict, filename, 'nlcc.' // trim(keys(iat)))
+       exists = has_key(dict, key)
+       if (exists) exists = has_key(dict // key, 'Non Linear Core Correction term')
+       if (.not. exists) call nlcc_file_merge_to_dict(dict, key, 'nlcc.' // trim(keys(iat)))
     end do
     deallocate(keys)
     call dict_free(types)
@@ -450,6 +471,7 @@ contains
     call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, radii_cf, rcore, qcore)
     call set(dict // key // "PAW patch", pawpatch)
+    call set(dict // key // "Source", filename)
   end subroutine psp_file_merge_to_dict
 
   subroutine nlcc_file_merge_to_dict(dict, key, filename)
