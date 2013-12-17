@@ -534,6 +534,7 @@ subroutine test_dictionary_for_atoms()
   character(len = 50) :: gu
   double precision, dimension(3) :: cell, xred, hgrids
 
+
   call yaml_open_map("Atomic structure")
 
   cell = 20.345752999999998
@@ -545,26 +546,46 @@ subroutine test_dictionary_for_atoms()
 
   call yaml_sequence(advance='no')
   xred = (/ 0.2516085125D-05,  0.5826606155D-05,  20.34574212d0 /)
-  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
-  xred = xred / hgrids
-  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 1
-  call yaml_comment(gu)
+  call print_one_atom('Si',xred,hgrids,1)
 
   call yaml_sequence(advance='no')
   xred = (/ 5.094032326d0,  5.153107111d0,  0.3047989908d-01 /)
-  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
-  xred = xred / hgrids
-  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 2
-  call yaml_comment(gu)
+  call print_one_atom('Si',xred,hgrids,2)
+!!$  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
+!!$  xred = xred / hgrids
+!!$  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 2
+!!$  call yaml_comment(gu)
 
   call yaml_sequence(advance='no')
   xred = (/ 0.3049344014d-01,  5.153107972d0,  5.094018600d0 /)
-  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
-  xred = xred / hgrids
-  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 3
-  call yaml_comment(gu)
+  call print_one_atom('Si',xred,hgrids,3)
+!!$  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
+!!$  xred = xred / hgrids
+!!$  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 3
+!!$  call yaml_comment(gu)
 
   call yaml_close_sequence()
 
   call yaml_close_map()
+
+  contains
+
+    subroutine print_one_atom(atomname,rxyz,hgrids,id)
+      implicit none
+      integer, intent(in) :: id
+      character(len=*), intent(in) :: atomname
+      double precision, dimension(3), intent(in) :: rxyz,hgrids
+      !local variables
+      character(len=*), parameter :: fmtat='(g18.10)',fmtg='(F6.2)'
+      integer :: i
+
+      call yaml_open_sequence(atomname,flow=.true.)
+      do i=1,3
+         call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
+      end do
+      call yaml_close_sequence(advance='no')
+      call yaml_comment(trim(yaml_toa(rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id))) !we can also put tabbing=
+
+    end subroutine print_one_atom
+
 end subroutine test_dictionary_for_atoms
