@@ -104,6 +104,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
           else:
             tols[0] = max(newtols,tols[0])
     else:
+      print 'problem with length 1',
       failed_checks+=1
       if len(tols) == 0:
         tols.append("NOT SAME LENGTH")
@@ -123,6 +124,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
           if failed:
             tols[0] = newtols
     else:
+      print 'problem with length 2',
       failed_checks+=1
       if len(tols) == 0:
         tols.append("NOT SAME LENGTH")

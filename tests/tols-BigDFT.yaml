@@ -28,6 +28,7 @@ Keys to ignore:
  - Input ixc parameter corresponds to XC
  - Wavefunction written No.
  - accel
+ - support function, value
 Patterns to ignore:
  - Timestamp
  - memory
@@ -347,8 +348,17 @@ restartdisk_read:
 
 H2-freq:
  (F) Frequencies (Hartree): 5.e-10
+
+rotate_read1:
+ eBS: 1.2e-11
+ EvXC: 1.1e-10
+
+rotate_read2:
+ eBS: 1.2e-11
+ orthog_energy: 9.9e-10
  
 rotate_write:
+ EvXC: 1.1e-10
  Patterns to ignore:
  - Wavefunction written
 
@@ -375,17 +385,37 @@ rotatesmall_read:
 
 molecule_dmix:
  Enl: 1.1e-10
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ energy: 2.7e-11
+ Omega: 1.1e-10
 
 molecule_pmix:
  Enl: 1.1e-10
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ Total charge: 1.1e-10
+ energy: 4.4e-11
+ Omega: 1.1e-10
 
 molecule_dmin:
- eBS: 5.1e-11
+ eBS: 6.3e-11
  Enl: 1.1e-10
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ energydiff: 1.3e-11
+ energy: 2.5e-11
+ Omega: 1.1e-10
 
 molecule_foe:
  Enl: 1.1e-10
  Epot: 1.1e-9
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ charge diff: 1.1e-10
+ energy: 3.0e-11
+ Omega: 2.5e-10
+ Total charge: 2.5e-10
 
 hybrid-directmin:
  Epsilon: 1.4e-11
@@ -444,14 +474,39 @@ geopt_diag:
 
 water_foe:
  EvXC: 1.1e-10
+ EXC: 1.1e-10
+ EH: 1.1e-9
+
+water_dirmin:
+ max alpha: 1.1e-04
+ mean alpha: 1.1e-03
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+
+water_mixdens:
+ EvXC: 1.1e-10
+ EXC: 1.1e-10
+ D: 1.1e-10
+
+water_mixpot:
+ EvXC: 1.1e-10
+ EXC: 1.1e-10
 
 deltascf_read_charge:
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
  Epot: 1.1e-09
  eBS: 2.6e-11
  Total ionic charge: 1.5e-11
 
 deltascf_write_neut:
- eBS: 1.7e-11
+ eBS: 1.1e-10
+ EH: 1.1e-9
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ Ekin: 1.1e-09
+ Epot: 1.1e-09
+ Omega: 1.4e-10
  Total ionic charge: 1.4e-11
 
 foe:
@@ -490,9 +545,9 @@ linearcubic_linear:
  Omega: 1.81e-10
 
 highertaylor_experimental_order2:
- Atomic Forces (Ha/Bohr): 1.7e-8
+ Atomic Forces (Ha/Bohr): 1.8e-8
  Average noise forces: 5.3e-9
- Clean forces norm (Ha/Bohr): 1.8e-8
+ Clean forces norm (Ha/Bohr): 1.9e-8
  Raw forces norm (Ha/Bohr): 2.0e-08
  charge diff: 2.3e-06
  multiplicator for the confinement: 5.3e-10
@@ -535,8 +590,17 @@ highertaylor_experimental_order3:
 
 newpulay:
  EXC: 1.1e-10
- energy: 7.7e-11
- Omega: 6.5e-11
+ energy: 1.1e-9
+ Omega: 1.1e-9
  Ekin: 1.1e-9
  Enl: 1.1e-10
  Total ionic charge: 1.8e-11
+
+paracetamol:
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ eF: 1.1e-10
+ Epot: 1.1e-09
+
+reformatcomplete_write:
+ Epot: 1.1e-10
