@@ -570,7 +570,8 @@ subroutine test_dictionary_for_atoms()
   call yaml_close_map()
 
   !now print some double precision values to understand which is the best format
-  tt=sin(0.5678d0)
+  tt=real(0.5e0,kind=8) !use a conversion from float
+
   call yaml_map('Real without format',tt)
   fmts(1:len(fmts))='(1pe25.17)'
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
@@ -580,6 +581,16 @@ subroutine test_dictionary_for_atoms()
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
   fmts(1:len(fmts))='(es24.17)'
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(es25.18)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(es26.19)'
+  call yaml_map('Real with format '//trim(fmts),tt+epsilon(1.d0),fmt=fmts)
+  fmts(1:len(fmts))='(es27.20)'
+  call yaml_map('Real with format '//trim(fmts),tt-epsilon(1.d0),fmt=fmts)
+  fmts(1:len(fmts))='(es26.19)'
+  call yaml_map('Real with format '//trim(fmts),epsilon(1.d0),fmt=fmts)
+  fmts(1:len(fmts))='(es27.20)'
+  call yaml_map('Real with format '//trim(fmts),-epsilon(1.d0),fmt=fmts)
 
 
   contains

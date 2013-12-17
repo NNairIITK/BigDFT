@@ -209,11 +209,12 @@ contains
              n = dict_len(nloc // "Valence")
              do i = 1, n, 1
                 coeffs => nloc // "Valence" // (i - 1)
-                atoms%nlccpar(0, nlcc_dim + i) = coeffs // 0
-                atoms%nlccpar(1, nlcc_dim + i) = coeffs // 1
-                atoms%nlccpar(2, nlcc_dim + i) = coeffs // 2
-                atoms%nlccpar(3, nlcc_dim + i) = coeffs // 3
-                atoms%nlccpar(4, nlcc_dim + i) = coeffs // 4
+                atoms%nlccpar(:, nlcc_dim + i) = coeffs
+!                atoms%nlccpar(0, nlcc_dim + i) = coeffs // 0
+!                atoms%nlccpar(1, nlcc_dim + i) = coeffs // 1
+!                atoms%nlccpar(2, nlcc_dim + i) = coeffs // 2
+!                atoms%nlccpar(3, nlcc_dim + i) = coeffs // 3
+!                atoms%nlccpar(4, nlcc_dim + i) = coeffs // 4
              end do
              nlcc_dim = nlcc_dim + n
              n = dict_len(nloc // "Conduction")
