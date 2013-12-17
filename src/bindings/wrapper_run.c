@@ -315,6 +315,7 @@ static void memory_unref(BigDFT_Memory *boxed)
       g_free(boxed);
     }
 }
+#ifdef HAVE_GLIB
 /**
  * bigdft_memory_get_type:
  *
@@ -332,6 +333,7 @@ GType bigdft_memory_get_type(void)
                                                     (GBoxedFreeFunc)memory_unref);
   return g_define_type_id;
 }
+#endif
 
 /*****************************/
 /* BigDFT_Run data structure */
