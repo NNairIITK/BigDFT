@@ -138,6 +138,7 @@ module bigdft_forces
       integer :: natoms_calcul
       type(dictionary), pointer :: dict
       !_______________________
+
       nullify(dict)
 
       me = me_
