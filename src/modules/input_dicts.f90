@@ -94,12 +94,14 @@ contains
     end if
     if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
        radfine = dict // filename // "Local Pseudo Potential (HGH convention)" // "Rloc"
-       do i=1, dict_len(dict // filename // "NonLocal PSP Parameters")
-          rad = dict // filename // "NonLocal PSP Parameters" // (i - 1) // "Rloc"
-          if (rad /= 0._gp) then
-             radfine=min(radfine, rad)
-          end if
-       end do
+       if (has_key(dict // filename, "NonLocal PSP Parameters")) then
+          do i=1, dict_len(dict // filename // "NonLocal PSP Parameters")
+             rad = dict // filename // "NonLocal PSP Parameters" // (i - 1) // "Rloc"
+             if (rad /= 0._gp) then
+                radfine=min(radfine, rad)
+             end if
+          end do
+       end if
        radii_cf(2)=radfine
        write(source, "(A)") "Hard-coded"
     end if
@@ -186,9 +188,11 @@ contains
 
     nlcc_dim = 0
     do ityp = 1, atoms%astruct%ntypes, 1
+       atoms%nlcc_ngc(ityp)=0
+       atoms%nlcc_ngv(ityp)=0
        filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
-       if (.not. has_key(dict, filename)) continue
-       if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) continue
+       if (.not. has_key(dict, filename)) cycle
+       if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle
        nloc => dict // filename // 'Non Linear Core Correction term'
        if (has_key(nloc, "Valence") .and. has_key(nloc, "Conduction")) then
           n = dict_len(nloc // "Valence")
@@ -280,22 +284,23 @@ contains
     psppar(0,3) = loc // 'Coefficients (c1 .. c4)' // 2
     psppar(0,4) = loc // 'Coefficients (c1 .. c4)' // 3
     ! Nonlocal terms
-    if (.not. has_key(dict, "NonLocal PSP Parameters")) return
-    do i = 1, dict_len(dict // "NonLocal PSP Parameters"), 1
-       loc => dict // "NonLocal PSP Parameters" // (i - 1)
-       if (.not. has_key(loc, "Channel (l)")) return
-       l = loc // "Channel (l)"
-       l = l + 1
-       if (.not. has_key(loc, "Rloc")) return
-       psppar(l,0) = loc // 'Rloc'
-       if (.not. has_key(loc, "h_ij terms")) return
-       psppar(l,1) = loc // 'h_ij terms' // 0
-       psppar(l,2) = loc // 'h_ij terms' // 1
-       psppar(l,3) = loc // 'h_ij terms' // 2
-       psppar(l,4) = loc // 'h_ij terms' // 3
-       psppar(l,5) = loc // 'h_ij terms' // 4
-       psppar(l,6) = loc // 'h_ij terms' // 5
-    end do
+    if (has_key(dict, "NonLocal PSP Parameters")) then
+       do i = 1, dict_len(dict // "NonLocal PSP Parameters"), 1
+          loc => dict // "NonLocal PSP Parameters" // (i - 1)
+          if (.not. has_key(loc, "Channel (l)")) return
+          l = loc // "Channel (l)"
+          l = l + 1
+          if (.not. has_key(loc, "Rloc")) return
+          psppar(l,0) = loc // 'Rloc'
+          if (.not. has_key(loc, "h_ij terms")) return
+          psppar(l,1) = loc // 'h_ij terms' // 0
+          psppar(l,2) = loc // 'h_ij terms' // 1
+          psppar(l,3) = loc // 'h_ij terms' // 2
+          psppar(l,4) = loc // 'h_ij terms' // 3
+          psppar(l,5) = loc // 'h_ij terms' // 4
+          psppar(l,6) = loc // 'h_ij terms' // 5
+       end do
+    end if
     ! Type
     if (.not. has_key(dict, "Pseudopotential type")) return
     str = dict // "Pseudopotential type"
@@ -615,6 +620,9 @@ contains
        if (len_trim(comment) > 0) &
             & call add(dict // "Properties" // "Info", comment)
     end if
+
+    if (len_trim(astruct%inputfile_format) > 0) &
+         & call set(dict // "Properties" // "Format", astruct%inputfile_format)
   end subroutine astruct_merge_to_dict
 
   subroutine astruct_set_from_dict(dict, astruct, comment, energy, fxyz)
@@ -791,7 +799,6 @@ contains
     if (ierr == 0) then
        call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
        call set(dict // key // "Properties" // "Source", filename)
-       call set(dict // key // "Properties" // "Format", astruct%inputfile_format)
        call deallocate_atomic_structure(astruct, "astruct_file_merge_to_dict")
     end if
   end subroutine astruct_file_merge_to_dict
