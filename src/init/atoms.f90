@@ -1526,11 +1526,13 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
      if (reduced .and. pery) xred(2)=rxyz(2,iat)/atoms%astruct%cell_dim(2)
      if (reduced .and. perz) xred(3)=rxyz(3,iat)/atoms%astruct%cell_dim(3)
      if (wrtlog) then
-        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
-             & xred,fmt="(g18.10)", unit = iunit, advance = "no")
-        xred(1:3) = rxyz(1:3,iat) / hgrids
-        write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, iat
-        call yaml_comment(gu, unit = iunit)
+        call print_one_atom(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+             xred,hgrids,iat)
+!!$        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+!!$             & xred,fmt="(g18.10)", unit = iunit, advance = "no")
+!!$        xred(1:3) = rxyz(1:3,iat) / hgrids
+!!$        write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, iat
+!!$        call yaml_comment(gu, unit = iunit)
      else
         call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
              & xred,fmt="(g25.17)", unit = iunit)
@@ -1580,6 +1582,24 @@ contains
     logical extra_info
     extra_info=atoms%astruct%input_polarization(iat) /=100 .or. atoms%astruct%ifrztyp(iat)/=0
   end function extra_info
+
+  subroutine print_one_atom(atomname,rxyz,hgrids,id)
+    implicit none
+    integer, intent(in) :: id
+    character(len=*), intent(in) :: atomname
+    double precision, dimension(3), intent(in) :: rxyz,hgrids
+    !local variables
+    character(len=*), parameter :: fmtat='(g18.10)',fmtg='(F6.2)',fmti='(i4.4)'
+    integer :: i
+
+    call yaml_open_sequence(atomname,flow=.true.)
+    do i=1,3
+       call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
+    end do
+    call yaml_close_sequence(advance='no')
+    call yaml_comment(trim(yaml_toa(rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
+
+  end subroutine print_one_atom
 
 end subroutine wtyaml
 

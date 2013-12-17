@@ -185,6 +185,7 @@ subroutine test_dictionaries1()
    type(dictionary), pointer :: dict2
    type(dictionary), pointer :: dict,dictA
    type(dictionary), pointer :: dictA2,dict_tmp,zero1,zero2
+   double precision, dimension(3) :: tmp_arr
 
    !testing add
    call dict_init(dict)
@@ -287,6 +288,11 @@ subroutine test_dictionaries1()
 
    call yaml_dict_dump(dictA)
 
+   !retrieve the value from the Stack2 key
+   tmp_arr=dictA//'Stack2'
+
+   call yaml_map('Values retrieved from the dict',tmp_arr,fmt='(1pg12.5)')
+
    dict2=>find_key(dictA,'Stack')
    call pop(dict2)
 
@@ -296,6 +302,14 @@ subroutine test_dictionaries1()
    !  call push(dict2,'Element')
    !  call append(dictA,dictA2)
    call yaml_dict_dump(dictA)
+
+   !retrieve the value from the Stack key
+   tmp_arr(1:2)=dictA//'Stack'
+   call yaml_map('Two values from Stack key',tmp_arr,fmt='(1pg12.5)')
+
+   !retrieve the value from the a scalar
+   tmp_arr=dictA//'Stack'//0
+   call yaml_map('Array filled with a scalar',tmp_arr,fmt='(1pg12.5)')
 
 !!$   !try to see if extra information can be added after the value
 !!$   call set(dictA//'Test Field',6,fmt='(i6.6)')
@@ -517,8 +531,10 @@ subroutine test_dictionary_for_atoms()
   use yaml_output
   implicit none
 
-  character(len = 50) :: gu
+  character(len = 50) :: gu,fmts
   double precision, dimension(3) :: cell, xred, hgrids
+  double precision :: tt
+
 
   call yaml_open_map("Atomic structure")
 
@@ -531,26 +547,59 @@ subroutine test_dictionary_for_atoms()
 
   call yaml_sequence(advance='no')
   xred = (/ 0.2516085125D-05,  0.5826606155D-05,  20.34574212d0 /)
-  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
-  xred = xred / hgrids
-  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 1
-  call yaml_comment(gu)
+  call print_one_atom('Si',xred,hgrids,1)
 
   call yaml_sequence(advance='no')
   xred = (/ 5.094032326d0,  5.153107111d0,  0.3047989908d-01 /)
-  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
-  xred = xred / hgrids
-  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 2
-  call yaml_comment(gu)
+  call print_one_atom('Si',xred,hgrids,2)
+!!$  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
+!!$  xred = xred / hgrids
+!!$  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 2
+!!$  call yaml_comment(gu)
 
   call yaml_sequence(advance='no')
   xred = (/ 0.3049344014d-01,  5.153107972d0,  5.094018600d0 /)
-  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
-  xred = xred / hgrids
-  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 3
-  call yaml_comment(gu)
+  call print_one_atom('Si',xred,hgrids,3)
+!!$  call yaml_map("Si", xred, fmt="(g18.10)", advance = "no")
+!!$  xred = xred / hgrids
+!!$  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 3
+!!$  call yaml_comment(gu)
 
   call yaml_close_sequence()
 
   call yaml_close_map()
+
+  !now print some double precision values to understand which is the best format
+  tt=sin(0.5678d0)
+  call yaml_map('Real without format',tt)
+  fmts(1:len(fmts))='(1pe25.17)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(1pe24.16)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(es23.16)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(es24.17)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+
+
+  contains
+
+    subroutine print_one_atom(atomname,rxyz,hgrids,id)
+      implicit none
+      integer, intent(in) :: id
+      character(len=*), intent(in) :: atomname
+      double precision, dimension(3), intent(in) :: rxyz,hgrids
+      !local variables
+      character(len=*), parameter :: fmtat='(g18.10)',fmtg='(F6.2)'
+      integer :: i
+
+      call yaml_open_sequence(atomname,flow=.true.)
+      do i=1,3
+         call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
+      end do
+      call yaml_close_sequence(advance='no')
+      call yaml_comment(trim(yaml_toa(rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id))) !we can also put tabbing=
+
+    end subroutine print_one_atom
+
 end subroutine test_dictionary_for_atoms

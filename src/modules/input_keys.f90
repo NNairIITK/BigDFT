@@ -1233,14 +1233,13 @@ contains
 !call yaml_map('var_prof',var_prof)
 !call yaml_map('test',trim(var_prof) /= DEFAULT .and. var_prof /= prof_var)
 !print *,'key',def_var
-
-                    if (defvar == input//def_var) then
-                       profile_found=.true.
+                   profile_found= (defvar == input//def_var) 
+                   if (profile_found) then
                        if (trim(var_prof) /= DEFAULT .and. var_prof /= prof_var) then
                           if (.not. associated(minim)) call dict_init(minim)
                           call set(minim//def_var,var_prof)
-                          exit check_profile
                        end if
+                       exit check_profile
                     end if
                  end if
                  defvar => dict_next(defvar)
