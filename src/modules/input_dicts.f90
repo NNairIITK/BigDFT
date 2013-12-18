@@ -59,7 +59,7 @@ contains
        if (has_key(radii, "Coarse PSP")) radii_cf(3) =  radii // "Coarse PSP"
     end if
 
-    exists = has_key(dict // filename, "NonLocal PSP Parameters")
+    exists = has_key(dict // filename, "Local Pseudo Potential (HGH convention)")
     if (.not. exists) then
        ixc = run_ixc
        if (has_key(dict // filename, "Pseudopotential XC")) &
