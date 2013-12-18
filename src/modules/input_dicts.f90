@@ -599,7 +599,7 @@ contains
        call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(3,iat) * factor(3))
        if (astruct%ifrztyp(iat) /= 0) then
           call frozen_itof(astruct%ifrztyp(iat), frzstr)
-          call set(at // "Frozen", frzstr)
+          call set(at // "Frozen", adjustl(frzstr))
        end if
        call charge_and_spol(astruct%input_polarization(iat),ichg,ispol)
        if (ichg /= 0) call set(at // "IGChg", ichg)

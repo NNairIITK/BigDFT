@@ -1099,13 +1099,13 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
   character(len=4), intent(in) :: frzchain
   integer, intent(out) :: ifrztyp
 
-  if (trim(frzchain)=='') then
+  if (trim(adjustl(frzchain))=='') then
      ifrztyp = 0
-  else if (trim(frzchain)=='f') then
+  else if (trim(adjustl(frzchain))=='f') then
      ifrztyp = 1
-  else if (trim(frzchain)=='fy') then
+  else if (trim(adjustl(frzchain))=='fy') then
      ifrztyp = 2
-  else if (trim(frzchain)=='fxz') then
+  else if (trim(adjustl(frzchain))=='fxz') then
      ifrztyp = 3
   else if (verify(frzchain, 'f0123456789') == 0) then
      read(frzchain(2:4), *) ifrztyp
