@@ -196,8 +196,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   ! Update atoms with pseudo information.
   call psp_dict_analyse(dict, atoms)
   call atomic_data_set_from_dict(dict, "Atomic occupation", atoms, in%nspin)
-
-  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
   
   if (bigdft_mpi%iproc == 0 .and. dump) then
      call input_keys_dump(dict)

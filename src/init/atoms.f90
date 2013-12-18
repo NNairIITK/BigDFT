@@ -1670,28 +1670,6 @@ subroutine atoms_empty(atoms)
 END SUBROUTINE atoms_empty
 
 
-!> Set routines for bindings
-subroutine atoms_read_variables(atoms, nspin, occup, ln)
-  use module_types
-  use memory_profiling
-  implicit none
-  !Arguments
-  type(atoms_data), intent(inout) :: atoms
-  integer, intent(in) :: nspin, ln
-  character(len=1), dimension(ln), intent(in) :: occup
-  !Local variables
-  integer :: i
-  character(len = 1024) :: filename_
-
-  write(filename_, "(A)") " "
-  do i = 1, ln
-     write(filename_(i:i), "(A1)") occup(i)
-  end do
-
-  call read_atomic_variables(atoms, trim(filename_), nspin)
-END SUBROUTINE atoms_read_variables
-
-
 subroutine atoms_set_name(atoms, ityp, name)
   use module_types
   implicit none

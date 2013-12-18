@@ -20,6 +20,7 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   use module_input_dicts
   use yaml_output
   use dictionaries, only: dictionary, set
+  use dictionaries_base, only: TYPE_DICT, TYPE_LIST
   implicit none
 
   !Arguments
@@ -29,6 +30,7 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   type(atoms_data), intent(out) :: atoms
 
   character(len=*), parameter :: subname='bigdft_set_input'
+  character(len = max_field_length) :: str
   type(dictionary), pointer :: dict
   integer :: ierr
 
@@ -41,9 +43,23 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   !Add old posinp formats
   if (.not. has_key(dict, "posinp")) then
      call astruct_file_merge_to_dict(dict, "posinp", trim(posinp))
+  else
+     str = dict_value(dict // "posinp")
+     if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+        call astruct_file_merge_to_dict(dict, "posinp", trim(str))
+     end if
   end if
   ! Add old psppar
   call atoms_file_merge_to_dict(dict)
+  ! Add old input.occup
+  if (.not. has_key(dict, "Atomic occupation")) then
+     call atomic_data_file_merge_to_dict(dict, "Atomic occupation", trim(in%file_igpop))
+  else
+     str = dict_value(dict // "Atomic occupation")
+     if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+        call atomic_data_file_merge_to_dict(dict, "Atomic occupation", trim(str))
+     end if
+  end if
 
   ! Work on an input dictionary (only).
   call standard_inputfile_names(in,trim(radical))

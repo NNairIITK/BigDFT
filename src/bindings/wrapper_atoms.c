@@ -357,11 +357,11 @@ void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar
     }
 
   /* FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(&verb, atoms->data, &ixc); */
-  FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA)
-    (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc));
-  ln = (occup)?strlen(occup):0;
-  FC_FUNC_(atoms_read_variables, ATOMS_READ_VARIABLES)(atoms->data, (int*)&nspin,
-                                                       occup, &ln, ln);
+  /* FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA) */
+  /*   (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc)); */
+  /* ln = (occup)?strlen(occup):0; */
+  /* FC_FUNC_(atoms_read_variables, ATOMS_READ_VARIABLES)(atoms->data, (int*)&nspin, */
+  /*                                                      occup, &ln, ln); */
 }
 /**
  * bigdft_atoms_get_radii:
