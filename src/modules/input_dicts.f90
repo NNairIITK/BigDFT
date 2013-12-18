@@ -11,6 +11,7 @@ module module_input_dicts
   ! Types from dictionaries
   public :: psp_set_from_dict, nlcc_set_from_dict
   public :: astruct_set_from_dict
+  public :: aocc_from_dict
 
   ! Dictionaries to types
   public :: psp_data_merge_to_dict
@@ -45,6 +46,7 @@ contains
     real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
     type(dictionary), pointer :: radii
     real(gp), dimension(3) :: radii_cf
+    character(len = max_field_length) :: source
 
     filename = 'psppar.' // atomname
 
@@ -80,7 +82,8 @@ contains
        stop
     end if
 
-    if (any(radii_cf == UNINITIALIZED(1.0_gp))) then
+    write(source, "(A)") "User-defined"
+    if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
        !see whether the atom is semicore or not
        !and consider the ground state electronic configuration
        call eleconf(nzatom, nelpsp,symbol,rcov,rprb,ehomo,&
@@ -88,23 +91,30 @@ contains
 
        !assigning the radii by calculating physical parameters
        radii_cf(1)=1._gp/sqrt(abs(2._gp*ehomo))
-       radfine = dict // filename // "Local Pseudo Potential (HGH convention)" // "Rloc"
-       do i=1, dict_len(dict // filename // "NonLocal PSP Parameters")
-          rad = dict // filename // "NonLocal PSP Parameters" // (i - 1) // "Rloc"
-          if (rad /= 0._gp) then
-             radfine=min(radfine, rad)
-          end if
-       end do
-       radii_cf(2)=radfine
-       radii_cf(3)=radfine
-       radii => dict // filename // "Radii of active regions (AU)"
-       call set(radii // "Coarse", radii_cf(1))
-       call set(radii // "Fine", radii_cf(2))
-       call set(radii // "Coarse PSP", radii_cf(3))
-       call set(radii // "Source", "Hard-coded")
-    else
-       call set(radii // "Source", "User-defined")
+       write(source, "(A)") "Hard-coded"
     end if
+    if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
+       radfine = dict // filename // "Local Pseudo Potential (HGH convention)" // "Rloc"
+       if (has_key(dict // filename, "NonLocal PSP Parameters")) then
+          do i=1, dict_len(dict // filename // "NonLocal PSP Parameters")
+             rad = dict // filename // "NonLocal PSP Parameters" // (i - 1) // "Rloc"
+             if (rad /= 0._gp) then
+                radfine=min(radfine, rad)
+             end if
+          end do
+       end if
+       radii_cf(2)=radfine
+       write(source, "(A)") "Hard-coded"
+    end if
+    if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
+       radii_cf(3)=radfine
+       write(source, "(A)") "Hard-coded"
+    end if
+    radii => dict // filename // "Radii of active regions (AU)"
+    call set(radii // "Coarse", radii_cf(1))
+    call set(radii // "Fine", radii_cf(2))
+    call set(radii // "Coarse PSP", radii_cf(3))
+    call set(radii // "Source", source)
   end subroutine psp_dict_fill_all
 
   subroutine psp_dict_analyse(dict, atoms)
@@ -135,7 +145,8 @@ contains
        !To eliminate the runtime warning due to the copy of the array (TD)
        atoms%radii_cf(ityp,:)=radii_cf(:)
 
-       l = dict // filename // "PAW patch"
+       l = .false.
+       if (has_key(dict // filename, "PAW patch")) l = dict // filename // "PAW patch"
        pawpatch = pawpatch .and. l
     end do
     call nlcc_set_from_dict(dict, atoms)
@@ -178,9 +189,11 @@ contains
 
     nlcc_dim = 0
     do ityp = 1, atoms%astruct%ntypes, 1
+       atoms%nlcc_ngc(ityp)=0
+       atoms%nlcc_ngv(ityp)=0
        filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
-       if (.not. has_key(dict, filename)) continue
-       if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) continue
+       if (.not. has_key(dict, filename)) cycle
+       if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle
        nloc => dict // filename // 'Non Linear Core Correction term'
        if (has_key(nloc, "Valence") .and. has_key(nloc, "Conduction")) then
           n = dict_len(nloc // "Valence")
@@ -273,22 +286,23 @@ contains
     psppar(0,3) = loc // 'Coefficients (c1 .. c4)' // 2
     psppar(0,4) = loc // 'Coefficients (c1 .. c4)' // 3
     ! Nonlocal terms
-    if (.not. has_key(dict, "NonLocal PSP Parameters")) return
-    do i = 1, dict_len(dict // "NonLocal PSP Parameters"), 1
-       loc => dict // "NonLocal PSP Parameters" // (i - 1)
-       if (.not. has_key(loc, "Channel (l)")) return
-       l = loc // "Channel (l)"
-       l = l + 1
-       if (.not. has_key(loc, "Rloc")) return
-       psppar(l,0) = loc // 'Rloc'
-       if (.not. has_key(loc, "h_ij terms")) return
-       psppar(l,1) = loc // 'h_ij terms' // 0
-       psppar(l,2) = loc // 'h_ij terms' // 1
-       psppar(l,3) = loc // 'h_ij terms' // 2
-       psppar(l,4) = loc // 'h_ij terms' // 3
-       psppar(l,5) = loc // 'h_ij terms' // 4
-       psppar(l,6) = loc // 'h_ij terms' // 5
-    end do
+    if (has_key(dict, "NonLocal PSP Parameters")) then
+       do i = 1, dict_len(dict // "NonLocal PSP Parameters"), 1
+          loc => dict // "NonLocal PSP Parameters" // (i - 1)
+          if (.not. has_key(loc, "Channel (l)")) return
+          l = loc // "Channel (l)"
+          l = l + 1
+          if (.not. has_key(loc, "Rloc")) return
+          psppar(l,0) = loc // 'Rloc'
+          if (.not. has_key(loc, "h_ij terms")) return
+          psppar(l,1) = loc // 'h_ij terms' // 0
+          psppar(l,2) = loc // 'h_ij terms' // 1
+          psppar(l,3) = loc // 'h_ij terms' // 2
+          psppar(l,4) = loc // 'h_ij terms' // 3
+          psppar(l,5) = loc // 'h_ij terms' // 4
+          psppar(l,6) = loc // 'h_ij terms' // 5
+       end do
+    end if
     ! Type
     if (.not. has_key(dict, "Pseudopotential type")) return
     str = dict // "Pseudopotential type"
@@ -394,6 +408,8 @@ contains
 
   subroutine atoms_file_merge_to_dict(dict)
     use dictionaries
+    use dictionaries_base, only: TYPE_DICT, TYPE_LIST
+    use yaml_output, only: yaml_warning
     implicit none
     type(dictionary), pointer :: dict
 
@@ -401,7 +417,7 @@ contains
     character(len = max_field_length) :: str
     integer :: iat
     character(max_field_length), dimension(:), allocatable :: keys
-    character(len=27) :: filename
+    character(len=27) :: key
     logical :: exists
 
     ! Loop on types for atomic data.
@@ -417,15 +433,26 @@ contains
     allocate(keys(dict_size(types)))
     keys = dict_keys(types)
     do iat = 1, dict_size(types), 1
-       filename = 'psppar.' // trim(keys(iat))
+       key = 'psppar.' // trim(keys(iat))
 
-       exists = has_key(dict, filename)
-       if (exists) exists = has_key(dict // filename, 'Pseudopotential XC')
-       if (.not. exists) call psp_file_merge_to_dict(dict, filename, filename)
+       exists = has_key(dict, key)
+       if (exists) then
+          str = dict_value(dict // key)
+          if (trim(str) /= "" .and. trim(str) /= TYPE_LIST .and. trim(str) /= TYPE_DICT) then
+             call psp_file_merge_to_dict(dict, key, trim(str))
+             if (.not. has_key(dict // key, 'Pseudopotential XC')) then
+                call yaml_warning("Pseudopotential file '" // trim(str) // &
+                     & "' not found. Fallback to file '" // trim(key) // &
+                     & "' or hard-coded pseudopotential.")
+             end if
+          end if
+          exists = has_key(dict // key, 'Pseudopotential XC')
+       end if
+       if (.not. exists) call psp_file_merge_to_dict(dict, key, key)
 
-       exists = has_key(dict, filename)
-       if (exists) exists = has_key(dict // filename, 'Non Linear Core Correction term')
-       if (.not. exists) call nlcc_file_merge_to_dict(dict, filename, 'nlcc.' // trim(keys(iat)))
+       exists = has_key(dict, key)
+       if (exists) exists = has_key(dict // key, 'Non Linear Core Correction term')
+       if (.not. exists) call nlcc_file_merge_to_dict(dict, key, 'nlcc.' // trim(keys(iat)))
     end do
     deallocate(keys)
     call dict_free(types)
@@ -451,6 +478,7 @@ contains
     call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, radii_cf, rcore, qcore)
     call set(dict // key // "PAW patch", pawpatch)
+    call set(dict // key // "Source", filename)
   end subroutine psp_file_merge_to_dict
 
   subroutine nlcc_file_merge_to_dict(dict, key, filename)
@@ -526,6 +554,7 @@ contains
        factor=Bohr_Ang
     case('reduced')
        call set(dict // "Units", 'reduced')
+       reduced = .true.
     case('atomic','atomicd0','bohr','bohrd0')
        ! Default, store nothing
     end select Units
@@ -594,6 +623,9 @@ contains
        if (len_trim(comment) > 0) &
             & call add(dict // "Properties" // "Info", comment)
     end if
+
+    if (len_trim(astruct%inputfile_format) > 0) &
+         & call set(dict // "Properties" // "Format", astruct%inputfile_format)
   end subroutine astruct_merge_to_dict
 
   subroutine astruct_set_from_dict(dict, astruct, comment, energy, fxyz)
@@ -770,9 +802,141 @@ contains
     if (ierr == 0) then
        call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
        call set(dict // key // "Properties" // "Source", filename)
-       call set(dict // key // "Properties" // "Format", astruct%inputfile_format)
        call deallocate_atomic_structure(astruct, "astruct_file_merge_to_dict")
     end if
   end subroutine astruct_file_merge_to_dict
+
+  subroutine aocc_from_dict(dict,nspin,nspinor,nelecmax,lmax,nmax,aocc,nsccode)
+    use module_defs, only: gp
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: nelecmax,lmax,nmax,nspinor,nspin
+    integer, intent(out) :: nsccode
+    real(gp), dimension(nelecmax), intent(out) :: aocc
+
+    !local variables
+    character(len = max_field_length) :: key
+    character(max_field_length), dimension(:), allocatable :: keys
+    integer :: i, ln
+    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc
+    integer, dimension(lmax) :: nl,nlsc
+    real(gp), dimension(2*(2*lmax-1),nmax,lmax) :: allocc
+
+    nl(:)=0
+    nlsc(:)=0
+
+    !if non-collinear it is like nspin=1 but with the double of orbitals
+    if (nspinor == 4) then
+       noncoll=2
+    else
+       noncoll=1
+    end if
+
+    allocate(keys(dict_size(dict)))
+    keys = dict_keys(dict)
+    do i = 1, dict_size(dict), 1
+       key = keys(i)
+       ln = len_trim(key)
+       is = 1
+       if (key(1:1) == "(" .and. key(ln:ln) == ")") is = 2
+       ! Read the major quantum number
+       read(key(is:is), "(I1)") n
+       is = is + 1
+       ! Read the channel
+       select case(key(is:is))
+       case('s')
+          l=1
+       case('p')
+          l=2
+       case('d')
+          l=3
+       case('f')
+          l=4
+       case default
+          stop "wrong channel"
+       end select
+       nl(l) = nl(l) + 1
+       if (is == 3) nlsc(l) = nlsc(l) + 1
+       if (nlsc(l) > 2) stop 'cannot admit more than two semicore orbitals per channel'
+
+       !read the different atomic occupation numbers
+       if (dict_len(dict // key) /= nspin*noncoll*(2*l-1)) stop 'Not enough aocc'
+       do m = 1, nspin*noncoll*(2*l-1), 1
+          allocc(m, n, l) = dict // key // (m - 1)
+       end do
+    end do
+    deallocate(keys)
+
+    !put the values in the aocc array
+    aocc(:)=0.0_gp
+    iocc=0
+    do l=1,lmax
+       iocc=iocc+1
+       aocc(iocc)=real(nl(l),gp)
+       do inl=1,nmax
+          do ispin=1,nspin
+             do m=1,2*l-1
+                do icoll=1,noncoll !non-trivial only for nspinor=4
+                   iocc=iocc+1
+                   aocc(iocc)=allocc(icoll+(m-1)*noncoll+(ispin-1)*(2*l-1)*noncoll,inl,l)
+                end do
+             end do
+          end do
+       end do
+    end do
+
+    !then calculate the nsccode
+    nsccode=0
+    do lsc=1,4
+       do i=1,nlsc(lsc)
+          nsccode=nsccode+4**(lsc-1)
+       end do
+    end do
+  end subroutine aocc_from_dict
+
+!!$  subroutine atomic_data_set_from_dict(dict, atoms)
+!!$    use module_defs, only: gp
+!!$    use module_types, only: atoms_data
+!!$    use dictionaries
+!!$    use dynamic_memory
+!!$    implicit none
+!!$    type(dictionary), pointer :: dict
+!!$    type(atoms_data), intent(inout) :: atoms
+!!$
+!!$    character(max_field_length), dimension(:), allocatable :: keys
+!!$    integer :: iat, ityp, nsccode, mxpl, mxchg
+!!$    integer, parameter :: nelecmax=32,nmax=6,lmax=4
+!!$    character(len=2) :: symbol
+!!$    real(gp) :: rcov,rprb,ehomo
+!!$    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+!!$    character(len = max_field_length) :: key
+!!$
+!!$    do ityp = 1, atoms%astruct%ntypes, 1
+!!$       call eleconf(atoms%nzatom(ityp), atoms%nelpsp(ityp), symbol,rcov,rprb,ehomo,&
+!!$            neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
+!!$       !define the localization radius for the Linear input guess
+!!$       atoms%rloc(ityp,:) = rcov * 10.0
+!!$
+!!$       do iat = 1, atoms%astruct%nat, 1
+!!$          if (atoms%astruct%iatype(iat) /= ityp) cycle
+!!$
+!!$          write(key, "(A,I0)") "Atom ", iat
+!!$          if (has_key(dict, key)) then
+!!$             ! Case with an atom specific aocc
+!!$             call aocc_from_dict(dict // key, nspin, nspinor, nelecmax, lmax, nmax, &
+!!$                  & at%aocc(1,iat), at%iasctype(iat))
+!!$          else if (has_key(dict, trim(atoms%astruct%atomnames(ityp)))) then
+!!$             ! Case with a element specific aocc
+!!$             call aocc_from_dict(dict // trim(atoms%astruct%atomnames(ityp)), &
+!!$                  & nspin, nspinor, nelecmax, lmax, nmax, &
+!!$                  & at%aocc(1,iat), at%iasctype(iat))
+!!$          else
+!!$             ! Generic case from eleconf
+!!$             
+!!$          end if
+!!$       end do
+!!$    end do
+!!$  end subroutine aocc_set_from_dict
 
 end module module_input_dicts

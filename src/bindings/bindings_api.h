@@ -493,7 +493,8 @@ real(gp), dimension(:,:), allocatable :: xRed
 void FC_FUNC_(astruct_set_symmetries, ASTRUCT_SET_SYMMETRIES)(_atomic_structure *astruct, 
                                                               const int *disableSym, 
                                                               const double *tol, 
-                                                              const double *elecfield);
+                                                              const double *elecfield,
+                                                              const int *nspin);
 /* atoms_copy_alat  */
 /* atoms_copy_psp_data src/init/atoms.f90:2027 */
 /* Fortran header:

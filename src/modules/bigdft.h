@@ -96,7 +96,7 @@ gboolean      bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gc
 void          bigdft_atoms_set_psp           (BigDFT_Atoms *atoms, int ixc,
                                               guint nspin, const gchar *occup);
 void          bigdft_atoms_set_symmetries    (BigDFT_Atoms *atoms, gboolean active,
-                                              double tol, double elecfield[3]);
+                                              double tol, double elecfield[3], guint nspin);
 void          bigdft_atoms_set_displacement  (BigDFT_Atoms *atoms, double randdis);
 void          bigdft_atoms_copy_from_fortran (BigDFT_Atoms *atoms);
 GArray*       bigdft_atoms_get_radii         (const BigDFT_Atoms *atoms, double crmult,

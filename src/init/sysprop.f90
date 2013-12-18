@@ -1144,46 +1144,7 @@ subroutine read_atomic_variables(atoms, fileocc, nspin)
   do iat=1,atoms%astruct%nat
      if (atoms%iasctype(iat) /= 0) atoms%natsc=atoms%natsc+1
   enddo
-
-  ! We modify the symmetry object with respect to the spin.
-  if (atoms%astruct%sym%symObj >= 0) then
-     if (nspin == 2) then
-        call symmetry_set_collinear_spin(atoms%astruct%sym%symObj, atoms%astruct%nat, &
-             & atoms%astruct%input_polarization, ierror)
-!!$     else if (in%nspin == 4) then
-!!$        call symmetry_set_spin(atoms%astruct%sym%symObj, atoms%astruct%nat, &
-!!$             & atoms%astruct%input_polarization, ierror)
-     end if
-  end if
 END SUBROUTINE read_atomic_variables
-
-
-!> Find the correct position of the nlcc parameters
-subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: ityp
-  type(atoms_data), intent(in) :: atoms
-  integer, intent(out) :: ngv,ngc,islcc
-  !local variables
-  integer :: ilcc,jtyp
-
-  ilcc=0
-  do jtyp=1,ityp-1
-     ngv=atoms%nlcc_ngv(jtyp)
-     if (ngv /= UNINITIALIZED(ngv)) ilcc=ilcc+(ngv*(ngv+1)/2)
-     ngc=atoms%nlcc_ngc(jtyp)
-     if (ngc /= UNINITIALIZED(ngc)) ilcc=ilcc+(ngc*(ngc+1))/2
-  end do
-  islcc=ilcc
-
-  ngv=atoms%nlcc_ngv(ityp)
-  if (ngv==UNINITIALIZED(1)) ngv=0
-  ngc=atoms%nlcc_ngc(ityp)
-  if (ngc==UNINITIALIZED(1)) ngc=0
-END SUBROUTINE nlcc_start_position
-
 
 !> Fix all the atomic occupation numbers of the atoms which has the same type
 !! look also at the input polarisation and spin
@@ -1326,6 +1287,31 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
 
 END SUBROUTINE atomic_occupation_numbers
 
+!> Find the correct position of the nlcc parameters
+subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ityp
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(out) :: ngv,ngc,islcc
+  !local variables
+  integer :: ilcc,jtyp
+
+  ilcc=0
+  do jtyp=1,ityp-1
+     ngv=atoms%nlcc_ngv(jtyp)
+     if (ngv /= UNINITIALIZED(ngv)) ilcc=ilcc+(ngv*(ngv+1)/2)
+     ngc=atoms%nlcc_ngc(jtyp)
+     if (ngc /= UNINITIALIZED(ngc)) ilcc=ilcc+(ngc*(ngc+1))/2
+  end do
+  islcc=ilcc
+
+  ngv=atoms%nlcc_ngv(ityp)
+  if (ngv==UNINITIALIZED(1)) ngv=0
+  ngc=atoms%nlcc_ngc(ityp)
+  if (ngc==UNINITIALIZED(1)) ngc=0
+END SUBROUTINE nlcc_start_position
 
 !!!!> Define the descriptors of the orbitals from a given norb
 !!!!! It uses the cubic strategy for partitioning the orbitals
