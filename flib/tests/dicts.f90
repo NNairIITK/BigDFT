@@ -185,6 +185,7 @@ subroutine test_dictionaries1()
    type(dictionary), pointer :: dict2
    type(dictionary), pointer :: dict,dictA
    type(dictionary), pointer :: dictA2,dict_tmp,zero1,zero2
+   double precision, dimension(3) :: tmp_arr
 
    !testing add
    call dict_init(dict)
@@ -287,6 +288,11 @@ subroutine test_dictionaries1()
 
    call yaml_dict_dump(dictA)
 
+   !retrieve the value from the Stack2 key
+   tmp_arr=dictA//'Stack2'
+
+   call yaml_map('Values retrieved from the dict',tmp_arr,fmt='(1pg12.5)')
+
    dict2=>find_key(dictA,'Stack')
    call pop(dict2)
 
@@ -296,6 +302,14 @@ subroutine test_dictionaries1()
    !  call push(dict2,'Element')
    !  call append(dictA,dictA2)
    call yaml_dict_dump(dictA)
+
+   !retrieve the value from the Stack key
+   tmp_arr(1:2)=dictA//'Stack'
+   call yaml_map('Two values from Stack key',tmp_arr,fmt='(1pg12.5)')
+
+   !retrieve the value from the a scalar
+   tmp_arr=dictA//'Stack'//0
+   call yaml_map('Array filled with a scalar',tmp_arr,fmt='(1pg12.5)')
 
 !!$   !try to see if extra information can be added after the value
 !!$   call set(dictA//'Test Field',6,fmt='(i6.6)')
