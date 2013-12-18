@@ -53,7 +53,7 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   call atoms_file_merge_to_dict(dict)
   ! Add old input.occup
   if (.not. has_key(dict, "Atomic occupation")) then
-     call atomic_data_file_merge_to_dict(dict, "Atomic occupation", trim(in%file_igpop))
+     call atomic_data_file_merge_to_dict(dict, "Atomic occupation", trim(radical) // ".occup")
   else
      str = dict_value(dict // "Atomic occupation")
      if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then

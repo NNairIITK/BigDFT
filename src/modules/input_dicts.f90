@@ -385,7 +385,7 @@ contains
 
     ! Nonlocal terms
     do l=1,4
-       if (any(psppar(l,1:3) /= 0._gp)) then
+       if (psppar(l,0) /= 0._gp) then
           call dict_init(channel)
           call set(channel // 'Channel (l)', l - 1)
           call set(channel // 'Rloc', psppar(l,0))
