@@ -2608,7 +2608,7 @@ subroutine read_eleconf(string,noccmax,nelecmax,lmax,aocc,nsccode,ndeg)
       !read the different atomic occupation numbers
       nvals = 2*(2*l-1)
       read(string(ist:1024),*,iostat=ierror)(tmp(j),j=1,nvals)
-      if (ierror /= 0 .or. verify(tmp(2*l), "0123456789./") /= 0) then
+      if (ierror /= 0 .or. verify(tmp(2*l), " 0123456789./") /= 0) then
          nvals = (2*l-1)
          read(string(ist:1024),*,iostat=ierror)(tmp(j),j=1,nvals)
          if (ierror /= 0) then
