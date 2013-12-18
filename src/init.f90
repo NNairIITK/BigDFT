@@ -1555,6 +1555,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_types
   use module_interfaces, except_this_one => input_memory_linear
   use module_fragments
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -1570,7 +1571,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   type(GPU_pointers), intent(inout) :: GPU
-  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+  type(system_fragment), dimension(:), intent(in) :: ref_frags
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat
@@ -1753,6 +1754,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
   end if
 
+  ! Orthonormalize the input guess if necessary
+  if (input%experimental_mode .and. input%lin%scf_mode/=LINEAR_FOE) then                 
+      if (iproc==0) call yaml_map('orthonormalization of input guess','standard')        
+      tmb%ham_descr%can_use_transposed = .false.                                         
+      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+  end if  
 
 
 END SUBROUTINE input_memory_linear

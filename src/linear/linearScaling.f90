@@ -1076,7 +1076,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
           infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
           .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor)
-      call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
+      !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
+      call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
   end if
   !! END TEST ######################
 
@@ -1692,14 +1693,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       energyDiff = energy - energyoldout
 
-      if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !if(target_function==TARGET_FUNCTION_IS_HYBRID) then
           mean_conf=0.d0
           do iorb=1,tmb%orbs%norbp
               mean_conf=mean_conf+tmb%confdatarr(iorb)%prefac
           end do
           call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           mean_conf=mean_conf/dble(tmb%orbs%norb)
-      end if
+      !end if
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0.and.(.not.final)) then
@@ -1891,33 +1892,33 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
        end if
 
-    ! WARNING HACK S.M.
-    if (input%experimental_mode) then
-        meanconf_array(itout)=mean_conf
-        if (itout>=4) then
-            meanconf_der = 11.d0/6.d0*meanconf_array(itout-0) &
-                          -      3.d0*meanconf_array(itout-1) &
-                          + 3.d0/2.d0*meanconf_array(itout-2) &
-                          - 1.d0/3.d0*meanconf_array(itout-3)
-            !!if (iproc==0) write(*,'(a,es16.5)') 'meanconf_der',meanconf_der
-            !!if (iproc==0) write(*,'(a,es16.5)') 'abs(meanconf_der)/mean_conf',abs(meanconf_der)/mean_conf
-        end if
-        !if (mean_conf<1.d-15 .and. .false.) then
-        !if (mean_conf<1.d-15) then
-        !if (mean_conf<1.d-10 .and. abs(meanconf_der)<1.d-15) then
-        if (mean_conf<1.d-10 .and. abs(meanconf_der)/mean_conf>1.d0 .and. .false.) then
-        !if (itout>=38) then
-            !if (iproc==0) write(*,*) 'WARNING MODIFY CONF'
-            !tmb%confdatarr(:)%prefac=0.d0
-            if (iproc==0) write(*,*) 'WARNING MODIFY nit_basis'
-            nit_basis=0
-        end if
-        if (mean_conf<2.4d-4 .and..false.) then
-        !if (itout>=13) then
-            if (iproc==0) write(*,*) 'outswitch off ortho'
-            orthonormalization_on=.false.
-        end if
-    end if
+    !!!! WARNING HACK S.M.
+    !!!if (input%experimental_mode) then
+    !!!    meanconf_array(itout)=mean_conf
+    !!!    if (itout>=4) then
+    !!!        meanconf_der = 11.d0/6.d0*meanconf_array(itout-0) &
+    !!!                      -      3.d0*meanconf_array(itout-1) &
+    !!!                      + 3.d0/2.d0*meanconf_array(itout-2) &
+    !!!                      - 1.d0/3.d0*meanconf_array(itout-3)
+    !!!        !!if (iproc==0) write(*,'(a,es16.5)') 'meanconf_der',meanconf_der
+    !!!        !!if (iproc==0) write(*,'(a,es16.5)') 'abs(meanconf_der)/mean_conf',abs(meanconf_der)/mean_conf
+    !!!    end if
+    !!!    !if (mean_conf<1.d-15 .and. .false.) then
+    !!!    !if (mean_conf<1.d-15) then
+    !!!    !if (mean_conf<1.d-10 .and. abs(meanconf_der)<1.d-15) then
+    !!!    if (mean_conf<1.d-10 .and. abs(meanconf_der)/mean_conf>1.d0 .and. .false.) then
+    !!!    !if (itout>=38) then
+    !!!        !if (iproc==0) write(*,*) 'WARNING MODIFY CONF'
+    !!!        !tmb%confdatarr(:)%prefac=0.d0
+    !!!        if (iproc==0) write(*,*) 'WARNING MODIFY nit_basis'
+    !!!        nit_basis=0
+    !!!    end if
+    !!!    if (mean_conf<2.4d-4 .and..false.) then
+    !!!    !if (itout>=13) then
+    !!!        if (iproc==0) write(*,*) 'outswitch off ortho'
+    !!!        orthonormalization_on=.false.
+    !!!    end if
+    !!!end if
 
     call bigdft_utils_flush(unit=6)
     call yaml_close_sequence()
@@ -3497,8 +3498,7 @@ end subroutine build_ks_orbitals
 
 
 
-
-subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at, fpulay)
+subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_base
   use module_types
   use module_interfaces
@@ -3513,8 +3513,7 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at, fpulay)
   real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
 
   ! Local variables
-  integer :: ishift, iorb, iiorb, ilr, iseg, jj_prev, j0_prev, j1_prev, ii_prev, i3_prev, i2_prev, i1_prev, i0_prev
-  integer :: jj, j0, j1, ii, i3, i2, i1, i0, jorb, korb, istat, idir, iat, i, isize
+  integer :: iat, i, isize, iorb, jorb, korb, idir, iiorb, isize_c, isize_f
   real(kind=8),dimension(:,:),allocatable :: phi_delta, energykernel, tempmat, phi_delta_large
   real(kind=8),dimension(:),allocatable :: hphit_c, hphit_f, denskern_tmp, delta_phit_c, delta_phit_f
   logical,dimension(:,:,:),allocatable :: boundaryarray
@@ -3522,13 +3521,624 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at, fpulay)
   real(kind=8) :: dist, crit, xsign, ysign, zsign, tt, tt2
   character(len=*),parameter :: subname='scalprod_on_boundary'
 
-  call f_routine(id='scalprod_on_boundary')
+  call f_routine(id='pulay_correction_new')
+
+  phi_delta=f_malloc0((/tmb%npsidim_orbs,3/),id='phi_delta')
+  ! Get the values of the support functions on the boundary of the localization region
+  call extract_boundary(tmb, phi_delta)
+  write(*,*) 'after extract'
+
+
+  ! calculate the "energy kernel"
+  energykernel=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='energykernel')
+  energykernel=0.d0
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
+          do korb=1,orbs%norb
+              energykernel(jorb,iorb) = energykernel(jorb,iorb) &
+                                      + tmb%coeff(jorb,korb)*tmb%coeff(iorb,korb)*tmb%orbs%eval(korb)
+          end do
+      end do
+  end do
+  write(*,*) 'after kernel'
+
+  ! calculate the overlap matrix
+  if(.not.associated(tmb%psit_c)) then
+      isize=sum(tmb%collcom%nrecvcounts_c)
+      tmb%psit_c=f_malloc_ptr(isize,id='tmb%psit_c')
+  end if
+  if(.not.associated(tmb%psit_f)) then
+      isize=7*sum(tmb%collcom%nrecvcounts_f)
+      tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
+  end if
+  call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+       tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+       tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+
+  call f_free_ptr(tmb%psit_c)
+  call f_free_ptr(tmb%psit_f)
+
+  write(*,*) 'after overlap'
+
+  ! Construct the array chi
+  call construct_chi()
+  call f_free(energykernel)
+
+
+  ! transform phi_delta to the shamop region
+  phi_delta_large=f_malloc((/tmb%ham_descr%npsidim_orbs,3/),id='phi_delta_large')
+  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+                      tmb%orbs, phi_delta(1,1), phi_delta_large(1,1))
+  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+                      tmb%orbs, phi_delta(1,2), phi_delta_large(1,2))
+  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+                      tmb%orbs, phi_delta(1,3), phi_delta_large(1,3))
+
+  isize=sum(tmb%ham_descr%collcom%nrecvcounts_c)
+  delta_phit_c=f_malloc(isize,id='delta_phit_c')
+  isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
+  delta_phit_f=f_malloc(isize,id='delta_phit_f')
+  !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
+  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+  call uncompressMatrix(iproc,tmb%linmat%denskern)
+  fpulay=0.d0
+  do idir=1,3
+      ! calculate the overlap matrix among hphi and phi_delta_large
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           phi_delta_large(1,idir), delta_phit_c, delta_phit_f, tmb%ham_descr%lzd)
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+           hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%ham)
+      tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
+      call uncompressMatrix(iproc,tmb%linmat%ham)
+
+      !!do iorb=1,tmb%orbs%norb
+      !!    do jorb=1,tmb%orbs%norb
+      !!        write(200+iproc,'(2i5,2es16.7)') iorb, jorb, tmb%linmat%ham%matrix(jorb,iorb), tmb%linmat%ham%matrix(iorb,jorb)
+      !!    end do
+      !!end do
+
+      do iiorb=1,tmb%orbs%norb
+          iat=tmb%orbs%onwhichatom(iiorb)
+          tt=0.d0
+          do jorb=1,tmb%orbs%norb
+              !tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
+              tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
+              !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
+          end do  
+          fpulay(idir,iat)=fpulay(idir,iat)+tt
+      end do
+      call f_free_ptr(tmb%linmat%ham%matrix)
+      !deallocate(tmb%linmat%ham%matrix)
+  end do
+  call f_free_ptr(tmb%linmat%denskern%matrix)
+  !deallocate(tmb%linmat%denskern%matrix)
+
+  !!if (iproc==0) then
+  !!    do iat=1,at%astruct%nat
+  !!        write(*,'(a,i5,3es15.5)') 'iat, force', iat, fpulay(1:3,iat)
+  !!    end do
+  !!end if
+  if(iproc==0) then
+       call yaml_comment('new Pulay correction',hfill='-')
+       call yaml_open_sequence('Pulay forces (Ha/Bohr)')
+          do iat=1,at%astruct%nat
+             call yaml_sequence(advance='no')
+             call yaml_open_map(flow=.true.)
+             call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(iat))),fpulay(1:3,iat),fmt='(1es20.12)')
+             call yaml_close_map(advance='no')
+             call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+          end do
+          call yaml_close_sequence()
+  end if
+
+
+    
+  call f_free(phi_delta)
+  call f_free(phi_delta_large)
+  call f_free(hphit_c)
+  call f_free(hphit_f)
+  call f_free(delta_phit_c)
+  call f_free(delta_phit_f)
+  !call f_free(fpulay)
+  
+  call f_release_routine()
+
+
+  contains
+
+    subroutine construct_chi()
+
+      tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
+      tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+      call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
+                 tmb%linmat%ovrlp%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
+                 0.d0, tempmat, tmb%orbs%norb)
+      call f_free_ptr(tmb%linmat%ovrlp%matrix)
+      isize=sum(tmb%ham_descr%collcom%nrecvcounts_c)
+      hphit_c=f_malloc(isize,id='hphit_c')
+      isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
+      hphit_f=f_malloc(isize,id='hphit_f')
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+                               tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
+      isize=size(tmb%linmat%denskern%matrix_compr)
+      denskern_tmp=f_malloc(isize,id='denskern_tmp')
+      denskern_tmp=tmb%linmat%denskern%matrix_compr
+      tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+      tmb%linmat%denskern%matrix=tempmat
+      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+      call f_free_ptr(tmb%linmat%denskern%matrix)
+      call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+           tmb%linmat%denskern, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
+      tmb%linmat%denskern%matrix_compr=denskern_tmp
+    
+      call f_free(tempmat)
+      call f_free(denskern_tmp)
+    
+    end subroutine construct_chi
+ 
+end subroutine pulay_correction_new
+
+
+!!subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at, fpulay)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces
+!!  use yaml_output
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc
+!!  type(DFT_wavefunction),intent(inout) :: tmb
+!!  type(orbitals_data),intent(in) :: orbs
+!!  type(atoms_data),intent(in) :: at
+!!  real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
+!!
+!!  ! Local variables
+!!  integer :: ishift, iorb, iiorb, ilr, iseg, jj_prev, j0_prev, j1_prev, ii_prev, i3_prev, i2_prev, i1_prev, i0_prev
+!!  integer :: jj, j0, j1, ii, i3, i2, i1, i0, jorb, korb, istat, idir, iat, i, isize
+!!  real(kind=8),dimension(:,:),allocatable :: phi_delta, energykernel, tempmat, phi_delta_large
+!!  real(kind=8),dimension(:),allocatable :: hphit_c, hphit_f, denskern_tmp, delta_phit_c, delta_phit_f
+!!  logical,dimension(:,:,:),allocatable :: boundaryarray
+!!  real(kind=8),dimension(:,:,:,:,:,:,:),allocatable :: temparr
+!!  real(kind=8) :: dist, crit, xsign, ysign, zsign, tt, tt2
+!!  character(len=*),parameter :: subname='scalprod_on_boundary'
+!!
+!!  call f_routine(id='scalprod_on_boundary')
+!!
+!!  ! First copy the boundary elements of the first array to a temporary array,
+!!  ! filling the remaining part with zeros.
+!!  isize=size(tmb%psi)
+!!  phi_delta=f_malloc((/isize,3/),id='phi_delta')
+!!  phi_delta=0.d0
+!!  ishift=0
+!!  do iorb=1,tmb%orbs%norbp
+!!      iiorb=tmb%orbs%isorb+iorb
+!!      ilr=tmb%orbs%inwhichlocreg(iiorb)
+!!      boundaryarray=f_malloc((/0.to.tmb%lzd%llr(ilr)%d%n1,0.to.tmb%lzd%llr(ilr)%d%n2,0.to.tmb%lzd%llr(ilr)%d%n3/), &
+!!                             id='boundaryarray')
+!!      boundaryarray=.false.
+!!
+!!
+!!      ! coarse part
+!!      do iseg=1,tmb%lzd%llr(ilr)%wfd%nseg_c
+!!
+!!          ! indizes of the last element of the previous segment
+!!          if (iseg>1) then
+!!              jj_prev=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg-1)
+!!              j0_prev=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg-1)
+!!              j1_prev=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg-1)
+!!              ii_prev=j0_prev-1
+!!              i3_prev=ii_prev/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+!!              ii_prev=ii_prev-i3_prev*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+!!              i2_prev=ii_prev/(tmb%lzd%llr(ilr)%d%n1+1)
+!!              i0_prev=ii_prev-i2_prev*(tmb%lzd%llr(ilr)%d%n1+1)
+!!              i1_prev=i0_prev+j1_prev-j0_prev
+!!          else
+!!              !just some large values
+!!              i1_prev=-99999
+!!              i2_prev=-99999
+!!              i3_prev=-99999
+!!          end if
+!!
+!!          ! indizes of the first element of the current segment
+!!          jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+!!          j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+!!          j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+!!          ii=j0-1
+!!          i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+!!          ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+!!          i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+!!          i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+!!          i1=i0
+!!
+!!          if (i2/=i2_prev .or. i3/=i3_prev) then
+!!              ! Segment starts on a new line, i.e. this is a boundary element.
+!!              ! Furthermore the last element of the previous segment must be a
+!!              ! boundary element as well. However this is only true if the
+!!              ! distance from the locreg center corresponds to the cutoff
+!!              ! radius, otherwise it is only a boundary element of the global
+!!              ! grid and not of the localization region.
+!!              if (iseg>1) then
+!!                  ! this makes only sense if we are not in the first segment
+!!                  dist= sqrt(((tmb%lzd%llr(ilr)%ns1+i1_prev)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+!!                            +((tmb%lzd%llr(ilr)%ns2+i2_prev)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+!!                            +((tmb%lzd%llr(ilr)%ns3+i3_prev)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2)
+!!                  crit=tmb%lzd%llr(ilr)%locrad-sqrt(tmb%lzd%hgrids(1)**2+tmb%lzd%hgrids(2)**2+tmb%lzd%hgrids(3)**2)
+!!                  if (dist>=crit) then
+!!                      ! boundary element of the locreg
+!!                      xsign=((tmb%lzd%llr(ilr)%ns1+i1_prev)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))/dist
+!!                      ysign=((tmb%lzd%llr(ilr)%ns2+i2_prev)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))/dist
+!!                      zsign=((tmb%lzd%llr(ilr)%ns3+i3_prev)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))/dist
+!!                      !xsign=1.d0 ; ysign=1.d0 ; zsign=1.d0
+!!                      phi_delta(ishift+jj-1,1)=xsign*tmb%psi(ishift+jj-1)
+!!                      phi_delta(ishift+jj-1,2)=ysign*tmb%psi(ishift+jj-1)
+!!                      phi_delta(ishift+jj-1,3)=zsign*tmb%psi(ishift+jj-1)
+!!                      boundaryarray(i1_prev,i2_prev,i3_prev)=.true.
+!!                  end if
+!!              end if
+!!              dist= sqrt(((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+!!                        +((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+!!                        +((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2)
+!!              crit=tmb%lzd%llr(ilr)%locrad-sqrt(tmb%lzd%hgrids(1)**2+tmb%lzd%hgrids(2)**2+tmb%lzd%hgrids(3)**2)
+!!              if (dist>=crit) then
+!!                  xsign=((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))/dist
+!!                  ysign=((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))/dist
+!!                  zsign=((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))/dist
+!!                  !xsign=1.d0 ; ysign=1.d0 ; zsign=1.d0
+!!                  phi_delta(ishift+jj,1)=xsign*tmb%psi(ishift+jj)
+!!                  phi_delta(ishift+jj,2)=ysign*tmb%psi(ishift+jj)
+!!                  phi_delta(ishift+jj,3)=zsign*tmb%psi(ishift+jj)
+!!                  boundaryarray(i1,i2,i3)=.true.
+!!              end if
+!!          end if
+!!      end do
+!!
+!!      ! fine part
+!!      do iseg=tmb%lzd%llr(ilr)%wfd%nseg_c+1,tmb%lzd%llr(ilr)%wfd%nseg_c+tmb%lzd%llr(ilr)%wfd%nseg_f
+!!          jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+!!          j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+!!          j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+!!          ii=j0-1
+!!          i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+!!          ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+!!          i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+!!          i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+!!          i1=i0+j1-j0
+!!          ! The segments goes now from i0 to i1
+!!          ! Check the beginnig of the segment. If it was a boundary element of
+!!          ! the coarse grid, copy its content also for the fine part.
+!!          if (boundaryarray(i0,i2,i3)) then
+!!              dist= sqrt(((tmb%lzd%llr(ilr)%ns1+i0)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+!!                        +((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+!!                        +((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2)
+!!              xsign=((tmb%lzd%llr(ilr)%ns1+i0)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))/dist
+!!              ysign=((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))/dist
+!!              zsign=((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))/dist
+!!              !xsign=1.d0 ; ysign=1.d0 ; zsign=1.d0
+!!              ! x direction
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+2,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+2)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+3,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+3)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+4,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+4)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+5,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+5)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7)
+!!              ! y direction
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+2,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+2)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+3,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+3)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+4,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+4)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+5,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+5)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7)
+!!              ! z direction
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+1)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+2,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+2)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+3,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+3)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+4,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+4)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+5,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+5)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7)
+!!          end if
+!!          ! Check the end of the segment. If it was a boundary element of
+!!          ! the coarse grid, copy its content also for the fine part.
+!!          if (boundaryarray(i1,i2,i3)) then
+!!              dist= sqrt(((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+!!                        +((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+!!                        +((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2)
+!!              xsign=((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))/dist
+!!              ysign=((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))/dist
+!!              zsign=((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))/dist
+!!              !xsign=1.d0 ; ysign=1.d0 ; zsign=1.d0
+!!              ! x direction
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+2,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+2)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+3,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+3)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+4,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+4)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+5,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+5)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7,1) = &
+!!                  xsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7)
+!!              ! y direction
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+2,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+2)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+3,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+3)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+4,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+4)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+5,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+5)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7,2) = &
+!!                  ysign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7)
+!!              ! z direction
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+1)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+2,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+2)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+3,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+3)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+4,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+4)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+5,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+5)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6)
+!!              phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7,3) = &
+!!                  zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7)
+!!          end if
+!!      end do
+!!      
+!!      !!allocate(temparr(0:tmb%lzd%llr(ilr)%d%n1,2,0:tmb%lzd%llr(ilr)%d%n2,2,0:tmb%lzd%llr(ilr)%d%n3,2,2))
+!!      !!call uncompress(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
+!!      !!                tmb%lzd%llr(ilr)%wfd%nseg_c, tmb%lzd%llr(ilr)%wfd%nvctr_c, &
+!!      !!                tmb%lzd%llr(ilr)%wfd%keygloc, tmb%lzd%llr(ilr)%wfd%keyvloc, &
+!!      !!                tmb%lzd%llr(ilr)%wfd%nseg_f, tmb%lzd%llr(ilr)%wfd%nvctr_f, &
+!!      !!                tmb%lzd%llr(ilr)%wfd%keygloc(1,tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
+!!      !!                tmb%lzd%llr(ilr)%wfd%keyvloc(tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
+!!      !!                phi_delta(ishift+1,1), phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+min(1,tmb%lzd%llr(ilr)%wfd%nvctr_f),1), &
+!!      !!                temparr(0,1,0,1,0,1,1))
+!!      !!call uncompress(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
+!!      !!                tmb%lzd%llr(ilr)%wfd%nseg_c, tmb%lzd%llr(ilr)%wfd%nvctr_c, &
+!!      !!                tmb%lzd%llr(ilr)%wfd%keygloc, tmb%lzd%llr(ilr)%wfd%keyvloc, &
+!!      !!                tmb%lzd%llr(ilr)%wfd%nseg_f, tmb%lzd%llr(ilr)%wfd%nvctr_f, &
+!!      !!                tmb%lzd%llr(ilr)%wfd%keygloc(1,tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
+!!      !!                tmb%lzd%llr(ilr)%wfd%keyvloc(tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
+!!      !!                tmb%psi(ishift+1), tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+min(1,tmb%lzd%llr(ilr)%wfd%nvctr_f)), &
+!!      !!                temparr(0,1,0,1,0,1,2))
+!!      !!do i3=0,tmb%lzd%llr(ilr)%d%n3
+!!      !!    do i2=0,tmb%lzd%llr(ilr)%d%n2
+!!      !!        do i1=0,tmb%lzd%llr(ilr)%d%n1
+!!      !!            dist = ((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+!!      !!                 + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+!!      !!                 + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
+!!      !!            dist=sqrt(dist)
+!!      !!            tt = temparr(i1,1,i2,1,i3,1,1) &
+!!      !!                +temparr(i1,2,i2,1,i3,1,1) &
+!!      !!                +temparr(i1,1,i2,2,i3,1,1) &
+!!      !!                +temparr(i1,2,i2,2,i3,1,1) &
+!!      !!                +temparr(i1,1,i2,1,i3,2,1) &
+!!      !!                +temparr(i1,2,i2,1,i3,2,1) &
+!!      !!                +temparr(i1,1,i2,2,i3,2,1) &
+!!      !!                +temparr(i1,2,i2,2,i3,2,1)
+!!      !!            tt2 = temparr(i1,1,i2,1,i3,1,2) &
+!!      !!                 +temparr(i1,2,i2,1,i3,1,2) &
+!!      !!                 +temparr(i1,1,i2,2,i3,1,2) &
+!!      !!                 +temparr(i1,2,i2,2,i3,1,2) &
+!!      !!                 +temparr(i1,1,i2,1,i3,2,2) &
+!!      !!                 +temparr(i1,2,i2,1,i3,2,2) &
+!!      !!                 +temparr(i1,1,i2,2,i3,2,2) &
+!!      !!                 +temparr(i1,2,i2,2,i3,2,2)
+!!      !!            write(1000+iiorb,*) dist, tt, tt2
+!!      !!        end do
+!!      !!    end do
+!!      !!end do
+!!      !!deallocate(temparr)
+!!
+!!
+!!      ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+!!      call f_free(boundaryarray)
+!!  end do
+!!
+!!
+!!  ! calculate the "energy kernel"
+!!  energykernel=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='energykernel')
+!!  energykernel=0.d0
+!!  do iorb=1,tmb%orbs%norb
+!!      do jorb=1,tmb%orbs%norb
+!!          do korb=1,orbs%norb
+!!              energykernel(jorb,iorb) = energykernel(jorb,iorb) &
+!!                                      + tmb%coeff(jorb,korb)*tmb%coeff(iorb,korb)*tmb%orbs%eval(korb)
+!!          end do
+!!      end do
+!!  end do
+!!
+!!  ! calculate the overlap matrix
+!!  if(.not.associated(tmb%psit_c)) then
+!!      isize=sum(tmb%collcom%nrecvcounts_c)
+!!      tmb%psit_c=f_malloc_ptr(isize,id='tmb%psit_c')
+!!  end if
+!!  if(.not.associated(tmb%psit_f)) then
+!!      isize=7*sum(tmb%collcom%nrecvcounts_f)
+!!      tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
+!!  end if
+!!  call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+!!       tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+!!  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+!!       tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+!!
+!!  call f_free_ptr(tmb%psit_c)
+!!  call f_free_ptr(tmb%psit_f)
+!!
+!!  ! Construct the array chi
+!!  isize_c=sum(tmb%ham_descr%collcom%nrecvcounts_c)
+!!  hphit_c=f_malloc(isize,id='hphit_c')
+!!  isize_f=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
+!!  hphit_f=f_malloc(isize,id='hphit_f')
+!!  call construct_chi(iproc, nproc, tmb, isize_c, isize_f, hphit_c, hphit_f)
+!!
+!!  !!tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
+!!  !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+!!  !!call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+!!  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
+!!  !!           tmb%linmat%ovrlp%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
+!!  !!           0.d0, tempmat, tmb%orbs%norb)
+!!  !!call f_free(energykernel)
+!!  !!call f_free_ptr(tmb%linmat%ovrlp%matrix)
+!!
+!!  !!call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+!!  !!                         tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
+!!  !!isize=size(tmb%linmat%denskern%matrix_compr)
+!!  !!denskern_tmp=f_malloc(isize,id='denskern_tmp')
+!!  !!denskern_tmp=tmb%linmat%denskern%matrix_compr
+!!  !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+!!  !!tmb%linmat%denskern%matrix=tempmat
+!!  !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+!!  !!call f_free_ptr(tmb%linmat%denskern%matrix)
+!!  !!call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+!!  !!     tmb%linmat%denskern, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
+!!  !!tmb%linmat%denskern%matrix_compr=denskern_tmp
+!!
+!!  !!call f_free(tempmat)
+!!  !!call f_free(denskern_tmp)
+!!
+!!
+!!  ! transform phi_delta to the shamop region
+!!  phi_delta_large=f_malloc((/tmb%ham_descr%npsidim_orbs,3/),id='phi_delta_large')
+!!  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+!!                      tmb%orbs, phi_delta(1,1), phi_delta_large(1,1))
+!!  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+!!                      tmb%orbs, phi_delta(1,2), phi_delta_large(1,2))
+!!  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+!!                      tmb%orbs, phi_delta(1,3), phi_delta_large(1,3))
+!!
+!!  isize=sum(tmb%ham_descr%collcom%nrecvcounts_c)
+!!  delta_phit_c=f_malloc(isize,id='delta_phit_c')
+!!  isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
+!!  delta_phit_f=f_malloc(isize,id='delta_phit_f')
+!!  !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
+!!  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+!!  call uncompressMatrix(iproc,tmb%linmat%denskern)
+!!  fpulay=0.d0
+!!  do idir=1,3
+!!      ! calculate the overlap matrix among hphi and phi_delta_large
+!!      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+!!           phi_delta_large(1,idir), delta_phit_c, delta_phit_f, tmb%ham_descr%lzd)
+!!      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+!!           hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%ham)
+!!      tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
+!!      call uncompressMatrix(iproc,tmb%linmat%ham)
+!!
+!!      !!do iorb=1,tmb%orbs%norb
+!!      !!    do jorb=1,tmb%orbs%norb
+!!      !!        write(200+iproc,'(2i5,2es16.7)') iorb, jorb, tmb%linmat%ham%matrix(jorb,iorb), tmb%linmat%ham%matrix(iorb,jorb)
+!!      !!    end do
+!!      !!end do
+!!
+!!      do iiorb=1,tmb%orbs%norb
+!!          iat=tmb%orbs%onwhichatom(iiorb)
+!!          tt=0.d0
+!!          do jorb=1,tmb%orbs%norb
+!!              !tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
+!!              tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
+!!              !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
+!!          end do  
+!!          fpulay(idir,iat)=fpulay(idir,iat)+tt
+!!      end do
+!!      call f_free_ptr(tmb%linmat%ham%matrix)
+!!      !deallocate(tmb%linmat%ham%matrix)
+!!  end do
+!!  call f_free_ptr(tmb%linmat%denskern%matrix)
+!!  !deallocate(tmb%linmat%denskern%matrix)
+!!
+!!  !!if (iproc==0) then
+!!  !!    do iat=1,at%astruct%nat
+!!  !!        write(*,'(a,i5,3es15.5)') 'iat, force', iat, fpulay(1:3,iat)
+!!  !!    end do
+!!  !!end if
+!!  if(iproc==0) then
+!!       call yaml_comment('new Pulay correction',hfill='-')
+!!       call yaml_open_sequence('Pulay forces (Ha/Bohr)')
+!!          do iat=1,at%astruct%nat
+!!             call yaml_sequence(advance='no')
+!!             call yaml_open_map(flow=.true.)
+!!             call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(iat))),fpulay(1:3,iat),fmt='(1es20.12)')
+!!             call yaml_close_map(advance='no')
+!!             call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+!!          end do
+!!          call yaml_close_sequence()
+!!  end if
+!!
+!!
+!!    
+!!call f_free(phi_delta)
+!!call f_free(phi_delta_large)
+!!call f_free(hphit_c)
+!!call f_free(hphit_f)
+!!call f_free(delta_phit_c)
+!!call f_free(delta_phit_f)
+!!!call f_free(fpulay)
+!!
+!!call f_release_routine()
+!!
+!!end subroutine scalprod_on_boundary
+
+
+
+subroutine extract_boundary(tmb, phi_delta)
+  use module_base
+  use module_types
+  use module_interfaces
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  type(DFT_wavefunction),intent(in) :: tmb
+  real(kind=8),dimension(tmb%npsidim_orbs,3),intent(out) :: phi_delta
+
+  ! Local variables
+  integer :: ishift, iorb, iiorb, ilr, iseg, jj_prev, j0_prev, j1_prev, ii_prev, i3_prev, i2_prev, i1_prev, i0_prev
+  integer :: jj, j0, j1, ii, i3, i2, i1, i0, jorb, korb, istat, idir, iat, i, isize
+  logical,dimension(:,:,:),allocatable :: boundaryarray
+  real(kind=8) :: dist, crit, xsign, ysign, zsign
+
+  call f_routine(id='extract_boundary')
 
   ! First copy the boundary elements of the first array to a temporary array,
   ! filling the remaining part with zeros.
-  isize=size(tmb%psi)
-  phi_delta=f_malloc((/isize,3/),id='phi_delta')
-  phi_delta=0.d0
+  call to_zero(3*tmb%npsidim_orbs,phi_delta(1,1))
   ishift=0
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
@@ -3738,193 +4348,75 @@ subroutine scalprod_on_boundary(iproc, nproc, tmb,orbs, at, fpulay)
           end if
       end do
       
-      !!allocate(temparr(0:tmb%lzd%llr(ilr)%d%n1,2,0:tmb%lzd%llr(ilr)%d%n2,2,0:tmb%lzd%llr(ilr)%d%n3,2,2))
-      !!call uncompress(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
-      !!                tmb%lzd%llr(ilr)%wfd%nseg_c, tmb%lzd%llr(ilr)%wfd%nvctr_c, &
-      !!                tmb%lzd%llr(ilr)%wfd%keygloc, tmb%lzd%llr(ilr)%wfd%keyvloc, &
-      !!                tmb%lzd%llr(ilr)%wfd%nseg_f, tmb%lzd%llr(ilr)%wfd%nvctr_f, &
-      !!                tmb%lzd%llr(ilr)%wfd%keygloc(1,tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
-      !!                tmb%lzd%llr(ilr)%wfd%keyvloc(tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
-      !!                phi_delta(ishift+1,1), phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+min(1,tmb%lzd%llr(ilr)%wfd%nvctr_f),1), &
-      !!                temparr(0,1,0,1,0,1,1))
-      !!call uncompress(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
-      !!                tmb%lzd%llr(ilr)%wfd%nseg_c, tmb%lzd%llr(ilr)%wfd%nvctr_c, &
-      !!                tmb%lzd%llr(ilr)%wfd%keygloc, tmb%lzd%llr(ilr)%wfd%keyvloc, &
-      !!                tmb%lzd%llr(ilr)%wfd%nseg_f, tmb%lzd%llr(ilr)%wfd%nvctr_f, &
-      !!                tmb%lzd%llr(ilr)%wfd%keygloc(1,tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
-      !!                tmb%lzd%llr(ilr)%wfd%keyvloc(tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))), &
-      !!                tmb%psi(ishift+1), tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+min(1,tmb%lzd%llr(ilr)%wfd%nvctr_f)), &
-      !!                temparr(0,1,0,1,0,1,2))
-      !!do i3=0,tmb%lzd%llr(ilr)%d%n3
-      !!    do i2=0,tmb%lzd%llr(ilr)%d%n2
-      !!        do i1=0,tmb%lzd%llr(ilr)%d%n1
-      !!            dist = ((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
-      !!                 + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
-      !!                 + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
-      !!            dist=sqrt(dist)
-      !!            tt = temparr(i1,1,i2,1,i3,1,1) &
-      !!                +temparr(i1,2,i2,1,i3,1,1) &
-      !!                +temparr(i1,1,i2,2,i3,1,1) &
-      !!                +temparr(i1,2,i2,2,i3,1,1) &
-      !!                +temparr(i1,1,i2,1,i3,2,1) &
-      !!                +temparr(i1,2,i2,1,i3,2,1) &
-      !!                +temparr(i1,1,i2,2,i3,2,1) &
-      !!                +temparr(i1,2,i2,2,i3,2,1)
-      !!            tt2 = temparr(i1,1,i2,1,i3,1,2) &
-      !!                 +temparr(i1,2,i2,1,i3,1,2) &
-      !!                 +temparr(i1,1,i2,2,i3,1,2) &
-      !!                 +temparr(i1,2,i2,2,i3,1,2) &
-      !!                 +temparr(i1,1,i2,1,i3,2,2) &
-      !!                 +temparr(i1,2,i2,1,i3,2,2) &
-      !!                 +temparr(i1,1,i2,2,i3,2,2) &
-      !!                 +temparr(i1,2,i2,2,i3,2,2)
-      !!            write(1000+iiorb,*) dist, tt, tt2
-      !!        end do
-      !!    end do
-      !!end do
-      !!deallocate(temparr)
-
-
       ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
       call f_free(boundaryarray)
   end do
 
 
-  ! calculate the "energy kernel"
-  energykernel=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='energykernel')
-  energykernel=0.d0
-  do iorb=1,tmb%orbs%norb
-      do jorb=1,tmb%orbs%norb
-          do korb=1,orbs%norb
-              energykernel(jorb,iorb) = energykernel(jorb,iorb) &
-                                      + tmb%coeff(jorb,korb)*tmb%coeff(iorb,korb)*tmb%orbs%eval(korb)
-          end do
-      end do
-  end do
-
-  ! calculate the overlap matrix
-  if(.not.associated(tmb%psit_c)) then
-      isize=sum(tmb%collcom%nrecvcounts_c)
-      tmb%psit_c=f_malloc_ptr(isize,id='tmb%psit_c')
-  end if
-  if(.not.associated(tmb%psit_f)) then
-      isize=7*sum(tmb%collcom%nrecvcounts_f)
-      tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
-  end if
-  call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-       tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-       tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
-
-  call f_free_ptr(tmb%psit_c)
-  call f_free_ptr(tmb%psit_f)
-
-  ! Construct the array chi
-  tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
-  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-  call uncompressMatrix(iproc,tmb%linmat%ovrlp)
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
-             tmb%linmat%ovrlp%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
-             0.d0, tempmat, tmb%orbs%norb)
-  call f_free(energykernel)
-  call f_free_ptr(tmb%linmat%ovrlp%matrix)
-  isize=sum(tmb%ham_descr%collcom%nrecvcounts_c)
-  hphit_c=f_malloc(isize,id='hphit_c')
-  isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
-  hphit_f=f_malloc(isize,id='hphit_f')
-  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-                           tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
-  isize=size(tmb%linmat%denskern%matrix_compr)
-  denskern_tmp=f_malloc(isize,id='denskern_tmp')
-  denskern_tmp=tmb%linmat%denskern%matrix_compr
-  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
-  tmb%linmat%denskern%matrix=tempmat
-  call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
-  call f_free_ptr(tmb%linmat%denskern%matrix)
-  call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-       tmb%linmat%denskern, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
-  tmb%linmat%denskern%matrix_compr=denskern_tmp
-
-  call f_free(tempmat)
-  call f_free(denskern_tmp)
-
-
-  ! transform phi_delta to the shamop region
-  phi_delta_large=f_malloc((/tmb%ham_descr%npsidim_orbs,3/),id='phi_delta_large')
-  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-                      tmb%orbs, phi_delta(1,1), phi_delta_large(1,1))
-  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-                      tmb%orbs, phi_delta(1,2), phi_delta_large(1,2))
-  call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-                      tmb%orbs, phi_delta(1,3), phi_delta_large(1,3))
-
-  isize=sum(tmb%ham_descr%collcom%nrecvcounts_c)
-  delta_phit_c=f_malloc(isize,id='delta_phit_c')
-  isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
-  delta_phit_f=f_malloc(isize,id='delta_phit_f')
-  !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
-  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
-  call uncompressMatrix(iproc,tmb%linmat%denskern)
-  fpulay=0.d0
-  do idir=1,3
-      ! calculate the overlap matrix among hphi and phi_delta_large
-      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-           phi_delta_large(1,idir), delta_phit_c, delta_phit_f, tmb%ham_descr%lzd)
-      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-           hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%ham)
-      tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
-      call uncompressMatrix(iproc,tmb%linmat%ham)
-
-      !!do iorb=1,tmb%orbs%norb
-      !!    do jorb=1,tmb%orbs%norb
-      !!        write(200+iproc,'(2i5,2es16.7)') iorb, jorb, tmb%linmat%ham%matrix(jorb,iorb), tmb%linmat%ham%matrix(iorb,jorb)
-      !!    end do
-      !!end do
-
-      do iiorb=1,tmb%orbs%norb
-          iat=tmb%orbs%onwhichatom(iiorb)
-          tt=0.d0
-          do jorb=1,tmb%orbs%norb
-              !tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
-              tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
-              !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
-          end do  
-          fpulay(idir,iat)=fpulay(idir,iat)+tt
-      end do
-      call f_free_ptr(tmb%linmat%ham%matrix)
-      !deallocate(tmb%linmat%ham%matrix)
-  end do
-  call f_free_ptr(tmb%linmat%denskern%matrix)
-  !deallocate(tmb%linmat%denskern%matrix)
-
-  !!if (iproc==0) then
-  !!    do iat=1,at%astruct%nat
-  !!        write(*,'(a,i5,3es15.5)') 'iat, force', iat, fpulay(1:3,iat)
-  !!    end do
-  !!end if
-  if(iproc==0) then
-       call yaml_comment('new Pulay correction',hfill='-')
-       call yaml_open_sequence('Pulay forces (Ha/Bohr)')
-          do iat=1,at%astruct%nat
-             call yaml_sequence(advance='no')
-             call yaml_open_map(flow=.true.)
-             call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(iat))),fpulay(1:3,iat),fmt='(1es20.12)')
-             call yaml_close_map(advance='no')
-             call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-          end do
-          call yaml_close_sequence()
-  end if
-
-
-    
-call f_free(phi_delta)
-call f_free(phi_delta_large)
-call f_free(hphit_c)
-call f_free(hphit_f)
-call f_free(delta_phit_c)
-call f_free(delta_phit_f)
-!call f_free(fpulay)
 
 call f_release_routine()
 
-end subroutine scalprod_on_boundary
+end subroutine extract_boundary
+
+
+!!subroutine construct_chi(iproc, nproc, tmb, isize_c, isize_f, hphit_c, hphit_f)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc, isize_c, isize_f
+!!  type(DFT_wavefunction),intent(inout) :: tmb
+!!  real(kind=8),dimension(isize_c),intent(out) :: hphit_c
+!!  real(kind=8),dimension(isize_f),intent(out) :: hphit_f
+!!
+!!  ! Local variables
+!!  integer :: isize
+!!  real(kind=8),dimension(:),allocatable :: denskern_tmp
+!!  real(kind=8),dimension(:,:),allocatable :: tempmat
+!!
+!!  call f_routine(id='construct_chi')
+!!
+!!  write(*,*) 'construct_chi, 1'
+!!
+!!  ! Construct the array chi
+!!  tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
+!!  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+!!  call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+!!  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
+!!             tmb%linmat%ovrlp%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
+!!             0.d0, tempmat, tmb%orbs%norb)
+!!  write(*,*) 'construct_chi, 2'
+!!  !call f_free(energykernel)
+!!  call f_free_ptr(tmb%linmat%ovrlp%matrix)
+!!  !isize=sum(tmb%ham_descr%collcom%nrecvcounts_c)
+!!  !hphit_c=f_malloc(isize,id='hphit_c')
+!!  !isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
+!!  !hphit_f=f_malloc(isize,id='hphit_f')
+!!  write(*,*) 'construct_chi, 3'
+!!  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+!!                           tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
+!!  write(*,*) 'construct_chi, 3.1'
+!!  isize=size(tmb%linmat%denskern%matrix_compr)
+!!  denskern_tmp=f_malloc(isize,id='denskern_tmp')
+!!  write(*,*) 'construct_chi, 3.2'
+!!  denskern_tmp=tmb%linmat%denskern%matrix_compr
+!!  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+!!  write(*,*) 'construct_chi, 3.4'
+!!  tmb%linmat%denskern%matrix=tempmat
+!!  write(*,*) 'construct_chi, 4'
+!!  call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+!!  call f_free_ptr(tmb%linmat%denskern%matrix)
+!!  call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+!!       tmb%linmat%denskern, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
+!!  tmb%linmat%denskern%matrix_compr=denskern_tmp
+!!  write(*,*) 'construct_chi, 5'
+!!
+!!  call f_free(tempmat)
+!!  call f_free(denskern_tmp)
+!!  write(*,*) 'construct_chi, 6'
+!!
+!!  call f_release_routine()
+!!  write(*,*) 'construct_chi, 7'
+!!
+!!end subroutine construct_chi

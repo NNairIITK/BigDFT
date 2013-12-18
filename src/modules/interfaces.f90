@@ -4284,7 +4284,7 @@ module module_interfaces
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
           real(kind=8), dimension(:), pointer :: proj
           type(GPU_pointers), intent(inout) :: GPU
-          type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+          type(system_fragment), dimension(:), intent(in) :: ref_frags
         end subroutine input_memory_linear
 
         subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
@@ -4318,7 +4318,7 @@ module module_interfaces
           logical, intent(in) :: add_derivatives
           character(len=*), intent(in) :: input_dir
           type(fragmentInputParameters), intent(in) :: input_frag
-          type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+          type(system_fragment), dimension(:), intent(in) :: ref_frags
         end subroutine reformat_supportfunctions
 
         subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,& 
@@ -5138,6 +5138,18 @@ module module_interfaces
           integer, intent(in) :: iproc
           type(sparseMatrix), intent(inout) :: sparsemat
         end subroutine uncompressMatrix
+
+        subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
+          use module_base
+          use module_types
+          use yaml_output
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(DFT_wavefunction),intent(inout) :: tmb
+          type(orbitals_data),intent(in) :: orbs
+          type(atoms_data),intent(in) :: at
+          real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
+        end subroutine pulay_correction_new
   
   end interface
 END MODULE module_interfaces

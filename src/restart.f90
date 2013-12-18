@@ -2895,7 +2895,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   logical, intent(in) :: add_derivatives
   character(len=*), intent(in) :: input_dir
   type(fragmentInputParameters), intent(in) :: input_frag
-  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+  type(system_fragment), dimension(:), intent(in) :: ref_frags
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat

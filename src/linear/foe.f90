@@ -47,6 +47,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: SminusI
   real(kind=8),dimension(:,:,:),allocatable :: workmat
+  type(sparseMatrix) :: invovrlp
 
   !!real(8),dimension(100000) ::  work, eval, hamtmp, ovrlptmp
 
@@ -91,7 +92,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           end do  
       end do
 
-  else if (order_taylor==2 .or. order_taylor==3) then
+  else if (order_taylor==2 .or. order_taylor==3 .or. order_taylor==4) then
 
       ! Taylor approximation of S^-1/2 up to higher order
       allocate(ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
@@ -149,11 +150,56 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   end if
               end do
           end do
+      else if (order_taylor==4) then
+          do iorb=1,orbs%norb
+              do jorb=1,orbs%norb
+                  if (iorb==jorb) then
+                      ovrlp%matrix(jorb,iorb) = 1.d0 & 
+                                              - 0.5d0*SminusI(jorb,iorb) &
+                                              + 3.d0/8.d0*workmat(jorb,iorb,1) &
+                                              - 5.d0/16.d0*workmat(jorb,iorb,2) &
+                                              + 35.d0/128.d0*workmat(jorb,iorb,3)
+                  else
+                      ovrlp%matrix(jorb,iorb) = -0.5d0*SminusI(jorb,iorb) &
+                                              +3.d0/8.d0*workmat(jorb,iorb,1) &
+                                              -5.d0/16.d0*workmat(jorb,iorb,2) &
+                                              + 35.d0/128.d0*workmat(jorb,iorb,3)
+                  end if
+              end do
+          end do
       end if
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              if (iproc==0) then
+                  write(300,'(2i7,es18.8)') iorb, jorb, ovrlp%matrix(jorb,iorb)
+              end if
+          end do
+      end do
       !write(*,*) 'before compress 1'
       call compress_matrix_for_allreduce(iproc,ovrlp)
       !write(*,*) 'after compress 1'
       ovrlpeff_compr=ovrlp%matrix_compr
+
+      !!! test: exact inversion of the overlap matrix #################################
+      !!if (order_taylor==1) stop 'this test will not work like this!!'
+      !!workmat(:,:,1)=ovrlp%matrix(:,:)
+      !!ovrlp%matrix(:,:)=workmat(:,:,order_taylor) ! get back the original
+      !!call compress_matrix_for_allreduce(iproc,ovrlp)
+      !!call overlapPowerPlusMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, 0, -8, &
+      !!     -8, orbs%norb, ovrlp, fermi, .false.)
+      !!allocate(fermi%matrix(orbs%norb,orbs%norb))
+      !!call uncompressMatrix(iproc,fermi)
+      !!anoise=0.d0
+      !!do iorb=1,orbs%norb
+      !!    do jorb=1,orbs%norb
+      !!        anoise=(workmat(jorb,iorb,1)-fermi%matrix(jorb,iorb))**2
+      !!    end do
+      !!end do
+      !!deallocate(fermi%matrix)
+      !!if (iproc==0) write(*,*) 'square dev from exact result', anoise
+      !!allocate(ovrlp%matrix(orbs%norb,orbs%norb))
+      !!! end test ####################################################################
+
       ovrlp%matrix(:,:)=workmat(:,:,order_taylor) ! get back the original
       call compress_matrix_for_allreduce(iproc,ovrlp)
       iall=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
