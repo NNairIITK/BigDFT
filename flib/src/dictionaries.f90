@@ -1006,7 +1006,7 @@ contains
      else 
         read(tmp(1:pfr-1),*,iostat=ierror) num
         read(tmp(pfr+1:psp),*,iostat=ierror) den
-        if (ierror == 0) var=real(num)/real(den)
+        if (ierror == 0) var=dble(num)/dble(den)
      end if
      !Value by defaut
      if (ierror /= 0) var = huge(1.d0) 
