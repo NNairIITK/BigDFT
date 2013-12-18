@@ -3501,7 +3501,7 @@ end subroutine build_ks_orbitals
 subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => pulay_correction_new
   use yaml_output
   implicit none
 
@@ -3526,7 +3526,6 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   phi_delta=f_malloc0((/tmb%npsidim_orbs,3/),id='phi_delta')
   ! Get the values of the support functions on the boundary of the localization region
   call extract_boundary(tmb, phi_delta)
-  write(*,*) 'after extract'
 
 
   ! calculate the "energy kernel"
@@ -3540,7 +3539,6 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
           end do
       end do
   end do
-  write(*,*) 'after kernel'
 
   ! calculate the overlap matrix
   if(.not.associated(tmb%psit_c)) then
