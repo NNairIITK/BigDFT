@@ -595,7 +595,7 @@ highertaylor_experimental_order3:
 
 highertaylor_experimental_order4:
  Atomic Forces (Ha/Bohr): 5.0e-9
- Average noise forces: 2.1e-9
+ Average noise forces: 2.2e-9
  Clean forces norm (Ha/Bohr): 5.0e-9
  Raw forces norm (Ha/Bohr): 3.5e-9
  EH: 2.0e-7
@@ -605,17 +605,17 @@ highertaylor_experimental_order4:
  Epot: 1.9e-7
  EvXC: 5.2e-8
  det: 1.4e-1
- Tr(K): 1.9e-2
- D Tr: 1.3e-2
+ Tr(K): 2.4e-2
+ D Tr: 1.5e-2
  D eF: 3.2e-2
  bisec/eval bounds: 3.2e-2
- charge diff: 1.9e-2
+ charge diff: 2.4e-2
  eF: 3.2e-2
  energy: 2.9e-8
  multiplicator for the confinement: 4.9e-10
  Omega: 1.5e-7
  Total charge: 2.1e-11
- D: 1.1e-10
+ D: 1.1e-9
 
 newpulay:
  EXC: 1.1e-10
