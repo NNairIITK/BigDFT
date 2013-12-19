@@ -910,7 +910,7 @@ contains
        J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
     end do
 
-    if (J>1.0e-4) then
+    if (J>1.0e-3) then
        print*,"Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
     end if
 
@@ -1284,6 +1284,7 @@ contains
   subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
     nstates_max,cdft)
     use yaml_output
+    use module_base
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
     type(input_variables), intent(in) :: input
@@ -1296,9 +1297,11 @@ contains
     logical, intent(in) :: cdft
 
     integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, iall, istat, num_extra_per_frag, ierr
+    integer, allocatable, dimension(:) :: ipiv
     real(gp), dimension(:,:), allocatable :: coeff_final, ks, ksk
     !*real(gp), dimension(:), allocatable :: kernel_final
     real(gp) :: nonidem, nelecorbs, nelecfrag_tot, jstate_max, homo_diff, lag_mult
+    real(gp), dimension(:), allocatable :: eval_tmp, eval_tmp2
     character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
 
     integer :: rand_size
@@ -1314,7 +1317,10 @@ contains
 
     ! need to do this properly/rearrange routines
     if (cdft) then
-       homo_diff=(ref_frags(1)%eval(ceiling(ref_frags(1)%nelec/2.0_gp))-ref_frags(2)%eval(ceiling(ref_frags(2)%nelec/2.0_gp)))/2.0d0
+       ! otherwise doesn't make sense
+       if (input%frag%nfrag==2) homo_diff=(ref_frags(1)%eval(ceiling(ref_frags(1)%nelec/2.0_gp))&
+            -ref_frags(2)%eval(ceiling(ref_frags(2)%nelec/2.0_gp)))/2.0d0
+       !if (cdft%charge<0) lag_mult=-0.5, otherwise +0.5
        lag_mult=-0.05d0
     else
        homo_diff=0.0d0
@@ -1327,11 +1333,14 @@ contains
 
     rmax=0.2d0
     random_noise=0.0d0
+    rtime=0.0d0
     if (random .or. completely_random) then
        call random_seed(size=rand_size)
        allocate(rand_seed(1:rand_size))
        call date_and_time(time=sys_time)
-       read(sys_time,*) rtime
+       ! coeffs need to be the same across processors
+       if (iproc==0) read(sys_time,*) rtime
+       if (bigdft_mpi%nproc>1) call mpiallred(rtime, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
        rand_seed=int(rtime*1000.0_dp)
        call random_seed(put=rand_seed)
        deallocate(rand_seed) 
@@ -1370,7 +1379,7 @@ contains
     end if
 
 
-
+    eval_tmp=f_malloc(tmb%orbs%norb,id='eval_tmp')
     coeff_final=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_final')
     !*kernel_final=f_malloc(tmb%linmat%denskern%nvctr,id='kernel_final')
     !ref_frags(ifrag_ref)%kernel=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ref_frags(ifrag_ref)%kernel')
@@ -1417,14 +1426,14 @@ contains
        ifrag_ref=input%frag%frag_index(ifrag)
        call razero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
-       !jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp
-       jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
+       jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp+num_extra_per_frag
+       !jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
        do jtmb=1,ceiling(jstate_max)
 
           if (random .or. completely_random) then ! want random mixing across fragments in both cases
-             call random_number(random_noise)
-             random_noise=((random_noise-0.5d0)*2.0d0)*rmax
              do itmb=1,isforb
+                call random_number(random_noise)
+                random_noise=((random_noise-0.5d0)*2.0d0)*rmax
                 tmb%coeff(itmb,jtmb)=random_noise
              end do
           end if
@@ -1443,17 +1452,20 @@ contains
           end do
 
           if (random .or. completely_random) then ! want random mixing across fragments in both cases
-             call random_number(random_noise)
-             random_noise=((random_noise-0.5d0)*2.0d0)*rmax
              do itmb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb+1,tmb%orbs%norb
+                 call random_number(random_noise)
+                 random_noise=((random_noise-0.5d0)*2.0d0)*rmax
                 tmb%coeff(itmb,jtmb)=random_noise
              end do
           end if
 
-          if (ceiling(jstate_max)/=jstate_max.and.jtmb==jstate_max) then
+          if (ceiling(jstate_max)/=jstate_max.and.jtmb==ceiling(jstate_max)) then
              tmb%orbs%occup(jtmb+jsforb)=(jstate_max*2.0d0)-2*(ceiling(jstate_max)-1)
+             ! want partly occupied states to be last of unoccupied
+             eval_tmp(jsforb+jtmb)=tmb%orbs%eval(jsforb+jtmb)+10.0d0
           else
              tmb%orbs%occup(jtmb+jsforb)=2.0d0
+             eval_tmp(jsforb+jtmb)=tmb%orbs%eval(jsforb+jtmb)
           end if
           !if (bigdft_mpi%iproc==0) print*,'ifrag,jtmb,occ,iorb',ifrag,jtmb,tmb%orbs%occup(jtmb+jsforb),jtmb+jsforb
        end do
@@ -1475,7 +1487,7 @@ contains
        ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
-            tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap, &
+            tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, 0,&
             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
 
        !! debug
@@ -1559,14 +1571,14 @@ contains
     do ifrag=1,input%frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
-       !jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp
-       jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
+       jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp+num_extra_per_frag
+       !jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
        do jtmb=ceiling(jstate_max)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           if (random .or. completely_random) then ! want random mixing across fragments in both cases
-             call random_number(random_noise)
-             random_noise=((random_noise-0.5d0)*2.0d0)*rmax
              do itmb=1,isforb
-                tmb%coeff(itmb,jtmb)=random_noise
+                call random_number(random_noise)
+                random_noise=((random_noise-0.5d0)*2.0d0)*rmax
+                tmb%coeff(itmb,jsforb+jtmb-ceiling(jstate_max))=random_noise
              end do
           end if
 
@@ -1581,13 +1593,14 @@ contains
                 tmb%coeff(isforb+itmb,jsforb+jtmb-ceiling(jstate_max))=random_noise
              end if
              tmb%orbs%eval(jsforb+jtmb-ceiling(jstate_max))=ref_frags(ifrag_ref)%eval(jtmb)-((-1)**(ifrag))*lag_mult-homo_diff
+             eval_tmp(jsforb+jtmb-ceiling(jstate_max))=tmb%orbs%eval(jsforb+jtmb-ceiling(jstate_max))+20.0d0
           end do
 
           if (random .or. completely_random) then ! want random mixing across fragments in both cases
-             call random_number(random_noise)
-             random_noise=((random_noise-0.5d0)*2.0d0)*rmax
              do itmb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb+1,tmb%orbs%norb
-                tmb%coeff(itmb,jtmb)=random_noise
+                call random_number(random_noise)
+                random_noise=((random_noise-0.5d0)*2.0d0)*rmax
+                tmb%coeff(itmb,jsforb+jtmb-ceiling(jstate_max))=random_noise
              end do
           end if
 
@@ -1608,10 +1621,40 @@ contains
 
        ! reorder unoccupied states so that extra states functions correctly
        ! still needed just in case number of empty bands doesn't divide by number of fragments
+       ipiv=f_malloc(tmb%orbs%norb,id='ipiv')
        call order_coeffs_by_energy(tmb%orbs%norb-nstates_max,tmb%orbs%norb,tmb%coeff(1,nstates_max+1),&
-            tmb%orbs%eval(nstates_max+1))
+            eval_tmp(nstates_max+1),ipiv(1))!,tmb%orbs%eval(nstates_max+1))
+       eval_tmp2=f_malloc(tmb%orbs%norb-nstates_max,id='eval_tmp2')
+       call dcopy(tmb%orbs%norb-nstates_max,tmb%orbs%eval(nstates_max+1),1,eval_tmp2(1),1)
+       do itmb=nstates_max+1,tmb%orbs%norb
+          tmb%orbs%eval(itmb)=eval_tmp2(ipiv(itmb-nstates_max))
+       end do
+       call dcopy(tmb%orbs%norb-nstates_max,tmb%orbs%occup(nstates_max+1),1,eval_tmp2(1),1)
+       do itmb=nstates_max+1,tmb%orbs%norb
+          tmb%orbs%occup(itmb)=eval_tmp2(ipiv(itmb-nstates_max))
+       end do
+       call f_free(eval_tmp2)
        ! reorder ksorbs%norb states by energy - no longer taking charge as input
-       call order_coeffs_by_energy(ksorbs%norb,tmb%orbs%norb,tmb%coeff(1,1),tmb%orbs%eval(1))    
+       call order_coeffs_by_energy(ksorbs%norb,tmb%orbs%norb,tmb%coeff(1,1),eval_tmp(1),ipiv(1))!,tmb%orbs%eval(1))
+               !eval_tmp2=f_malloc(tmb%orbs%norb,id='eval_tmp2')
+               !call dcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,eval_tmp2(1),1)
+               !do itmb=1,ksorbs%norb
+               !   tmb%orbs%occup(itmb)=eval_tmp2(ipiv(itmb))
+               !end do
+               !call dcopy(tmb%orbs%norb,tmb%orbs%eval(1),1,eval_tmp2(1),1)
+               !call dcopy(tmb%orbs%norb,eval_tmp(1),1,tmb%orbs%eval(1),1)
+               !nullify(mom_vec_fake)
+               !if (bigdft_mpi%iproc==0) then 
+               !   call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
+               !end if
+               !call dcopy(tmb%orbs%norb,eval_tmp2(1),1,tmb%orbs%eval(1),1)
+               !call f_free(eval_tmp2)
+       call dcopy(ksorbs%norb,tmb%orbs%eval(1),1,eval_tmp(1),1)
+       do itmb=1,ksorbs%norb
+          tmb%orbs%eval(itmb)=eval_tmp(ipiv(itmb))
+       end do
+       call f_free(eval_tmp)
+       call f_free(ipiv)
        ! debug
        !do itmb=1,tmb%orbs%norb
        !   do jtmb=1,tmb%orbs%norb

@@ -1131,7 +1131,7 @@ subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrd
           end if
       else
           
-          allocate(work(10), stat=istat)
+          allocate(work(10000), stat=istat)
           call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, -1, info)
 
           lwork = nint(work(1))

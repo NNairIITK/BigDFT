@@ -1067,6 +1067,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ham_small,input%lin%extra_states,itout,0,0)
+
+       if (bigdft_mpi%iproc ==0) then 
+          call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
+       end if
   end if
 
   if (input%lin%fragment_calculation .and. input%frag%nfrag>1) then

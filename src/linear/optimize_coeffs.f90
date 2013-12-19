@@ -205,7 +205,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !can't put coeffs directly in ksorbs%eval as intent in, so change after - problem with orthonormality of coeffs so adding extra
      !call find_eval_from_coeffs(iproc, nproc, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, &
      !     tmb%coeff, tmb%orbs%eval, .true., .true.)
-     !call order_coeffs_by_energy(orbs%norb,tmb%orbs%norb,tmb%coeff,tmb%orbs%eval)
+     !ipiv=f_malloc(tmb%orbs%norb,id='ipiv')
+     !call order_coeffs_by_energy(orbs%norb,tmb%orbs%norb,tmb%coeff,tmb%orbs%eval,ipiv)
+     !call f_free(ipiv)
      !!!!!!!!!!!!!!!!!!!!!!!!
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energy,&
@@ -342,7 +344,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
      call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
-          .false.,tmb%orthpar%methTransformOverlap)
+          .false.,0)!tmb%orthpar%methTransformOverlap)
      allocate(weight_matrix%matrix(weight_matrix%full_dim1,weight_matrix%full_dim1), stat=istat)
      call memocc(istat, weight_matrix%matrix, 'weight_matrix%matrix', subname)
      call uncompressmatrix(iproc,weight_matrix)
@@ -529,20 +531,22 @@ end subroutine calculate_coeffMatcoeff
 
  
   ! not really fragment related so prob should be moved - reorders coeffs by eval
-  subroutine order_coeffs_by_energy(nstate,ntmb,coeff,eval)
+  ! output ipiv in case want to use it for something else
+  subroutine order_coeffs_by_energy(nstate,ntmb,coeff,eval,ipiv)
     use module_base
     use module_types
     implicit none
     integer, intent(in) :: nstate, ntmb
     real(kind=gp), dimension(ntmb,nstate), intent(inout) :: coeff
     real(kind=gp), dimension(nstate), intent(inout) :: eval
+    integer, dimension(nstate), intent(out) :: ipiv
 
     integer :: itmb, jorb
-    integer, allocatable, dimension(:) :: ipiv
+    !integer, allocatable, dimension(:) :: ipiv
     real(gp), dimension(:), allocatable :: tmp_array
     real(gp), dimension(:,:), allocatable :: tmp_array2
 
-    ipiv=f_malloc(nstate,id='coeff_final')
+    !ipiv=f_malloc(nstate,id='coeff_final')
     tmp_array=f_malloc(nstate,id='tmp_array')
 
     do itmb=1,nstate
@@ -572,7 +576,7 @@ end subroutine calculate_coeffMatcoeff
     end do
 
     call f_free(tmp_array2)
-    call f_free(ipiv)
+    !call f_free(ipiv)
 
   end subroutine order_coeffs_by_energy
 

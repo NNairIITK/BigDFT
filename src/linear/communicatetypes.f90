@@ -176,6 +176,7 @@ end subroutine communicate_locreg_descriptors_basics
 subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
    use module_base
    use module_types
+   use yaml_output
    implicit none
 
    ! Calling arguments
@@ -183,12 +184,11 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    type(locreg_descriptors),intent(in) :: glr
    type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
    type(orbitals_data),intent(in) :: orbs
-   integer,dimension(orbs%norb),intent(in) :: rootarr
+   integer,dimension(nlr),intent(in) :: rootarr
    integer,dimension(orbs%norb),intent(in) :: onwhichmpi
 
    ! Local variables
-   integer:: ierr, istat, iall, iorb, jorb, ilr, jlr, itask, jtask, root, icomm, nrecv, nalloc
-   integer :: iiorb
+   integer:: ierr, istat, iall, jorb, ilr, jlr, itask, jtask, root, icomm, nrecv, nalloc, max_sim_comms
    logical :: isoverlap
    character(len=*),parameter:: subname='communicate_wavefunctions_descriptors2'
    integer,dimension(:),allocatable :: requests
@@ -202,8 +202,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
 
    nrecv=0
    icomm=0
-   do iorb=1,orbs%norb
-       ilr=orbs%inwhichlocreg(iorb)
+   do ilr=1,nlr
        root=rootarr(ilr)
        covered(ilr,:)=.false.
        do jorb=1,orbs%norb
@@ -218,34 +217,34 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                covered(ilr,jtask)=.true.
                if (iproc == root) then
                   !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
-                  !    jtask,' with tags ',4*iorb+0,'-',4*iorb+3
+                  !    jtask,' with tags ',4*ilr+0,'-',4*ilr+3
                   icomm=icomm+1
                   call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask,&
-                       4*iorb+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                       4*ilr+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
                   icomm=icomm+1
                   call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtask,&
-                       4*iorb+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                       4*ilr+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
                   icomm=icomm+1
                   call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtask, &
-                       4*iorb+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                       4*ilr+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
                   icomm=icomm+1
                   call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, &
-                       4*iorb+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                       4*ilr+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
                else if (iproc == jtask) then
                   !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
-                  !    root,' with tags ',4*iorb+0,'-',4*iorb+3
+                  !    root,' with tags ',4*ilr+0,'-',4*ilr+3
                   icomm=icomm+1
                   call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,&
-                       4*iorb+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                       4*ilr+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
                   icomm=icomm+1
                   call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,&
-                       4*iorb+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                       4*ilr+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
                   icomm=icomm+1
                   call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,&
-                       4*iorb+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                       4*ilr+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
                   icomm=icomm+1
                   call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,&
-                       4*iorb+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                       4*ilr+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
                   nrecv=nrecv+1
                end if
            end if
@@ -261,51 +260,60 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
          nalloc=nalloc+1
       end if
    end do
-   if (nalloc /= nrecv) write(*,'(3(a,i0))') 'problem in communicate locregs: mismatch in receives ',&
-        nrecv,' and allocates ',nalloc,' for process ',iproc
+   if (f_err_raise(nalloc /= nrecv,'problem in communicate locregs: mismatch in receives '//&
+        trim(yaml_toa(nrecv))//' and allocates '//trim(yaml_toa(nalloc))//' for process '//trim(yaml_toa(iproc)),&
+        err_name='BIGDFT_RUNTIME_ERROR')) return
    call mpi_barrier(mpi_comm_world,ierr)
 
+   ! divide communications into chunks to avoid problems with memory (too many communications)
+   ! set maximum number of simultaneous communications
+   max_sim_comms=500
    icomm=0
-   do iorb=1,orbs%norb
-      ilr=orbs%inwhichlocreg(iorb)
+   do ilr=1,nlr
       root=rootarr(ilr)
       do jtask=0,nproc-1
          if (.not. covered(ilr,jtask)) cycle
          if (iproc == root) then
            !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
-           !     jtask,' with tags ',4*iorb+0,'-',4*iorb+3
+           !     jtask,' with tags ',4*ilr+0,'-',4*ilr+3
            icomm=icomm+1
            call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                jtask, 4*iorb+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                jtask, 4*ilr+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
            icomm=icomm+1
            call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                jtask, 4*iorb+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                jtask, 4*ilr+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
            icomm=icomm+1
            call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                jtask, 4*iorb+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                jtask, 4*ilr+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
            icomm=icomm+1
            call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                jtask, 4*iorb+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                jtask, 4*ilr+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
          else if (iproc == jtask) then
             !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
-            !    root,' with tags ',4*iorb+0,'-',4*iorb+3
+            !    root,' with tags ',4*ilr+0,'-',4*ilr+3
             icomm=icomm+1
             call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                 root, 4*iorb+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                 root, 4*ilr+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
             icomm=icomm+1
             call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                 root, 4*iorb+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                 root, 4*ilr+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
             icomm=icomm+1
             call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                 root, 4*iorb+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                 root, 4*ilr+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
             icomm=icomm+1
             call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                 root, 4*iorb+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                 root, 4*ilr+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
          end if
       end do
+      if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+         call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+         if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
+              trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
+              err_name='BIGDFT_RUNTIME_ERROR')) return
+         call mpi_barrier(mpi_comm_world,ierr)
+         icomm=0
+      end if
    end do
-
-   call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
 
    iall=-product(shape(requests))*kind(requests)
    deallocate(requests,stat=istat)
