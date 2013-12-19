@@ -48,6 +48,7 @@ reformat_read.out.out : reformat_write.out.out
 reformat_write.out.post-out: 
 	rm -rf data-read
 	mv -f data-write data-read
+	rm data-read/tmbisf*.dat
 
 deltascf_read_charge.out.out : deltascf_write_neut.out.out
 

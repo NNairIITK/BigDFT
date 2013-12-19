@@ -903,6 +903,7 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
   integer:: iorb, jorb
   real(8):: error
 
+  call timing(iproc,'dev_from_unity','ON') 
   deviation=0.d0
   do iorb=1,norb
      do jorb=1,norb
@@ -916,6 +917,7 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
         end if
      end do
   end do
+  call timing(iproc,'dev_from_unity','OF') 
 
 end subroutine deviation_from_unity
 
@@ -1108,7 +1110,7 @@ subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrd
 
   call timing(iproc,'lovrlp^-1/2old','ON')
 
-
+  ! this first option is called from coeff_weight_analysis and for constrained DFT, needs optimizing!
   if(methTransformOrder==0) then
   
       call vcopy(norb*norb,ovrlp(1,1),1,inv_ovrlp_half(1,1),1)
@@ -1129,7 +1131,7 @@ subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrd
           end if
       else
           
-          allocate(work(10), stat=istat)
+          allocate(work(10000), stat=istat)
           call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, -1, info)
 
           lwork = nint(work(1))
@@ -1185,6 +1187,7 @@ subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrd
       ! Calculate S^{-1/2}. 
       ! First calculate ovrlp*diag(1/sqrt(eval)) (ovrlp is the diagonalized overlap
       ! matrix and diag(1/sqrt(eval)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
+      !$omp parallel do default(private) shared(tempArr,inv_ovrlp_half,norb,plusminus,eval)
       do iorb=1,norb
           do jorb=1,norb
               if (plusminus) then
@@ -1194,6 +1197,7 @@ subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrd
               end if
           end do
       end do
+      !$omp end parallel do
       
       ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
       ! This will give S^{-1/2}.
