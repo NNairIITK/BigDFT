@@ -168,13 +168,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               end do
           end do
       end if
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              if (iproc==0) then
-                  write(300,'(2i7,es18.8)') iorb, jorb, ovrlp%matrix(jorb,iorb)
-              end if
-          end do
-      end do
+      !!do iorb=1,orbs%norb
+      !!    do jorb=1,orbs%norb
+      !!        if (iproc==0) then
+      !!            write(300,'(2i7,es18.8)') iorb, jorb, ovrlp%matrix(jorb,iorb)
+      !!        end if
+      !!    end do
+      !!end do
       !write(*,*) 'before compress 1'
       call compress_matrix_for_allreduce(iproc,ovrlp)
       !write(*,*) 'after compress 1'

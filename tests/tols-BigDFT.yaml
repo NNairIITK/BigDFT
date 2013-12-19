@@ -595,15 +595,15 @@ highertaylor_experimental_order3:
 
 highertaylor_experimental_order4:
  Atomic Forces (Ha/Bohr): 5.0e-9
- Average noise forces: 2.2e-9
+ Average noise forces: 2.5e-9
  Clean forces norm (Ha/Bohr): 5.0e-9
  Raw forces norm (Ha/Bohr): 3.5e-9
  EH: 2.0e-7
- EXC: 3.9e-8
+ EXC: 4.3e-8
  Ekin: 2.4e-8
  Enl: 2.7e-9
  Epot: 1.9e-7
- EvXC: 5.2e-8
+ EvXC: 5.7e-8
  det: 1.4e-1
  Tr(K): 2.4e-2
  D Tr: 1.5e-2

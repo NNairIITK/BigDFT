@@ -73,11 +73,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !!! EXPERIMENTAL ############################################
   type(sparseMatrix) :: denskern_init
   real(8),dimension(:),allocatable :: rho_init, rho_init_old, philarge
-  real(8) :: tt, ddot, tt_old, meanconf_der
+  real(8) :: tt, ddot, tt_old, meanconf_der, weight_boundary, weight_tot
   integer :: idens_cons, ii, sdim, ldim, npsidim_large, ists, istl, nspin, unitname, ilr
   real(8),dimension(10000) :: meanconf_array
   character(len=5) :: num
   character(len=50) :: filename
+  real(kind=8),dimension(:,:),allocatable :: phi_delta
   !!! #########################################################
 
   ! DEBUG - for calculating centres
@@ -685,6 +686,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call yaml_comment('kernel iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
              if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
+                !!! TEST ###############################################################
+                !!phi_delta=f_malloc0((/tmb%npsidim_orbs,3/),id='phi_delta')
+                !!! Get the values of the support functions on the boundary of the localization region
+                !!call extract_boundary(tmb, phi_delta)
+                !!weight_boundary=ddot(3*tmb%npsidim_orbs, phi_delta(1,1), 1, phi_delta(1,1), 1)
+                !!call mpiallred(weight_boundary, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                !!weight_boundary=sqrt(weight_boundary/tmb%orbs%norb)
+                !!weight_tot=ddot(tmb%npsidim_orbs, tmb%psi(1), 1, tmb%psi(1), 1)
+                !!call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                !!weight_tot=sqrt(weight_tot/tmb%orbs%norb)
+                !!if (iproc==0) write(*,'(a,3es12.4)') 'weight boundary, weight tot, ratio', &
+                !!    weight_boundary, weight_tot, weight_boundary/weight_tot
+                !!call f_free(phi_delta)
+                !!! END TEST ###########################################################
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,update_phi,&
