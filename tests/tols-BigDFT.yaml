@@ -308,7 +308,7 @@ cleanup:
  EXC: 4.7e-10
  EvXC: 8.7e-10
  Omega: 5.9e-10
- Pulay Forces (Ha/Bohr): 2.9e-10
+ Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.8e-10
 
 directmin:
@@ -321,17 +321,17 @@ directmin:
 experimentalmode:
  D: 1.1e-06
  Epsilon: 8.e-10
- Ekin: 9.2e-07
+ Ekin: 9.4e-07
  Enl: 1.1e-07
  Omega: 4.1e-06
- EH: 4.1e-05
- Epot: 3.6e-05
- EXC: 7.8e-06
+ EH: 4.2e-05
+ Epot: 3.7e-05
+ EXC: 7.9e-06
  EvXC: 1.1e-05
- energy: 4.2e-07
+ energy: 4.3e-07
  multiplicator for the confinement: 2.4e-07
  Atomic Forces (Ha/Bohr): 8.7e-08
- Raw forces norm (Ha/Bohr): 9.9e-8
+ Raw forces norm (Ha/Bohr): 1.1e-7
  Clean forces norm (Ha/Bohr): 1.1e-07
  Orbitals: 1.1e-06
  Average noise forces: 2.3e-08
@@ -347,8 +347,17 @@ restartdisk_read:
 
 H2-freq:
  (F) Frequencies (Hartree): 5.e-10
+
+rotate_read1:
+ eBS: 1.2e-11
+ EvXC: 1.1e-10
+
+rotate_read2:
+ eBS: 1.2e-11
+ orthog_energy: 9.9e-10
  
 rotate_write:
+ EvXC: 1.1e-10
  Patterns to ignore:
  - Wavefunction written
 
@@ -375,17 +384,37 @@ rotatesmall_read:
 
 molecule_dmix:
  Enl: 1.1e-10
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ energy: 2.7e-11
+ Omega: 1.1e-10
 
 molecule_pmix:
  Enl: 1.1e-10
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ Total charge: 1.1e-10
+ energy: 4.4e-11
+ Omega: 1.1e-10
 
 molecule_dmin:
- eBS: 5.1e-11
+ eBS: 6.3e-11
  Enl: 1.1e-10
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ energydiff: 1.3e-11
+ energy: 2.5e-11
+ Omega: 1.1e-10
 
 molecule_foe:
  Enl: 1.1e-10
  Epot: 1.1e-9
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ charge diff: 1.1e-10
+ energy: 3.0e-11
+ Omega: 2.5e-10
+ Total charge: 2.5e-10
 
 hybrid-directmin:
  Epsilon: 1.4e-11
@@ -393,9 +422,9 @@ hybrid-directmin:
  eBS: 2.8e-09
  Omega: 2.9e-09
  energy: 4.4e-09
- multiplicator for the confinement: 7.3e-11
+ multiplicator for the confinement: 8.7e-11
  Epot: 3.1e-09
- EH: 3.0e-9
+ EH: 3.1e-9
  EXC: 3.1e-10
  EvXC: 4.1e-10
  Ekin: 1.1e-09
@@ -414,6 +443,7 @@ cdft_oh-a:
 fructose:
  Epot: 1.1e-09
  Ekin: 1.1e-09
+ Enl: 1.01e-10
  Epsilon: 1.1e-11
  D: 1.1e-10
  D eF: 1.1e-9
@@ -443,14 +473,45 @@ geopt_diag:
 
 water_foe:
  EvXC: 1.1e-10
+ EXC: 1.1e-10
+ EH: 1.1e-9
+
+water_dirmin:
+ max alpha: 1.1e-04
+ mean alpha: 1.1e-03
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ Keys to ignore:
+  - WARNINGS
+
+water_mixdens:
+ EvXC: 1.1e-10
+ EXC: 1.1e-10
+ D: 1.1e-10
+ Keys to ignore:
+  - WARNINGS
+
+water_mixpot:
+ EvXC: 1.1e-10
+ EXC: 1.1e-10
+ Keys to ignore:
+  - WARNINGS
 
 deltascf_read_charge:
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
  Epot: 1.1e-09
  eBS: 2.6e-11
  Total ionic charge: 1.5e-11
 
 deltascf_write_neut:
- eBS: 1.7e-11
+ eBS: 1.1e-10
+ EH: 1.1e-9
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ Ekin: 1.1e-09
+ Epot: 1.1e-09
+ Omega: 1.4e-10
  Total ionic charge: 1.4e-11
 
 foe:
@@ -477,8 +538,98 @@ rotatesmall_read2:
 linearcubic_cubic:
  Epsilon: 1.1e-10
  Ekin: 1.0e-9
+ EH: 1.01e-9
+ energy: 1.83e-10
+ EKS: 2.44e-10
 
 linearcubic_linear:
  Epsilon: 1.1e-10
  EH: 1.0-e9
  Epot: 1.01e-9
+ energy: 1.83e-10
+ Omega: 1.81e-10
+
+highertaylor_experimental_order2:
+ Atomic Forces (Ha/Bohr): 1.8e-8
+ Average noise forces: 5.3e-9
+ Clean forces norm (Ha/Bohr): 1.9e-8
+ Raw forces norm (Ha/Bohr): 2.0e-08
+ charge diff: 2.3e-06
+ multiplicator for the confinement: 5.3e-10
+ Omega: 1.3e-06
+ Tr(K): 2.3e-06
+ eF: 6.9e-08
+ D Tr: 1.8e-06
+ D eF: 7.2e-08
+ energy: 1.6e-07
+ EH: 1.5e-06
+ EXC: 3.0e-07
+ Ekin: 1.3e-07
+ Enl: 1.6e-08
+ Epot: 1.4e-06
+ EvXC: 3.9e-07
+ D: 1.1e-07
+ Total charge: 3.1e-11
+
+highertaylor_experimental_order3:
+ Atomic Forces (Ha/Bohr): 1.4e-8
+ Average noise forces: 3.5e-09
+ Clean forces norm (Ha/Bohr): 1.7e-08
+ Raw forces norm (Ha/Bohr): 1.8e-08
+ charge diff: 2.3e-06
+ multiplicator for the confinement: 5.1e-10
+ Omega: 1.2e-06
+ Tr(K): 2.3e-06
+ eF: 5.8e-08
+ D Tr: 1.5e-06
+ D eF: 6.1e-08
+ energy: 1.4e-07
+ EH: 1.5e-06
+ EXC: 2.9e-07
+ Ekin: 1.2e-07
+ Enl: 1.4e-08
+ Epot: 1.3e-06
+ EvXC: 3.8e-07
+ D: 2.1e-10
+ delta: 1.1e-10
+
+highertaylor_experimental_order4:
+ Atomic Forces (Ha/Bohr): 5.0e-9
+ Average noise forces: 2.5e-9
+ Clean forces norm (Ha/Bohr): 5.0e-9
+ Raw forces norm (Ha/Bohr): 3.5e-9
+ EH: 2.0e-7
+ EXC: 4.3e-8
+ Ekin: 2.4e-8
+ Enl: 2.7e-9
+ Epot: 1.9e-7
+ EvXC: 5.7e-8
+ det: 1.4e-1
+ Tr(K): 2.4e-2
+ D Tr: 1.5e-2
+ D eF: 3.2e-2
+ bisec/eval bounds: 3.2e-2
+ charge diff: 2.4e-2
+ eF: 3.2e-2
+ energy: 2.9e-8
+ multiplicator for the confinement: 4.9e-10
+ Omega: 1.5e-7
+ Total charge: 2.1e-11
+ D: 1.1e-9
+
+newpulay:
+ EXC: 1.1e-10
+ energy: 1.1e-9
+ Omega: 1.1e-9
+ Ekin: 1.1e-9
+ Enl: 1.1e-10
+ Total ionic charge: 1.8e-11
+
+paracetamol:
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ eF: 1.1e-10
+ Epot: 1.1e-09
+
+reformatcomplete_write:
+ Epot: 1.1e-10

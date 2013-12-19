@@ -81,6 +81,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   integer :: itype, jtype, ios, ierr, iat, npt, iiorb, iorb, nlr, istat
   real(gp):: ppao, ppl, pph, lrl, lrh, kco
   real(gp),dimension(atoms%astruct%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
+  type(dictionary), pointer :: dict
+
+  !this variable is temporay for the moment, it should integrate the input dictionary
+  call dict_init(dict)
 
   !Linear input parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Linear Parameters')  
@@ -88,12 +92,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   ! number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
   comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
-  call input_var(in%lin%nlevel_accuracy,'2',ranges=(/1,2/),comment=comments)
+  call input_var(in%lin%nlevel_accuracy,'2',dict//'nlevel_accuracy',ranges=(/1,2/),comment=comments)
 
   ! number of iterations
   comments = 'outer loop iterations (low, high)'
-  call input_var(in%lin%nit_lowaccuracy,'15',ranges=(/0,100000/))
-  call input_var(in%lin%nit_highaccuracy,'1',ranges=(/0,100000/),comment=comments)
+  call input_var(in%lin%nit_lowaccuracy,'15',dict//'nit_lowaccuracy',ranges=(/0,100000/))
+  call input_var(in%lin%nit_highaccuracy,'1',dict//'nit_highaccuracy',ranges=(/0,100000/),comment=comments)
 
   comments = 'basis iterations (low, high)'
   call input_var(in%lin%nItBasis_lowaccuracy,'12',ranges=(/0,100000/))
@@ -169,8 +173,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%evlow,'-.5d0',ranges=(/-10.d0,-1.d-10/))
   call input_var(in%lin%evhigh,'-.5d0',ranges=(/1.d-10,10.d0/),comment=comments)
 
-  comments='number of iterations in the preconditioner'
-  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/),comment=comments)
+  comments='number of iterations in the preconditioner, order of Taylor approximations'
+  call input_var(in%lin%nItPrecond,'5',ranges=(/1,100/))
+  call input_var(in%lin%order_taylor,'1',ranges=(/1,4/),comment=comments)
   
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
@@ -182,13 +187,19 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-           'calculate dipole ; pulay correction; diagonalization at the end (dmin, FOE)'
+           'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
   call input_var(in%lin%plotBasisFunctions,'0',ranges=(/0,3/))
   call input_var(in%lin%calc_dipole,'F')
   call input_var(in%lin%pulay_correction,'T')
+  call input_var(in%lin%new_pulay_correction,'F')
   call input_var(in%lin%diag_end,'F',comment=comments)
   ! not sure whether to actually make this an input variable or not so just set to false for now
   in%lin%diag_start=.false.
+
+  ! It is not possible to use both the old and the new Pulay correction at the same time
+  if (in%lin%pulay_correction .and. in%lin%new_pulay_correction) then
+      stop 'It is not possible to use both the old and the new Pulay correction at the same time!'
+  end if
 
 
   !fragment calculation and transfer integrals: true or false
@@ -289,6 +300,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
       end do
   end do
   
+
+  call dict_free(dict)
 
   call input_free((iproc == 0) .and. dump)
 END SUBROUTINE lin_input_variables_new

@@ -793,7 +793,7 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   iiimin=0
   isegmin=0
 
-  ! Initialize the retun values
+  ! Initialize the return values
   ixmax=0
   iymax=0
   izmax=0

@@ -41,6 +41,7 @@ subroutine bigdft_set_input(radical,posinp,in,atoms)
   call read_input_dict_from_files(trim(radical), bigdft_mpi,dict)
 
   call standard_inputfile_names(in,trim(radical))
+
   call inputs_from_dict(in, atoms, dict, .true.)
 
   call dict_free(dict)

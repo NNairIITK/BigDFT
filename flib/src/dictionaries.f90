@@ -45,10 +45,18 @@ module dictionaries
    end interface
    interface operator(.is.)
       module procedure dict_cont_new_with_value, dict_cont_new_with_dict
+   end interface 
+   interface operator(==)
+      module procedure dicts_are_equal
+   end interface
+   interface operator(/=)
+      module procedure dicts_are_not_equal
    end interface
 
+
    interface assignment(=)
-      module procedure get_value,get_integer,get_real,get_double,get_long,get_lg!,get_dict, xlf does not like
+      module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
+      module procedure get_rvec
    end interface
    interface pop
       module procedure pop_dict,pop_item,pop_last
@@ -77,12 +85,11 @@ module dictionaries
    public :: set,dict_init,dict_free,pop,append,prepend,add
    public :: dict_copy, dict_update
    !> Handle exceptions
-   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,has_key,dict_keys
+   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_iter,has_key,dict_keys
    public :: dict_new,list_new
    !> Public elements of dictionary_base
-   public :: operator(.is.),operator(.item.)
-   public :: dictionary,max_field_length
-   public :: TYPE_DICT,TYPE_LIST
+   public :: operator(.is.),operator(.item.),operator(==),operator(/=)
+   public :: dictionary,max_field_length,dict_get_num
 
    !header of error handling part
    !some parameters
@@ -335,6 +342,24 @@ contains
 
    end function dict_cont_new_with_dict
 
+   !>initialize the iterator to be used with next
+   function dict_iter(dict)
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), pointer :: dict_iter
+
+     if (associated(dict)) then
+        if (associated(dict%parent)) then
+           dict_iter=>dict%child
+        else
+           dict_iter=>dict
+        end if
+     else
+        nullify(dict_iter)
+     end if
+   end function dict_iter
+   
+
    function dict_next(dict)
      implicit none
      type(dictionary), pointer, intent(in) :: dict
@@ -350,6 +375,84 @@ contains
         nullify(dict_next)
      end if
    end function dict_next
+
+   function dicts_are_not_equal(dict1,dict2) result(notequal)
+     use yaml_strings, only: is_atoi,is_atof,is_atol
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict1,dict2
+     logical :: notequal
+     
+     notequal= .not. dicts_are_equal(dict1,dict2)
+   end function dicts_are_not_equal
+
+   !> function verifying the dictionaries are equal to each other
+   !! this function is not checking whether the dictionary are deep copy of each other or not
+   function dicts_are_equal(dict1,dict2) result(equal)
+     use yaml_strings, only: is_atoi,is_atof,is_atol
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict1,dict2
+     logical :: equal
+     
+     !no next for the first level
+     equal=nodes_are_equal(dict1,dict2)
+
+     contains
+       
+       recursive function nodes_are_equal(dict1,dict2) result(yes)
+         implicit none
+         type(dictionary), pointer, intent(in) :: dict1,dict2
+         logical :: yes
+         !local variables
+         logical :: l1,l2
+         integer :: i1,i2
+         double precision :: r1,r2
+
+         
+         !dictionaries associated
+         yes = (associated(dict1) .eqv. associated(dict2))
+         if (.not. yes .or. .not. associated(dict1)) return
+         
+         !same (type of) value
+         yes = dict_value(dict1) == dict_value(dict2)
+         !print *,'debug',dict_value(dict1),' and ',dict_value(dict2), 'also',&
+         !     is_atof(dict_value(dict1)), is_atof(dict_value(dict2)),yes
+         if (.not. yes) then 
+            !investigate if the values are just written differenty
+            !integer case
+            if (is_atoi(dict_value(dict1)) .and. is_atoi(dict_value(dict2))) then
+               i1=dict1
+               i2=dict2
+               yes=i1==i2
+            else if (is_atof(dict_value(dict1)) .and. is_atof(dict_value(dict2))) then
+               r1=dict1
+               r2=dict2
+               yes=r1==r2
+            else if (is_atol(dict_value(dict1)) .and. is_atol(dict_value(dict2))) then
+               l1=dict1
+               l2=dict2
+               yes=l1.eqv.l2
+            end if
+            if (.not. yes) return
+         end if
+         yes = (dict_size(dict1) == dict_size(dict2)) .and. & !both are (or not) mappings
+              (dict_len(dict1) == dict_len(dict2)) !.and. & !both are (or not) lists
+         !print *,'here',yes,dict_size(dict1),dict_size(dict2),dict_len(dict1),dict_len(dict2)
+         if (.not. yes) return
+         yes=dicts_are_equal_(dict1%child,dict2%child) 
+       end function nodes_are_equal
+
+       recursive function dicts_are_equal_(dict1,dict2) result(yess)
+         implicit none
+         type(dictionary), pointer, intent(in) :: dict1,dict2
+         logical :: yess
+         
+         yess= nodes_are_equal(dict1,dict2)
+         if (.not. yess .or. .not. associated(dict1) ) return
+
+         yess=dicts_are_equal_(dict1%next,dict2%next) 
+       end function dicts_are_equal_
+
+ end function dicts_are_equal
 
    !> Returns the position of the name in the dictionary
    !! returns 0 if the dictionary is nullified or the name is absent
@@ -756,6 +859,7 @@ contains
    end function list_new_elems
 
    !> get the value from the dictionary
+   !! here the dictionary has to be associated
    subroutine get_value(val,dict)
      implicit none
      character(len=*), intent(out) :: val
@@ -782,6 +886,8 @@ contains
 
    !set and get routines for different types (this routine can be called from error_check also)
    recursive subroutine get_integer(ival,dict)
+     use yaml_strings, only: is_atoi
+     implicit none
      integer, intent(out) :: ival
      type(dictionary), intent(in) :: dict
      !local variables
@@ -799,11 +905,12 @@ contains
            return
         end if
      end if
-     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
+     if (f_err_raise(ierror/=0 .or. .not. is_atoi(val),'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
    end subroutine get_integer
 
    !set and get routines for different types
    subroutine get_long(ival,dict)
+     implicit none
      integer(kind=8), intent(out) :: ival
      type(dictionary), intent(in) :: dict
      !local variables
@@ -818,6 +925,40 @@ contains
      if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
 
    end subroutine get_long
+
+   !>routine to retrieve an array from a dictionary
+   subroutine get_rvec(arr,dict)
+     implicit none
+     double precision, dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     double precision :: tmp
+     type(dictionary), pointer :: dict_tmp
+     integer :: i
+
+     !first check if the dictionary contains a scalar or a list
+     if (dict%data%nitems > 0) then
+        if (f_err_raise(dict%data%nitems/=size(arr),&
+             'Array and dictionary have differing shapes',&
+             err_id=DICT_CONVERSION_ERROR)) return
+        !start iterating in the list
+        dict_tmp=>dict%child
+        i=1
+        do while(associated(dict_tmp))
+           arr(i)=dict_tmp
+           i=i+1
+           dict_tmp=>dict_next(dict_tmp)
+        end do
+     else if (f_err_raise(dict%data%nelems > 0,&
+          'Cannot convert mapping value in to arrays',&
+          err_id=DICT_CONVERSION_ERROR)) then
+        return
+     else
+        !scalar value, to be applied to all the values of the array
+        tmp=dict
+        arr=tmp
+     end if
+   end subroutine get_rvec
 
    !> Read a real or real/real, real:real 
    !! Here the fraction is indicated by the ':' or '/'

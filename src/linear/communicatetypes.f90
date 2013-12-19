@@ -194,7 +194,9 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    integer,dimension(:),allocatable :: requests
    logical,dimension(:,:),allocatable :: covered
 
-   allocate(requests(8*nproc*maxval(orbs%norb_par(:,0))), stat=istat)
+   ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
+   iiorb = maxval(orbs%norb_par(:,0))
+   allocate(requests(8*nproc*iiorb), stat=istat)
    call memocc(istat, requests, 'requests', subname)
 
    allocate(covered(nlr,0:nproc-1), stat=istat)

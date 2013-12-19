@@ -14,8 +14,8 @@ module dictionaries_base
   implicit none
 
   integer, parameter, public :: max_field_length = 256
-  character(len=max_field_length), parameter, public :: TYPE_DICT='__dict__'
-  character(len=max_field_length), parameter, public :: TYPE_LIST='__list__'
+  character(len=max_field_length), parameter :: TYPE_DICT='__dict__'
+  character(len=max_field_length), parameter :: TYPE_LIST='__list__'
 
   character(len = max_field_length), parameter, private :: NOT_A_VALUE = "__not_a_value__"
 
@@ -82,27 +82,30 @@ contains
     nullify(dict%child,dict%next,dict%parent,dict%previous)
   end subroutine dictionary_nullify
 
-  pure subroutine dict_init(dict)
+  !pure 
+  subroutine dict_init(dict)
     implicit none
     type(dictionary), pointer :: dict
     allocate(dict)
-!    ndicts=ndicts+1
-!    ndicts_max=max(ndicts_max,ndicts)
+    ndicts=ndicts+1
+    ndicts_max=max(ndicts_max,ndicts)
     call dictionary_nullify(dict)
   end subroutine dict_init
 
   !> destroy only one level
-  pure subroutine dict_destroy(dict)
+  !pure 
+  subroutine dict_destroy(dict)
     implicit none
     type(dictionary), pointer :: dict
 !    if (associated(dict)) then !in principle this conditional is not needed
     deallocate(dict)
-!    ndicts=ndicts-1
+    ndicts=ndicts-1
     nullify(dict)
 !    end if
   end subroutine dict_destroy
 
-  pure subroutine dict_free(dict)
+  !pure 
+  subroutine dict_free(dict)
     type(dictionary), pointer :: dict
 
     if (associated(dict)) then
@@ -113,7 +116,8 @@ contains
 
   contains
 
-    pure recursive subroutine dict_free_(dict)
+    !pure 
+    recursive subroutine dict_free_(dict)
       implicit none
       type(dictionary), pointer :: dict
 
@@ -262,6 +266,8 @@ contains
              dict_value=TYPE_LIST
           else if (dict%data%nelems > 0) then
              dict_value=TYPE_DICT
+          else
+             dict_value= NOT_A_VALUE !illegal condition
           end if
        else if (trim(dict%data%value) == NOT_A_VALUE) then
           dict_value=repeat(' ',len(dict_value))
@@ -325,24 +331,14 @@ contains
     dict%data%item=item
     if (associated(dict%parent)) then
        if (len_trim(dict%parent%data%value) > 0) dict%parent%data%value=repeat(' ',max_field_length)
-       
        dict%parent%data%nitems=dict%parent%data%nitems+1
-       !if (item+1 > dict%parent%data%nitems) then
-          !if (exceptions) then
-          !   last_error=DICT_ITEM_NOT_VALID
-          !else
-          !so far this error has never been found
-       !      write(*,*)'ERROR: item not valid',item,dict%parent%data%nitems
-       !      stop
-          !end if
-       !end if
     end if
 
   end subroutine set_item
 
   !> Retrieve the pointer to the dictionary which has this key.
   !! If the key does not exists, create it in the child chain
-  function get_child_ptr(dict,key) result (subd_ptr)
+  function get_child_ptr(dict,key) result(subd_ptr)
     implicit none
     type(dictionary), intent(in), pointer :: dict !hidden inout
     character(len=*), intent(in) :: key
@@ -474,7 +470,8 @@ contains
   end function stored_value
 
   !> clean the child and put to zero the number of elements in the case of a dictionary
-  pure subroutine clean_subdict(dict)
+  !pure 
+  subroutine clean_subdict(dict)
     implicit none
     type(dictionary), pointer :: dict
     
@@ -486,9 +483,23 @@ contains
     end if
     
   end subroutine clean_subdict
+
+  !!> export the number of dictionaries
+  !! this routine is useful to understand the total usage of the 
+  !! dictionaries in the f_lib module
+  subroutine dict_get_num(ndict,ndict_max)
+    implicit none
+    integer, intent(out) :: ndict     !< actual number of dictionaries active
+    integer, intent(out) :: ndict_max !< maximum number of dictionaries active during the session
+
+
+    ndict=ndicts
+    ndict_max=ndicts_max
+  end subroutine dict_get_num
+
 end module dictionaries_base
 
-!> Routines for bindings only (issue of module)
+!> Routines for bindings only (external of module)
 subroutine dict_new(dict)
   use dictionaries_base
   implicit none

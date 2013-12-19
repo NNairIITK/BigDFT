@@ -89,19 +89,27 @@ def compare(data, ref, tols = None, always_fails = False):
 def compare_seq(seq, ref, tols, always_fails = False):
   global failed_checks
   if tols is not None:
-    for i in range(len(ref)):
-      #print 'here',ref[i],seq[i],tols[0]
-      (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
+    if len(ref) == len(seq):
+      for i in range(len(ref)):
+        #print 'here',ref[i],seq[i],tols[0]
+        (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails)
 # Add to the tolerance dictionary a failed result      
-      if failed:
-        if type(newtols)== type({}): # and type(tols) == type({}):
-          #print seq,ref,'tols',tols,'newtols',newtols,type(tols)
-          if (type(tols[0]) != type(1.0)):
-            tols[0].update(newtols)
-        elif type(newtols) == type([]):
-          tols[0] = newtols   
-        else:
-          tols[0] = max(newtols,tols[0])
+        if failed:
+          if type(newtols)== type({}): # and type(tols) == type({}):
+            #print seq,ref,'tols',tols,'newtols',newtols,type(tols)
+            if (type(tols[0]) != type(1.0)):
+              tols[0].update(newtols)
+          elif type(newtols) == type([]):
+            tols[0] = newtols   
+          else:
+            tols[0] = max(newtols,tols[0])
+    else:
+      print 'problem with length 1',
+      failed_checks+=1
+      if len(tols) == 0:
+        tols.append("NOT SAME LENGTH")
+      else:
+        tols[0] = "NOT SAME LENGTH"
   else:
     tols = []
     if len(ref) == len(seq):
@@ -116,6 +124,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
           if failed:
             tols[0] = newtols
     else:
+      print 'problem with length 2',
       failed_checks+=1
       if len(tols) == 0:
         tols.append("NOT SAME LENGTH")
@@ -145,7 +154,7 @@ def compare_map(map, ref, tols, always_fails = False):
         (failed, newtols) = compare(value, ref[key], always_fails = always_fails)
 # add to the tolerance dictionary a failed result              
       if failed:
-        if key in tols:
+        if type(tols) == type({}) and key in tols:
           if type(newtols)== type({}):
             if type(tols[key]) == type({}):
               tols[key].update(newtols)
@@ -155,7 +164,7 @@ def compare_map(map, ref, tols, always_fails = False):
             tols[key]=newtols
           else:
             tols[key] = max(newtols,tols[key])
-        else:
+        elif type(tols) == type({}):
           tols[key] = newtols
   return (len(tols) > 0, tols)  
   
@@ -189,9 +198,9 @@ def compare_scl(scl, ref, tols, always_fails = False):
         diff = 0.
         failed = True
     discrepancy=max(discrepancy,diff)
-#    if (discrepancy > 1.85e-9):
-#    print 'test',scl,ref,tols,discrepancy,failed
-#      sys.exit(1)
+#    if (discrepancy > 1.85e-6):
+#    	print 'test',scl,ref,tols,discrepancy,failed
+#      	sys.exit(1)
     if not(failed):
       if tols is None:
         ret = (always_fails, None)
@@ -202,7 +211,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
-#    print 'hereAAA',scl,ref,tols,discrepancy
+    print 'hereAAA',scl,ref,tols,discrepancy,biggest_tol
     failed_checks +=1
   return ret
 
@@ -279,7 +288,7 @@ if __name__ == "__main__":
 
 #args=parse_arguments()
 #print args.ref,args.data,args.output
-#datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+#datas      = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
 references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml.CLoader)]
 try:
   datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
@@ -405,7 +414,7 @@ for i in range(len(references)):
 
   sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %\
                   (i, failed_checks,discrepancy,docmiss,docleaks,doctime))
-#  print "failed checks",failed_checks,"max diff",discrepancy
+  print "failed checks",failed_checks,"max diff",discrepancy
   max_discrepancy=max(discrepancy,max_discrepancy)
   #print total time
   time += doctime

@@ -145,7 +145,6 @@ module module_input_keys
   character(len = *), parameter :: COND = "CONDITION", WHEN = "WHEN"
   character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
 
-
   public :: input_keys_init, input_keys_finalize
   public :: input_keys_set, input_keys_fill, input_keys_fill_all, input_keys_dump
   public :: input_keys_equal, input_keys_get_source, input_keys_dump_def
@@ -204,7 +203,7 @@ contains
     !call copycbuffer(params,cbuf_add,params_size)
     !print *,'there',params_size
     call yaml_parse_from_char_array(parsed_parameters,params)
-    !there is only one document in the iniput variables specifications
+    !there is only one document in the input variables specifications
     parameters=>parsed_parameters//0
     call f_free_str(1,params)
 
@@ -1121,13 +1120,13 @@ contains
     end if
   end function input_keys_get_source
 
-  subroutine input_keys_fill_all(dict)
+  subroutine input_keys_fill_all(dict,dict_minimal)
     use dictionaries
     use dynamic_memory
     use yaml_output
     !use yaml_output
     implicit none
-    type(dictionary), pointer :: dict
+    type(dictionary), pointer :: dict,dict_minimal
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -1145,19 +1144,127 @@ contains
     call input_keys_fill(dict//SIC_VARIABLES, SIC_VARIABLES)
     call input_keys_fill(dict//TDDFT_VARIABLES, TDDFT_VARIABLES)
 
+    !create a shortened dictionary which will be associated to the given run
+    call input_minimal(dict,dict_minimal)
+
     call input_keys_finalize()
 
     call f_release_routine()
   end subroutine input_keys_fill_all
 
-  subroutine input_keys_fill(dict, file, profile)
+  !> this routine is used to create a minimal dictionary which can be used at the place 
+  !! of the one provided as an indication on the understood variables
+  subroutine input_minimal(dict,minimal)
+    use dictionaries
+    use yaml_output
+    implicit none
+    type(dictionary), pointer, intent(in) :: dict
+    type(dictionary), pointer, intent(out) :: minimal
+    !local variables
+    type(dictionary), pointer :: dict_tmp,min_cat
+    character(len=max_field_length) :: category
+
+    nullify(minimal)
+
+    !recursively search into the reference input variables
+
+    dict_tmp => dict_iter(parameters)
+
+    do while(associated(dict_tmp))
+       !for any of the keys of parameters look at the corresponding value of the dictionary
+       category=dict_key(dict_tmp)
+       !call yaml_map('dict category',parameters//category)
+!       print *,'category',trim(category),has_key(dict,category)
+       !call yaml_map('dict category',dict_tmp)
+       if (has_key(dict,category)) then
+          call minimal_category(dict_tmp,dict//category,min_cat)
+          if (associated(min_cat)) then
+             if (.not. associated(minimal)) call dict_init(minimal)
+             call set(minimal//category,min_cat)
+          end if
+       end if
+!stop
+       dict_tmp => dict_next(dict_tmp)
+    end do
+
+    contains
+      
+      subroutine minimal_category(vars,input,minim)
+        implicit none
+        type(dictionary), pointer :: vars,input,minim
+        !local variables
+        logical :: profile_found
+        character(len=max_field_length) :: def_var,in_var,var_prof,prof_var
+        type(dictionary), pointer :: defvar,var,empty
+        nullify(minim)
+
+        var=>dict_iter(vars)
+!        call yaml_map('var dict',var)
+
+        do while(associated(var))
+           def_var=dict_key(var)
+!           print *,'here2 ',trim(def_var),has_key(input,def_var)
+           
+           !search if the input data have values among the profiles
+           if (has_key(input,def_var)) then
+              profile_found=.false.
+              !see if the dictionary has the PROF_KEY in thier possibilities
+              prof_var(1:len(prof_var))=' '
+              if (has_key(var,PROF_KEY)) then
+                 if (has_key(input,dict_value(var//PROF_KEY))) &
+                    prof_var=dict_value(input//dict_value(var//PROF_KEY))
+              end if
+
+              defvar => dict_iter(var)
+              !              call yaml_map('var dict inside',defvar)
+              check_profile: do while(associated(defvar))
+                 !exclude keys for definition of the variable
+                 var_prof=dict_key(defvar)
+!              call yaml_map('key',var_prof)
+                 if (trim(var_prof)/=COMMENT .and. trim(var_prof)/=COND .and.&
+                      trim(var_prof)/=RANGE .and. trim(var_prof)/=PROF_KEY .and. &
+                      trim(var_prof)/=EXCLUSIVE) then
+                    !check if some profile meets desired values
+!call yaml_map('defvar',defvar)
+!call yaml_map('input',input//def_var)
+!call yaml_map('result',defvar == input//def_var)
+!call yaml_map('var_prof',var_prof)
+!call yaml_map('test',trim(var_prof) /= DEFAULT .and. var_prof /= prof_var)
+!print *,'key',def_var
+                   profile_found= (defvar == input//def_var) 
+                   if (profile_found) then
+                       if (trim(var_prof) /= DEFAULT .and. var_prof /= prof_var) then
+                          if (.not. associated(minim)) call dict_init(minim)
+                          call set(minim//def_var,var_prof)
+                       end if
+                       exit check_profile
+                    end if
+                 end if
+                 defvar => dict_next(defvar)
+              end do check_profile
+              !the key has not been found, among the profiles, therefore it should be entered as is
+              if (.not. profile_found .and. len_trim(dict_value(input//def_var))/=0) then
+                 if (.not. associated(minim)) call dict_init(minim)
+                 call dict_copy(minim//def_var,input//def_var)
+              end if
+           end if
+           var => dict_next(var)
+!if (trim(def_var) == 'shiftk') then
+!   call yaml_map('Finally',minim//def_var)
+!stop
+!end if
+        end do
+      end subroutine minimal_category
+      
+    end subroutine input_minimal
+
+  subroutine input_keys_fill(dict, file)
     use dictionaries
     use dynamic_memory
     use yaml_output
     implicit none
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file
-    character(len = *), intent(in), optional :: profile
 
     integer :: i
     type(dictionary), pointer :: ref
@@ -1171,28 +1278,21 @@ contains
 
     keys = dict_keys(ref)
 
-    if (present(profile)) then
-       do i = 1, size(keys), 1
-          call input_keys_set(dict, file, keys(i), profile)
-       end do
-    else
-       do i = 1, size(keys), 1
-          call input_keys_set(dict, file, keys(i))
-       end do
-    end if
+    do i = 1, size(keys), 1
+       call input_keys_set(dict, file, keys(i))
+    end do
 
     call f_free_str(max_field_length,keys)
 !    call f_release_routine()
   END SUBROUTINE input_keys_fill
 
-  subroutine input_keys_set(dict, file, key, profile)
+  subroutine input_keys_set(dict, file, key)
     use dictionaries
     use yaml_output
     use dynamic_memory
     implicit none
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file, key
-    character(len = *), intent(in), optional :: profile
 
     integer :: i
     type(dictionary), pointer :: ref
@@ -1206,16 +1306,11 @@ contains
     ref => parameters // file // key
 
     profile_(1:max_field_length) = " "
-    if (present(profile)) then
-       ! User defined profile.
-       profile_(1:max_field_length) = profile
-    else
-       ! Hard-coded profile from key.
-       if (has_key(ref, PROF_KEY)) then
-          val = ref // PROF_KEY
-          if (has_key(dict, val)) then
-             profile_ = dict // val
-          end if
+    ! Hard-coded profile from key.
+    if (has_key(ref, PROF_KEY)) then
+       val = ref // PROF_KEY
+       if (has_key(dict, val)) then
+          profile_ = dict // val
        end if
     end if
     if (trim(profile_) == "") profile_(1:max_field_length) = DEFAULT
@@ -1232,6 +1327,7 @@ contains
           return
        end if
        val = dict // key
+
        ! There is already a value in dict.
        if (has_key(ref, val)) then
           ! The key was asking for a profile, we copy it.
@@ -1265,7 +1361,6 @@ contains
 !          call f_release_routine()
           return
        end if
-
        ! There is no value in dict, we take it from ref.
        if (.not. has_key(ref, profile_)) profile_ = DEFAULT
        call dict_copy(dict // key, ref // profile_)
@@ -1274,8 +1369,9 @@ contains
     ! Copy the comment.
     if (has_key(ref, COMMENT)) &
          & call dict_copy(dict // (trim(key) // ATTRS) // COMMENT, ref // COMMENT)
-    if (trim(profile_) /= DEFAULT) &
-         & call set(dict // (trim(key) // ATTRS) // PROF_KEY, profile_)
+    if (trim(profile_) /= DEFAULT) then
+       call set(dict // (trim(key) // ATTRS) // PROF_KEY, profile_)
+    end if
 
 !    call f_release_routine()
 
@@ -1344,7 +1440,9 @@ contains
     end subroutine validate
   END SUBROUTINE input_keys_set
 
-  !> Dump a dictionary
+  !> Dump the dictionary of the input variables.
+  !! Should dump only the keys relative to the iunput variables and
+  !! print out warnings for the ignored keys
   subroutine input_keys_dump(dict)
     use yaml_output
     use dictionaries
