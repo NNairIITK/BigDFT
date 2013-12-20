@@ -141,8 +141,6 @@
  Post Optimization Parameters:
    Finite-Size Effect estimation:
      Scheduled                         :  No
- Exchange-Correlation reference        : "XC: Teter 93"
- XC functional implementation          : ABINIT
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
  - Symbol                              : Mn #Type No.  01

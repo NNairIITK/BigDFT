@@ -2554,40 +2554,34 @@ END SUBROUTINE write_fraction_string
 
 
 !> Read the electronic configuration, with the semicore orbitals
-subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
+subroutine read_eleconf(string,noccmax,nelecmax,lmax,aocc,nsccode,ndeg)
    use module_base
    use module_input
    implicit none
-   character(len=100), intent(inout) :: string
-   integer, intent(in) :: nelecmax,noccmax,lmax,nspinor,nspin
-   integer, intent(out) :: nsccode
+   character(len=1024), intent(inout) :: string
+   integer, intent(in) :: nelecmax,noccmax,lmax
+   integer, intent(out) :: nsccode, ndeg
    real(gp), dimension(nelecmax), intent(out) :: aocc
    !local variables
    character(len=20), dimension(2*(2*lmax-1)) :: tmp
-   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,lsc,j,ist,ierror
+   integer :: i,m,iocc,icoll,inl,l,ispin,is,lsc,j,ist,ierror,nvals
    logical, dimension(4,2) :: scorb
    integer, dimension(lmax) :: nl,nlsc
    real(gp), dimension(2*(2*lmax-1),noccmax,lmax) :: allocc
 
    !first substitute all the slashes with : to ease the parsing
-   do i=1,100
+   do i=1,1024
       if (string(i:i) == '/') then
          string(i:i) = ':'
       end if
    end do
 
-   !if non-collinear it is like nspin=1 but with the double of orbitals
-   if (nspinor == 4) then
-      noncoll=2
-   else
-      noncoll=1
-   end if
-
    nl(:)=0
    nlsc(:)=0
    scorb(:,:)=.false.
+   ndeg = UNINITIALIZED(ndeg)
    !inspect the string for the number of angular momentum
-   do is=1,100
+   do is=1,1024
       select case(string(is:is))
       case('s')
          l=1
@@ -2612,16 +2606,27 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
          end if
       end if
       !read the different atomic occupation numbers
-      read(string(ist:min(ist+49,99)),*,iostat=ierror)(tmp(j),j=1,nspin*noncoll*(2*l-1))
-      if (ierror /= 0) then
-         write(*,*) 'Line:',string
-         write(*,*) 'An error occured while reading the electronic configuration. Check the correct spin value',&
-            &   nspin,nspinor
-         stop
+      nvals = 2*(2*l-1)
+      read(string(ist:1024),*,iostat=ierror)(tmp(j),j=1,nvals)
+      if (ierror /= 0 .or. verify(tmp(2*l), " 0123456789./") /= 0) then
+         nvals = (2*l-1)
+         read(string(ist:1024),*,iostat=ierror)(tmp(j),j=1,nvals)
+         if (ierror /= 0) then
+            write(*,*) 'Line:',string
+            write(*,*) 'An error occured while reading the electronic configuration. Check the correct spin value'
+            stop
+         end if
       end if
-      do j=1,nspin*noncoll*(2*l-1)
+      do j=1,nvals
          call read_fraction_string_old(l,tmp(j),allocc(j,nl(l),l))
       end do
+      if (ndeg == UNINITIALIZED(ndeg)) then
+         ndeg = nvals / (2*l-1)
+      else if (ndeg /= nvals / (2*l-1)) then
+         write(*,*) 'Line:',string
+         write(*,*) 'Inconsistency between shells for spin degeneracy. Check the correct spin value'
+         stop
+      end if
    end do
 
    !put the values in the aocc array
@@ -2631,13 +2636,9 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
       iocc=iocc+1
       aocc(iocc)=real(nl(l),gp)
       do inl=1,nl(l)
-         do ispin=1,nspin
-            do m=1,2*l-1
-               do icoll=1,noncoll !non-trivial only for nspinor=4
-                  iocc=iocc+1
-                  aocc(iocc)=allocc(icoll+(m-1)*noncoll+(ispin-1)*(2*l-1)*noncoll,inl,l)
-               end do
-            end do
+         do m=1,ndeg * (2*l-1), 1
+            iocc=iocc+1
+            aocc(iocc)=allocc(m,inl,l)
          end do
       end do
    end do

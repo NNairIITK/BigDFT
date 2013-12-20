@@ -502,7 +502,7 @@ program memguess
    !remove the directory which has been created if it is possible
    call deldir(runObj%inputs%dir_output,len(trim(runObj%inputs%dir_output)),ierror)
 
-   call run_objects_free(runObj)
+   call run_objects_free(runObj, subname)
 !   !finalize memory counting
 !   call memocc(0,0,'count','stop')
 

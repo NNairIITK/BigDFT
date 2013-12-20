@@ -11,9 +11,9 @@ module module_input_dicts
   ! Types from dictionaries
   public :: psp_set_from_dict, nlcc_set_from_dict
   public :: astruct_set_from_dict
-  public :: aocc_from_dict
+  public :: atomic_data_set_from_dict
 
-  ! Dictionaries to types
+  ! Types to dictionaries
   public :: psp_data_merge_to_dict
   public :: astruct_merge_to_dict
 
@@ -21,6 +21,7 @@ module module_input_dicts
   public :: psp_file_merge_to_dict, nlcc_file_merge_to_dict
   public :: atoms_file_merge_to_dict
   public :: astruct_file_merge_to_dict
+  public :: atomic_data_file_merge_to_dict
 
 contains
 
@@ -58,7 +59,7 @@ contains
        if (has_key(radii, "Coarse PSP")) radii_cf(3) =  radii // "Coarse PSP"
     end if
 
-    exists = has_key(dict // filename, "NonLocal PSP Parameters")
+    exists = has_key(dict // filename, "Local Pseudo Potential (HGH convention)")
     if (.not. exists) then
        ixc = run_ixc
        if (has_key(dict // filename, "Pseudopotential XC")) &
@@ -385,7 +386,7 @@ contains
 
     ! Nonlocal terms
     do l=1,4
-       if (any(psppar(l,1:3) /= 0._gp)) then
+       if (psppar(l,0) /= 0._gp) then
           call dict_init(channel)
           call set(channel // 'Channel (l)', l - 1)
           call set(channel // 'Rloc', psppar(l,0))
@@ -599,7 +600,7 @@ contains
        call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(3,iat) * factor(3))
        if (astruct%ifrztyp(iat) /= 0) then
           call frozen_itof(astruct%ifrztyp(iat), frzstr)
-          call set(at // "Frozen", frzstr)
+          call set(at // "Frozen", adjustl(frzstr))
        end if
        call charge_and_spol(astruct%input_polarization(iat),ichg,ispol)
        if (ichg /= 0) call set(at // "IGChg", ichg)
@@ -807,7 +808,7 @@ contains
   end subroutine astruct_file_merge_to_dict
 
   subroutine aocc_from_dict(dict,nspin,nspinor,nelecmax,lmax,nmax,aocc,nsccode)
-    use module_defs, only: gp
+    use module_defs, only: gp, UNINITIALIZED
     use dictionaries
     implicit none
     type(dictionary), pointer :: dict
@@ -825,6 +826,7 @@ contains
 
     nl(:)=0
     nlsc(:)=0
+    allocc(:,:,:) = UNINITIALIZED(1._gp)
 
     !if non-collinear it is like nspin=1 but with the double of orbitals
     if (nspinor == 4) then
@@ -861,7 +863,11 @@ contains
        if (nlsc(l) > 2) stop 'cannot admit more than two semicore orbitals per channel'
 
        !read the different atomic occupation numbers
-       if (dict_len(dict // key) /= nspin*noncoll*(2*l-1)) stop 'Not enough aocc'
+       if (dict_len(dict // key) /= nspin*noncoll*(2*l-1)) then
+          write(*,*) "Awaited: ", nspin*noncoll*(2*l-1), nspin, noncoll, l
+          write(*,*) "provided", dict_len(dict // key)
+          stop 'Not enough aocc'
+       end if
        do m = 1, nspin*noncoll*(2*l-1), 1
           allocc(m, n, l) = dict // key // (m - 1)
        end do
@@ -875,6 +881,7 @@ contains
        iocc=iocc+1
        aocc(iocc)=real(nl(l),gp)
        do inl=1,nmax
+          if (allocc(1, inl, l) == UNINITIALIZED(1._gp)) cycle
           do ispin=1,nspin
              do m=1,2*l-1
                 do icoll=1,noncoll !non-trivial only for nspinor=4
@@ -888,55 +895,220 @@ contains
 
     !then calculate the nsccode
     nsccode=0
-    do lsc=1,4
-       do i=1,nlsc(lsc)
-          nsccode=nsccode+4**(lsc-1)
-       end do
+    do lsc=1,lmax
+       nsccode=nsccode+nlsc(lsc) * (4**(lsc-1))
     end do
   end subroutine aocc_from_dict
 
-!!$  subroutine atomic_data_set_from_dict(dict, atoms)
-!!$    use module_defs, only: gp
-!!$    use module_types, only: atoms_data
-!!$    use dictionaries
-!!$    use dynamic_memory
-!!$    implicit none
-!!$    type(dictionary), pointer :: dict
-!!$    type(atoms_data), intent(inout) :: atoms
-!!$
-!!$    character(max_field_length), dimension(:), allocatable :: keys
-!!$    integer :: iat, ityp, nsccode, mxpl, mxchg
-!!$    integer, parameter :: nelecmax=32,nmax=6,lmax=4
-!!$    character(len=2) :: symbol
-!!$    real(gp) :: rcov,rprb,ehomo
-!!$    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
-!!$    character(len = max_field_length) :: key
-!!$
-!!$    do ityp = 1, atoms%astruct%ntypes, 1
-!!$       call eleconf(atoms%nzatom(ityp), atoms%nelpsp(ityp), symbol,rcov,rprb,ehomo,&
-!!$            neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
-!!$       !define the localization radius for the Linear input guess
-!!$       atoms%rloc(ityp,:) = rcov * 10.0
-!!$
-!!$       do iat = 1, atoms%astruct%nat, 1
-!!$          if (atoms%astruct%iatype(iat) /= ityp) cycle
-!!$
-!!$          write(key, "(A,I0)") "Atom ", iat
-!!$          if (has_key(dict, key)) then
-!!$             ! Case with an atom specific aocc
-!!$             call aocc_from_dict(dict // key, nspin, nspinor, nelecmax, lmax, nmax, &
-!!$                  & at%aocc(1,iat), at%iasctype(iat))
-!!$          else if (has_key(dict, trim(atoms%astruct%atomnames(ityp)))) then
-!!$             ! Case with a element specific aocc
-!!$             call aocc_from_dict(dict // trim(atoms%astruct%atomnames(ityp)), &
-!!$                  & nspin, nspinor, nelecmax, lmax, nmax, &
-!!$                  & at%aocc(1,iat), at%iasctype(iat))
-!!$          else
-!!$             ! Generic case from eleconf
-!!$             
-!!$          end if
-!!$       end do
-!!$    end do
-!!$  end subroutine aocc_set_from_dict
+  subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
+    use module_defs, only: gp
+    use dictionaries
+    implicit none
+    integer, intent(in) :: nelecmax, lmax, nsccode, nspin, noncoll, nstart
+    type(dictionary), pointer :: dict
+    real(gp), dimension(nelecmax), intent(in) :: aocc
+
+    type(dictionary), pointer :: val
+    character(len = 4) :: key
+    integer :: l, inl, nl, iocc, sccode, nsc, i
+    character(len = 1), dimension(4), parameter :: lname = (/ "s", "p", "d", "f" /)
+
+    call dict_init(dict)
+
+    sccode = nsccode
+    iocc=0
+    do l = 1, lmax
+       iocc=iocc+1
+       ! Get number of shells for this channel
+       nl = int(aocc(iocc))
+       ! Get number of semi cores for this channel
+       nsc = modulo(sccode, 4)
+       sccode = sccode / 4
+       if (nl == 0) cycle
+       do inl = 1, nl, 1
+          if (inl <= nsc) then
+             write(key, "(A1,I1,A1,A1)") "(", nstart + inl, lname(l), ")"
+          else
+             write(key, "(I1, A1)") nstart + inl, lname(l)
+          end if
+          call dict_init(val)
+          do i = 1, nspin * noncoll * (2 * l - 1), 1
+             iocc=iocc+1
+             call add(val, aocc(iocc))
+          end do
+          call set(dict // key, val)
+       end do
+    end do
+  end subroutine aocc_to_dict
+
+  subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
+    use module_defs, only: gp
+    use module_types, only: atoms_data
+    use dictionaries
+    use dynamic_memory
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    type(atoms_data), intent(inout) :: atoms
+    character(len = *), intent(in) :: key
+    integer, intent(in) :: nspin
+
+    integer :: iat, ityp, nsccode, mxpl, mxchg, nsp, nspinor
+    integer :: ichg, ispol, icoll, iocc, ispin, l, inl, m, nl, noncoll
+    integer, parameter :: nelecmax=32,nmax=6,lmax=4
+    character(len=2) :: symbol
+    real(gp) :: rcov,rprb,ehomo,elec
+    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+    character(len = max_field_length) :: at
+    real(gp), dimension(nmax,lmax) :: eleconf_
+
+    !control the spin
+    select case(nspin)
+    case(1)
+       nsp=1
+       nspinor=1
+       noncoll=1
+    case(2)
+       nsp=2
+       nspinor=1
+       noncoll=1
+    case(4)
+       nsp=1
+       nspinor=4
+       noncoll=2
+    case default
+       call yaml_warning('nspin not valid. Value=' // trim(yaml_toa(nspin)))
+       !write(*,*)' ERROR: nspin not valid:',nspin
+       stop
+    end select
+
+    do ityp = 1, atoms%astruct%ntypes, 1
+       call eleconf(atoms%nzatom(ityp), atoms%nelpsp(ityp), symbol,rcov,rprb,ehomo,&
+            neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
+       !define the localization radius for the Linear input guess
+       atoms%rloc(ityp,:) = rcov * 10.0
+
+       do iat = 1, atoms%astruct%nat, 1
+          if (atoms%astruct%iatype(iat) /= ityp) cycle
+
+          ! Some checks from input values.
+          call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
+          if (abs(ispol) > mxpl+abs(ichg)) then
+             !if (iproc ==0) 
+             write(*,'(1x,a,i0,a,a,2(a,i0))')&
+                  'ERROR: Input polarisation of atom No.',iat,&
+                  ' (',trim(atoms%astruct%atomnames(ityp)),') must be <=',mxpl,&
+                  ', while found ',ispol
+             stop 
+          end if
+          if (abs(ichg) > mxchg) then
+             !if (iproc ==0) 
+             write(*,'(1x,a,i0,a,a,2(a,i0))')&
+                  'ERROR: Input charge of atom No.',iat,&
+                  ' (',trim(atoms%astruct%atomnames(ityp)),') must be <=',mxchg,&
+                  ', while found ',ichg
+             stop
+          end if
+
+          ! Fill this atom with default values from eleconf.
+          atoms%iasctype(iat)=nsccode
+          !correct the electronic configuration in case there is a charge
+          !if (ichg /=0) then
+          call correct_semicore(nmax,lmax-1,ichg,&
+               neleconf,eleconf_,atoms%iasctype(iat))
+          !end if
+          call at_occnums(ispol,nsp,nspinor,nmax,lmax,nelecmax,&
+               eleconf_,atoms%aocc(1,iat))
+
+          ! Possible overwrite.
+          if (has_key(dict, key)) then
+             write(at, "(A,I0)") "Atom ", iat
+             if (has_key(dict // key, at)) then
+                ! Case with an atom specific aocc
+                call aocc_from_dict(dict // key // at, &
+                     & nsp, nspinor, nelecmax, lmax, nmax, &
+                     & atoms%aocc(:,iat), atoms%iasctype(iat))
+             else if (has_key(dict // key, trim(atoms%astruct%atomnames(ityp)))) then
+                ! Case with a element specific aocc
+                call aocc_from_dict(dict // key // trim(atoms%astruct%atomnames(ityp)), &
+                     & nsp, nspinor, nelecmax, lmax, nmax, &
+                     & atoms%aocc(:,iat), atoms%iasctype(iat))
+             end if
+          end if
+
+          !check the total number of electrons
+          elec=0.0_gp
+          iocc=0
+          do l=1,lmax
+             iocc=iocc+1
+             nl=nint(atoms%aocc(iocc,iat))
+             do inl=1,nl
+                do ispin=1,nsp
+                   do m=1,2*l-1
+                      do icoll=1,noncoll !non-trivial only for nspinor=4
+                         iocc=iocc+1
+                         elec=elec+atoms%aocc(iocc,iat)
+                      end do
+                   end do
+                end do
+             end do
+          end do
+          if (nint(elec) /= atoms%nelpsp(ityp) - ichg) then
+             call print_eleconf(nsp,nspinor,2,nelecmax,lmax,atoms%aocc(1,iat),atoms%iasctype(iat))
+             write(*,*)'ERROR: the total atomic charge ',elec,&
+                  ' is different from the PSP charge ',atoms%nelpsp(ityp),&
+                  ' plus the charge ',-ichg
+             stop
+          end if
+       end do
+    end do
+
+    atoms%natsc = 0
+    do iat=1,atoms%astruct%nat
+       if (atoms%iasctype(iat) /= 0) atoms%natsc=atoms%natsc+1
+    enddo
+  end subroutine atomic_data_set_from_dict
+
+  subroutine atomic_data_file_merge_to_dict(dict, key, filename)
+    use module_defs, only: gp, UNINITIALIZED
+    use dictionaries
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(in) :: filename, key
+
+    logical :: exists
+    integer :: ierror, jat, nsp, nsccode
+    character(len = 1024) :: string
+    character(len = max_field_length) :: at
+    integer, parameter :: nelecmax = 32, noccmax = 4, lmax = 4
+    real(gp), dimension(nelecmax) :: aocc
+    type(dictionary), pointer :: val
+    
+    inquire(file = filename, exist = exists)
+    if (.not. exists) return
+
+    open(unit=91,file=filename,status='old',iostat=ierror)
+    !Check the open statement
+    if (ierror /= 0) then
+       call yaml_warning('Failed to open the existing file '// trim(filename))
+       stop
+    end if
+
+    parse_inocc: do
+       read(91,'(a1024)',iostat=ierror)string
+       if (ierror /= 0) exit parse_inocc !file ends
+       read(string,*,iostat=ierror)jat
+       if (ierror /=0) stop 'Error reading line'
+
+       write(at, "(A, I0)") "Atom ", jat
+       call read_eleconf(string,noccmax,nelecmax,lmax,aocc,nsccode,nsp)
+       call aocc_to_dict(val, nsp, 1, 0, aocc, nelecmax, lmax, nsccode)
+       call set(dict // key // at, val)
+    end do parse_inocc
+
+    close(unit = 91)
+
+  end subroutine atomic_data_file_merge_to_dict
 
 end module module_input_dicts

@@ -31,7 +31,8 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
 
    !check the geometry code with the grid spacings
    if (atoms%astruct%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
-      write(*,'(1x,a)')'ERROR: The values of the grid spacings must be equal in the Free BC case'
+      write(*,'(1x,a,3(1x,F6.4))') 'ERROR: The values of the grid spacings must be equal' // &
+           & ' in the Free BC case, while hgrids = ', hx, hy, hz
       stop
    end if
 

@@ -1099,13 +1099,13 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
   character(len=4), intent(in) :: frzchain
   integer, intent(out) :: ifrztyp
 
-  if (trim(frzchain)=='') then
+  if (trim(adjustl(frzchain))=='') then
      ifrztyp = 0
-  else if (trim(frzchain)=='f') then
+  else if (trim(adjustl(frzchain))=='f') then
      ifrztyp = 1
-  else if (trim(frzchain)=='fy') then
+  else if (trim(adjustl(frzchain))=='fy') then
      ifrztyp = 2
-  else if (trim(frzchain)=='fxz') then
+  else if (trim(adjustl(frzchain))=='fxz') then
      ifrztyp = 3
   else if (verify(frzchain, 'f0123456789') == 0) then
      read(frzchain(2:4), *) ifrztyp
@@ -1462,7 +1462,6 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
   integer :: iat,ichg,ispol
   real(gp) :: factor
   real(gp) :: xred(3)
-  character(len = 50) :: gu
   
   reduced=.false.
   factor=1.0_gp
@@ -1669,28 +1668,6 @@ subroutine atoms_empty(atoms)
 
   call deallocate_atoms(atoms, "atoms_empty")
 END SUBROUTINE atoms_empty
-
-
-!> Set routines for bindings
-subroutine atoms_read_variables(atoms, nspin, occup, ln)
-  use module_types
-  use memory_profiling
-  implicit none
-  !Arguments
-  type(atoms_data), intent(inout) :: atoms
-  integer, intent(in) :: nspin, ln
-  character(len=1), dimension(ln), intent(in) :: occup
-  !Local variables
-  integer :: i
-  character(len = 1024) :: filename_
-
-  write(filename_, "(A)") " "
-  do i = 1, ln
-     write(filename_(i:i), "(A1)") occup(i)
-  end do
-
-  call read_atomic_variables(atoms, trim(filename_), nspin)
-END SUBROUTINE atoms_read_variables
 
 
 subroutine atoms_set_name(atoms, ityp, name)
