@@ -1112,17 +1112,18 @@ subroutine geopt_input_analyse(iproc,in,dict)
   integer :: i_stat,i
   character(len = max_field_length) :: prof, meth
   real(gp) :: betax_, dtmax_
+  logical :: user_defined
 
   ! Additional treatments.
   meth = dict // GEOPT_METHOD
   if (input_keys_equal(trim(meth), "FIRE")) then
-     prof = input_keys_get_source(dict, DTMAX)
-     if (trim(prof) == "default") then
+     prof = input_keys_get_source(dict, DTMAX, user_defined)
+     if (trim(prof) == "default" .and. .not. user_defined) then
         betax_ = dict // BETAX
         call set(dict // DTMAX, 0.25 * pi_param * sqrt(betax_), fmt = "(F7.4)")
      end if
-     prof = input_keys_get_source(dict, DTINIT)
-     if (trim(prof) == "default") then
+     prof = input_keys_get_source(dict, DTINIT, user_defined)
+     if (trim(prof) == "default" .and. .not. user_defined) then
         dtmax_ = dict // DTMAX
         call set(dict // DTINIT, 0.5 * dtmax_, fmt = "(F7.4)")
      end if
