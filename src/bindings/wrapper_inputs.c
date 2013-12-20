@@ -225,12 +225,12 @@ BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDF
 
   at = bigdft_atoms_new();
   in = bigdft_inputs_init();
-  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
-  FC_FUNC_(bigdft_set_input, BIGDFT_SET_INPUT)(radical, posinp, in->data, at->data,
-                                               strlen(radical), strlen(posinp));
-  _sync(in);
-  _sync_add(in);
-  bigdft_atoms_copy_from_fortran(at);
+  /* FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data); */
+  /* FC_FUNC_(bigdft_set_input, BIGDFT_SET_INPUT)(radical, posinp, in->data, at->data, */
+  /*                                              strlen(radical), strlen(posinp)); */
+  /* _sync(in); */
+  /* _sync_add(in); */
+  /* bigdft_atoms_copy_from_fortran(at); */
   *atoms = at;
   return in;
 }

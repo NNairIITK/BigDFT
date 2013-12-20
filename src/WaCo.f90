@@ -16,6 +16,7 @@ program WaCo
    use module_interfaces, except_this_one => writeonewave
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use yaml_output
+   use module_input_dicts
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -64,6 +65,7 @@ program WaCo
    integer, dimension(:),allocatable :: bandlist
    logical :: idemp
    integer, dimension(4) :: mpi_info
+   type(dictionary), pointer :: user_inputs
 
    ! ONLY FOR DEBUG
 !   real(gp) :: Gnorm, Lnorm
@@ -110,8 +112,13 @@ program WaCo
 
    if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
-  call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
-       input,atoms)
+   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
+        & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
+   call inputs_from_dict(input, atoms, user_inputs, .true.)
+   if (iproc == 0) then
+      call print_general_parameters(input,atoms)
+   end if
+   call dict_free(user_inputs)
 
    if (input%verbosity > 2) then
       nproctiming=-nproc !timing in debug mode                                                                                                                                                                 

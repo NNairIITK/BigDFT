@@ -5,6 +5,9 @@ module module_input_dicts
 
   private
 
+  ! Main creation routine
+  public :: user_dict_from_files
+
   ! Dictionary completion
   public :: psp_dict_fill_all, psp_dict_analyse
 
@@ -24,6 +27,47 @@ module module_input_dicts
   public :: atomic_data_file_merge_to_dict
 
 contains
+
+  subroutine user_dict_from_files(dict,radical,posinp, mpi_env)
+    use dictionaries
+    use dictionaries_base, only: TYPE_DICT, TYPE_LIST
+    use module_defs, only: mpi_environment
+    use module_interfaces, only: read_input_dict_from_files
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(in) :: radical, posinp
+    type(mpi_environment), intent(in) :: mpi_env
+
+    character(len = max_field_length) :: str
+
+    nullify(dict)
+    !read the input file(s) and transform them into a dictionary
+    call read_input_dict_from_files(trim(radical), mpi_env, dict)
+
+    if (.not. has_key(dict, "posinp")) then
+       !Add old posinp formats
+       call astruct_file_merge_to_dict(dict, "posinp", trim(posinp))
+    else
+       str = dict_value(dict // "posinp")
+       if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+          call astruct_file_merge_to_dict(dict, "posinp", trim(str))
+       end if
+    end if
+
+    ! Add old psppar
+    call atoms_file_merge_to_dict(dict)
+
+    if (.not. has_key(dict, "Atomic occupation")) then
+       ! Add old input.occup
+       call atomic_data_file_merge_to_dict(dict, "Atomic occupation", &
+            & trim(radical) // ".occup")
+    else
+       str = dict_value(dict // "Atomic occupation")
+       if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+          call atomic_data_file_merge_to_dict(dict, "Atomic occupation", trim(str))
+       end if
+    end if
+  end subroutine user_dict_from_files
 
   subroutine psp_dict_fill_all(dict, atomname, run_ixc)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi

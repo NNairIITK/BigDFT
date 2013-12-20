@@ -205,16 +205,16 @@ MODULE NEB_routines
             istart = i
             read_posinp(i) = .true.
          end if
-         call astruct_merge_to_dict(dict // "posinp", astruct, astruct%rxyz)
-         call deallocate_atomic_structure(astruct, "NEB")
 
+         nullify(dict)
+         call read_input_dict_from_files(trim(arr_radical(i)), bigdft_mpi, dict)
+         call astruct_merge_to_dict(dict // "posinp", astruct, astruct%rxyz)
          call atoms_file_merge_to_dict(dict)
 
-         call read_input_dict_from_files(trim(arr_radical(i)), bigdft_mpi,dict)
-         call standard_inputfile_names(ins(i),trim(arr_radical(i)))
          call inputs_from_dict(ins(i), atoms(i), dict, .true.)
 
          call dict_free(dict)
+         call deallocate_atomic_structure(astruct, "NEB")
       end do
       bigdft_mpi = bigdft_mpi_svg
 

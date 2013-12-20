@@ -106,16 +106,6 @@ module module_interfaces
          character(len = *), intent(in) :: radical
       END SUBROUTINE standard_inputfile_names
 
-      subroutine bigdft_set_input(radical,posinp,inputs,atoms)
-        !n(c) use module_base
-        use module_types
-        implicit none
-        character(len=*), intent(in) :: posinp
-        character(len=*),intent(in) :: radical
-        type(input_variables), intent(inout) :: inputs
-        type(atoms_data), intent(out) :: atoms
-      END SUBROUTINE bigdft_set_input
-
       subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
         use module_types
         implicit none
@@ -232,7 +222,7 @@ module module_interfaces
         use module_defs
         use dictionaries
         implicit none
-        type(input_variables), intent(inout) :: in
+        type(input_variables), intent(out) :: in
         type(atoms_data), intent(out) :: atoms
         type(dictionary), pointer :: dict
         logical, intent(in) :: dump
