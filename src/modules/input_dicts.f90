@@ -193,14 +193,16 @@ contains
        atoms%nlcc_ngc(ityp)=0
        atoms%nlcc_ngv(ityp)=0
        filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
-       if (.not. has_key(dict, filename)) cycle
+       if (.not. has_key(dict, filename)) cycle    
        if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle
        nloc => dict // filename // 'Non Linear Core Correction term'
-       if (has_key(nloc, "Valence") .and. has_key(nloc, "Conduction")) then
-          n = dict_len(nloc // "Valence")
+       if (has_key(nloc, "Valence") .or. has_key(nloc, "Conduction")) then
+          n = 0
+          if (has_key(nloc, "Valence")) n = dict_len(nloc // "Valence")
           nlcc_dim = nlcc_dim + n
           atoms%nlcc_ngv(ityp) = int((sqrt(real(1 + 8 * n)) - 1) / 2)
-          n = dict_len(nloc // "Conduction")
+          n = 0
+          if (has_key(nloc, "Conduction")) n = dict_len(nloc // "Conduction")
           nlcc_dim = nlcc_dim + n
           atoms%nlcc_ngc(ityp) = int((sqrt(real(1 + 8 * n)) - 1) / 2)
        end if
@@ -216,11 +218,13 @@ contains
     if (atoms%donlcc) then
        nlcc_dim=0
        fill_nlcc: do ityp=1,atoms%astruct%ntypes
+          filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
           !ALEX: These are preferably read from psppar.Xy, as stored in the
           !local variables rcore and qcore
           nloc => dict // filename // 'Non Linear Core Correction term'
-          if (has_key(nloc, "Valence") .and. has_key(nloc, "Conduction")) then
-             n = dict_len(nloc // "Valence")
+          if (has_key(nloc, "Valence") .or. has_key(nloc, "Conduction")) then
+             n = 0
+             if (has_key(nloc, "Valence")) n = dict_len(nloc // "Valence")
              do i = 1, n, 1
                 coeffs => nloc // "Valence" // (i - 1)
                 atoms%nlccpar(0, nlcc_dim + i) = coeffs // 0
@@ -230,7 +234,8 @@ contains
                 atoms%nlccpar(4, nlcc_dim + i) = coeffs // 4
              end do
              nlcc_dim = nlcc_dim + n
-             n = dict_len(nloc // "Conduction")
+             n = 0
+             if (has_key(nloc, "Conduction")) n = dict_len(nloc // "Conduction")
              do i = 1, n, 1
                 coeffs => nloc // "Conduction" // (i - 1)
                 atoms%nlccpar(0, nlcc_dim + i) = coeffs // 0
@@ -502,24 +507,28 @@ contains
     !read the values of the gaussian for valence and core densities
     open(unit=79,file=filename,status='unknown')
     read(79,*)ngv
-    call dict_init(gauss)
-    do ig=1,(ngv*(ngv+1))/2
-       read(79,*) coeffs
-       do i = 0, 4, 1
-          call add(gauss, coeffs(i))
+    if (ngv > 0) then
+       do ig=1,(ngv*(ngv+1))/2
+          call dict_init(gauss)
+          read(79,*) coeffs
+          do i = 0, 4, 1
+             call add(gauss, coeffs(i))
+          end do
+          call add(psp // 'Non Linear Core Correction term' // "Valence", gauss)
        end do
-    end do
-    call set(psp // 'Non Linear Core Correction term' // "Valence", gauss)
+    end if
 
     read(79,*)ngc
-    call dict_init(gauss)
-    do ig=1,(ngc*(ngc+1))/2
-       read(79,*) coeffs
-       do i = 0, 4, 1
-          call add(gauss, coeffs(i))
+    if (ngc > 0) then
+       do ig=1,(ngc*(ngc+1))/2
+          call dict_init(gauss)
+          read(79,*) coeffs
+          do i = 0, 4, 1
+             call add(gauss, coeffs(i))
+          end do
+          call add(psp // 'Non Linear Core Correction term' // "Conduction", gauss)
        end do
-    end do
-    call set(psp // 'Non Linear Core Correction term' // "Conduction", gauss)
+    end if
 
     close(unit=79)
   end subroutine nlcc_file_merge_to_dict
