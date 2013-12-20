@@ -17,6 +17,7 @@ module module_types
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
+  use dictionaries, only: dictionary
 
   implicit none
 
@@ -971,6 +972,8 @@ module module_types
 
   !> Public container to be used with call_bigdft().
   type, public :: run_objects
+     type(dictionary), pointer :: user_inputs
+
      type(input_variables), pointer    :: inputs
      type(atoms_data), pointer         :: atoms
      type(restart_objects), pointer    :: rst

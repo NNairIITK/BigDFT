@@ -1106,19 +1106,22 @@ contains
     end do
   END FUNCTION input_keys_equal
 
-  function input_keys_get_source(dict, key)
+  function input_keys_get_source(dict, key, user_defined)
     use dictionaries
     implicit none
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: key
+    logical, intent(out) :: user_defined
 
     character(len = max_field_length) :: input_keys_get_source
 
+    user_defined = .false.
     input_keys_get_source(1:max_field_length) = DEFAULT
     if (has_key(dict, trim(key) // ATTRS)) then
-       if (has_key(dict // (trim(key) // ATTRS), PROF_KEY)) then
-          input_keys_get_source = dict // (trim(key) // ATTRS) // PROF_KEY
-       end if
+       if (has_key(dict // (trim(key) // ATTRS), USER_KEY)) &
+            & user_defined = dict // (trim(key) // ATTRS) // USER_KEY
+       if (has_key(dict // (trim(key) // ATTRS), PROF_KEY)) &
+            & input_keys_get_source = dict // (trim(key) // ATTRS) // PROF_KEY
     end if
   end function input_keys_get_source
 

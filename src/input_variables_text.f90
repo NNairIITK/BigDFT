@@ -22,7 +22,6 @@ subroutine standard_inputfile_names(in, radical)
   if (trim(radical) /= 'input') in%run_name=trim(radical)
 
   call set_inputfile(in%file_occnum, radical, "occ")
-  call set_inputfile(in%file_igpop, radical,  "occup")
   call set_inputfile(in%file_lin, radical,    "lin")
   call set_inputfile(in%file_frag, radical,   "frag")
 
