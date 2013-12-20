@@ -355,12 +355,13 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   real(gp) :: frag_sum_tot, frag_sum_tot_orthog, eval_sum_tot, orthog_energy
   real(gp), dimension(1) :: trans_int_energy, trans_int_energy_orthog, trans_int_ovrlp, trans_int_ovrlp_orthog
   character(len=8) :: str
+  logical, parameter :: separate_site_energies=.false.
 
   call timing(iproc,'transfer_int','ON')
   call f_routine(id='calc_site_energies_transfer_integrals')
 
   nstates=0
-  above_lumo=3
+  above_lumo=0
   do ifrag=1,input_frag%nfrag
      ifrag_ref= input_frag%frag_index(ifrag)
      nstates=nstates+min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
@@ -396,7 +397,8 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
 
   ham%matrix=f_malloc_ptr((/ham%full_dim1,ham%full_dim1/), id='ham%matrix')
   call uncompressMatrix(iproc,ham)
-  call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
+  if (separate_site_energies) call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs,homo_coeffs,&
+       homo_ham,homo_ovrlp)
 
   ! orthogonalize
   coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')
@@ -406,118 +408,122 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   call dcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
   call f_free(coeffs_tmp)
 
-  homo_ham_orthog=f_malloc(nstates, id='homo_ham_orthog')
-  homo_ovrlp_orthog=f_malloc(nstates, id='homo_ovrlp_orthog')
+  if (separate_site_energies) then
+     homo_ham_orthog=f_malloc(nstates, id='homo_ham_orthog')
+     homo_ovrlp_orthog=f_malloc(nstates, id='homo_ovrlp_orthog')
 
-  call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,coeffs_orthog,coeffs_orthog,&
-       homo_ham_orthog,homo_ovrlp_orthog)
+     call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,coeffs_orthog,coeffs_orthog,&
+          homo_ham_orthog,homo_ovrlp_orthog)
 
-  frag_sum=f_malloc0(nstates, id='frag_sum')
-  frag_sum_orthog=f_malloc0(nstates, id='frag_sum_orthog')
-  eval_sum=f_malloc0(nstates, id='eval_sum')
+     frag_sum=f_malloc0(nstates, id='frag_sum')
+     frag_sum_orthog=f_malloc0(nstates, id='frag_sum_orthog')
+     eval_sum=f_malloc0(nstates, id='eval_sum')
 
-  !if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
-  !if (iproc==0) write(*,*) 'Site energies:'
-  if (iproc==0) call yaml_open_sequence('Site energies',flow=.true.)
+     !if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
+     !if (iproc==0) write(*,*) 'Site energies:'
+     if (iproc==0) call yaml_open_sequence('Site energies',flow=.true.)
 
-  !!if (iproc==0) write(*,*) 'state, energy, orthog energy, frag eval, overlap, orthog overlap, occ'
-  if (iproc==0) call yaml_comment('state, energy, orthog energy, frag eval, overlap, orthog overlap, occ')
+     !!if (iproc==0) write(*,*) 'state, energy, orthog energy, frag eval, overlap, orthog overlap, occ'
+     if (iproc==0) call yaml_comment('state, energy, orthog energy, frag eval, overlap, orthog overlap, occ')
 
-  istate=1
-  frag_sum_tot=0
-  frag_sum_tot_orthog=0
-  eval_sum_tot=0
-  do ifrag=1,input_frag%nfrag
-     ifrag_ref=input_frag%frag_index(ifrag)
-     !if (iproc==0) write(*,'(a,i3)') trim(input_frag%label(ifrag_ref)),ifrag
-     if (iproc==0) call yaml_open_map(flow=.true.)
-     if (iproc==0) call yaml_map('label',trim(input_frag%label(ifrag_ref)))
-     do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
-        !!if (iproc==0) call yaml_open_map(flow=.true.)
-        if (iproc==0) call yaml_newline()
-        if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
-           write(str,'(I2)') abs(ih-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp))
-           !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO-'//trim(adjustl(str))
-           if (iproc==0) call yaml_map('state','HOMO-'//trim(adjustl(str)))
-        else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
-           !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO'
-           if (iproc==0) call yaml_map('state','HOMO')
-        else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)+1) then
-           !if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO'
-           if (iproc==0) call yaml_map('state','LUMO')
-        else
-           write(str,'(I2)') ih-1-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
-           !if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
-           if (iproc==0) call yaml_map('state','LUMO+'//trim(adjustl(str)))
-        end if
-        !if (iproc==0) write(*,'(1x,5(F20.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
-        !     ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
-        if (iproc==0) then
-            call yaml_map('energy',homo_ham(istate),fmt='(es16.8)')
-            call yaml_map('orthog energy',homo_ham_orthog(istate),fmt='(es16.8)')
-            call yaml_map('frag eval',ref_frags(ifrag_ref)%eval(ih),fmt='(es16.8)')
-            call yaml_map('overlap',homo_ovrlp(istate),fmt='(es14.6)')
-            !call yaml_map('orthog overlap',homo_ovrlp_orthog(istate))
-        end if     
-        if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
-           frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
-           frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+homo_ham_orthog(istate)
-           eval_sum(ifrag)=eval_sum(ifrag)+ref_frags(ifrag_ref)%eval(ih)
-           !if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
-           if (iproc==0) call yaml_map('occ',2.0_gp,fmt='(f5.2)')
-        else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
-           if (mod(real(ref_frags(ifrag_ref)%nelec,gp),2.0_gp)/=0.0_gp) then
-              frag_sum(ifrag)=frag_sum(ifrag)+0.5_gp*homo_ham(istate)
-              frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+0.5_gp*homo_ham_orthog(istate)
-              eval_sum(ifrag)=eval_sum(ifrag)+0.5_gp*ref_frags(ifrag_ref)%eval(ih)
-              !if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
-              if (iproc==0) call yaml_map('occ',1.0_gp,fmt='(f5.2)')
+     istate=1
+     frag_sum_tot=0
+     frag_sum_tot_orthog=0
+     eval_sum_tot=0
+     do ifrag=1,input_frag%nfrag
+        ifrag_ref=input_frag%frag_index(ifrag)
+        !if (iproc==0) write(*,'(a,i3)') trim(input_frag%label(ifrag_ref)),ifrag
+        if (iproc==0) call yaml_open_map(flow=.true.)
+        if (iproc==0) call yaml_map('label',trim(input_frag%label(ifrag_ref)))
+        do ih=1,min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
+           !!if (iproc==0) call yaml_open_map(flow=.true.)
+           if (iproc==0) call yaml_newline()
+           if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
+              write(str,'(I2)') abs(ih-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp))
+              !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO-'//trim(adjustl(str))
+              if (iproc==0) call yaml_map('state','HOMO-'//trim(adjustl(str)))
+           else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
+              !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO'
+              if (iproc==0) call yaml_map('state','HOMO')
+           else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)+1) then
+              !if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO'
+              if (iproc==0) call yaml_map('state','LUMO')
            else
+              write(str,'(I2)') ih-1-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
+              !if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
+              if (iproc==0) call yaml_map('state','LUMO+'//trim(adjustl(str)))
+           end if
+           !if (iproc==0) write(*,'(1x,5(F20.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
+           !     ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
+           if (iproc==0) then
+               call yaml_map('energy',homo_ham(istate),fmt='(es16.8)')
+               call yaml_map('orthog energy',homo_ham_orthog(istate),fmt='(es16.8)')
+               call yaml_map('frag eval',ref_frags(ifrag_ref)%eval(ih),fmt='(es16.8)')
+               call yaml_map('overlap',homo_ovrlp(istate),fmt='(es14.6)')
+               !call yaml_map('orthog overlap',homo_ovrlp_orthog(istate))
+           end if     
+           if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
               frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
               frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+homo_ham_orthog(istate)
               eval_sum(ifrag)=eval_sum(ifrag)+ref_frags(ifrag_ref)%eval(ih)
               !if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
               if (iproc==0) call yaml_map('occ',2.0_gp,fmt='(f5.2)')
+           else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
+              if (mod(real(ref_frags(ifrag_ref)%nelec,gp),2.0_gp)/=0.0_gp) then
+                 frag_sum(ifrag)=frag_sum(ifrag)+0.5_gp*homo_ham(istate)
+                 frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+0.5_gp*homo_ham_orthog(istate)
+                 eval_sum(ifrag)=eval_sum(ifrag)+0.5_gp*ref_frags(ifrag_ref)%eval(ih)
+                 !if (iproc==0) write(*,'(1x,F4.2)') 1.0_gp
+                 if (iproc==0) call yaml_map('occ',1.0_gp,fmt='(f5.2)')
+              else
+                 frag_sum(ifrag)=frag_sum(ifrag)+homo_ham(istate)
+                 frag_sum_orthog(ifrag)=frag_sum_orthog(ifrag)+homo_ham_orthog(istate)
+                 eval_sum(ifrag)=eval_sum(ifrag)+ref_frags(ifrag_ref)%eval(ih)
+                 !if (iproc==0) write(*,'(1x,F4.2)') 2.0_gp
+                 if (iproc==0) call yaml_map('occ',2.0_gp,fmt='(f5.2)')
+              end if
+           else
+              !if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
+              if (iproc==0) call yaml_map('occ',0.0_gp,fmt='(f5.2)')
            end if
-        else
-           !if (iproc==0) write(*,'(1x,F4.2)') 0.0_gp
-           if (iproc==0) call yaml_map('occ',0.0_gp,fmt='(f5.2)')
+           istate=istate+1
+           !!if (iproc==0) call yaml_close_map()
+        end do
+        !if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum(ifrag),&
+        !     2.0_gp*frag_sum_orthog(ifrag),2.0_gp*eval_sum(ifrag)
+          !if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
+          !     '-------------------------'
+        if(iproc==0) then
+            call yaml_newline
+            call yaml_map('2*frag sum',2.0_gp*frag_sum(ifrag))
+            call yaml_map('2*frag sum orthog',2.0_gp*frag_sum_orthog(ifrag))
+            call yaml_map('2*eval sum',2.0_gp*eval_sum(ifrag))
+            call yaml_close_map()
+            call yaml_newline()
         end if
-        istate=istate+1
-        !!if (iproc==0) call yaml_close_map()
+        frag_sum_tot=frag_sum_tot+frag_sum(ifrag)
+        frag_sum_tot_orthog=frag_sum_tot_orthog+frag_sum_orthog(ifrag)
+        eval_sum_tot=eval_sum_tot+eval_sum(ifrag)
      end do
-     !if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum(ifrag),&
-     !     2.0_gp*frag_sum_orthog(ifrag),2.0_gp*eval_sum(ifrag)
-       !if (iproc==0) write(*,'(a)') '------------------------------------------------------------------------'//&
-       !     '-------------------------'
-     if(iproc==0) then
-         call yaml_newline
-         call yaml_map('2*frag sum',2.0_gp*frag_sum(ifrag))
-         call yaml_map('2*frag sum orthog',2.0_gp*frag_sum_orthog(ifrag))
-         call yaml_map('2*eval sum',2.0_gp*eval_sum(ifrag))
-         call yaml_close_map()
-         call yaml_newline()
+     if (iproc==0) call yaml_close_sequence()
+
+     if (iproc==0) then
+         call yaml_map('2.0_gp*frag_sum_tot',2.0_gp*frag_sum_tot)
+         call yaml_map('2.0_gp*frag_sum_tot_orthog',2.0_gp*frag_sum_tot_orthog)
+         call yaml_map('2.0_gp*eval_sum_tot',2.0_gp*eval_sum_tot)
      end if
-     frag_sum_tot=frag_sum_tot+frag_sum(ifrag)
-     frag_sum_tot_orthog=frag_sum_tot_orthog+frag_sum_orthog(ifrag)
-     eval_sum_tot=eval_sum_tot+eval_sum(ifrag)
-  end do
-  if (iproc==0) call yaml_close_sequence()
 
-  if (iproc==0) then
-      call yaml_map('2.0_gp*frag_sum_tot',2.0_gp*frag_sum_tot)
-      call yaml_map('2.0_gp*frag_sum_tot_orthog',2.0_gp*frag_sum_tot_orthog)
-      call yaml_map('2.0_gp*eval_sum_tot',2.0_gp*eval_sum_tot)
+     !if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
+     !if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
+
+     call f_free(eval_sum)
+     call f_free(frag_sum)
+     call f_free(frag_sum_orthog)
+     call f_free(homo_ham_orthog)
+     call f_free(homo_ovrlp_orthog)
+  else
+     orthog_energy=0.0d0
   end if
-
-  !if (iproc==0) write(*,'(9x,3(F20.12,1x))') 2.0_gp*frag_sum_tot, 2.0_gp*frag_sum_tot_orthog,2.0_gp*eval_sum_tot
-  !if (iproc==0) write(*,'(a)') '-------------------------------------------------------------------------------------------------'
-
-  call f_free(eval_sum)
-  call f_free(frag_sum)
-  call f_free(frag_sum_orthog)
-  call f_free(homo_ham_orthog)
-  call f_free(homo_ovrlp_orthog)
 
   if (input_frag%nfrag>=2) then
      !if (iproc==0) write(*,*) 'Transfer integrals (HOMO and LUMO are defined as those of the neutral fragment):'
