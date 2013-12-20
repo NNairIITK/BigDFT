@@ -606,7 +606,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            radii_cf,cpmult,fpmult,hx,hy,hz, &
            PAWD, KSwfn%Lzd%Glr )
       call timing(iproc,'CrtPawProjects ','OF')
-      if (iproc == 0) call print_nlpspd(PAWD%paw_nlpspd)
    endif
 
    if (in%iabscalc_type==3) then
@@ -619,7 +618,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            radii_cf,cpmult,fpmult,hx,hy,hz,-0.1_gp, &
            PPD, KSwfn%Lzd%Glr  )
       call timing(iproc,'CrtPcProjects ','OF')
-      if (iproc == 0) call print_nlpspd(PPD%pc_nlpspd)
    endif
 
    call IonicEnergyandForces(iproc,nproc,dpcom,atoms,in%elecfield,rxyz,&
