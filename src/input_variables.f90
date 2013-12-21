@@ -173,7 +173,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   call default_input_variables(in)
 
   ! Setup radical for output dir.
-  write(radical, "(A)") " "
+  write(radical, "(A)") "input"
   if (has_key(dict, "radical")) radical = dict // "radical"
   call standard_inputfile_names(in,trim(radical))
   ! To avoid race conditions where procs create the default file and other test its
