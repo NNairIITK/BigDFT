@@ -148,17 +148,17 @@
                  !        nlcc.
                  !        lpack(6) = ( rcore > 0d0)  !! Accept rcore for
                  !        change
-                 do i=1,4
-                    lpack(1+i)=( gpot(i)**2> 1d-8)
-                    ! lpack(6+i)=( gcore(i)**2> 1d-8) !! Accept gcore
-                    ! for change
-                    lpack(3+8*i)= (r_l(i)/=1d0)
-                    lpack(10+8*i)= ( r_l2(i)/=r_l(i) )
-                    do j=1,6
-                       lpack(3+8*i+j)=  ((hsep(j,i,1)**2+&
-                                          hsep(j,i,2)**2) > 1d-8)
-                    end do
-                 end do
+!                 do i=1,4
+!                    lpack(1+i)=( gpot(i)**2> 1d-8)
+!                    ! lpack(6+i)=( gcore(i)**2> 1d-8) !! Accept gcore
+!                    ! for change
+!                    lpack(3+8*i)= (r_l(i)/=1d0)
+!                    lpack(10+8*i)= ( r_l2(i)/=r_l(i) )
+!                    do j=1,6
+!                       lpack(3+8*i+j)=  ((hsep(j,i,1)**2+&
+!                                          hsep(j,i,2)**2) > 1d-8)
+!                    end do
+!                 end do
               end if    
                     
 
@@ -169,7 +169,7 @@
               do i=1,maxpar
                   match=( index(string, trim(spack(i)) ) >0)
                   lpack(i) = (lpack(i) .or. match ) 
-!                 if(match.and.verbose) write(6,*) spack(i)
+                 !if(match.and.verbose) write(6,*) spack(i)
               end do
          end do
          close(20)
@@ -188,8 +188,10 @@
             write(6,'(8(2x,a))') spack(27:34)
             write(6,'(8(2x,a))') spack(35:42)
             write(6,*)
-            write(6,*)'The keyword "auto" will free all parameters read from psppar and'
-            write(6,*)'override previous keywords for params that are not present there.'
+            write(6,*)'The keyword "auto" will free all parameters read &
+                     from psppar and'
+            write(6,*)'override previous keywords for params that are & 
+                      not present there.'
             write(6,*)'Exception: Does not free rloc.'
             write(6,*)
 
@@ -205,8 +207,8 @@
 !           this warning message does not need the error handler
             write(6,*)
             write(6,*)'                WARNING' 
-            write(6,*)'In input.fitpar there are free parameters for the'
-            write(6,*)'separable part for which no value has been'
+            write(6,*)'In input.fitpar there are free parameters for '
+            write(6,*)'the separable part for which no value has been'
             write(6,*)'assigned when reading psppar.'
             write(6,*)
             write(6,*)'The number of l components differ:'

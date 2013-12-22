@@ -1,31 +1,31 @@
            subroutine penalty(energ,verbose,maxdim,pp,penal,  &
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-           no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+           no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
            occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-           wfnode,psir0,wghtp0,  &
+           wfnode,psir0,wghtp0,ncovmax,ncov,  &
            rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
            vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,  &
            avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,  &
 !          the following lines differ from pseudo2.2  
            iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
            wghtKE,nhgrid,hgridmin,hgridmax, nhpow,ampl,crmult,frmult,  &
-           excitAE,ntime,iter,itertot,penref,time)
+           ekin_orb,excitAE,ntime,iter,itertot,penref,time)
 
       implicit real*8 (a-h,o-z)
       logical avgl1,avgl2,avgl3,ortprj,litprj,igrad
       logical energ, verbose, wpen, pol
       dimension pp(maxdim),no(norb),lo(norb),so(norb),  &
-           ev(norb),crcov(norb),dcrcov(norb),ddcrcov(norb),  &
+           ev(norb),crcov(norbmx,ncovmax),dcrcov(norb),ddcrcov(norb),  &
            occup(noccmx,lmx,nsmx),aeval(noccmx,lmx,nsmx),  &
-           chrg(noccmx,lmx,nsmx),dhrg(noccmx,lmx,nsmx),  &
-           ehrg(noccmx,lmx,nsmx),res(noccmx,lmx,nsmx),  &
-           wght(noccmx,lmx,nsmx,8),  &
+           chrg(noccmx,lmx,nsmx,ncovmax),dhrg(noccmx,lmx,nsmx),  &
+           ehrg(noccmx,lmx,nsmx),res(noccmx,lmx,nsmx),rcov(ncovmax),  &
+           wght(noccmx,lmx,nsmx,8,ncovmax),ekin_orb(noccmx,lmx,nsmx),  &
            wfnode(noccmx,lmx,nsmx,3),  &
            gpot(4),r_l(4),r_l2(4),hsep(6,lpmx,nsmx),  &  
            vh(*),xp(*),rmt(*),rmtg(*),ud(*),psi(*),  &
            rr(*),rw(*),rd(*),pen_cont(9),  &
            gcore(4),  &
-           exverbose(4*nproc),time(3)
+           exverbose(8*nproc),time(3)
 
       include 'mpif.h'
 
@@ -43,7 +43,7 @@
          l=lo(iorb)
          ispin=1
          if (so(iorb).lt.0) ispin=2
-         if ( (wght(nocc,l+1,ispin,5).eq.0.0d0) .and.  &
+         if ( (wght(nocc,l+1,ispin,5,ncov).eq.0.0d0) .and.  &
               (occup(nocc,l+1,ispin).lt.1.0d-8) .and.  &
               ( .not. verbose) )  then
             res(nocc,l+1,ispin) = -1.d0
@@ -60,19 +60,23 @@
            lpx,lpmx,nspin,pol,nsmx,maxdim,maxdim,'unpack',  &
            avgl1,avgl2,avgl3,ortprj,litprj,  &
            rcore,gcore,znuc,zion)
-
+!      write(6,*)"back in penalty after ppack"
+!      time(1)=0d0
       call cpu_time(t)
-      time(1)=time(1)-t
+      time(1)=time(1)-t !! Change
+!      write(6,*)'inside penalty.f90 calling gatom'
+
       call gatom(nspol,energ,verbose,  &
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &
-           occup,aeval,chrg,dhrg,ehrg,res,wght,wfnode,psir0,  &
+           occup,aeval,chrg,dhrg,ehrg,res,wght,wfnode,psir0,ncovmax,ncov,&
            rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
            vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,igrad,  &
-           rr,rw,rd,ntime,itertot,ekin,etotal)
+           rr,rw,rd,ntime,itertot,ekin_orb,dertwo,etotal)
       call cpu_time(t)
       time(1)=time(1)+t
       penal=0d0
 !     diff for dcharg and echarge is calc. in (%)
+      !write(6,'(a)')"iorb,incov,chrg,crcov,wght"
       do iorb=1,norb
          nocc=no(iorb)
          l=lo(iorb)
@@ -81,18 +85,26 @@
 
               penalorb= &
               ((aeval(nocc,l+1,ispin)-ev(iorb))  &
-              *wght(nocc,l+1,ispin,1))**2 +  &
-              ((chrg(nocc,l+1,ispin)-crcov(iorb))  &
-              *wght(nocc,l+1,ispin,2))**2 +  &
+              *wght(nocc,l+1,ispin,1,ncov))**2 +  &
+              ((chrg(nocc,l+1,ispin,1)-crcov(iorb,1))  &
+              *wght(nocc,l+1,ispin,2,1))**2 +  &
               (100.d0*(1.d0-dhrg(nocc,l+1,ispin)/dcrcov(iorb))  &
-              *wght(nocc,l+1,ispin,3))**2 +  &
+              *wght(nocc,l+1,ispin,3,ncov))**2 +  &
               (100.d0*(1.d0-ehrg(nocc,l+1,ispin)/ddcrcov(iorb))  &
-              *wght(nocc,l+1,ispin,4))**2 +  & 
-              (res(nocc,l+1,ispin)*wght(nocc,l+1,ispin,5))**2 +  &
-              (wfnode(nocc,l+1,ispin,1)*wght(nocc,l+1,ispin,6))**2 +  &
-              (wfnode(nocc,l+1,ispin,2)*wght(nocc,l+1,ispin,7))**2 +  &
-              (wfnode(nocc,l+1,ispin,3)*wght(nocc,l+1,ispin,8))**2  
-
+              *wght(nocc,l+1,ispin,4,ncov))**2 +  & 
+              (res(nocc,l+1,ispin)*wght(nocc,l+1,ispin,5,ncov))**2 +  &
+              (wfnode(nocc,l+1,ispin,1)*wght(nocc,l+1,ispin,6,ncov))**2 +  &
+              (wfnode(nocc,l+1,ispin,2)*wght(nocc,l+1,ispin,7,ncov))**2 +  &
+              (wfnode(nocc,l+1,ispin,3)*wght(nocc,l+1,ispin,8,ncov))**2  
+              !write(6,'(2(i2,1x),3(1x,e25.17))')iorb,1,chrg(nocc,l+1,ispin,1),crcov(iorb,1),wght(nocc,l+1,ispin,2,1)
+              if (ncov.gt.1) then
+              do incov=2,ncov
+              penalorb=penalorb+((chrg(nocc,l+1,ispin,incov)-crcov(iorb,incov)) &
+              *wght(nocc,l+1,ispin,2,incov))**2
+              !write(6,'(2(i2,1x),3(1x,e25.17))')iorb,incov,chrg(nocc,l+1,ispin,incov),crcov(iorb,incov),wght(nocc,l+1,ispin,2,incov)
+              end do
+              end if
+           !write(6,*)"iorb,nocc,l,ispin",iorb,nocc,l,ispin
                if(penalorb**2>= 0d0) then
 !                some isNaN test... 
 !                we dont want to add NaN to the penalty,
@@ -105,12 +117,12 @@
                  write(6,*)'DEBUG: nocc,l,ispin',nocc,l,ispin
                  write(6,*)'AE/PS evals',aeval(nocc,l+1,ispin),ev(iorb)
                  write(6,*)'node integrals ', wfnode(nocc,l+1,ispin,:)
-                 write(6,*)'all wghts',wght(nocc,l+1,ispin,1:8)
+                 write(6,*)'all wghts',wght(nocc,l+1,ispin,1:8,1:ncov1)
                  write(6,*)
                end if
       enddo
 !     for now, keep this contribution here, no special output
-      penal=penal + (psir0*wghtp0)**2
+      penal=penal + psir0*wghtp0**2
 
 !     add weight for narrow radii
 !     use: error in norm conversation of projectors
@@ -157,8 +169,8 @@
       pen_loc=0d0
       do k=1,nint
          r=rr(k)
-         if(r<rcov) cycle
-         if(r>1.5*rcov) exit
+         if(r<rcov(ncov)) cycle
+         if(r>1.5*rcov(ncov)) exit
 !        local potential Vloc(r)
          dd=exp(-.5d0*(r/rloc)**2)*  &
                    (gpot(1) + gpot(2)*(r/rloc)**2+    &
@@ -175,11 +187,12 @@
         write(6,*)'Empirical penalty terms from psppar'
         write(6,*)'___________________________________'
         write(6,*)
-        write(6,*)'narrow radii   ',sqrt(pen_r)
-        write(6,*)'large  hij     ',sqrt(pen_h)
-        write(6,*)'large  kij     ',sqrt(pen_k)
-        write(6,*)'Vloc(r>rcov)   ',sqrt(pen_loc)
-        write(6,*)'Kinetic Energy ',wghtKE*ekin
+        write(6,*)'narrow radii    ',sqrt(pen_r)
+        write(6,*)'large  hij      ',sqrt(pen_h)
+        write(6,*)'large  kij      ',sqrt(pen_k)
+        write(6,*)'Vloc(r>rcov)    ',sqrt(pen_loc)
+        write(6,*)'Sec. Der. Smooth',dertwo
+        write(6,*)'Psi(r=0) high S ',psir0
         write(6,*)
 !       write(6,*)'Verbose=',verbose,'nproc=',nproc!Santanu
       end if
@@ -214,7 +227,7 @@
 !        Serial case: One configuration, no excitation energies
          pen_cont(5)=wghtconf**2*penal
          pen_cont(7)=wghtsoft**2*ekin_pen
-         pen_cont(8)=wghtKE**2*ekin
+         pen_cont(8)=wghtKE**2*dertwo
          penal=sqrt(penal+sum(pen_cont(5:9)))
 !        write(16,*)'DEBUG:ekin_pen,penal',ekin_pen,penal,wghtsoft
       else 
@@ -230,13 +243,14 @@
                                MPI_COMM_WORLD,ierr)
          if(ierr.ne.0)write(*,*)'MPI_BCAST ierr',ierr
          excit=etotal-eref
+         !write(6,'(a,i2,1x,3(e25.17,1x))')"iproc,eref,etotal,diff",iproc,eref,etotal,etotal-eref
 
 
 !        Sum up penalty contributions from this MPI process
          pen_cont(1)=wghtconf**2 *penal
          pen_cont(2)=wghtexci**2 *(excit-excitAE)**2
          pen_cont(3)=wghtsoft**2 *ekin_pen
-         pen_cont(4)=wghtKE**2*ekin !! Penalty for KE Santanu 
+         pen_cont(4)=wghtKE**2*dertwo !! Penalty for KE Santanu 
 
 !        write(6,*)'DEBUG lines for penalty over processes'
 !        write(6,*)'wghtconf,penal',wghtconf ,penal
@@ -308,24 +322,51 @@
 !         write out the excitation energies
 !         get excitation energies from all processes  
 !         using mpiallreduce may be a clumsy way of doing this
+
           exverbose=0d0
-          exverbose(2*iproc+1)=excit
-          exverbose(2*iproc+2)=sqrt(pen_cont(2))
+          exverbose(4*iproc+1)=excitAE
+          exverbose(4*iproc+2)=excit
+          exverbose(4*iproc+3)=excit-excitAE
+          exverbose(4*iproc+4)=sqrt(pen_cont(2))
 !         note: Write out energies in the convention they have been read
           call MPI_ALLREDUCE(exverbose(1),  &
-                  exverbose(2*nproc+1),2*nproc,  &
+                  exverbose(4*nproc+1),4*nproc,  &
                   MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
           !write(6,*)'Excitation Energies',exverbose
           write(6,*)
           write(6,*)'Excitation energies'
           write(6,*)'___________________'
           write(6,*)
-          write(6,*)'Configuration,    dE=Etot-Etot1,'//  &
-                    '    (dE-dE_AE)*weight'
+          write(6,'(a95)')'Configuration     dE_AE=E_AE-E1_AE          &    
+                      dE=E-E1          dE-dE_AE       (dE-dE_AE)*weight'
+          write(6,*)'            '
           do i=1,nproc
-             write(6,'(10x,i4,3e20.12)')  &
-                       i-1,exverbose(2*nproc+2*i-1), &
-                       exverbose(2*nproc+2*i)
+             write(6,'(6x,i4,6x,4e20.12)')  &
+                       i-1,exverbose(4*nproc+4*i-3), &
+                       exverbose(4*nproc+4*i-2),exverbose(4*nproc+4*i-1),&
+                       exverbose(4*nproc+4*i)
+
+
+
+
+!          exverbose=0d0
+!          exverbose(2*iproc+1)=excit
+!          exverbose(2*iproc+2)=sqrt(pen_cont(2))
+!         note: Write out energies in the convention they have been read
+!          call MPI_ALLREDUCE(exverbose(1),  &
+!                  exverbose(2*nproc+1),2*nproc,  &
+!                  MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+!          !write(6,*)'Excitation Energies',exverbose
+!          write(6,*)
+!          write(6,*)'Excitation energies'
+!          write(6,*)'___________________'
+!          write(6,*)
+!          write(6,*)'Configuration,    dE=Etot-Etot1,'//  &
+!                    '    (dE-dE_AE)*weight'
+!          do i=1,nproc
+!             write(6,'(10x,i4,3e20.12)')  &
+!                       i-1,exverbose(2*nproc+2*i-1), &
+!                       exverbose(2*nproc+2*i)
           end do
           write(6,*)
       end if

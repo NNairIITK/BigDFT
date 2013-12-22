@@ -8,9 +8,9 @@
 
       SUBROUTINE AMOEBA(P,Y,ndim,FTOL,ITER,itmax,namoeb,  &
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-           no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+           no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
            occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-           wfnode,psir0,wghtp0,  &
+           wfnode,psir0,wghtp0,ncovmax,ncov, &
            rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
            vh,xp,rmt,rmtg,  &
            ud,nint,ng,ngmx,psi,avgl1,avgl2,avgl3,  &
@@ -18,7 +18,7 @@
 !          the following line differs from pseudo2.2
            iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
            wghtKE,nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,  &
-           ntrymax,excitAE,ntime,itertot,energ,verbose,time)
+           ntrymax,ekin_orb,excitAE,ntime,itertot,energ,verbose,time)
 
 
 
@@ -28,11 +28,14 @@
       PARAMETER (NMAX=50,ALPHA=1.0d0,BETA=0.5d0,GAMMA=2.0d0)
 !      parameter ( trymax = 200 ) is now a dummy argument read from input.fitpar
 
-      DIMENSION P(ndim,ndim+1),Y(ndim+1),PR(NMAX),PRR(NMAX),PBAR(NMAX)
-      dimension no(*),lo(*),so(*),ev(*),crcov(*),dcrcov(*),ddcrcov(*),  &
-           occup(*),aeval(*),chrg(*),dhrg(*),ehrg(*),res(*),wght(*),  &
+      DIMENSION P(ndim,ndim+1),Y(ndim+1),PR(NMAX),PRR(NMAX),PBAR(NMAX),&
+                rcov(ncovmax),crcov(norbmx,ncovmax),&
+                wght(noccmx,lmx,nsmx,8,ncovmax), &
+                chrg(noccmx,lmx,nsmx,ncovmax)
+      dimension no(*),lo(*),so(*),ev(*),dcrcov(*),ddcrcov(*),  &
+           occup(*),aeval(*),dhrg(*),ehrg(*),res(*),  &
            gpot(*),r_l(4),r_l2(4),hsep(*),vh(*),xp(*),rmt(*),rmtg(*),  &
-           gcore(4),  &
+           gcore(4),ekin_orb(noccmx,lmx,nsmx),  &
            ud(*),psi(*),wfnode(*),rr(*),rw(*),rd(*),time(3)
       include 'mpif.h'
 
@@ -166,16 +169,16 @@
 
            call penalty(energ,verbose,ndim,p(1,ilo),y(ilo),  &
               noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-              no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+              no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
               occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-              wfnode,psir0,wghtp0,  &
+              wfnode,psir0,wghtp0,ncovmax,ncov, &
               rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
               vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,  &
               avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,  &
 !             the following line differs from pseudo2.2
               iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
               wghtKE,nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,  &
-              excitAE,ntime,iter,itertot,Y(ilo),time)
+              ekin_orb,excitAE,ntime,iter,itertot,Y(ilo),time)
             
             open(13,file='penalty') !! Santanu
                write(13,*)y(ilo)
@@ -228,9 +231,9 @@
  15   CONTINUE
       call penalty(energ,verbose,ndim,pr,ypr,  &
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-           no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+           no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
            occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-           wfnode,psir0,wghtp0,  &
+           wfnode,psir0,wghtp0,ncovmax,ncov, &
            rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
            vh,xp,rmt,rmtg,  &
            ud,nint,ng,ngmx,psi,avgl1,avgl2,avgl3,  &
@@ -238,7 +241,7 @@
 !          the following line differs from pseudo2.2
            iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
            wghtKE,nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,  &
-           excitAE,ntime,iter,itertot,Y(ilo),time)
+           ekin_orb,excitAE,ntime,iter,itertot,Y(ilo),time)
       IF(YPR.LE.Y(ILO))THEN
 !           new lowest, can we go further in that direction?
 
@@ -248,9 +251,9 @@
 16      CONTINUE
         call penalty(energ,verbose,ndim,prr,yprr,  &
              noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-             no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+             no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
              occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-             wfnode,psir0,wghtp0,  &
+             wfnode,psir0,wghtp0,ncovmax,ncov,&
              rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
              vh,xp,rmt,rmtg,  &
              ud,nint,ng,ngmx,psi,avgl1,avgl2,avgl3,  &
@@ -258,7 +261,7 @@
 !            the following line differs from pseudo2.2
              iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
              wghtKE,nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,  &
-             excitAE,ntime,iter,itertot,Y(ilo),time)
+             ekin_orb,excitAE,ntime,iter,itertot,Y(ilo),time)
         IF(YPRR.LT.Y(ILO))THEN
 !         this got even better, so accept PRR, discarding the highest vertex 
           DO 17 J=1,NDIM
@@ -295,9 +298,9 @@
 21      CONTINUE
       call penalty(energ,verbose,ndim,prr,yprr,  &
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-           no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+           no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
            occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-           wfnode,psir0,wghtp0,  &
+           wfnode,psir0,wghtp0,ncovmax,ncov,&
            rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
            vh,xp,rmt,rmtg,  &
            ud,nint,ng,ngmx,psi,avgl1,avgl2,avgl3,  &
@@ -305,7 +308,7 @@
 !          the following line differs from pseudo2.2
            iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
            wghtKE,nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,  &
-           excitAE,ntime,iter,itertot,Y(ilo),time)
+           ekin_orb,excitAE,ntime,iter,itertot,Y(ilo),time)
         IF(YPRR.LT.Y(IHI))THEN
 !         if contracting improved the highest vertex, save it
           DO 22 J=1,NDIM
@@ -327,9 +330,9 @@
 23            CONTINUE
       call penalty(energ,verbose,ndim,pr,ypr,  &
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-           no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+           no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
            occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-           wfnode,psir0,wghtp0,  &
+           wfnode,psir0,wghtp0,ncovmax,ncov, &
            rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
            vh,xp,rmt,rmtg,  &
            ud,nint,ng,ngmx,psi,avgl1,avgl2,avgl3,  &
@@ -337,7 +340,7 @@
 !          the following line differs from pseudo2.2
            iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
            wghtKE,nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,  &
-           excitAE,ntime,iter,itertot,Y(ilo),time)
+           ekin_orb,excitAE,ntime,iter,itertot,Y(ilo),time)
             ENDIF
 24        CONTINUE
         ENDIF

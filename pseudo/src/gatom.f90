@@ -1,10 +1,10 @@
 
       subroutine gatom(nspol,energ,verbose,  &
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &
-           occup,aeval,chrg,dhrg,ehrg,res,wght,wfnode,psir0,  &
-           rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
+           occup,aeval,chrg,dhrg,ehrg,res,wght,wfnode,psir0,ncovmax,ncov, &
+           rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep, &
            vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,igrad,  &
-           rr,rw,rd,ntime,itertot,ekin,etotal)
+           rr,rw,rd,ntime,itertot,ekin_orb,dertwo,etotal)
 
 
 !          updated version with spin polarization and libXC support
@@ -27,13 +27,13 @@
 
       
       implicit real*8 (a-h,o-z)
-      dimension occup(noccmx,lmx,nsmx),  &
-           aeval(noccmx,lmx,nsmx),chrg(noccmx,lmx,nsmx),  &
+      dimension occup(noccmx,lmx,nsmx),ekin_orb(noccmx,lmx,nsmx),  &
+           aeval(noccmx,lmx,nsmx),chrg(noccmx,lmx,nsmx,ncovmax),  &
            dhrg(noccmx,lmx,nsmx),ehrg(noccmx,lmx,nsmx),  &
-           res(noccmx,lmx,nsmx),wght(noccmx,lmx,nsmx,8),  &
+           res(noccmx,lmx,nsmx),wght(noccmx,lmx,nsmx,8,ncovmax),  &
            wfnode(noccmx,lmx,nsmx,3),  &
            gpot(4),r_l(lmx),hsep(6,lpmx,nsmx),  &
-           gcore(4),  &
+           gcore(4),rcov(ncovmax),  &
            vh(((ng+1)*(ng+2))/2,lcx+1,((ng+1)*(ng+2))/2,lmax+1),  &
            xp(0:ng), rmt(nint,((ng+1)*(ng+2))/2,lmax+1),  &
            rmtg(nint,((ng+1)*(ng+2))/2,lmax+1),  &
@@ -44,7 +44,8 @@
       dimension  hh(0:ng,0:ng,lmax+1,nspin),ss(0:ng,0:ng,lmax+1),  &
            hht(0:ng,0:ng),sst(0:ng,0:ng),hhsc(((ng+1)*(ng+2))/2,lmax+1),  &
 !          new work array for XC, used only in the polarized case
-           hhxc(((ng+1)*(ng+2))/2,lmax+1,nspin),  &
+              hhxc(((ng+1)*(ng+2))/2,lmax+1,nspin),  &
+           hhxcold(((ng+1)*(ng+2))/2,lmax+1,nspin),  &
            eval(0:ng),evec(0:ng,0:ng),pp1(0:ng,lpx),  &
            pp2(0:ng,lpx),pp3(0:ng,lpx),potgrd(nint),  &
            rho(((ng+1)*(ng+2))/2,lmax+1,nspol),  &
@@ -52,7 +53,9 @@
            vxcgrd(nint,nspol),rr(nint),rw(nint),rd(nint),pexgrd(nint),  &
            ppr1(nint,lmax+1),ppr2(nint,lmax+1),ppr3(nint,lmax+1),  &
            aux1(nint),aux2(nint,0:ng,lmax+1),  &
-           expxpr(0:ng,nint), tts(nspol)
+           expxpr(0:ng,nint), tts(nspol),xclimit(nspol),   & 
+           !evalall(0:ng,nspol,lmax+1),evalallold(0:ng,nspol,lmax+1)
+            evalall(0:ng,nspin,lmax+1),evalallold(0:ng,nspin,lmax+1)
 
       dimension rhogrd(nint,nspol),drhogrd(nint,nspol),  &
                                    rhocore(nint,nspol)
@@ -79,7 +82,8 @@
       if (ntime .eq. 0) then
 !     c. hartwig    modified scf mixing
 !     initialize variables for first iteration rmix
-         delta= 0.25d0
+         delta= 0.10d0
+!         rmix=.1d0
          odelta = 0.0d0
          nscf = 0
          nscfo=2**10
@@ -89,6 +93,7 @@
                do ispin=1,nspin
                   do i=0,ng
                      psi(i,iocc,l+1,ispin)=1.d-8
+                     !write(6,*)"ok",i
                   enddo
                enddo
             enddo
@@ -229,11 +234,11 @@
 !
 ! set up charge independent part of hamiltonian
 !
-      do l=1,lmax+1
+      do l=1,lmax+1   ! l loop
 !        l is a positive index, lq the quantum number
          lq=l-1
 !        no spin down s orbitals in the r case: nspin=2, nspol=1, 2l+1=1
-         do ispin=1,max(min(2*lq+1,nspin),nspol)
+         do ispin=1,max(min(2*lq+1,nspin),nspol)   ! ispin loop
             gml=0.5d0*gamma(lq+0.5d0)
 !
 
@@ -301,8 +306,8 @@
                   hh(i,j,l,ispin)=hhij
                enddo
             enddo
-         enddo
-      enddo
+         enddo   !end ispin loop
+      enddo   ! end l loop
 !     hhxc is kept constant at zero in the unpolarized case
       hhxc=0d0
 
@@ -330,7 +335,10 @@
 !ccccccccccccccccccccccccccccccc
 
 
-      do it=1,200
+      diffev=1.d30
+      rmix=.25d0
+      facdelta=1.d0
+      do it=1,100   ! scf loop
          evsumold=evsum
          evsum=0.d0
 !
@@ -353,9 +361,9 @@
                enddo
             enddo
          enddo
-         do l=0,lmax
+         do l=0,lmax  ! l loop
 !           no spin down s orbitals in the r case: nspin=2, nspol=1, 2l+1=1
-            do ispin=1,max(min(2*l+1,nspin),nspol)
+            do ispin=1,max(min(2*l+1,nspin),nspol)  ! ispin loop
 !              isp is always one in the unpolarized case
 !              it determines which spin index of rho is addressed
                isp=min(ispin,nspol)
@@ -399,23 +407,18 @@
                   delta = delta + 0.05d0
                endif
             endif
-            delta = max(0.1d0,delta)
-            delta = min(0.9d0,delta)
             odelta = tttt
             nscfo = nscf
             nscf = 0
          endif
+            if (it.gt.50) facdelta=facdelta*.99d0
+            delta = max(0.05d0,delta)
+            delta = min(0.33d0,delta)
 !     F90 intrinsic
-         call random_number(rmix)
-         rmix = delta + (.5d0-delta/2.d0)*rmix
-!     Intel (ifc)
-!        rmix = delta + (.5d0-delta/2.d0)*dble(rand(0.0d0))
-!     IBM/DEC/PGI
-!        rmix = delta + (.5d0-delta/2.d0)*dble(rand())
-!     CRAY
-!        rmix = delta + (.5d0-delta/2.d0)*ranf()
-!     rmix = delta
-         if (it.eq.1) rmix=1.d0
+!         call random_number(rmix)
+!         rmix = facdelta*(.9d0*delta + .2d0*delta*(rmix-.5d0) )
+!         rmix = delta + (.5d0-delta/2.d0)*rmix
+         if (it.gt.1)  then
          do l=0,lmax
             ij=0
             do j=0,ng
@@ -427,6 +430,7 @@
                enddo
             enddo
          enddo
+         endif
 !
 !     calc. gradient only if xc-func. with gradient-corrections
 !     rho on grid ij=1,nint:
@@ -440,11 +444,11 @@
 
          tt=1.d0/(16.d0*atan(1.d0))
          call DGEMV('N',nint,((ng+1)*(ng+2))/2*(lcx+1),  &
-              tt,rmt,nint,rho(:,:,1),1,0.d0,rhogrd(:,1),1)
+              tt,rmt,nint,rho(1,1,1),1,0.d0,rhogrd(1,1),1)
 !        try yo keep it simple. Same procedure for spin down charge
          if(nspol==2)then
          call DGEMV('N',nint,((ng+1)*(ng+2))/2*(lcx+1),  &
-              tt,rmt,nint,rho(:,:,2),1,0.d0,rhogrd(:,2),1)
+              tt,rmt,nint,rho(1,1,2),1,0.d0,rhogrd(1,2),1)
          end if
 !     for ggaenergy15, we don't need the gradient, as that driver
 !     provides the derivative by finite differences on the radial grid.
@@ -472,6 +476,11 @@
        end if
 
 
+!           do k=1,nint
+!           write(6,*) k,rhogrd(k,1),rhogrd(k,2)
+!           enddo
+
+
 !     hutter
 !      call evxc(nint,rr,rhogrd,drhogrd,vxcgrd,excgrd)
 !     goedecker
@@ -481,9 +490,43 @@
       call driveXC(nspol,nint,rr,rw,rd,rhogrd,enexc,vxcgrd,excgrd)
 !        multiply with dr*r^2 to speed up calculation of matrix elements
 !        open(11,file='rhogrd')
-         do k=1,nint
+! Find point where th charge density becomes tooo small to calculate a GGA with sufficient accuracy  ! SANTANU START
+         kcut=0
+         do k=nint,1,-1
+         rhothres=0.d0
+         do ispin=1,nspol
+         rhothres=rhothres+rhogrd(k,ispin)**2
+         enddo
+         if (rhothres.gt.2.d-10) then 
+         kcut=k
+         goto 8844
+         endif
+         enddo
+8844 continue
+
+         do k=1,kcut
+!            write(6,'(i4,4(1x,e12.5),a)') k,(rhogrd(k,i),i=1,nspol),(vxcgrd(k,i),i=1,nspol)," XCgrd"
             vxcgrd(k,:)=vxcgrd(k,:)*rw(k)/fourpi
          enddo
+         do ispin=1,nspol
+         xclimit(ispin)=abs(vxcgrd(k,ispin))
+         enddo
+! Enforce that the XC potential decreases smoothly in magnitude (eliminates
+! spikes at places where th numerical wavefunctioon has a node in the tail region
+         notyet=.true.
+         do k=kcut+1,nint
+           do ispin=1,nspol
+               xclimit(ispin)=min(abs(vxcgrd(k,ispin)),xclimit(ispin))
+               if ( notyet .and. abs(vxcgrd(k,ispin)) .ne. xclimit(ispin)) then
+               kk=k
+               notyet=.false.
+               endif
+              vxcgrd(k,ispin)=-xclimit(ispin)
+           enddo
+!            write(6,'(i4,4(1x,e12.5),a)') k,(rhogrd(k,i),i=1,nspol),(vxcgrd(k,i),i=1,nspol)," XCgrd"
+            vxcgrd(k,:)=vxcgrd(k,:)*rw(k)/fourpi
+         enddo    ! SANTANU END
+
 !        close(11)
 
 !      IMPORTANT: since the real space representation
@@ -510,14 +553,14 @@
 
          call DGEMV('T',(lcx+1)*((ng+1)*(ng+2))/2,  &
               (lmax+1)*((ng+1)*(ng+2))/2,1.d0,  &
-              vh,(lcx+1)*((ng+1)*(ng+2))/2,rho(:,:,1),1,0.d0,hhsc,1)
+              vh,(lcx+1)*((ng+1)*(ng+2))/2,rho(1,1,1),1,0.d0,hhsc,1)
 
 !     if nspol=2, add the hartree potential from the 2nd charge channel
 !     Note: It seems easier to add the charges first and then do one dgemv.
          if(nspol==2)   &
          call DGEMV('T',(lcx+1)*((ng+1)*(ng+2))/2,  &
               (lmax+1)*((ng+1)*(ng+2))/2,1.d0,  &
-              vh,(lcx+1)*((ng+1)*(ng+2))/2,rho(:,:,2),1,1.d0,hhsc,1)
+              vh,(lcx+1)*((ng+1)*(ng+2))/2,rho(1,1,2),1,1.d0,hhsc,1)
 !                                                  ^    ^ 
 
 !     potential from XC libraries 
@@ -527,24 +570,26 @@
 
 !     MODIFICATION: if spin polarized, add this term to hhxc, not hhsc.
 !                   hxc is a spin polarized matrix only for that purpose.
+!         hhxcold=hhxc
          hhxc=0d0
          if(nspol==1)then
               call DGEMV('T',nint,(lmax+1)*((ng+1)*(ng+2))/2,1.0d0,  &
-              rmt,nint,vxcgrd(:,1),1,1.d0,hhsc,1)
+              rmt,nint,vxcgrd(1,1),1,1.d0,hhsc,1)
          else
               call DGEMV('T',nint,(lmax+1)*((ng+1)*(ng+2))/2,1.0d0,  &
-              rmt,nint,vxcgrd(:,1),1,0.d0,hhxc(:,:,1),1)
+              rmt,nint,vxcgrd(1,1),1,0.d0,hhxc(1,1,1),1)
               call DGEMV('T',nint,(lmax+1)*((ng+1)*(ng+2))/2,1.0d0,  &
-              rmt,nint,vxcgrd(:,2),1,1.d0,hhxc(:,:,2),1)
+              rmt,nint,vxcgrd(1,2),1,1.d0,hhxc(1,1,2),1)
 
 !        spin polarized XC term end
          end if
 
-
+      !write(6,*)"in gatom nspin,nspol",nspin,nspol
 !     DIAGONALIZE
-         do l=0,lmax
-            do ispin=1,max(min(2*l+1,nspin), nspol)
+         do l=0,lmax  ! l loop
+            do ispin=1,max(min(2*l+1,nspin), nspol)  ! ispin loop
 !     LAPACK
+!               deltaxc=0.d0
                ij=0
                do j=0,ng
                   do i=j,ng
@@ -552,11 +597,17 @@
                      hht(i,j)=hh(i,j,l+1,ispin)+hhsc(ij,l+1)  &
                              +hhxc(ij,l+1,ispin) 
                      sst(i,j)=ss(i,j,l+1)
+!                     deltaxc=deltaxc+(hhxc(ij,l+1,ispin)-hhxcold(ij,l+1,ispin))**2
                   enddo
                enddo
-!     IBM/DEC
+!               if (it.gt.1) write(6,*) 'XCdiff ',l,ispin,deltaxc
+!     LAPACK   
                call DSYGV(1,'V','L',ng+1,hht,ng+1,sst,ng+1,  &
                     eval,evec,(ng+1)**2,info)
+               do j=0,ng
+               evalallold(j,ispin,l+1)=evalall(j,ispin,l+1)
+               evalall(j,ispin,l+1)=eval(j)
+               enddo
 !     the routine DSYGV is also included in sub_lapack.f
 !     CRAY:
 !     call SSYGV(1,'V','L',ng+1,hht,ng+1,sst,ng+1,
@@ -585,14 +636,46 @@
 !     33            format(10(e9.2))
 !     write(6,33) (evec(i,iocc),iocc=0,noccmax-1)
 !     enddo
-           enddo
-         enddo
-         tt=abs(evsum-evsumold)
+           enddo  !ispin loop
+         enddo ! l loop
+         tt=abs(evsum-evsumold)    ! SANTANU START PERHAPS
+               diffevold=diffev
+               if (it.gt.1) then
+               diffev=0.d0
+               do ispin=1,nspol
+               do l=0,lmax
+               do j=0,ng
+               diffev=diffev+(evalallold(j,ispin,l+1)-evalall(j,ispin,l+1))**2
+               enddo
+               enddo
+               enddo
+               endif ! SANTANU END PERHASP
+
+               if (it.gt.2) then
+!               if (diffev.gt.1.d-8) then
+               if (diffev.lt.diffevold) then 
+               rmix=rmix*1.05d0
+               else
+               rmix=rmix*.5d0
+               endif
+               rmix=max(rmix,1.d-1)
+               rmix=min(rmix,.75d0)
+               endif
+!               endif
+
+               if (diffev.lt.1.d-9) goto 3000   ! SANTANU PERHAPS
+
+
+!        write(6,'(a,i4,e9.2,e9.2,e10.3)') 'rmix,diffev ',it,rmix,diffev
 !        write(6,*)'DEBUG: residue=',tt,it
-         if (tt.lt.1.d-8) goto 3000
-      enddo
+!         if (tt.lt.1.d-8) goto 3000
+      enddo  ! scf loop
       write(6,*) 'WARNING: NO SC CONVERGENCE',tt
  3000 continue
+!         write(6,*) 'kcut=,kk',kcut,kk
+!         if (rr(kk).lt.3.d0*rprb) write(6,*) 'WARNING: cut very small',rr(kk),3.d0*rprb
+!        write(6,'(a,i4,e9.2,e9.2,e10.3)') 'rmix ',it,rmix,diffev,tt
+!        write(666,'(a,i4,e9.2,e9.2,e10.3)') 'rmix ',it,rmix,diffev,tt    !  SANTANU
 
 !ccccccccccccccccccccccccccccccc
 !    end of the SCF cycles     c
@@ -610,14 +693,29 @@
            expxpr)
 !     etot evaluates Ehartree using rhogrd,
       !write(6,*)'calling etot',energ,'verbose=',verbose
+         notyet=.true.                          ! sANTANU START
+         xclimit(1)=1.d300
+         do k=kcut+1,nint
+!            write(6,'(i4,3(1x,e12.5),a)') k,(rhogrd(k,i),i=1,nspol),excgrd(k)," EXCgrd"
+               xclimit(1)=min(abs(excgrd(k)),xclimit(1))
+               if ( notyet .and. abs(excgrd(k)) .ne. xclimit(1)) then
+               kk=k
+               notyet=.false.
+               endif
+              excgrd(k)=-xclimit(1)
+         enddo
+!         write(6,*) 'ETOT: kcut=,kk',kcut,kk
+         if (rr(kk).lt.3.d0*rprb) write(6,*) 'WARNING: Etot: cut very &
+          small',rr(kk),3.d0*rprb !SANTANU END
+
       if (energ) call etot(verbose,nspol,  &
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &
            aeval,  &
            rprb,zion,rloc,gpot,r_l,r_l2,hsep,  &
            xp,ud,nint,ng,ngmx,psi,rho,pp1,pp2,pp3,  &
            vxcgrd,excgrd,rhogrd,rhocore,occup,rr,rw,  &
-           expxpr,ekin,etotal)
-      !write(6,*)'From gatom ekin=',ekin
+           expxpr,ekin_orb,dertwo,etotal)
+      !write(6,*)'From gatom etotal=',etotal
 !
 !     charge up to radius rcov or infinity
 !
@@ -630,27 +728,33 @@
 !        no spin down s orbitals in the r case: nspin=2, nspol=1, 2l+1=1
          do ispin=1,max(min(2*l+1,nspin), nspol)
             do iocc=1,noccmax
-               chrg(iocc,l+1,ispin)=0.d0
+               do incov=1,ncovmax
+                 chrg(iocc,l+1,ispin,incov)=0.d0
+               end do
                dhrg(iocc,l+1,ispin)=0.d0
                ehrg(iocc,l+1,ispin)=0.d0
             enddo
          enddo
       enddo
+
       do ispin=1,max(min(2*l+1,nspin),nspol)
 !     here, l=lmax+1, so do ispin=1,2 if lmax>0 and nspin=2
          do 3711,iocc=1,noccmax
 !        loop over all nl(l)
+          do incov=1,ncov
             do 3762,j=0,ng
                do 3762,i=0,ng
                   d=xp(i)+xp(j)
                   sd=sqrt(d)
-                  terf=Derf(sd*rcov)
-                  texp=exp(-d*rcov**2)
-                  tt0=0.4431134627263791d0*terf/sd**3-0.5d0*rcov*texp/d
-                  tt1=0.6646701940895686d0*terf/sd**5 +  &  
-                       (-0.75d0*rcov*texp - 0.5d0*d*rcov**3*texp)/d**2
-                  chrg(iocc,1,ispin)=chrg(iocc,1,ispin) +  &
-                       psi(i,iocc,1,ispin)*psi(j,iocc,1,ispin)*tt0
+                  terf=Derf(sd*rcov(incov))  !! DOUBT
+                  texp=exp(-d*rcov(incov)**2) !! DOUBT
+                  
+                   tt0=0.4431134627263791d0*terf/sd**3-0.5d0*rcov(incov)*texp/d
+                   tt1=0.6646701940895686d0*terf/sd**5 +  &  
+                         (-0.75d0*rcov(incov)*texp - 0.5d0*d*rcov(incov)**3*texp)/d**2
+                   chrg(iocc,1,ispin,incov)=chrg(iocc,1,ispin,incov) +  &
+                        psi(i,iocc,1,ispin)*psi(j,iocc,1,ispin)*tt0
+                  
 !     integrate up to rcov
 !               dhrg(iocc,1,ispin)=dhrg(iocc,1,ispin) +
 !     1              psi(i,iocc,1,ispin)*psi(j,iocc,1,ispin)*tt1
@@ -664,9 +768,9 @@
                   if (lmax.eq.0) goto 3762
 
                   tt2=1.661675485223921d0*terf/sd**7 +  &
-                       (-1.875d0*rcov*texp-1.25d0*d*rcov**3*texp-  &
-                       0.5d0*d**2*rcov**5*texp)/d**3
-                  chrg(iocc,2,ispin)=chrg(iocc,2,ispin) +  &
+                       (-1.875d0*rcov(incov)*texp-1.25d0*d*rcov(incov)**3*texp-  &
+                       0.5d0*d**2*rcov(incov)**5*texp)/d**3
+                  chrg(iocc,2,ispin,incov)=chrg(iocc,2,ispin,incov) +  &
                        psi(i,iocc,2,ispin)*psi(j,iocc,2,ispin)*tt1
 !     integrate up to rcov
 !               dhrg(iocc,2,ispin)=dhrg(iocc,2,ispin) +
@@ -681,10 +785,10 @@
                   if (lmax.eq.1) goto 3762
 
                   tt3=5.815864198283725d0*terf/sd**9 +  &
-                       (-6.5625d0*rcov*texp-4.375d0*d*rcov**3*texp-  &
-                       1.75d0*d**2*rcov**5*texp -  &
-                       0.5d0*d**3*rcov**7*texp)/d**4
-                  chrg(iocc,3,ispin)=chrg(iocc,3,ispin) +  &
+                       (-6.5625d0*rcov(incov)*texp-4.375d0*d*rcov(incov)**3*texp-  &
+                       1.75d0*d**2*rcov(incov)**5*texp -  &
+                       0.5d0*d**3*rcov(incov)**7*texp)/d**4
+                  chrg(iocc,3,ispin,incov)=chrg(iocc,3,ispin,incov) +  &
                        psi(i,iocc,3,ispin)*psi(j,iocc,3,ispin)*tt2
 !     integrate up to rcov
 !               dhrg(iocc,3,ispin)=dhrg(iocc,3,ispin) +
@@ -699,7 +803,7 @@
 
                   if (lmax.eq.2) goto 3762
 
-                  chrg(iocc,4,ispin)=chrg(iocc,4,ispin) +  &
+                  chrg(iocc,4,ispin,incov)=chrg(iocc,4,ispin,incov) +  &
                        psi(i,iocc,4,ispin)*psi(j,iocc,4,ispin)*tt3
 !     integrate up to rcov
 !                  tt4=26.17138889227676d0*terf/sd**11+(-29.53125d0*
@@ -715,186 +819,203 @@
                   ehrg(iocc,4,ispin)=dhrg(iocc,4,ispin) +  &
                        psi(i,iocc,4,ispin)*psi(j,iocc,4,ispin)  &
                        *143.9426389075222d0/sd**13
-
  3762       continue
+           end do !! ncov
  3711    continue
       enddo
 
 !
 !     value at origin
+!           psi(0:ngmx,noccmx,lmx,nsmx)
 !
       psir0=0.d0
-      do i=0,ng
-         psir0=psir0+psi(i,1,1,1)
-      enddo
-      psir0=psir0**2
-
-!     node locations of psi*r
-!     n-1 nodes allowed!
-!     search only for nodes if the corresponding weights are <> zero
-!     to avoid bumpy wavefunctions: no node of the first derivative of
-!     the pseudowavefunction*r  and only one node
-!     of the second derivative  up to the rmax of the lowest valence state
-!
-      tol =1.0d-12
-! initialize ALL elements of wfnode to zero, also unused ones. 
-! this is only to test whether this helps to get rid of a bug
-      wfnode=0d0
-      do l=0,lmax
-!        no spin down s orbitals in the r case: nspin=2, nspol=1, 2l+1=1
-         do ispin=1, min(min(2*l+1,nspin),nspol)
-            do nocc=1,noccmax
-               if ( (wght(nocc,l+1,ispin,6).ne.0.d0)  &
-                    .or.  (wght(nocc,l+1,ispin,7).ne.0.d0)  &
-                    .or.  (wght(nocc,l+1,ispin,8).ne.0.d0) ) then
-
-!       print*,'node search, l, nocc:',l,' ',nocc
-                  wfnode(nocc,l+1,ispin,1)=0.d0
-                  wfnode(nocc,l+1,ispin,2)=0.d0
-                  wfnode(nocc,l+1,ispin,3)=0.d0
-                  nnode=0
-                  ndnode=0
-                  nddnode=0
-                  rnode=0.d0
-                  rrnode=0.0d0
-                  rrdnode=0.d0
-                  dnode=0.d0
-                  ddnode=0.0d0
-!     find outer max of psi, search from ~10 bohr down
-                  call detnp(nint,rr,10.0d0,kout)
-                  ttrmax=rr(kout)
-                  ra=ttrmax
-                  ttmax= dabs(wave2(ng,l,psi(0,nocc,l+1,ispin),  &
-                       expxpr,ra,kout,nint))
-!      print*,'ttmax=',ttmax
-                  do k=kout,1, -1
-                     ra= rr(k)
-                     ttpsi= dabs(wave2(ng,l,psi(0,nocc,l+1,ispin),  &
-                       expxpr,ra,k,nint))
-                     if ( ttpsi .gt. ttmax  &
-                          .and. ttpsi .gt. 1.0d-4 ) then
-                        ttmax=ttpsi
-                        ttrmax=ra
-                     endif
-                  if (ttpsi.lt.ttmax .and. ttpsi.gt.1.0d-4) goto 3456
-                  enddo
- 3456             continue
-!     search up to 90% of rmax
-                  ttrmax=max(0.90d0*ttrmax,rr(1))
-                  call detnp(nint,rr,ttrmax,kout)
-                  ttrmax=rr(kout)
-!       print*,'search up to ',ttrmax,ttmax
-!     calc wavefunction and it's first two derivatives on the grid
-!
-                  do k=1,kout
-                     call wave3(ng,l,xp,psi(0,nocc,l+1,ispin),  &
-                          expxpr,rr(k),k,nint,y1(k),y2(k),y3(k))
-                  enddo
-
-                     do k = 2,kout
-!     nodes of wavefunction
-                     if (y1(k)*y1(k-1).lt.0.d0) then
-                        nnode = nnode +1
-                        x1=rr(k-1)
-                        x2=rr(k)
-                        rrnode = zbrent(wave,ng,ngmx,l,lmx,xp,psi,  &
-                             nocc,noccmx,ispin,nsmx,  &
-                             X1,X2,TOL)
-                        if (nnode .ge.nocc) then
-                           rnode=rnode+rrnode
-!                          print*,'found rnode at:',rrnode
-                        endif
-                        rlist(nnode)=rrnode
-                     endif
-!     nodes of first derivative
-                     if (y2(k)*y2(k-1).lt.0.d0) then
-                        ndnode = ndnode +1
-                        x1=rr(k-1)
-                        x2=rr(k)
-                        rrnode = zbrent(dwave,ng,ngmx,l,lmx,xp,psi,  &
-                             nocc,noccmx,ispin,nsmx,  &
-                             X1,X2,TOL)
-                        if (ndnode .ge.nocc) then
-                           dnode=dnode+rrnode
-!                        print*,'found dnode at:',rrnode
-                        endif
-                        drlist(ndnode)=rrnode
-                     endif
-!     second derivative test:
-                     if (y3(k)*y3(k-1).lt.0.d0) then
-                        nddnode = nddnode + 1
-                        x1=rr(k-1)
-                        x2=rr(k)
-                        rrnode = zbrent(ddwave,ng,ngmx,l,lmx,xp,psi,  &
-                             nocc,noccmx,ispin,nsmx,  &
-                             X1,X2,TOL)
-!     only add the lowest node! (this one shoud dissapear)
-                        if (nddnode .ge. nocc +1 ) then
-                           ddnode = ddnode + rrdnode
-!                          print*,'found ddnode at:',rrnode
-                        else
-                           rrdnode=rrnode
-                        endif
-                        ddrlist(nddnode)=rrnode
-                     endif
-                  enddo
-
-!     print*,'rnode,dnode,ddnode',rnode,dnode,ddnode,nnode
-
-!     new version: use integral of the relevant functions between the nodes
-!     not the node-locations!
-!     calc. necessary integrals:
-                  sum1=0.0d0
-                  sum2=0.0d0
-                  sum3=0.0d0
-!     rnodes:
-                  do i=nnode+1-nocc,1,-2
-                     aa=Wwav(ng,l,xp,psi(0,nocc,l+1,ispin),rlist(i))  &
-                       -Wwav(ng,l,xp,psi(0,nocc,l+1,ispin),rlist(i-1))
-                     sum1 = sum1+aa
-                  enddo
-!     dnodes
-                  do i=ndnode+1-nocc,1,-2
-                     aa=wave(ng,l,xp,psi(0,nocc,l+1,ispin),drlist(i))  &
-                       -wave(ng,l,xp,psi(0,nocc,l+1,ispin),drlist(i-1))
-                     sum2 = sum2+aa
-                  enddo
-!     ddnodes
-                  do i=nddnode+1-nocc,1,-2
-                     aa=dwave(ng,l,xp,psi(0,nocc,l+1,ispin),ddrlist(i))  &
-                      -dwave(ng,l,xp,psi(0,nocc,l+1,ispin),ddrlist(i-1))
-!                    this test line is quite slow, for debuging purposes
-                     sum3 = sum3+aa
-                  enddo
-!     old version for nodes as used in the paper:
-!                  wfnode(nocc,l+1,ispin,1)=rnode
-!                  wfnode(nocc,l+1,ispin,2)=dnode
-!                  wfnode(nocc,l+1,ispin,3)=ddnode
-!     new version, using the integrals of the function between the nodes
-                  wfnode(nocc,l+1,ispin,1)=sum1
-                  wfnode(nocc,l+1,ispin,2)=sum2
-                  wfnode(nocc,l+1,ispin,3)=sum3
-
-!                 Some lines for bugfixing of wfnode 
-                  if(.not. sum1*sum1+sum2*sum2+sum3*sum3 >= 0d0)then
-!                   let us use this condition as an isNaN function
-!                   that should work with all fortran compilers.
-!                   indeed NaN was observed sometimes for penalty terms from nodes
-                    write(6,*)'Ouch! Some node integral is NaN for'
-                    write(6,*)'l=',l,' s=',ispin,' n-ncore(l)=',nocc
-                    write(6,*)'(NaN?)   node=',sum1,'   rnode=',rnode
-                    write(6,*)'(NaN?)  dnode=',sum2,'  drnode=',drnode
-                    write(6,*)'(NaN?) ddnode=',sum3,' ddrnode=',ddrnode
-                    if(.not. sum1*sum1 >=0d0 )wfnode(nocc,l+1,ispin,1)=0d0
-                    if(.not. sum2*sum2 >=0d0 )wfnode(nocc,l+1,ispin,2)=0d0
-                    if(.not. sum3*sum3 >=0d0 )wfnode(nocc,l+1,ispin,3)=0d0
-                  end if
-               endif
-            enddo
+!      l=0
+      do ispin=1,max(min(2*l+1,nspin),nspol)
+      do iocc=2,noccmax  ! exclude one semicore
+!     do iocc=1,noccmax  !include all s states
+!     if (occup(iocc,1,ispin).gt.1.d-1) then  ! include only occupied states
+         tt=0.d0
+         do i=0,ng
+            tt=tt+psi(i,iocc,1,ispin)
          enddo
+!     endif
+!      write(6,*) 'psir0,iocc,ispin',iocc,ispin,tt
+      psir0=psir0+tt**2
+      enddo
       enddo
 
-!     print*,'leave gatom'
+!!     node locations of psi*r
+!!     n-1 nodes allowed!
+!!     search only for nodes if the corresponding weights are <> zero
+!!     to avoid bumpy wavefunctions: no node of the first derivative of
+!!     the pseudowavefunction*r  and only one node
+!!     of the second derivative  up to the rmax of the lowest valence state
+!!
+!      tol =1.0d-12
+!! initialize ALL elements of wfnode to zero, also unused ones. 
+!! this is only to test whether this helps to get rid of a bug
+!      wfnode=0d0
+!      do l=0,lmax
+!!write(6,*)  '--------------------------- l= ',l
+!!        no spin down s orbitals in the r case: nspin=2, nspol=1, 2l+1=1
+!         do ispin=1, min(min(2*l+1,nspin),nspol)
+!!write(6,*)  '--------------------------- ispin= ',ispin
+!            do nocc=1,noccmax
+!!write(6,*)  '--------------------------- nocc= ',nocc
+!               if ( (wght(nocc,l+1,ispin,6,ncov).ne.0.d0)  &
+!                    .or.  (wght(nocc,l+1,ispin,7,ncov).ne.0.d0)  &
+!                    .or.  (wght(nocc,l+1,ispin,8,ncov).ne.0.d0) ) then
+!
+!!       write(6,*) 'node search, l, nocc:',l,' ',nocc
+!                  wfnode(nocc,l+1,ispin,1)=0.d0
+!                  wfnode(nocc,l+1,ispin,2)=0.d0
+!                  wfnode(nocc,l+1,ispin,3)=0.d0
+!                  nnode=0
+!                  ndnode=0
+!                  nddnode=0
+!                  rnode=0.d0
+!                  rrnode=0.0d0
+!                  rrdnode=0.d0
+!                  dnode=0.d0
+!                  ddnode=0.0d0
+!!     find outer max of psi, search from ~10 bohr down
+!                  call detnp(nint,rr,10.0d0,kout)
+!                  ttrmax=rr(kout)
+!                  ra=ttrmax
+!                  ttmax= dabs(wave2(ng,l,psi(0,nocc,l+1,ispin),  &
+!                       expxpr,ra,kout,nint))
+!     ! write(6,*) 'ttmax=',ttmax
+!                  do k=kout,1, -1
+!                     ra= rr(k)
+!                     ttpsi= dabs(wave2(ng,l,psi(0,nocc,l+1,ispin),  &
+!                       expxpr,ra,k,nint))
+!                     if ( ttpsi .gt. ttmax  &
+!                          .and. ttpsi .gt. 1.0d-4 ) then
+!                        ttmax=ttpsi
+!                        ttrmax=ra
+!                     endif
+!                  if (ttpsi.lt.ttmax .and. ttpsi.gt.1.0d-4) goto 3456
+!                  enddo
+! 3456             continue
+!!     search up to 90% of rmax
+!                  ttrmax=max(0.90d0*ttrmax,rr(1))
+!                  call detnp(nint,rr,ttrmax,kout)
+!                  ttrmax=rr(kout)
+!      ! write(6,*) 'search up to ',ttrmax,ttmax
+!!     calc wavefunction and it's first two derivatives on the grid
+!!
+!                  do k=1,kout
+!                     call wave3(ng,l,xp,psi(0,nocc,l+1,ispin),  &
+!                          expxpr,rr(k),k,nint,y1(k),y2(k),y3(k))
+!                  enddo
+!
+!                     do k = 2,kout
+!!     nodes of wavefunction
+!                     if (y1(k)*y1(k-1).lt.0.d0) then
+!                        nnode = nnode +1
+!                        x1=rr(k-1)
+!                        x2=rr(k)
+!                        rrnode = zbrent(wave,ng,ngmx,l,lmx,xp,psi,  &
+!                             nocc,noccmx,ispin,nsmx,X1,X2,TOL)
+!                        !write(6,'(a,e10.3,i3,i3,i3)') 'l,ispin,nocc, &
+!                        !found rnode at:',rrnode,l,ispin,nocc
+!                        if (nnode .ge.nocc) then
+!                           rnode=rnode+rrnode
+!                          write(6,*) 'node enters',rrnode,l,ispin,nocc
+!                        endif
+!                        rlist(nnode)=rrnode
+!                     endif
+!!     nodes of first derivative
+!                     if (y2(k)*y2(k-1).lt.0.d0) then
+!                        ndnode = ndnode +1
+!                        x1=rr(k-1)
+!                        x2=rr(k)
+!                        rrnode = zbrent(dwave,ng,ngmx,l,lmx,xp,psi,  &
+!                             nocc,noccmx,ispin,nsmx,X1,X2,TOL)
+!                        if (ndnode .ge.nocc) then
+!                           dnode=dnode+rrnode
+!                        !write(6,*) 'found dnode at:',rrnode
+!                        endif
+!                        drlist(ndnode)=rrnode
+!                     endif
+!!     second derivative test:
+!                     if (y3(k)*y3(k-1).lt.0.d0) then
+!                        nddnode = nddnode + 1
+!                        x1=rr(k-1)
+!                        x2=rr(k)
+!                        rrnode = zbrent(ddwave,ng,ngmx,l,lmx,xp,psi,  &
+!                             nocc,noccmx,ispin,nsmx,X1,X2,TOL)
+!!     only add the lowest node! (this one shoud dissapear)
+!                        if (nddnode .ge. nocc +1 ) then
+!                           ddnode = ddnode + rrdnode
+!                          !write(6,*) 'found ddnode at:',rrnode
+!                        else
+!                           rrdnode=rrnode
+!                        endif
+!                        ddrlist(nddnode)=rrnode
+!                     endif
+!                  enddo
+!
+!!     write(6,*) 'rnode,dnode,ddnode',rnode,dnode,ddnode,nnode
+!
+!!     new version: use integral of the relevant functions between the nodes
+!!     not the node-locations!
+!!     calc. necessary integrals:
+!                  sum1=0.0d0
+!                  sum2=0.0d0
+!                  sum3=0.0d0
+!!     rnodes:
+!                  do i=nnode+1-nocc,1,-2
+!                     aa=Wwav(ng,l,xp,psi(0,nocc,l+1,ispin),rlist(i))  &
+!                       -Wwav(ng,l,xp,psi(0,nocc,l+1,ispin),rlist(i-1))
+!                     sum1 = sum1+aa
+!                  enddo
+!!     dnodes
+!                  do i=ndnode+1-nocc,1,-2
+!                     aa=wave(ng,l,xp,psi(0,nocc,l+1,ispin),drlist(i))  &
+!                       -wave(ng,l,xp,psi(0,nocc,l+1,ispin),drlist(i-1))
+!                     sum2 = sum2+aa
+!                  enddo
+!!     ddnodes
+!                  do i=nddnode+1-nocc,1,-2
+!                     aa=dwave(ng,l,xp,psi(0,nocc,l+1,ispin),ddrlist(i))  &
+!                      -dwave(ng,l,xp,psi(0,nocc,l+1,ispin),ddrlist(i-1))
+!!                    this test line is quite slow, for debuging purposes
+!                     sum3 = sum3+aa
+!                  enddo
+!!     old version for nodes as used in the paper:
+!!                  wfnode(nocc,l+1,ispin,1)=rnode
+!!                  wfnode(nocc,l+1,ispin,2)=dnode
+!!                  wfnode(nocc,l+1,ispin,3)=ddnode
+!!     new version, using the integrals of the function between the nodes
+!!    SG Nan do not disturb if weights are zero
+!                  if (wght(nocc,l+1,ispin,6,ncov).eq.0.d0) sum1=0.d0
+!                  if (wght(nocc,l+1,ispin,7,ncov).eq.0.d0) sum2=0.d0
+!                  if (wght(nocc,l+1,ispin,8,ncov).eq.0.d0) sum3=0.d0
+!                  wfnode(nocc,l+1,ispin,1)=sum1
+!                  wfnode(nocc,l+1,ispin,2)=sum2
+!                  wfnode(nocc,l+1,ispin,3)=sum3
+!
+!!                 Some lines for bugfixing of wfnode 
+!                  if(.not. sum1*sum1+sum2*sum2+sum3*sum3 >= 0d0)then
+!!                   let us use this condition as an isNaN function
+!!                   that should work with all fortran compilers.
+!!                   indeed NaN was observed sometimes for penalty terms from nodes
+!                    write(6,*)'Ouch! Some node integral is NaN for'
+!                    write(6,*)'l=',l,' s=',ispin,' n-ncore(l)=',nocc
+!                    write(6,*)'(NaN?)   node=',sum1,'   rnode=',rnode
+!                    write(6,*)'(NaN?)  dnode=',sum2,'  drnode=',drnode
+!                    write(6,*)'(NaN?) ddnode=',sum3,' ddrnode=',ddrnode
+!                    if(.not. sum1*sum1 >=0d0 )wfnode(nocc,l+1,ispin,1)=0d0
+!                    if(.not. sum2*sum2 >=0d0 )wfnode(nocc,l+1,ispin,2)=0d0
+!                    if(.not. sum3*sum3 >=0d0 )wfnode(nocc,l+1,ispin,3)=0d0
+!                  end if
+!               endif
+!            enddo
+!         enddo
+!      enddo
+
+!     write(6,*) 'leave gatom'
 
       end
 

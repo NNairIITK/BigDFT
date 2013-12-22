@@ -40,7 +40,7 @@ subroutine driveLDAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    use libxcModule
    implicit real*8 (a-h,o-z)
    real(kind=8) :: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad) ! dummy arguments
-   real(kind=8) :: Exc,Vxc(nspol),dEdg(nspol), grad(nspol)  ! arguments to XCfunction
+   real(kind=8) :: Exc,Vxc(nspol),dEdg(nspol), grad(nspol), rhosub(nspol) ! arguments to XCfunction
 
    enexc=0.d0
    pot=0d0
@@ -48,10 +48,14 @@ subroutine driveLDAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    grad=0d0
 
    do j=1,nrad
-      call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+      call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
       enexc=enexc+Exc*rw(j)*rho(j,1)
       eps(j)=eps(j)+Exc
       pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   !write(6,'(a,i3,(10(1x,e12.5)))') ' LDAsimple ',j,rhosub,grad,Exc,Vxc,dEdg
    enddo
 
 
@@ -71,7 +75,7 @@ subroutine driveLDApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    use libxcModule
    implicit real*8 (a-h,o-z)
    real(kind=8) :: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad) ! dummy arguments
-   real(kind=8) :: Exc,Vxc(nspol),dEdg(nspol), grad(nspol)      ! arguments to XCfunction
+   real(kind=8) :: Exc,Vxc(nspol),dEdg(nspol), grad(nspol), rhosub(nspol)      ! arguments to XCfunction
 
    enexc=0.d0
    pot=0d0
@@ -79,11 +83,15 @@ subroutine driveLDApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    grad=0d0
 
    do j=1,nrad
-      call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+      call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
       enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
       eps(j)=eps(j)+Exc
       pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
       pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+  !write(6,'(a,i5,(10(1x,e12.5)))') ' LDApolarized ',j,rhosub,grad,Exc,Vxc,dEdg
    enddo
 
    do j=2,nrad
@@ -104,9 +112,9 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    use libxcModule
    implicit real*8 (a-h,o-z)
    real(8):: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad),& ! dummy arguments
-             Exc,Vxc(nspol),dEdg(nspol), grad(nspol),&      ! arguments to XCfunction
+             Exc,Vxc(nspol),dEdg(nspol), grad(nspol), rhosub(nspol), &      ! arguments to XCfunction
              c(-8:8), sign(nspol) !                           ! local varialbes for derivatives 
-
+   gradcut=1d-7
    enexc=0.d0
    pot=0d0
    eps=0d0
@@ -126,19 +134,25 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    do i=-0,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-0,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=2
     c(-1)=-0.1111111111111111d0
@@ -155,19 +169,24 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    do i=-1,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-1,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=3
     c(-2)=0.01111111111111111d0
@@ -185,19 +204,25 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    do i=-2,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-2,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=4
     c(-3)=-0.202020202020202d-2
@@ -216,19 +241,25 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    do i=-3,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-3,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=5
     c(-4)=0.5050505050505051d-3
@@ -248,19 +279,25 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    do i=-4,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-4,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=6
     c(-5)=-0.1554001554001554d-3
@@ -281,19 +318,25 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    do i=-5,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-5,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=7
     c(-6)=0.555000555000555d-4
@@ -315,19 +358,25 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    do i=-6,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-6,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=8
     c(-7)=-0.222000222000222d-4
@@ -350,56 +399,25 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    do i=-7,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-7,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
-
-
-    c(-8)=9.71250971250971d-6
-    c(-7)=-0.1776001776001776d-3
-    c(-6)=0.1554001554001554d-2
-    c(-5)=-0.87024087024087d-2
-    c(-4)=0.3535353535353535d-1
-    c(-3)=-0.1131313131313131d0
-    c(-2)=0.3111111111111111d0
-    c(-1)=-0.888888888888889d0
-    c(0)=0.d0
-    c(1)=0.888888888888889d0
-    c(2)=-0.3111111111111111d0
-    c(3)=0.1131313131313131d0
-    c(4)=-0.3535353535353535d-1
-    c(5)=0.87024087024087d-2
-    c(6)=-0.1554001554001554d-2
-    c(7)=0.1776001776001776d-3
-    c(8)=-9.71250971250971d-6
-   do 100,j=9,nrad-8
-   grad=0.d0
-   do i=-8,8
-   grad(1)=grad(1)+c(i)*rho(j+i,1)
-   enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
-   enexc=enexc+Exc*rw(j)*rho(j,1)
-   eps(j)=eps(j)+Exc
-   pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
-   do i=-8,8
-   pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
-   enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 100   continue
 
    j=nrad-7
@@ -407,152 +425,200 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    do i=-8,7
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-8,7
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-6
    grad=0.d0
    do i=-8,6
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-8,6
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-5
    grad=0.d0
    do i=-8,5
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-8,5
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-4
    grad=0.d0
    do i=-8,4
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-8,4
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-3
    grad=0.d0
    do i=-8,3
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-8,3
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-2
    grad=0.d0
    do i=-8,2
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-8,2
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-1
    grad=0.d0
    do i=-8,1
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-8,1
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-0
    grad=0.d0
    do i=-8,0
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   grad(1)=sign(1)*grad(1)
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+
+   !if (grad(1).ge.0.d0) then 
+   !sign(1)=rd(j)
+   !else
+   !sign(1)=-rd(j)
+   !endif
+   !grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    do i=-8,0
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
 
    do j=2,nrad
       pot(j,1)=pot(j,1)/rw(j)
@@ -571,14 +637,15 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    ! ****************************************************************
    use libxcModule
    implicit real*8 (a-h,o-z)
-   real(8):: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad),& ! dummy arguments
-             Exc,Vxc(nspol),dEdg(nspol), grad(nspol),&      ! arguments to XCfunction
-             c(-8:8), sign(nspol) !                           ! local varialbes for derivatives 
+   real(8):: rho(nrad,2),r(nrad),rw(nrad),rd(nrad),pot(nrad,2),eps(nrad),& ! dummy arguments
+             Exc,Vxc(2),dEdg(2), grad(2), rhosub(2), &      ! arguments to XCfunction
+             c(-8:8), sign(2) !                           ! local varialbes for derivatives 
+  if (nspol.ne.2) stop 'error driveGGApolarized'
 
+   gradcut=1.d-7
    enexc=0.d0
    pot=0d0
    eps=0d0
-   grad=0d0
 
    j=1
     c(0)=-2.717857142857143d0
@@ -590,23 +657,31 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
     c(6)=-4.666666666666667d0
     c(7)=1.142857142857143d0
     c(8)=-0.125d0
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-0,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   !write(6,'(a,i3,(10(1x,e22.15)))') " GGAPolar", j,rhosub,grad
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -615,6 +690,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e22.15)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=2
     c(-1)=-0.1111111111111111d0
@@ -627,23 +703,31 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
     c(6)=-0.6666666666666666d0
     c(7)=0.1428571428571428d0
     c(8)=-0.01388888888888889d0
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-1,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   !write(6,'(a,i3,(10(1x,e22.15)))') " GGAPolar", j,rhosub,grad
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -652,6 +736,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e22.15)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=3
     c(-2)=0.01111111111111111d0
@@ -665,23 +750,31 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
     c(6)=-0.1666666666666666d0
     c(7)=0.03174603174603174d0
     c(8)=-0.2777777777777778d-2
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-2,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   !write(6,'(a,i3,(10(1x,e22.15)))') " GGAPolar", j,rhosub,grad
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -690,6 +783,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e22.15)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=4
     c(-3)=-0.202020202020202d-2
@@ -704,23 +798,31 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
     c(6)=-0.05555555555555556d0
     c(7)=0.952380952380952d-2
     c(8)=-0.7575757575757577d-3
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-3,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   !write(6,'(a,i3,(10(1x,e22.15)))') " GGAPolar", j,rhosub,grad
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -729,6 +831,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e22.15)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=5
     c(-4)=0.5050505050505051d-3
@@ -744,23 +847,31 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
     c(6)=-0.02222222222222222d0
     c(7)=0.3463203463203463d-2
     c(8)=-0.2525252525252525d-3
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-4,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   !write(6,'(a,i3,(10(1x,e22.15)))') " GGAPolar", j,rhosub,grad
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -769,6 +880,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e22.15)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=6
     c(-5)=-0.1554001554001554d-3
@@ -785,23 +897,31 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
     c(6)=-0.0101010101010101d0
     c(7)=0.1443001443001443d-2
     c(8)=-0.971250971250971d-4
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-5,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   !write(6,'(a,i3,(10(1x,e22.15)))') " GGAPolar", j,rhosub,grad
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -810,6 +930,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e22.15)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=7
     c(-6)=0.555000555000555d-4
@@ -827,23 +948,31 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
     c(6)=-0.5050505050505051d-2
     c(7)=0.6660006660006659d-3
     c(8)=-0.4162504162504162d-4
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-6,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   !write(6,'(a,i3,(10(1x,e22.15)))') " GGAPolar", j,rhosub,grad
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -852,6 +981,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e22.15)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=8
     c(-7)=-0.222000222000222d-4
@@ -870,23 +1000,31 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
     c(6)=-0.2719502719502719d-2
     c(7)=0.3330003330003329d-3
     c(8)=-0.1942501942501942d-4
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-7,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   !write(6,'(a,i3,(10(1x,e22.15)))') " GGAPolar", j,rhosub,grad
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -895,6 +1033,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e22.15)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
 
     c(-8)=9.71250971250971d-6
@@ -915,23 +1054,31 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
     c(7)=0.1776001776001776d-3
     c(8)=-9.71250971250971d-6
    do 100,j=9,nrad-8
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-8,8
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGAp", j,rhosub,grad,rd(j)
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -940,26 +1087,34 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e22.15)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 100   continue
 
    j=nrad-7
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-8,7
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -968,25 +1123,33 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i3,(10(1x,e12.5)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-6
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-8,6
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -995,25 +1158,33 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e12.5)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-5
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-8,5
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -1022,25 +1193,33 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e12.5)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-4
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-8,4
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -1049,25 +1228,33 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e12.5)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-3
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-8,3
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -1076,25 +1263,33 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e12.5)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-2
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-8,2
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -1103,25 +1298,33 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e12.5)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-1
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-8,1
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -1130,25 +1333,33 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e12.5)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    j=nrad-0
-   grad=0.d0
+   grad(1)=0.d0
+   grad(2)=0.d0
    do i=-8,0
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    grad(2)=grad(2)+c(i)*rho(j+i,2)
    enddo
-   if (grad(1).ge.0.d0) then 
-   sign(1)=rd(j)
-   else
-   sign(1)=-rd(j)
-   endif
-   if (grad(2).ge.0.d0) then 
-   sign(2)=rd(j)
-   else
-   sign(2)=-rd(j)
-   endif
-   grad=sign*grad
-   call xcfunction(nspol,rho(j,:),grad,Exc,Vxc,dEdg)
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+   grad(2)=rd(j)*grad(2)**2/sqrt(gradcut**2+grad(2)**2)
+!   if (grad(1).ge.0.d0) then 
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   if (grad(2).ge.0.d0) then 
+!   sign(2)=rd(j)
+!   else
+!   sign(2)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+!   grad(2)=sign(2)*grad(2)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
    enexc=enexc+Exc*rw(j)*(rho(j,1)+rho(j,2))
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
@@ -1157,6 +1368,7 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
    enddo
+   !write(6,'(a,i5,(10(1x,e12.5)))') " GGApolar", j,rhosub,grad,Exc,Vxc,dEdg
 
    do j=2,nrad
       pot(j,1)=pot(j,1)/rw(j)

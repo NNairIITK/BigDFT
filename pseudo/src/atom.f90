@@ -1,5 +1,5 @@
 !> @file
-!! Atomic program for psueod-potential calculations
+!! Atomic program for psuedo-potential calculations
 !! @author
 !!    Program for atomic calculations
 !!    written by Sverre Froyen, February 1982
@@ -37,12 +37,13 @@ END PROGRAM main
 
 subroutine atom
 
-       implicit double precision(a-h,o-z)
-       real(kind=8):: ehart
-       integer, parameter :: nrmax=10000, maxorb=60, lmax=5, maxconf=19
+       implicit real*8(a-h,o-z)
+!       real(kind=8):: ehart
+       integer, parameter :: nrmax=10000, maxorb=60, lmax=5, maxconf=19 ,&
+                             ncovmax=5
        logical, parameter :: debug=.false.
 !
-       dimension r(nrmax),rab(nrmax),  &
+       dimension r(nrmax),rab(nrmax),rcov(ncovmax),  &
        & no(maxorb),lo(maxorb),so(maxorb),zo(maxorb),  &
        & cdd(nrmax),cdu(nrmax),cdc(nrmax),  &
        & viod(lmax,nrmax),viou(lmax,nrmax),vid(nrmax),viu(nrmax),  &
@@ -53,24 +54,24 @@ subroutine atom
        character(len=1) :: ispp
        integer :: iXCold
        integer :: iXC
-       logical :: abort
+       logical :: abort,file_exist
 
 !      c.hartwig: additioanl grids for modified integration
        dimension rw(10000),rd(10000)
        common /intgrd/ rw,rd
 !----------------------------------------------------------------------
-       tol = 1.0D-11
+       tol = 5.0D-11
 !      heuristic value for fluctuating GGAs
        naold = '  '
        iXCold = 0
        ityold ='  ' 
-       stop_chain  = 'st'
+       stop_chain  = 'st' 
        zsold = 0.D0
        nconf = 0
        dvold = 1.0D10
        nr    = 1
        norb  = 1
-
+       ncov  = 1
 !      the main input file:
        open(unit=35,file='atom.dat',status='unknown')
 
@@ -82,7 +83,12 @@ subroutine atom
        open(unit=50,file='psppar',form='formatted',position='append')
 
 !      it is better to append and not overwrite existing weights
+      inquire(file='input.weights',exist=file_exist)
+      if (file_exist) then 
+       open(unit=60,file='default.weights',position='append')
+       else
        open(unit=60,file='input.weights',position='append')
+       endif
 !
 !     begin main loop
 !
@@ -90,14 +96,16 @@ subroutine atom
 !
 !      read input data
 !
+       !write(6,*)'calling input in atom.f90'
        call input (itype,iXC,ispp,  &
-       & nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
+       & nrmax,nr,a,b,r,rab,rprb,ncovmax,ncov,rcov,lmax,  &
        & nameat,norb,ncore,no,lo,so,zo,  &  
        & znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
        & viod,viou,vid,viu,vod,vou,  &
        & etot,ev,ek,ep,nconf,  &
        & nvalo,ncoreo) !      test: pass dummy args instead of using a save block
-
+       
+      
        if (itype == stop_chain) goto 140
 
        if (nconf .gt. maxconf) then
@@ -123,7 +131,9 @@ subroutine atom
 !      set up initial charge density.
 !      cdd and cdu  =  2 pi r**2 rho(r)
 !
+        !write(6,*)'127,23 Modifying aa value in atom aa=',aa 
         aa = sqrt(sqrt(znuc))/2.0d0+1.0d0
+        !write(6,*)'after modification aa=',aa
         a2 = zel/4.0d0*aa**3
         do i=1,nr
           cdd(i) = a2*exp(-aa*r(i))*r(i)**2
@@ -137,6 +147,7 @@ subroutine atom
 !      set up ionic potentials
 !
  40     continue
+       !write(6,*)'calling vionic in atom.f90'
         call vionic(itype,iXC,ifcore,  &
        nrmax,nr,a,b,r,rab,rprb,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -157,6 +168,7 @@ subroutine atom
        if(ispp=='s')nspol=2
 
  45    continue
+       !write(6,*)'calling velect in atom.f90'
        call velect(0,0,iXC,ispp,nspol,ifcore,  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -175,7 +187,7 @@ subroutine atom
        iconv = 0
        icon2 = 0
        maxit = 5000
-       maxit = 2000
+       maxit = 250  ! doubt on max no of iteration !! Santanu
        if (debug) write(*,*)'DEBUG: enter max SCF iterations'
 !      read(*,*)maxit
 
@@ -194,6 +206,7 @@ subroutine atom
 !         
 !            finite difference solution (less accurate)
 !            
+             !write(6,*)'calling dsolv1 in atom.f90'
              call dsolv1(   &
              nrmax,nr,a,b,r,rab,lmax,  &
              nameat,norb,ncore,no,lo,so,zo,  &
@@ -205,12 +218,13 @@ subroutine atom
 !            
 !            predictor - corrector method (more accurate)
 !            
+             !write(6,*)'calling dsolv2 in atom.f90'
              call dsolv2(iter,iconv,iXC,ispp,ifcore,itype,  &
              nrmax,nr,a,b,r,rab,lmax,  &
              nameat,norb,ncore,no,lo,so,zo,  &
              znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
              viod,viou,vid,viu,vod,vou,  &
-             etot,ev,ek,ep,rcov,rprb,nconf)
+             etot,ev,ek,ep,ncovmax,ncov,rcov,rprb,nconf)
 !         
           endif
 !         
@@ -221,6 +235,7 @@ subroutine atom
 !         
 !         set up output electronic potential from charge density
 !         
+          !write(6,*)'calling velect in atom.f90'
           call velect(iter,iconv,iXC,ispp,nspol,ifcore,  &
           nrmax,nr,a,b,r,rab,lmax,  &
           nameat,norb,ncore,no,lo,so,zo,  &
@@ -233,15 +248,15 @@ subroutine atom
           if (iconv .gt. 0) goto 120
           dvmax = 0.D0
           do i=2,nr
-             dv = (vod(i)-vid(i))/(1.D0+vod(i)+vou(i))
+             dv = (vod(i)-vid(i))/(1.D0+vod(i)+vou(i))! down channel
              if (abs(dv) .gt. dvmax) dvmax=abs(dv)
-             dv = (vou(i)-viu(i))/(1.D0+vou(i)+vod(i))
+             dv = (vou(i)-viu(i))/(1.D0+vou(i)+vod(i))! up channel
              if (abs(dv) .gt. dvmax) dvmax=abs(dv)
           end do
           iconv = 1
           icon2 = icon2+1
           if (dvmax .gt. tol) iconv=0
-          if (dvmax .ge. dvold) xmixo=0.8D0*xmixo
+          if (dvmax .ge. dvold) xmixo=0.95D0*xmixo
           inquire(file='EXIT', exist=abort)
           if(abort)iconv=1
 !         EXPERIMENTAL: why not in both directions?
@@ -252,19 +267,24 @@ subroutine atom
           if(iter<40)iconv=0
           
 !         diverging - reduce mixing coefficient
-          if (xmixo .lt. 1D-5) xmixo=1D-5
+          if (xmixo .lt. 1D-1) xmixo=1D-1
           dvold = dvmax
           write(6,70) iter,dvmax,xmixo
  70       format(7h iter =,i5,9h dvmax = ,1pe9.3,8h xmixo =,1pe9.3)
+          !write(6,*)'icon2,iconv',icon2,iconv
 !         
 !         mix input and output electronic potentials
 !         
+          !write(6,*)'calling mixer in atom.f90'
           call mixer(iter,iconv,icon2,xmixo,iXC,ispp,  &
           nrmax,nr,a,b,r,rab,lmax,  &
           nameat,norb,ncore,no,lo,so,zo,  &
           znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
           viod,viou,vid,viu,vod,vou,  &
           etot,ev,ek,ep)
+
+          cdd=0.d0
+          cdu=0.d0
 
 
 !      end of iteration loop
@@ -277,6 +297,7 @@ subroutine atom
 !
 !      find total energy
 !
+       !write(6,*)'calling etotal in atom.f90'
  120   call etotal(itype,  &
        nrmax,nr,a,b,r,rab,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
@@ -304,8 +325,8 @@ subroutine atom
        write(60,'(a,i3,a)')&
       '----suggested weights for occup numbers of conf',nconf,'-----'
        write(60,*)
-       write(60,'(a86)')'1d0 1d5 1d0 1d0 1d0 1d3 0d0'//  &
-                  ' psi(0), dEkin_wvlt, radii, hij, locality, E_exct, dKE_pen'
+       write(60,'(a62)')'  psi(0)  dEkin_wvlt  radii  hij  locality  E_exct  dSecnd_Der'
+       write(60,'(a60)')'   1d0      1d5        1d0   1d0   1d0        1d3      0d0    '
 
 !     we put the overall weights for each configuration in atom.??.ae files
 !     such that the user can combine atomic data more easily.
@@ -320,16 +341,30 @@ subroutine atom
            '  res    rnode dnode ddnode'
         do iorb=ncore+1,norb
           weight=0.0d0
-          if (zo(iorb).gt.1.0d-4) then
-            write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
-             '1.0e5   1.0e5   0.0e0  0.0e0   1.0e5  1.0e0 0.0e0 0.0e0'
+          if (ncov.gt.1) then
+            do incov=1,ncov
+              if (zo(iorb).gt.1.0d-4.and.incov.eq.1) then
+                 write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+                 '1.0e5   1.0e2   0.0e0  0.0e0   1.0e5  1.0e0 0.0e0 0.0e0'
+              else if (zo(iorb).lt.1.0d-4.and.incov.eq.1) then
+                  write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+                  '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
+              endif
+              if(incov.gt.1)write(60,'(24x,a)')'1.0e5'
+            enddo
           else
-            write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
-             '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
-          endif
-        enddo
+            if (zo(iorb).gt.1.0d-4) then
+               write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+               '1.0e5   1.0e5   0.0e0  0.0e0   1.0e5  1.0e0 0.0e0 0.0e0'
+            else 
+               write(60,'(2i4,1x,f4.2,tr3,a)') no(iorb),lo(iorb),so(iorb),  &
+               '1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0'
+            endif
+          end if
+        end do
         close(unit=60)
-        end if
+      end if
+      
 
 !
 !     next configuration of the atom
@@ -372,13 +407,23 @@ subroutine atom
 !cc     weights.par
 
 !     input.fitpar, do not overwrite, append
+      inquire(file='input.fitpar',exist=file_exist)
+      if (file_exist) then
+      open(unit=60,file='default.fitpar',position='append')
+      else
       open(unit=60,file='input.fitpar',position='append')
+      endif
       write(60,*)' fitting parameters appended by atom.f90:auto' 
       close(unit=60)
 
 
 !     and input.pseudo
+      inquire(file='input.pseudo',exist=file_exist)
+      if (file_exist) then
+      open(unit=60,file='default.pseudo',position='append')
+      else
       open(unit=60,file='input.pseudo',position='append')
+      endif
       write(60,'(a)') "input line written by atom: -plot -ng 20 -rij 2.0"
       close(unit=60)
 
@@ -395,7 +440,7 @@ subroutine atom
                                  position='append')
             write(40,*) 'EXCITATION ENERGIES:'
             do i=1,nconf
-              write(40,*) (econf(i)-econf(1))/2.d0
+              write(40,*) (econf(i)-econf(1))/2.d0! why divide ny 2
             end do
             close(40)
          end do
@@ -677,8 +722,8 @@ subroutine atom
        character*2 ispp*1,nameat,itype
        integer:: iXC
 !
-      parameter ( mesh = 2000 )
-!     parameter ( mesh = 80000 )
+       parameter ( mesh = 10000 )
+!      parameter ( mesh = 80000 )
        dimension y(mesh),yp(mesh),ypp(mesh),w(3*mesh),s1(mesh),s2(mesh)
        common  y,yp,ypp,w,s1,s2
 !
@@ -787,7 +832,7 @@ subroutine atom
 
        ll = 6 - ll
  40    continue
-       ehart = ehart / 6.d0
+       ehart = ehart / 6.d0 !! Why divide by 6??
 !
 !      find derivatives of the charge density
 !
@@ -913,6 +958,7 @@ subroutine atom
           exct =  2.d0*excgrd(i)*(rho(i,1)+rho(i,2))
           vxcd =  2.d0*vxcgrd(i,1)
           vxcu =  2.d0*vxcgrd(i,2)
+!!write(16,'(i5,4(1x,e12.5))') i,r(i),exct,vxcd,vxcu
           rhodw=rho(i,1)/2.d0
           rhoup=rho(i,2)/2.d0
           vod(i) = vod(i) + vxcd
@@ -931,7 +977,7 @@ subroutine atom
 !      *****************************************************************
 !
        subroutine input (itype,iXC,ispp,  &
-       nrmax,nr,a,b,r,rab,rprb,rcov,lmax,  &
+       nrmax,nr,a,b,r,rab,rprb,ncovmax,ncov,rcov,lmax,  &
        nameat,norb,ncore,no,lo,so,zo,  &
        znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,  &
        viod,viou,vid,viu,vod,vou,  &
@@ -939,14 +985,16 @@ subroutine atom
 !      the save block seems to FAIL sometimes
        nvalo,ncoreo)
 
-!     we need these modules to initialize libXC when reading iXC
+!     we need these modules/atom.dat to initialize libXC when reading iXC
 !     use defs_basis
       use libxcModule
-       implicit double precision(a-h,o-z)
+!       implicit double precision(a-h,o-z)
+      implicit real*8 (a-h,o-z)
+
 !
 !      subroutine to read input parameters
 !
-       dimension r(nrmax),rab(nrmax),  &
+       dimension r(nrmax),rab(nrmax),rcov(ncovmax),  &
        no(*),lo(*),so(*),zo(*),  &
        cdd(nrmax),cdu(nrmax),cdc(nrmax),  &
        viod(lmax,nrmax),viou(lmax,nrmax),vid(nrmax),viu(nrmax),  &
@@ -1046,39 +1094,52 @@ subroutine atom
 !      if (ispp /= 's' .and. ispp  /= 'r')  ispp=blank
 !      spin-polarization needs relativistic calculation
        znuc=0.d0
-       read(35,*,err=998,end=999) rmax,aa,bb
-       read(35,*,err=998,end=999) rcov,rprb
+       !!read(35,*,err=998,end=999) rmax,aa,bb !! OLD CODE
+       read(35,*,err=998,end=999) ncov,(rcov(i),i=1,ncov),rprb
        znuc=charge(nameat)
+
+
+       a=1.d-5/znuc
+       b=0.0022d0
+
 !
 !      set up grid
 !
-       if (abs(rmax) .lt. 0.00001) rmax=100.0d0
-       if (abs(aa) .lt. 0.00001) aa = 3.0d0
-       if (abs(bb) .lt. 0.00001) bb = 40.0d0
+       aa=10d0
+       !if (abs(rmax) .lt. 0.00001) rmax=100.0d0
+       !if (abs(aa) .lt. 0.00001) aa = 3.0d0
+       !if (abs(bb) .lt. 0.00001) bb = 40.0d0
        if (znuc == 0.0d0) then
           a = 10**(-aa)
           goto 29
        endif
-       a=exp(-aa)/znuc
-       b = 1/bb
+       !a=exp(-aa)/znuc
+       !b = 1/bb
 !
 !     modify grid-parameter, so that one grid-point matches
 !     rcov exact
 !
-        do i=1,nrmax
+!        write(6,*)'Initial value of a=',a
+        do i=1,nrmax     !! nrmax
            if (i == nrmax) then
               write(6,50)
               stop 'input two'
            endif
            r(i) = a*(exp(b*(i-1))-1)
-           if (r(i).ge.rcov) then
-              a= rcov/(exp(b*(i-1))-1)
+                  
+           if (r(i).ge.rcov(ncov)) then
+              !a= rcov(ncov)/(exp(b*(i-1))-1) !! Dont Modify to coincide with
+                                              !! rcov(ncov)
               aa=-log(a*znuc)
+!              write(6,*)'aa=',aa,'znuc=',znuc
               goto 29
            endif
         enddo
-        write(*,*)'adjusted value for aa',aa
+
+
  29     continue
+!        write(6,*)'Adjusted value for a',a
+        !write(6,*)"i  r(i)   rcov(ncov)"
         do 30 i=1,nrmax
            if (i == nrmax) then
               write(6,50)
@@ -1094,8 +1155,12 @@ subroutine atom
           rw(i) = b*(r(i)+a)
           rd(i) = 1.d0/rw(i)
           rw(i)=rw(i)*12.56637061435917d0*r(i)**2
-          if (r(i) .gt. rmax) goto 60
+          !write(6,*)i,r(i),rcov(ncov)
+
+      !!    if (r(i) .gt. rmax) goto 60\
+            if (r(i) .gt. 5*rprb) goto 60
  30     continue
+          stop "no nr found"
  60     nr = i-1
 !
 !     modify weights at end point for improved accuracy
@@ -1109,8 +1174,6 @@ subroutine atom
         rw(2)=rw(2)*59.d0/48.d0
         rw(3)=rw(3)*43.d0/48.d0
         rw(4)=rw(4)*49.d0/48.d0
-
-
 
 !
 !      read the number of core and valence orbitals
@@ -1126,6 +1189,7 @@ subroutine atom
  89    continue
        ncore=ncoreo
        nval =nvalo
+      
        if (ispp=='R') ispp='r'
 !      if (ispp/='r') ispp=' '
        if (ispp /= 's' .and. ispp  /= 'r')  ispp=blank
@@ -1260,6 +1324,7 @@ subroutine atom
               ' electronic charge          =',f10.6,/,  &
               ' ionic charge               =',f10.6,//)
        if (zsh /= 0.D0) write(6,175) zsh,rsh
+       !write(6,*)"On list aa=",aa !! Santanu
  175   format(' shell charge =',f6.2,' at radius =',f6.2,//)
        write(6,180)
 
@@ -1277,10 +1342,10 @@ subroutine atom
          write(6,190) i,no(i),lo(i),so(i),xji,zo(i)
  190     format(1x,i2,2i5,2f6.1,f10.4)
  200     continue
-      write(6,210) r(2),nr,r(nr),aa,bb
+      write(6,210) r(2),nr,r(nr),a,b
  210  format(//,' radial grid parameters',//,  &
-       ' r(1) = .0 , r(2) =',1pe12.6,' , ... , r(',i4,') =',0pf12.8,  &
-       /,' a =',f12.8,'  b =',f12.8,/)
+       ' r(1) = .0 , r(2) =',1pe12.6,' , ... , r(',i5,') =',0pf12.8,  &
+       /,' a =',e22.14,'  b =',f12.5,/)
       irel   = 'nrl'
       if (ispp == 'r') irel = 'rel'
       if (ispp == 's') irel = 'spp'
@@ -1396,7 +1461,7 @@ subroutine atom
        etot(10),ev(norb),ek(norb),ep(norb)
        character*2 nameat
 !
-      parameter ( mesh = 4000 , nvmax = 6*mesh )
+      parameter ( mesh = 10000 , nvmax = 8*mesh )
 !     parameter ( mesh = 160000 , nvmax = 6*mesh )
        dimension nmax(2,5),dk(mesh),d(mesh),sd(mesh),sd2(mesh),e(10),  &
        ind(10),z(nvmax),  &
@@ -1427,6 +1492,7 @@ subroutine atom
        if (lo(k) /= j-1) goto 20
        if ((so(k)-0.1D0)*(i-1.5D0) .lt. 0.D0) goto 20
        nmax(i,j)=no(k)
+       !print*,no(k),nr-1
        if (no(k)*(nr-1) .gt. nvmax) then
          print*,no(k),nr-1
          print*,no(k)*(nr-1)," > ",nvmax
@@ -1514,7 +1580,7 @@ subroutine atom
        nameat,norb,ncore,no,lo,so,zo,  &
        znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
        viod,viou,vid,viu,vod,vou,  &
-       etot,ev,ek,ep,rcov,rprb,nconf)
+       etot,ev,ek,ep,ncovmax,ncov,rcov,rprb,nconf)
        implicit double precision(a-h,o-z)
 !
 !      dsolv2 finds the (non) relativistic wave function using
@@ -1526,13 +1592,13 @@ subroutine atom
 !
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
+       cdd(nr),cdu(nr),cdc(nr),rcov(ncov),  &
        viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
        etot(10),ev(norb),ek(norb),ep(norb)
        character(len=2) :: ispp*1,nameat,itype
        integer :: iXC
 !
-       integer, parameter :: mesh = 2000
+       integer, parameter :: mesh = 10000
        dimension v(mesh),ar(mesh),br(mesh)
        common  v,ar,br
 !.....files
@@ -1606,7 +1672,7 @@ subroutine atom
                  nameat,norb,ncore,nval,no,lo,so,zo,  &
                  znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
                  viod,viou,vid,viu,vod,vou,  &
-                 etot,v,ev,ek,ep,rcov,rprb,nconf)  !! nval not as argument
+                 etot,v,ev,ek,ep,ncovmax,ncov,rcov,rprb,nconf)  !! nval not as argument
 !!           Santanu
           end if
  50    continue
@@ -1643,7 +1709,8 @@ subroutine atom
 !------Machine dependent parameter-
 !------Require exp(-2*expzer) to be within the range of the machine
 ! IBM
-      expzer = 3.7D2
+!      expzer = 3.7D2 !! How it is decided?
+       expzer=3.7D2
 !Iris     expzer = 3.7E2
 !Apollo   expzer = 3.7D2
 !Sun      expzer = 3.7D2
@@ -1669,6 +1736,7 @@ subroutine atom
       itmax = 100
       lp = lo(iorb)+1
       ar(1) = 0.0d0
+
       if (lo(iorb) == 0) then
         br(1) = b*a
       else
@@ -1694,8 +1762,9 @@ subroutine atom
 !
       juflow=1
       do 42 j=2,nr
-        if (lp*abs(log(r(j))) .ge. expzer/2) juflow = j
+        if (lp*abs(log(r(j))) .ge. expzer/2) juflow = j !! Doubt Santanu
  42   continue
+!write(6,*) 'juflow ',juflow
 !
 !   determine effective charge and vzero for startup of
 !   outward integration
@@ -1705,7 +1774,9 @@ subroutine atom
       zeff = 0.0d0
       if (so(iorb) .lt. 0.1 .and. viod(lp,2) .lt. -0.1) zeff=znuc
       if (so(iorb) .gt. 0.1 .and. viou(lp,2) .lt. -0.1) zeff=znuc
+      !write(6,*)'Modifying aa in difrnl'
       aa = -zeff/lp
+      !write(6,*)"zeff=",zeff,"lp=",lp,"aa=",aa
       vzero = -2*zeff*aa
       if (zeff == 0.0) then
         if (so(iorb) .lt. 0.1 ) then
@@ -1743,11 +1814,13 @@ subroutine atom
       icount=icount+1
       do 22 j=nr,2,-1
         temp = v(j) -ev(iorb)
-        if (temp .lt. 0.0) temp = 0.0d0
+                if (temp .lt. 0.0d0) temp = 0.0d0
         if (r(j)*sqrt(temp) .lt. expzer) goto 23
  22   continue
  23   continue
       ninf=j
+!      ninf=nr
+      !write(6,*)"ninf,temp**2",ninf,v(j)-ev(iorb)
       nctp = ninf - 5
       do j=2,ninf-5
         if (v(j) .lt. ev(iorb)) nctp = j
@@ -1980,7 +2053,7 @@ subroutine atom
 !
       implicit real*8 (a-h,o-z)
 !
-      parameter (ai=2*137.0360411d0)
+      parameter (ai=2*137.0360411d0) !! alpha
 !
 !  Tolernce
 !
@@ -1998,6 +2071,7 @@ subroutine atom
 !------Require exp(-2*expzer) to be within the range of the machine
 ! IBM
       expzer = 3.7D2
+!       expzer =2800d0
 !Iris     expzer =3.7E2
 !Apollo   expzer = 3.7E2
 !Sun      expzer = 3.7D2
@@ -2025,7 +2099,8 @@ subroutine atom
       ai2 = ai * ai
       az = znuc/(2*ai)
       ka = lo(iorb)+1
-      if (so(iorb) .lt. 0.1 .and. lo(iorb) /= 0) ka=-lo(iorb)
+      if (so(iorb) .lt. 0.1 .and. lo(iorb) /= 0) ka=-lo(iorb) 
+                                                              
 !
 !  determine effective charge and vzero for startup of
 !  outward integration
@@ -2097,6 +2172,7 @@ subroutine atom
         if (r(j)*sqrt(temp) .lt. expzer) goto 23
  22   continue
  23   ninf=j
+!      ninf=nr
       nctp = ninf - 5
       do 25 j=2,ninf-5
         if (v(j) .lt. ev(iorb)) nctp = j
@@ -2321,7 +2397,7 @@ subroutine atom
        nameat,norb,ncore,nval,no,lo,so,zo,  &
        znuc,zsh,rsh,zel,zcore,cdd,cdu,cdc,dcrc,ddcrc,  &
        viod,viou,vid,viu,vod,vou,  &
-       etot,v,ev,ek,ep,rcov,rprb,nconf)
+       etot,v,ev,ek,ep,ncovmax,ncov,rcov,rprb,nconf)
        implicit double precision(a-h,o-z)
 !
 !      orban is used to analyze and printout data about the orbital
@@ -2329,9 +2405,9 @@ subroutine atom
        dimension ar(nr),br(nr)
        dimension r(nr),rab(nr),  &
        no(norb),lo(norb),so(norb),zo(norb),  &
-       cdd(nr),cdu(nr),cdc(nr),  &
+       cdd(nr),cdu(nr),cdc(nr),rcov(ncov),  &
        viod(lmax,nr),viou(lmax,nr),vid(nr),viu(nr),vod(nr),vou(nr),  &
-       v(nr),etot(10),ev(norb),ek(norb),ep(norb)
+       v(nr),etot(10),ev(norb),ek(norb),ep(norb),crcov(ncov)
        character*2 ispp*1,nameat,itype
 !
        dimension rzero(10),rextr(10),aextr(10),bextr(10)
@@ -2353,6 +2429,7 @@ subroutine atom
       common /intgrd/ rw,rd
       character*1 il(5)
       character*2 cnum
+      character*200 label
 !
 !
 !       ai = 2*137.04D0
@@ -2364,24 +2441,25 @@ subroutine atom
 !
 !      compute zeroes and extrema
 !
-       nzero = 0
-       nextr = 0
-       rzero(1) = 0.D0
-       arp = br(2)
+       nzero = 0  !! No of Zeroes psi=0
+       nextr = 0  !! No of Extrema d(psi)/dr=0
+       rzero(1) = 0.D0 !! Coordinate of psi=0
+       arp = br(2) !! d(psi)/dr
        if (ispp == 'r' .and. so(iorb) .lt. 0.1D0) arp = ka*ar(2)/r(2)  &
         + (ev(iorb) - viod(lp,2)/r(2) - vid(2) + ai*ai) * br(2) / ai
        if (ispp == 'r' .and. so(iorb) .gt. 0.1D0) arp = ka*ar(2)/r(2)  &
         + (ev(iorb) - viou(lp,2)/r(2) - viu(2) + ai*ai) * br(2) / ai
+
        do 20 i=3,nr
        if (nextr .ge. no(iorb)-lo(iorb)) goto 30
-       if (ar(i)*ar(i-1) .gt. 0.D0) goto 10
+       if (ar(i)*ar(i-1) .gt. 0.D0) goto 10 !! Check if psi==0
 !
 !      zero
 !
        nzero = nzero + 1
        rzero(nzero) = (ar(i)*r(i-1)-ar(i-1)*r(i)) / (ar(i)-ar(i-1))
  10    arpm = arp
-       arp = br(i)
+       arp = br(i) !! Store derivetive of d(psi)/dr
        if (ispp == 'r' .and. so(iorb) .lt. 0.1D0) arp = ka*ar(i)/r(i)  &
         + (ev(iorb) - viod(lp,i)/r(i) - vid(i) + ai*ai) * br(i) / ai
        if (ispp == 'r' .and. so(iorb) .gt. 0.1D0) arp = ka*ar(i)/r(i)  &
@@ -2391,7 +2469,8 @@ subroutine atom
 !      extremum
 !
        nextr = nextr + 1
-       if((arp-arpm) /=0.0_8) then
+!       if((arp-arpm) /=0.0_8) then !! MODIFY SANTANU
+       if ((arp-arpm)/=0.0d8) then
           rextr(nextr) = (arp*r(i-1)-arpm*r(i)) / (arp-arpm)
           aextr(nextr) = (ar(i)+ar(i-1))/2  &
                - (arp**2+arpm**2) * (r(i)-r(i-1)) / (4*(arp-arpm))
@@ -2427,8 +2506,8 @@ subroutine atom
           if (sa2 .le. 0.01D0) i99 = i
           i90 = i
  40    continue
-       ek(iorb) = ek(iorb) / 3
-       ep(iorb) = ep(iorb) / 3
+       ek(iorb) = ek(iorb) / 3 !! Why divide by 3?
+       ep(iorb) = ep(iorb) / 3 !! Why divide by 3?
        if (ispp == 'r') ek(iorb) = 0.D0
 !
 !      fourier analyze orbital
@@ -2509,25 +2588,29 @@ subroutine atom
 !------Machine dependent parameter-
 !------Require exp(-2*expzer) to be within the range of the machine
 ! IBM
-      expzer = 3.7D2
+!      expzer = 3.7D2  
 !     c.hartwig for numerical stability:
-      expzer = expzer/2
+!      expzer = expzer/2
 !
 !  Find practical infinity ninf and classical turning
 !  point nctp for orbital.
-      do  j=nr,2,-1
-         temp = v(j) - ev(iorb)
-         if (temp .lt. 0.0) temp = 0.0
-         if (r(j)*sqrt(temp) .lt. expzer) goto 23
-      enddo
- 23   ninf=j
+
+!      do  j=nr,2,-1
+!         temp = v(j) - ev(iorb)
+!         if (temp .lt. 0.0) temp = 0.0
+!         if (r(j)*sqrt(temp) .lt. expzer) goto 23
+!      enddo
+! 23   ninf=j
+
+      ninf=nr ! Temporary Solution
 !
 !     compute charge at rcov + higher moments
 !     spline interpolation/integration
 
 
 !     some additional points for the spline
-      npoint=min(ninf+5,nr)
+!      write(6,'(a40,3(i5,1x))') 'ninf,nr,iorb',ninf,nr,iorb
+      npoint=min(ninf+5,nr) !! 
 !     charge(rcov)= int_0^rcov g^2 r^2 dr + int_0^infinity f^2 r^2 dr
 !
       a1=0
@@ -2541,26 +2624,42 @@ subroutine atom
       ttxlo=0d0
 
 !     int_0^rcov g^2 r^2 dr
+! Get the grid point nearest to rcov and set rcov to the nearest grid point
+      crcov=0.d0
+      do j=1,ncov
       do i=1,npoint
          ttx(i)=r(i)
          tty(i)=ar(i)*ar(i)
-         if (r(i).le.rcov) ircov=i
+         if (r(i).le.rcov(j)) ircov=i
+         if (r(i).le.rcov(j).and.i.lt.npoint) then
+           if (r(i+1).ge.rcov(j)) then
+             r1=abs(rcov(j)-r(i))
+             r2=abs(rcov(j)-r(i+1))
+             if (r2.le.r1)ircov=i+1
+           end if
+         end if
       enddo
+      rcov(j)=r(ircov)
+      !write(6,*)'ircov,r(ircov),rcov',ircov,r(ircov),rcov(j)
+      !end do
+ 
       if (ircov.gt.ninf) then
          ircov=ninf
          write(6,*) 'warning: ircov > ninf ! (ircov set to ninf)'
          write(6,*) '---> ninf=',ninf,' r(ninf)=',r(ninf)
-         write(6,*) '---> npoints=',npoints,' r(npoint)=',r(npoint)
+         write(6,*) '---> npoint=',npoint,' r(npoint)=',r(npoint)
       endif
+
       call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,a1,b1,an,bn)
       if(ierr/=1) write(6,*)'SPLIFT ERROR!',ttw !stop 'spliq'
       isx=1
       ttxup=ttx(ircov)
-      call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttxup,1,crcov,ierr)
+      call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttxup,1,crcov(j),ierr)
       if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
+  
       if (ispp == 'r') then
 !     int_0^infinity f^2 r^2 dr
-         cmin=0.
+         cmin=0.d0
          do i=1,npoint
             tty(i) = br(i)*br(i)
          enddo
@@ -2575,8 +2674,9 @@ subroutine atom
          call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttxup,1,cmin,ierr)
          if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
 !         print*,'crcov+cmin:',crcov+cmin
-         crcov=crcov+cmin
+         crcov(j)=crcov(j)+cmin
       endif
+      end do
 !
 !     dcharge      = int_0^infinity (f^2+g^2) r^4 dr
 !
@@ -2588,10 +2688,12 @@ subroutine atom
       enddo
       call splift(ttx,tty,ttyp,ttypp,npoint,ttw,ierr,isx,a1,b1,an,bn)
       if(ierr/=1) write(6,*)'SPLIFT ERROR!' !stop 'spliq'
+
 !     ddd =  = int_0^rcov (f^2+g^2) r^4 dr
-      call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttx(ircov),  &
-           1,ddd,ierr)
-      if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
+!     call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttx(ircov),  &
+!          1,ddd,ierr)
+!     if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
+
       call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttxup,1,dcrcov,ierr)
       if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
 !
@@ -2604,10 +2706,11 @@ subroutine atom
       if(ierr/=1) write(6,*)'SPLIFT ERROR!' !stop 'spliq'
       call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttxup,1,ddcrcov,ierr)
       if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
+
 !     dddd =  = int_0^rcov (f^2+g^2) r^6 dr
-      call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttx(ircov),  &
-           1,dddd,ierr)
-      if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
+!      call spliq(ttx,tty,ttyp,ttypp,npoint,ttxlo,ttx(ircov),  &
+!           1,dddd,ierr)
+!      if(ierr/=1) write(6,*)'SPLIQ ERROR!' !stop 'spliq'
 
       nextr=01
 !
@@ -2640,9 +2743,11 @@ subroutine atom
       il(4) = 'f'
       il(5) = 'g'
 
-      if (iorb==1)then
+      if (iorb==1)then !! Print the Formula Once Only
          write(6,*)
-         write(6,*) 'rcov         = ',rcov
+         do i=1,ncov
+            write(6,'(a,i1,a,e20.13)')' rcov (',i,')=',rcov(i)
+         end do
          if (ispp /= 'r' ) then
             write(6,*) 'charge(rcov) = int_0^rcov psi^2 r^2 dr'
             write(6,*) 'dcharge      = int_0^infinity psi^2 r^4 dr'
@@ -2654,15 +2759,21 @@ subroutine atom
             write(6,*) 'ddcharge     = int_0^infinity (f^2+g^2) r^6 dr '
          endif
          write(6,21)
- 21      format(/,' nl   s    occ',5x,'eigenvalue',4x,'charge(rcov)',  &
+ 21      format(/,' nl   s    occ',5x,'rcov',4x,'eigenvalue',4x,'charge(rcov)',  &
               4 x,'dcharge',4x,'ddcharge')
       endif
 !     Collect 2nd and 4th moment of the core charge density for NCC 
       dcrc = dcrc+zo(iorb)* dcrcov
       ddcrc=ddcrc+zo(iorb)*ddcrcov
-      write(6,31) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),  &
-           (ev(iorb)-vshift)/2.,crcov,dcrcov,ddcrcov
- 31   format(1x,i1,a1,f4.1,f8.3,2(1pe15.7),2(1pe12.5))
+      write(6,31) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),rcov(1),  &
+           (ev(iorb)-vshift)/2.d0,crcov(1),dcrcov,ddcrcov
+      
+ 31   format(1x,i1,a1,1x,f4.1,2(f8.3),2(e15.7),2(2pe12.5))
+      if (ncov.gt.1) then
+      do j=2,ncov
+      write(6,'(16x,f8.3,15x,e15.7)')rcov(j),crcov(j)
+      end do
+      end if
 !      write(6,*) 'drcov at rcov :',ddd
 !      write(6,*) 'ddrcov at rcov:',dddd
        name = 'r extr    '
@@ -2689,7 +2800,7 @@ subroutine atom
                write(50,'(2a)')'-----suggested header for initial',  &
                               ' guess of psppar for fitting-----'
                if (ispp=='') ispp='n'
-               write(50,'(a,a,2g9.3,a)')ispp, ' 20 2.0 ',rcov, rprb,  &
+               write(50,'(a,a,2g9.3,a)')ispp, ' 20 2.0 ',rcov(ncov), rprb,  &
                        'the first line contains some input data'
                write(50,'(2g9.3,8x,a)') znuc, zps,  &
                                           'znuc and zion as needed'
@@ -2705,29 +2816,36 @@ subroutine atom
 !              write(40,'(a,i2,a)') ' NEXT CONFIGURATION (',nconf,')'
 !           endif
             write(40,*) norb-ncore,syswght,'orbitals, system weight'
-            write(40,*) znuc,zps,rcov,rprb,  &
-                 'znuc, zpseudo, rcov, rprb'
+            write(40,*) znuc,zps,'znuc, zpseudo'
+            write(label,'(a,i1.1,a)')'(i2,2x,',ncov+1,'(e20.13,1x),a)'
+            write(40,label) ncov,(rcov(i),i=1,ncov),rprb,'ncov rcov(1).. rprb'
             if (ispp=='r') then
                write(40,*)'relativistic calculation'
             elseif(ispp=='s')then
                write(40,*)'spin polarized calculation'
             else
                write(40,*)'non relativistic calculation'
-            endif
+            endif 
             write(40,'(i10,a)') iXC, '   iXC (ABINIT-libXC)'
             write(40,*) nr,        'number of gridpoints'
-            write(40,'(3(4x,a),9x,a,23x,a,4(12x,a))')  &  
-            '#','n','l','s','z',  &
+            write(40,'(4(4x,a),1(7x,a),10x,a,4(12x,a))')  &  
+            '#','n','l','s','z','rcov',  &
             '    eval','    charge','  dcharge','ddcharge'
          endif
 !        better use formatted output here!
+        
          write(40,  &
-               '(5x,2i5,6e20.12,1x)')  &
+               '(5x,2i5,2x,f4.1,f8.3,5e20.12,1x)')  &
 !              in case many plot files are written,
 !              append the file names using advance='no'  &
                no(iorb),lo(iorb),  &
-               so(iorb),zo(iorb),  &
-              (ev(iorb)-vshift)/2.,crcov,dcrcov,ddcrcov
+               so(iorb),zo(iorb),rcov(1),  &
+              (ev(iorb)-vshift)/2.,crcov(1),dcrcov,ddcrcov
+         if (ncov.gt.1) then
+         do j=2,ncov
+         write(40,'(29x,2(e20.12,20x))')rcov(j),crcov(j)
+         end do
+         end if
 !    :        ' # n l s z eval, charge, dcharge, ddcharge'! residue'
 !                                                            ^?^
 
@@ -2846,7 +2964,7 @@ subroutine atom
           endif
           write(33,'(40x,a)')  &
                       '# radial charge distributions rho(r)*4pi*r**2'
-          write(33,'(4(a,14x),a))')'#',' r ','core','valence','total'
+          write(33,'(4(a,14x),a)')'#',' r ','core','valence','total'
           do i=1,npoint
               tt=cdu(i)+cdd(i)
               write(33,'(4e20.12)')r(i),cdc(i),tt-cdc(i),tt

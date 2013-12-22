@@ -24,15 +24,15 @@
       logical fullac, avgl1,avgl2,avgl3,plotwf,denbas,mixref,pol,  &
           ortprj, litprj, energ,igrad,verbose, info,exists,ldump
 
-      parameter ( norbmx=40, nrmax=10000, maxdim=30 )
+      parameter ( norbmx=40, nrmax=10000, maxdim=30 ,ncovmax=5)
       parameter ( lmx=5, lpmx= 4, noccmx=7, nsmx=2 )
       parameter ( ngmx=32, nintmx=5*(ngmx+14) )
 
-      dimension aeval(noccmx,lmx,nsmx),chrg(noccmx,lmx,nsmx),  &
+      dimension aeval(noccmx,lmx,nsmx),chrg(noccmx,lmx,nsmx,ncovmax),  &
            dhrg(noccmx,lmx,nsmx),ehrg(noccmx,lmx,nsmx),  &
            res(noccmx,lmx,nsmx),  &
-           wfnode(noccmx,lmx,nsmx,3),  &
-           psi(0:ngmx,noccmx,lmx,nsmx),wght(noccmx,lmx,nsmx,8),  &
+           wfnode(noccmx,lmx,nsmx,3),ekin_orb(noccmx,lmx,nsmx), &
+           psi(0:ngmx,noccmx,lmx,nsmx),wght(noccmx,lmx,nsmx,8,ncovmax),  &
            gpot(4),hsep(6,lpmx,nsmx),r_l(lpmx),r_l2(lpmx),  &
            gcore(4),gcorepp(4),  &
            occup(noccmx,lmx,nsmx),  &
@@ -50,9 +50,9 @@
       dimension excit(200)! just a temporary array for excitations
 
       dimension no(norbmx),noae(norbmx),lo(norbmx),so(norbmx),  &
-           zo(norbmx),ev(norbmx),crcov(norbmx),dcrcov(norbmx),  &
-           ddcrcov(norbmx),  &
-           gf(nrmax,norbmx,nsmx),  &
+           zo(norbmx),ev(norbmx),crcov(norbmx,ncovmax),dcrcov(norbmx),  &
+           ddcrcov(norbmx),rcovp(ncovmax),rcov(ncovmax),  &
+           gf(nrmax,norbmx,nsmx),rcov1(ncovmax),  &
            nomax(0:lmx),nomin(0:lmx),hso(6),havg(6),hhsep(6),  &
            time(3)
 
@@ -113,7 +113,7 @@
       write(6,*) '***              pseudo_2.5               ***'
       write(6,*) '***              fitting of               ***'
       write(6,*) '***   goedecker type pseudopotentials     ***'
-      write(6,*) '***   last changes:    September 2013     ***'
+      write(6,*) '***   last changes:    December  2013     ***'
 
       if(iproc>0)then  
          write(6,'(a,i2,a,i2,a)')            &
@@ -202,7 +202,8 @@
                write(6,'(i3,a)')iline-1,' lines have been read.'
 
                if(iline==1)then
-                  write(6,'(a,i2)')'Could not read the file input.pseudo'
+                  write(6,'(a,i2)')'Could not read the file &
+                           input.pseudo'
                   write(6,*)
                   write(6,*) 'possible options (with input N/Float)'
                   write(6,*) '                  -cy      N ',  &
@@ -263,21 +264,25 @@
                        ' no opt.,calculate  pawpatch projectors for',&
                        ' the Nth configuration '
                   write(6,*) '                  -noflpawN       ',&
-                       ' pawpatch patches for the first N Ls (defaults to 3)'
+                       ' pawpatch patches for the first N Ls &
+                          (defaults to 3)'
                   write(6,*) '                  -nchannelspawN       ',&
-                       ' set number of paw projectors to N (defaults to 4)'
+                       ' set number of paw projectors to N &
+                          (defaults to 4)'
                   
                   write(6,*) '                  -pawstatomName       ',&
                        '  file named Name will be read for initial ' , &
                        '  wave funct. '
                   write(6,*) '                  -pawstnN       ',&
-                       '  initial wave function has first quantum number N ' 
+                       '  initial wave function has first quantum & 
+                          number N ' 
                   write(6,*) '                  -pawstlL       ',&
                        '  initial wave function has angular momentum L' 
                   write(6,*) '                  -pawstpP       ',&
                        '  initial wave function is multiplied by r**P' 
                   write(6,*) '                  -pawrcovfactF     ',&
-                       'Rbox for paw is equal to rcov*pawrcovfact. Defaults to 1' 
+                       'Rbox for paw is equal to rcov*pawrcovfact. &
+                        Defaults to 1' 
                end if
                exit
             elseif(ierr>0)then
@@ -411,7 +416,8 @@
             if (ii.ne.0) then
                label=string(ii+4:min(ii+14,120))
                read(label,*,iostat=ierr)ftol
-               write(6,'(f12.4,a)')ftol,' convergence crit for the simplex'
+               write(6,'(f12.4,a)')ftol,' convergence crit for the &
+                                     simplex'
                if(ierr/=0)write(6,'(a,a,i3)')'Above value was set to ',  &
                'its default due to a READING ERROR. Check line',iline
             endif
@@ -424,7 +430,8 @@
             if (ii.ne.0) then
                label=string(ii+3:min(ii+13,120))
                read(label,*,iostat=ierr)nhgrid
-               write(6,'(i4,a)') nhgrid, ' samples of grid spacings for WVLT'
+               write(6,'(i4,a)') nhgrid, ' samples of grid spacings for &
+                                 WVLT'
                if(ierr/=0)write(6,'(a,a,i3)')'Above value was set to ',   &
                'its default due to a READING ERROR. Check line',iline
             endif
@@ -433,7 +440,8 @@
             if (ii.ne.0) then
                label=string(ii+5:min(ii+15,120))
                read(label,*,iostat=ierr)hgridmin
-               write(6,'(f12.4,a)') hgridmin, 'min grid spacing for WVLT'
+               write(6,'(f12.4,a)') hgridmin, 'min grid spacing for &
+                                   WVLT'
                if(ierr/=0)write(6,'(a,a,i3)')'Above value was set to ',   &
                'its default due to a READING ERROR. Check line',iline
             endif
@@ -442,7 +450,8 @@
             if (ii.ne.0) then
                label=string(ii+5:min(ii+15,120))
                read(label,*,iostat=ierr)hgridmax
-               write(6,'(f12.4,a)') hgridmax, 'max grid spacing for WVLT'
+               write(6,'(f12.4,a)') hgridmax, 'max grid spacing for &
+                                   WVLT'
                if(ierr/=0)write(6,'(a,a,i3)')'Above value was set to ',   &
                'its default due to a READING ERROR. Check line',iline
             endif
@@ -452,7 +461,8 @@
             if (ii.ne.0) then
                label=string(ii+6:min(ii+16,120))
                read(label,*,iostat=ierr)nhpow
-               write(6,'(i4,a)') nhpow, ' power weighting for WVLT'
+               write(6,'(i4,a)') nhpow, ' power weighting for & 
+                                  WVLT'
                if(ierr/=0)write(6,'(a,a,i3)')'Above value was set to ',   &
                'its default due to a READING ERROR. Check line',iline
             endif
@@ -616,13 +626,17 @@
          if(ierr/=0)ierr=3
          write(errmsg,*)'error: 1st line of AE ref data'
          call errorhandler(ierr,iproc,nproc,errmsg)
-      read(40,*,iostat=ierr) znucp,zionp,rcovp,rprbp
+      read(40,*,iostat=ierr) znucp,zionp
          if(ierr/=0)ierr=3
          write(errmsg,*)'error: 2nd line of AE ref data'
          call errorhandler(ierr,iproc,nproc,errmsg)
-      read(40,'(a)',iostat=ierr) label
+      read(40,*,iostat=ierr)ncov,(rcov(i),i=1,ncov),rprbp
          if(ierr/=0)ierr=3
          write(errmsg,*)'error: 3rd line of AE ref data'
+         call errorhandler(ierr,iproc,nproc,errmsg)
+      read(40,'(a)',iostat=ierr) label
+         if(ierr/=0)ierr=3
+         write(errmsg,*)'error: 4th line of AE ref data'
          call errorhandler(ierr,iproc,nproc,errmsg)
       j=1
 
@@ -671,8 +685,12 @@
       write(6,*)'pseudo states = ', norb
       write(6,*)'znuc          = ', znucp
       write(6,*)'zpseudo       = ', zionp
-      write(6,*)'r_covalent    = ', rcovp
-      write(6,*)'r_confining   = ', rprbp
+      write(6,'(1x,i1.1,a)')ncov,'r_covalent radius' 
+      do k=1,ncov
+      write(label,*)'(a7,i1.1,a,f15.6)'
+      write(6,label)'rcov (',k,') = ',rcov(k)
+      end do
+      write(6,*)'r_confining (rprb) = ', rprbp
       write(6,*)'ispp          = ', isppp
       write(6,*)'gridpoints    = ', ngrid
       il(1) = 's'
@@ -707,8 +725,8 @@
         
       write(6,*)
       read(40,*) !some comment line
-      write(6,*)' nl    s      occ        ',  &
-                       'eigenvalue     charge(rcov)    '
+      write(6,*)' nl    s      occ     rcov ',  &
+                '     eigenvalue      charge(rcov)    '
 !      write(6,*)' nl    s      occ        ',
 !     :     'eigenvalue     charge(rcov)    ',
 !     :     'dcharge         ddcharge'
@@ -716,19 +734,28 @@
 
 !     this file should hold all ae plots
       if(plotwf.and.iproc==0) open(41,file='ae.orbitals.plt')
+      crcov=0.d0
 !     read the AE data
       do iorb=1,norb
-         read(40,*,iostat=ierr) no(iorb),lo(iorb),so(iorb),zo(iorb),  &
-              ev(iorb),crcov(iorb),dcrcov(iorb),ddcrcov(iorb)!,plotfile
+         read(40,*,iostat=ierr)no(iorb),lo(iorb),so(iorb),zo(iorb),&
+          rcov1(1),ev(iorb),crcov(iorb,1),dcrcov(iorb),ddcrcov(iorb)!,plotfile
 !        write(6,*,iostat=ierr) no(iorb),lo(iorb),so(iorb),zo(iorb),
 !    :        ev(iorb),crcov(iorb),dcrcov(iorb),ddcrcov(iorb),plotfile
          if(ierr/=0)ierr=3
          write(errmsg,*)'reading error in AE ref data'
          call errorhandler(ierr,iproc,nproc,errmsg)
-       write(6,30) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),  &
-              ev(iorb),crcov(iorb)
+       write(6,30) no(iorb),il(lo(iorb)+1),so(iorb),zo(iorb),rcov1(1), &
+              ev(iorb),crcov(iorb,1)
 !    :        ev(iorb),crcov(iorb),dcrcov(iorb),ddcrcov(iorb)
- 30      format(1x,i1,a1,f6.1,f10.4,2f16.10,2f16.7,a)
+ 30      format(1x,i1,a1,f6.1,2f10.4,2f16.10,2f16.7,a)
+
+         if (ncov.gt.1) then
+         do j=2,ncov
+         read(40,*)rcov1(j),crcov(iorb,j)
+         write(6,'(19x,f10.4,16x,f16.10)')rcov1(j),crcov(iorb,j)
+         end do
+         end if
+
          if(plotwf.and.iproc==0)then
 !         use this statement if atom is compiled to write one file
 !         per configuration and orbital
@@ -764,7 +791,7 @@
       enddo
 !     print*,'lmax=',lmax
 !     print*,'lcx=',lcx, '( charge > 1.0d-10)'
-      if(lmax.gt.lmx+1)ierr=3
+      if(lmax.gt.lmx-1)ierr=3   !Stefan modified +1 -> -1
       write(errmsg,*)'array dimension problem:lmax'
       call errorhandler(ierr,iproc,nproc,errmsg)
 !     compute corresponding n-quantum numbers of the pseudostates
@@ -797,7 +824,9 @@
             do ispin=1,nspin
                occup(nocc,l+1,ispin)=0.0d0
                aeval(nocc,l+1,ispin)=0.0d0
-               chrg (nocc,l+1,ispin)=0.0d0
+               do incov=1,ncovmax
+               chrg (nocc,l+1,ispin,incov)=0.0d0
+               end do
                dhrg (nocc,l+1,ispin)=0.0d0
                ehrg (nocc,l+1,ispin)=0.0d0
             enddo
@@ -842,10 +871,13 @@
          write(6,*)
          open(unit=24,file='input.weights',form='formatted')
          read(24,*)
+         read(24,*)
+         read(24,*)
          wghtp0   = 0d0
          wghtsoft = 0d0
          wghtrad  = 0d0
          wghthij  = 0d0
+         wghtloc  = 0d0
          wghtexci = 0d0
          wghtKE   = 0d0
 !        what about a different order for reading these?
@@ -865,14 +897,22 @@
          read(24,*)!comment line
         
 !        read the weights for eigenvalues and integrals into the array wght
-
+!        wght=0d0     
          do iorb=1,norb
             nocc=no(iorb)
             l=lo(iorb)
             ispin=1
             ss = so(iorb)
             if (ss.lt.0) ispin=2
-            read(24,*) nw,lw,sw,(wght(nocc,l+1,ispin,i),i=1,8)
+            read(24,*) nw,lw,sw,(wght(nocc,l+1,ispin,i,1),i=1,8)
+            if (ncov.gt.1) then
+             do incov=2,ncov
+               read(24,*)wght(nocc,l+1,ispin,2,incov)
+               do j=1,8
+                 if (j.ne.2)wght(nocc,l+1,ispin,j,incov)=wght(nocc,l+1,ispin,j,1)
+               end do
+             end do
+            end if
             if (noae(iorb).ne.nw .or. l.ne.lw .or. ss.ne.sw) then
                write(6,*) 'error in file input.weights'
                write(6,*) 'need weights for n,l,s:',  &
@@ -883,6 +923,7 @@
             endif
          enddo
          close(24)
+
 
 !     Read excitation energies from the last line of atom.??.ae
 
@@ -944,7 +985,8 @@
 !        we always need to compute the total energy. 
 !        The ground state energy is needed as a reference
 !        for the excitation  energies, thus iproc==zero
-         energ=(wghtexci>0d0.or.(iproc==0.and.nproc/=1))
+         !energ=(wghtexci>0d0.or.(iproc==0.and.nproc/=1))
+          energ=.true.
         
 
 
@@ -1036,7 +1078,7 @@
             read(11,'(a)',iostat=ierr) label
 !           then get optional data
             !read(label,*,iostat=ierr)ispp , ng, rij, rcov, rprb
-            read(label,*,iostat=ierr)ispp,rcov,rprb   ! Santanu
+            read(label,*,iostat=ierr)ispp,ncovp,(rcovp(i),i=1,ncovp),rprb   ! Santanu
 !           the very first character (when reading in list format)
 !           defines the method:
 !             n   non relativistc
@@ -1064,7 +1106,7 @@
 !               than some of the other processes, though.
                 ispp=isppp
                 rprb=rprbp
-                rcov=rcovp
+                rcovp=rcov
 !               ng and rij are taken from input.pseudo 
 !               if not specified, 20 and 2.0 is the default
 
@@ -1090,6 +1132,7 @@
                     stop
                  end if
             end if
+
             if (isppp.ne.ispp) ierr=3
             write(errmsg,*)'Inconsistent spin treatment.'
             call errorhandler(ierr,iproc,nproc,errmsg)
@@ -1134,11 +1177,15 @@
 !           abinit to libxc
             if(ixcpp==1)then
                 write(6,*)'LDA pade: ixc = 1 or -20 are equivalent.'
-!                ixcpp=-20
+                write(6,*)'ixc set to  -20 to make program working &
+                           correctly'
+                ixcpp=-20
             end if
             if(ixcpp==11)then
                 write(6,*)'PBE: ixc = 11 or -101130 are equivalent.'
-!                ixcpp=-101130
+                write(6,*)'ixc set to  -101130 to make program working &
+                           correctly'
+                ixcpp=-101130
             end if
 
 
@@ -1160,12 +1207,19 @@
 
 !           already read from psppar
 !           read(23,*) rcov,rprb
+!  SG always the rcov value from the atom.dat|atom.ae file
+            if (ncov.ne.ncovp) then
+              write(6,*)"atom.ae ",ncov," r_covalent"
+              write(6,*)"psppar  ",ncovp,"r_covalent"
+              ncovp=ncov
+            end if
+            rcovp=rcov
             ierr=0
-            if (rcov.ne.rcovp) then
+            if (rcov(ncov).ne.rcovp(ncovp)) then
                ierr=1
                write(6,*)'rcov from atom.ae and psppar not identical'
-               write(6,*) 'atom.ae   rcov=',rcovp
-               write(6,*) 'psppar    rcov=',rcov
+               write(6,*) 'atom.ae   rcov=',rcov(ncov)
+               write(6,*) 'psppar    rcov=',rcovp(ncovp)
                if (mixref) then
                   write(6,*)'No excitation energies for mixed rcov'
                   excitAE=0d0
@@ -1181,13 +1235,13 @@
             
 !           THIS DEFINITELY NEEDS MORE TESTING. GPU FAILS FOR SOME CHOICES OF RMULT
 !           i.e. crmult = 2 frmult looks savest so far
-            if (3*rcov > max(crmult,frmult) ) then
+            if (3*rcov(ncov) > max(crmult,frmult) ) then
                ierr=1
                write(6,*)'                NOTE'
                write(6,*)
                write(6,*)'The localization radii for the wavelet basis'
                write(6,*)'are smaller than 3 times rcov'
-               write(6,*)'psppar       rcov=',rcov
+               write(6,*)'psppar       rcov=',(rcov(i),i=1,ncov)
                write(6,*)'input.pseudo  crmult=',crmult
                write(6,*)'input.pseudo  frmult=',frmult
                write(6,*)'If the curve dEkin.orb.dat  gets bumpy,'
@@ -1197,7 +1251,9 @@
 
 
 
-
+!  SG always the rprb value form the atom.dat file
+            !rprbp=rprb
+            rprb=rprbp
             ierr=0
             if (rprb.ne.rprbp) then
                write(6,*)'rprb in atomic reference differs',   &
@@ -1285,7 +1341,7 @@
 !           be sure to have zeroes for undefined entries.
             psppar = 0d0
 
-            if(ipspcod==10.or.ipspcod==11)then
+            if(ipspcod==10.or.ipspcod==12)then
                  write(6,*)'HGH matrix format'
 !              ! HGH-K format: all projector elements given.
                ! dimensions explicitly defined for nonzero output.
@@ -1378,11 +1434,12 @@
                    end do
                end do ! loop over l
 
-               if(ipspcod==11)then
+               if(ipspcod==12)then
                   ! this psppar uses nlcc
                   read(11,*,iostat=ierr) rcore, qcore
                   if(ierr/=0)then
-                     write(6,*)' pspcod=11 implies nlcc data on the last line,'
+                     write(6,*)' pspcod=12 implies nlcc data on the last & 
+                               line,'
                      write(6,*)' but rcore and qcore could not be read!'
                      rcore= -1d0
                   else
@@ -1448,10 +1505,10 @@
                 write(6,*)'adjusted from 0 to 0.4*rcov'
                 write(6,*)'Check your psppar'
 
-                r_l(l)=rcov*0.4d0  !! Santanu
+                r_l(l)=rcov(ncov)*0.4d0  !! Santanu
                 !r_l(l)=rcov*(1d0/3d0)  !! Santanu
                 !r_l(l)=1d0
-                r_l2(l)=rcov*0.4d0  !! Santanu
+                r_l2(l)=rcov(ncov)*0.4d0  !! Santanu
                 !r_l2(l)=rcov*(1d0/3d0) !! Santanu
                 !r_l2(l)=1d0
               end if
@@ -1614,9 +1671,11 @@
 
 
 !           output
+            write(label,'(a,i1.1,a)')'(1x,i1.1,2x,',ncov+1,&
+                            '(f10.3,2x),a)'
             write(6,*)
-            write(6,'(2f10.3,3x,a)') rcov,rprb,  &
-                 ' rcov and rprb (charge integr and confinement)'
+            write(6,label)ncov,(rcov(i),i=1,ncov),rprb,  &
+                 ' ncov,rcov(1)... rprb'
             if (ispp.eq.'r') then
                write(6,'(t30,a)')'relativistic calculation'
             elseif(ispp.eq.'s')then
@@ -1673,7 +1732,7 @@
             tt=sqrt(sqrt(2.d0))
          else
 !     normal fit:
-            tt=2.d0**.3d0
+            tt=2.d0**.30d0
          endif
          a=a0
          do i=0,ng
@@ -1682,11 +1741,24 @@
             xp(i)=.5d0/a**2
             a=a*tt
          enddo
+
+!         tt=.5d0**.3d0
+!         a=rprb
+!         do i=ng,0,-1
+!            xp(i)=.5d0/a**2
+!            a=a*tt
+!         enddo
+
+
+
+
          write(6,*)
          write(6,*)'Gaussian basis'
          write(6,*)'______________'
          write(6,*)
-         write(6,'(a,4e11.4)') ' amin,amax',a0,a
+         write(6,'(a,4e11.4)') ' amin,amax',a0,a  !! min and max of
+                                                  !! exponents of gaussian 
+!         write(6,'(a,4e11.4)') ' amin,amax',a/tt,rprb
          write(6,'(a,t10,3(e11.4),a,2(e11.4))') ' gaussians ',  &
               xp(1),xp(2),xp(3),' .... ',xp(ng-1),xp(ng)  
          write(6,*)'gaussians:',ng
@@ -1729,7 +1801,7 @@
 !
 !     initial simplex
 !
-
+            !write(6,*)'nfit=',nfit
 !           copy the packed initial vertex to the other vertices
 !           does not make much sense, though, as we copy zeroes only.
 !           keep it in case ppack.f is changed
@@ -1793,16 +1865,16 @@
             do i=1,nfit+1
                call penalty(energ,verbose,nfit,pp(1+(i-1)*nfit),yp(i),  &
                  noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-                 no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+                 no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
                  occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-                 wfnode,psir0,wghtp0,  &
+                 wfnode,psir0,wghtp0,ncovmax,ncov, &
                  rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
                  vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,  &
                  avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,  &
 !                the following lines differ from pseudo2.2  &
                  iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
                  wghtKE,nhgrid, hgridmin,hgridmax, nhpow,ampl,crmult,frmult,  &
-                 excitAE,ntime,iter,itertot,penref,time)
+                 ekin_orb,excitAE,ntime,iter,itertot,penref,time)
 !              write(6,'(4x,i3,4x,e20.10)')i,yp(i)
 !MK            CALL FLUSH(6)
             enddo
@@ -1845,7 +1917,7 @@
 !    :          noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,
 !    :          no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,
 !    :          occup,aeval,chrg,dhrg,ehrg,res,wght,
-!    :          wfnode,psir0,wghtp0,
+!    :          wfnode,psir0,wghtp0,ncovmax,ncov,&
 !    :          rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,
 !    :          vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,
 !    :          avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,
@@ -1864,16 +1936,16 @@
 !           ftol=1.d-7 is not hardcoded anymore
             call AMOEBA(pp,yp,nfit,FTOL,ITER,nsmplx,namoeb,  &
                  noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-                 no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+                 no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
                  occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-                 wfnode,psir0,wghtp0,  &
+                 wfnode,psir0,wghtp0,ncovmax,ncov,  &
                  rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
                  vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,  &
                  avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,  &
 !                the following line differs from pseudo2.2  &
                  iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
                  wghtKE,nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,  &
-                 ntrymax,excitAE,ntime,itertot,energ,verbose,time)
+                 ntrymax,ekin_orb,excitAE,ntime,itertot,energ,verbose,time)
 !           write(6,*) 'Finished amoeba with ',iter,'iterations'
          else
 
@@ -1894,9 +1966,9 @@
             if (nconfpaw/=-1) then
                call pawpatch(energ,verbose,nfit,pp(1),yp(1), &
                              noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,&
-                             no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,&
+                             no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,&
                              occup,aeval,chrg,dhrg,ehrg,res,wght,&
-                             wfnode,psir0,wghtp0,&
+                             wfnode,psir0,wghtp0,ncovmax,ncov,&
                              rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
                              vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,&
                              avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,&
@@ -1913,16 +1985,16 @@
 
             call penalty(energ,verbose,nfit,pp(1),yp(1),  &
                  noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,  &
-                 no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,  &
+                 no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,  &
                  occup,aeval,chrg,dhrg,ehrg,res,wght,  &
-                 wfnode,psir0,wghtp0,  &
+                 wfnode,psir0,wghtp0,ncovmax,ncov,  &
                  rcov,rprb,rcore,gcore,znuc,zion,rloc,gpot,r_l,r_l2,hsep,  &
                  vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,  &
                  avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,  &
 !                the following lines differ from pseudo2.2  &
                  iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,wghtloc,  &
                  wghtKE,nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,  &
-                 excitAE,ntime,iter,itertot,penref,time)
+                 ekin_orb,excitAE,ntime,iter,itertot,penref,time)
                  write(6,*)'Overall penalty value would be',yp(1)
 
 
@@ -1949,8 +2021,9 @@
          write(6,'(2(tr10,a,e12.4))')  &
               'psi(r=0) =',psir0,'; psi(0)*wght=',abs(psir0*wghtp0)
          write(6,*)
-         write(6,'(a,t32,a,t42,a,t55,a,t64,a)')  &
-              ' nl    s      occ','ae','pseudo','diff','diff*weight'
+         write(6,'(a,t40,a,t49,a,t59,a,t69,a)')  &
+              ' nl    s      occ       rcov','ae',    &
+              'pseudo','    diff','     diff*weight'
 
          do iorb=1,norb
             write(6,31) noae(iorb),il(lo(iorb)+1),so(iorb),zo(iorb)
@@ -1962,44 +2035,58 @@
             write(6,32) 'eigenvalue ',  &
                  ev(iorb),aeval(nocc,l+1,ispin),  &
                  aeval(nocc,l+1,ispin)-ev(iorb),  &
-                 abs(wght(nocc,l+1,ispin,1)*  &
+                 abs(wght(nocc,l+1,ispin,1,ncov)*  &
                  (aeval(nocc,l+1,ispin)-ev(iorb)))
-            write(6,32) 'charge    ',  &
-                 crcov(iorb),chrg(nocc,l+1,ispin),  &
-                 chrg(nocc,l+1,ispin)-crcov(iorb),  &
-                 abs(wght(nocc,l+1,ispin,2)*  &
-                 (chrg(nocc,l+1,ispin)-crcov(iorb)))
-            if (wght(nocc,l+1,ispin,3).ne.0.0d0)  &
+            if (wght(nocc,l+1,ispin,2,1).ne.0.d0) &
+            write(6,34) 'charge    ',  &
+                 rcov(1),crcov(iorb,1),chrg(nocc,l+1,ispin,1),  &
+                 chrg(nocc,l+1,ispin,1)-crcov(iorb,1),  &
+                 abs(wght(nocc,l+1,ispin,2,1)*  &
+                 (chrg(nocc,l+1,ispin,1)-crcov(iorb,1)))
+            if (ncov.gt.1) then
+            do incov=2,ncov
+            if (wght(nocc,l+1,ispin,2,incov).ne.0.d0) &
+            write(6,34) 'charge    ',  &
+                 rcov(incov),crcov(iorb,incov),chrg(nocc,l+1,ispin,incov),  &
+                 chrg(nocc,l+1,ispin,incov)-crcov(iorb,incov),  &
+                 abs(wght(nocc,l+1,ispin,2,incov)*  &
+                 (chrg(nocc,l+1,ispin,incov)-crcov(iorb,incov)))
+            end do
+            end if
+            if (wght(nocc,l+1,ispin,3,ncov).ne.0.0d0)  &
                  write(6,32) 'dcharge   ',  &
                  dcrcov(iorb),dhrg(nocc,l+1,ispin),  &
                  100.d0*abs(1.d0-dhrg(nocc,l+1,ispin)/dcrcov(iorb)),  &
-                 abs(wght(nocc,l+1,ispin,3))*  &
+                 abs(wght(nocc,l+1,ispin,3,ncov))*  &
                  100.d0*abs(1.d0-dhrg(nocc,l+1,ispin)/dcrcov(iorb))
-            if (wght(nocc,l+1,ispin,4).ne.0.0d0)  &
+            if (wght(nocc,l+1,ispin,4,ncov).ne.0.0d0)  &
                  write(6,32) 'echarge   ',  &
                  ddcrcov(iorb),ehrg(nocc,l+1,ispin),  &
                  100.d0*abs(1.d0-ehrg(nocc,l+1,ispin)/ddcrcov(iorb)),  &
-                 abs(wght(nocc,l+1,ispin,4))*  &
+                 abs(wght(nocc,l+1,ispin,4,ncov))*  &
                  100.d0*abs(1.d0-ehrg(nocc,l+1,ispin)/ddcrcov(iorb))
             write(6,33) 'residue   ',  &
                  res(nocc,l+1,ispin),  &
-                 abs(wght(nocc,l+1,ispin,5)*res(nocc,l+1,ispin))
-            if (wght(nocc,l+1,ispin,6).ne.0.0d0)  &
-                 write(6,33) 'rnode     ',  &
-                 wfnode(nocc,l+1,ispin,1),  &
-                 abs(wght(nocc,l+1,ispin,6)*wfnode(nocc,l+1,ispin,1))
-            if (wght(nocc,l+1,ispin,7).ne.0.0d0)  &
-                 write(6,33) 'dnode     ',  &
-                 wfnode(nocc,l+1,ispin,2),  &
-                 abs(wght(nocc,l+1,ispin,7)*wfnode(nocc,l+1,ispin,2))
-            if (wght(nocc,l+1,ispin,8).ne.0.0d0)  &
-                 write(6,33) 'ddnode    ',  &
-                 wfnode(nocc,l+1,ispin,3),  &
-                 abs(wght(nocc,l+1,ispin,8)*wfnode(nocc,l+1,ispin,3))
+                 abs(wght(nocc,l+1,ispin,5,ncov)*res(nocc,l+1,ispin))
+           ! if (wght(nocc,l+1,ispin,6,ncov).ne.0.0d0)  &
+           !      write(6,33) 'rnode     ',  &
+           !      wfnode(nocc,l+1,ispin,1),  &
+           !      abs(wght(nocc,l+1,ispin,6,ncov)*wfnode(nocc,l+1,ispin,1))
+           ! if (wght(nocc,l+1,ispin,7,ncov).ne.0.0d0)  &
+           !      write(6,33) 'dnode     ',  &
+           !      wfnode(nocc,l+1,ispin,2),  &
+           !      abs(wght(nocc,l+1,ispin,7,ncov)*wfnode(nocc,l+1,ispin,2))
+           ! if (wght(nocc,l+1,ispin,8,ncov).ne.0.0d0)  &
+           !      write(6,33) 'ddnode    ',  &
+           !      wfnode(nocc,l+1,ispin,3),  &
+           !      abs(wght(nocc,l+1,ispin,8,ncov)*wfnode(nocc,l+1,ispin,3))
+            if (ekin_orb(nocc,l+1,ispin).ne. 0.d0) write(6,33)'Kinetic &
+                 Energy',ekin_orb(nocc,l+1,ispin)
             write(6,*)
          enddo
- 32      format (t10,a,t25,4e12.4)
- 33      format (t10,a,t25,2e24.4)
+ 32      format (t10,a,t33,4(e12.4,1x))
+ 34      format (t10,a,t20,5(e12.4,1x))
+ 33      format (t10,a,t34,2(e24.4,2x))
          write(6,*) 'diff for dcharg and echarge is given in (%)'
 
 !        always print out the psppar, also if no fitting was done.
@@ -2034,8 +2121,9 @@
             end if
 !            write(13,'(i3,3(1x,g9.3),a)')ng,rij,rcov,rprb,  &
 !                                ' spin treatment, ng rij rcov and rprb'
-            write(13,'(2(3x,g9.3),4x,a)')rcov,rprb, &
-                                 'method, rcov and rprb'
+            write(label,'(a,i1.1,a)')'(i1.1,2x,',ncov+1,'(f10.3,2x),a)'
+            write(13,label)ncov,(rcov(i),i=1,ncov),rprb,'method,ncov,&
+                     rcov(1)..... rprb'
 
 !           this intrinsic may have different conventions on its arguments
 !            call idate(dateDMY)
@@ -2050,11 +2138,11 @@
             write(13,'(2i5,2x,2a)') int(znuc+.1),int(zion+.1),dateYMD,' zatom, zion, date (yymmdd)'
             write( 6,'(2i5,2x,2a)') int(znuc+.1),int(zion+.1),dateYMD,' zatom, zion, date (yymmdd)'
             
-            ! if nlcc was used, use pspcod=11 instead of 10
+            ! if nlcc was used, use pspcod=12 instead of 10
             if(rcore<0d0)then
               ipspcod=10
             else
-              ipspcod=11
+              ipspcod=12
             end if
             write(13,'(i5,i10,i2,a,17x,a)')ipspcod,ixc,lpx-1,  &
               ' 0 2002 0','pspcod, ixc, lmax, lloc, mmax, r2well'
@@ -2188,7 +2276,7 @@
 !           loop over l
 
 !!   Santanu -New Format NLCC Reading from psppar
-            if(ipspcod==11)then
+            if(ipspcod==12)then
                if(any(gcore(2:4)/=0d0)) write(*,*) &
                   'warning: core charge is not just a gaussian'
                !compute qcore from gcore(1)
@@ -2357,9 +2445,9 @@
               ppr1=rnrm1*r**lq    *exp(-.5d0*(r/r_l(l))**2)
               ppr2=rnrm2*r**(lq+2)*exp(-.5d0*(r/r_l2(l))**2)
               ppr3=rnrm3*r**(lq+4)*exp(-.5d0*(r/r_l2(l))**2)
-              ppc1=rnrm1*rcov**lq    *exp(-.5d0*(r/r_l(l))**2)
-              ppc2=rnrm2*rcov**(lq+2)*exp(-.5d0*(rcov/r_l2(l))**2)
-              ppc3=rnrm3*rcov**(lq+4)*exp(-.5d0*(rcov/r_l2(l))**2)
+              ppc1=rnrm1*rcov(ncov)**lq    *exp(-.5d0*(r/r_l(l))**2)
+              ppc2=rnrm2*rcov(ncov)**(lq+2)*exp(-.5d0*(rcov(ncov)/r_l2(l))**2)
+              ppc3=rnrm3*rcov(ncov)**(lq+4)*exp(-.5d0*(rcov(ncov)/r_l2(l))**2)
               write(17,'(3f20.5)')r, &
                             ppr1*hsep(1,l,1)*ppr1   + &
                             ppr1*hsep(2,l,1)*ppr2*2 + &  
@@ -2379,8 +2467,9 @@
         end do
 
 !       plotting of the orbitals
-            call detnp(ngrid,rae,5*rcov,np)
-            open(32,file='orbitals.gplt',form='formatted',status='unknown')
+            call detnp(ngrid,rae,5*rcov(ncov),np)
+            open(32,file='orbitals.gplt',form='formatted',status='&
+                     unknown')
             write (32,*) 'set data style lines'
             do iorb=1,norb
                nocc=no(iorb)
@@ -2445,7 +2534,7 @@
                        wave(ng,l,xp,psi(0,nocc,l+1,ispin),rae(i))*sign2
                   ttdiff= ttdiff*rae(i)
                   ttdiff=log(max(abs(ttdiff),1.d-8))/log(10.d0)
-                  write(2,'(7e20.10)') rae(i),ttold,tt,ttdiff
+                  write(2,'(7e20.10)') rae(i),ttold,tt,ttdiff,tt/rae(i)   ! SG true wave function is also written
 !     plot of the wavefunction and the higher derivatives
 !                  write(2,'(7e20.10)') rae(i),
 !     :                 psiold(i,nocc,l+1,ispin),

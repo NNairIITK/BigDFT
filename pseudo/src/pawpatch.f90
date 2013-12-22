@@ -1,8 +1,8 @@
 subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,&
-     no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,&
+     no,lo,so,ev,crcov,dcrcov,ddcrcov,norbmx,norb,&
      occup,aeval,chrg,dhrg,ehrg,res,wght,&
-     wfnode,psir0,wghtp0,&
+     wfnode,psir0,wghtp0,ncovmax,ncov,&
      rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
      vh,xp,rmt,rmtg,ud,nint,ng_fit,ngmx,psi,&
      avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae, &
@@ -15,17 +15,18 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   implicit none
   !! implicit real*8 (a-h,o-z)
   integer, parameter :: gp=kind(1.0d0) 
+  integer :: ncovmax,ncov,norbmx
   logical avgl1,avgl2,avgl3,ortprj,litprj,igrad
-  real(8) pp(maxdim),so(norb),ev(norb),crcov(norb),&
+  real(8) pp(maxdim),so(norb),ev(norb),crcov(norbmx,ncovmax),&
        dcrcov(norb),ddcrcov(norb),occup(noccmx,lmx,nsmx),aeval(noccmx,lmx,nsmx),&
-       chrg(noccmx,lmx,nsmx),dhrg(noccmx,lmx,nsmx),&
+       chrg(noccmx,lmx,nsmx,ncovmax),dhrg(noccmx,lmx,nsmx),&
        ehrg(noccmx,lmx,nsmx),res(noccmx,lmx,nsmx),&
-       wght(noccmx,lmx,nsmx,8),&
+       wght(noccmx,lmx,nsmx,8,ncovmax),rcov(ncovmax),&
        wfnode(noccmx,lmx,nsmx,3),&
        gpot(*),r_l(*),hsep(6,lpmx,nsmx),&
        vh(*),xp(*),rmt(*),rmtg(*),ud(*),psi(*),&
        rae(*),pen_cont(7),&
-       exverbose(4*nproc),time(3), penal, psir0,wghtp0,rcov,&
+       exverbose(4*nproc),time(3), penal, psir0,wghtp0,&
        rprb,rcore,zcore,znuc,zion,rloc,&
        wghtexci,wghtsoft,wghtrad,wghthij,&
        hgridmin,hgridmax, ampl,crmult,frmult,&
@@ -154,8 +155,8 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   Ngrid=10000                      !! roughly the number of point of the 
   !! oversampled grid
   
-  boxradius=rcov *pawrcovfact                  !! this should be found in the original grid
-  biggerboxradius = 1.5_8 * rcov   !! this is an approximative goal
+  boxradius=rcov(ncov) *pawrcovfact                  !! this should be found in the original grid
+  biggerboxradius = 1.5_8 * rcov(ncov)   !! this is an approximative goal
   
   Ngrid_box=1
   Ngrid_box_larger=1
@@ -405,7 +406,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
           rloc, r_l, &                         !! rloc=alpz=alpl    r_l=alps
           ng-1 ,noccmax ,noccmx,   expo,  psi,aeval, occup ,  &
           Nsol, Lpaw , Ngrid, Ngrid_box,Egrid_pseudo,  rgrid , rw,rd, psigrid_pseudo ,&
-          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rcov, rprb, rcore,zcore, Ngrid_box_larger)
+          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rcov(ncov), rprb, rcore,zcore, Ngrid_box_larger)
      
      if( dump_functions) then
         write(plotfile, '(a,i0,a)') 'ptildes.L=',LPaw,'.plt'
