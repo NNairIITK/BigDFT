@@ -13,7 +13,8 @@
 !! Each processors write its initial wavefunctions into the wavefunction file
 !! The files are then read by readwave
 subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-     rxyz, nlpspd, proj, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs)
+     rxyz, nlpspd, proj, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs, &
+     locregcenters)
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
@@ -34,6 +35,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(DFT_local_fields), intent(inout) :: denspot
   real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) :: rhopotold
   type(energy_terms),intent(inout) :: energs
+  real(kind=8),dimension(3,at%astruct%nat),intent(in),optional :: locregcenters
 
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
@@ -140,23 +142,43 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! our optimized orbital distribution (determined by in orbs%inwhichlocreg).
   iiorb=0
   covered=.false.
-  do iat=1,at%astruct%nat
-      do iorb=1,norbsPerAt(iat)
-          iiorb=iiorb+1
-          ! Search the corresponding entry in inwhichlocreg
-          do jorb=1,tmb%orbs%norb
-              if(covered(jorb)) cycle
-              jlr=tmb%orbs%inwhichlocreg(jorb)
-              if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
-                  tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
-                  tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
-                  covered(jorb)=.true.
-                  mapping(iiorb)=jorb
-                  exit
-              end if
+  if (present(locregcenters)) then
+      do iat=1,at%astruct%nat
+          do iorb=1,norbsPerAt(iat)
+              iiorb=iiorb+1
+              ! Search the corresponding entry in inwhichlocreg
+              do jorb=1,tmb%orbs%norb
+                  if(covered(jorb)) cycle
+                  jlr=tmb%orbs%inwhichlocreg(jorb)
+                  if( tmb%lzd%llr(jlr)%locregCenter(1)==locregcenters(1,iat) .and. &
+                      tmb%lzd%llr(jlr)%locregCenter(2)==locregcenters(2,iat) .and. &
+                      tmb%lzd%llr(jlr)%locregCenter(3)==locregcenters(3,iat) ) then
+                      covered(jorb)=.true.
+                      mapping(iiorb)=jorb
+                      exit
+                  end if
+              end do
           end do
       end do
-  end do
+  else
+      do iat=1,at%astruct%nat
+          do iorb=1,norbsPerAt(iat)
+              iiorb=iiorb+1
+              ! Search the corresponding entry in inwhichlocreg
+              do jorb=1,tmb%orbs%norb
+                  if(covered(jorb)) cycle
+                  jlr=tmb%orbs%inwhichlocreg(jorb)
+                  if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
+                      tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
+                      tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
+                      covered(jorb)=.true.
+                      mapping(iiorb)=jorb
+                      exit
+                  end if
+              end do
+          end do
+      end do
+  end if
 
   ! Inverse mapping
   do iorb=1,tmb%orbs%norb

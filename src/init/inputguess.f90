@@ -825,6 +825,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       do l=1,4
          iocc=iocc+1
          nlo=ceiling(at%aocc(iocc,iat))!nint(at%aocc(iocc,iat))
+         write(*,*) 'info, iat, l, nlo', iat, l, nlo
          do inl=1,nlo
             ictotpsi=ictotpsi+1
             ictot=ictot+1
@@ -882,11 +883,13 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                         end if
                         !print *,'iat',iat,l,m,icoll,orbse%occup(ikorb),orbpol_nc
                         !if (orbse%isorb < ikorb .and. ikorb <= orbse%isorb+orbse%norbp) then
+                        write(*,'(a,7i6)') 'before if, iorb, l, m, ikpts, iiorb, orbse%isorb, orbse%norbp', iorb, l, m, ikpts, iiorb, orbse%isorb, orbse%norbp
                         if (orbse%isorb < iiorb .and. iiorb <= orbse%isorb+orbse%norbp) then
                            if (orbse%nspinor == 1) then
                               do ispinor=1,orbse%nspinor
                                  !here we put only the case nspinor==1
                                  !we can put a phase for check with the complex wavefunction
+                                 write(*,*) 'here, icoeff, ispinor, jjorb', icoeff, ispinor, jjorb
                                  gaucoeff(icoeff,ispinor,jjorb)=1.0_wp
                               end do
                            else if (orbse%nspinor == 2) then

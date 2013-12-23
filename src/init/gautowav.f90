@@ -618,6 +618,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
         ncplx=2
      end if
      totnorm=0.0_dp
+     write(200+iorb,*) wfn_gau(:,1,iorb)
      do ispinor=1,orbs%nspinor,ncplx
         !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
@@ -627,10 +628,11 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
 
         !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         call wnrm_wrap(ncplx,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,psi(ind),scpr) 
+        write(*,*) 'iorb, ilr, Lzd%Llr(ilr)%wfd%nvctr_c, Lzd%Llr(ilr)%wfd%nvctr_f', iorb, ilr, Lzd%Llr(ilr)%wfd%nvctr_c, Lzd%Llr(ilr)%wfd%nvctr_f
         totnorm=totnorm+scpr
         ind = ind + (Lzd%Llr(ilr)%wfd%nvctr_c + 7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
      end do
-     !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
+     write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
      do ispinor=1,orbs%nspinor
         call wscal_wrap(Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
              psi(ind2))

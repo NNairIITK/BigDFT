@@ -335,6 +335,9 @@ module module_types
 
      !> linear scaling: write KS orbitals for cubic restart
      logical :: write_orbitals
+
+     !> linear scaling: explicitely specify localization centers
+     logical :: explicit_locregcenters
   end type input_variables
 
   !> Contains all energy terms
