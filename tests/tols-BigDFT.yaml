@@ -662,3 +662,8 @@ reformat_write:
  EXC: 1.1e-10
  Raw forces norm (Ha/Bohr): 1.7e-11
  Clean forces norm (Ha/Bohr): 1.7e-11
+
+explicit_locregcenters:
+ EvXC: 1.1e-10
+ Total electronic charge: 4.1e-11
+ EKS: 1.3e-11
