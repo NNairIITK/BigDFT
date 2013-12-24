@@ -356,7 +356,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_wavefunction), intent(inout) :: KSwfn, tmb
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
-  real(gp), dimension(3,atoms%astruct%nat), intent(inout), target :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   integer, intent(out) :: infocode
   type(energy_terms), intent(out) :: energs
   real(gp), intent(out) :: energy,fnoise,pressure
@@ -554,13 +554,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           read(123,*) comment
           do ilr=1,nlr
               read(123,*) comment, locregcenters(1,ilr), locregcenters(2,ilr), locregcenters(3,ilr)
-              !write(*,*) locregcenters(1:3,ilr)
-              !write(*,*) rxyz(1:3,ilr)
-              !locregcenters(1:3,ilr)=locregcenters(1:3,ilr)+rxyz(1:3,ilr)
-              !write(*,*) locregcenters(1:3,ilr)
           end do
       else
-          locregcenters => rxyz
+          locregcenters=f_malloc_ptr((/3,atoms%astruct%nat/),id=' locregcenters')
+          locregcenters = rxyz
       end if
   end if
 
@@ -719,7 +716,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
       in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
       in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-      write(*,*) 'calling with locregcenters'
       call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
            inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
            locregcenters)

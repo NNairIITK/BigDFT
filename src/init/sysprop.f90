@@ -77,6 +77,11 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
   if (present(locregcenters)) then
       do iat=1,atoms%astruct%nat
           locregcenters(1:3,iat)=locregcenters(1:3,iat)-shift(1:3)
+          if (locregcenters(1,iat)<dble(0)*lzd%hgrids(1) .or. locregcenters(1,iat)>dble(lzd%glr%d%n1)*lzd%hgrids(1) .or. &
+              locregcenters(2,iat)<dble(0)*lzd%hgrids(2) .or. locregcenters(2,iat)>dble(lzd%glr%d%n2)*lzd%hgrids(2) .or. &
+              locregcenters(3,iat)<dble(0)*lzd%hgrids(3) .or. locregcenters(3,iat)>dble(lzd%glr%d%n3)*lzd%hgrids(3)) then
+              stop 'locregcenter outside of global box!'
+          end if
       end do
   end if
 
@@ -178,8 +183,8 @@ subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,r
      call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-         write(*,*) 'rxyz',rxyz
-         write(*,*) 'locregcenters',locregcenters
+         !!write(*,*) 'rxyz',rxyz
+         !!write(*,*) 'locregcenters',locregcenters
         call lzd_init_llr(iproc, nproc, in, atoms%astruct, locregcenters, lorbs, lzd_lin)
      else
         call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&

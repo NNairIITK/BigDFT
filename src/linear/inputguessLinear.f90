@@ -192,6 +192,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   nvirt=0
 
+  !!do iorb=1,tmb%orbs%norb
+  !!    ilr=tmb%orbs%inwhichlocreg(iorb)
+  !!    write(500+10*iproc+0,*) tmb%lzd%llr(ilr)%locregcenter(1:3)
+  !!    write(500+10*iproc+1,*) tmb%ham_descr%lzd%llr(ilr)%locregcenter(1:3)
+  !!end do
 
 ! THIS OUTPUT SHOULD PROBABLY BE KEPT, BUT IS COMMENTED FOR THE MOMENT AS IT DOES NOT
 ! SEEM TO BE RELEVANT ANY MORE

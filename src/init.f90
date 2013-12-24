@@ -2433,8 +2433,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
-  write(*,*) 'present(locregcenters)',present(locregcenters)
-
   call f_routine(id='input_wf')
 
   !nullify paw objects:
