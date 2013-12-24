@@ -1086,7 +1086,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor)
   end if
 
-         if (bigdft_mpi%iproc ==0) then 
+       if (bigdft_mpi%iproc ==0) then 
           call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
        end if
 
