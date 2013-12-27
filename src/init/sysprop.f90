@@ -116,7 +116,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                if(iat ==  lorbs%onwhichatom(iorb)) then
                   ii = ii + 1
                   lorbs%inwhichlocreg(iorb)= ii
-                  !lorbs%onwhichmpi(iorb) = ii-1
                end if
             end do 
          end do

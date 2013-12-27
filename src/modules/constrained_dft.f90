@@ -110,12 +110,13 @@ contains
     end if
 
     call calculate_weight_matrix_lowdin(cdft%weight_matrix,nfrag_charged,cdft%ifrag_charged,tmb,input,&
-         ref_frags,calculate_overlap_matrix)
+         ref_frags,calculate_overlap_matrix,0)
 
   end subroutine calculate_weight_matrix_lowdin_wrapper
 
 
-  subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,calculate_overlap_matrix)
+  subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
+       calculate_overlap_matrix,meth_overlap)
     use module_fragments
     implicit none
     type(sparseMatrix), intent(inout) :: weight_matrix
@@ -123,7 +124,7 @@ contains
     type(dft_wavefunction), intent(inout) :: tmb
     logical, intent(in) :: calculate_overlap_matrix
     type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
-    integer, intent(in) :: nfrag_charged
+    integer, intent(in) :: nfrag_charged, meth_overlap
     integer, dimension(2), intent(in) :: ifrag_charged
     !local variables
     integer :: ifrag,iorb,ifrag_ref,isforb,istat
@@ -161,9 +162,10 @@ contains
     inv_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='inv_ovrlp_half')
 
     ! ideally need interface here... but should change to newer version anyway (and more approximate?!)
-    call overlapPowerPlusMinusOneHalf_old(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, 0,  &
-         tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, &
-         inv_ovrlp_half, .false., tmb%orbs)
+    call overlapPowerPlusMinusOneHalf_old(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+         meth_overlap, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+         tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp_half, .false., tmb%orbs)
+
 
     ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
 

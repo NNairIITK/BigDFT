@@ -181,9 +181,9 @@ module module_types
     real(kind=8) :: early_stop
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
-    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization
+    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization, new_pulay_correction
     logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
-    integer :: extra_states
+    integer :: extra_states, order_taylor
   end type linearInputParameters
 
   type,public:: fragmentInputParameters
@@ -577,7 +577,7 @@ module module_types
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
+     integer, dimension(:), pointer :: inwhichlocreg,onwhichatom
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -1450,9 +1450,6 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
     deallocate(orbs%isorb_par,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%isorb_par',subname)
-    i_all=-product(shape(orbs%onWhichMPI))*kind(orbs%onWhichMPI)
-    deallocate(orbs%onWhichMPI,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%onWhichMPI',subname)
     if (associated(orbs%ispot)) then
        i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
        deallocate(orbs%ispot,stat=i_stat)

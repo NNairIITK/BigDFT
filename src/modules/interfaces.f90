@@ -2079,17 +2079,17 @@ module module_interfaces
     end subroutine psimix
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-         energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,convcrit_dmin,nitdmin,&
-         curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
+        energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+        calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,&
+        convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
+      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
       use constrained_dft
       use diis_sd_optimization
+      use yaml_output
       implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft
+      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft, order_taylor
       type(orbitals_data),intent(inout) :: orbs
       type(atoms_data),intent(in) :: at
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -2110,8 +2110,8 @@ module module_interfaces
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
       logical, intent(in), optional :: curvefit_dmin ! for dmin only
       type(cdft_data),intent(inout),optional :: cdft
-      logical, optional, intent(in) :: reorder
       integer, intent(in) :: extra_states
+      logical, optional, intent(in) :: reorder
       logical, optional, intent(in) :: updatekernel
     end subroutine get_coeff
 
@@ -4273,7 +4273,7 @@ module module_interfaces
           type(nonlocal_psp_descriptors), intent(in) :: nlpspd
           real(kind=8), dimension(:), pointer :: proj
           type(GPU_pointers), intent(inout) :: GPU
-          type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+          type(system_fragment), dimension(:), intent(in) :: ref_frags
         end subroutine input_memory_linear
 
         subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
@@ -4307,7 +4307,7 @@ module module_interfaces
           logical, intent(in) :: add_derivatives
           character(len=*), intent(in) :: input_dir
           type(fragmentInputParameters), intent(in) :: input_frag
-          type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+          type(system_fragment), dimension(:), intent(in) :: ref_frags
         end subroutine reformat_supportfunctions
 
         subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,& 
@@ -4367,15 +4367,16 @@ module module_interfaces
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel
 
-        subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+        subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
            use module_base
            use module_types
            implicit none
            integer,intent(in):: iproc, nproc, nlr
            type(locreg_descriptors),intent(in) :: glr
            type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
-           type(orbitals_data),intent(in) :: orbs, orbsder
+           type(orbitals_data),intent(in) :: orbs
            integer,dimension(orbs%norb),intent(in) :: rootarr
+           integer,dimension(orbs%norb),intent(in) :: onwhichmpi
         end subroutine communicate_locreg_descriptors_keys
 
         subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
@@ -4501,16 +4502,16 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, orbs, foe_obj, &
-                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout, it_scc)
+                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout, it_scc, order_taylor)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc, itout, it_scc
+          integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(inout) :: foe_obj
           real(kind=8),intent(inout) :: tmprtr
           integer,intent(in) :: mode
-          type(sparseMatrix),intent(in) :: ovrlp, ham
+          type(sparseMatrix),intent(inout) :: ovrlp, ham
           type(sparseMatrix),intent(inout) :: fermi
           real(kind=8),intent(out) :: ebs
         end subroutine foe
@@ -5110,6 +5111,34 @@ module module_interfaces
           type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
           type(paw_objects),optional,intent(inout)::paw
         end subroutine applyprojectorsonthefly
+
+        subroutine compress_matrix_for_allreduce(iproc,sparsemat)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc
+          type(sparseMatrix),intent(inout) :: sparsemat
+        end subroutine compress_matrix_for_allreduce
+
+        subroutine uncompressMatrix(iproc,sparsemat)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc
+          type(sparseMatrix), intent(inout) :: sparsemat
+        end subroutine uncompressMatrix
+
+        subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
+          use module_base
+          use module_types
+          use yaml_output
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(DFT_wavefunction),intent(inout) :: tmb
+          type(orbitals_data),intent(in) :: orbs
+          type(atoms_data),intent(in) :: at
+          real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
+        end subroutine pulay_correction_new
   
   end interface
 END MODULE module_interfaces

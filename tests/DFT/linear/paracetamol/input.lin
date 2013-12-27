@@ -18,10 +18,10 @@
 1.d0     0.2d0                   initial step size for basis optimization (DIIS, SD)
 0.2d0    F                       initial step size for kernel update (SD), curve fitting for alpha update - directmin only
 -2.3d0   2.7d0                   lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small
-5                                number of iterations in the preconditioner
+5  1                             number of iterations in the preconditioner, order of Taylor approximations
 1  1                             0-> exact Loewdin, 1-> Taylor expansion ; in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
 3.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
-0 F F F                          output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; Pulay correction; diag at end
+0 F F F F                        output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; Pulay corrections (old/new); diag at end
 F F F 0                          fragment calculation; calculate transfer integrals; constrained DFT calculation; extra states to optimize (dmin only)
 C  4 6.0d-2 6.0d-2 0.0d-2 4.4 4.4 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
 O  4 6.0d-2 6.0d-2 0.0d-2 4.4 4.4 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff

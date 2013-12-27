@@ -1506,6 +1506,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_types
   use module_interfaces, except_this_one => input_memory_linear
   use module_fragments
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -1521,7 +1522,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   type(GPU_pointers), intent(inout) :: GPU
-  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+  type(system_fragment), dimension(:), intent(in) :: ref_frags
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat
@@ -1653,8 +1654,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !overlap_calculated = .false.
       !nullify(tmb%psit_c)
       !nullify(tmb%psit_f)
-      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-           KSwfn%orbs, tmb, overlap_calculated)
+      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, &
+           tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
       i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
       deallocate(tmb%psit_c,stat=i_stat)
       call memocc(i_stat,i_all,'tmb%psit_c',subname)
@@ -1704,6 +1705,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
   end if
 
+  ! Orthonormalize the input guess if necessary
+  if (input%experimental_mode .and. input%lin%scf_mode/=LINEAR_FOE) then                 
+      if (iproc==0) call yaml_map('orthonormalization of input guess','standard')        
+      tmb%can_use_transposed = .false.                                         
+      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+  end if  
 
 
 END SUBROUTINE input_memory_linear
@@ -2728,11 +2736,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
      if (in%lin%diag_start) then
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             tmb%orbs, tmb, overlap_calculated)  
+        ! not worrying about this case as not currently used anyway
+        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+             tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
      else
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             KSwfn%orbs, tmb, overlap_calculated)     
+        ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
+        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, &
+             tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
      !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
      !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
@@ -2834,7 +2844,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpspd,proj,in%SIC,tmb,pnrm,.false.,.false.,&
-             .true.,ham_small,0,0,0,0) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             .true.,ham_small,0,0,0,0,in%lin%order_taylor) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then
         !print*,'coeffs after extra diag:'
@@ -2855,8 +2865,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end do
 
         ! use the coeffs from the more balanced kernel to get the correctly occupied kernel (maybe reconstruct not needed?)
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-            KSwfn%orbs, tmb, overlap_calculated)     
+        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)     
         !then redo density and potential with correct charge? - for ease doing in linear scaling
      end if
 

@@ -224,8 +224,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
 
-  comments='number of iterations in the preconditioner'
-  call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/),comment=comments)
+  comments='number of iterations in the preconditioner, order of Taylor approximations'
+  call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
+  call input_var(in%lin%order_taylor,'1',ranges=(/1,4/),comment=comments)
   
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
@@ -239,15 +240,21 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !plot basis functions: true or false
   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-           'calculate dipole ; pulay correction; diagonalization at the end (dmin, FOE)'
+           'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
   call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
   call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY)
+  call input_var(in%lin%new_pulay_correction,'F')
   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_KS,comment=comments)
 
 
   ! not sure whether to actually make this an input variable or not so just set to false for now
   in%lin%diag_start=.false.
+
+  ! It is not possible to use both the old and the new Pulay correction at the same time
+  if (in%lin%pulay_correction .and. in%lin%new_pulay_correction) then
+      stop 'It is not possible to use both the old and the new Pulay correction at the same time!'
+  end if
 
 
   !!!!Came to here for the definition of the input variables. Fill the input variable structure with what found so far

@@ -874,21 +874,6 @@ if(associated(orbsin%onwhichatom)) then
     end do
 end if
 
-if(associated(orbsout%onWhichMPI)) then
-    iall=-product(shape(orbsout%onWhichMPI))*kind(orbsout%onWhichMPI)
-    deallocate(orbsout%onWhichMPI, stat=istat)
-    call memocc(istat, iall, 'orbsout%onWhichMPI', subname)
-end if
-if(associated(orbsin%onWhichMPI)) then
-    iis1=lbound(orbsin%onWhichMPI,1)
-    iie1=ubound(orbsin%onWhichMPI,1)
-    allocate(orbsout%onWhichMPI(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%onWhichMPI, 'orbsout%onWhichMPI', subname)
-    do i1=iis1,iie1
-        orbsout%onWhichMPI(i1) = orbsin%onWhichMPI(i1)
-    end do
-end if
-
 if(associated(orbsout%isorb_par)) then
     iall=-product(shape(orbsout%isorb_par))*kind(orbsout%isorb_par)
     deallocate(orbsout%isorb_par, stat=istat)
