@@ -165,7 +165,7 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   end if
 
   allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_associate")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 END SUBROUTINE run_objects_associate
