@@ -149,7 +149,7 @@
    Coarse and Fine Radii Multipliers   :  [  5.0,  8.0 ]
  Self-Consistent Cycle Parameters:
    Wavefunction:
-     Gradient Norm Threshold           :  &gnrm_cv  1.0E-04
+     Gradient Norm Threshold           :  &gnrm_cv  1.0E-05
      CG Steps for Preconditioner       :  6
      DIIS History length               :  4
      Max. Wfn Iterations               :  &itermax  4

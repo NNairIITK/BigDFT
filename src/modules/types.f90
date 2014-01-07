@@ -2995,6 +2995,8 @@ end subroutine bigdft_init_errors
     character(len = max_field_length) :: str
     integer :: i, ipos
 
+    if (index(dict_key(val), "_attributes") > 0) return
+
     select case (trim(dict_key(val)))
        ! the DFT variables ------------------------------------------------------
     case (HGRIDS)
@@ -3237,6 +3239,8 @@ end subroutine bigdft_init_errors
        ! the TDDFT variables ----------------------------------------------------
     case (TDDFT_APPROACH)
        in%tddft_approach = val
+    case DEFAULT
+       write(*,*) "unknown input key '" // trim(dict_key(val)) // "'"
     end select
   END SUBROUTINE input_set_dict
 
