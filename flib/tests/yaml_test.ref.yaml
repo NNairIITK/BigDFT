@@ -742,6 +742,18 @@
    default                             : value of the default, written as a string
    profile1                            : value1
    profile2                            : value2
+---
+ Atomic structure:
+   Cell: [ 20.345752716064453,  20.345752716064453,  20.345752716064453]
+   Positions:
+   - Si: [ 0.2516085125E-05,  0.5826606155E-05,  20.34574212] # [  0.00,  0.00,  40.00 ] 1
+   - Si: [ 5.094032326,  5.153107111,  0.3047989908E-01] # [  13.52,  10.13,  0.06 ] 2
+   - Si: [ 0.3049344014E-01,  5.153107972,  5.094018600] # [  0.08,  10.13,  10.01 ] 3
+ Real without format                   :  0.53777856217367426
+ Real with format (1pe25.17)           :  5.37778562173674257E-01
+ Real with format (1pe24.16)           :  5.3777856217367426E-01
+ Real with format (es23.16)            :  5.3777856217367426E-01
+ Real with format (es24.17)            :  5.37778562173674257E-01
  Memory Consumption Report:
    Tot. No. of Allocations             :  7
    Tot. No. of Deallocations           :  7

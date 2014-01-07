@@ -68,7 +68,6 @@ int main(int argc, const char **argv)
   /* bigdft_dict_dump(dict); */
 
   run = bigdft_run_new_from_dict(dict, TRUE);
-  bigdft_dict_unref(dict);
 
   atoms = bigdft_run_get_atoms(run);
   if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml");
@@ -81,6 +80,16 @@ int main(int argc, const char **argv)
 
   outs = bigdft_run_calculate(run, iproc, nproc);
 
+  /* bigdft_dict_move_to(dict, &root); */
+  /* bigdft_dict_insert(dict, "dft", NULL); */
+  /* bigdft_dict_set(dict, "Tel", "1e-4"); */
+  /* bigdft_run_update_from_dict(run, dict); */
+
+  /* ins = bigdft_run_get_inputs(run); */
+  /* bigdft_inputs_set_value(ins, "Tel", "1.e-4"); */
+  /* bigdft_inputs_unref(ins); */
+
+  bigdft_dict_unref(dict);
   bigdft_run_unref(run);
   bigdft_goutput_unref(outs);
 

@@ -1177,6 +1177,12 @@ module module_types
     real(gp),dimension(:),pointer :: rpaw
   end type paw_objects
 
+  interface input_set
+     module procedure input_set, input_set_int, input_set_dbl, input_set_bool, &
+          & input_set_int_array, input_set_dbl_array, input_set_bool_array, &
+          & input_set_char
+  end interface input_set
+
 contains
 
   function old_wavefunction_null() result(wfn)
@@ -2860,5 +2866,378 @@ end subroutine bigdft_init_errors
 !!
 !!end function matrixindex_in_compressed
 
+  subroutine input_set_int(in, key, val)
+    use dictionaries, only: dictionary, operator(//), set, dict_init, dict_free
+    implicit none
+    type(input_variables), intent(inout) :: in
+    character(len = *), intent(in) :: key
+    integer, intent(in) :: val
+
+    type(dictionary), pointer :: dict
+
+    call dict_init(dict)
+    call set(dict // key, val)
+    call input_set(in, dict)
+    call dict_free(dict)
+  END SUBROUTINE input_set_int
+
+  subroutine input_set_dbl(in, key, val)
+    use dictionaries, only: dictionary, operator(//), set, dict_init, dict_free
+    use module_defs, only: gp
+    implicit none
+    type(input_variables), intent(inout) :: in
+    character(len = *), intent(in) :: key
+    real(gp), intent(in) :: val
+
+    type(dictionary), pointer :: dict
+
+    call dict_init(dict)
+    call set(dict // key, val)
+    call input_set(in, dict)
+    call dict_free(dict)
+  END SUBROUTINE input_set_dbl
+
+  subroutine input_set_bool(in, key, val)
+    use dictionaries, only: dictionary, operator(//), set, dict_init, dict_free
+    implicit none
+    type(input_variables), intent(inout) :: in
+    character(len = *), intent(in) :: key
+    logical, intent(in) :: val
+
+    type(dictionary), pointer :: dict
+
+    call dict_init(dict)
+    call set(dict // key, val)
+    call input_set(in, dict)
+    call dict_free(dict)
+  END SUBROUTINE input_set_bool
+
+  subroutine input_set_char(in, key, val)
+    use dictionaries, only: dictionary, operator(//), set, dict_init, dict_free
+    implicit none
+    type(input_variables), intent(inout) :: in
+    character(len = *), intent(in) :: key
+    character(len = *), intent(in) :: val
+
+    type(dictionary), pointer :: dict
+
+    call dict_init(dict)
+    call set(dict // key, val)
+    call input_set(in, dict)
+    call dict_free(dict)
+  END SUBROUTINE input_set_char
+
+  subroutine input_set_int_array(in, key, val)
+    use dictionaries, only: dictionary, operator(//), set, dict_init, dict_free
+    implicit none
+    type(input_variables), intent(inout) :: in
+    character(len = *), intent(in) :: key
+    integer, dimension(:), intent(in) :: val
+
+    integer :: i
+    type(dictionary), pointer :: dict
+
+    call dict_init(dict)
+    do i = 0, size(val) - 1, 1
+       call set(dict // key // i, val(i + 1))
+    end do
+    call input_set(in, dict)
+    call dict_free(dict)
+  END SUBROUTINE input_set_int_array
+
+  subroutine input_set_dbl_array(in, key, val)
+    use dictionaries, only: dictionary, operator(//), set, dict_init, dict_free
+    use module_defs, only: gp
+    implicit none
+    type(input_variables), intent(inout) :: in
+    character(len = *), intent(in) :: key
+    real(gp), dimension(:), intent(in) :: val
+
+    integer :: i
+    type(dictionary), pointer :: dict
+
+    call dict_init(dict)
+    do i = 0, size(val) - 1, 1
+       call set(dict // key // i, val(i + 1))
+    end do
+    call input_set(in, dict)
+    call dict_free(dict)
+  END SUBROUTINE input_set_dbl_array
+
+  subroutine input_set_bool_array(in, key, val)
+    use dictionaries, only: dictionary, operator(//), set, dict_init, dict_free
+    implicit none
+    type(input_variables), intent(inout) :: in
+    character(len = *), intent(in) :: key
+    logical, dimension(:), intent(in) :: val
+
+    integer :: i
+    type(dictionary), pointer :: dict
+
+    call dict_init(dict)
+    do i = 0, size(val) - 1, 1
+       call set(dict // key // i, val(i + 1))
+    end do
+    call input_set(in, dict)
+    call dict_free(dict)
+  END SUBROUTINE input_set_bool_array
+
+  subroutine input_set(in, val)
+    use dictionaries, only: dictionary, operator(//), assignment(=)
+    use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
+    use module_defs, only: DistProjApply, GPUblas, gp
+    use module_input_keys
+    use dynamic_memory
+    implicit none
+    type(input_variables), intent(inout) :: in
+    type(dictionary), pointer :: val
+
+    character(len = max_field_length) :: str
+    integer :: i, ipos
+
+    select case (trim(dict_key(val)))
+       ! the DFT variables ------------------------------------------------------
+    case (HGRIDS)
+       in%hx = val//0 !grid spacings (profiles can be used if we already read PSPs)
+       in%hy = val//1
+       in%hz = val//2
+    case (RMULT)
+       in%crmult = val//0 !coarse and fine radii around atoms
+       in%frmult = val//1
+    case (IXC)
+       in%ixc = val !XC functional (ABINIT XC codes)
+    case (NCHARGE)
+       in%ncharge = val !charge and electric field
+    case (ELECFIELD)
+       in%elecfield = val
+    case (NSPIN)
+       in%nspin = val !spin and polarization
+    case (MPOL)
+       in%mpol = val
+    case (GNRM_CV)
+       in%gnrm_cv = val !convergence parameters
+    case (ITERMAX)
+       in%itermax = val
+    case (NREPMAX)
+       in%nrepmax = val
+    case (NCONG)
+       in%ncong = val !convergence parameters
+    case (IDSX)
+       in%idsx = val
+    case (DISPERSION)
+       in%dispersion = val !dispersion parameter
+       ! Now the variables which are to be used only for the last run
+    case (INPUTPSIID)
+       in%inputPsiId = val
+    case (OUTPUT_WF)
+       in%output_wf_format = val
+    case (OUTPUT_DENSPOT)
+       in%output_denspot = val
+    case (RBUF)
+       in%rbuf = val ! Tail treatment.
+    case (NCONGT)
+       in%ncongt = val
+    case (NORBV)
+       in%norbv = val !davidson treatment
+    case (NVIRT)
+       in%nvirt = val
+    case (NPLOT)
+       in%nplot = val
+    case (DISABLE_SYM)
+       in%disableSym = val ! Line to disable symmetries.
+       ! the KPT variables ------------------------------------------------------
+
+       ! the PERF variables -----------------------------------------------------
+    case (DEBUG)
+       in%debug = val
+    case (FFTCACHE)
+       in%ncache_fft = val
+    case (VERBOSITY)
+       in%verbosity = val
+    case (OUTDIR)
+       in%writing_directory = val
+    case (TOLSYM)
+       in%symTol = val
+    case (PROJRAD)
+       in%projrad = val
+    case (EXCTXPAR)
+       in%exctxpar = val
+    case (INGUESS_GEOPT)
+       in%inguess_geopt = val
+    case (ACCEL)
+       str = dict_value(val)
+       if (input_keys_equal(trim(str), "CUDAGPU")) then
+          in%matacc%iacceleration = 1
+       else if (input_keys_equal(trim(str), "OCLGPU")) then
+          in%matacc%iacceleration = 2
+       else if (input_keys_equal(trim(str), "OCLCPU")) then
+          in%matacc%iacceleration = 3
+       else if (input_keys_equal(trim(str), "OCLACC")) then
+          in%matacc%iacceleration = 4
+       else 
+          in%matacc%iacceleration = 0
+       end if
+    case (OCL_PLATFORM)
+       !determine desired OCL platform which is used for acceleration
+       in%matacc%OCL_platform = val
+       ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
+       do i=ipos,len(in%matacc%OCL_platform)
+          in%matacc%OCL_platform(i:i)=achar(0)
+       end do
+    case (OCL_DEVICES)
+       in%matacc%OCL_devices = val
+       ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
+       do i=ipos,len(in%matacc%OCL_devices)
+          in%matacc%OCL_devices(i:i)=achar(0)
+       end do
+    case (PSOLVER_ACCEL)
+       in%matacc%PSolver_igpu = val
+    case (SIGNALING)
+       in%signaling = val ! Signaling parameters
+    case (SIGNALTIMEOUT)
+       in%signalTimeout = val
+    case (DOMAIN)
+       in%domain = val
+    case (BLAS)
+       GPUblas = val !!@TODO to relocate
+    case (PSP_ONFLY)
+       DistProjApply = val
+    case (IG_DIAG)
+       in%orthpar%directDiag = val
+    case (IG_NORBP)
+       in%orthpar%norbpInguess = val
+    case (IG_TOL)
+       in%orthpar%iguessTol = val
+    case (METHORTHO)
+       in%orthpar%methOrtho = val
+    case (IG_BLOCKS)
+       !Block size used for the orthonormalization
+       in%orthpar%bsLow = val // 0
+       in%orthpar%bsUp  = val // 1
+    case (RHO_COMMUN)
+       in%rho_commun = val
+    case (PSOLVER_GROUPSIZE)
+       in%PSolver_groupsize = val
+    case (UNBLOCK_COMMS)
+       in%unblock_comms = val
+    case (LINEAR)
+       !Use Linear scaling methods
+       str = dict_value(val)
+       if (input_keys_equal(trim(str), "LIG")) then
+          in%linear = INPUT_IG_LIG
+       else if (input_keys_equal(trim(str), "FUL")) then
+          in%linear = INPUT_IG_FULL
+       else if (input_keys_equal(trim(str), "TMO")) then
+          in%linear = INPUT_IG_TMO
+       else
+          in%linear = INPUT_IG_OFF
+       end if
+    case (STORE_INDEX)
+       in%store_index = val
+    case (PDSYEV_BLOCKSIZE)
+       !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+       in%lin%blocksize_pdsyev = val
+    case (PDGEMM_BLOCKSIZE)
+       in%lin%blocksize_pdgemm = val
+    case (MAXPROC_PDSYEV)
+       !max number of process uses for pdsyev/pdsygv, pdgemm
+       in%lin%nproc_pdsyev = val
+    case (MAXPROC_PDGEMM)
+       in%lin%nproc_pdgemm = val
+    case (EF_INTERPOL_DET)
+       !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+       !is smaller than this value, switch from cubic to linear interpolation.
+       in%lin%ef_interpol_det = val
+    case (EF_INTERPOL_CHARGEDIFF)
+       in%lin%ef_interpol_chargediff = val
+       !determines whether a mixing step shall be preformed after the input guess !(linear version)
+    case (MIXING_AFTER_INPUTGUESS)
+       in%lin%mixing_after_inputguess = val
+       !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
+    case (ITERATIVE_ORTHOGONALIZATION)
+       in%lin%iterative_orthogonalization = val
+    case (CHECK_SUMRHO)
+       in%check_sumrho = val
+       !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+    case (EXPERIMENTAL_MODE)
+       in%experimental_mode = val
+    case (WRITE_ORBITALS)
+       ! linear scaling: write KS orbitals for cubic restart
+       in%write_orbitals = val
+       ! the GEOPT variables ----------------------------------------------------
+    case (GEOPT_METHOD)
+       in%geopt_approach = val !geometry input parameters
+    case (NCOUNT_CLUSTER_X)
+       in%ncount_cluster_x = val
+    case (FRAC_FLUCT)
+       in%frac_fluct = val
+    case (FORCEMAX)
+       in%forcemax = val
+    case (RANDDIS)
+       in%randdis = val
+    case (IONMOV)
+       in%ionmov = val
+    case (DTION)
+       in%dtion = val
+    case (MDITEMP)
+       in%mditemp = val
+    case (MDFTEMP)
+       in%mdftemp = val
+    case (NOSEINERT)
+       in%noseinert = val
+    case (FRICTION)
+       in%friction = val
+    case (MDWALL)
+       in%mdwall = val
+    case (QMASS)
+       in%nnos = dict_len(val)
+       if (associated(in%qmass)) call f_free_ptr(in%qmass)
+       in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
+       do i=1,in%nnos-1
+          in%qmass(i) = dict_len(val // (i-1))
+       end do
+    case (BMASS)
+       in%bmass = val
+    case (VMASS)
+       in%vmass = val
+    case (BETAX)
+       in%betax = val
+    case (HISTORY)
+       in%history = val
+    case (DTINIT)
+       in%dtinit = val
+    case (DTMAX)
+       in%dtmax = val
+       ! the MIX variables ------------------------------------------------------
+    case (ISCF)
+       in%iscf = val
+       !put the startmix if the mixing has to be done
+       if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
+    case (ITRPMAX)
+       in%itrpmax = val
+    case (RPNRM_CV)
+       in%rpnrm_cv = val
+    case (NORBSEMPTY)
+       in%norbsempty = val
+    case (TEL)
+       in%Tel = val
+    case (OCCOPT)
+       in%occopt = val
+    case (ALPHAMIX)
+       in%alphamix = val
+    case (ALPHADIIS)
+       in%alphadiis = val
+       ! the SIC variables ------------------------------------------------------
+    case (SIC_APPROACH)
+       in%SIC%approach = val
+    case (SIC_ALPHA)
+       in%SIC%alpha = val
+    case (SIC_FREF)
+       in%SIC%fref = val
+       ! the TDDFT variables ----------------------------------------------------
+    case (TDDFT_APPROACH)
+       in%tddft_approach = val
+    end select
+  END SUBROUTINE input_set
 
 end module module_types

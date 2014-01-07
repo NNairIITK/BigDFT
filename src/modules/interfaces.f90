@@ -228,25 +228,14 @@ module module_interfaces
         logical, intent(in) :: dump
       end subroutine inputs_from_dict
 
-      subroutine perf_input_analyse(iproc,in,dict)
-        use module_base
-        use module_types
-        use dictionaries
+      subroutine input_set(in, val)
+        use dictionaries, only: dictionary, operator(//), assignment(=)
+        use module_types, only: input_variables
+        use module_input_keys
         implicit none
-        integer, intent(in) :: iproc
-        type(dictionary), pointer :: dict
         type(input_variables), intent(inout) :: in
-      end subroutine perf_input_analyse
-
-      subroutine dft_input_analyse(iproc, in, dict_dft)
-        use module_base
-        use module_types
-        use dictionaries
-        implicit none
-        integer, intent(in) :: iproc
-        type(input_variables), intent(inout) :: in
-        type(dictionary), pointer :: dict_dft
-      end subroutine dft_input_analyse
+        type(dictionary), pointer :: val
+      end subroutine input_set
 
       subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         use module_base
@@ -260,49 +249,6 @@ module module_interfaces
         character(len = 1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
         real(gp), intent(in) :: alat(3)
       end subroutine kpt_input_analyse
-
-      subroutine geopt_input_analyse(iproc,in,dict)
-        use module_base
-        use module_types
-        use dictionaries
-        implicit none
-        integer, intent(in) :: iproc
-        type(input_variables), intent(inout) :: in
-        type(dictionary), pointer :: dict
-      end subroutine geopt_input_analyse
-
-      subroutine mix_input_analyse(iproc,in,dict)
-        use module_base
-        use module_types
-        use dictionaries
-        implicit none
-        !Arguments
-        integer, intent(in) :: iproc
-        type(dictionary), pointer :: dict
-        type(input_variables), intent(inout) :: in
-      end subroutine mix_input_analyse
-
-      subroutine sic_input_analyse(iproc,in,dict,ixc)
-        use module_base
-        use module_types
-        use dictionaries
-        implicit none
-        !Arguments
-        integer, intent(in) :: iproc
-        type(dictionary), pointer :: dict
-        type(input_variables), intent(inout) :: in
-        integer, intent(in) :: ixc
-      end subroutine sic_input_analyse
-
-      subroutine tddft_input_analyse(iproc,in,dict)
-        use module_base
-        use module_types
-        use dictionaries
-        implicit none
-        integer, intent(in) :: iproc
-        type(dictionary), pointer :: dict
-        type(input_variables), intent(inout) :: in
-      end subroutine tddft_input_analyse
 
       subroutine MemoryEstimator(nproc,idsx,lr,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,mem)
          !n(c) use module_base
