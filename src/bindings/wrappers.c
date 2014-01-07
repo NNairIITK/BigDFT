@@ -234,6 +234,23 @@ BigDFT_Dict *bigdft_dict_new(BigDFT_DictIter *root)
 
   return dict;
 }
+/**
+ * bigdft_dict_new_from_yaml:
+ * @buf: 
+ *
+ * Pouet.
+ *
+ * Returns: (transfer full):
+ **/
+BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf)
+{
+  BigDFT_Dict *dict;
+
+  dict = bigdft_dict_new(NULL);
+  FC_FUNC_(dict_parse, DICT_PARSE)(&dict->root, buf, strlen(buf));
+  dict->current = dict->root;
+  return dict;
+}
 gboolean bigdft_dict_move_to(BigDFT_Dict *dict, BigDFT_DictIter *iter)
 {
   if (iter->dict != dict)

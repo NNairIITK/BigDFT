@@ -71,6 +71,7 @@ struct _BigDFT_DictIter
   _dictionary *pointer;
 };
 BigDFT_Dict *bigdft_dict_new  (BigDFT_DictIter *root);
+BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf);
 gboolean bigdft_dict_move_to  (BigDFT_Dict *dict, BigDFT_DictIter *iter);
 void  bigdft_dict_insert      (BigDFT_Dict *dict, const gchar *id, BigDFT_DictIter *iter);
 void  bigdft_dict_append      (BigDFT_Dict *dict, BigDFT_DictIter *iter);

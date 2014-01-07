@@ -1662,3 +1662,13 @@ subroutine dict_dump(dict)
 
   call yaml_dict_dump(dict)
 END SUBROUTINE dict_dump
+subroutine dict_parse(dict, buf)
+  use dictionaries, only: dictionary, operator(//)
+  use yaml_parse, only: yaml_parse_from_string
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: buf
+
+  call yaml_parse_from_string(dict, buf)
+  dict => dict // 0
+END SUBROUTINE dict_parse
