@@ -28,7 +28,7 @@ static void _sync_output(BigDFT_Inputs *in)
   in->dir_output = _get_c_string(dir_output, 100);
   in->writing_directory = _get_c_string(writing_directory, 500);
 }
-static void _sync(BigDFT_Inputs *in)
+void _inputs_sync(BigDFT_Inputs *in)
 {
   FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
   FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(in->data, in->h, in->h + 1, in->h + 2,
@@ -54,7 +54,7 @@ static void _sync(BigDFT_Inputs *in)
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
   FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(in->data, (int*)&in->linear);
 }
-static void _sync_add(BigDFT_Inputs *in)
+void _inputs_sync_add(BigDFT_Inputs *in)
 {
   FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
   /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */
@@ -150,8 +150,8 @@ BigDFT_Inputs* bigdft_inputs_new_from_fortran(_input_variables *inputs)
   in = bigdft_inputs_init();
   in->data = inputs;
 
-  _sync(in);
-  _sync_add(in);
+  _inputs_sync(in);
+  _inputs_sync_add(in);
 
   return in;
 }
@@ -186,8 +186,8 @@ GType bigdft_inputs_get_type(void)
 void bigdft_inputs_analyse(BigDFT_Inputs *in, BigDFT_Atoms *atoms, gboolean dump)
 {
   FC_FUNC_(inputs_from_dict, INPUTS_FROM_DICT)(in->data, atoms->data, &in->input_values, (gint*)&dump);
-  _sync(in);
-  _sync_add(in);
+  _inputs_sync(in);
+  _inputs_sync_add(in);
   /* To be removed later, currently, this allocates atoms also. */
   bigdft_atoms_get_nat_arrays(atoms);
   bigdft_atoms_get_ntypes_arrays(atoms);
@@ -196,43 +196,6 @@ void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
 {
   FC_FUNC_(create_dir_output, CREATE_DIR_OUTPUT)((int*)&iproc, in->data);
   _sync_output(in);
-}
-gboolean bigdft_inputs_dump(BigDFT_Inputs *in, const gchar *filename, gboolean useronly)
-{
-  int iostat;
-
-  FC_FUNC_(inputs_dump_to_file, INPUTS_DUMP_TO_FILE)(&iostat,
-                                                     &in->input_values,
-                                                     filename, &useronly,
-                                                     strlen(filename));
-  return (iostat != 0);
-}
-
-/**
- * bigdft_set_input:
- * @radical: 
- * @posinp: 
- * @atoms: (out) (transfer full):
- *
- * Pouet.
- *
- * Returns: (transfer full):
- **/
-BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDFT_Atoms **atoms)
-{
-  BigDFT_Atoms *at;
-  BigDFT_Inputs *in;
-
-  at = bigdft_atoms_new();
-  in = bigdft_inputs_init();
-  /* FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data); */
-  /* FC_FUNC_(bigdft_set_input, BIGDFT_SET_INPUT)(radical, posinp, in->data, at->data, */
-  /*                                              strlen(radical), strlen(posinp)); */
-  /* _sync(in); */
-  /* _sync_add(in); */
-  /* bigdft_atoms_copy_from_fortran(at); */
-  *atoms = at;
-  return in;
 }
 
 /* Wrappers on dictionaries, for the input variables. */

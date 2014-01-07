@@ -167,6 +167,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 
   ! Atoms case.
   atoms = atoms_null()
+  if (.not. has_key(dict, "posinp")) stop "missing posinp"
   call astruct_set_from_dict(dict // "posinp", atoms%astruct)
 
   ! Input variables case.

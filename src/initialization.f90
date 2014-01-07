@@ -80,22 +80,31 @@ END SUBROUTINE run_objects_free_container
 
 subroutine run_objects_init_from_files(runObj, radical, posinp)
   use module_types
-  use module_interfaces, only: atoms_new, rst_new, inputs_new, inputs_from_dict
   use module_input_dicts, only: user_dict_from_files
   implicit none
   type(run_objects), intent(out) :: runObj
   character(len = *), intent(in) :: radical, posinp
 
-  integer :: i_stat
-  integer(kind = 8) :: dummy
-
   call run_objects_nullify(runObj)
 
   call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
 
+  call run_objects_parse(runObj, .true.)
+END SUBROUTINE run_objects_init_from_files
+
+subroutine run_objects_parse(runObj, dump)
+  use module_types
+  use module_interfaces, only: atoms_new, rst_new, inputs_new, inputs_from_dict
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  logical, intent(in) :: dump
+
+  integer :: i_stat
+  integer(kind = 8) :: dummy
+
   call atoms_new(runObj%atoms)
   call inputs_new(runObj%inputs)
-  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs, .true.)
+  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs, dump)
 
   ! Generate the description of input variables.
   !if (bigdft_mpi%iproc == 0) then
@@ -106,16 +115,16 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
      call print_general_parameters(runObj%inputs,runObj%atoms)
   end if
 
-  allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
-  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
-
   call rst_new(dummy, runObj%rst)
   call restart_objects_new(runObj%rst)
   call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
   call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_init_from_files")
   call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
+
+  allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
+  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
+       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 
   ! Start the signaling loop in a thread if necessary.
   if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
@@ -123,27 +132,7 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
           & runObj%inputs%domain, len_trim(runObj%inputs%domain))
      call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
   end if
-END SUBROUTINE run_objects_init_from_files
-
-!!$subroutine run_objects_nullify_from_objects(runObj, atoms, inputs, rst)
-!!$  use module_types
-!!$  implicit none
-!!$  type(run_objects), intent(out) :: runObj
-!!$  type(atoms_data), intent(in), target :: atoms
-!!$  type(input_variables), intent(in), target, optional :: inputs
-!!$  type(restart_objects), intent(in), target, optional :: rst
-!!$
-!!$  call run_objects_nullify(runObj)
-!!$  runObj%atoms  => atoms
-!!$  if (present(inputs)) then
-!!$     runObj%inputs => inputs
-!!$  else
-!!$  end if
-!!$  if (present(rst)) then
-!!$     runObj%rst    => rst
-!!$  else
-!!$  end if
-!!$END SUBROUTINE run_objects_nullify_from_objects
+END SUBROUTINE run_objects_parse
 
 subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   use module_types

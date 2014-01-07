@@ -1522,17 +1522,15 @@ subroutine run_objects_association(runObj, inputs, atoms, rst)
 
   call run_objects_associate(runObj, inputs, atoms, rst)
 END SUBROUTINE run_objects_association
-subroutine run_objects_dump_to_file(iostat, dict, atoms, fname, userOnly, comment)
+subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
   use dictionaries, only: dictionary
   use module_input_keys, only: input_keys_dump
-  use module_types, only: atoms_data
   use module_defs, only: UNINITIALIZED, gp
   use yaml_output
   implicit none
   integer, intent(out) :: iostat
   type(dictionary), pointer :: dict
-  type(atoms_data), intent(in) :: atoms
-  character(len = *), intent(in) :: fname, comment
+  character(len = *), intent(in) :: fname
   logical, intent(in) :: userOnly
 
   integer, parameter :: iunit = 145214 !< Hopefully being unique...
@@ -1553,10 +1551,6 @@ subroutine run_objects_dump_to_file(iostat, dict, atoms, fname, userOnly, commen
 
   call yaml_new_document(unit = iunit)
   call input_keys_dump(dict, userOnly)
-  call yaml_open_map("Atomic structure")
-  call wtyaml(iunit, UNINITIALIZED(1.d0), atoms%astruct%rxyz, atoms, &
-       & .false., atoms%astruct%rxyz, .false., dummy, dummy)
-  call yaml_close_map()
 
   call yaml_close_stream(iunit, iostat)
   if (iostat /= 0) return
@@ -1564,6 +1558,24 @@ subroutine run_objects_dump_to_file(iostat, dict, atoms, fname, userOnly, commen
 
   call yaml_set_default_stream(iunit_def, iostat)
 END SUBROUTINE run_objects_dump_to_file
+subroutine run_objects_set_dict(runObj, dict)
+  use module_types, only: run_objects
+  use dictionaries, only: dictionary
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  type(dictionary), pointer :: dict
+
+  ! Warning, taking ownership here. Use run_objects_nullify_dict()
+! to release this ownership without freeing dict.
+  runObj%user_inputs => dict
+END SUBROUTINE run_objects_set_dict
+subroutine run_objects_nullify_dict(runObj)
+  use module_types, only: run_objects
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+
+  nullify(runObj%user_inputs)
+END SUBROUTINE run_objects_nullify_dict
 
 subroutine mem_new(mem)
   use module_types, only: memory_estimation
@@ -1605,3 +1617,48 @@ subroutine mem_to_c(mem, submat, ncomponents, norb, norbp, oneorb, allpsi_mpi, &
   ham = mem%ham
   peak = mem%peak
 END SUBROUTINE mem_to_c
+
+subroutine dict_insert(dict, key)
+  use dictionaries, only: dictionary, operator(//)
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: key
+
+  ! This is a patch for Intel, to be corrected properly later.
+  dict => dict // key(1:len(key))
+END SUBROUTINE dict_insert
+subroutine dict_append(dict)
+  use dictionaries, only: dictionary, operator(//), dict_len
+  implicit none
+  type(dictionary), pointer :: dict
+
+  ! This is a patch for Intel, to be corrected properly later.
+  dict => dict // dict_len(dict)
+END SUBROUTINE dict_append
+subroutine dict_add(dict, key, val)
+  use dictionaries, only: dictionary, set, operator(//)
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: key, val
+
+  ! This is a patch for Intel, to be corrected properly later.
+  call set(dict // key(1:len(key)), val(1:len(val)))
+END SUBROUTINE dict_add
+subroutine dict_set_at(dict, key, i, val)
+  use dictionaries, only: dictionary, set, operator(//)
+  implicit none
+  type(dictionary), pointer :: dict
+  integer, intent(in) :: i
+  character(len = *), intent(in) :: key, val
+
+  ! This is a patch for Intel, to be corrected properly later.
+  call set(dict // key(1:len(key)) // i, val(1:len(val)))
+END SUBROUTINE dict_set_at
+subroutine dict_dump(dict)
+  use dictionaries, only: dictionary
+  use yaml_output
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call yaml_dict_dump(dict)
+END SUBROUTINE dict_dump
