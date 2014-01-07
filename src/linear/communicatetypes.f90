@@ -330,13 +330,10 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
       end if
    end do
 
-
    iall=-product(shape(worksend_int))*kind(worksend_int)
    deallocate(worksend_int,stat=istat)
    call memocc(istat, iall, 'worksend_int', subname)
 
-   call timing(iproc,'comm_llrloop2','OF')
-   call timing(iproc,'comm_llrcopy','ON')
    do ilr=1,nlr 
       if (covered(ilr,iproc)) then
          call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),workrecv_int(1,ilr),1,llr(ilr)%wfd%keyglob(1,1),1)
@@ -352,8 +349,6 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    iall=-product(shape(workrecv_int))*kind(workrecv_int)
    deallocate(workrecv_int,stat=istat)
    call memocc(istat, iall, 'workrecv_int', subname)
-
-   call timing(iproc,'comm_llrcopy','OF')
 
    !print*,'iproc,sent,received,num sent,num received',iproc,total_sent,total_recv,nsend,nrecv
    iall=-product(shape(requests))*kind(requests)

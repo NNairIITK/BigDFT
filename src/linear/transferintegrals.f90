@@ -408,7 +408,8 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   call dcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
   call f_free(coeffs_tmp)
 
-  if (separate_site_energies) then
+  ! only calculate site energies separately if specified or if not calculating them below
+  if (separate_site_energies .or. input_frag%nfrag==1) then
      homo_ham_orthog=f_malloc(nstates, id='homo_ham_orthog')
      homo_ovrlp_orthog=f_malloc(nstates, id='homo_ovrlp_orthog')
 
@@ -614,15 +615,15 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
                  call calc_transfer_integral(iproc,nproc,1,orbs,ham,ovrlp,coeffs_orthog(1,i),coeffs_orthog(1,j),&
                       trans_int_energy_orthog(1),trans_int_ovrlp_orthog(1))
 
-                 orthog_energy=(trans_int_energy(1)-0.5_gp*(homo_ham(i)+homo_ham(j))*trans_int_ovrlp(1))&
-                      /(1.0_gp-trans_int_ovrlp(1)**2)
+                 !orthog_energy=(trans_int_energy(1)-0.5_gp*(homo_ham(i)+homo_ham(j))*trans_int_ovrlp(1))&
+                 !     /(1.0_gp-trans_int_ovrlp(1)**2)
       
                  !if (iproc==0) write(*,'(2x,5(F16.12,1x))',advance='NO') trans_int_energy(1), &
                  !     trans_int_energy_orthog(1), orthog_energy, trans_int_ovrlp(1), trans_int_ovrlp_orthog(1)
                  if (iproc==0) then
                      call yaml_map('trans_int_energy',trans_int_energy(1),fmt='(f16.12)')
                      call yaml_map('trans_int_energy_orthog',trans_int_energy_orthog(1),fmt='(f16.12)')
-                     call yamL_map('orthog_energy',orthog_energy,fmt='(f16.12)')
+                     !call yamL_map('orthog_energy',orthog_energy,fmt='(f16.12)')
                      call yaml_map('trans_int_ovrlp',trans_int_ovrlp(1),fmt='(f16.12)')
                      call yaml_map('trans_int_ovrlp_orthog',trans_int_ovrlp_orthog(1),fmt='(f16.12)')
                  end if
