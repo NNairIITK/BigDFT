@@ -460,37 +460,16 @@ subroutine inputs_free(in)
   call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
-subroutine inputs_set(dict, file, key, val)
+subroutine inputs_set_dict(in, val)
   use dictionaries
   use module_types
+  use yaml_output
   implicit none
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: file, key, val
+  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: val
 
-  ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file(1:len(file)) // key(1:len(key)), val(1:len(val)))
-END SUBROUTINE inputs_set
-subroutine inputs_set_at(dict, file, key, i, val)
-  use dictionaries
-  use module_types
-  implicit none
-  type(dictionary), pointer :: dict
-  integer, intent(in) :: i
-  character(len = *), intent(in) :: file, key, val
-
-  ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file(1:len(file)) // key(1:len(key)) // i, val(1:len(val)))
-END SUBROUTINE inputs_set_at
-subroutine inputs_set_at2(dict, file, key, i, j, val)
-  use dictionaries
-  use module_types
-  implicit none
-  type(dictionary), pointer :: dict
-  integer, intent(in) :: i, j
-  character(len = *), intent(in) :: file, key, val
-  ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file(1:len(file)) // key(1:len(key)) // i // j, val(1:len(val)))
-END SUBROUTINE inputs_set_at2
+  call input_set(in, val%child)
+END SUBROUTINE inputs_set_dict
 
 subroutine inputs_set_from_file(dict, fname)
   use dictionaries, only: dictionary

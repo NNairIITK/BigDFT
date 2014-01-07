@@ -1178,9 +1178,9 @@ module module_types
   end type paw_objects
 
   interface input_set
-     module procedure input_set, input_set_int, input_set_dbl, input_set_bool, &
+     module procedure input_set_char, input_set_int, input_set_dbl, input_set_bool, &
           & input_set_int_array, input_set_dbl_array, input_set_bool_array, &
-          & input_set_char
+          & input_set_dict
   end interface input_set
 
 contains
@@ -2982,7 +2982,7 @@ end subroutine bigdft_init_errors
     call dict_free(dict)
   END SUBROUTINE input_set_bool_array
 
-  subroutine input_set(in, val)
+  subroutine input_set_dict(in, val)
     use dictionaries, only: dictionary, operator(//), assignment(=)
     use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
     use module_defs, only: DistProjApply, GPUblas, gp
@@ -3238,6 +3238,6 @@ end subroutine bigdft_init_errors
     case (TDDFT_APPROACH)
        in%tddft_approach = val
     end select
-  END SUBROUTINE input_set
+  END SUBROUTINE input_set_dict
 
 end module module_types

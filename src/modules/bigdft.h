@@ -186,7 +186,6 @@ typedef enum
     SMEARING_DIST_COLD2 = 4,
     SMEARING_DIST_METPX = 5
   } BigDFT_Smearing;
-#include "bigdft_input_keys.h"
 typedef struct _BigDFT_Inputs BigDFT_Inputs;
 struct _BigDFT_Inputs
 {
@@ -235,11 +234,11 @@ void           bigdft_inputs_free             (BigDFT_Inputs *in);
 BigDFT_Inputs* bigdft_inputs_new              (const gchar *naming);
 BigDFT_Inputs* bigdft_inputs_new_from_files   (const gchar *naming, guint iproc);
 void           bigdft_inputs_set              (BigDFT_Inputs *in,
-                                               BigDFT_InputsKeyIds id, const gchar *value);
+                                               const gchar *id, const gchar *value);
 void           bigdft_inputs_set_array        (BigDFT_Inputs *in,
-                                               BigDFT_InputsKeyIds id, const gchar **value);
-void           bigdft_inputs_set_array_at     (BigDFT_Inputs *in,
-                                               BigDFT_InputsKeyIds id, guint at, const gchar **value);
+                                               const gchar *id, const gchar **value);
+void           bigdft_inputs_set_array_at     (BigDFT_Inputs *in, const gchar *id,
+                                               guint at, const gchar **value);
 void           bigdft_inputs_analyse          (BigDFT_Inputs *in, BigDFT_Atoms *atoms,
                                                gboolean dump);
 void           bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc);
