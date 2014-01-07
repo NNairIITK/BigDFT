@@ -239,22 +239,26 @@ void bigdft_inputs_set_array(BigDFT_Inputs *in, const gchar *id, const gchar **v
 /**
  * bigdft_inputs_set_array_at:
  * @in: 
- * @id: 
- * @at:
+ * @n_row: 
+ * @n_cols:
  * @value: (array zero-terminated=1):
  *
  * 
  **/
-void bigdft_inputs_set_array_at(BigDFT_Inputs *in, const gchar *id,
-                                guint at, const gchar **value)
+void bigdft_inputs_set_matrix(BigDFT_Inputs *in, const gchar *id,
+                              guint n_row, guint n_cols, const gchar **value)
 {
-  /* const gchar *name, *file; */
+  /* _dictionary *dict; */
   /* guint i; */
 
-  /* name = _input_keys[id]; */
-  /* file = _input_keys[_input_files[id]]; */
+  /* FC_FUNC_(dict_new, DICT_NEW)(&dict); */
+  
   /* for (i = 0; value[i]; i++) */
-  /*   FC_FUNC_(inputs_set_at2, INPUTS_SET_AT2)(&in->input_values, file, name, */
-  /*                                            (gint*)&at, (gint*)&i, value[i], */
-  /*                                            strlen(file), strlen(name), strlen(value[i])); */
+  /*   FC_FUNC_(dict_set_at, DICT_SET_AT)(&dict, id, (int*)&i, value[i], */
+  /*                                      strlen(id), strlen(value[i])); */
+  /* FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(in->data, &dict); */
+
+  /* FC_FUNC_(dict_free, DICT_FREE)(&dict); */
+
+  /* _inputs_sync(in); */
 }

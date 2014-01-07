@@ -118,11 +118,11 @@ subroutine run_objects_parse(runObj, dump)
   call rst_new(dummy, runObj%rst)
   call restart_objects_new(runObj%rst)
   call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
-  call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_init_from_files")
+  call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_parse")
   call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
 
   allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_parse")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 
@@ -199,7 +199,9 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
   call deallocate_comms(runObj%rst%KSwfn%comms,subname)
   call deallocate_orbs(runObj%rst%KSwfn%orbs,subname)
-  call deallocate_proj_descr(nlpspd,subname)  
+  call deallocate_proj_descr(nlpspd,subname)
+  call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr, subname)
+  call nullify_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
 END SUBROUTINE run_objects_system_setup
 
 !> De-allocate the variable of type input_variables
