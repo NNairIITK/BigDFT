@@ -1093,11 +1093,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   !! TEST ##########################
   if (input%lin%new_pulay_correction) then
+      if (input%lin%scf_mode==LINEAR_FOE) then
+          tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+      end if
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
           infoCoeff,energs,nlpspd,proj,input%SIC,tmb,pnrm,update_phi,.false.,&
           .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
+      if (input%lin%scf_mode==LINEAR_FOE) then
+          call f_free_ptr(tmb%coeff)
+      end if
   end if
   !! END TEST ######################
 
