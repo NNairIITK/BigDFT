@@ -2143,7 +2143,8 @@ module module_interfaces
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode,ref_frags,cdft)
+           energs,energy,fpulay,infocode,ref_frags,cdft, &
+           fdisp, fion)
       use module_base
       use module_types
       use module_fragments
@@ -2167,6 +2168,7 @@ module module_interfaces
       integer,intent(out):: infocode
       type(system_fragment), dimension(:), pointer :: ref_frags 
       type(cdft_data), intent(inout) :: cdft
+      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: fdisp, fion
     end subroutine linearScaling   
 
 

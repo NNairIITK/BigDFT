@@ -796,7 +796,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   else
 
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
-          rxyz,denspot,denspot0,nlpspd,proj,GPU,energs,energy,fpulay,infocode,ref_frags,cdft)
+          rxyz,denspot,denspot0,nlpspd,proj,GPU,energs,energy,fpulay,infocode,ref_frags,cdft, &
+          fdisp, fion)
 
      ! maybe not the best place to keep it - think about it!
      if (in%lin%calc_transfer_integrals) then

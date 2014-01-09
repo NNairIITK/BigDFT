@@ -9,7 +9,8 @@
 
 
 subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode,ref_frags,cdft)
+           energs,energy,fpulay,infocode,ref_frags,cdft, &
+           fdisp, fion)
  
   use module_base
   use module_types
@@ -18,6 +19,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use module_fragments
   use constrained_dft
   use diis_sd_optimization
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
 
   ! Calling arguments
@@ -39,6 +41,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer,intent(out) :: infocode
   type(system_fragment), dimension(:), pointer :: ref_frags ! for transfer integrals
   type(cdft_data), intent(inout) :: cdft
+  real(kind=8),dimension(3,at%astruct%nat),intent(in) :: fdisp, fion
   
   real(8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,i,ierr,iorb
@@ -90,8 +93,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   character(len=12) :: orbname
   real(gp), allocatable, dimension(:) :: psi2, gpsi, gpsi2
   real(gp), allocatable, dimension(:,:,:,:) :: psir2
-  real(gp) :: tmb_diff, max_tmb_diff
+  real(gp) :: tmb_diff, max_tmb_diff, cut
   integer :: j, k, n1i, n2i, n3i, i1, i2, i3
+
+  real(kind=8),dimension(6) :: ewaldstr, hstrten, xcstr, strten
+  real(kind=8) :: fnoise, pressure, ehart_fake
+  real(kind=8),dimension(:,:),allocatable :: fxyz
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -136,6 +143,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   reorder=.false.
   nullify(mom_vec_fake)
 
+  cut=maxval(tmb%lzd%llr(:)%locrad)
 
   call nullify_sparsematrix(ham_small) ! nullify anyway
 
@@ -526,12 +534,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                call yaml_open_sequence('support function optimization',label=&
                               'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
            end if
-           call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-               info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
-               reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
-               nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
-               ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
-               input%lin%early_stop)
+           if (itout<=25) then
+               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+                   info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
+                   reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
+                   nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
+                   ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
+                   input%lin%early_stop)
+           else
+               cut=cut-1.d0
+               if (iproc==0) write(*,'(a,f7.2)') 'new cutoff:', cut
+               call cut_at_boundaries(cut, tmb)
+           end if
            if (iproc==0) then
                call yaml_close_sequence()
            end if
@@ -1056,6 +1070,74 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       energyoldout=energy
 
+
+
+      ! TEST: calculate forces here ####################################################
+      allocate(fxyz(3,at%astruct%nat))
+      ewaldstr=1.d100
+      hstrten=1.d100
+      xcstr=1.d100
+
+      if (denspot%dpbox%ndimpot>0) then
+         allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
+         call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+      else
+         allocate(denspot%pot_work(1+ndebug),stat=i_stat)
+         call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+      end if
+
+
+      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+           tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+      allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
+      call memocc(i_stat,denspot%rho_work,'rho',subname)
+      call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
+           denspot%rhov(1),1,denspot%rho_work(1),1)
+      call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+      ! Density already present in denspot%rho_work
+      call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
+      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
+           0.0_dp,.false.,stress_tensor=hstrten)
+
+      write(*,*) 'size(denspot%rho_work)', size(denspot%rho_work), KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+      write(*,*) 'size(denspot%pot_work)', size(denspot%pot_work), KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+      write(*,*) 'size(denspot%V_XC)', size(denspot%V_XC), KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+      write(*,*) 'size(KSwfn%psi)', size(KSwfn%psi)
+      write(*,*) 'size(denspot%dpbox%ngatherarr)',size(denspot%dpbox%ngatherarr)
+      write(*,'(a,4i8)') 'size(ewaldstr), size(hstrten), size(xcstr), size(strten)', &
+                          size(ewaldstr), size(hstrten), size(xcstr), size(strten)
+      write(*,'(a,5i8)') 'size(rxyz), size(fion), size(fdisp), size(fpulay), size(fxyz)', &
+                          size(rxyz), size(fion), size(fdisp), size(fpulay), size(fxyz)
+      write(*,*) 'nlpspd%nprojel, size(proj)', nlpspd%nprojel, size(proj)
+
+      write(*,*) 'denspot%dpbox%nrhodim',denspot%dpbox%nrhodim
+      
+      allocate(KSwfn%psi(1))
+
+      fpulay=0.d0
+      call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpspd,rxyz,& 
+           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+           proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
+           denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
+           denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
+           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+      deallocate(fxyz)
+      deallocate(KSwfn%psi)
+
+      i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
+      deallocate(denspot%rho_work,stat=i_stat)
+      call memocc(i_stat,i_all,'denspot%rho',subname)
+      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+      deallocate(denspot%pot_work,stat=i_stat)
+      call memocc(i_stat,i_all,'denspot%pot_work',subname)
+      nullify(denspot%rho_work,denspot%pot_work)
+
+      ! TEST: calculate forces here ####################################################
+
+
+
+
       call check_for_exit()
       if(exit_outer_loop) exit outerLoop
 
@@ -1065,6 +1147,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           if (iproc==0) call yaml_map('fix the support functions from now on',.true.)
           fix_support_functions=.true.
       end if
+
+
 
   end do outerLoop
 
@@ -2046,3 +2130,117 @@ subroutine output_fragment_rotations(iproc,nproc,nat,rxyz,iformat,filename,input
    end if
 
 end subroutine output_fragment_rotations
+
+
+subroutine cut_at_boundaries(cut, tmb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  real(kind=8),intent(in)  :: cut
+  type(DFT_wavefunction),intent(inout) :: tmb
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, icount, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, istart, iend
+  real(kind=8) :: dist, cut2
+
+  ! square of the cutoff radius
+  cut2=cut**2
+
+  ishift=0
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+
+      icount=0
+      do iseg=1,tmb%lzd%llr(ilr)%wfd%nseg_c
+         jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+         j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+         j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+         ii=j0-1
+         i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+         ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+         i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+         i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            dist = ((tmb%lzd%llr(ilr)%ns1+i )*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+                 + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+                 + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
+            if (dist>=cut2) then
+                !tmb%psi(ishift+i-i0+jj)=0.d0
+                icount=icount+1
+                tmb%psi(ishift+icount)=0.d0
+            else
+                icount=icount+1
+            end if
+            !psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
+         end do
+      end do
+      if (icount/=tmb%lzd%llr(ilr)%wfd%nvctr_c) then
+          write(*,*) 'ERROR: icount /= tmb%lzd%llr(ilr)%wfd%nvctr_c', icount, tmb%lzd%llr(ilr)%wfd%nvctr_c
+          stop
+      end if
+      ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c
+
+      ! fine part
+      istart=tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))
+      iend=tmb%lzd%llr(ilr)%wfd%nseg_c+tmb%lzd%llr(ilr)%wfd%nseg_f
+      icount=0
+      do iseg=istart,iend
+         jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+         j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+         j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+         ii=j0-1
+         i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+         ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+         i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+         i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            dist = ((tmb%lzd%llr(ilr)%ns1+i )*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+                 + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+                 + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
+            if (dist>=cut2) then
+                !tmb%psi(ishift+(i-i0+jj-1)*7+1)=0.d0
+                !tmb%psi(ishift+(i-i0+jj-1)*7+2)=0.d0
+                !tmb%psi(ishift+(i-i0+jj-1)*7+3)=0.d0
+                !tmb%psi(ishift+(i-i0+jj-1)*7+4)=0.d0
+                !tmb%psi(ishift+(i-i0+jj-1)*7+5)=0.d0
+                !tmb%psi(ishift+(i-i0+jj-1)*7+6)=0.d0
+                !tmb%psi(ishift+(i-i0+jj-1)*7+7)=0.d0
+                !icount=icount+7
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+            else
+                icount=icount+7
+            end if
+            !psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
+            !psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
+            !psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
+            !psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
+            !psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
+            !psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
+            !psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
+         end do
+      end do
+      if (icount/=7*tmb%lzd%llr(ilr)%wfd%nvctr_f) then
+          write(*,*) 'ERROR: icount /= 7*tmb%lzd%llr(ilr)%wfd%nvctr_f', icount, 7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          stop
+      end if
+      ishift=ishift+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+
+  end do
+
+  if (ishift/=tmb%npsidim_orbs) then
+      write(*,*) 'ERROR: ishift /= tmb%npsidim_orbs', ishift, tmb%npsidim_orbs
+      stop
+  end if
+
+end subroutine cut_at_boundaries
