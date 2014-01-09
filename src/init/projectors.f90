@@ -761,31 +761,31 @@ END SUBROUTINE projector_paw
 
 !>   Determines the number of projectors (valid for GTH and HGH pseudopotentials)
 subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
-use module_base
-use module_types
-implicit none
-integer, intent(in) :: ityp,ntypes
-integer, dimension(ntypes), intent(in) :: npspcode
-real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
-integer, intent(out) :: mproj
-!Local variables
-integer :: l,i
+  use module_base
+  !use module_types
+  implicit none
+  integer, intent(in) :: ityp,ntypes
+  integer, dimension(ntypes), intent(in) :: npspcode
+  real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
+  integer, intent(out) :: mproj
+  !Local variables
+  integer :: l,i
 
-mproj=0
-if (npspcode(ityp) == 2) then !GTH
-  do l=1,2 
-     do i=1,2 
-        if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
+  mproj=0
+  if (npspcode(ityp) == 2) then !GTH
+     do l=1,2 
+        do i=1,2 
+           if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
+        enddo
      enddo
-  enddo
-else if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10 &
-    .or. npspcode(ityp) == 12) then !HGH and HGH-K
-  do l=1,4 
-     do i=1,3 
-        if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
+  else if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10 &
+       .or. npspcode(ityp) == 12) then !HGH and HGH-K
+     do l=1,4 
+        do i=1,3 
+           if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
+        enddo
      enddo
-  enddo
-end if
+  end if
 
 END SUBROUTINE numb_proj
 

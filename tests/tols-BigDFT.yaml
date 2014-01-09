@@ -524,6 +524,9 @@ foe:
  EXC: 1.0e-10
  Total charge: 2.1e-11
  EvXC: 1.1e-10
+ eF: 1.01e-10
+ Pulay Forces (Ha/Bohr): 1.2e-11
+ Atomic Forces (Ha/Bohr): 4.0e-11
 
 onlyhigh:
  EH: 1.1e-10

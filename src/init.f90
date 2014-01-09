@@ -284,7 +284,6 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
      i_all=-product(shape(logrid))*kind(logrid)
      deallocate(logrid,stat=i_stat)
      call memocc(i_stat,i_all,'logrid',subname)
-
      return
   end if
 
