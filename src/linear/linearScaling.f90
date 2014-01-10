@@ -96,9 +96,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(gp) :: tmb_diff, max_tmb_diff, cut
   integer :: j, k, n1i, n2i, n3i, i1, i2, i3
 
+  integer :: ist, iiorb, ncount
   real(kind=8),dimension(6) :: ewaldstr, hstrten, xcstr, strten
-  real(kind=8) :: fnoise, pressure, ehart_fake
+  real(kind=8) :: fnoise, pressure, ehart_fake, dnrm2, eh_tmp, exc_tmp, evxc_tmp, eexctX_tmp
   real(kind=8),dimension(:,:),allocatable :: fxyz
+  real(kind=8),dimension(:),allocatable :: rhopot_work
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -534,18 +536,30 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                call yaml_open_sequence('support function optimization',label=&
                               'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
            end if
-           if (itout<=25) then
+           !!if (itout<=2) then
                call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                    info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
                    reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                    nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
                    ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                    input%lin%early_stop)
-           else
-               cut=cut-1.d0
-               if (iproc==0) write(*,'(a,f7.2)') 'new cutoff:', cut
-               call cut_at_boundaries(cut, tmb)
-           end if
+           !!else
+           !!    cut=cut-0.5d0
+           !!    if (iproc==0) write(*,'(a,f7.2)') 'new cutoff:', cut
+           !!    call cut_at_boundaries(cut, tmb)
+           !!    ist=1
+           !!    do iorb=1,tmb%orbs%norbp
+           !!        iiorb=tmb%orbs%isorb+iorb
+           !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
+           !!        ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+           !!        tt=dnrm2(ncount, tmb%psi(ist), 1, tmb)
+           !!        tt=1/tt
+           !!        !call dscal(ncount, tt, tmb%psi(ist), 1)
+           !!        tt=dnrm2(ncount, tmb%psi(ist), 1, tmb)
+           !!        write(*,*) 'iiorb, tt', iiorb, tt
+           !!        ist=ist+ncount
+           !!    end do
+           !!end if
            if (iproc==0) then
                call yaml_close_sequence()
            end if
@@ -1077,14 +1091,23 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ewaldstr=1.d100
       hstrten=1.d100
       xcstr=1.d100
+      eh_tmp=energs%eh
+      exc_tmp=energs%exc
+      evxc_tmp=energs%evxc
+      eexctX_tmp=energs%eexctX
 
       if (denspot%dpbox%ndimpot>0) then
          allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
          call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+         allocate(rhopot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
+         call memocc(i_stat,rhopot_work,'rhopot_work',subname)
       else
          allocate(denspot%pot_work(1+ndebug),stat=i_stat)
          call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+         allocate(rhopot_work(1+ndebug),stat=i_stat)
+         call memocc(i_stat,rhopot_work,'rhopot_work',subname)
       end if
+      call dcopy(denspot%dpbox%ndimpot,denspot%rhov,1,rhopot_work,1)
 
 
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
@@ -1100,18 +1123,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
            0.0_dp,.false.,stress_tensor=hstrten)
 
-      write(*,*) 'size(denspot%rho_work)', size(denspot%rho_work), KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-      write(*,*) 'size(denspot%pot_work)', size(denspot%pot_work), KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-      write(*,*) 'size(denspot%V_XC)', size(denspot%V_XC), KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-      write(*,*) 'size(KSwfn%psi)', size(KSwfn%psi)
-      write(*,*) 'size(denspot%dpbox%ngatherarr)',size(denspot%dpbox%ngatherarr)
-      write(*,'(a,4i8)') 'size(ewaldstr), size(hstrten), size(xcstr), size(strten)', &
-                          size(ewaldstr), size(hstrten), size(xcstr), size(strten)
-      write(*,'(a,5i8)') 'size(rxyz), size(fion), size(fdisp), size(fpulay), size(fxyz)', &
-                          size(rxyz), size(fion), size(fdisp), size(fpulay), size(fxyz)
-      write(*,*) 'nlpspd%nprojel, size(proj)', nlpspd%nprojel, size(proj)
-
-      write(*,*) 'denspot%dpbox%nrhodim',denspot%dpbox%nrhodim
       
       allocate(KSwfn%psi(1))
 
@@ -1124,6 +1135,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
       deallocate(fxyz)
       deallocate(KSwfn%psi)
+
+      call dcopy(denspot%dpbox%ndimpot,rhopot_work,1,denspot%rhov,1)
+      energs%eh=eh_tmp
+      energs%exc=exc_tmp
+      energs%evxc=evxc_tmp
+      energs%eexctX=eexctX_tmp
+
+      i_all=-product(shape(rhopot_work))*kind(rhopot_work)
+      deallocate(rhopot_work,stat=i_stat)
+      call memocc(i_stat,i_all,'denspot%rho',subname)
 
       i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
       deallocate(denspot%rho_work,stat=i_stat)
