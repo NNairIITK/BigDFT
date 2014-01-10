@@ -1086,75 +1086,75 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
 
-      ! TEST: calculate forces here ####################################################
-      allocate(fxyz(3,at%astruct%nat))
-      ewaldstr=1.d100
-      hstrten=1.d100
-      xcstr=1.d100
-      eh_tmp=energs%eh
-      exc_tmp=energs%exc
-      evxc_tmp=energs%evxc
-      eexctX_tmp=energs%eexctX
+      !!! TEST: calculate forces here ####################################################
+      !!allocate(fxyz(3,at%astruct%nat))
+      !!ewaldstr=1.d100
+      !!hstrten=1.d100
+      !!xcstr=1.d100
+      !!eh_tmp=energs%eh
+      !!exc_tmp=energs%exc
+      !!evxc_tmp=energs%evxc
+      !!eexctX_tmp=energs%eexctX
 
-      if (denspot%dpbox%ndimpot>0) then
-         allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
-         call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
-         allocate(rhopot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
-         call memocc(i_stat,rhopot_work,'rhopot_work',subname)
-      else
-         allocate(denspot%pot_work(1+ndebug),stat=i_stat)
-         call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
-         allocate(rhopot_work(1+ndebug),stat=i_stat)
-         call memocc(i_stat,rhopot_work,'rhopot_work',subname)
-      end if
-      call dcopy(denspot%dpbox%ndimpot,denspot%rhov,1,rhopot_work,1)
+      !!if (denspot%dpbox%ndimpot>0) then
+      !!   allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
+      !!   call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+      !!   allocate(rhopot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
+      !!   call memocc(i_stat,rhopot_work,'rhopot_work',subname)
+      !!else
+      !!   allocate(denspot%pot_work(1+ndebug),stat=i_stat)
+      !!   call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+      !!   allocate(rhopot_work(1+ndebug),stat=i_stat)
+      !!   call memocc(i_stat,rhopot_work,'rhopot_work',subname)
+      !!end if
+      !!call dcopy(denspot%dpbox%ndimpot,denspot%rhov,1,rhopot_work,1)
 
 
-      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-      allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
-      call memocc(i_stat,denspot%rho_work,'rho',subname)
-      call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
-           denspot%rhov(1),1,denspot%rho_work(1),1)
-      call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+      !!call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+      !!     tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+      !!allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
+      !!call memocc(i_stat,denspot%rho_work,'rho',subname)
+      !!call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
+      !!     denspot%rhov(1),1,denspot%rho_work(1),1)
+      !!call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
-      ! Density already present in denspot%rho_work
-      call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
-      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
-           0.0_dp,.false.,stress_tensor=hstrten)
+      !!! Density already present in denspot%rho_work
+      !!call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
+      !!call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
+      !!     0.0_dp,.false.,stress_tensor=hstrten)
 
-      
-      allocate(KSwfn%psi(1))
+      !!
+      !!allocate(KSwfn%psi(1))
 
-      fpulay=0.d0
-      call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpspd,rxyz,& 
-           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-           proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
-           denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
-           denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
-           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
-      deallocate(fxyz)
-      deallocate(KSwfn%psi)
+      !!fpulay=0.d0
+      !!call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpspd,rxyz,& 
+      !!     KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+      !!     proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
+      !!     denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
+      !!     denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
+      !!     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+      !!deallocate(fxyz)
+      !!deallocate(KSwfn%psi)
 
-      call dcopy(denspot%dpbox%ndimpot,rhopot_work,1,denspot%rhov,1)
-      energs%eh=eh_tmp
-      energs%exc=exc_tmp
-      energs%evxc=evxc_tmp
-      energs%eexctX=eexctX_tmp
+      !!call dcopy(denspot%dpbox%ndimpot,rhopot_work,1,denspot%rhov,1)
+      !!energs%eh=eh_tmp
+      !!energs%exc=exc_tmp
+      !!energs%evxc=evxc_tmp
+      !!energs%eexctX=eexctX_tmp
 
-      i_all=-product(shape(rhopot_work))*kind(rhopot_work)
-      deallocate(rhopot_work,stat=i_stat)
-      call memocc(i_stat,i_all,'denspot%rho',subname)
+      !!i_all=-product(shape(rhopot_work))*kind(rhopot_work)
+      !!deallocate(rhopot_work,stat=i_stat)
+      !!call memocc(i_stat,i_all,'denspot%rho',subname)
 
-      i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
-      deallocate(denspot%rho_work,stat=i_stat)
-      call memocc(i_stat,i_all,'denspot%rho',subname)
-      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-      deallocate(denspot%pot_work,stat=i_stat)
-      call memocc(i_stat,i_all,'denspot%pot_work',subname)
-      nullify(denspot%rho_work,denspot%pot_work)
+      !!i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
+      !!deallocate(denspot%rho_work,stat=i_stat)
+      !!call memocc(i_stat,i_all,'denspot%rho',subname)
+      !!i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+      !!deallocate(denspot%pot_work,stat=i_stat)
+      !!call memocc(i_stat,i_all,'denspot%pot_work',subname)
+      !!nullify(denspot%rho_work,denspot%pot_work)
 
-      ! TEST: calculate forces here ####################################################
+      !!! TEST: calculate forces here ####################################################
 
 
 
