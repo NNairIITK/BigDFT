@@ -42,7 +42,7 @@ program frequencies
    !Atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: rxyz0
    real(gp), dimension(:,:), allocatable :: fpos
-   real(gp), dimension(:,:), allocatable :: hessian           !< Hessain matrix
+   real(gp), dimension(:,:), allocatable :: hessian           !< Hessian matrix
    real(gp), dimension(:,:), allocatable :: vector_l,vector_r !< left and right eignevectors
    real(gp), dimension(:), allocatable :: eigen_r,eigen_i     !< Real and Imaginary part of the eigenvalues
    real(gp), dimension(:), allocatable :: sort_work           !< To sort the eigenvalues in ascending order
@@ -51,10 +51,11 @@ program frequencies
    logical, dimension(:,:), allocatable :: moves !< logical: .true. if already calculated
    real(gp), dimension(:,:), allocatable :: energies
    real(gp), dimension(:,:,:), allocatable :: forces
+   integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for call_bigdft
    real(gp), dimension(3) :: freq_step
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
    integer :: k,km,ii,jj,ik,imoves,order,n_order
-   integer :: iproc,nproc,igroup,ngroups,icalc
+   integer :: iproc,nproc,igroup,ngroups
    integer :: iat,jat,i,j,ierr,infocode,ity,nconfig
    logical :: exists
    integer, dimension(4) :: mpi_info
@@ -115,6 +116,7 @@ program frequencies
    ! Allocations
    call init_global_output(outs, runObj%atoms%astruct%nat)
    rxyz0 = f_malloc((/ 3, runObj%atoms%astruct%nat /), id = 'rxyz0')
+   ifrztyp0 = f_malloc(runObj%atoms%astruct%nat, id = 'ifrztyp0')
    moves = f_malloc((/ 1.to.n_order, 0.to.3*runObj%atoms%astruct%nat /),id='moves')
    energies = f_malloc((/ 1.to.n_order, 0.to.3*runObj%atoms%astruct%nat /),id='energies')
    forces = f_malloc((/ 1.to.3*runObj%atoms%astruct%nat, 1.to.n_order, 0.to.3*runObj%atoms%astruct%nat /),id='forces')
@@ -129,9 +131,9 @@ program frequencies
    freq_step(3) = runObj%inputs%freq_alpha*runObj%inputs%hz
    ! Reference positions.
    call vcopy(3*runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz0(1,1), 1)
-
-   !Determination of the calculation id
-   icalc=0
+   ! Remove frozen atoms in order to avoid the full atimic forces from call_bigdft
+   ifrztyp0 = runObj%atoms%astruct%ifrztyp
+   runObj%atoms%astruct%ifrztyp = 0
 
    !Initialize the moves using a restart file if present
    !Regenerate it if trouble and indicate if all calculations are done
@@ -174,7 +176,7 @@ program frequencies
 
    do iat=1,runObj%atoms%astruct%nat
 
-      if (runObj%atoms%astruct%ifrztyp(iat) == 1) then
+      if (ifrztyp0(iat) == 1) then
          if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The atom ' // trim(yaml_toa(iat)) // ' is frozen.')
          cycle
       end if
@@ -335,6 +337,7 @@ program frequencies
 
    ! de-allocations
    call f_free(rxyz0)
+   call f_free(ifrztyp0)
 
    call deallocate_global_output(outs)
 
@@ -525,46 +528,46 @@ contains
 
 
    !> write the full restart file
-   subroutine frequencies_write_new_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
-      implicit none
-      !arguments
-      integer, intent(in) :: nat     !< number of atoms
-      integer, intent(in) :: n_order !< order of the finite difference
-      logical, dimension(n_order,0:3*nat), intent(in) :: moves         !< contains moves already done
-      real(gp), dimension(n_order,0:3*nat), intent(in) :: energies     !< energies of the already moves
-      real(gp), dimension(3*nat,n_order,0:3*nat), intent(in) :: forces !< forces of the already moves
-      real(gp), dimension(3), intent(in) :: freq_step    !< frequency step in each direction
-      integer, intent(out) :: imoves                     !< number of frequency already calculated
-      real(gp), dimension(:), intent(in) :: amu          !< atomic masses
-      integer, intent(out) :: ierror                     !< error when reading the file
-      !local variables
-      integer, parameter :: iunit = 15
+   !subroutine frequencies_write_new_restart(nat,n_order,imoves,moves,energies,forces,freq_step,amu,ierror)
+   !   implicit none
+   !   !arguments
+   !   integer, intent(in) :: nat     !< number of atoms
+   !   integer, intent(in) :: n_order !< order of the finite difference
+   !   logical, dimension(n_order,0:3*nat), intent(in) :: moves         !< contains moves already done
+   !   real(gp), dimension(n_order,0:3*nat), intent(in) :: energies     !< energies of the already moves
+   !   real(gp), dimension(3*nat,n_order,0:3*nat), intent(in) :: forces !< forces of the already moves
+   !   real(gp), dimension(3), intent(in) :: freq_step    !< frequency step in each direction
+   !   integer, intent(out) :: imoves                     !< number of frequency already calculated
+   !   real(gp), dimension(:), intent(in) :: amu          !< atomic masses
+   !   integer, intent(out) :: ierror                     !< error when reading the file
+   !   !local variables
+   !   integer, parameter :: iunit = 15
 
-      if (bigdft_mpi%iproc ==0 ) then
-         !this file is used as a restart
-         open(unit=iunit,file='frequencies.res',status="unknown",form="unformatted")
-         write(unit=iunit) n_order,freq_step,amu
+   !   if (bigdft_mpi%iproc ==0 ) then
+   !      !this file is used as a restart
+   !      open(unit=iunit,file='frequencies.res',status="unknown",form="unformatted")
+   !      write(unit=iunit) n_order,freq_step,amu
 
-         write(unit=iunit) 0,outs%energy,rxyz0,outs%fxyz
-         do iat=1,runobj%atoms%astruct%nat
-            if (runobj%atoms%astruct%ifrztyp(iat) == 1) then
-               if (bigdft_mpi%iproc == 0) call yaml_comment('(F) the atom ' // trim(yaml_toa(iat)) // ' is frozen.')
-               cycle
-            end if
-            do i=1,3
-               ii = i+3*(iat-1)
-               km = 0
-               do ik=1,n_order
-                  km = km + 1
-                  if (moves(km,ii)) then
-                     write(unit=iunit) km,i,iat,outs%energy,rxyz0,outs%fxyz
-                  end if
-               end do
-            end do
-         end do
-         close(unit=iunit)
-      end if
-   end subroutine frequencies_write_new_restart
+   !      write(unit=iunit) 0,outs%energy,rxyz0,outs%fxyz
+   !      do iat=1,runobj%atoms%astruct%nat
+   !         if (ifrztyp0(iat) == 1) then
+   !            if (bigdft_mpi%iproc == 0) call yaml_comment('(F) the atom ' // trim(yaml_toa(iat)) // ' is frozen.')
+   !            cycle
+   !         end if
+   !         do i=1,3
+   !            ii = i+3*(iat-1)
+   !            km = 0
+   !            do ik=1,n_order
+   !               km = km + 1
+   !               if (moves(km,ii)) then
+   !                  write(unit=iunit) km,i,iat,outs%energy,rxyz0,outs%fxyz
+   !               end if
+   !            end do
+   !         end do
+   !      end do
+   !      close(unit=iunit)
+   !   end if
+   !end subroutine frequencies_write_new_restart
 
 
    !> write one move in the file restart (only moves==.true.)
