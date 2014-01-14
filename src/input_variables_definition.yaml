@@ -619,4 +619,6 @@
    explicit_locregcenters:
      COMMENT: linear scaling explicitely specify localization centers 
      default: No
+   calculate_KS_residue:
+     COMMENT: linear scaling calculate Kohn-Sham residue
 

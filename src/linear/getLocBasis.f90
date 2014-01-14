@@ -393,8 +393,8 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
-    reduce_conf,fix_supportfunctions,nit_precond,target_function,&
-    correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit,deltaenergy_multiplier_TMBfix,&
+    fix_supportfunctions,nit_precond,target_function,&
+    correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
   !
   ! Purpose:
@@ -427,9 +427,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(DFT_wavefunction),target,intent(inout) :: tmb
   type(SIC_data) :: SIC !<parameters for the SIC methods
   type(energy_terms),intent(in) :: energs_base
-  logical,intent(out) :: reduce_conf, fix_supportfunctions
+  logical,intent(out) :: fix_supportfunctions
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
-  real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
   real(kind=8),intent(out) :: ratio_deltas
   logical, intent(inout) :: ortho_on
   integer, intent(in) :: extra_states
@@ -489,7 +488,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
-  reduce_conf=.false.
   fix_supportfunctions=.false.
   delta_energy_prev=1.d100
 
@@ -740,11 +738,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
           !!if (iproc==0) write(*,*) 'ratio_deltas',ratio_deltas
           if (iproc==0) call yaml_map('kappa',ratio_deltas,fmt='(es10.3)')
-          if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
+          !if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
           !if ((it>=nit_basis .or.  energy_increased) .and. it>1) then
               !if (iproc==0) write(*,*) 'reduce the confinement'
-              reduce_conf=.true.
-          end if
+              !reduce_conf=.true.
+          !end if
       end if
 
       if (energy_increased) then
