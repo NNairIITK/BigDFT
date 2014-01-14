@@ -397,8 +397,8 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
 
   ham%matrix=f_malloc_ptr((/ham%full_dim1,ham%full_dim1/), id='ham%matrix')
   call uncompressMatrix(iproc,ham)
-  if (separate_site_energies) call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs,homo_coeffs,&
-       homo_ham,homo_ovrlp)
+  if (separate_site_energies .or. input_frag%nfrag==1) call calc_transfer_integral(iproc,nproc,nstates,&
+       orbs,ham,ovrlp,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
 
   ! orthogonalize
   coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')

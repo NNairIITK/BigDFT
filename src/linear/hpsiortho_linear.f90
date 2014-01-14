@@ -1095,7 +1095,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       if (iproc == 0) then
           call yaml_map('Orthogonalization',.true.)
       end if
-  else if (experimental_mode) then
+  else if (experimental_mode .or. .not.ldiis%switchSD) then
       ! Wasteful to do it transposed...
       !if (iproc==0) write(*,*) 'normalize...'
       if (iproc==0) call yaml_map('normalization',.true.)
