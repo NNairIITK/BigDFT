@@ -28,9 +28,15 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.1
+<<<<<<< TREE
  Timestamp of this run                 : 2014-01-14 13:49:32.703
  Root process Hostname                 : moutarde
  Number of MPI tasks                   :  6
+=======
+ Timestamp of this run                 : 2014-01-14 11:32:19.446
+ Root process Hostname                 : girofle
+ Number of MPI tasks                   :  3
+>>>>>>> MERGE-SOURCE
  OpenMP parallelization                :  Yes
  Maximal OpenMP threads per MPI task   :  2
  MPI tasks of root process node        :  6
@@ -82,6 +88,7 @@
    check_sumrho                        : 2 #      enables linear sumrho check
    experimental_mode                   : No #     activate the experimental mode in linear scaling
    write_orbitals                      : No #     linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     linear scaling explicitely specify localization centers
  dft:
    hgrids: [0.29999999999999999, 0.29999999999999999, 0.29999999999999999] # grid spacing in the three directions (bohr)
    rmult: [5.0000000000000000, 7.0000000000000000] # c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -422,7 +429,11 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.00415264460E+01, Epot: -1.20265177498E+01, Enl:  7.03220409563E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  2.05E-01, Omega: -1.66822135404787950E+01, D: -6.317E-01, 
+=======
+ iter:  2, fnrm:  2.05E-01, Omega: -1.66822135404788341E+01, D: -6.317E-01, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  1.017E+00, max alpha:  1.100E+00, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -431,7 +442,11 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.35806546762E+00, Epot: -1.13343837329E+01, Enl:  6.49481746835E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  3, fnrm:  1.25E-01, Omega: -1.67723447889577315E+01, D: -9.013E-02, 
+=======
+ iter:  3, fnrm:  1.25E-01, Omega: -1.67723447889578168E+01, D: -9.013E-02, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  1.027E+00, max alpha:  1.210E+00, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -474,7 +489,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  2.52E-06, energy: -1.72821324497145064E+01, D: -1.728E+01}]
+=======
+ iter:  1, delta:  2.52E-06, energy: -1.72821324497146236E+01, D: -1.728E+01}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.28E-03
@@ -484,12 +503,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  4.77E-02, eBS: -3.16346069761254522E+00, D: -1.360E+00, 
+=======
+ iter:  1, fnrm:  4.77E-02, eBS: -3.16346069761274507E+00, D: -1.360E+00, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  1.411E-01
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
+<<<<<<< TREE
        energydiff                      :  0.15541793105046153
+=======
+       energydiff                      :  0.15541793105071022
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  8.92253950936E+00, Epot: -1.17218201140E+01, Enl:  6.35910883973E-01, 
               EH:  2.07267610250E+01,  EXC: -3.99877067475E+00, EvXC: -5.24052311191E+00}, 
@@ -512,12 +539,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.63E-02, eBS: -4.52375161088812661E+00, D:  5.479E-02, 
+=======
+ iter:  1, fnrm:  2.63E-02, eBS: -4.52375161088840816E+00, D:  5.479E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.000E-01}
          Kohn-Sham residue             :  1.379E-01
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
+<<<<<<< TREE
        energydiff                      : -1.49558924860571096E-004
+=======
+       energydiff                      : -1.49558924960047079E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  8.92253950936E+00, Epot: -1.16889526421E+01, Enl:  6.35910883973E-01, 
               EH:  2.07847669371E+01,  EXC: -4.00833005311E+00, EvXC: -5.25315100682E+00}, 
@@ -530,7 +565,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  3, delta:  1.52E-08, energy: -1.71268640775889054E+01, D: -1.496E-04}]
+=======
+ iter:  3, delta:  1.52E-08, energy: -1.71268640775888734E+01, D: -1.496E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  1.28E-03
@@ -540,7 +579,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.11E-02, eBS: -4.46896377426698699E+00, D:  1.284E-02, 
+=======
+ iter:  1, fnrm:  2.11E-02, eBS: -4.46896377426717351E+00, D:  1.284E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.100E-01}
          Kohn-Sham residue             :  1.371E-01
          Coefficients available        :  Yes
@@ -558,7 +601,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  4, delta:  1.26E-08, energy: -1.71270377796510900E+01, D: -1.737E-04}]
+=======
+ iter:  4, delta:  1.26E-08, energy: -1.71270377796510722E+01, D: -1.737E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  1.28E-03
@@ -568,12 +615,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.69E-02, eBS: -4.45612278256110983E+00, D:  1.036E-02, 
+=======
+ iter:  1, fnrm:  1.69E-02, eBS: -4.45612278256128747E+00, D:  1.036E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.210E-01}
          Kohn-Sham residue             :  1.364E-01
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
+<<<<<<< TREE
        energydiff                      : -1.22211982215958415E-004
+=======
+       energydiff                      : -1.22211982187536705E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  8.92253950936E+00, Epot: -1.16749283636E+01, Enl:  6.35910883973E-01, 
               EH:  2.08095883139E+01,  EXC: -4.01244555327E+00, EvXC: -5.25858787592E+00}, 
@@ -586,7 +641,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  5, delta:  1.02E-08, energy: -1.71271599916333059E+01, D: -1.222E-04}]
+=======
+ iter:  5, delta:  1.02E-08, energy: -1.71271599916332598E+01, D: -1.222E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  1.28E-03
@@ -596,12 +655,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.35E-02, eBS: -4.44575968040829572E+00, D:  8.031E-03, 
+=======
+ iter:  1, fnrm:  1.35E-02, eBS: -4.44575968040842806E+00, D:  8.031E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.331E-01}
          Kohn-Sham residue             :  1.359E-01
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
+<<<<<<< TREE
        energydiff                      : -8.66640564787246603E-005
+=======
+       energydiff                      : -8.66640563934595320E-005
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  8.92253950936E+00, Epot: -1.16700880964E+01, Enl:  6.35910883973E-01, 
               EH:  2.08181646279E+01,  EXC: -4.01387516130E+00, EvXC: -5.26047656728E+00}, 
@@ -624,12 +691,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.09E-02, eBS: -4.43772911383515023E+00, D:  5.920E-03, 
+=======
+ iter:  1, fnrm:  1.09E-02, eBS: -4.43772911383530033E+00, D:  5.920E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.464E-01}
          Kohn-Sham residue             :  1.356E-01
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
+<<<<<<< TREE
        energydiff                      : -6.24519107681464902E-005
+=======
+       energydiff                      : -6.24519108676224732E-005
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  8.92253950936E+00, Epot: -1.16665208572E+01, Enl:  6.35910883973E-01, 
               EH:  2.08244877878E+01,  EXC: -4.01493525078E+00, EvXC: -5.26187712664E+00}, 
@@ -642,7 +717,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  7, delta:  6.62E-09, energy: -1.71273091076005528E+01, D: -6.245E-05}]
+=======
+ iter:  7, delta:  6.62E-09, energy: -1.71273091076005208E+01, D: -6.245E-05}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  1.28E-03
@@ -652,12 +731,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  8.88E-03, eBS: -4.43180887565411119E+00, D:  4.094E-03, 
+=======
+ iter:  1, fnrm:  8.88E-03, eBS: -4.43180887565422754E+00, D:  4.094E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.611E-01}
          Kohn-Sham residue             :  1.353E-01
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
+<<<<<<< TREE
        energydiff                      : -4.57696891160708219E-005
+=======
+       energydiff                      : -4.57696891231762493E-005
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  8.92253950936E+00, Epot: -1.16640515974E+01, Enl:  6.35910883973E-01, 
               EH:  2.08288650867E+01,  EXC: -4.01567588505E+00, EvXC: -5.26285567923E+00}, 
@@ -670,15 +757,27 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  8, delta:  5.49E-09, energy: -1.71273548772896689E+01, D: -4.577E-05}]
+=======
+ iter:  8, delta:  5.49E-09, energy: -1.71273548772896440E+01, D: -4.577E-05}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel001  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  9, delta:  5.49E-09, energy: -1.71273548772896689E+01, D: -4.577E-05}]}
+=======
+ iter:  9, delta:  5.49E-09, energy: -1.71273548772896440E+01, D: -4.577E-05}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter low:  1, delta out:  2.467E-06, energy: -1.71273548772896689E+01, D: -1.713E+01}
+=======
+ iter low:  1, delta out:  2.467E-06, energy: -1.71273548772896440E+01, D: -1.713E+01}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -694,7 +793,11 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.50743632028E+00, Epot: -1.23119298510E+01, Enl:  7.35542978920E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  8.69E-02, Omega: -1.68401651910860579E+01, D: -9.722E-02, 
+=======
+ iter:  2, fnrm:  8.69E-02, Omega: -1.68401651910860828E+01, D: -9.722E-02, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  9.599E-01, max alpha:  1.131E+00, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -712,12 +815,20 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.26945349585E+01, Enl:  7.29001220577E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  4, fnrm:  3.53E-02, Omega: -1.68753642432227196E+01, D: -9.543E-03, 
+=======
+ iter:  4, fnrm:  3.53E-02, Omega: -1.68753642432227551E+01, D: -9.543E-03, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 4
  target function: TRACE, 
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.26945349585E+01, Enl:  7.29001220577E-01}, 
+<<<<<<< TREE
  iter:  4, fnrm:  3.53E-02, Omega: -1.68753642432227196E+01, D: -9.543E-03}
+=======
+ iter:  4, fnrm:  3.53E-02, Omega: -1.68753642432227551E+01, D: -9.543E-03}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -730,7 +841,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  5.20E-02, eBS: -4.42771526475970578E+00, D: -8.394E-02, 
+=======
+ iter:  1, fnrm:  5.20E-02, eBS: -4.42771526475982835E+00, D: -8.394E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  4.330E-02
          Coefficients available        :  Yes
@@ -756,12 +871,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.53E-01, eBS: -4.51165977862709777E+00, D:  1.537E+00, 
+=======
+ iter:  1, fnrm:  1.53E-01, eBS: -4.51165977862723810E+00, D:  1.537E+00, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  1.280E-01
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
+<<<<<<< TREE
        energydiff                      :  6.80161672141430529E-002
+=======
+       energydiff                      :  6.80161672142673979E-002
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.18889914472E+01, Enl:  7.29001220577E-01, 
               EH:  2.23923607831E+01,  EXC: -4.30150415194E+00, EvXC: -5.64064604347E+00}, 
@@ -784,12 +907,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  9.03E-02, eBS: -2.97473448731558054E+00, D: -2.645E-01, 
+=======
+ iter:  1, fnrm:  9.03E-02, eBS: -2.97473448731534473E+00, D: -2.645E-01, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.000E-01}
          Kohn-Sham residue             :  1.090E-01
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
+<<<<<<< TREE
        energydiff                      : -1.21967363996233757E-003
+=======
+       energydiff                      : -1.21967363992325772E-003
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.20452371788E+01, Enl:  7.29001220577E-01, 
               EH:  2.21149782683E+01,  EXC: -4.25738386715E+00, EvXC: -5.58238604161E+00}, 
@@ -802,7 +933,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  3, delta:  6.92E-08, energy: -1.71471273725334612E+01, D: -1.220E-03}]
+=======
+ iter:  3, delta:  6.92E-08, energy: -1.71471273725332978E+01, D: -1.220E-03}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  2.11E-04
@@ -812,12 +947,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  7.28E-02, eBS: -3.23919695874713565E+00, D: -7.706E-02, 
+=======
+ iter:  1, fnrm:  7.28E-02, eBS: -3.23919695874697311E+00, D: -7.706E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.100E-01}
          Kohn-Sham residue             :  1.031E-01
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
+<<<<<<< TREE
        energydiff                      : -2.05015988937873317E-003
+=======
+       energydiff                      : -2.05015988956347428E-003
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.20899360402E+01, Enl:  7.29001220577E-01, 
               EH:  2.20359721044E+01,  EXC: -4.24492433785E+00, EvXC: -5.56593447875E+00}, 
@@ -840,12 +983,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  5.78E-02, eBS: -3.31626124897450714E+00, D: -6.625E-02, 
+=======
+ iter:  1, fnrm:  5.78E-02, eBS: -3.31626124897434549E+00, D: -6.625E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.210E-01}
          Kohn-Sham residue             :  9.829E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
+<<<<<<< TREE
        energydiff                      : -1.40966572225664777E-003
+=======
+       energydiff                      : -1.40966572216072450E-003
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.21286350786E+01, Enl:  7.29001220577E-01, 
               EH:  2.19676935089E+01,  EXC: -4.23419774276E+00, EvXC: -5.55177145458E+00}, 
@@ -858,7 +1009,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  5, delta:  5.02E-08, energy: -1.71505871981450966E+01, D: -1.410E-03}]
+=======
+ iter:  5, delta:  5.02E-08, energy: -1.71505871981450220E+01, D: -1.410E-03}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  2.11E-04
@@ -868,12 +1023,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  4.55E-02, eBS: -3.38251308114479610E+00, D: -5.543E-02, 
+=======
+ iter:  1, fnrm:  4.55E-02, eBS: -3.38251308114464377E+00, D: -5.543E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.331E-01}
          Kohn-Sham residue             :  9.440E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
+<<<<<<< TREE
        energydiff                      : -9.49434207356603110E-004
+=======
+       energydiff                      : -9.49434207502264371E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.21611819431E+01, Enl:  7.29001220577E-01, 
               EH:  2.19103349505E+01,  EXC: -4.22522350350E+00, EvXC: -5.53992250192E+00}, 
@@ -896,12 +1059,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  3.55E-02, eBS: -3.43794636028922707E+00, D: -4.509E-02, 
+=======
+ iter:  1, fnrm:  3.55E-02, eBS: -3.43794636028906986E+00, D: -4.509E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.464E-01}
          Kohn-Sham residue             :  9.134E-02
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
+<<<<<<< TREE
        energydiff                      : -6.32032745635058291E-004
+=======
+       energydiff                      : -6.32032745674138141E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.21877451565E+01, Enl:  7.29001220577E-01, 
               EH:  2.18635407214E+01,  EXC: -4.21793493465E+00, EvXC: -5.53029947309E+00}, 
@@ -914,7 +1085,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  7, delta:  3.26E-08, energy: -1.71521686650980882E+01, D: -6.320E-04}]
+=======
+ iter:  7, delta:  3.26E-08, energy: -1.71521686650981984E+01, D: -6.320E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  2.11E-04
@@ -924,7 +1099,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.76E-02, eBS: -3.48303816213451567E+00, D: -3.564E-02, 
+=======
+ iter:  1, fnrm:  2.76E-02, eBS: -3.48303816213436956E+00, D: -3.564E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.611E-01}
          Kohn-Sham residue             :  8.899E-02
          Coefficients available        :  Yes
@@ -942,15 +1121,27 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  8, delta:  2.53E-08, energy: -1.71525884407586773E+01, D: -4.198E-04}]
+=======
+ iter:  8, delta:  2.53E-08, energy: -1.71525884407586275E+01, D: -4.198E-04}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel002  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  9, delta:  2.53E-08, energy: -1.71525884407586773E+01, D: -4.198E-04}]}
+=======
+ iter:  9, delta:  2.53E-08, energy: -1.71525884407586275E+01, D: -4.198E-04}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, target function: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter low:  2, delta out:  1.564E-06, energy: -1.71525884407586773E+01, D: -2.523E-02}
+=======
+ iter low:  2, delta out:  1.564E-06, energy: -1.71525884407586275E+01, D: -2.523E-02}
+>>>>>>> MERGE-SOURCE
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
    Kernel update:
@@ -961,7 +1152,11 @@
      -  { #-------------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.15E-02, eBS: -3.51868097767621801E+00, D: -2.739E-02, 
+=======
+ iter:  1, fnrm:  2.15E-02, eBS: -3.51868097767606880E+00, D: -2.739E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.772E-01}
      Kohn-Sham residue                 :  8.721E-02
      Coefficients available            :  Yes
@@ -971,7 +1166,11 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.87898366010E+00, Epot: -1.22249391581E+01, Enl:  7.29001220577E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.42E-01, Omega: -1.71528687648421112E+01, D: -2.870E-01, 
+=======
+ iter:  1, fnrm:  1.42E-01, Omega: -1.71528687648420544E+01, D: -2.870E-01, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  1.001E+00, max alpha:  1.001E+00, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -980,12 +1179,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.01776903291E+00, Epot: -1.12528826236E+01, Enl:  5.97358824852E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.35E-01, Omega: -1.71918492792041953E+01, D: -3.898E-02, 
+=======
+ iter:  2, fnrm:  1.35E-01, Omega: -1.71918492792041278E+01, D: -3.898E-02, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.01776903291E+00, Epot: -1.12528826236E+01, Enl:  5.97358824852E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.35E-01, Omega: -1.71918492792041953E+01, D: -3.898E-02}
+=======
+ iter:  2, fnrm:  1.35E-01, Omega: -1.71918492792041278E+01, D: -3.898E-02}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -998,7 +1205,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.91E-02, eBS: -3.54607259346934445E+00, D: -3.929E-02, 
+=======
+ iter:  1, fnrm:  1.91E-02, eBS: -3.54607259346919523E+00, D: -3.929E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -1013,7 +1224,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  1.49E-06, energy: -1.71921633635718436E+01, D: -3.957E-02}]
+=======
+ iter:  1, delta:  1.49E-06, energy: -1.71921633635718010E+01, D: -3.957E-02}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  7.36E-03
@@ -1023,7 +1238,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.48E-01, eBS: -3.58536719219907685E+00, D: -1.345E+00, 
+=======
+ iter:  1, fnrm:  1.48E-01, eBS: -3.58536719219895561E+00, D: -1.345E+00, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  1.469E-01
          Coefficients available        :  Yes
@@ -1041,7 +1260,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  2.32E-07, energy: -1.71440384681986302E+01, D:  4.812E-02}]
+=======
+ iter:  2, delta:  2.32E-07, energy: -1.71440384681986870E+01, D:  4.812E-02}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  7.36E-03
@@ -1051,12 +1274,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  7.98E-02, eBS: -4.92993308753738013E+00, D:  2.191E-01, 
+=======
+ iter:  1, fnrm:  7.98E-02, eBS: -4.92993308753731974E+00, D:  2.191E-01, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.000E-01}
          Kohn-Sham residue             :  1.318E-01
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
+<<<<<<< TREE
        energydiff                      : -6.65901789719924864E-004
+=======
+       energydiff                      : -6.65901789759004714E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.01776903291E+00, Epot: -1.19247344525E+01, Enl:  5.97358824852E-01, 
               EH:  2.05497333771E+01,  EXC: -3.97331923015E+00, EvXC: -5.20710367781E+00}, 
@@ -1069,7 +1300,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  3, delta:  6.07E-08, energy: -1.71447043699883501E+01, D: -6.659E-04}]
+=======
+ iter:  3, delta:  6.07E-08, energy: -1.71447043699884460E+01, D: -6.659E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  7.36E-03
@@ -1079,7 +1314,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  6.27E-02, eBS: -4.71080112054924616E+00, D:  5.557E-02, 
+=======
+ iter:  1, fnrm:  6.27E-02, eBS: -4.71080112054916711E+00, D:  5.557E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.100E-01}
          Kohn-Sham residue             :  1.278E-01
          Coefficients available        :  Yes
@@ -1097,7 +1336,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  4, delta:  5.15E-08, energy: -1.71462020526612378E+01, D: -1.498E-03}]
+=======
+ iter:  4, delta:  5.15E-08, energy: -1.71462020526611667E+01, D: -1.498E-03}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  7.36E-03
@@ -1107,12 +1350,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  4.84E-02, eBS: -4.65522665293737692E+00, D:  4.728E-02, 
+=======
+ iter:  1, fnrm:  4.84E-02, eBS: -4.65522665293730231E+00, D:  4.728E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.210E-01}
          Kohn-Sham residue             :  1.246E-01
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
+<<<<<<< TREE
        energydiff                      : -9.68970265567747902E-004
+=======
+       energydiff                      : -9.68970265528668051E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.01776903291E+00, Epot: -1.18623673894E+01, Enl:  5.97358824852E-01, 
               EH:  2.06607951582E+01,  EXC: -3.99122202205E+00, EvXC: -5.23074889049E+00}, 
@@ -1125,7 +1376,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  5, delta:  4.27E-08, energy: -1.71471710229268055E+01, D: -9.690E-04}]
+=======
+ iter:  5, delta:  4.27E-08, energy: -1.71471710229266954E+01, D: -9.690E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  7.36E-03
@@ -1135,12 +1390,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  3.67E-02, eBS: -4.60794841321172299E+00, D:  3.926E-02, 
+=======
+ iter:  1, fnrm:  3.67E-02, eBS: -4.60794841321164217E+00, D:  3.926E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.331E-01}
          Kohn-Sham residue             :  1.220E-01
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
+<<<<<<< TREE
        energydiff                      : -6.04733819063341116E-004
+=======
+       energydiff                      : -6.04733819134395389E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.01776903291E+00, Epot: -1.18389000008E+01, Enl:  5.97358824852E-01, 
               EH:  2.07028327095E+01,  EXC: -3.99799934874E+00, EvXC: -5.23970006152E+00}, 
@@ -1163,12 +1426,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.73E-02, eBS: -4.56868944001413979E+00, D:  3.176E-02, 
+=======
+ iter:  1, fnrm:  2.73E-02, eBS: -4.56868944001405453E+00, D:  3.176E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.464E-01}
          Kohn-Sham residue             :  1.201E-01
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
+<<<<<<< TREE
        energydiff                      : -3.64358646269380415E-004
+=======
+       energydiff                      : -3.64358646208984283E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.01776903291E+00, Epot: -1.18200489861E+01, Enl:  5.97358824852E-01, 
               EH:  2.07367062704E+01,  EXC: -4.00345771290E+00, EvXC: -5.24690910815E+00}, 
@@ -1181,7 +1452,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  7, delta:  2.73E-08, energy: -1.71481401153921382E+01, D: -3.644E-04}]
+=======
+ iter:  7, delta:  2.73E-08, energy: -1.71481401153920388E+01, D: -3.644E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  7.36E-03
@@ -1191,12 +1466,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.00E-02, eBS: -4.53693092023138611E+00, D:  2.498E-02, 
+=======
+ iter:  1, fnrm:  2.00E-02, eBS: -4.53693092023132039E+00, D:  2.498E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.611E-01}
          Kohn-Sham residue             :  1.186E-01
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
+<<<<<<< TREE
        energydiff                      : -2.12303420980219926E-004
+=======
+       energydiff                      : -2.12303421342596721E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.01776903291E+00, Epot: -1.18053066066E+01, Enl:  5.97358824852E-01, 
               EH:  2.07632674777E+01,  EXC: -4.00773337592E+00, EvXC: -5.25255598296E+00}, 
@@ -1209,22 +1492,38 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  8, delta:  2.09E-08, energy: -1.71483524188131184E+01, D: -2.123E-04}]
+=======
+ iter:  8, delta:  2.09E-08, energy: -1.71483524188133813E+01, D: -2.123E-04}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel003  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  9, delta:  2.09E-08, energy: -1.71483524188131184E+01, D: -2.123E-04}]}
+=======
+ iter:  9, delta:  2.09E-08, energy: -1.71483524188133813E+01, D: -2.123E-04}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  3, delta out:  1.251E-06, energy: -1.71483524188131184E+01, D:  4.236E-03}
+=======
+ iter high:  3, delta out:  1.251E-06, energy: -1.71483524188133813E+01, D:  4.236E-03}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.01776903291E+00, Epot: -1.17941064476E+01, Enl:  5.97358824852E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.91E-01, Omega: -1.71483383104441138E+01, D:  4.530E-03, 
+=======
+ iter:  1, fnrm:  1.91E-01, Omega: -1.71483383104442417E+01, D:  4.530E-03, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  6.007E-01, max alpha:  6.007E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1233,12 +1532,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.55878885492E+00, Epot: -1.25000256980E+01, Enl:  7.40069810434E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.17E-01, Omega: -1.71933337100557218E+01, D: -4.500E-02, 
+=======
+ iter:  2, fnrm:  1.17E-01, Omega: -1.71933337100558319E+01, D: -4.500E-02, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.55878885492E+00, Epot: -1.25000256980E+01, Enl:  7.40069810434E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.17E-01, Omega: -1.71933337100557218E+01, D: -4.500E-02}
+=======
+ iter:  2, fnrm:  1.17E-01, Omega: -1.71933337100558319E+01, D: -4.500E-02}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1251,7 +1558,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.14E-02, eBS: -4.51195322813939192E+00, D: -2.616E-02, 
+=======
+ iter:  1, fnrm:  2.14E-02, eBS: -4.51195322813931554E+00, D: -2.616E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -1276,12 +1587,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  9.42E-02, eBS: -4.53811225323468825E+00, D:  1.021E+00, 
+=======
+ iter:  1, fnrm:  9.42E-02, eBS: -4.53811225323458522E+00, D:  1.021E+00, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  8.687E-02
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
+<<<<<<< TREE
        energydiff                      :  2.29507022851969111E-002
+=======
+       energydiff                      :  2.29507022852821763E-002
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.55878885492E+00, Epot: -1.18916547092E+01, Enl:  7.40069810434E-01, 
               EH:  2.18437310659E+01,  EXC: -4.20448452577E+00, EvXC: -5.51248702544E+00}, 
@@ -1294,7 +1613,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  1.52E-07, energy: -1.71707433201023676E+01, D:  2.295E-02}]
+=======
+ iter:  2, delta:  1.52E-07, energy: -1.71707433201023640E+01, D:  2.295E-02}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  2.24E-03
@@ -1304,12 +1627,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  5.19E-02, eBS: -3.51706043388444023E+00, D: -1.574E-01, 
+=======
+ iter:  1, fnrm:  5.19E-02, eBS: -3.51706043388430567E+00, D: -1.574E-01, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.000E-01}
          Kohn-Sham residue             :  7.898E-02
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
+<<<<<<< TREE
        energydiff                      : -2.91647322896437799E-004
+=======
+       energydiff                      : -2.91647322942623077E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.55878885492E+00, Epot: -1.19850264628E+01, Enl:  7.40069810434E-01, 
               EH:  2.16780701440E+01,  EXC: -4.17787142838E+00, EvXC: -5.47734076938E+00}, 
@@ -1322,7 +1653,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  3, delta:  4.16E-08, energy: -1.71710349674252640E+01, D: -2.916E-04}]
+=======
+ iter:  3, delta:  4.16E-08, energy: -1.71710349674253067E+01, D: -2.916E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  2.24E-03
@@ -1332,12 +1667,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  4.05E-02, eBS: -3.67447984441832531E+00, D: -4.383E-02, 
+=======
+ iter:  1, fnrm:  4.05E-02, eBS: -3.67447984441820941E+00, D: -4.383E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.100E-01}
          Kohn-Sham residue             :  7.685E-02
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
+<<<<<<< TREE
        energydiff                      : -6.22179415749712916E-004
+=======
+       energydiff                      : -6.22179415607604369E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.55878885492E+00, Epot: -1.20107711873E+01, Enl:  7.40069810434E-01, 
               EH:  2.16325292691E+01,  EXC: -4.17059143723E+00, EvXC: -5.46772709434E+00}, 
@@ -1350,7 +1693,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  4, delta:  3.55E-08, energy: -1.71716571468410137E+01, D: -6.222E-04}]
+=======
+ iter:  4, delta:  3.55E-08, energy: -1.71716571468409143E+01, D: -6.222E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  2.24E-03
@@ -1360,12 +1707,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  3.10E-02, eBS: -3.71830921486866695E+00, D: -3.726E-02, 
+=======
+ iter:  1, fnrm:  3.10E-02, eBS: -3.71830921486857191E+00, D: -3.726E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.210E-01}
          Kohn-Sham residue             :  7.524E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
+<<<<<<< TREE
        energydiff                      : -3.93045211506404257E-004
+=======
+       energydiff                      : -3.93045211549036821E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.55878885492E+00, Epot: -1.20327597222E+01, Enl:  7.40069810434E-01, 
               EH:  2.15936748006E+01,  EXC: -4.16439396602E+00, EvXC: -5.45954314024E+00}, 
@@ -1378,7 +1733,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  5, delta:  2.93E-08, energy: -1.71720501920525201E+01, D: -3.930E-04}]
+=======
+ iter:  5, delta:  2.93E-08, energy: -1.71720501920524633E+01, D: -3.930E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  2.24E-03
@@ -1388,12 +1747,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.32E-02, eBS: -3.75557024570417930E+00, D: -3.078E-02, 
+=======
+ iter:  1, fnrm:  2.32E-02, eBS: -3.75557024570408382E+00, D: -3.078E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.331E-01}
          Kohn-Sham residue             :  7.405E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
+<<<<<<< TREE
        energydiff                      : -2.38208494192093667E-004
+=======
+       energydiff                      : -2.38208494284464223E-004
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.55878885492E+00, Epot: -1.20509802454E+01, Enl:  7.40069810434E-01, 
               EH:  2.15614969662E+01,  EXC: -4.15927376610E+00, EvXC: -5.45278191286E+00}, 
@@ -1416,7 +1783,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.71E-02, eBS: -3.78634526119387793E+00, D: -2.464E-02, 
+=======
+ iter:  1, fnrm:  1.71E-02, eBS: -3.78634526119379133E+00, D: -2.464E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.464E-01}
          Kohn-Sham residue             :  7.320E-02
          Coefficients available        :  Yes
@@ -1444,12 +1815,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.24E-02, eBS: -3.81098297841030398E+00, D: -1.908E-02, 
+=======
+ iter:  1, fnrm:  1.24E-02, eBS: -3.81098297841019829E+00, D: -1.908E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.611E-01}
          Kohn-Sham residue             :  7.260E-02
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
+<<<<<<< TREE
        energydiff                      : -7.97380991457430355E-005
+=======
+       energydiff                      : -7.97380994370655571E-005
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.55878885492E+00, Epot: -1.20769224053E+01, Enl:  7.40069810434E-01, 
               EH:  2.15156721228E+01,  EXC: -4.15201184309E+00, EvXC: -5.44319288983E+00}, 
@@ -1462,22 +1841,38 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  8, delta:  1.37E-08, energy: -1.71725076004284247E+01, D: -7.974E-05}]
+=======
+ iter:  8, delta:  1.37E-08, energy: -1.71725076004287303E+01, D: -7.974E-05}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel004  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  9, delta:  1.37E-08, energy: -1.71725076004284247E+01, D: -7.974E-05}]}
+=======
+ iter:  9, delta:  1.37E-08, energy: -1.71725076004287303E+01, D: -7.974E-05}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  4, delta out:  8.252E-07, energy: -1.71725076004284247E+01, D: -2.416E-02}
+=======
+ iter high:  4, delta out:  8.252E-07, energy: -1.71725076004287303E+01, D: -2.416E-02}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.55878885492E+00, Epot: -1.20853900454E+01, Enl:  7.40069810434E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.17E-01, Omega: -1.71725012246441473E+01, D: -2.416E-02, 
+=======
+ iter:  1, fnrm:  1.17E-01, Omega: -1.71725012246442432E+01, D: -2.416E-02, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  3.604E-01, max alpha:  3.604E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1486,12 +1881,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.19152153243E+01, Enl:  6.91030548681E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  3.30E-02, Omega: -1.71834874784812186E+01, D: -1.099E-02, 
+=======
+ iter:  2, fnrm:  3.30E-02, Omega: -1.71834874784813252E+01, D: -1.099E-02, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.19152153243E+01, Enl:  6.91030548681E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  3.30E-02, Omega: -1.71834874784812186E+01, D: -1.099E-02}
+=======
+ iter:  2, fnrm:  3.30E-02, Omega: -1.71834874784813252E+01, D: -1.099E-02}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -1504,7 +1907,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  7.49E-03, eBS: -3.83006220435718925E+00, D: -2.525E-02, 
+=======
+ iter:  1, fnrm:  7.49E-03, eBS: -3.83006220435709377E+00, D: -2.525E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -1519,7 +1926,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  2.42E-07, energy: -1.71835339126261744E+01, D: -1.103E-02}]
+=======
+ iter:  1, delta:  2.42E-07, energy: -1.71835339126262738E+01, D: -1.103E-02}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.01E-04
@@ -1529,12 +1940,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.21E-02, eBS: -3.85531260130291686E+00, D: -2.317E-01, 
+=======
+ iter:  1, fnrm:  2.21E-02, eBS: -3.85531260130281916E+00, D: -2.317E-01, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  1.665E-02
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
+<<<<<<< TREE
        energydiff                      :  1.24790352081305400E-003
+=======
+       energydiff                      :  1.24790352089831913E-003
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.20543068256E+01, Enl:  6.91030548681E-01, 
               EH:  2.12530158743E+01,  EXC: -4.10391008511E+00, EvXC: -5.37962580591E+00}, 
@@ -1547,7 +1966,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  3.60E-08, energy: -1.71822860091053613E+01, D:  1.248E-03}]
+=======
+ iter:  2, delta:  3.60E-08, energy: -1.71822860091053755E+01, D:  1.248E-03}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  1.01E-04
@@ -1562,7 +1985,11 @@
          Kohn-Sham residue             :  1.577E-02
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
+<<<<<<< TREE
        energydiff                      : -7.80214430662340419E-006
+=======
+       energydiff                      : -7.80214437767767777E-006
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.20324688765E+01, Enl:  6.91030548681E-01, 
               EH:  2.12912588653E+01,  EXC: -4.11005687280E+00, EvXC: -5.38774351326E+00}, 
@@ -1585,12 +2012,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  8.68E-03, eBS: -4.05076726641086182E+00, D:  9.244E-03, 
+=======
+ iter:  1, fnrm:  8.68E-03, eBS: -4.05076726641083784E+00, D:  9.244E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.100E-01}
          Kohn-Sham residue             :  1.560E-02
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
+<<<<<<< TREE
        energydiff                      : -2.80921473496675844E-005
+=======
+       energydiff                      : -2.80921472040063236E-005
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.20269013783E+01, Enl:  6.91030548681E-01, 
               EH:  2.13010340294E+01,  EXC: -4.11162620529E+00, EvXC: -5.38981601421E+00}, 
@@ -1603,7 +2038,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  4, delta:  7.69E-09, energy: -1.71823219033970176E+01, D: -2.809E-05}]
+=======
+ iter:  4, delta:  7.69E-09, energy: -1.71823219033969572E+01, D: -2.809E-05}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  1.01E-04
@@ -1613,12 +2052,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  6.46E-03, eBS: -4.04152336298167825E+00, D:  7.735E-03, 
+=======
+ iter:  1, fnrm:  6.46E-03, eBS: -4.04152336298166315E+00, D:  7.735E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.210E-01}
          Kohn-Sham residue             :  1.551E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
+<<<<<<< TREE
        energydiff                      : -1.68067744965583188E-005
+=======
+       energydiff                      : -1.68067744468203273E-005
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.20222518106E+01, Enl:  6.91030548681E-01, 
               EH:  2.13092057871E+01,  EXC: -4.11293748572E+00, EvXC: -5.39154771485E+00}, 
@@ -1641,12 +2088,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  4.69E-03, eBS: -4.03378883224860552E+00, D:  6.285E-03, 
+=======
+ iter:  1, fnrm:  4.69E-03, eBS: -4.03378883224859219E+00, D:  6.285E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.331E-01}
          Kohn-Sham residue             :  1.548E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
+<<<<<<< TREE
        energydiff                      : -9.52437447665488435E-006
+=======
+       energydiff                      : -9.52437467205413668E-006
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.20184803834E+01, Enl:  6.91030548681E-01, 
               EH:  2.13158411000E+01,  EXC: -4.11400152602E+00, EvXC: -5.39295289384E+00}, 
@@ -1659,7 +2114,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  6, delta:  4.94E-09, energy: -1.71823482345459908E+01, D: -9.524E-06}]
+=======
+ iter:  6, delta:  4.94E-09, energy: -1.71823482345460761E+01, D: -9.524E-06}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 7
        Kernel update:
          max dev from unity            :  1.01E-04
@@ -1669,12 +2128,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  3.32E-03, eBS: -4.02750418242632424E+00, D:  4.943E-03, 
+=======
+ iter:  1, fnrm:  3.32E-03, eBS: -4.02750418242632158E+00, D:  4.943E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.464E-01}
          Kohn-Sham residue             :  1.548E-02
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
+<<<<<<< TREE
        energydiff                      : -5.11652475410073748E-006
+=======
+       energydiff                      : -5.11652483936586577E-006
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.20155189861E+01, Enl:  6.91030548681E-01, 
               EH:  2.13210570738E+01,  EXC: -4.11483724639E+00, EvXC: -5.39405653919E+00}, 
@@ -1687,7 +2154,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  7, delta:  3.78E-09, energy: -1.71823533510707449E+01, D: -5.117E-06}]
+=======
+ iter:  7, delta:  3.78E-09, energy: -1.71823533510709154E+01, D: -5.117E-06}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  1.01E-04
@@ -1697,12 +2168,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.29E-03, eBS: -4.02256125010247789E+00, D:  3.750E-03, 
+=======
+ iter:  1, fnrm:  2.29E-03, eBS: -4.02256125010246812E+00, D:  3.750E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.611E-01}
          Kohn-Sham residue             :  1.550E-02
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
+<<<<<<< TREE
        energydiff                      : -2.61628561304405594E-006
+=======
+       energydiff                      : -2.61628533593238899E-006
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.20132760430E+01, Enl:  6.91030548681E-01, 
               EH:  2.13250124861E+01,  EXC: -4.11547029937E+00, EvXC: -5.39489253092E+00}, 
@@ -1715,22 +2194,38 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  8, delta:  2.79E-09, energy: -1.71823559673563580E+01, D: -2.616E-06}]
+=======
+ iter:  8, delta:  2.79E-09, energy: -1.71823559673562514E+01, D: -2.616E-06}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel005  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  9, delta:  2.79E-09, energy: -1.71823559673563580E+01, D: -2.616E-06}]}
+=======
+ iter:  9, delta:  2.79E-09, energy: -1.71823559673562514E+01, D: -2.616E-06}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  5, delta out:  1.973E-07, energy: -1.71823559673563580E+01, D: -9.848E-03}
+=======
+ iter high:  5, delta out:  1.973E-07, energy: -1.71823559673562514E+01, D: -9.848E-03}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.43226771240E+00, Epot: -1.20116437073E+01, Enl:  6.91030548681E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.29E-02, Omega: -1.71823557302957468E+01, D: -9.855E-03, 
+=======
+ iter:  1, fnrm:  2.29E-02, Omega: -1.71823557302956260E+01, D: -9.855E-03, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  3.064E-01, max alpha:  3.064E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1757,7 +2252,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.30E-03, eBS: -4.01881139282676081E+00, D:  2.569E-03, 
+=======
+ iter:  1, fnrm:  1.30E-03, eBS: -4.01881139282674127E+00, D:  2.569E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -1772,7 +2271,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  1.54E-08, energy: -1.71825215539624594E+01, D: -1.656E-04}]
+=======
+ iter:  1, delta:  1.54E-08, energy: -1.71825215539623350E+01, D: -1.656E-04}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  5.68E-07
@@ -1782,7 +2285,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.57E-03, eBS: -4.01624198397477628E+00, D: -1.492E-02, 
+=======
+ iter:  1, fnrm:  2.57E-03, eBS: -4.01624198397475674E+00, D: -1.492E-02, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  8.660E-03
          Coefficients available        :  Yes
@@ -1800,7 +2307,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  4.01E-09, energy: -1.71825197262995673E+01, D:  1.828E-06}]
+=======
+ iter:  2, delta:  4.01E-09, energy: -1.71825197262996348E+01, D:  1.828E-06}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  5.68E-07
@@ -1810,12 +2321,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.48E-03, eBS: -4.03115959355897147E+00, D:  4.026E-03, 
+=======
+ iter:  1, fnrm:  1.48E-03, eBS: -4.03115959355896081E+00, D:  4.026E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.000E-01}
          Kohn-Sham residue             :  8.649E-03
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
+<<<<<<< TREE
        energydiff                      : -3.17875887390073331E-007
+=======
+       energydiff                      : -3.17875795019517682E-007
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42427359603E+00, Epot: -1.20060964179E+01, Enl:  6.86978720814E-01, 
               EH:  2.13162825182E+01,  EXC: -4.11369417616E+00, EvXC: -5.39254429656E+00}, 
@@ -1828,7 +2347,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  3, delta:  1.10E-09, energy: -1.71825200441754546E+01, D: -3.179E-07}]
+=======
+ iter:  3, delta:  1.10E-09, energy: -1.71825200441754298E+01, D: -3.179E-07}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  5.68E-07
@@ -1838,12 +2361,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.19E-03, eBS: -4.02713332644677990E+00, D:  1.092E-03, 
+=======
+ iter:  1, fnrm:  1.19E-03, eBS: -4.02713332644676036E+00, D:  1.092E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.100E-01}
          Kohn-Sham residue             :  8.648E-03
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
+<<<<<<< TREE
        energydiff                      : -5.44724020556941468E-007
+=======
+       energydiff                      : -5.44724137796492869E-007
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42427359603E+00, Epot: -1.20054454476E+01, Enl:  6.86978720814E-01, 
               EH:  2.13174338076E+01,  EXC: -4.11387767084E+00, EvXC: -5.39278660485E+00}, 
@@ -1856,7 +2387,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  4, delta:  9.48E-10, energy: -1.71825205888994752E+01, D: -5.447E-07}]
+=======
+ iter:  4, delta:  9.48E-10, energy: -1.71825205888995676E+01, D: -5.447E-07}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  5.68E-07
@@ -1866,12 +2401,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  9.38E-04, eBS: -4.02604139530195226E+00, D:  9.344E-04, 
+=======
+ iter:  1, fnrm:  9.38E-04, eBS: -4.02604139530194782E+00, D:  9.344E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.210E-01}
          Kohn-Sham residue             :  8.648E-03
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
+<<<<<<< TREE
        energydiff                      : -3.69302608049792980E-007
+=======
+       energydiff                      : -3.69302316727271318E-007
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42427359603E+00, Epot: -1.20048889793E+01, Enl:  6.86978720814E-01, 
               EH:  2.13184188508E+01,  EXC: -4.11403445673E+00, EvXC: -5.39299364006E+00}, 
@@ -1884,7 +2427,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  5, delta:  7.99E-10, energy: -1.71825209582020832E+01, D: -3.693E-07}]
+=======
+ iter:  5, delta:  7.99E-10, energy: -1.71825209582018843E+01, D: -3.693E-07}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  5.68E-07
@@ -1894,12 +2441,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  7.29E-04, eBS: -4.02510697073351409E+00, D:  7.799E-04, 
+=======
+ iter:  1, fnrm:  7.29E-04, eBS: -4.02510697073352386E+00, D:  7.799E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.331E-01}
          Kohn-Sham residue             :  8.649E-03
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
+<<<<<<< TREE
        energydiff                      : -2.42553447549198609E-007
+=======
+       energydiff                      : -2.42553653606591979E-007
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42427359603E+00, Epot: -1.20044251171E+01, Enl:  6.86978720814E-01, 
               EH:  2.13192408191E+01,  EXC: -4.11416507290E+00, EvXC: -5.39316611463E+00}, 
@@ -1912,7 +2467,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  6, delta:  6.57E-10, energy: -1.71825212007555308E+01, D: -2.426E-07}]
+=======
+ iter:  6, delta:  6.57E-10, energy: -1.71825212007555379E+01, D: -2.426E-07}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 7
        Kernel update:
          max dev from unity            :  5.68E-07
@@ -1922,12 +2481,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  5.58E-04, eBS: -4.02432710342078437E+00, D:  6.335E-04, 
+=======
+ iter:  1, fnrm:  5.58E-04, eBS: -4.02432710342078170E+00, D:  6.335E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.464E-01}
          Kohn-Sham residue             :  8.651E-03
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
+<<<<<<< TREE
        energydiff                      : -1.54476076374976401E-007
+=======
+       energydiff                      : -1.54475991109848110E-007
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42427359603E+00, Epot: -1.20040488340E+01, Enl:  6.86978720814E-01, 
               EH:  2.13199083977E+01,  EXC: -4.11427094528E+00, EvXC: -5.39330591227E+00}, 
@@ -1940,7 +2507,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  7, delta:  5.28E-10, energy: -1.71825213552316072E+01, D: -1.545E-07}]
+=======
+ iter:  7, delta:  5.28E-10, energy: -1.71825213552315290E+01, D: -1.545E-07}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  5.68E-07
@@ -1950,12 +2521,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  4.20E-04, eBS: -4.02369360454726266E+00, D:  4.999E-04, 
+=======
+ iter:  1, fnrm:  4.20E-04, eBS: -4.02369360454725999E+00, D:  4.999E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.611E-01}
          Kohn-Sham residue             :  8.653E-03
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
+<<<<<<< TREE
        energydiff                      : -9.55196775009881094E-008
+=======
+       energydiff                      : -9.55198729002404434E-008
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42427359603E+00, Epot: -1.20037523678E+01, Enl:  6.86978720814E-01, 
               EH:  2.13204351008E+01,  EXC: -4.11435427435E+00, EvXC: -5.39341593955E+00}, 
@@ -1968,22 +2547,38 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  8, delta:  4.14E-10, energy: -1.71825214507512847E+01, D: -9.552E-08}]
+=======
+ iter:  8, delta:  4.14E-10, energy: -1.71825214507514019E+01, D: -9.552E-08}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel006  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  9, delta:  4.14E-10, energy: -1.71825214507512847E+01, D: -9.552E-08}]}
+=======
+ iter:  9, delta:  4.14E-10, energy: -1.71825214507514019E+01, D: -9.552E-08}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc006
    -  {iter:  6, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  6, delta out:  1.230E-08, energy: -1.71825214507512847E+01, D: -1.655E-04}
+=======
+ iter high:  6, delta out:  1.230E-08, energy: -1.71825214507514019E+01, D: -1.655E-04}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun007
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.42427359603E+00, Epot: -1.20035258756E+01, Enl:  6.86978720814E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  9.89E-03, Omega: -1.71825214454568567E+01, D: -1.657E-04, 
+=======
+ iter:  1, fnrm:  9.89E-03, Omega: -1.71825214454567359E+01, D: -1.657E-04, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  3.370E-01, max alpha:  3.370E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2010,7 +2605,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  3.09E-04, eBS: -4.02319369522522141E+00, D:  3.575E-04, 
+=======
+ iter:  1, fnrm:  3.09E-04, eBS: -4.02319369522522319E+00, D:  3.575E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -2035,12 +2634,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.06E-03, eBS: -4.02283623891981623E+00, D: -8.736E-03, 
+=======
+ iter:  1, fnrm:  1.06E-03, eBS: -4.02283623891982067E+00, D: -8.736E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  6.725E-03
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
+<<<<<<< TREE
        energydiff                      :  1.05698256902542198E-006
+=======
+       energydiff                      :  1.05698238428431068E-006
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42038032780E+00, Epot: -1.20035143813E+01, Enl:  6.85615050177E-01, 
               EH:  2.13115660840E+01,  EXC: -4.11274798899E+00, EvXC: -5.39129487459E+00}, 
@@ -2053,7 +2660,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  1.67E-09, energy: -1.71825456002356916E+01, D:  1.057E-06}]
+=======
+ iter:  2, delta:  1.67E-09, energy: -1.71825456002357555E+01, D:  1.057E-06}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  4.97E-08
@@ -2063,7 +2674,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  6.07E-04, eBS: -4.03157208186744853E+00, D:  1.690E-03, 
+=======
+ iter:  1, fnrm:  6.07E-04, eBS: -4.03157208186738636E+00, D:  1.690E-03, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.000E-01}
          Kohn-Sham residue             :  6.718E-03
          Coefficients available        :  Yes
@@ -2081,7 +2696,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  3, delta:  4.53E-10, energy: -1.71825456501297076E+01, D: -4.989E-08}]
+=======
+ iter:  3, delta:  4.53E-10, energy: -1.71825456501298426E+01, D: -4.989E-08}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  4.97E-08
@@ -2091,12 +2710,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  4.88E-04, eBS: -4.02988231772154126E+00, D:  4.577E-04, 
+=======
+ iter:  1, fnrm:  4.88E-04, eBS: -4.02988231772149241E+00, D:  4.577E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.100E-01}
          Kohn-Sham residue             :  6.717E-03
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
+<<<<<<< TREE
        energydiff                      : -9.20569860340947344E-008
+=======
+       energydiff                      : -9.20568332674065459E-008
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42038032780E+00, Epot: -1.20022318310E+01, Enl:  6.85615050177E-01, 
               EH:  2.13138295826E+01,  EXC: -4.11310964154E+00, EvXC: -5.39177246396E+00}, 
@@ -2109,7 +2736,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  4, delta:  3.89E-10, energy: -1.71825457421866936E+01, D: -9.206E-08}]
+=======
+ iter:  4, delta:  3.89E-10, energy: -1.71825457421866759E+01, D: -9.206E-08}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  4.97E-08
@@ -2119,12 +2750,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  3.87E-04, eBS: -4.02942466205453087E+00, D:  3.917E-04, 
+=======
+ iter:  1, fnrm:  3.87E-04, eBS: -4.02942466205448913E+00, D:  3.917E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.210E-01}
          Kohn-Sham residue             :  6.716E-03
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
+<<<<<<< TREE
        energydiff                      : -6.32985681647824094E-008
+=======
+       energydiff                      : -6.32986356663423066E-008
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42038032780E+00, Epot: -1.20019985272E+01, Enl:  6.85615050177E-01, 
               EH:  2.13142423869E+01,  EXC: -4.11317528474E+00, EvXC: -5.39185914576E+00}, 
@@ -2147,7 +2786,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  3.05E-04, eBS: -4.02903295959259999E+00, D:  3.272E-04, 
+=======
+ iter:  1, fnrm:  3.05E-04, eBS: -4.02903295959255736E+00, D:  3.272E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.331E-01}
          Kohn-Sham residue             :  6.715E-03
          Coefficients available        :  Yes
@@ -2175,12 +2818,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.38E-04, eBS: -4.02870580953106572E+00, D:  2.662E-04, 
+=======
+ iter:  1, fnrm:  2.38E-04, eBS: -4.02870580953101953E+00, D:  2.662E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.464E-01}
          Kohn-Sham residue             :  6.715E-03
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
+<<<<<<< TREE
        energydiff                      : -2.84870189659613970E-008
+=======
+       energydiff                      : -2.84871468636538339E-008
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42038032780E+00, Epot: -1.20016457591E+01, Enl:  6.85615050177E-01, 
               EH:  2.13148675547E+01,  EXC: -4.11327437175E+00, EvXC: -5.39198998498E+00}, 
@@ -2193,7 +2844,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  7, delta:  2.14E-10, energy: -1.71825458766969099E+01, D: -2.849E-08}]
+=======
+ iter:  7, delta:  2.14E-10, energy: -1.71825458766969739E+01, D: -2.849E-08}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  4.97E-08
@@ -2203,12 +2858,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.85E-04, eBS: -4.02843961525113237E+00, D:  2.107E-04, 
+=======
+ iter:  1, fnrm:  1.85E-04, eBS: -4.02843961525108085E+00, D:  2.107E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.611E-01}
          Kohn-Sham residue             :  6.714E-03
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
+<<<<<<< TREE
        energydiff                      : -1.88850748372715316E-008
+=======
+       energydiff                      : -1.88850712845578528E-008
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.42038032780E+00, Epot: -1.20015207650E+01, Enl:  6.85615050177E-01, 
               EH:  2.13150895319E+01,  EXC: -4.11330938911E+00, EvXC: -5.39203622104E+00}, 
@@ -2245,12 +2908,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41949895692E+00, Epot: -1.20002337332E+01, Enl:  6.85313614116E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  2.81E-03, Omega: -1.71825517290931415E+01, D: -5.834E-06, 
+=======
+ iter:  2, fnrm:  2.81E-03, Omega: -1.71825517290931664E+01, D: -5.834E-06, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun008  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.41949895692E+00, Epot: -1.20002337332E+01, Enl:  6.85313614116E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  2.81E-03, Omega: -1.71825517290931415E+01, D: -5.834E-06}
+=======
+ iter:  2, fnrm:  2.81E-03, Omega: -1.71825517290931664E+01, D: -5.834E-06}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel008
@@ -2263,7 +2934,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.47E-04, eBS: -4.02822887563511411E+00, D:  1.564E-04, 
+=======
+ iter:  1, fnrm:  1.47E-04, eBS: -4.02822887563508125E+00, D:  1.564E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -2278,7 +2953,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  2.77E-09, energy: -1.71825517447353349E+01, D: -5.849E-06}]
+=======
+ iter:  1, delta:  2.77E-09, energy: -1.71825517447353739E+01, D: -5.849E-06}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  2.88E-08
@@ -2306,7 +2985,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  5.53E-10, energy: -1.71825516637367066E+01, D:  8.100E-08}]
+=======
+ iter:  2, delta:  5.53E-10, energy: -1.71825516637365396E+01, D:  8.100E-08}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  2.88E-08
@@ -2316,12 +2999,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.17E-04, eBS: -4.03100728870851377E+00, D:  5.610E-04, 
+=======
+ iter:  1, fnrm:  2.17E-04, eBS: -4.03100728870853509E+00, D:  5.610E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.000E-01}
          Kohn-Sham residue             :  6.149E-03
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
+<<<<<<< TREE
        energydiff                      : -7.95428789501784195E-009
+=======
+       energydiff                      : -7.95434829115038156E-009
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41949895692E+00, Epot: -1.20016662798E+01, Enl:  6.85313614116E-01, 
               EH:  2.13127427596E+01,  EXC: -4.11288554850E+00, EvXC: -5.39147726555E+00}, 
@@ -2334,7 +3025,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  3, delta:  1.52E-10, energy: -1.71825516716909945E+01, D: -7.954E-09}]
+=======
+ iter:  3, delta:  1.52E-10, energy: -1.71825516716908879E+01, D: -7.954E-09}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  2.88E-08
@@ -2344,12 +3039,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.79E-04, eBS: -4.03044630913428215E+00, D:  1.540E-04, 
+=======
+ iter:  1, fnrm:  1.79E-04, eBS: -4.03044630913432922E+00, D:  1.540E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.100E-01}
          Kohn-Sham residue             :  6.148E-03
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
+<<<<<<< TREE
        energydiff                      : -1.25581891552428715E-008
+=======
+       energydiff                      : -1.25584058707772783E-008
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41949895692E+00, Epot: -1.20015745921E+01, Enl:  6.85313614116E-01, 
               EH:  2.13129050040E+01,  EXC: -4.11291130747E+00, EvXC: -5.39151127990E+00}, 
@@ -2372,7 +3075,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.46E-04, eBS: -4.03029233265578934E+00, D:  1.326E-04, 
+=======
+ iter:  1, fnrm:  1.46E-04, eBS: -4.03029233265581421E+00, D:  1.326E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.210E-01}
          Kohn-Sham residue             :  6.148E-03
          Coefficients available        :  Yes
@@ -2400,12 +3107,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.19E-04, eBS: -4.03015971351616198E+00, D:  1.117E-04, 
+=======
+ iter:  1, fnrm:  1.19E-04, eBS: -4.03015971351617441E+00, D:  1.117E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  1.331E-01}
          Kohn-Sham residue             :  6.148E-03
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
+<<<<<<< TREE
        energydiff                      : -6.72961775194380607E-009
+=======
+       energydiff                      : -6.72982025662349770E-009
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41949895692E+00, Epot: -1.20014293772E+01, Enl:  6.85313614116E-01, 
               EH:  2.13131623364E+01,  EXC: -4.11295202304E+00, EvXC: -5.39156504210E+00}, 
@@ -2418,22 +3133,38 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  6, delta:  9.34E-11, energy: -1.71825517001970667E+01, D: -6.730E-09}]
+=======
+ iter:  6, delta:  9.34E-11, energy: -1.71825517001973296E+01, D: -6.730E-09}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel008  { #-------------------------------------------------------- iter: 6
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  6, delta:  9.34E-11, energy: -1.71825517001970667E+01, D: -6.730E-09}]}
+=======
+ iter:  6, delta:  9.34E-11, energy: -1.71825517001973296E+01, D: -6.730E-09}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc008
    -  {iter:  8, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  8, delta out:  2.400E-09, energy: -1.71825517001970667E+01, D: -5.805E-06}
+=======
+ iter high:  8, delta out:  2.400E-09, energy: -1.71825517001973296E+01, D: -5.805E-06}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun009
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41949895692E+00, Epot: -1.20013749339E+01, Enl:  6.85313614116E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.82E-03, Omega: -1.71825516999089558E+01, D: -5.805E-06, 
+=======
+ iter:  1, fnrm:  2.82E-03, Omega: -1.71825516999090695E+01, D: -5.805E-06, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  4.078E-01, max alpha:  4.078E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2442,12 +3173,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41955290185E+00, Epot: -1.20013587365E+01, Enl:  6.85252909917E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.81E-03, Omega: -1.71825538536791882E+01, D: -2.154E-06, 
+=======
+ iter:  2, fnrm:  1.81E-03, Omega: -1.71825538536792877E+01, D: -2.154E-06, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun009  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.41955290185E+00, Epot: -1.20013587365E+01, Enl:  6.85252909917E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.81E-03, Omega: -1.71825538536791882E+01, D: -2.154E-06}
+=======
+ iter:  2, fnrm:  1.81E-03, Omega: -1.71825538536792877E+01, D: -2.154E-06}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel009
@@ -2460,7 +3199,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  9.59E-05, eBS: -4.03004806289809281E+00, D:  8.962E-05, 
+=======
+ iter:  1, fnrm:  9.59E-05, eBS: -4.03004806289811679E+00, D:  8.962E-05, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -2475,7 +3218,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  1.58E-09, energy: -1.71825538603958350E+01, D: -2.160E-06}]
+=======
+ iter:  1, delta:  1.58E-09, energy: -1.71825538603959487E+01, D: -2.160E-06}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.32E-08
@@ -2485,12 +3232,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.28E-04, eBS: -4.02995843854151037E+00, D: -7.966E-04, 
+=======
+ iter:  1, fnrm:  1.28E-04, eBS: -4.02995843854150948E+00, D: -7.966E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  5.920E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
+<<<<<<< TREE
        energydiff                      : -2.56463295045250561E-010
+=======
+       energydiff                      : -2.56495269468359766E-010
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41955290185E+00, Epot: -1.20018434403E+01, Enl:  6.85252909917E-01, 
               EH:  2.13124186016E+01,  EXC: -4.11282869505E+00, EvXC: -5.39140283636E+00}, 
@@ -2503,7 +3258,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  1.76E-10, energy: -1.71825538606522983E+01, D: -2.565E-10}]
+=======
+ iter:  2, delta:  1.76E-10, energy: -1.71825538606524439E+01, D: -2.565E-10}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  1.32E-08
@@ -2513,12 +3272,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  8.62E-05, eBS: -4.03075508044287822E+00, D:  1.769E-04, 
+=======
+ iter:  1, fnrm:  8.62E-05, eBS: -4.03075508044294306E+00, D:  1.769E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.200E-01}
          Kohn-Sham residue             :  5.919E-03
          Coefficients available        :  Yes
        alpha                           :  0.24200000000000005
+<<<<<<< TREE
        energydiff                      : -4.92351048819728021E-009
+=======
+       energydiff                      : -4.92342877578266780E-009
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41955290185E+00, Epot: -1.20017380925E+01, Enl:  6.85252909917E-01, 
               EH:  2.13126049716E+01,  EXC: -4.11285826212E+00, EvXC: -5.39144187910E+00}, 
@@ -2531,7 +3298,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  3, delta:  1.13E-10, energy: -1.71825538655758088E+01, D: -4.924E-09}]
+=======
+ iter:  3, delta:  1.13E-10, energy: -1.71825538655758727E+01, D: -4.923E-09}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  1.32E-08
@@ -2541,12 +3312,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  6.09E-05, eBS: -4.03057819099332537E+00, D:  1.103E-04, 
+=======
+ iter:  1, fnrm:  6.09E-05, eBS: -4.03057819099341597E+00, D:  1.103E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.420E-01}
          Kohn-Sham residue             :  5.919E-03
          Coefficients available        :  Yes
        alpha                           :  0.26620000000000005
+<<<<<<< TREE
        energydiff                      : -2.83632672903877392E-009
+=======
+       energydiff                      : -2.83640488873970753E-009
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41955290185E+00, Epot: -1.20016725822E+01, Enl:  6.85252909917E-01, 
               EH:  2.13127211692E+01,  EXC: -4.11287657359E+00, EvXC: -5.39146605724E+00}, 
@@ -2559,22 +3338,38 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  4, delta:  7.28E-11, energy: -1.71825538684121355E+01, D: -2.836E-09}]
+=======
+ iter:  4, delta:  7.28E-11, energy: -1.71825538684122776E+01, D: -2.836E-09}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel009  { #-------------------------------------------------------- iter: 4
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  4, delta:  7.28E-11, energy: -1.71825538684121355E+01, D: -2.836E-09}]}
+=======
+ iter:  4, delta:  7.28E-11, energy: -1.71825538684122776E+01, D: -2.836E-09}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc009
    -  {iter:  9, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  9, delta out:  1.598E-09, energy: -1.71825538684121355E+01, D: -2.168E-06}
+=======
+ iter high:  9, delta out:  1.598E-09, energy: -1.71825538684122776E+01, D: -2.168E-06}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun010
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41955290185E+00, Epot: -1.20016332695E+01, Enl:  6.85252909917E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.81E-03, Omega: -1.71825538682512899E+01, D: -2.168E-06, 
+=======
+ iter:  1, fnrm:  1.81E-03, Omega: -1.71825538682514107E+01, D: -2.168E-06, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  4.486E-01, max alpha:  4.486E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2583,12 +3378,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41970297754E+00, Epot: -1.20017520693E+01, Enl:  6.85230260755E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.19E-03, Omega: -1.71825548384556832E+01, D: -9.702E-07, 
+=======
+ iter:  2, fnrm:  1.19E-03, Omega: -1.71825548384558147E+01, D: -9.702E-07, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun010  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.41970297754E+00, Epot: -1.20017520693E+01, Enl:  6.85230260755E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.19E-03, Omega: -1.71825548384556832E+01, D: -9.702E-07}
+=======
+ iter:  2, fnrm:  1.19E-03, Omega: -1.71825548384558147E+01, D: -9.702E-07}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel010
@@ -2601,7 +3404,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  4.72E-05, eBS: -4.03046786287028258E+00, D:  6.549E-05, 
+=======
+ iter:  1, fnrm:  4.72E-05, eBS: -4.03046786287035896E+00, D:  6.549E-05, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -2616,7 +3423,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  1.03E-09, energy: -1.71825548400868158E+01, D: -9.717E-07}]
+=======
+ iter:  1, delta:  1.03E-09, energy: -1.71825548400869437E+01, D: -9.717E-07}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  4.68E-09
@@ -2626,12 +3437,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  5.32E-05, eBS: -4.03040236873788960E+00, D: -3.168E-04, 
+=======
+ iter:  1, fnrm:  5.32E-05, eBS: -4.03040236873797930E+00, D: -3.168E-04, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  5.804E-03
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
+<<<<<<< TREE
        energydiff                      :  4.86238604935351759E-010
+=======
+       energydiff                      :  4.86362949914109777E-010
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41970297754E+00, Epot: -1.20019463703E+01, Enl:  6.85230260755E-01, 
               EH:  2.13124584071E+01,  EXC: -4.11283652737E+00, EvXC: -5.39141358808E+00}, 
@@ -2644,22 +3463,38 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  6.41E-11, energy: -1.71825548396005772E+01, D:  4.862E-10}]
+=======
+ iter:  2, delta:  6.41E-11, energy: -1.71825548396005807E+01, D:  4.864E-10}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel010  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  6.41E-11, energy: -1.71825548396005772E+01, D:  4.862E-10}]}
+=======
+ iter:  2, delta:  6.41E-11, energy: -1.71825548396005807E+01, D:  4.864E-10}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc010
    -  {iter:  10, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  10, delta out:  1.037E-09, energy: -1.71825548396005772E+01, D: -9.712E-07}
+=======
+ iter high:  10, delta out:  1.037E-09, energy: -1.71825548396005807E+01, D: -9.712E-07}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun011
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41970297754E+00, Epot: -1.20019094819E+01, Enl:  6.85230260755E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.19E-03, Omega: -1.71825548394713081E+01, D: -9.712E-07, 
+=======
+ iter:  1, fnrm:  1.19E-03, Omega: -1.71825548394713721E+01, D: -9.712E-07, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  4.934E-01, max alpha:  4.934E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2668,12 +3503,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41984815876E+00, Epot: -1.20020405399E+01, Enl:  6.85223357252E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  7.88E-04, Omega: -1.71825553027772280E+01, D: -4.633E-07, 
+=======
+ iter:  2, fnrm:  7.88E-04, Omega: -1.71825553027772671E+01, D: -4.633E-07, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun011  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.41984815876E+00, Epot: -1.20020405399E+01, Enl:  6.85223357252E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  7.88E-04, Omega: -1.71825553027772280E+01, D: -4.633E-07}
+=======
+ iter:  2, fnrm:  7.88E-04, Omega: -1.71825553027772671E+01, D: -4.633E-07}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel011
@@ -2686,7 +3529,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  3.78E-05, eBS: -4.03071917319442363E+00, D:  6.157E-05, 
+=======
+ iter:  1, fnrm:  3.78E-05, eBS: -4.03071917319436679E+00, D:  6.157E-05, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -2701,7 +3548,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  6.57E-10, energy: -1.71825553038330057E+01, D: -4.642E-07}]
+=======
+ iter:  1, delta:  6.57E-10, energy: -1.71825553038330412E+01, D: -4.642E-07}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.81E-09
@@ -2711,12 +3562,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  3.10E-05, eBS: -4.03065760027962838E+00, D: -3.113E-05, 
+=======
+ iter:  1, fnrm:  3.10E-05, eBS: -4.03065760027956888E+00, D: -3.113E-05, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  5.741E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
+<<<<<<< TREE
        energydiff                      : -1.08698827716580126E-010
+=======
+       energydiff                      : -1.08677511434507323E-010
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41984815876E+00, Epot: -1.20020610869E+01, Enl:  6.85223357252E-01, 
               EH:  2.13124924713E+01,  EXC: -4.11284565046E+00, EvXC: -5.39142586364E+00}, 
@@ -2744,7 +3603,11 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41984815876E+00, Epot: -1.20020482174E+01, Enl:  6.85223357252E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  7.87E-04, Omega: -1.71825553039229533E+01, D: -4.645E-07, 
+=======
+ iter:  1, fnrm:  7.87E-04, Omega: -1.71825553039229781E+01, D: -4.645E-07, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  5.428E-01, max alpha:  5.428E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2753,12 +3616,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41990395064E+00, Epot: -1.20020912049E+01, Enl:  6.85216289517E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  5.18E-04, Omega: -1.71825555306713369E+01, D: -2.267E-07, 
+=======
+ iter:  2, fnrm:  5.18E-04, Omega: -1.71825555306713795E+01, D: -2.267E-07, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun012  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.41990395064E+00, Epot: -1.20020912049E+01, Enl:  6.85216289517E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  5.18E-04, Omega: -1.71825555306713369E+01, D: -2.267E-07}
+=======
+ iter:  2, fnrm:  5.18E-04, Omega: -1.71825555306713795E+01, D: -2.267E-07}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel012
@@ -2771,7 +3642,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.37E-05, eBS: -4.03068872584319138E+00, D:  2.156E-05, 
+=======
+ iter:  1, fnrm:  2.37E-05, eBS: -4.03068872584335303E+00, D:  2.156E-05, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -2786,7 +3661,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  3.71E-10, energy: -1.71825555310885427E+01, D: -2.271E-07}]
+=======
+ iter:  1, delta:  3.71E-10, energy: -1.71825555310885782E+01, D: -2.271E-07}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  6.54E-10
@@ -2796,12 +3675,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.14E-05, eBS: -4.03066716260198898E+00, D: -4.568E-05, 
+=======
+ iter:  1, fnrm:  2.14E-05, eBS: -4.03066716260216840E+00, D: -4.568E-05, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  5.707E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
+<<<<<<< TREE
        energydiff                      : -2.89560375676956028E-010
+=======
+       energydiff                      : -2.89460899693949614E-010
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41990395064E+00, Epot: -1.20021192493E+01, Enl:  6.85216289517E-01, 
               EH:  2.13124677461E+01,  EXC: -4.11284271424E+00, EvXC: -5.39142209025E+00}, 
@@ -2814,22 +3701,38 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  2.03E-11, energy: -1.71825555313781031E+01, D: -2.896E-10}]
+=======
+ iter:  2, delta:  2.03E-11, energy: -1.71825555313780391E+01, D: -2.895E-10}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel012  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  2.03E-11, energy: -1.71825555313781031E+01, D: -2.896E-10}]}
+=======
+ iter:  2, delta:  2.03E-11, energy: -1.71825555313780391E+01, D: -2.895E-10}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc012
    -  {iter:  12, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  12, delta out:  3.759E-10, energy: -1.71825555313781031E+01, D: -2.274E-07}
+=======
+ iter high:  12, delta out:  3.759E-10, energy: -1.71825555313780391E+01, D: -2.274E-07}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun013
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41990395064E+00, Epot: -1.20021097629E+01, Enl:  6.85216289517E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  5.18E-04, Omega: -1.71825555313683580E+01, D: -2.274E-07, 
+=======
+ iter:  1, fnrm:  5.18E-04, Omega: -1.71825555313685179E+01, D: -2.274E-07, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  5.970E-01, max alpha:  5.970E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2838,12 +3741,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41993422848E+00, Epot: -1.20021339819E+01, Enl:  6.85214645537E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  3.34E-04, Omega: -1.71825556419943197E+01, D: -1.106E-07, 
+=======
+ iter:  2, fnrm:  3.34E-04, Omega: -1.71825556419944725E+01, D: -1.106E-07, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun013  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.41993422848E+00, Epot: -1.20021339819E+01, Enl:  6.85214645537E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  3.34E-04, Omega: -1.71825556419943197E+01, D: -1.106E-07}
+=======
+ iter:  2, fnrm:  3.34E-04, Omega: -1.71825556419944725E+01, D: -1.106E-07}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel013
@@ -2856,7 +3767,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.55E-05, eBS: -4.03071284135705987E+00, D:  1.590E-05, 
+=======
+ iter:  1, fnrm:  1.55E-05, eBS: -4.03071284135697816E+00, D:  1.590E-05, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -2871,7 +3786,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  2.09E-10, energy: -1.71825556421729999E+01, D: -1.108E-07}]
+=======
+ iter:  1, delta:  2.09E-10, energy: -1.71825556421731598E+01, D: -1.108E-07}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  5.74E-10
@@ -2881,12 +3800,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  1.31E-05, eBS: -4.03069694039521131E+00, D: -2.445E-07, 
+=======
+ iter:  1, fnrm:  1.31E-05, eBS: -4.03069694039517579E+00, D: -2.445E-07, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  5.687E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
+<<<<<<< TREE
        energydiff                      : -1.43938194696602295E-010
+=======
+       energydiff                      : -1.43945300123959896E-010
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41993422848E+00, Epot: -1.20021338344E+01, Enl:  6.85214645537E-01, 
               EH:  2.13124846706E+01,  EXC: -4.11284619482E+00, EvXC: -5.39142672793E+00}, 
@@ -2899,15 +3826,27 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  1.16E-11, energy: -1.71825556423169381E+01, D: -1.439E-10}]
+=======
+ iter:  2, delta:  1.16E-11, energy: -1.71825556423171051E+01, D: -1.439E-10}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel013  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  1.16E-11, energy: -1.71825556423169381E+01, D: -1.439E-10}]}
+=======
+ iter:  2, delta:  1.16E-11, energy: -1.71825556423171051E+01, D: -1.439E-10}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc013
    -  {iter:  13, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  13, delta out:  2.129E-10, energy: -1.71825556423169381E+01, D: -1.109E-07}
+=======
+ iter high:  13, delta out:  2.129E-10, energy: -1.71825556423171051E+01, D: -1.109E-07}
+>>>>>>> MERGE-SOURCE
     #========================================================= support function optimization
  - support function optimization: &it_supfun014
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2923,12 +3862,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41993902973E+00, Epot: -1.20021289916E+01, Enl:  6.85212528580E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  2.10E-04, Omega: -1.71825556945434954E+01, D: -5.223E-08, 
+=======
+ iter:  2, fnrm:  2.10E-04, Omega: -1.71825556945435665E+01, D: -5.223E-08, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun014  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.41993902973E+00, Epot: -1.20021289916E+01, Enl:  6.85212528580E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  2.10E-04, Omega: -1.71825556945434954E+01, D: -5.223E-08}
+=======
+ iter:  2, fnrm:  2.10E-04, Omega: -1.71825556945435665E+01, D: -5.223E-08}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel014
@@ -2941,7 +3888,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  9.30E-06, eBS: -4.03069718487412487E+00, D:  7.116E-06, 
+=======
+ iter:  1, fnrm:  9.30E-06, eBS: -4.03069718487402362E+00, D:  7.116E-06, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -2956,7 +3907,11 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  1.08E-10, energy: -1.71825556946078066E+01, D: -5.229E-08}]
+=======
+ iter:  1, delta:  1.08E-10, energy: -1.71825556946078351E+01, D: -5.229E-08}]
+>>>>>>> MERGE-SOURCE
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  6.97E-10
@@ -2966,12 +3921,20 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  8.25E-06, eBS: -4.03069006885571568E+00, D: -7.986E-06, 
+=======
+ iter:  1, fnrm:  8.25E-06, eBS: -4.03069006885561087E+00, D: -7.986E-06, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Kohn-Sham residue             :  5.677E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
+<<<<<<< TREE
        energydiff                      : -7.41557926176028559E-011
+=======
+       energydiff                      : -7.43192174468276789E-011
+>>>>>>> MERGE-SOURCE
        Hamiltonian update: {
  Energies: {Ekin:  9.41993902973E+00, Epot: -1.20021333941E+01, Enl:  6.85212528580E-01, 
               EH:  2.13124838270E+01,  EXC: -4.11284608052E+00, EvXC: -5.39142658804E+00}, 
@@ -2984,10 +3947,18 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  8.46E-12, energy: -1.71825556946819624E+01, D: -7.416E-11}]
+=======
+ iter:  2, delta:  8.46E-12, energy: -1.71825556946821543E+01, D: -7.432E-11}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel014  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  2, delta:  8.46E-12, energy: -1.71825556946819624E+01, D: -7.416E-11}]}
+=======
+ iter:  2, delta:  8.46E-12, energy: -1.71825556946821543E+01, D: -7.432E-11}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc014
    -  {iter:  14, target function: ENERGY,  #WARNING: support function optimization not converged
@@ -2999,7 +3970,11 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41993902973E+00, Epot: -1.20021298722E+01, Enl:  6.85212528580E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  1, fnrm:  2.10E-04, Omega: -1.71825556946806088E+01, D: -5.237E-08, 
+=======
+ iter:  1, fnrm:  2.10E-04, Omega: -1.71825556946806870E+01, D: -5.237E-08, 
+>>>>>>> MERGE-SOURCE
  Optimization: {algorithm: SD, mean alpha:  5.582E-01, max alpha:  5.582E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -3008,12 +3983,20 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41994151590E+00, Epot: -1.20021305425E+01, Enl:  6.85212532253E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.44E-04, Omega: -1.71825557135905456E+01, D: -1.891E-08, 
+=======
+ iter:  2, fnrm:  1.44E-04, Omega: -1.71825557135905953E+01, D: -1.891E-08, 
+>>>>>>> MERGE-SOURCE
  exit criterion: net number of iterations}
    -  &final_supfun015  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.41994151590E+00, Epot: -1.20021305425E+01, Enl:  6.85212532253E-01}, 
+<<<<<<< TREE
  iter:  2, fnrm:  1.44E-04, Omega: -1.71825557135905456E+01, D: -1.891E-08}
+=======
+ iter:  2, fnrm:  1.44E-04, Omega: -1.71825557135905953E+01, D: -1.891E-08}
+>>>>>>> MERGE-SOURCE
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel015
@@ -3026,7 +4009,11 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
+<<<<<<< TREE
  iter:  1, fnrm:  5.93E-06, eBS: -4.03069805521511704E+00, D:  5.891E-06, 
+=======
+ iter:  1, fnrm:  5.93E-06, eBS: -4.03069805521509128E+00, D:  5.891E-06, 
+>>>>>>> MERGE-SOURCE
           alpha:  2.000E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
@@ -3041,15 +4028,27 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  4.42E-11, energy: -1.71825557136162885E+01, D: -1.893E-08}]
+=======
+ iter:  1, delta:  4.42E-11, energy: -1.71825557136163596E+01, D: -1.893E-08}]
+>>>>>>> MERGE-SOURCE
    -  &final_kernel015  { #-------------------------------------------------------- iter: 1
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+<<<<<<< TREE
  iter:  1, delta:  4.42E-11, energy: -1.71825557136162885E+01, D: -1.893E-08}]}
+=======
+ iter:  1, delta:  4.42E-11, energy: -1.71825557136163596E+01, D: -1.893E-08}]}
+>>>>>>> MERGE-SOURCE
     #================================================================= Summary of both steps
    self consistency summary: &it_sc015
    -  {iter:  15, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
+<<<<<<< TREE
  iter high:  15, delta out:  4.417E-11, energy: -1.71825557136162885E+01, D: -1.893E-08}
+=======
+ iter high:  15, delta out:  4.417E-11, energy: -1.71825557136163596E+01, D: -1.893E-08}
+>>>>>>> MERGE-SOURCE
    Kernel update:
      max dev from unity                :  5.37E-10
      Hamiltonian application required  :  Yes
@@ -3064,7 +4063,11 @@
  {e: -4.823929093162E-01, f:  1.0000},  # 00002
  {e: -3.417921811586E-01, f:  1.0000},  # 00003
  {e: -2.698785943401E-01, f:  1.0000},  # 00004
+<<<<<<< TREE
  {e:  1.527459848654E-02, f:  1.0000},  # 00005
+=======
+ {e:  1.527459848655E-02, f:  1.0000},  # 00005
+>>>>>>> MERGE-SOURCE
  {e:  1.030959275758E-01, f:  1.0000}] # 00006
     #========================================================================= final results
    self consistency summary:
@@ -3072,13 +4075,21 @@
  Energies: {Ekin:  9.41994151590E+00, Epot: -1.20021265634E+01, Enl:  6.85212532253E-01, 
               EH:  2.13124964952E+01,  EXC: -4.11284818977E+00, EvXC: -5.39142937379E+00}, 
        iter high:  15,           delta out:  4.417E-11, 
+<<<<<<< TREE
           energy: -1.71825557136162885E+01,                       D:  0.000E+00,  #FINAL
+=======
+          energy: -1.71825557136163596E+01,                       D:  0.000E+00,  #FINAL
+>>>>>>> MERGE-SOURCE
  }
  Write wavefunctions to file           : ./data-write/minBasis.*
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
+<<<<<<< TREE
  -  {Process:  0, Timing:  [  3.840E-01,  3.840E-01 ]}
+=======
+ -  {Process:  0, Timing:  [  7.000E-01,  4.367E-01 ]}
+>>>>>>> MERGE-SOURCE
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -3097,17 +4108,33 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  3.90989284E-04, y:  3.85535888E-04, z: -2.09743712E-04, 
                     total:  5.87795003E-04}
+<<<<<<< TREE
  Clean forces norm (Ha/Bohr): {maxval:  5.048649969436E-04, fnrm2:  4.135642534182E-07}
  Raw forces norm (Ha/Bohr): {maxval:  1.079788627718E-03, fnrm2:  1.203044821333E-06}
+=======
+ Clean forces norm (Ha/Bohr): {maxval:  5.048649969513E-04, fnrm2:  4.135642534297E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  1.079788627736E-03, fnrm2:  1.203044821371E-06}
+>>>>>>> MERGE-SOURCE
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
+<<<<<<< TREE
  -  {O: [ 4.918924744152E-04, -9.207347499944E-05, -6.673030761270E-05]} # 0001
  -  {H: [-1.467699858207E-04,  4.035641440735E-07, -2.744037641315E-05]} # 0002
  -  {H: [-3.451224885945E-04,  9.166991085537E-05,  9.417068402584E-05]} # 0003
+=======
+ -  {O: [ 4.918924744204E-04, -9.207347500611E-05, -6.673030762338E-05]} # 0001
+ -  {H: [-1.467699858192E-04,  4.035641498164E-07, -2.744037640282E-05]} # 0002
+ -  {H: [-3.451224886011E-04,  9.166991085629E-05,  9.417068402620E-05]} # 0003
+>>>>>>> MERGE-SOURCE
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
+<<<<<<< TREE
    CPU time (s)                        :  112.55
    Elapsed time (s)                    :  85.74
+=======
+   CPU time (s)                        :  173.22
+   Elapsed time (s)                    :  92.75
+>>>>>>> MERGE-SOURCE
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -3143,15 +4170,24 @@
  - density optimization not converged
  Status of the memory at finalization:
    Timestamp of Profile initialization:
+<<<<<<< TREE
      2014-01-14 13:49:31.661
+=======
+     2014-01-14 11:32:18.400
+>>>>>>> MERGE-SOURCE
    Process Id:
      0
  Memory Consumption Report:
+<<<<<<< TREE
    Tot. No. of Allocations             :  14180
    Tot. No. of Deallocations           :  14180
+=======
+   Tot. No. of Allocations             :  19213
+   Tot. No. of Deallocations           :  19213
+>>>>>>> MERGE-SOURCE
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  191
      for the array                     : x_f3
      in the routine                    : initialize_work_arrays_locham
- Max No. of dictionaries used          :  1250 #(  138 still in use)
+ Max No. of dictionaries used          :  1257 #(  138 still in use)

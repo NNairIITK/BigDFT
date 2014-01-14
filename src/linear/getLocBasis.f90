@@ -10,7 +10,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,&
+    calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,calculate_KS_residue,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
   use module_types
@@ -36,7 +36,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
-  logical,intent(in) :: calculate_ham
+  logical,intent(in) :: calculate_ham, calculate_KS_residue
   type(sparseMatrix), intent(inout) :: ham_small ! for foe only
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
@@ -206,35 +206,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
-
-      !! experimental by SM
-      !if (iproc==0) write(*,*) 'deleting additional entries im ham.. SM'
-      !allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      !call memocc(istat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
-      !call uncompressMatrix(iproc,tmb%linmat%ham)
-      !iorb=0
-      !do iat=1,at%astruct%nat
-      !    if (iproc==0) write(*,*) 'iat, at%astruct%iatype(iat)', iat, at%astruct%iatype(iat)
-      !    if (at%astruct%iatype(iat)==1) then
-      !        iiorb=4
-      !        jjorb=9
-      !    else if (at%astruct%iatype(iat)==2) then
-      !        iiorb=1
-      !        jjorb=1
-      !    else
-      !        stop 'wrong type'
-      !    end if
-      !    do i=1,jjorb
-      !        iorb=iorb+1
-      !        if (i>iiorb) then
-      !            tmb%linmat%ham%matrix(:,iorb)=0.d0
-      !            tmb%linmat%ham%matrix(iorb,:)=0.d0
-      !        end if
-      !    end do
-      !end do
-      !call compress_matrix_for_allreduce(iproc,tmb%linmat%ham)
-      !iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
-      !deallocate(tmb%linmat%ham%matrix, stat=istat)
       !call memocc(istat, iall, 'tmb%linmat%ham%matrix', subname)
 
 
@@ -297,7 +268,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call dcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
       call dcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
       if (iproc==0) call yaml_map('method','diagonalization')
-  if (.true.) then
       if(tmb%orthpar%blocksize_pdsyev<0) then
           if (iproc==0) call yaml_map('mode','sequential')
           !if(iproc==0) write(*,'(1x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
@@ -326,53 +296,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !!end do
       call dcopy(tmb%orbs%norb*tmb%orbs%norb, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
       infoCoeff=0
-  else
-      allocate(smallmat(at%astruct%nat*4,at%astruct%nat*4,2))
-      iiorb=0
-      do iorb=1,tmb%orbs%norb
-          if(mod(iorb-1,9)+1<=4) then
-              iiorb=iiorb+1
-              jjorb=0
-              do jorb=1,tmb%orbs%norb
-                  if (mod(jorb-1,9)+1<=4) then
-                      jjorb=jjorb+1
-                      smallmat(jjorb,iiorb,1)=matrixElements(jorb,iorb,1)
-                      smallmat(jjorb,iiorb,2)=matrixElements(jorb,iorb,2)
-                  end if
-              end do
-          end if
-      end do
-      lwork=100*at%astruct%nat
-      allocate(work(lwork))
-      allocate(evalsmall(at%astruct%nat*4))
-      call dsygv(1, 'v', 'l', at%astruct%nat*4, smallmat(1,1,1), at%astruct%nat*4, &
-           smallmat(1,1,2), at%astruct%nat*4, evalsmall, work, lwork, info)
-      matrixElements=0.d0
-      iiorb=0
-      do iorb=1,tmb%orbs%norb
-          if(mod(iorb-1,9)+1<=4) then
-              iiorb=iiorb+1
-              jjorb=0
-              do jorb=1,tmb%orbs%norb
-                  if (mod(jorb-1,9)+1<=4) then
-                      jjorb=jjorb+1
-                      matrixElements(jorb,iiorb,1)=smallmat(jjorb,iiorb,1)
-                      matrixElements(jorb,iiorb,2)=smallmat(jjorb,iiorb,2)
-                  end if
-              end do
-          end if
-      end do
-      tmb%orbs%eval=-0.5d0
-      tmb%orbs%eval(1:at%astruct%nat*4)=evalsmall
-      deallocate(work)
-      deallocate(evalsmall)
-      deallocate(smallmat)
-
-      !!if(iproc==0) write(*,'(a)') 'done.'
-
-      call dcopy(tmb%orbs%norb*tmb%orbs%norb, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
-      infoCoeff=0
-  end if
 
       !!! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
       !!if(iproc==0) then
@@ -447,7 +370,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   end if
   if (calculate_ham) then
-      call get_KS_residue(iproc, nproc, tmb, orbs, hpsit_c, hpsit_f, KSres)
+      if (calculate_KS_residue) then
+          call get_KS_residue(iproc, nproc, tmb, orbs, hpsit_c, hpsit_f, KSres)
+      end if
       if (iproc==0) call yaml_map('Kohn-Sham residue',KSres,fmt='(es10.3)')
       iall=-product(shape(hpsit_c))*kind(hpsit_c)
       deallocate(hpsit_c, stat=istat)
@@ -513,7 +438,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(in) :: experimental_mode
  
   ! Local variables
-  real(kind=8) :: fnrmMax, meanAlpha, ediff, noise, alpha_max, delta_energy, delta_energy_prev
+  real(kind=8) :: fnrmMax, meanAlpha, ediff, alpha_max, delta_energy, delta_energy_prev
   integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, lwork
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: psit_c_tmp, psit_f_tmp, work, eval, delta_energy_arr
@@ -532,97 +457,17 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer,dimension(3) :: ipiv
   real(kind=8),dimension(:,:),allocatable :: psi_old
   real(kind=8),dimension(:),allocatable :: psi_tmp
-  real(kind=8),dimension(3),save :: d2e_arr_out
-  integer,save :: isatur_out
-  integer :: isatur_in, correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin
+  integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin
   logical :: stop_optimization, energy_increased_previous
 
+  call f_routine(id='getLocalizedBasis')
 
-  !!allocate(psi_old(size(tmb%psi),3))
-  !!write(*,*) 'init1.1'
-  !!allocate(psi_tmp(size(tmb%psi)))
-  !!write(*,*) 'init1.2'
-  allocate(delta_energy_arr(nit_basis))
-  !!write(*,*) 'init1.3'
-  !!write(*,*) 'size(psi_old,1), size(tmb%psi)', size(psi_old,1), size(tmb%psi)
-  !!psi_old(:,1)=tmb%psi
-  !!write(*,*) 'init1.4'
-  if (itout==1) then
-      isatur_out=0
-      d2e_arr_out=0
-  end if
+  delta_energy_arr=f_malloc(nit_basis)
   stop_optimization=.false.
 
 
   ! Allocate all local arrays.
   call allocateLocalArrays()
-
-  !!!EXPERIMENTAL
-  !!    call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-  !!         tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-  !!         tmb%can_use_transposed)
-  !!    ortho_on=.false.
-  !!!END EXPERIMENTAL
-
-
-  ! NOT WORKING !
-  !!!!!! TRANSFORM TO DIAGONAL KERNEL $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-  !!!!!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!!!!call uncompressMatrix(iproc,tmb%linmat%denskern)
-  !!!!!allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!!!!call uncompressMatrix(iproc,tmb%linmat%ovrlp)
-  !!!!!lwork=100*tmb%orbs%norb
-  !!!!!allocate(work(lwork))
-  !!!!!allocate(eval(tmb%orbs%norb))
-  !!!!!call dsygv(1, 'v', 'l', tmb%orbs%norb, tmb%linmat%denskern%matrix, tmb%orbs%norb, &
-  !!!!!     tmb%linmat%ovrlp%matrix, tmb%orbs%norb, eval, work, lwork, info)
-  !!!!!if(.not.associated(tmb%psit_c)) then
-  !!!!!    allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-  !!!!!    call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-  !!!!!end if
-  !!!!!if(.not.associated(tmb%psit_f)) then
-  !!!!!    allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-  !!!!!    call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-  !!!!!end if
-  !!!!!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-  !!!!!     tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-  !!!!!allocate(psit_c_tmp(sum(tmb%collcom%nrecvcounts_c)))
-  !!!!!allocate(psit_f_tmp(7*sum(tmb%collcom%nrecvcounts_f)))
-  !!!!!psit_c_tmp=tmb%psit_c
-  !!!!!psit_f_tmp=tmb%psit_f
-  !!!!!tmb%can_use_transposed=.true.
-  !!!!!allocate(tempmat(tmb%orbs%norb,tmb%orbs%norb))
-  !!!!!tempmat=tmb%linmat%denskern%matrix
-  !!!!!do iorb=1,tmb%orbs%norb
-  !!!!!    do jorb=1,tmb%orbs%norb
-  !!!!!        tmb%linmat%denskern%matrix(jorb,iorb)=tempmat(iorb,jorb)
-  !!!!!    end do
-  !!!!!end do
-  !!!!!deallocate(tempmat)
-  !!!!!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
-  !!!!!call build_linear_combination_transposed(tmb%collcom, tmb%linmat%denskern, psit_c_tmp, psit_f_tmp, &
-  !!!!!     .true., tmb%psit_c, tmb%psit_f, iproc)
-  !!!!!call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-  !!!!!     tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
-  !!!!!!do ii=1,tmb%linmat%denskern%nvctr
-  !!!!!!   iorb = tmb%linmat%denskern%orb_from_index(1,ii)
-  !!!!!!   jorb = tmb%linmat%denskern%orb_from_index(2,ii)
-  !!!!!!   if (iorb/=jorb) then
-  !!!!!!       tmb%linmat%denskern%matrix_compr(ii)=0.d0
-  !!!!!!   else
-  !!!!!!       tmb%linmat%denskern%matrix_compr(ii)=eval(iorb)
-  !!!!!!       if (iproc==0) write(*,*) 'iorb, eval', iorb, eval(iorb)
-  !!!!!!   end if
-  !!!!!!end do
-  !!!!!deallocate(psit_c_tmp)
-  !!!!!deallocate(psit_f_tmp)
-  !!!!!deallocate(tmb%linmat%denskern%matrix)
-  !!!!!deallocate(tmb%linmat%ovrlp%matrix)
-  !!!!!deallocate(eval)
-  !!!!!return
-  !!!!!! $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-
 
 
   call timing(iproc,'getlocbasinit','ON')
@@ -633,7 +478,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   alphaDIIS=ldiis%alphaDIIS
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
-  noise=0.d0
  
   call timing(iproc,'getlocbasinit','OF')
 
@@ -652,16 +496,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ediff_sum=0.d0
   delta_energy_prev_sum=0.d0
   energy_increased_previous=.false.
- 
-  !!if (iproc==0) then
-  !!    !!call yaml_sequence(advance='no')
-  !!    !!call yaml_open_map('support function optimization',label=&
-  !!    !!     'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
-  !!    call yaml_open_sequence('support function optimization',label=&
-  !!         'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
-  !!end if
 
-  isatur_in=0
   iterLoop: do
       it=it+1
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
@@ -818,16 +653,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!! END PLOT #######################################################################
 
 
-      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-         call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
-              meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
-              hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
-              experimental_mode, orbs, hpsi_noprecond)
-      !else
-      !   call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, &
-      !        fnrm, fnrmMax, meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, &
-      !        energs_base, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small)
-      !end if
+      call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
+           meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
+           hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
+           experimental_mode, orbs, hpsi_noprecond)
 
 
       !!! PLOT ###########################################################################
@@ -872,156 +701,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
       end if
 
-
-      !!! NEW
-
-      !!if (it_tot==1) then
-      !!    if (itout>3) then
-      !!        d2e_arr_out(1)=d2e_arr_out(2)
-      !!        d2e_arr_out(2)=d2e_arr_out(3)
-      !!    end if
-      !!    ii=max(min(itout,3),1)
-      !!    d2e_arr_out(ii)=trH
-      !!end if
-
-
-      !!if (it>3) then
-      !!    do i=1,3
-      !!        interpol_matrix(1,i)=interpol_matrix(2,i)
-      !!        interpol_matrix(2,i)=interpol_matrix(3,i)
-      !!        !interpol_matrix(3,i)=interpol_matrix(4,i)
-      !!        !interpol_matrix(4,i)=interpol_matrix(5,i)
-      !!    end do
-      !!    interpol_vector(1)=interpol_vector(2)
-      !!    interpol_vector(2)=interpol_vector(3)
-      !!    !interpol_vector(3)=interpol_vector(4)
-      !!    !interpol_vector(4)=interpol_vector(5)
-      !!    psi_old(:,1)=psi_old(:,2)
-      !!    psi_old(:,2)=psi_old(:,3)
-      !!    !psi_old(:,3)=psi_old(:,4)
-      !!    !psi_old(:,4)=psi_old(:,5)
-      !!end if
-      !!psi_tmp=tmb%psi-psi_old(:,1)
-      !!ist=1
-      !!tt=0.d0
-      !!do iorb=1,tmb%orbs%norbp
-      !!    iiorb=tmb%orbs%isorb+iorb
-      !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
-      !!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      !!    tt=tt+ddot(ncount, psi_tmp(ist), 1, psi_tmp(ist), 1)
-      !!    ist=ist+ncount
-      !!end do
-      !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!tt=sqrt(tt/dble(tmb%orbs%norb))
-      !!ii=max(min(it,3),1)
-      !!!interpol_matrix(ii,1)=tt**4
-      !!!interpol_matrix(ii,2)=tt**3
-      !!!interpol_matrix(ii,3)=tt**2
-      !!!interpol_matrix(ii,4)=tt
-      !!!interpol_matrix(ii,5)=tt
-      !!interpol_vector(ii)=trH
-      !!psi_old(:,ii)=tmb%psi
-
-      !!! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
-      !!if (it>=3) then
-      !!    ttt=0.d0
-      !!    do i=1,3
-      !!        if (i>1) then
-      !!            !psi_tmp=tmb%psi-psi_old(:,i)
-      !!            !psi_tmp=psi_old(:,i)-psi_old(:,1)
-      !!            psi_tmp=psi_old(:,i)-psi_old(:,i-1)
-      !!            ist=1
-      !!            tt=0.d0
-      !!            do iorb=1,tmb%orbs%norbp
-      !!                iiorb=tmb%orbs%isorb+iorb
-      !!                ilr=tmb%orbs%inwhichlocreg(iiorb)
-      !!                ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      !!                tt=tt+ddot(ncount, psi_tmp(ist), 1, psi_tmp(ist), 1)
-      !!                ist=ist+ncount
-      !!            end do
-      !!            call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!            tt=sqrt(tt/dble(tmb%orbs%norb))
-      !!        else
-      !!            tt=0.d0
-      !!        end if
-      !!        ttt=ttt+tt
-      !!        !interpol_matrix(i,1)=ttt**4
-      !!        !interpol_matrix(i,2)=ttt**3
-      !!        !interpol_matrix(i,3)=ttt**2
-      !!        !interpol_matrix(i,4)=ttt
-      !!        !interpol_matrix(i,5)=1
-      !!        interpol_matrix(i,1)=ttt**2
-      !!        interpol_matrix(i,2)=ttt
-      !!        interpol_matrix(i,3)=1.d0
-      !!    end do
-      !!    do i=1,ii
-      !!        interpol_solution(i)=interpol_vector(i)
-      !!        tmp_matrix(i,1)=interpol_matrix(i,1)
-      !!        tmp_matrix(i,2)=interpol_matrix(i,2)
-      !!        tmp_matrix(i,3)=interpol_matrix(i,3)
-      !!        !tmp_matrix(i,4)=interpol_matrix(i,4)
-      !!        !tmp_matrix(i,5)=interpol_matrix(i,5)
-      !!    end do
-      !!    if (iproc==0) then
-      !!        do i=1,3
-      !!            write(*,'(3es14.6,5x,es14.6)') tmp_matrix(i,1:3), interpol_solution(i)
-      !!        end do
-      !!    end if
-      !!    call dgesv(ii, 1, tmp_matrix, 3, ipiv, interpol_solution, 3, info)
-      !!    if (info/=0) then
-      !!       if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
-      !!    end if
-      !!    if (iproc==0) write(*,'(a,3es14.7)') 'interpol_solution(1:3)',interpol_solution(1:3)
-      !!end if
-
-      !!!d2e=6.d0*interpol_solution(1)*interpol_matrix(ii,3)+2.d0*interpol_solution(2)
-      !!!d2e = 12.d0*interpol_solution(1)*interpol_matrix(ii,4)**2 + 6.d0*interpol_solution(2)*interpol_matrix(ii,4) + 2.d0*interpol_solution(3)
-      !!d2e = 2.d0*interpol_solution(1)
-      !!tt = abs(interpol_vector(1))*(interpol_vector(1) - 2.d0*interpol_vector(2) + interpol_vector(3))
-      !!ttt = abs(d2e_arr_out(1))*(d2e_arr_out(1) - 2.d0*d2e_arr_out(2) + d2e_arr_out(3))
-      !!!tt=tt/dble(tmb%orbs%norb)
-      !!ttt=ttt/dble(tmb%orbs%norb)
-      !!if (iproc==0) write(*,'(a,2es14.5)') 'tt, ttt', tt, ttt
-      !!if (itout>=3 .and. it >=3) then
-      !!    !if (abs(tt)<1.d-4 .and. .not.energy_increased) then
-      !!    !if (abs(tt)<1.d-4 .and. abs(ttt)<1.d-3) then
-      !!    !if (tt>0.d0 .and. tt<1.d-1 .and. ttt>0.d0 .and. ttt<1.d1 .and. .false.) then
-      !!    !!if (tt>0.d0 .and. tt<1.d-1) then
-      !!    !!    if (iproc==0) write(*,*) 'SWITCH OFF ORTHO'
-      !!    !!    ortho_on=.false.
-      !!    !!end if
-      !!    !if (abs(tt)<1.d-5 .and. .not.energy_increased) then
-      !!    !if (abs(tt)<1.d-1 .and. .not.energy_increased) then
-      !!    if (abs(tt)<1.d-2 .and. .not.energy_increased) then
-      !!        isatur_in=isatur_in+1
-      !!    else
-      !!        isatur_in=0
-      !!    end if
-      !!    if (abs(ttt)<1.d-4) then
-      !!        isatur_out=isatur_out+1
-      !!    else
-      !!        isatur_out=0
-      !!    end if
-      !!    if (iproc==0) then
-      !!        write(*,'(a,3es12.4,2i4)') 'd2e',d2e,tt, ttt, isatur_in, isatur_out
-      !!    end if
-
-      !!    !if (isatur_in>=2) then
-      !!    if (isatur_in>=200) then
-      !!        stop_optimization=.true.
-      !!    end if
-
-      !!    !!if (isatur_in>=2 .and. isatur_out>=2) then
-      !!    !!    if (iproc==0) write(*,*) 'new fixing criterion'
-      !!    !!    fix_supportfunctions=.true.
-      !!    !!end if
-      !!end if
-
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
-          !call vcopy(tmb%orbs%norb, occup_tmp(1), 1, tmb%orbs%occup(1), 1)
-          !iall=-product(shape(occup_tmp))*kind(occup_tmp)
-          !deallocate(occup_tmp, stat=istat)
-          !call memocc(istat, iall, 'occup_tmp', subname)
           call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
@@ -1116,8 +796,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
           ! print info here anyway for debugging
-          !!if (iproc==0) write(*,'(1x,a,i6,2es15.7,f17.10,2es13.4)') 'iter, fnrm, fnrmMax, ebs, diff, noise level', &
-          !!it, fnrm, fnrmMax, trH, ediff,noise
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
               call yaml_close_map()
               call bigdft_utils_flush(unit=6)
@@ -1345,7 +1023,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
-  deallocate(delta_energy_arr)
+  call f_free(delta_energy_arr)
+
+  call f_release_routine()
 
 contains
 

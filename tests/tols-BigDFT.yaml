@@ -28,6 +28,7 @@ Keys to ignore:
  - Input ixc parameter corresponds to XC
  - Wavefunction written No.
  - accel
+ - Max No. of dictionaries used
 Patterns to ignore:
  - Timestamp
  - memory
@@ -307,7 +308,7 @@ cleanup:
  EH: 2.4e-9
  EXC: 4.7e-10
  EvXC: 8.7e-10
- Omega: 5.9e-10
+ Omega: 6.3e-10
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.8e-10
 
@@ -351,11 +352,11 @@ H2-freq:
 rotate_read1:
  eBS: 1.2e-11
  EvXC: 1.1e-10
- orthog_energy: 1.2e-11
+ orthog_energy: 2.4e-11
 
 rotate_read2:
  eBS: 1.2e-11
- orthog_energy: 1.7e-9
+ orthog_energy: 3.0e-9
  
 rotate_write:
  EvXC: 1.1e-10
@@ -662,3 +663,8 @@ reformat_write:
  EXC: 1.1e-10
  Raw forces norm (Ha/Bohr): 1.7e-11
  Clean forces norm (Ha/Bohr): 1.7e-11
+
+explicit_locregcenters:
+ EvXC: 1.1e-10
+ Total electronic charge: 4.1e-11
+ EKS: 1.3e-11

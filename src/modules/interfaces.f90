@@ -640,7 +640,8 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
+            lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
+            locregcenters)
          use module_defs
          use module_types
          use module_fragments
@@ -666,6 +667,7 @@ module module_interfaces
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
          type(system_fragment), dimension(:), pointer :: ref_frags
          type(cdft_data), intent(out) :: cdft
+         real(kind=8),dimension(3,atoms%astruct%nat),intent(in),optional :: locregcenters
        END SUBROUTINE input_wf
 
        subroutine reformatmywaves(iproc,orbs,at,&
@@ -2105,7 +2107,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,&
+        calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,calculate_KS_residue,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
@@ -2128,7 +2130,7 @@ module module_interfaces
       type(SIC_data),intent(in) :: SIC
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
-      logical,intent(in) :: calculate_ham
+      logical,intent(in) :: calculate_ham, calculate_KS_residue
       type(sparseMatrix), intent(inout) :: ham_small ! for foe only
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
@@ -2141,7 +2143,8 @@ module module_interfaces
     end subroutine get_coeff
 
     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpspd,proj,GPU,&
-           energs,energy,fpulay,infocode,ref_frags,cdft)
+           energs,energy,fpulay,infocode,ref_frags,cdft, &
+           fdisp, fion)
       use module_base
       use module_types
       use module_fragments
@@ -2165,6 +2168,7 @@ module module_interfaces
       integer,intent(out):: infocode
       type(system_fragment), dimension(:), pointer :: ref_frags 
       type(cdft_data), intent(inout) :: cdft
+      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: fdisp, fion
     end subroutine linearScaling   
 
 
@@ -2206,7 +2210,8 @@ module module_interfaces
     end subroutine readAtomicOrbitals
 
     subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-         rxyz, nlpspd, proj, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs)
+         rxyz, nlpspd, proj, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs,&
+         locregcenters)
          
       ! Input wavefunctions are found by a diagonalization in a minimal basis set
       ! Each processors write its initial wavefunctions into the wavefunction file
@@ -2228,6 +2233,7 @@ module module_interfaces
       type(DFT_local_fields), intent(inout) :: denspot
       real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin), intent(inout) ::  rhopotold
       type(energy_terms),intent(inout) :: energs
+      real(kind=8),dimension(3,at%astruct%nat),intent(in),optional :: locregcenters
     end subroutine inputguessConfinement
 
    subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)
@@ -3137,7 +3143,7 @@ module module_interfaces
 
        subroutine system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,denspot,nlpspd,comms,shift,proj,radii_cf,&
-            ref_frags, inwhichlocreg_old, onwhichatom_old)
+            ref_frags, locregcenters, inwhichlocreg_old, onwhichatom_old)
          use module_base
          use module_types
          use module_fragments
@@ -3156,6 +3162,7 @@ module module_interfaces
          real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
          real(wp), dimension(:), pointer :: proj
          type(system_fragment), dimension(:), pointer :: ref_frags
+         real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
        end subroutine system_initialization
 

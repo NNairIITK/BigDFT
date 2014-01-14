@@ -1834,6 +1834,12 @@ contains
     call input_var("write_orbitals", .false., "linear scaling: write KS orbitals for cubic restart", dummy_bool)
     call set(dict // WRITE_ORBITALS, dummy_bool)
 
+    call input_var("explicit_locregcenters", .false., "linear scaling: explicitely specify localization centers", dummy_bool)
+    call set(dict // EXPLICIT_LOCREGCENTERS, dummy_bool)
+
+    call input_var("calculate_KS_residue", .true., "linear scaling: calculate Kohn-Sham residue", dummy_bool)
+    call set(dict // CALCULATE_KS_RESIDUE, DUMMY_Bool)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

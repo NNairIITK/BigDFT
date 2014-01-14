@@ -1394,6 +1394,10 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%experimental_mode = dict//EXPERIMENTAL_MODE
   ! linear scaling: write KS orbitals for cubic restart
   in%write_orbitals = dict//WRITE_ORBITALS
+  ! linear scaling: explicitely specify localization centers
+  in%explicit_locregcenters = dict//EXPLICIT_LOCREGCENTERS
+  ! linear scaling: calculate Kohn-Sham residue
+  in%calculate_KS_residue = dict//CALCULATE_KS_RESIDUE
   call f_release_routine()
 END SUBROUTINE perf_input_analyse
 
