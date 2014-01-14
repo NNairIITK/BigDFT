@@ -128,6 +128,7 @@ module module_input_keys
   character(len = *), parameter, public :: EXPERIMENTAL_MODE = "experimental_mode"
   character(len = *), parameter, public :: WRITE_ORBITALS = "write_orbitals"
   character(len = *), parameter, public :: EXPLICIT_LOCREGCENTERS = "explicit_locregcenters"
+  character(len = *), parameter, public :: CALCULATE_KS_RESIDUE = "calculate_KS_residue"
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0

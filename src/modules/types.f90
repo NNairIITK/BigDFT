@@ -338,6 +338,9 @@ module module_types
 
      !> linear scaling: explicitely specify localization centers
      logical :: explicit_locregcenters
+
+     !> linear scaling: calculate Kohn-Sham residue
+     logical :: calculate_KS_residue
   end type input_variables
 
   !> Contains all energy terms
