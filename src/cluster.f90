@@ -418,6 +418,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   character(len=20) :: comment
 
 
+  call f_routine(id='linearScaling')
+
   call nullify_rholoc_objects(rholoc_tmp)
 
   !copying the input variables for readability
@@ -1426,6 +1428,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !?!    endif
 
   call deallocate_before_exiting
+
+  call f_release_routine()
+    
 
 contains
 
