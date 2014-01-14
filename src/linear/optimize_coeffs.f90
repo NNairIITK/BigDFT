@@ -845,12 +845,16 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
   energy=0.0_gp
   do iorbp=1,tmb_orbs%norbp
      iorb=iorbp+tmb_orbs%isorb
+     !$omp parallel default(private) shared(iorb,denskern,ham,tmb_orbs,energy)
+     !$omp do reduction(+:energy)
      do jorb=1,tmb_orbs%norb
         ind_ham = matrixindex_in_compressed(ham,iorb,jorb)
         ind_denskern = matrixindex_in_compressed(denskern,jorb,iorb)
         if (ind_ham==0.or.ind_denskern==0) cycle
         energy = energy + denskern%matrix_compr(ind_denskern)*ham%matrix_compr(ind_ham)
      end do
+     !$omp end do
+     !$omp end parallel
   end do
   if (nproc>1) then
      call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)

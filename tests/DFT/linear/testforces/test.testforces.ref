@@ -9,9 +9,33 @@
   # 2) considering the forces over all atoms.
   #------------------------------------------------------------------------------------------- 
  <BigDFT> log of the run will be written in logfile: ./log.yaml
+ psirold doesn't exist for reformatting           2 ./data/tmbisf2.dat
+ psirold doesn't exist for reformatting           4 ./data/tmbisf4.dat
+ psirold doesn't exist for reformatting           3 ./data/tmbisf3.dat
+ psirold doesn't exist for reformatting           1 ./data/tmbisf1.dat
+ psirold doesn't exist for reformatting           6 ./data/tmbisf6.dat
+ psirold doesn't exist for reformatting           5 ./data/tmbisf5.dat
+ psirold doesn't exist for reformatting           6 ./data/tmbisf6.dat
+ psirold doesn't exist for reformatting           4 ./data/tmbisf4.dat
+ psirold doesn't exist for reformatting           1 ./data/tmbisf1.dat
+ psirold doesn't exist for reformatting           5 ./data/tmbisf5.dat
+ psirold doesn't exist for reformatting           2 ./data/tmbisf2.dat
+ psirold doesn't exist for reformatting           3 ./data/tmbisf3.dat
+ psirold doesn't exist for reformatting           5 ./data/tmbisf5.dat
+ psirold doesn't exist for reformatting           6 ./data/tmbisf6.dat
+ psirold doesn't exist for reformatting           1 ./data/tmbisf1.dat
+ psirold doesn't exist for reformatting           4 ./data/tmbisf4.dat
+ psirold doesn't exist for reformatting           2 ./data/tmbisf2.dat
+ psirold doesn't exist for reformatting           3 ./data/tmbisf3.dat
+ psirold doesn't exist for reformatting           4 ./data/tmbisf4.dat
+ psirold doesn't exist for reformatting           5 ./data/tmbisf5.dat
+ psirold doesn't exist for reformatting           2 ./data/tmbisf2.dat
+ psirold doesn't exist for reformatting           1 ./data/tmbisf1.dat
+ psirold doesn't exist for reformatting           3 ./data/tmbisf3.dat
+ psirold doesn't exist for reformatting           6 ./data/tmbisf6.dat
 
  Check correctness of forces
- Difference of total energies =  1.84145040746130917E-003
- Integral force*displacement =   1.87343366901135573E-003
- Difference =  -3.19832615500465628E-005
+ Difference of total energies =  1.84145040701721996E-003
+ Integral force*displacement =   1.87343366901146524E-003
+ Difference =  -3.19832619942452771E-005
 

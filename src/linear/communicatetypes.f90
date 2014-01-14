@@ -189,10 +189,13 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
 
    ! Local variables
    integer:: ierr, istat, iall, jorb, ilr, jlr, itask, jtask, root, icomm, nrecv, nalloc, max_sim_comms
+   integer :: maxrecvdim, maxsenddim, nsend
    logical :: isoverlap
    character(len=*),parameter:: subname='communicate_wavefunctions_descriptors2'
    integer,dimension(:),allocatable :: requests
+   integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
    logical,dimension(:,:),allocatable :: covered
+   !integer :: total_sent, total_recv
 
    ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
    jorb = maxval(orbs%norb_par(:,0))
@@ -202,8 +205,16 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    allocate(covered(nlr,0:nproc-1), stat=istat)
    call memocc(istat, covered, 'covered', subname)
 
+   allocate(worksend_int(4,nlr), stat=istat)
+   call memocc(istat, worksend_int, 'worksend_int', subname)
+
+   allocate(workrecv_int(4,nlr), stat=istat)
+   call memocc(istat, workrecv_int, 'workrecv_int', subname)
+
    nrecv=0
+   !nsend=0
    icomm=0
+   maxsenddim=0
    do ilr=1,nlr
        root=rootarr(ilr)
        covered(ilr,:)=.false.
@@ -220,33 +231,21 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
                if (iproc == root) then
                   !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
                   !    jtask,' with tags ',4*ilr+0,'-',4*ilr+3
+                  worksend_int(1,ilr)=llr(ilr)%wfd%nvctr_c
+                  worksend_int(2,ilr)=llr(ilr)%wfd%nvctr_f
+                  worksend_int(3,ilr)=llr(ilr)%wfd%nseg_c
+                  worksend_int(4,ilr)=llr(ilr)%wfd%nseg_f
                   icomm=icomm+1
-                  call mpi_isend(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, jtask,&
-                       4*ilr+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                  icomm=icomm+1
-                  call mpi_isend(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, jtask,&
-                       4*ilr+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                  icomm=icomm+1
-                  call mpi_isend(llr(ilr)%wfd%nseg_c, 1, mpi_integer, jtask, &
-                       4*ilr+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                  icomm=icomm+1
-                  call mpi_isend(llr(ilr)%wfd%nseg_f, 1, mpi_integer, jtask, &
-                       4*ilr+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                  call mpi_isend(worksend_int(1,ilr), 4, mpi_integer, jtask,&
+                       itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                  maxsenddim=max(maxsenddim,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+                  !nsend=nsend+1
                else if (iproc == jtask) then
                   !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
                   !    root,' with tags ',4*ilr+0,'-',4*ilr+3
                   icomm=icomm+1
-                  call mpi_irecv(llr(ilr)%wfd%nvctr_c, 1, mpi_integer, root,&
-                       4*ilr+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                  icomm=icomm+1
-                  call mpi_irecv(llr(ilr)%wfd%nvctr_f, 1, mpi_integer, root,&
-                       4*ilr+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                  icomm=icomm+1
-                  call mpi_irecv(llr(ilr)%wfd%nseg_c, 1, mpi_integer, root,&
-                       4*ilr+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                  icomm=icomm+1
-                  call mpi_irecv(llr(ilr)%wfd%nseg_f, 1, mpi_integer, root,&
-                       4*ilr+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                  call mpi_irecv(workrecv_int(1,ilr), 4, mpi_integer, root,&
+                       itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
                   nrecv=nrecv+1
                end if
            end if
@@ -254,22 +253,44 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    end do
   
    call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+   call mpi_barrier(mpi_comm_world,ierr)
+
+   iall=-product(shape(worksend_int))*kind(worksend_int)
+   deallocate(worksend_int,stat=istat)
+   call memocc(istat, iall, 'worksend_int', subname)
 
    nalloc=0
+   maxrecvdim=0
    do jlr=1,nlr 
       if (covered(jlr,iproc)) then
-         call allocate_wfd(llr(jlr)%wfd,subname)
+         llr(jlr)%wfd%nvctr_c=workrecv_int(1,jlr)
+         llr(jlr)%wfd%nvctr_f=workrecv_int(2,jlr)
+         llr(jlr)%wfd%nseg_c=workrecv_int(3,jlr)
+         llr(jlr)%wfd%nseg_f=workrecv_int(4,jlr)
+!         call allocate_wfd(llr(jlr)%wfd,subname)
          nalloc=nalloc+1
+         maxrecvdim=max(maxrecvdim,llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
       end if
    end do
    if (f_err_raise(nalloc /= nrecv,'problem in communicate locregs: mismatch in receives '//&
         trim(yaml_toa(nrecv))//' and allocates '//trim(yaml_toa(nalloc))//' for process '//trim(yaml_toa(iproc)),&
         err_name='BIGDFT_RUNTIME_ERROR')) return
-   call mpi_barrier(mpi_comm_world,ierr)
+
+   iall=-product(shape(workrecv_int))*kind(workrecv_int)
+   deallocate(workrecv_int,stat=istat)
+   call memocc(istat, iall, 'workrecv_int', subname)
+
+   !should reduce memory by not allocating for all llr
+   allocate(workrecv_int(6*maxrecvdim,nlr), stat=istat)
+   call memocc(istat, workrecv_int, 'workrecv_int', subname)
+   allocate(worksend_int(6*maxsenddim,nlr), stat=istat)
+   call memocc(istat, worksend_int, 'worksend_int', subname)
 
    ! divide communications into chunks to avoid problems with memory (too many communications)
    ! set maximum number of simultaneous communications
-   max_sim_comms=500
+   !total_sent=0
+   !total_recv=0
+   max_sim_comms=10000
    icomm=0
    do ilr=1,nlr
       root=rootarr(ilr)
@@ -278,36 +299,28 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
          if (iproc == root) then
            !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
            !     jtask,' with tags ',4*ilr+0,'-',4*ilr+3
+           call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyglob(1,1),1,worksend_int(1,ilr),1)
+           call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keygloc(1,1),1,&
+                worksend_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+           call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvloc(1),1,&
+                worksend_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+           call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvglob(1),1,&
+                worksend_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
            icomm=icomm+1
-           call mpi_isend(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                jtask, 4*ilr+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-           icomm=icomm+1
-           call mpi_isend(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                jtask, 4*ilr+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-           icomm=icomm+1
-           call mpi_isend(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                jtask, 4*ilr+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-           icomm=icomm+1
-           call mpi_isend(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                jtask, 4*ilr+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+           call mpi_isend(worksend_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                jtask, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
          else if (iproc == jtask) then
             !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
             !    root,' with tags ',4*ilr+0,'-',4*ilr+3
             icomm=icomm+1
-            call mpi_irecv(llr(ilr)%wfd%keyglob, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                 root, 4*ilr+0, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-            icomm=icomm+1
-            call mpi_irecv(llr(ilr)%wfd%keygloc, 2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                 root, 4*ilr+1, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-            icomm=icomm+1
-            call mpi_irecv(llr(ilr)%wfd%keyvloc, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                 root, 4*ilr+2, bigdft_mpi%mpi_comm, requests(icomm), ierr)
-            icomm=icomm+1
-            call mpi_irecv(llr(ilr)%wfd%keyvglob, llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f, mpi_integer, &
-                 root, 4*ilr+3, bigdft_mpi%mpi_comm, requests(icomm), ierr)
+            call mpi_irecv(workrecv_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                 root, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
          end if
       end do
       if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+         do jlr=max(ilr-max_sim_comms+1,1),ilr
+            if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd,subname)
+         end do
          call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
          if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
               trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
@@ -317,6 +330,27 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
       end if
    end do
 
+   iall=-product(shape(worksend_int))*kind(worksend_int)
+   deallocate(worksend_int,stat=istat)
+   call memocc(istat, iall, 'worksend_int', subname)
+
+   do ilr=1,nlr 
+      if (covered(ilr,iproc)) then
+         call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),workrecv_int(1,ilr),1,llr(ilr)%wfd%keyglob(1,1),1)
+         call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+              workrecv_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keygloc(1,1),1)
+         call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+              workrecv_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvloc(1),1)
+         call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+              workrecv_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvglob(1),1)
+      end if
+   end do
+
+   iall=-product(shape(workrecv_int))*kind(workrecv_int)
+   deallocate(workrecv_int,stat=istat)
+   call memocc(istat, iall, 'workrecv_int', subname)
+
+   !print*,'iproc,sent,received,num sent,num received',iproc,total_sent,total_recv,nsend,nrecv
    iall=-product(shape(requests))*kind(requests)
    deallocate(requests,stat=istat)
    call memocc(istat, iall, 'requests', subname)
@@ -325,5 +359,15 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    deallocate(covered,stat=istat)
    call memocc(istat, iall, 'covered', subname)
 
+contains
+
+ pure function itag(ilr,recv)
+ implicit none
+ integer, intent(in) :: ilr,recv
+ integer :: itag
+
+ itag=ilr+recv*nlr
+
+ end function itag
 
 END SUBROUTINE communicate_locreg_descriptors_keys

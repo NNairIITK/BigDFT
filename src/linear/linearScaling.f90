@@ -94,7 +94,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(gp), allocatable, dimension(:) :: psi2, gpsi, gpsi2
   real(gp), allocatable, dimension(:,:,:,:) :: psir2
   real(gp) :: tmb_diff, max_tmb_diff, cut
-  integer :: j, k, n1i, n2i, n3i, i1, i2, i3
+  integer :: j, k, n1i, n2i, n3i, i1, i2, i3, num_points
 
   integer :: ist, iiorb, ncount
   real(kind=8),dimension(6) :: ewaldstr, hstrten, xcstr, strten
@@ -201,13 +201,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! CDFT: calculate w_ab here given w(r)
   ! CDFT: first check that we aren't updating the basis at any point and we don't have any low acc iterations
   if (input%lin%constrained_dft) then
-     call timing(iproc,'constraineddft','ON')
      if (nit_lowaccuracy>0 .or. input%lin%nItBasis_highaccuracy>1) then
         stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
      end if
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+
+     call timing(iproc,'constraineddft','ON')
      vgrad_old=ebs-cdft%charge
 
      !!if (iproc==0) write(*,'(a,4(ES16.6e3,2x))') 'N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',&
@@ -718,15 +719,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !!! TEST ###############################################################
                 !!phi_delta=f_malloc0((/tmb%npsidim_orbs,3/),id='phi_delta')
                 !!! Get the values of the support functions on the boundary of the localization region
-                !!call extract_boundary(tmb, phi_delta)
+                !!call extract_boundary(tmb, phi_delta, num_points)
                 !!weight_boundary=ddot(3*tmb%npsidim_orbs, phi_delta(1,1), 1, phi_delta(1,1), 1)
                 !!call mpiallred(weight_boundary, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                 !!weight_boundary=sqrt(weight_boundary/tmb%orbs%norb)
                 !!weight_tot=ddot(tmb%npsidim_orbs, tmb%psi(1), 1, tmb%psi(1), 1)
                 !!call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                 !!weight_tot=sqrt(weight_tot/tmb%orbs%norb)
-                !!if (iproc==0) write(*,'(a,3es12.4)') 'weight boundary, weight tot, ratio', &
-                !!    weight_boundary, weight_tot, weight_boundary/weight_tot
+                !!if (iproc==0) write(*,'(a,3es12.4,I10)') 'weight boundary, weight tot, ratio, num points', &
+                !!    weight_boundary, weight_tot, weight_boundary/weight_tot, num_points
                 !!call f_free(phi_delta)
                 !!! END TEST ###########################################################
                 if (input%lin%constrained_dft) then
@@ -897,7 +898,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              
 
              call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-              if (iproc==0) call yaml_close_map()
+             if (iproc==0) call yaml_close_map()
 
 
              ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
@@ -937,12 +938,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
 
              if (input%lin%constrained_dft) then
-                call timing(iproc,'constraineddft','ON')
+                !call timing(iproc,'constraineddft','ON')
                 ! CDFT: see how satisfaction of constraint varies as kernel is updated
                 ! CDFT: calculate Tr[Kw]-Nc
                 call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,cdft%weight_matrix,&
                      ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
-                call timing(iproc,'constraineddft','OF')
+                !call timing(iproc,'constraineddft','OF')
              end if
 
              ! Write some informations.
@@ -1013,9 +1014,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  rhopotOld_out(1), 1, rhopotOld(1), 1) 
 
             call dcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, &
-                 rhopotOld_out(1), 1, denspot%rhov(1), 1) 
+                 rhopotOld_out(1), 1, denspot%rhov(1), 1)
+            call timing(iproc,'constraineddft','OF')
+
             call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
+            call timing(iproc,'constraineddft','ON')
             ! reset coeffs as well
             call dcopy(tmb%orbs%norb**2,coeff_tmp(1,1),1,tmb%coeff(1,1),1)
 
@@ -1401,7 +1405,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      !deallocate(psi2,stat=i_stat)
      !call memocc(i_stat,i_all,'psi2',subname)
   end if
-
 
   !!ind=1
   !!allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)

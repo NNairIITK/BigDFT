@@ -40,7 +40,7 @@ character(len=50) :: file1, file2, file3, file4, file5, file6, file7, file8, fil
 logical :: dowrite, plot_axis, plot_diagonals, plot_neighbors
 
 plot_axis=.true.
-plot_diagonals=.true.
+plot_diagonals=.false.!.true.
 plot_neighbors=.false.
 
 allocate(phir(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i), stat=istat)
@@ -50,18 +50,18 @@ rxyzref=-555.55d0
 
 istart=0
 
-unit1 =20*iproc+3
-unit2 =20*iproc+4
-unit3 =20*iproc+5
-unit4 =20*iproc+6
-unit5 =20*iproc+7
-unit6 =20*iproc+8
-unit7 =20*iproc+9
-unit8 =20*iproc+10
-unit9 =20*iproc+11
-unit10=20*iproc+12
-unit11=20*iproc+13
-unit12=20*iproc+14
+unit1 =20*(iproc+1)+3
+unit2 =20*(iproc+1)+4
+unit3 =20*(iproc+1)+5
+unit4 =20*(iproc+1)+6
+unit5 =20*(iproc+1)+7
+unit6 =20*(iproc+1)+8
+unit7 =20*(iproc+1)+9
+unit8 =20*(iproc+1)+10
+unit9 =20*(iproc+1)+11
+unit10=20*(iproc+1)+12
+unit11=20*(iproc+1)+13
+unit12=20*(iproc+1)+14
 
 !write(*,*) 'write, tmb%orbs%nbasisp', tmb%orbs%norbp
     orbLoop: do iorb=1,tmb%orbs%norbp
@@ -535,7 +535,13 @@ contains
 
     ! Angle between the distance vector and vector from A to B.
     ! A cosine of 1 means that they are parallel, -1 means that they are anti-parallel.
-    cosangle = ddot(3,distance_vector,1,ab,1)/(dnrm2(3,distance_vector,1)*dnrm2(3,ab,1))
+    !if (dnrm2(3,distance_vector,1)*dnrm2(3,ab,1)==0.0d0) print*,'Error in plot orbitals',&
+    !     dnrm2(3,distance_vector,1),dnrm2(3,ab,1),ddot(3,distance_vector,1,ab,1)
+    if (ddot(3,distance_vector,1,ab,1)==0.0d0) then
+       cosangle=0.0d0
+    else
+       cosangle = ddot(3,distance_vector,1,ab,1)/(dnrm2(3,distance_vector,1)*dnrm2(3,ab,1))
+    end if
     diffp1=abs(cosangle-1)
     diffm1=abs(cosangle+1)
     if (diffp1<diffm1) then
