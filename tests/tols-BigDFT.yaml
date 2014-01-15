@@ -350,16 +350,24 @@ H2-freq:
  (F) Frequencies (Hartree): 5.e-10
 
 rotate_read1:
- eBS: 1.2e-11
+ eBS: 2.1e-11
  EvXC: 1.1e-10
  orthog_energy: 2.4e-11
+ energy: 8.7e-11
+ energydiff: 8.3e-11
+ Omega: 8.1e-11
+ D: 1.1e-10
 
 rotate_read2:
- eBS: 1.2e-11
+ eBS: 1.9e-11
  orthog_energy: 3.0e-9
+ energy: 7.4e-11
+ Omega: 7.1e-11
  
 rotate_write:
  EvXC: 1.1e-10
+ energy: 2.2e-11
+ Omega: 2.1e-11
  Patterns to ignore:
  - Wavefunction written
 
@@ -385,39 +393,62 @@ rotatesmall_read:
  orthog energy: 1.9e-10
 
 molecule_dmix:
- Enl: 1.1e-10
- EXC: 1.1e-10
- EvXC: 1.1e-10
- energy: 2.7e-11
- Omega: 1.1e-10
+ Enl: 6.6e-9
+ EXC: 9.1e-10
+ EvXC: 1.2e-9
+ EH: 1.1e-08
+ Ekin: 1.1e-8
+ Epot: 7.1e-09
+ energy: 3.6e-10
+ Omega: 6.2e-9
+ Atomic Forces (Ha/Bohr): 4.7e-11
+ Clean forces norm (Ha/Bohr): 5.1e-11
+ Raw forces norm (Ha/Bohr): 6.2e-11
+ e: 1.4e-10
 
 molecule_pmix:
- Enl: 1.1e-10
- EXC: 1.1e-10
- EvXC: 1.1e-10
+ EXC: 1.1e-9
+ EvXC: 6.6e-9
+ EH: 1.1e-8
+ Ekin: 1.1e-08
+ Enl: 6.6e-09
+ Epot: 7.1e-9
  Total charge: 1.1e-10
- energy: 4.4e-11
- Omega: 1.1e-10
+ energy: 8.9e-9
+ Omega: 6.2e-9
+ Epot: 7.1e-09
+ Atomic Forces (Ha/Bohr): 4.6e-11
+ Clean forces norm (Ha/Bohr): 5.0e-11
+ e: 1.4e-10
+ Raw forces norm (Ha/Bohr): 6.2e-11
 
 molecule_dmin:
- Enl: 1.1e-10
- EXC: 1.1e-10
- EvXC: 1.1e-10
- energydiff: 1.3e-11
- energy: 2.5e-11
- Omega: 1.1e-10
+ Enl: 6.6e-9
+ EXC: 9.1e-10
+ EvXC: 1.2e-9
+ EH: 1.1e-08
+ Ekin: 2.1e-09
+ Epot: 7.1e-09
+ energydiff: 2.2e-10
+ energy: 2.1e-10
+ Omega: 6.2e-9
  Total charge: 1.1e-10
- eBS: 7.0e-11
+ eBS: 7.2e-9
+ e: 1.4e-10
+ Average noise forces: 4.1e-11
 
 molecule_foe:
- Enl: 1.1e-10
- Epot: 1.1e-9
- EXC: 1.1e-10
- EvXC: 1.1e-10
- charge diff: 1.1e-10
- energy: 3.0e-11
- Omega: 2.5e-10
+ Enl: 6.6e-9
+ Epot: 1.1e-8
+ EXC: 9.1e-10
+ EvXC: 1.1e-8
+ EH: 1.1e-08
+ Ekin: 2.1e-09
+ charge diff: 1.1e-8
+ energy: 6.9e-10
+ Omega: 8.6e-9
  Total charge: 2.5e-10
+ eF: 1.1e-10
 
 hybrid-directmin:
  Epsilon: 1.4e-11
@@ -478,30 +509,49 @@ water_foe:
  EvXC: 1.1e-10
  EXC: 1.1e-10
  EH: 1.1e-9
+ energy: 1.8e-10
+ Omega: 1.7e-10
+ etot: 1.6e-10
+ D: 1.1e-9
 
 water_dirmin:
  max alpha: 1.1e-04
  mean alpha: 1.1e-03
  EXC: 1.1e-10
  EvXC: 1.1e-10
+ EH: 1.0e-9
+ energy: 1.7e-10
+ Omega: 1.7e-10
+ etot: 1.7e-10
+ energydiff: 2.6e-11
+ D: 1.1e-09
  Keys to ignore:
   - WARNINGS
 
 water_mixdens:
  EvXC: 1.1e-10
  EXC: 1.1e-10
+ EH: 1.0e-9
  D: 1.1e-10
  max alpha: 1.1e-4
  mean alpha: 1.1e-4
+ energy: 1.8e-10
+ energydiff: 2.5e-11
+ etot: 1.7e-10
+ Omega: 1.7e-10
  Keys to ignore:
   - WARNINGS
 
 water_mixpot:
  EvXC: 1.1e-10
  EXC: 1.1e-10
+ EH: 1.1e-9
  Epot: 1.1e-09
  max alpha: 1.1e-4
  mean alpha: 1.1e-4
+ energy: 1.8e-10
+ Omega: 1.8e-10
+ etot: 1.8e-10
  Keys to ignore:
   - WARNINGS
 
@@ -509,19 +559,32 @@ deltascf_read_charge:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Epot: 1.1e-09
- eBS: 3.0e-11
+ Enl: 1.1e-9
+ eBS: 2.5e-10
  Total ionic charge: 1.5e-11
- energy: 1.2e-11
+ energy: 3.4e-10
+ Atomic Forces (Ha/Bohr): 1.9e-10
+ Average noise forces: 1.1e-10
+ Clean forces norm (Ha/Bohr): 8.8e-11
+ e: 3.6e-11
+ Omega: 3.2e-10
+ Raw forces norm (Ha/Bohr): 7.7e-11
+ EH: 1.1e-9
 
 deltascf_write_neut:
- eBS: 1.1e-10
- EH: 1.1e-9
- EXC: 1.1e-10
- EvXC: 1.1e-10
- Ekin: 1.1e-09
- Epot: 1.1e-09
- Omega: 1.4e-10
+ eBS: 5.9e-9
+ EH: 6.1e-9
+ EXC: 4.1e-10
+ EvXC: 6.1e-10
+ Ekin: 4.1e-09
+ Epot: 6.1e-09
+ Omega: 3.1e-9
  Total ionic charge: 1.4e-11
+ e: 1.1e-10
+ Enl: 4.1e-9
+ energy: 2.4e-10
+ D: 6.1e-9
+deltascf_write_neut:
 
 foe:
  Epot: 1.1e-10
@@ -643,43 +706,67 @@ paracetamol:
 reformatcomplete_write:
  Epot: 1.1e-10
 
+reformatcomplete_read35:
+ energy: 5.4e-11
+ Omega: 5.4e-11
+
+reformatcomplete_read36:
+ energy: 5.4e-11
+ Omega: 5.4e-11
+
+reformatcomplete_read45:
+ energy: 2.5e-11
+ Omega: 2.5e-11
+
+reformatcomplete_write:
+ EH: 1.1e-10
+ Epot: 1.1e-10
+
 reformat_read:
  energy: 2.5e-10
  Omega: 1.4e-10
  etot: 5.0e-11
- EH: 1.1e-9
+ EH: 2.1e-9
  EXC: 1.1e-10
- EvXC: 1.1e-10
- Enl: 1.2e-9
- Epot: 2.1e-9
+ EvXC: 4.1e-10
+ Enl: 3.6e-9
+ Epot: 4.1e-10
  Ekin: 1.1e-9
  Omega: 1.4e-10
- Atomic Forces (Ha/Bohr): 4.4e-10
+ Atomic Forces (Ha/Bohr): 3.6e-9
  Average noise forces: 1.1e-10
- Clean forces norm (Ha/Bohr): 1.7e-9
+ Clean forces norm (Ha/Bohr): 2.5e-9
  etot: 2.5e-10
- Ion-Ion interaction energy: 2.1e-9
- Raw forces norm (Ha/Bohr): 1.7e-9
- e: 2.6e-10
+ Ion-Ion interaction energy: 3.6e-9
+ Raw forces norm (Ha/Bohr): 3.6e-9
+ e: 4.9e-10
 
 reformat_write:
  Kohn-Sham residue: 4.1e-4
- Ekin: 1.1e-10
- energy: 5.6e-11
- Omega: 4.5e-11
+ Ekin: 3.1e-10
+ energy: 8.1e-11
+ Omega: 2.1e-10
  EXC: 1.1e-10
- Raw forces norm (Ha/Bohr): 1.7e-11
- Clean forces norm (Ha/Bohr): 1.7e-11
+ Enl: 3.1e-10
+ EH: 1.1e-9
+ Raw forces norm (Ha/Bohr): 3.1e-10
+ Clean forces norm (Ha/Bohr): 3.1e-10
+ e: 1.3e-11
 
 explicit_locregcenters:
  EvXC: 1.1e-10
  Total electronic charge: 4.1e-11
- EKS: 1.3e-11
+ EKS: 1.1e-9
  EH: 1.1e-9
 
 intermediateforces:
- Atomic Forces (Ha/Bohr): 3.6e-11
- Average noise forces: 4.0e-11
- Clean forces norm (Ha/Bohr): 3.2e-11
- Raw forces norm (Ha/Bohr): 3.5e-11
+ Atomic Forces (Ha/Bohr): 4.9e-10
+ Average noise forces: 6.6e-10
+ Clean forces norm (Ha/Bohr): 4.3e-10
+ Raw forces norm (Ha/Bohr): 4.8e-10
  EvXC: 1.1e-10
+ e: 3.3e-11
+ energy: 5.9e-11
+ Omega: 9.4e-11
+ Epot: 6.6e-10
+ EXC: 6.6e-10
