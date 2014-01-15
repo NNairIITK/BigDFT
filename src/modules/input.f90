@@ -1840,6 +1840,9 @@ contains
     call input_var("calculate_KS_residue", .true., "linear scaling: calculate Kohn-Sham residue", dummy_bool)
     call set(dict // CALCULATE_KS_RESIDUE, dummy_bool)
 
+    call input_var("intermediate_forces", .false., "linear scaling: calculate intermediate forces", dummy_bool)
+    call set(dict // INTERMEDIATE_FORCES, dummy_bool)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

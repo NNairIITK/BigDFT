@@ -341,6 +341,9 @@ module module_types
 
      !> linear scaling: calculate Kohn-Sham residue
      logical :: calculate_KS_residue
+     
+     !> linear scaling: calculate intermediate forces
+     logical :: intermediate_forces
   end type input_variables
 
   !> Contains all energy terms

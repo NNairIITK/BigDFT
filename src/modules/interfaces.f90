@@ -2028,7 +2028,7 @@ module module_interfaces
 
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
-          fix_supportfunctions,nit_precond,target_function,&
+          nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
         use module_base
@@ -2052,7 +2052,6 @@ module module_interfaces
         type(DFT_wavefunction),target,intent(inout) :: tmb
         type(SIC_data) :: SIC !<parameters for the SIC methods
         type(energy_terms),intent(in) :: energs_base
-        logical,intent(out) :: fix_supportfunctions
         integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
         real(kind=8),intent(out) :: ratio_deltas
         logical, intent(inout) :: ortho_on
