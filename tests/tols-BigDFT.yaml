@@ -400,13 +400,14 @@ molecule_pmix:
  Omega: 1.1e-10
 
 molecule_dmin:
- eBS: 6.3e-11
  Enl: 1.1e-10
  EXC: 1.1e-10
  EvXC: 1.1e-10
  energydiff: 1.3e-11
  energy: 2.5e-11
  Omega: 1.1e-10
+ Total charge: 1.1e-10
+ eBS: 7.0e-11
 
 molecule_foe:
  Enl: 1.1e-10
@@ -490,12 +491,17 @@ water_mixdens:
  EvXC: 1.1e-10
  EXC: 1.1e-10
  D: 1.1e-10
+ max alpha: 1.1e-4
+ mean alpha: 1.1e-4
  Keys to ignore:
   - WARNINGS
 
 water_mixpot:
  EvXC: 1.1e-10
  EXC: 1.1e-10
+ Epot: 1.1e-09
+ max alpha: 1.1e-4
+ mean alpha: 1.1e-4
  Keys to ignore:
   - WARNINGS
 
@@ -503,8 +509,9 @@ deltascf_read_charge:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Epot: 1.1e-09
- eBS: 2.6e-11
+ eBS: 3.0e-11
  Total ionic charge: 1.5e-11
+ energy: 1.2e-11
 
 deltascf_write_neut:
  eBS: 1.1e-10
@@ -653,7 +660,7 @@ reformat_read:
  etot: 2.5e-10
  Ion-Ion interaction energy: 2.1e-9
  Raw forces norm (Ha/Bohr): 1.7e-9
- e: 7.2e-11
+ e: 2.6e-10
 
 reformat_write:
  Kohn-Sham residue: 4.1e-4

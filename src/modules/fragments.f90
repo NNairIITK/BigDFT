@@ -910,7 +910,7 @@ contains
     end do
 
     if (J>1.0e-3) then
-       print*,"Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+       write(*,'(a,2es18.8)') ,"Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
     end if
 
     !check the pertinence of the suggested rotation

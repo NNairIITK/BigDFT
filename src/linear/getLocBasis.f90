@@ -494,6 +494,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ediff_sum=0.d0
   delta_energy_prev_sum=0.d0
   energy_increased_previous=.false.
+  ratio_deltas=1.d0
+  ediff=1.d0
+  delta_energy_prev=1.d0
+  delta_energy_arr=1.d0
 
   iterLoop: do
       it=it+1
@@ -708,7 +712,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ediff=trH-trH_old
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
+      if (it>1 .and. (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode)) then
           if (.not.energy_increased .and. .not.energy_increased_previous) then
               if (.not.ldiis%switchSD) then
                   ratio_deltas=ediff/delta_energy_prev

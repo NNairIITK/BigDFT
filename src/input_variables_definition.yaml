@@ -621,4 +621,5 @@
      default: No
    calculate_KS_residue:
      COMMENT: linear scaling calculate Kohn-Sham residue
+     default: Yes
 

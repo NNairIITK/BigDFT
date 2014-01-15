@@ -492,10 +492,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    else if (ratio_deltas>1.d0) then
                        !if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
-                       if (iproc==0) call yaml_warning('ratio_deltas>1, using 0.5 instead')
+                       if (iproc==0) call yaml_warning('ratio_deltas>1, using 1.0 instead')
                        if (iproc==0) call yaml_newline()
-                       if (iproc==0) call yaml_map('multiplicator for the confinement',0.5d0)
-                       tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',1.0d0)
+                       tmb%confdatarr(:)%prefac=1.0d0*tmb%confdatarr(:)%prefac
                    else if (ratio_deltas<=0.d0) then
                        !if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
