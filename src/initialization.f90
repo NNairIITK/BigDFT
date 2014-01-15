@@ -174,6 +174,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_types
   use module_fragments
   use module_interfaces, only: system_initialization
+  use psp_projectors
   implicit none
   type(run_objects), intent(inout) :: runObj
   integer, intent(in) :: iproc, nproc
@@ -182,8 +183,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   type(memory_estimation), intent(out) :: mem
 
   integer :: inputpsi, input_wf_format
-  type(nonlocal_psp_descriptors) :: nlpspd
-  real(wp), dimension(:), pointer :: proj
+  type(DFT_PSP_projectors) :: nlpsp
   type(system_fragment), dimension(:), pointer :: ref_frags
   character(len = *), parameter :: subname = "run_objects_estimate_memory"
 
@@ -196,11 +196,11 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
        & runObj%inputs, runObj%atoms, rxyz, runObj%rst%KSwfn%orbs, &
        & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
-       & nlpspd, runObj%rst%KSwfn%comms, shift, proj, runObj%radii_cf, &
+       & nlpsp, runObj%rst%KSwfn%comms, shift, runObj%radii_cf, &
        & ref_frags)
   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
-       & runObj%rst%KSwfn%orbs%nkpts,nlpspd%nprojel,&
+       & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
        & runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
 
   ! De-allocations
@@ -210,7 +210,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
   call deallocate_comms(runObj%rst%KSwfn%comms,subname)
   call deallocate_orbs(runObj%rst%KSwfn%orbs,subname)
-  call deallocate_proj_descr(nlpspd,subname)  
+  call free_DFT_PSP_projectors(nlpsp)
 END SUBROUTINE run_objects_system_setup
 
 !> De-allocate the variable of type input_variables

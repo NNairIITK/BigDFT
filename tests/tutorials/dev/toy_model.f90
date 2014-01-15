@@ -286,7 +286,7 @@ program wvl
   deallocate(psi)
 
   call deallocate_comms(comms,"main")
-  call deallocate_wfd(Lzd%Glr%wfd,"main")
+  call deallocate_wfd(Lzd%Glr%wfd)
 
   call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,"main")
 

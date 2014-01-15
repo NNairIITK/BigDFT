@@ -1008,7 +1008,8 @@ subroutine determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd,
                           exit
                       end if
                   end do
-                  nsendcounts_c(jproctarget)=nsendcounts_c(jproctarget)+1
+                  if (jproctarget /= -1) &
+                       nsendcounts_c(jproctarget)=nsendcounts_c(jproctarget)+1
               end do
           end do
           !$omp end do
@@ -1038,13 +1039,15 @@ subroutine determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd,
                   ii1=i+lzd%llr(ilr)%ns1
                   !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', ind)
                   ind=index_in_global_f(ii1,ii2,ii3)
+                  jproctarget=-1
                   do jproc=0,nproc-1
                       if(ind>=istartend_f(1,jproc) .and. ind<=istartend_f(2,jproc)) then
                           jproctarget=jproc
                           exit
                       end if
                   end do
-                  nsendcounts_f(jproctarget)=nsendcounts_f(jproctarget)+1
+                  if (jproctarget /= -1) &
+                       nsendcounts_f(jproctarget)=nsendcounts_f(jproctarget)+1
               end do
           end do
           !$omp end do
@@ -1229,6 +1232,7 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
           !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', indglob)
           indglob=index_in_global_c(ii1,ii2,ii3)
           iitot=iitot+1
+              jproctarget=-1
               do jproc=0,nproc-1
                   if(indglob>=istartend_c(1,jproc) .and. indglob<=istartend_c(2,jproc)) then
                       jproctarget=jproc
@@ -1237,11 +1241,13 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
               end do
               !write(600+iproc,'(a,2(i0,1x),i0,a,i0)') 'point ',ii1,ii2,ii3,' goes to process ',jproctarget
           
-              nsend_c(jproctarget)=nsend_c(jproctarget)+1
-              ind=nsenddspls_c(jproctarget)+nsend_c(jproctarget)
-              isendbuf_c(iitot)=ind
-              indexsendbuf_c(ind)=indglob
-              indexsendorbital_c(iitot)=iiorb
+              if (jproctarget/=-1) then
+                 nsend_c(jproctarget)=nsend_c(jproctarget)+1
+                 ind=nsenddspls_c(jproctarget)+nsend_c(jproctarget)
+                 isendbuf_c(iitot)=ind
+                 indexsendbuf_c(ind)=indglob
+                 indexsendorbital_c(iitot)=iiorb
+              end if
               !indexsendorbital(ind)=iiorb
           end do
       end do
@@ -1283,17 +1289,20 @@ subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, ist
           !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
           indglob=index_in_global_f(ii1,ii2,ii3)
                   iitot=iitot+1
+                  jproctarget=-1
                   do jproc=0,nproc-1
                       if(indglob>=istartend_f(1,jproc) .and. indglob<=istartend_f(2,jproc)) then
                           jproctarget=jproc
                           exit
                       end if
                   end do
-                  nsend_f(jproctarget)=nsend_f(jproctarget)+1
-                  ind=nsenddspls_f(jproctarget)+nsend_f(jproctarget)
-                  isendbuf_f(iitot)=ind
-                  indexsendbuf_f(ind)=indglob
-                  indexsendorbital_f(iitot)=iiorb
+                  if (jproctarget/=-1) then
+                     nsend_f(jproctarget)=nsend_f(jproctarget)+1
+                     ind=nsenddspls_f(jproctarget)+nsend_f(jproctarget)
+                     isendbuf_f(iitot)=ind
+                     indexsendbuf_f(ind)=indglob
+                     indexsendorbital_f(iitot)=iiorb
+                  end if
                   !indexsendorbital(ind)=iiorb
           end do
       end do

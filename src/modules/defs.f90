@@ -46,7 +46,7 @@ module module_defs
   !> Logical parameter for the projectors application strategy (true for distributed way)
   !! if the projector allocation passes the memorylimit this is switched to true
   !! inside localize_projectors routines
-  logical :: DistProjApply=.true.
+  logical :: DistProjApply=.true. !<then copied as a element of the nlpsp structure
 
   !> experimental variables to test the add of new functionalities
   logical :: experimental_modulebase_var_onlyfion=.false.

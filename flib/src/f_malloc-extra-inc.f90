@@ -15,22 +15,22 @@
      m%lbounds(1:m%rank)=lbounds
   end if
 
-  if (present(shape)) then
+  if (present(sizes)) then
      if (m%rank == 0) then
-        m%rank=size(shape)
-     else if (f_err_raise(m%rank/=size(shape),&
-          'shape not conformal with lbounds',ERR_INVALID_MALLOC)) then
+        m%rank=size(sizes)
+     else if (f_err_raise(m%rank/=size(sizes),&
+          'sizes not conformal with lbounds',ERR_INVALID_MALLOC)) then
         return
      end if
-     m%shape(1:m%rank)=shape
+     m%shape(1:m%rank)=sizes
      do i=1,m%rank
         m%ubounds(i)=m%lbounds(i)+m%shape(i)-1
      end do
      if (present(ubounds)) then
-        if (f_err_raise(m%rank/=size(ubounds),'shape not conformal with ubounds')) return
+        if (f_err_raise(m%rank/=size(ubounds),'sizes not conformal with ubounds')) return
         do i=1,m%rank
            if (f_err_raise(m%ubounds(i) /=ubounds(i),&
-                'ubounds not conformal with shape and lbounds',ERR_INVALID_MALLOC)) return
+                'ubounds not conformal with sizes and lbounds',ERR_INVALID_MALLOC)) return
         end do
      end if
   else
@@ -46,7 +46,7 @@
            m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
         end do
      else
-        call f_err_throw('at least shape or ubounds should be defined',ERR_INVALID_MALLOC)
+        call f_err_throw('at least sizes or ubounds should be defined',ERR_INVALID_MALLOC)
         return
      end if
   end if

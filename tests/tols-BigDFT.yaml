@@ -224,8 +224,8 @@ N2:
 
 mixpotential:
  Epot: 1.1e-10
- energy: 5.0e-11
- Omega: 4.8e-11
+ energy: 6.55e-11
+ Omega: 6.55e-11
  Ekin: 1.1e-10
 
 IO-wf_plain-read:
@@ -520,7 +520,7 @@ foe:
  Epot: 1.1e-10
  energy: 1.1e-10
  EH: 1.0e-9
- Omega: 1.0e-10
+ Omega: 1.64e-10
  EXC: 1.0e-10
  Total charge: 2.1e-11
  EvXC: 1.1e-10
@@ -531,7 +531,7 @@ foe:
 onlyhigh:
  EH: 1.1e-10
  Epot: 1.1e-10
- energy: 1.42e-11
+ energy: 1.43e-11
  Omega: 1.43e-11
 
 rotatesmall_read1:
@@ -551,8 +551,8 @@ linearcubic_linear:
  Epsilon: 1.1e-10
  EH: 1.0-e9
  Epot: 1.01e-9
- energy: 1.83e-10
- Omega: 1.81e-10
+ energy: 1.84e-10
+ Omega: 1.82e-10
 
 highertaylor_experimental_order2:
  Atomic Forces (Ha/Bohr): 1.8e-8
@@ -597,6 +597,7 @@ highertaylor_experimental_order3:
  EvXC: 3.8e-07
  D: 2.1e-10
  delta: 1.1e-10
+ Total charge: 2.1e-11
 
 highertaylor_experimental_order4:
  Atomic Forces (Ha/Bohr): 5.0e-9
@@ -624,11 +625,12 @@ highertaylor_experimental_order4:
 
 newpulay:
  EXC: 1.1e-10
- energy: 1.1e-9
- Omega: 1.1e-9
+ energy: 1.6e-9
+ Omega: 1.6e-9
  Ekin: 1.1e-9
  Enl: 1.1e-10
  Total ionic charge: 1.8e-11
+ Total charge: 1.01e-10
 
 paracetamol:
  EXC: 1.1e-10

@@ -6,18 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-
-  if (present(id)) then
-     lgt=min(len(id),namelen)
-     m%array_id(1:lgt)=id(1:lgt)
-  end if
-  if (present(routine_id)) then
-     lgt=min(len(routine_id),namelen)
-     m%routine_id(1:lgt)=routine_id(1:lgt)
-  else
-     m%routine_id(1:len(m%routine_id))=mems(ictrl)%present_routine
-  end if
-
-  if(present(profile)) m%profile=profile
+     m%rank=size(shape(src))
+     m%shape(1:m%rank)=shape(src)
+     m%lbounds(1:m%rank)=lbound(src)
+     m%ubounds(1:m%rank)=ubound(src)
+     m%srcdata_add=f_loc(src)
 

@@ -27,16 +27,18 @@
 
   scpr=0.0_wp
 
-!!$  !$omp parallel default (none) &
-!!$  !$omp shared (maseg_c,keyav_c,keyag_c,keyag_c_lin,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
-!!$  !$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f)&
-!!$  !$omp shared (apsi_f,scpr,apack_c,apack_f) &
-  !$omp parallel default(shared) &
+  !$omp parallel default (none) &
+  !$omp shared (maseg_c,keyav_c,keyag_c,keyag_c_lin,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
+  !$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f)&
+  !$omp shared (apsi_f,scpr) &
+!!$  !$omp parallel default(shared) &
   !$omp private(jaj,iaoff,length,ja1,ja0,jb1,jb0,iboff,scpr0,scpr1) &
   !$omp private(jbj,ibseg,iaseg0)!!!,ithread,nthread,ibsegs,ibsege,nchunk)
 
   scpr0=0.0_wp
   scpr1=0.0_wp
+
+!!!!start of general region
 
   !alternative way of parallelizing the loop, to be tested to explore performances
   !LG  ibsegs=1
@@ -80,11 +82,6 @@
         iaoff = max(jb0-ja0,0) !no offset if we are already inside
 
         jaj=keyav_c(iaseg0)
-
-        !with the masking array there should be no need to perform the bitonic search anymore
-        amask_c(1,iaseg0)=length+1  !number of elements to be copied
-        amask_c(2,iaseg0)=jaj+iaoff !starting point in original array
-        amask_c(3,iaseg0)=jbj+iboff !starting point in packed array
 
         call op_c_inline(length,jaj+iaoff,jbj+iboff,scpr0)
 
@@ -133,11 +130,6 @@
         iaoff = max(jb0-ja0,0) !no offset if we are already inside
         jaj=keyav_f(iaseg0)
 
-        !with the masking array there should be no need to perform the bitonic search anymore
-        amask_f(1,iaseg0)=length+1    !number of elements to be copied
-        amask_f(2,iaseg0)=jaj+iaoff !starting point in original array
-        amask_f(3,iaseg0)=jbj+iboff !starting point in packed array
-
         call op_f_inline(length,jaj+iaoff,jbj+iboff,scpr1)
 
         if ((ja1<=jb1 .and. length>=0) .or. iaseg0==maseg_f) exit nonconvex_loop_f !segment is finished  
@@ -150,6 +142,8 @@
      if (iaseg0 == maseg_f .and. keybg_f(1,ibseg)> keyag_f_lin(maseg_f)) iaseg0=iaseg0+1
   enddo
   !$omp end do !implicit barrier 
+
+ !!!!end of general region
 
   scpr0=scpr0+scpr1
 

@@ -7,7 +7,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-  integer, dimension(:), intent(in), optional :: shape,lbounds,ubounds
+  integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
   !local variables
   integer :: i
   include 'f_malloc-base-inc.f90'

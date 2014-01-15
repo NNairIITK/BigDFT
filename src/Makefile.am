@@ -127,11 +127,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	lanczos_interface.f90 \
-	lanczos_base.f90 \
-	lanczos.f90 \
 	scfloop_API.f90 \
-	esatto.f90 \
 	tddft.f90 \
 	output.f90 \
 	external.f90 \
@@ -264,6 +260,9 @@ install-data-hook:
 
 #obsolete dependency $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft-1.a libdft_common.a
 
+#sources for abscalc exeutable, to be removed from libbigdft.a
+#abscalc_additional= 
+
 bigdft_SOURCES = BigDFT.f90
 bigdft_LDADD = $(bigdft_library)
 
@@ -291,7 +290,12 @@ WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
 MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
-abscalc_SOURCES = abscalc.f90
+abscalc_SOURCES = abscalc.f90 lanczos_base.f90 abscalc_module.f90 \
+	lanczos_interface.f90 \
+	lanczos.f90 \
+	abscalc_init.f90 \
+	esatto.f90
+
 abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver/src \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
@@ -328,20 +332,21 @@ check:
 #dependencies
 convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o
 
-cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
+cluster.o geometry.o xabsorber.o: scfloop_API.o
 
-abscalc.o : esatto.o
+lanczos_interface.o: abscalc_module.o lanczos_base.o
+
+abscalc.o abscalc_init.o: abscalc_module.o esatto.o
 
 lanczos.o : lanczos_base.o lanczos_interface.o
 
-xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
+xabsorber.o init/xabsorber.o : init/xabsorber.f90
 
 geometry.o bfgs.o sdcg.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 
 NEB.o: images.o
-
 
 # Introspection for Python bindings
 # ---------------------------------

@@ -37,7 +37,7 @@ program memguess
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
-   type(nonlocal_psp_descriptors) :: nlpspd
+   type(DFT_PSP_projectors) :: nlpsp
    type(gaussian_basis) :: G !basis for davidson IG
    type(atoms_data) :: at
    type(denspot_distribution) :: dpbox
@@ -46,7 +46,6 @@ program memguess
    real(wp), dimension(:), allocatable :: rhoexpo
    real(wp), dimension(:,:,:,:), pointer :: rhocoeff
    real(gp), dimension(:), pointer :: gbd_occ
-   real(wp), dimension(:), pointer :: proj
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
    integer :: i, inputpsi, input_wf_format
@@ -343,11 +342,11 @@ program memguess
    call system_initialization(0, nproc, .true.,inputpsi, input_wf_format, .true., &
         & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, &
         & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
-        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, nlpspd, runObj%rst%KSwfn%comms, &
-        & shift, proj, runObj%radii_cf, ref_frags, output_grid = (output_grid > 0))
+        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, nlpsp, runObj%rst%KSwfn%comms, &
+        & shift,runObj%radii_cf, ref_frags, output_grid = (output_grid > 0))
    call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
         & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
-        & runObj%rst%KSwfn%orbs%nkpts,nlpspd%nprojel,&
+        & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
         runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
    
    if (.not. exportwf) then
@@ -497,7 +496,7 @@ program memguess
    call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
    call deallocate_comms(runObj%rst%KSwfn%comms,subname)
    call deallocate_orbs(runObj%rst%KSwfn%orbs,subname)
-   call deallocate_proj_descr(nlpspd,subname)  
+   call free_DFT_PSP_projectors(nlpsp)
 
    !remove the directory which has been created if it is possible
    call deldir(runObj%inputs%dir_output,len(trim(runObj%inputs%dir_output)),ierror)

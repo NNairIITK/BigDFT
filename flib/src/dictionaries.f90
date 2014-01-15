@@ -357,7 +357,6 @@ contains
         nullify(dict_iter)
      end if
    end function dict_iter
-   
 
    function dict_next(dict)
      implicit none

@@ -289,7 +289,7 @@ contains
 end subroutine forces_via_finite_differences
 
 
-subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,&
+subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
   use module_base
@@ -303,9 +303,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(in) :: orbs
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
   real(wp), dimension(nsize_psi), intent(in) :: psi
   real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
@@ -342,11 +341,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   if (imode==0) then
       !cubic version of nonlocal forces
       call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
-           orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
+           orbs,nlpsp,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
   else if (imode==1) then
       !linear version of nonlocal forces
       call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpspd,proj,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%denskern,fxyz,refill_proj,&
+           tmb%orbs,nlpsp,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%denskern,fxyz,refill_proj,&
            strtens(1,2))
   else
       stop 'wrong imode'
@@ -355,7 +354,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpspd,
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   
   !if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
-   if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpspd%nprojel > 0))
+   if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpsp%nprojel > 0))
 
   if (atoms%astruct%geocode == 'P' .and. psolver_groupsize == nproc) then
      call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
@@ -794,7 +793,7 @@ END SUBROUTINE local_forces
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpspd,proj,wfd,psi,fsep,refill,strten)
+     orbs,nlpsp,wfd,psi,fsep,refill,strten)
   use module_base
   use module_types
   use gaussians, only: gaussian_basis
@@ -802,7 +801,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   logical, intent(in) :: refill
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
@@ -810,7 +809,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
@@ -903,7 +901,7 @@ call f_routine(id=subname)
         jorbd=jorb
         do iat=1,at%astruct%nat
 
-           call plr_segs_and_vctrs(nlpspd%plr(iat),&
+           call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,&
                 mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
            jseg_c=1
            jseg_f=1
@@ -912,9 +910,9 @@ call f_routine(id=subname)
               ityp=at%astruct%iatype(iat)
               !calculate projectors
               istart_c=1
-              call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
-                   proj,nwarnings,proj_G)
+              call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
+                   nlpsp%proj,nwarnings,proj_G)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
@@ -937,9 +935,9 @@ call f_routine(id=subname)
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyvglob,wfd%keyglob,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                     proj(istart_c),&
+                                     nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
+                                     nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
+                                     nlpsp%proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                 !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',&
@@ -951,7 +949,7 @@ call f_routine(id=subname)
                     ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*ncplx
                  end do
               end do
-              if (istart_c-1  > nlpspd%nprojel) stop '2:applyprojectors'
+              if (istart_c-1  > nlpsp%nprojel) stop '2:applyprojectors'
            end do
 
         end do
@@ -966,7 +964,7 @@ call f_routine(id=subname)
      do idir=0,9
 
         if (idir /= 0) then !for the first run the projectors are already allocated
-           call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
+           call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
         end if
         !apply the projectors  k-point of the processor
         !starting k-point
@@ -989,7 +987,7 @@ call f_routine(id=subname)
                  iproj=0
                  istart_c=istart_ck
                  do iat=1,at%astruct%nat
-                    call plr_segs_and_vctrs(nlpspd%plr(iat),&
+                    call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,&
                          mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
                     jseg_c=1
                     jseg_f=1
@@ -1003,9 +1001,9 @@ call f_routine(id=subname)
                                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                      wfd%keyvglob,wfd%keyglob,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                     proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
+                                     nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
+                                     nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
+                                     nlpsp%proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                 !write(*,'(a,6i6,es16.8)') 'idir,m,i,l,iat,jorb,scalprod',idir,m,i,l,iat,jorb,scalprod(1,idir,m,i,l,iat,jorb)
                              end do
@@ -1015,20 +1013,20 @@ call f_routine(id=subname)
                  end do
                  ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*ncplx
               end do
-              if (iproj /= nlpspd%nproj) stop '1:applyprojectors'
+              if (iproj /= nlpsp%nproj) stop '1:applyprojectors'
            end do
            istart_ck=istart_c
            if (ieorb == orbs%norbp) exit loop_kpt
            ikpt=ikpt+1
            ispsi_k=ispsi
         end do loop_kpt
-        if (istart_ck-1  /= nlpspd%nprojel) stop '2:applyprojectors'
+        if (istart_ck-1  /= nlpsp%nprojel) stop '2:applyprojectors'
 
      end do
 
      !restore the projectors in the proj array (for on the run forces calc., tails or so)
      if (refill) then 
-        call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
+        call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,0)
      end if
 
   end if
@@ -4189,7 +4187,7 @@ END SUBROUTINE erf_stress
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpspd,proj,lzd,collcom,phi,denskern,fsep,refill,strten)
+     orbs,nlpsp,lzd,collcom,phi,denskern,fsep,refill,strten)
   use module_base
   use module_types
   implicit none
@@ -4197,7 +4195,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: lzd
   type(collective_comms),intent(in) :: collcom
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   logical, intent(in) :: refill
   integer, intent(in) :: iproc, nproc, npsidim_orbs
   real(gp), intent(in) :: hx,hy,hz
@@ -4206,7 +4204,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim_orbs), intent(in) :: phi
   type(SparseMatrix),intent(in) :: denskern
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
@@ -4342,25 +4339,19 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             jorbd=jorb
             do iat=1,at%astruct%nat
     
-               call plr_segs_and_vctrs(nlpspd%plr(iat),&
+               call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,&
                     mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
                jseg_c=1
                jseg_f=1
     
                do idir=0,ndir
-    !!$           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-    !!$           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-    !!$           jseg_c=nlpspd%nseg_p(2*iat-2)+1
-    !!$           jseg_f=nlpspd%nseg_p(2*iat-1)+1
-    !!$           mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-    !!$           mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
     
                ityp=at%astruct%iatype(iat)
                   !calculate projectors
                   istart_c=1
-                  call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-                       lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),&
-                       proj,nwarnings)
+                  call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+                       lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
+                       nlpsp%proj,nwarnings)
                    !!do i_all=1,nlpspd%nprojel
                    !!    write(800+iat,*) i_all, proj(i_all)
                    !!end do
@@ -4400,8 +4391,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                     !!         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
     !!$                             !!            nlpspd%keyv_p(jseg_c),&
     !!$                             !!            nlpspd%keyg_p(1,jseg_c),&
-                                    !!         nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                    !!         nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                    !!         nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
+                                    !!         nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
                                     !!         proj(istart_c),&
                                     !!         scalprod(1,idir,m,i,l,iat,jorb))
                                     !!    write(800+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
@@ -4412,8 +4403,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                     !!         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
     !!$                             !!            nlpspd%keyv_p(jseg_c),&
     !!$                             !!            nlpspd%keyg_p(1,jseg_c),&
-                                    !!         nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                    !!         nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                    !!         nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
+                                    !!         nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
                                     !!         proj(istart_c),&
                                     !!         scalprod(1,idir,m,i,l,iat,jorb))
                                     !!    write(900+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
@@ -4423,11 +4414,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                              lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
                                              lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
                                              mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-    !!$                                         nlpspd%keyv_p(jseg_c),&
-    !!$                                         nlpspd%keyg_p(1,jseg_c),&
-                                             nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                             nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                             proj(istart_c),&
+                                             nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
+                                             nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
+                                             nlpsp%proj(istart_c),&
                                              scalprod(1,idir,m,i,l,iat,jorb))
                                         !!write(800+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
                                         !!call wpdot_wrap(ncplx,&
@@ -4437,8 +4426,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                         !!     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
     !!$                                 !!        nlpspd%keyv_p(jseg_c),&
     !!$                                 !!        nlpspd%keyg_p(1,jseg_c),&
-                                        !!     nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                        !!     nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
+                                        !!     nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
+                                        !!     nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
                                         !!     proj(istart_c),&
                                         !!     scalprod(1,idir,m,i,l,iat,jorb))
                                         !!write(900+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
@@ -4455,7 +4444,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
                      end do
                   end do
-                  if (istart_c-1  > nlpspd%nprojel) stop '2:applyprojectors'
+                  if (istart_c-1  > nlpsp%nprojel) stop '2:applyprojectors'
                end do
     
             end do
@@ -4470,7 +4459,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
          do idir=0,ndir
     
             if (idir /= 0) then !for the first run the projectors are already allocated
-               call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
+               call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
             end if
             !apply the projectors  k-point of the processor
             !starting k-point
@@ -4495,17 +4484,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      iproj=0
                      istart_c=istart_ck
                      do iat=1,at%astruct%nat
-                        call plr_segs_and_vctrs(nlpspd%plr(iat),&
+                        call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,&
                              mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
                         jseg_c=1
                         jseg_f=1
     
-    !!$                    mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-    !!$                    mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-    !!$                    jseg_c=nlpspd%nseg_p(2*iat-2)+1
-    !!$                    jseg_f=nlpspd%nseg_p(2*iat-1)+1
-    !!$                    mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-    !!$                    mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
                         ityp=at%astruct%iatype(iat)
                         do l=1,4
                            do i=1,3
@@ -4517,11 +4500,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                          lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
                                          lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),  &
                                          mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-    !!$                                     nlpspd%keyv_p(jseg_c),&
-    !!$                                     nlpspd%keyg_p(1,jseg_c),&
-                                         nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                         nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                         proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
+                                         nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
+                                         nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
+                                         nlpsp%proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                  end do
                               end if
@@ -4530,20 +4511,20 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      end do
                      ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
                   end do
-                  if (iproj /= nlpspd%nproj) stop '1:applyprojectors'
+                  if (iproj /= nlpsp%nproj) stop '1:applyprojectors'
                end do
                istart_ck=istart_c
                if (ieorb == orbs%norbp) exit loop_kpt
                ikpt=ikpt+1
                ispsi_k=ispsi
             end do loop_kpt
-            if (istart_ck-1  /= nlpspd%nprojel) stop '2:applyprojectors'
+            if (istart_ck-1  /= nlpsp%nprojel) stop '2:applyprojectors'
     
          end do
     
          !restore the projectors in the proj array (for on the run forces calc., tails or so)
          if (refill) then 
-            call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
+            call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,0)
          end if
     
       end if

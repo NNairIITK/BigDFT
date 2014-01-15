@@ -864,7 +864,7 @@ contains
     if (associated(lr%bounds%kb%ibyz_f)) then
        call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, subname)
     end if
-    call deallocate_wfd(lr%wfd, subname)
+    call deallocate_wfd(lr%wfd)
     
     call f_release_routine()
   END SUBROUTINE deallocate_local

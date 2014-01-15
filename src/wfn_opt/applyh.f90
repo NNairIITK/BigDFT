@@ -1249,7 +1249,7 @@ END SUBROUTINE realspaceINPLACE
 !>   Calculate on-the fly each projector for each atom, then applies the projectors 
 !!   to all distributed orbitals
 subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
-     rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum,&
+     rxyz,hx,hy,hz,wfd,nlpsp,psi,hpsi,eproj_sum,&
      proj_G,paw)
   use module_base
   use module_types
@@ -1261,13 +1261,12 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(locreg_descriptors),intent(in) :: lr
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
-  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
   type(paw_objects),optional,intent(inout)::paw
   !local variables
@@ -1300,11 +1299,12 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
         iatype=at%astruct%iatype(iat)
         istart_c=1
         if(at%npspcode(iatype)==7) then
-          call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-               lr,hx,hy,hz,paw%rpaw(iatype),rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings,proj_G(iatype))
+          call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+               lr,hx,hy,hz,paw%rpaw(iatype),rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,&
+               nwarnings,proj_G(iatype))
         else
-          call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpspd%nprojel,&
-               lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpspd%plr(iat),proj,nwarnings)
+          call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+               lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,nwarnings)
         end if
 
         !apply the projector to all the orbitals belonging to the processor
@@ -1313,19 +1313,19 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
            istart_c=1
            if(at%npspcode(iatype)==7) then
            !    PAW case:
-              call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nlpspd%nprojel,&
-                   at,orbs,wfd,nlpspd%plr(iat),proj,&
+              call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nlpsp%nprojel,&
+                   at,orbs,wfd,nlpsp%pspd(iat)%plr,nlpsp%proj,&
                    psi(ispsi),hpsi(ispsi),eproj_sum,proj_G(iatype),paw)
            else
            !    HGH or GTH case:
-              call apply_atproj_iorb_new(iat,iorb,istart_c,nlpspd%nprojel,&
-                   at,orbs,wfd,nlpspd%plr(iat),proj,&
+              call apply_atproj_iorb_new(iat,iorb,istart_c,nlpsp%nprojel,&
+                   at,orbs,wfd,nlpsp%pspd(iat)%plr,nlpsp%proj,&
                    psi(ispsi),hpsi(ispsi),eproj_sum)
            end if
            ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*nspinor
         end do
      end do
-     if (iproj /= nlpspd%nproj) then
+     if (iproj /= nlpsp%nproj) then
         call yaml_warning('Incorrect number of projectors created')
         stop
      end if
@@ -1334,7 +1334,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      ispsi_k=ispsi
   end do loop_kpt
 
-  if (nwarnings /= 0 .and. iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
+  if (nwarnings /= 0 .and. iproc == 0 .and. nlpsp%nproj /=0 .and. idir == 0) then
      call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
      if (nwarnings /= 0) then
         call yaml_newline()

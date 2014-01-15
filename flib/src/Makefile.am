@@ -39,7 +39,8 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	malloc_templates-inc.f90 \
 	f_malloc-base-inc.f90 f_malloc-null-inc.f90 \
 	f_malloc-total-inc.f90 f_malloc-bound-inc.f90 \
-	f_malloc-bounds-inc.f90 f_malloc-simple-inc.f90
+	f_malloc-bounds-inc.f90 f_malloc-simple-inc.f90 \
+	deallocate-multiple-inc.f90 deallocate-multiple-inc-ptr.f90
 
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 yaml_map-mat-inc.f90
 STRINGS_INCLUDES = yaml_toa-inc.f90 yaml_toa-arr-inc.f90

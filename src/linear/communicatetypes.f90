@@ -258,7 +258,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
    nalloc=0
    do jlr=1,nlr 
       if (covered(jlr,iproc)) then
-         call allocate_wfd(llr(jlr)%wfd,subname)
+         call allocate_wfd(llr(jlr)%wfd)
          nalloc=nalloc+1
       end if
    end do
