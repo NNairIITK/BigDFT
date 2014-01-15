@@ -676,3 +676,10 @@ explicit_locregcenters:
  Total electronic charge: 4.1e-11
  EKS: 1.3e-11
  EH: 1.1e-9
+
+intermediateforces:
+ Atomic Forces (Ha/Bohr): 3.6e-11
+ Average noise forces: 4.0e-11
+ Clean forces norm (Ha/Bohr): 3.2e-11
+ Raw forces norm (Ha/Bohr): 3.5e-11
+ EvXC: 1.1e-10
