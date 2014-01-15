@@ -9,7 +9,6 @@
 .1d0     .1d0                    density mixing parameter (low, high)
 1.d-9    1.d-9                   outer loop convergence (low, high)
 5.0d-2   1.0d-3    1.d-3         basis convergence (low, high) ; early stop TMB optimization (experimental mode only)
-1.d0      1.d-5                  multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode
 -0.5d0                           factor to reduce the confinement. Only used for hybrid mode.
 1.d-5    1.d-5                   Kernel convergence (low, high) - directmin only
 1.d-8    1.d-8                   density convergence (low, high)
