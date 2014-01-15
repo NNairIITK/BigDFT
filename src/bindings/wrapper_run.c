@@ -460,7 +460,7 @@ BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict, gboolean dump)
   run = bigdft_run_new();
 
   /* Taking a pointer on the dictionary. */
-  g_object_ref(dict);
+  g_object_ref(G_OBJECT(dict));
   run->dict = dict;
 
   /* Associate the dictionary and parse it. */

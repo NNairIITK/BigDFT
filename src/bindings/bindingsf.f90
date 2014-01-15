@@ -1614,28 +1614,18 @@ subroutine dict_append(dict)
   ! This is a patch for Intel, to be corrected properly later.
   dict => dict // dict_len(dict)
 END SUBROUTINE dict_append
-subroutine dict_add(dict, key, val)
-  use dictionaries, only: dictionary, set, operator(//)
+subroutine dict_put(dict, val)
+  use dictionaries, only: dictionary, set
   implicit none
   type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: key, val
+  character(len = *), intent(in) :: val
 
   ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // key(1:len(key)), val(1:len(val)))
-END SUBROUTINE dict_add
-subroutine dict_set_at(dict, key, i, val)
-  use dictionaries, only: dictionary, set, operator(//)
-  implicit none
-  type(dictionary), pointer :: dict
-  integer, intent(in) :: i
-  character(len = *), intent(in) :: key, val
-
-  ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // key(1:len(key)) // i, val(1:len(val)))
-END SUBROUTINE dict_set_at
+  call set(dict, val(1:len(val)))
+END SUBROUTINE dict_put
 subroutine dict_dump(dict)
   use dictionaries, only: dictionary
-  use yaml_output
+  use yaml_output, only: yaml_dict_dump
   implicit none
   type(dictionary), pointer :: dict
 

@@ -258,6 +258,14 @@ gboolean bigdft_dict_move_to(BigDFT_Dict *dict, BigDFT_DictIter *iter)
   dict->current = iter->pointer;
   return TRUE;
 }
+/**
+ * bigdft_dict_insert:
+ * @dict: 
+ * @id: 
+ * @iter: (out) (caller-allocates) (allow-none):
+ *
+ * Pouet.
+ **/
 void bigdft_dict_insert(BigDFT_Dict *dict, const gchar *id, BigDFT_DictIter *iter)
 {
   FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
@@ -267,6 +275,13 @@ void bigdft_dict_insert(BigDFT_Dict *dict, const gchar *id, BigDFT_DictIter *ite
       (*iter).pointer = dict->current;
     }
 }
+/**
+ * bigdft_dict_append:
+ * @dict: 
+ * @iter: (out) (caller-allocates) (allow-none):
+ *
+ * Pouet.
+ **/
 void bigdft_dict_append(BigDFT_Dict *dict, BigDFT_DictIter *iter)
 {
   FC_FUNC_(dict_append, DICT_APPEND)(&dict->current);
@@ -276,14 +291,28 @@ void bigdft_dict_append(BigDFT_Dict *dict, BigDFT_DictIter *iter)
       (*iter).pointer = dict->current;
     }
 }
+/**
+ * bigdft_dict_set:
+ * @dict: 
+ * @id: (allow-none): 
+ * @value: 
+ *
+ * Pouet.
+ **/
 void  bigdft_dict_set(BigDFT_Dict *dict, const gchar *id, const gchar *value)
 {
-  FC_FUNC_(dict_add, DICT_ADD)(&dict->current, id, value, strlen(id), strlen(value));
+  _dictionary *root;
+  
+  root = dict->current;
+  if (id)
+    FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
+  FC_FUNC_(dict_put, DICT_PUT)(&dict->current, value, strlen(value));
+  dict->current = root;
 }
 /**
  * bigdft_dict_set_array:
  * @in: 
- * @id: 
+ * @id: (allow-none):
  * @value: (array zero-terminated=1):
  *
  * 
@@ -291,10 +320,19 @@ void  bigdft_dict_set(BigDFT_Dict *dict, const gchar *id, const gchar *value)
 void  bigdft_dict_set_array(BigDFT_Dict *dict, const gchar *id, const gchar **value)
 {
   guint i;
+  _dictionary *root, *key;
 
+  root = dict->current;
+  if (id)
+    FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
+  key = dict->current;
   for (i = 0; value[i]; i++)
-    FC_FUNC_(dict_set_at, DICT_SET_AT)(&dict->current, id, (gint*)&i, value[i],
-                                       strlen(id), strlen(value[i]));
+    {
+      dict->current = key;
+      FC_FUNC_(dict_append, DICT_APPEND)(&dict->current);
+      FC_FUNC_(dict_put, DICT_PUT)(&dict->current, value[i], strlen(value[i]));
+    }
+  dict->current = root;
 }
 void bigdft_dict_dump(BigDFT_Dict *dict)
 {

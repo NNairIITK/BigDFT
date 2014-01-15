@@ -201,14 +201,12 @@ void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
 /* Wrappers on dictionaries, for the input variables. */
 void bigdft_inputs_set(BigDFT_Inputs *in, const gchar *id, const gchar *value)
 {
-  _dictionary *dict;
+  BigDFT_Dict *dict;
 
-  FC_FUNC_(dict_new, DICT_NEW)(&dict);
-  
-  FC_FUNC_(dict_add, DICT_ADD)(&dict, id, value, strlen(id), strlen(value));
-  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(in->data, &dict);
-
-  FC_FUNC_(dict_free, DICT_FREE)(&dict);
+  dict = bigdft_dict_new(NULL);
+  bigdft_dict_set(dict, id, value);  
+  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(in->data, &dict->root);
+  g_object_unref(G_OBJECT(dict));
 
   _inputs_sync(in);
 }
@@ -222,17 +220,12 @@ void bigdft_inputs_set(BigDFT_Inputs *in, const gchar *id, const gchar *value)
  **/
 void bigdft_inputs_set_array(BigDFT_Inputs *in, const gchar *id, const gchar **value)
 {
-  _dictionary *dict;
-  guint i;
+  BigDFT_Dict *dict;
 
-  FC_FUNC_(dict_new, DICT_NEW)(&dict);
-  
-  for (i = 0; value[i]; i++)
-    FC_FUNC_(dict_set_at, DICT_SET_AT)(&dict, id, (int*)&i, value[i],
-                                       strlen(id), strlen(value[i]));
-  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(in->data, &dict);
-
-  FC_FUNC_(dict_free, DICT_FREE)(&dict);
+  dict = bigdft_dict_new(NULL);
+  bigdft_dict_set_array(dict, id, value);  
+  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(in->data, &dict->root);
+  g_object_unref(G_OBJECT(dict));
 
   _inputs_sync(in);
 }

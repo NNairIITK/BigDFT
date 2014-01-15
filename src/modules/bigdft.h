@@ -78,6 +78,7 @@ void  bigdft_dict_append      (BigDFT_Dict *dict, BigDFT_DictIter *iter);
 void  bigdft_dict_set         (BigDFT_Dict *dict, const gchar *id, const gchar *value);
 void  bigdft_dict_set_array   (BigDFT_Dict *dict, const gchar *id, const gchar **value);
 void  bigdft_dict_unref       (BigDFT_Dict *dict);
+void  bigdft_dict_dump        (BigDFT_Dict *dict);
 /*********************************/
 
 /********************************/
