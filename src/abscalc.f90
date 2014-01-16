@@ -306,7 +306,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real :: tcpu0,tcpu1
    real(gp), dimension(3) :: shift
    real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
-   real(kind=8) :: peakmem
+   type(memory_estimation) :: mem
 !   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum
    real(kind=8) :: tel,psoffset
    !real(gp) :: edisp ! Dispersion energy
@@ -468,7 +468,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,KSwfn%Lzd%Glr,shift)
+   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,KSwfn%Lzd%Glr,shift)
+   if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, shift, hx, hy, hz)
 
    if ( KSwfn%orbs%nspinor.gt.1) then
       !!  hybrid_on is not compatible with kpoints
@@ -478,6 +479,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,KSwfn%Lzd%Glr)
+   if (iproc == 0) call print_wfd(KSwfn%Lzd%Glr%wfd)
 
    KSwfn%Lzd%hgrids(1)=hx
    KSwfn%Lzd%hgrids(2)=hy
@@ -512,17 +514,17 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
    call createProjectorsArrays(iproc,KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_tmp,proj)
+        radii_cf,cpmult,fpmult,hx,hy,hz,.false.,nlpspd,proj_tmp,proj)
+   if (iproc == 0) call print_nlpspd(nlpspd)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)
 
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
-   if (iproc==0 .and. verbose > 0) then
-     call MemoryEstimator(nproc,idsx,KSwfn%Lzd%Glr,&
-         &   atoms%astruct%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
-         &   in%nspin,in%itrpmax,in%iscf,peakmem)
-   end if
+   call MemoryEstimator(nproc,idsx,KSwfn%Lzd%Glr,&
+        &   orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+        &   in%nspin,in%itrpmax,in%iscf,mem)
+   if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
    !complete dpbox initialization
    call dpbox_set(dpcom,KSwfn%Lzd,iproc,nproc,MPI_COMM_WORLD,in,atoms%astruct%geocode)

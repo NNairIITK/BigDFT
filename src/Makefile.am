@@ -94,14 +94,14 @@ AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@MPI_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@ -I$(srcdir)/modules -Imodules
 #AM_CFLAGS = -Wall -Werror -Wno-strict-aliasing @DGEMMSY_CPPFLAGS@ @CUDA_INCLUDE@ -Wno-deprecated-declarations -Wno-cpp
-AM_CFLAGS = @CUDA_INCLUDE@ @LIB_YAML_CFLAGS@
+AM_CFLAGS = @CUDA_INCLUDE@
 
 #objects which depends from module_types
 high_level = cluster.f90 \
 	init.f90 \
 	initialization.f90 \
 	input_variables.f90 \
-	input_variables_old.f90 \
+	input_variables_text.f90 \
 	sumrho.f90 \
 	hpsiortho.f90 \
 	forces.f90 \
@@ -198,12 +198,13 @@ low_level = \
 	linear/foe.f90 \
 	linear/chebyshev.f90 \
 	linear/communications_onesided.f90 \
+	linear/pulay.f90 \
+	linear/transferintegrals.f90 \
 	linear/sparse_matrices.f90
 
 # C objects
 c_level = posfiles.c \
-	input_variables_description.c \
-	init/atoms_yaml.c init/atoms_yaml.h
+	input_variables_description.c
 
 libmain_a_SOURCES = \
 	$(c_level) \

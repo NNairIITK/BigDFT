@@ -160,11 +160,13 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
-  integer :: ii, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, iilr
+  integer :: ii, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, jproc, iiorb
   integer,dimension(3) :: outofzone
-  integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg
+  integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg, onwhichmpi, onwhichmpider
   real(8),dimension(:,:),allocatable :: locregCenter
   type(orbitals_data) :: orbsder
+
+  call f_routine(id='determine_locregSphere_parallel')
 
   allocate(rootarr(nlr), stat=istat)
   call memocc(istat, rootarr, 'rootarr', subname)
@@ -173,7 +175,15 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   ii=ceiling(dble(nlr)/dble(nproc))
   !determine the limits of the different localisation regions
   rootarr=1000000000
-  iilr=0
+
+  onwhichmpi=f_malloc(nlr,id='onwhichmpi')
+  iiorb=0
+  do jproc=0,nproc-1
+      do iorb=1,orbs%norb_par(jproc,0)
+          iiorb=iiorb+1
+          onWhichMPI(iiorb)=jproc
+      end do
+  end do
 
   call timing(iproc,'wfd_creation  ','ON')  
   do ilr=1,nlr
@@ -186,17 +196,13 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      yperiodic = .false.
      zperiodic = .false. 
 
-     !if(mod(ilr-1,nproc)==iproc) then
-     if(orbs%onwhichmpi(ilr)==iproc) then
-     !if (ilr>orbs%isorb .and. iilr<orbs%norbp) then
-     !    iilr=iilr+1
-     !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
+     if(calculateBounds(ilr)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
     
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               llr(ilr)%locrad, llr(ilr)%locregCenter, &
-               glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
+              glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
     
          ln1 = iex-isx
          ln2 = iey-isy
@@ -384,18 +390,26 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      ! Communicate those parts of the locregs that all processes need.
      call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
 
-
      ! Now communicate those parts of the locreg that only some processes need (the keys).
      ! For this we first need to create orbsder that describes the derivatives.
-     call create_orbsder()
+     !call create_orbsder()
+
+     !iiorb=0
+     !onwhichmpider=f_malloc(orbsder%norb,id='onwhichmpider')
+     !do jproc=0,nproc-1
+     !   do iorb=1,orbsder%norb_par(jproc,0)
+     !     iiorb=iiorb+1
+     !     onWhichMPIder(iiorb)=jproc
+     !   end do
+     !end do
 
      ! Now communicate the keys
-     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
 
-     call deallocate_orbitals_data(orbsder, subname)
+     !call deallocate_orbitals_data(orbsder, subname)
+     !call f_free(onwhichmpider)
   end if
   call timing(iproc,'comm_llr      ','OF')
-
 
   !create the bound arrays for the locregs we need on the MPI tasks
   call timing(iproc,'calc_bounds   ','ON') 
@@ -406,15 +420,15 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
          end if
   end do
+
   call timing(iproc,'calc_bounds   ','OF') 
 
+  iall = -product(shape(rootarr))*kind(rootarr)
+  deallocate(rootarr,stat=istat)
+  call memocc(istat,iall,'rootarr',subname)
 
-
-iall = -product(shape(rootarr))*kind(rootarr)
-deallocate(rootarr,stat=istat)
-call memocc(istat,iall,'rootarr',subname)
-
-
+  call f_free(onwhichmpi)
+  call f_release_routine()
 
 contains 
   subroutine create_orbsder()
@@ -779,7 +793,7 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   iiimin=0
   isegmin=0
 
-  ! Initialize the retun values
+  ! Initialize the return values
   ixmax=0
   iymax=0
   izmax=0

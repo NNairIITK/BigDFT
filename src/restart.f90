@@ -2895,7 +2895,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   logical, intent(in) :: add_derivatives
   character(len=*), intent(in) :: input_dir
   type(fragmentInputParameters), intent(in) :: input_frag
-  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+  type(system_fragment), dimension(:), intent(in) :: ref_frags
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
@@ -3054,15 +3054,16 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
 
           ! read in psirold
           if (psirold_ok) then
-             open(99,file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat')
-             read(99,*) dummy
-             read(99,*) lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i
-             read(99,*) lzd_old%llr(ilr_old)%nsi1,lzd_old%llr(ilr_old)%nsi2,lzd_old%llr(ilr_old)%nsi3
+             open(99,file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',&
+                  form="unformatted",status='unknown')
+             read(99) dummy
+             read(99) lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i
+             read(99) lzd_old%llr(ilr_old)%nsi1,lzd_old%llr(ilr_old)%nsi2,lzd_old%llr(ilr_old)%nsi3
              psirold=f_malloc((/lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i/),id='psirold')
              do k=1,lzd_old%llr(ilr_old)%d%n3i
                 do j=1,lzd_old%llr(ilr_old)%d%n2i
                    do i=1,lzd_old%llr(ilr_old)%d%n1i
-                      read(99,*) psirold(i,j,k)
+                      read(99) psirold(i,j,k)
                    end do
                 end do
              end do

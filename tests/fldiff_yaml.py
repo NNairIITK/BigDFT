@@ -104,6 +104,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
           else:
             tols[0] = max(newtols,tols[0])
     else:
+      print 'problem with length 1',
       failed_checks+=1
       if len(tols) == 0:
         tols.append("NOT SAME LENGTH")
@@ -123,6 +124,7 @@ def compare_seq(seq, ref, tols, always_fails = False):
           if failed:
             tols[0] = newtols
     else:
+      print 'problem with length 2',
       failed_checks+=1
       if len(tols) == 0:
         tols.append("NOT SAME LENGTH")
@@ -196,9 +198,9 @@ def compare_scl(scl, ref, tols, always_fails = False):
         diff = 0.
         failed = True
     discrepancy=max(discrepancy,diff)
-#    if (discrepancy > 1.85e-9):
-#    print 'test',scl,ref,tols,discrepancy,failed
-#      sys.exit(1)
+#    if (discrepancy > 1.85e-6):
+#    	print 'test',scl,ref,tols,discrepancy,failed
+#      	sys.exit(1)
     if not(failed):
       if tols is None:
         ret = (always_fails, None)
@@ -209,7 +211,7 @@ def compare_scl(scl, ref, tols, always_fails = False):
       if tols is not None:
         biggest_tol=max(biggest_tol,math.fabs(tols))
   if failed:
-#    print 'hereAAA',scl,ref,tols,discrepancy
+    #print 'hereAAA',scl,ref,tols,discrepancy,biggest_tol
     failed_checks +=1
   return ret
 

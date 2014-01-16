@@ -301,6 +301,40 @@ void bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id)
   FC_FUNC_(inputs_set_restart, INPUTS_SET_RESTART)(restart->in->data, inputPsiId + id);
 }
 
+static BigDFT_Memory* memory_ref(BigDFT_Memory *boxed)
+{
+  boxed->ref += 1;
+  return boxed;
+}
+static void memory_unref(BigDFT_Memory *boxed)
+{
+  boxed->ref -= 1;
+  if (!boxed->ref)
+    {
+      FC_FUNC_(mem_destroy, MEM_DESTROY)(&boxed->data);
+      g_free(boxed);
+    }
+}
+#ifdef HAVE_GLIB
+/**
+ * bigdft_memory_get_type:
+ *
+ * Plop.
+ *
+ * Returns: a new type for #BigDFT_Memory structures.
+ */
+GType bigdft_memory_get_type(void)
+{
+  static GType g_define_type_id = 0;
+
+  if (g_define_type_id == 0)
+    g_define_type_id = g_boxed_type_register_static("BigDFT_Memory", 
+                                                    (GBoxedCopyFunc)memory_ref,
+                                                    (GBoxedFreeFunc)memory_unref);
+  return g_define_type_id;
+}
+#endif
+
 /*****************************/
 /* BigDFT_Run data structure */
 /*****************************/
@@ -497,6 +531,65 @@ void bigdft_run_unref(BigDFT_Run *run)
       g_free(run);
     }
 #endif
+}
+/**
+ * bigdft_run_dump:
+ * @run: 
+ * @filename: (type filename):
+ * @comment: (allow-none):
+ * @full: 
+ *
+ * Plop.
+ *
+ * Returns: 
+ **/
+gboolean bigdft_run_dump(BigDFT_Run *run, const gchar *filename,
+                         const gchar *comment, gboolean full)
+{
+  int iostat;
+  int userOnly = !full;
+
+  if (comment)
+    FC_FUNC_(run_objects_dump_to_file, RUN_OBJECTS_DUMP_TO_FILE)
+      (&iostat, &run->inputs->input_values, run->atoms->data, filename, &userOnly,
+       comment, strlen(filename), strlen(comment));
+  else
+    FC_FUNC_(run_objects_dump_to_file, RUN_OBJECTS_DUMP_TO_FILE)
+      (&iostat, &run->inputs->input_values, run->atoms->data, filename, &userOnly,
+       " ", strlen(filename), 1);
+  return (iostat == 0);
+}
+/**
+ * bigdft_run_memoryEstimation:
+ * @run: 
+ * @iproc: 
+ * @nproc: 
+ *
+ * Pouet here also.
+ *
+ * Returns: (transfer full) (type BigDFT_Memory*):
+ **/
+BigDFT_Memory* bigdft_run_memoryEstimation(BigDFT_Run *run, guint iproc, guint nproc)
+{
+  double shift[3];
+  double *rxyz;
+  BigDFT_Memory *mem;
+
+  mem = g_malloc(sizeof(BigDFT_Memory));
+  mem->ref = 1;
+  FC_FUNC_(mem_new, MEM_NEW)(&mem->data);
+
+  rxyz = g_malloc(sizeof(double) * 3 * run->atoms->nat);
+  FC_FUNC_(run_objects_system_setup, RUN_OBJECTS_SYSTEM_SETUP)
+    (run->data, (int*)&iproc, (int*)&nproc, rxyz, shift, mem->data);
+  g_free(rxyz);
+  FC_FUNC_(mem_to_c, MEM_TO_C)(mem->data, &mem->submat, &mem->ncomponents,
+                               &mem->norb, &mem->norbp, &mem->oneorb,
+                               &mem->allpsi_mpi, &mem->psistorage,
+                               &mem->projarr, &mem->grid, &mem->workarr,
+                               &mem->kernel, &mem->density, &mem->psolver,
+                               &mem->ham, &mem->peak);
+  return mem;
 }
 /**
  * bigdft_run_calculate:

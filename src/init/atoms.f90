@@ -88,6 +88,7 @@ end subroutine atoms_nullify
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
+  use dynamic_memory
   implicit none
   character(len=*), intent(in) :: subname
   type(atoms_data), intent(inout) :: atoms
@@ -127,6 +128,9 @@ subroutine deallocate_atoms(atoms,subname)
      i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
      deallocate(atoms%rloc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%rloc',subname)
+     i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+     deallocate(atoms%amu,stat=i_stat)
+     call memocc(i_stat,i_all,'atoms%amu',subname)
   end if
   if (associated(atoms%iasctype)) then
      i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
@@ -135,14 +139,9 @@ subroutine deallocate_atoms(atoms,subname)
      i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
      deallocate(atoms%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms%aocc',subname)
-     i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-     deallocate(atoms%amu,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%amu',subname)
   end if
   if (associated(atoms%nlccpar)) then
-     i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
-     deallocate(atoms%nlccpar,stat=i_stat)
-     call memocc(i_stat,i_all,'atoms%nlccpar',subname)
+     call f_free_ptr(atoms%nlccpar)
   end if
 
   !  Free data for pawpatch
@@ -248,8 +247,6 @@ subroutine allocate_atoms_nat(atoms, subname)
   integer, parameter :: nelecmax=32
 
   ! Allocate geometry related stuff.
-  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   ! semicores useful only for the input guess
   allocate(atoms%iasctype(atoms%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
@@ -305,6 +302,8 @@ subroutine allocate_atoms_ntypes(atoms, subname)
 
   ! Allocate pseudo related stuff.
   ! store PSP parameters, modified to accept both GTH and HGHs pseudopotential types
+  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
   allocate(atoms%psppar(0:4,0:6,atoms%astruct%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%psppar,'atoms%psppar',subname)
   allocate(atoms%nelpsp(atoms%astruct%ntypes+ndebug),stat=i_stat)
@@ -350,7 +349,7 @@ END SUBROUTINE astruct_set_n_types
 
 
 !> Calculate the symmetries and update
-subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield)
+subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   use module_base
   use module_types
   use defs_basis
@@ -360,6 +359,7 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield)
   logical, intent(in) :: disableSym
   real(gp), intent(in) :: tol
   real(gp), intent(in) :: elecfield(3)
+  integer, intent(in) :: nspin
   !local variables
   character(len=*), parameter :: subname='astruct_set_symmetries'
   integer :: i_stat, ierr, i_all
@@ -403,6 +403,13 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield)
      !   call symmetry_set_field(astruct%sym%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
      if (elecfield(2) /= 0) then
         call symmetry_set_field(astruct%sym%symObj, (/ 0._gp, elecfield(2), 0._gp /), ierr)
+     end if
+     if (nspin == 2) then
+        call symmetry_set_collinear_spin(astruct%sym%symObj, astruct%nat, &
+             & astruct%input_polarization, ierr)
+!!$     else if (in%nspin == 4) then
+!!$        call symmetry_set_spin(atoms%astruct%sym%symObj, atoms%astruct%nat, &
+!!$             & atoms%astruct%input_polarization, ierror)
      end if
      if (disableSym) then
         call symmetry_set_n_sym(astruct%sym%symObj, 1, &
@@ -958,138 +965,6 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   astruct%atomnames(1:astruct%ntypes)=atomnames(1:astruct%ntypes)
 END SUBROUTINE read_ascii_positions
 
-
-subroutine read_yaml_positions(filename, astruct, comment, energy, fxyz)
-  use module_base
-  use module_types
-  implicit none
-  character(len = *), intent(in) :: filename
-  type(atomic_structure), intent(inout) :: astruct
-  real(gp), intent(out) :: energy
-  real(gp), dimension(:,:), pointer :: fxyz
-  character(len = 1024), intent(out) :: comment
-
-  !local variables
-  character(len=*), parameter :: subname='read_yaml_positions'
-  integer(kind = 8) :: lst
-  integer :: bc, units, i_stat, iat, i, i_all, nsgn, eunits, conv
-  double precision :: acell(3), angdeg(3), gnrm, fnrm, maxval
-  integer, allocatable :: igspin(:), igchrg(:)
-
-  call f90_posinp_yaml_parse(lst, filename, len(filename))
-
-  call f90_posinp_yaml_get_cell(lst, 0, bc, units, acell, angdeg)
-  if (bc == 3) then
-     astruct%geocode = 'P'
-  else if (bc == 0) then
-     astruct%geocode = 'F'
-  else if (bc == 2) then
-     astruct%geocode = 'S'
-  else if (bc == 1) then
-     astruct%geocode = 'W'
-  end if
-  if (units == 1) then
-     write(astruct%units, "(A)") "angstroem"
-  else if (units == 0) then
-     write(astruct%units, "(A)") "bohr"
-  end if
-  astruct%cell_dim(1) = acell(1)
-  astruct%cell_dim(2) = acell(2)
-  astruct%cell_dim(3) = acell(3)
-  !Convert the values of the cell sizes in bohr
-  if (astruct%units=='angstroem') then
-     ! if Angstroem convert to Bohr
-     astruct%cell_dim(1) = astruct%cell_dim(1) / Bohr_Ang
-     astruct%cell_dim(2) = astruct%cell_dim(2) / Bohr_Ang
-     astruct%cell_dim(3) = astruct%cell_dim(3) / Bohr_Ang
-  endif
-  if (angdeg(1) /= 90. .or. angdeg(2) /= 90. .or. angdeg(3) /= 90.) then
-     write(*,*) 'Only orthorombic boxes are possible.'
-     write(*,*) ' but angdeg(1), angdeg(2) and angdeg(3) = ', angdeg
-     astruct%nat = -1
-     return
-  end if
-  if (astruct%geocode == 'S') then
-     astruct%cell_dim(2) = 0.0_gp
-  else if (astruct%geocode == 'W') then
-     astruct%cell_dim(1) = 0.0_gp
-     astruct%cell_dim(2) = 0.0_gp
-  else if (astruct%geocode == 'F') then
-     astruct%cell_dim(1) = 0.0_gp
-     astruct%cell_dim(2) = 0.0_gp
-     astruct%cell_dim(3) = 0.0_gp
-  end if
-
-  call f90_posinp_yaml_get_dims(lst, 0, astruct%nat, astruct%ntypes)
-  if (astruct%nat == 0) then
-     astruct%nat = -1
-     return
-  end if
-
-  call astruct_set_n_atoms(astruct, astruct%nat, subname)
-  allocate(igspin(astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,igspin,'igspin',subname)
-  allocate(igchrg(astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,igchrg,'igchrg',subname)
-
-  call f90_posinp_yaml_get_atoms(lst, 0, units, astruct%rxyz, astruct%iatype, astruct%ifrztyp, igspin, igchrg)
-  if (units == 2) then
-     write(astruct%units, "(A)") "reduced"
-  end if
-  do iat = 1, astruct%nat, 1
-     if (units == 1) then
-        astruct%rxyz(1,iat)=astruct%rxyz(1,iat) / Bohr_Ang
-        astruct%rxyz(2,iat)=astruct%rxyz(2,iat) / Bohr_Ang
-        astruct%rxyz(3,iat)=astruct%rxyz(3,iat) / Bohr_Ang
-     endif
-     if (units == 2) then !add treatment for reduced coordinates
-        if (astruct%cell_dim(1) > 0.) astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),1.0_gp) * astruct%cell_dim(1)
-        if (astruct%cell_dim(2) > 0.) astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),1.0_gp) * astruct%cell_dim(2)
-        if (astruct%cell_dim(3) > 0.) astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),1.0_gp) * astruct%cell_dim(3)
-     else if (astruct%geocode == 'P') then
-        astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
-        astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
-        astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     else if (astruct%geocode == 'S') then
-        astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
-        astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     else if (astruct%geocode == 'W') then
-        astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     end if
-     if (igchrg(iat) >= 0) then
-        nsgn = 1
-     else
-        nsgn = -1
-     end if
-     astruct%input_polarization(iat) = 1000 * igchrg(iat) + nsgn * 100 + igspin(iat)
-  end do
-
-  call astruct_set_n_types(astruct, astruct%ntypes, subname)
-  do i = 1, astruct%ntypes, 1
-     call f90_posinp_yaml_get_atomname(lst, 0, i - 1, astruct%atomnames(i))
-  end do
-
-  call f90_posinp_yaml_get_comment(lst, 0, comment, 1024)
-  call f90_posinp_yaml_get_properties(lst, 0, eunits, energy, gnrm, conv)
-  call f90_posinp_yaml_has_forces(lst, 0, conv)
-  if (conv /= 0) then
-     allocate(fxyz(3,astruct%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,fxyz,'fxyz',subname)
-     call f90_posinp_yaml_get_forces(lst, 0, eunits, fnrm, maxval, fxyz)
-  end if
-
-  call f90_posinp_yaml_free_list(lst)
-
-  i_all=-product(shape(igspin))*kind(igspin)
-  deallocate(igspin,stat=i_stat)
-  call memocc(i_stat,i_all,'igspin',subname)
-
-  i_all=-product(shape(igchrg))*kind(igchrg)
-  deallocate(igchrg,stat=i_stat)
-  call memocc(i_stat,i_all,'igchrg',subname)
-END SUBROUTINE read_yaml_positions
-
-
 !> Find extra information
 subroutine find_extra_info(line,extra)
   implicit none
@@ -1224,13 +1099,13 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
   character(len=4), intent(in) :: frzchain
   integer, intent(out) :: ifrztyp
 
-  if (trim(frzchain)=='') then
+  if (trim(adjustl(frzchain))=='') then
      ifrztyp = 0
-  else if (trim(frzchain)=='f') then
+  else if (trim(adjustl(frzchain))=='f') then
      ifrztyp = 1
-  else if (trim(frzchain)=='fy') then
+  else if (trim(adjustl(frzchain))=='fy') then
      ifrztyp = 2
-  else if (trim(frzchain)=='fxz') then
+  else if (trim(adjustl(frzchain))=='fxz') then
      ifrztyp = 3
   else if (verify(frzchain, 'f0123456789') == 0) then
      read(frzchain(2:4), *) ifrztyp
@@ -1548,139 +1423,156 @@ subroutine frozen_itof(ifrztyp,frzchain)
         
 END SUBROUTINE frozen_itof
 
+subroutine astruct_dict_get_types(dict, types)
+  use dictionaries
+  implicit none
+  type(dictionary), pointer :: dict, types
+  
+  type(dictionary), pointer :: atoms, at
+  character(len = max_field_length) :: str
+  integer :: iat
+
+  call dict_init(types)
+  atoms => dict // "Positions"
+  do iat = 1, dict_len(atoms), 1
+     at => dict_iter(atoms // iat)
+     do while(associated(at))
+        str = dict_key(at)
+        if (dict_len(at) == 3 .and. .not. has_key(types, str)) call add(types, str)
+        at => dict_next(at)
+     end do
+  end do
+end subroutine astruct_dict_get_types
 
 !> Write yaml atomic file.
-subroutine wtyaml(iunit,energy,rxyz,atoms,comment,wrtforces,forces)
-  use module_base
-  use module_types
+subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
+     & wrtlog, shift, hgrids)
+  use module_defs, only: Bohr_Ang, gp, UNINITIALIZED
+  use module_types, only: atoms_data
   use yaml_output
   implicit none
-  logical, intent(in) :: wrtforces
+  logical, intent(in) :: wrtforces, wrtlog
   integer, intent(in) :: iunit
-  character(len=*), intent(in) :: comment
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz,forces
+  real(gp), dimension(3), intent(in) :: shift, hgrids
   !local variables
-  logical :: reduced
-  integer :: iunit_def,iostat,ierr,iat,ichg,ispol
+  logical :: reduced, perx, pery, perz
+  integer :: iat,ichg,ispol
   real(gp) :: factor
   real(gp) :: xred(3)
   
-  iostat=-1 !no changement of the default stream
-  !associate iunit with a yaml_stream (do not crash if already associated)
-  !first get the default stream
-  call yaml_get_default_stream(iunit_def)
-  if (iunit_def /= iunit) then
-     call yaml_set_stream(unit=iunit,tabbing=0,record_length=100,istat=iostat)
-     if (iostat /=0) then
-        call yaml_set_default_stream(iunit,ierr)
-     end if
-     !if the stream was not already present just set back the default to iunit_def
-  end if
-  !start the writing of the file
-  call yaml_new_document(unit=iunit)
-  ! Possible comment.
-  if (len(trim(comment)) > 0) then
-     call yaml_map("Comment", trim(comment(1:min(85, len(trim(comment))))))
-  end if
-  !cell information
-  call yaml_open_map('Cell')
-  factor=1.0_gp
-  Cell_Units: select case(trim(atoms%astruct%units))
-  case('angstroem','angstroemd0')
-     call yaml_map('Units','angstroem')
-     factor=Bohr_Ang
-  case('atomic','atomicd0','bohr','bohrd0','reduced')
-     call yaml_map('Units','bohr')
-     factor=1.0_gp
-  end select Cell_Units
-  BC :select case(atoms%astruct%geocode)
-  case('F')
-     call yaml_map('BC','free')
-  case('S')
-     call yaml_map('BC','surface')
-     call yaml_open_sequence('acell',flow=.true.)
-       call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(1)*factor)) !x
-       call yaml_sequence('.inf')             !y
-       call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor)) !z
-     call yaml_close_sequence()
-     !angdeg to be added
-  case('W')
-     call yaml_map('BC','wire')
-     call yaml_open_sequence('acell',flow=.true.)
-       call yaml_sequence('.inf')             !x
-       call yaml_sequence('.inf')             !y
-       call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor)) !z
-     call yaml_close_sequence()
-  case('P')
-     call yaml_map('BC','periodic')
-     call yaml_map('acell',(/atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,&
-          atoms%astruct%cell_dim(3)*factor/))
-     !angdeg to be added
-  end select BC
-  call yaml_close_map() !cell
-
-  call yaml_open_map('Positions')
   reduced=.false.
-  Pos_Units: select case(trim(atoms%astruct%units))
+  factor=1.0_gp
+  Units: select case(trim(atoms%astruct%units))
   case('angstroem','angstroemd0')
-     call yaml_map('Units','angstroem')
-  case('atomic','atomicd0','bohr','bohrd0')
-     call yaml_map('Units','bohr')
+     call yaml_map('Units','angstroem', unit = iunit)
+     factor=Bohr_Ang
   case('reduced')
-     call yaml_map('Units','reduced')
-     reduced=.true.
-  end select Pos_Units
-  call yaml_open_sequence('Values')
-  do iat=1,atoms%astruct%nat
-     call yaml_sequence(advance='no')
-     if (extra_info(iat)) call yaml_open_map(flow=.true.)
-     xred(1:3)=rxyz(1:3,iat)
-     if (reduced) then
-        if (atoms%astruct%geocode == 'P' .or. atoms%astruct%geocode =='S') xred(1)=rxyz(1,iat)/atoms%astruct%cell_dim(1)
-        if (atoms%astruct%geocode == 'P') xred(2)=rxyz(2,iat)/atoms%astruct%cell_dim(2)
-        if (atoms%astruct%geocode /='F') xred(3)=rxyz(3,iat)/atoms%astruct%cell_dim(3)
+     if (.not. wrtlog) then
+        call yaml_map('Units','reduced', unit = iunit)
+        reduced=.true.
      end if
-     call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),xred,fmt='(g25.17)')
+  case('atomic','atomicd0','bohr','bohrd0')
+     ! Default
+     !call yaml_map('Units','bohr')
+  end select Units
+
+  !cell information
+  perx = .false.
+  pery = .false.
+  perz = .false.
+  factor=1.0_gp
+  BC :select case(atoms%astruct%geocode)
+  case('S')
+     call yaml_open_sequence('Cell', flow=.true., unit = iunit)
+       call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(1)*factor), unit = iunit) !x
+       call yaml_sequence('.inf', unit = iunit)             !y
+       call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor), unit = iunit) !z
+     call yaml_close_sequence(unit = iunit)
+     !angdeg to be added
+     perx = .true.
+     pery = .false.
+     perz = .true.
+  case('W')
+     call yaml_open_sequence('Cell', flow=.true., unit = iunit)
+       call yaml_sequence('.inf', unit = iunit)             !x
+       call yaml_sequence('.inf', unit = iunit)             !y
+       call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor), unit = iunit) !z
+     call yaml_close_sequence(unit = iunit)
+     perx = .false.
+     pery = .false.
+     perz = .true.
+  case('P')
+     call yaml_map('Cell',(/atoms%astruct%cell_dim(1)*factor, &
+          & atoms%astruct%cell_dim(2)*factor, atoms%astruct%cell_dim(3)*factor/), unit = iunit)
+     !angdeg to be added
+     perx = .true.
+     pery = .true.
+     perz = .true.
+  case('F')
+     ! Default
+     !call yaml_map('BC','free')
+  end select BC
+
+  call yaml_open_sequence('Positions', unit = iunit)
+  do iat=1,atoms%astruct%nat
+     call yaml_sequence(advance='no', unit = iunit)
+     if (extra_info(iat)) then
+        call yaml_open_map(flow=.true., unit = iunit)
+     end if
+     xred(1:3)=rxyz(1:3,iat)
+     if (reduced .and. perx) xred(1)=rxyz(1,iat)/atoms%astruct%cell_dim(1)
+     if (reduced .and. pery) xred(2)=rxyz(2,iat)/atoms%astruct%cell_dim(2)
+     if (reduced .and. perz) xred(3)=rxyz(3,iat)/atoms%astruct%cell_dim(3)
+     if (wrtlog) then
+        call print_one_atom(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+             xred,hgrids,iat)
+!!$        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+!!$             & xred,fmt="(g18.10)", unit = iunit, advance = "no")
+!!$        xred(1:3) = rxyz(1:3,iat) / hgrids
+!!$        write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, iat
+!!$        call yaml_comment(gu, unit = iunit)
+     else
+        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+             & xred,fmt="(g25.17)", unit = iunit)
+     end if
      if (extra_info(iat)) then
         call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
-        if (ispol /=0) call yaml_map('IGSpin',ispol)
-        if (ichg /=0) call yaml_map('IGChg',ichg)
+        if (ispol /=0) call yaml_map('IGSpin',ispol, unit = iunit)
+        if (ichg /=0) call yaml_map('IGChg',ichg, unit = iunit)
         select case(atoms%astruct%ifrztyp(iat))
         case(1)
-           call yaml_map('Frozen',.true.)
+           call yaml_map('Frozen',.true., unit = iunit)
         case(2)
-           call yaml_map('Frozen','fy')
+           call yaml_map('Frozen','fy', unit = iunit)
         case(3)
-           call yaml_map('Frozen','fxz')
+           call yaml_map('Frozen','fxz', unit = iunit)
         end select
-        call yaml_close_map()
+        call yaml_close_map(unit = iunit)
      end if
   end do
-  call yaml_close_sequence() !values
-  call yaml_close_map() !positions
-  call yaml_open_map('Properties')
-  call yaml_map('Timestamp',yaml_date_and_time_toa())
-  if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
-     call yaml_map("Energy (Ha)", energy)
-  end if
-  call yaml_close_map() !properties
+  call yaml_close_sequence(unit = iunit) !positions
   if (wrtforces) then
-     call yaml_open_map('Forces')
-     call yaml_map('Units','Ha/Bohr')
-     call yaml_open_sequence('Values')
+     call yaml_open_map('Forces (Ha/Bohr)', unit = iunit)
+     call yaml_open_sequence(unit = iunit)
      do iat=1,atoms%astruct%nat
-        call yaml_sequence(advance='no')
-        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),forces(:,iat),fmt='(g25.17)')
+        call yaml_sequence(advance='no', unit = iunit)
+        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),forces(:,iat),fmt='(g25.17)', unit = iunit)
      end do
-     call yaml_close_sequence() !values
-     call yaml_close_map() !forces
+     call yaml_close_sequence(unit = iunit) !values
+     call yaml_close_map(unit = iunit) !forces
   end if
-
-  !restore the default stream
-  if (iunit/=iunit_def) then
-     call yaml_set_default_stream(iunit_def,ierr)
+  if (wrtlog) then
+     call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
+  else
+     call yaml_open_map('Properties', unit = iunit)
+     call yaml_map('Timestamp',yaml_date_and_time_toa(), unit = iunit)
+     if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
+        call yaml_map("Energy (Ha)", energy, unit = iunit)
+     end if
+     call yaml_close_map(unit = iunit) !properties
   end if
 
 contains
@@ -1691,6 +1583,24 @@ contains
     logical extra_info
     extra_info=atoms%astruct%input_polarization(iat) /=100 .or. atoms%astruct%ifrztyp(iat)/=0
   end function extra_info
+
+  subroutine print_one_atom(atomname,rxyz,hgrids,id)
+    implicit none
+    integer, intent(in) :: id
+    character(len=*), intent(in) :: atomname
+    double precision, dimension(3), intent(in) :: rxyz,hgrids
+    !local variables
+    character(len=*), parameter :: fmtat='(g18.10)',fmtg='(F6.2)',fmti='(i4.4)'
+    integer :: i
+
+    call yaml_open_sequence(atomname,flow=.true.)
+    do i=1,3
+       call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
+    end do
+    call yaml_close_sequence(advance='no')
+    call yaml_comment(trim(yaml_toa(rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
+
+  end subroutine print_one_atom
 
 end subroutine wtyaml
 
@@ -1758,28 +1668,6 @@ subroutine atoms_empty(atoms)
 
   call deallocate_atoms(atoms, "atoms_empty")
 END SUBROUTINE atoms_empty
-
-
-!> Set routines for bindings
-subroutine atoms_read_variables(atoms, nspin, occup, ln)
-  use module_types
-  use memory_profiling
-  implicit none
-  !Arguments
-  type(atoms_data), intent(inout) :: atoms
-  integer, intent(in) :: nspin, ln
-  character(len=1), dimension(ln), intent(in) :: occup
-  !Local variables
-  integer :: i
-  character(len = 1024) :: filename_
-
-  write(filename_, "(A)") " "
-  do i = 1, ln
-     write(filename_(i:i), "(A1)") occup(i)
-  end do
-
-  call read_atomic_variables(atoms, trim(filename_), nspin)
-END SUBROUTINE atoms_read_variables
 
 
 subroutine atoms_set_name(atoms, ityp, name)
@@ -2320,12 +2208,8 @@ subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
       end if
    else if (astruct%inputfile_format == "yaml") then
       !read atomic positions
-      if (.not.archive) then
-         call read_yaml_positions(trim(filename),astruct,comment_,energy_,fxyz_)
-      else
-         write(*,*) "Atomic input file in YAML not yet supported in archive file."
-         stop
-      end if
+      write(*,*) "Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead."
+      stop
    end if
 
    !Check the number of atoms
@@ -2388,13 +2272,22 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   !local variables
   character(len = 15) :: arFile
   integer :: iunit
+  character(len = 1024) :: fname
+  real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
 
   if (trim(filename) == "stdout") then
      iunit = 6
   else
-     open(unit=9,file=trim(filename)//'.'//trim(atoms%astruct%inputfile_format))
      iunit = 9
+     write(fname,"(A)") trim(filename)//'.'//trim(atoms%astruct%inputfile_format)
+     if (atoms%astruct%inputfile_format == 'yaml') then
+        call yaml_set_stream(unit = iunit, filename = trim(fname), &
+             & record_length = 92, setdefault = .false., tabbing = 0)
+     else
+        open(unit = iunit, file = trim(fname))
+     end if
   end if
+
   if (atoms%astruct%inputfile_format == "xyz") then
      call wtxyz(iunit,energy,rxyz,atoms,comment)
      if (present(forces)) call wtxyz_forces(9,forces,atoms)
@@ -2402,26 +2295,30 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
      call wtascii(iunit,energy,rxyz,atoms,comment)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
   else if (atoms%astruct%inputfile_format == 'yaml') then
+     call yaml_new_document(unit = iunit)
+     if (len_trim(comment) > 0) call yaml_comment(comment, unit = iunit)
      if (present(forces)) then
-        call wtyaml(iunit,energy,rxyz,atoms,comment,.true.,forces)
+        call wtyaml(iunit,energy,rxyz,atoms,.true.,forces, .false., dummy, dummy)
      else
-        call wtyaml(iunit,energy,rxyz,atoms,comment,.false.,rxyz)
+        call wtyaml(iunit,energy,rxyz,atoms,.false.,rxyz, .false., dummy, dummy)
      end if
   else
      write(*,*) "Error, unknown file format."
      stop
   end if
-  if (trim(filename) /= "stdout") then
-     close(unit=9)
-  end if
 
-  ! Add to archive
-  if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
-     write(arFile, "(A)") "posout.tar.bz2"
-     if (index(filename, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
-     call addToCompress(trim(arFile), len(trim(arFile)), &
-          & trim(filename)//'.'//trim(atoms%astruct%inputfile_format), &
-          & len(trim(filename)//'.'//trim(atoms%astruct%inputfile_format)))
+  if (iunit /= 6) then
+     if (atoms%astruct%inputfile_format == 'yaml') then
+        call yaml_close_stream(unit = iunit)
+     else
+        close(unit = iunit)
+     end if
+     ! Add to archive
+     if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
+        write(arFile, "(A)") "posout.tar.bz2"
+        if (index(filename, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+        call addToCompress(trim(arFile), len(trim(arFile)), trim(fname), len(trim(fname)))
+     end if
   end if
 END SUBROUTINE write_atomic_file
 

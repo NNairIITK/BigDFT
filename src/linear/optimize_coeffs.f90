@@ -57,7 +57,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   end if
 
   if (iproc==0) then
-      call yamL_newline()
+      call yaml_newline()
       call yaml_open_sequence('expansion coefficients optimization',label=&
            'it_coeff'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'_'//&
            trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))//&
@@ -205,7 +205,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !can't put coeffs directly in ksorbs%eval as intent in, so change after - problem with orthonormality of coeffs so adding extra
      !call find_eval_from_coeffs(iproc, nproc, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, &
      !     tmb%coeff, tmb%orbs%eval, .true., .true.)
-     !call order_coeffs_by_energy(orbs%norb,tmb%orbs%norb,tmb%coeff,tmb%orbs%eval)
+     !ipiv=f_malloc(tmb%orbs%norb,id='ipiv')
+     !call order_coeffs_by_energy(orbs%norb,tmb%orbs%norb,tmb%coeff,tmb%orbs%eval,ipiv)
+     !call f_free(ipiv)
      !!!!!!!!!!!!!!!!!!!!!!!!
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energy,&
@@ -331,6 +333,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   type(sparseMatrix) :: weight_matrix
   character(len=256) :: subname='coeff_weight_analysis'
 
+  call timing(iproc,'weightanalysis','ON')
   call nullify_sparsematrix(weight_matrix)
   call sparse_copy_pattern(tmb%linmat%ham, weight_matrix, iproc, subname)
   allocate(weight_matrix%matrix_compr(weight_matrix%nvctr), stat=istat)
@@ -341,7 +344,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
-     call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,.false.)
+     call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
+          .false.,0)!tmb%orthpar%methTransformOverlap)
      allocate(weight_matrix%matrix(weight_matrix%full_dim1,weight_matrix%full_dim1), stat=istat)
      call memocc(istat, weight_matrix%matrix, 'weight_matrix%matrix', subname)
      call uncompressmatrix(iproc,weight_matrix)
@@ -380,6 +384,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   iall=-product(shape(weight_coeff))*kind(weight_coeff)
   deallocate(weight_coeff,stat=istat)
   call memocc(istat,iall,'weight_coeff',subname)
+  call timing(iproc,'weightanalysis','OF')
 
 end subroutine coeff_weight_analysis
 
@@ -527,20 +532,22 @@ end subroutine calculate_coeffMatcoeff
 
  
 !> not really fragment related so prob should be moved - reorders coeffs by eval
-subroutine order_coeffs_by_energy(nstate,ntmb,coeff,eval)
+  ! output ipiv in case want to use it for something else
+  subroutine order_coeffs_by_energy(nstate,ntmb,coeff,eval,ipiv)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: nstate, ntmb
   real(kind=gp), dimension(ntmb,nstate), intent(inout) :: coeff
   real(kind=gp), dimension(nstate), intent(inout) :: eval
+    integer, dimension(nstate), intent(out) :: ipiv
 
   integer :: itmb, jorb
-  integer, allocatable, dimension(:) :: ipiv
+    !integer, allocatable, dimension(:) :: ipiv
   real(gp), dimension(:), allocatable :: tmp_array
   real(gp), dimension(:,:), allocatable :: tmp_array2
 
-  ipiv=f_malloc(nstate,id='coeff_final')
+    !ipiv=f_malloc(nstate,id='coeff_final')
   tmp_array=f_malloc(nstate,id='tmp_array')
 
   do itmb=1,nstate
@@ -570,7 +577,7 @@ subroutine order_coeffs_by_energy(nstate,ntmb,coeff,eval)
   end do
 
   call f_free(tmp_array2)
-  call f_free(ipiv)
+    !call f_free(ipiv)
 
 end subroutine order_coeffs_by_energy
 
@@ -835,6 +842,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern)
   end if
 
+  call timing(iproc,'calc_energy','ON')
   energy=0.0_gp
   do iorbp=1,tmb_orbs%norbp
      iorb=iorbp+tmb_orbs%isorb
@@ -848,7 +856,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
   if (nproc>1) then
      call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
-
+  call timing(iproc,'calc_energy','OF')
 
 end subroutine calculate_kernel_and_energy
 

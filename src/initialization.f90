@@ -7,74 +7,211 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
-!> Do all initialisation for all different files of BigDFT. 
-!! Set default values if not any.
-!! Initialize memocc
-!! @todo
-!!   Should be better for debug purpose to read input.perf before
-subroutine bigdft_set_input(radical,posinp,in,atoms)
-  use module_base
+!> Routines to handle the argument objects of call_bigdft().
+subroutine run_objects_nullify(runObj)
   use module_types
-  use module_interfaces, except_this_one => bigdft_set_input
-  use module_input_keys
-  use yaml_output
-  use dictionaries, only: dictionary
   implicit none
+  type(run_objects), intent(out) :: runObj
 
-  !Arguments
-  character(len=*),intent(in) :: posinp
-  character(len=*),intent(in) :: radical
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(out) :: atoms
+  nullify(runObj%user_inputs)
+  nullify(runObj%inputs)
+  nullify(runObj%atoms)
+  nullify(runObj%rst)
+  nullify(runObj%radii_cf)
+END SUBROUTINE run_objects_nullify
 
-  character(len=*), parameter :: subname='bigdft_set_input'
-  type(dictionary), pointer :: dict
-!!$  logical :: exist_list
-  call f_routine(id=subname)
-  
-  nullify(dict)
-  atoms=atoms_null()
-  ! Read atomic file
-  call read_atomic_file(trim(posinp),bigdft_mpi%iproc,atoms%astruct)
+subroutine run_objects_free(runObj, subname)
+  use module_types
+  use module_base
+  use yaml_output
+  use dictionaries
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  character(len = *), intent(in) :: subname
 
-  !read the input file(s) and transform them in the 
-  call read_input_dict_from_files(trim(radical), bigdft_mpi,dict)
+  integer :: i_all, i_stat
 
-  call standard_inputfile_names(in,trim(radical))
+  if (associated(runObj%user_inputs)) then
+     call dict_free(runObj%user_inputs)
+  end if
+  if (associated(runObj%rst)) then
+     call free_restart_objects(runObj%rst,subname)
+     deallocate(runObj%rst)
+  end if
+  if (associated(runObj%atoms)) then
+     call deallocate_atoms(runObj%atoms,subname) 
+     deallocate(runObj%atoms)
+  end if
+  if (associated(runObj%inputs)) then
+     call free_input_variables(runObj%inputs)
+     deallocate(runObj%inputs)
+  end if
+  if (associated(runObj%radii_cf)) then
+     i_all=-product(shape(runObj%radii_cf))*kind(runObj%radii_cf)
+     deallocate(runObj%radii_cf,stat=i_stat)
+     call memocc(i_stat,i_all,'radii_cf',subname)
+  end if
+  ! to be inserted again soon call f_lib_finalize()
+  !call yaml_close_all_streams()
+END SUBROUTINE run_objects_free
 
-  call inputs_from_dict(in, atoms, dict, .true.)
+subroutine run_objects_free_container(runObj)
+  use module_types
+  use module_base
+  use yaml_output
+  implicit none
+  type(run_objects), intent(inout) :: runObj
 
-  call dict_free(dict)
+  integer :: i_all, i_stat
+
+  ! User inputs are always owned by run objects.
+  if (associated(runObj%user_inputs)) then
+     call dict_free(runObj%user_inputs)
+  end if
+  ! Radii_cf are always owned by run objects.
+  if (associated(runObj%radii_cf)) then
+     i_all=-product(shape(runObj%radii_cf))*kind(runObj%radii_cf)
+     deallocate(runObj%radii_cf,stat=i_stat)
+     call memocc(i_stat,i_all,'radii_cf',"run_objects_free_container")
+  end if
+  ! Currently do nothing except nullifying everything.
+  call run_objects_nullify(runObj)
+END SUBROUTINE run_objects_free_container
+
+subroutine run_objects_init_from_files(runObj, radical, posinp)
+  use module_types
+  use module_interfaces, only: atoms_new, rst_new, inputs_new, inputs_from_dict
+  use module_input_dicts, only: user_dict_from_files
+  implicit none
+  type(run_objects), intent(out) :: runObj
+  character(len = *), intent(in) :: radical, posinp
+
+  integer :: i_stat
+  integer(kind = 8) :: dummy
+
+  call run_objects_nullify(runObj)
+
+  call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
+
+  call atoms_new(runObj%atoms)
+  call inputs_new(runObj%inputs)
+  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs, .true.)
 
   ! Generate the description of input variables.
   !if (bigdft_mpi%iproc == 0) then
   !   call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
   !end if
 
-  ! Read associated pseudo files.
-  call init_atomic_values((bigdft_mpi%iproc == 0), atoms, in%ixc)
-  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
+  if (bigdft_mpi%iproc == 0) then
+     call print_general_parameters(runObj%inputs,runObj%atoms)
+  end if
+
+  allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
+  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
+       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+
+  call rst_new(dummy, runObj%rst)
+  call restart_objects_new(runObj%rst)
+  call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
+  call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_init_from_files")
+  call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
 
   ! Start the signaling loop in a thread if necessary.
-  if (in%signaling .and. bigdft_mpi%iproc == 0) then
-     call bigdft_signals_init(in%gmainloop, 2, in%domain, len(trim(in%domain)))
-     call bigdft_signals_start(in%gmainloop, in%signalTimeout)
+  if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
+     call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
+          & runObj%inputs%domain, len_trim(runObj%inputs%domain))
+     call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
+  end if
+END SUBROUTINE run_objects_init_from_files
+
+!!$subroutine run_objects_nullify_from_objects(runObj, atoms, inputs, rst)
+!!$  use module_types
+!!$  implicit none
+!!$  type(run_objects), intent(out) :: runObj
+!!$  type(atoms_data), intent(in), target :: atoms
+!!$  type(input_variables), intent(in), target, optional :: inputs
+!!$  type(restart_objects), intent(in), target, optional :: rst
+!!$
+!!$  call run_objects_nullify(runObj)
+!!$  runObj%atoms  => atoms
+!!$  if (present(inputs)) then
+!!$     runObj%inputs => inputs
+!!$  else
+!!$  end if
+!!$  if (present(rst)) then
+!!$     runObj%rst    => rst
+!!$  else
+!!$  end if
+!!$END SUBROUTINE run_objects_nullify_from_objects
+
+subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
+  use module_types
+  implicit none
+  type(run_objects), intent(out) :: runObj
+  type(input_variables), intent(in), target :: inputs
+  type(atoms_data), intent(in), target :: atoms
+  type(restart_objects), intent(in), target :: rst
+  real(gp), intent(in), optional :: rxyz0
+
+  integer :: i_stat
+
+  call run_objects_free_container(runObj)
+  runObj%atoms  => atoms
+  runObj%inputs => inputs
+  runObj%rst    => rst
+  if (present(rxyz0)) then
+     call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
   end if
 
-  if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(in,atoms)
-     !call write_input_parameters(inputs,atoms)
-  end if
+  allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
+  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
+       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+END SUBROUTINE run_objects_associate
 
-  !if other steps are supposed to be done leave the last_run to minus one
-  !otherwise put it to one
-  if (in%last_run == -1 .and. in%ncount_cluster_x <=1 .or. in%ncount_cluster_x <= 1) then
-     in%last_run = 1
-  end if
+subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
+  use module_types
+  use module_fragments
+  use module_interfaces, only: system_initialization
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  integer, intent(in) :: iproc, nproc
+  real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: rxyz
+  real(gp), dimension(3), intent(out) :: shift
+  type(memory_estimation), intent(out) :: mem
 
-  call f_release_routine()
-END SUBROUTINE bigdft_set_input
+  integer :: inputpsi, input_wf_format
+  type(nonlocal_psp_descriptors) :: nlpspd
+  real(wp), dimension(:), pointer :: proj
+  type(system_fragment), dimension(:), pointer :: ref_frags
+  character(len = *), parameter :: subname = "run_objects_estimate_memory"
+
+  ! Copy rxyz since system_size() will shift them.
+!!$  allocate(rxyz(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rxyz,'rxyz',subname)
+  call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz(1,1), 1)
+
+  call system_initialization(iproc, nproc, .false., inputpsi, input_wf_format, .true., &
+       & runObj%inputs, runObj%atoms, rxyz, runObj%rst%KSwfn%orbs, &
+       & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
+       & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
+       & nlpspd, runObj%rst%KSwfn%comms, shift, proj, runObj%radii_cf, &
+       & ref_frags)
+  call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
+       & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
+       & runObj%rst%KSwfn%orbs%nkpts,nlpspd%nprojel,&
+       & runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
+
+  ! De-allocations
+!!$  i_all=-product(shape(rxyz))*kind(rxyz)
+!!$  deallocate(rxyz,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'rxyz',subname)
+  call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
+  call deallocate_comms(runObj%rst%KSwfn%comms,subname)
+  call deallocate_orbs(runObj%rst%KSwfn%orbs,subname)
+  call deallocate_proj_descr(nlpspd,subname)  
+END SUBROUTINE run_objects_system_setup
 
 
 !> De-allocate the variable of type input_variables
@@ -291,7 +428,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   integer, intent(out) :: iproc_node, nproc_node
   !local variables
   character(len=*), parameter :: subname='processor_id_per_node'
-  integer :: ierr, namelen, jproc
+  integer :: ierr,namelen,jproc
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
 

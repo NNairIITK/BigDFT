@@ -323,12 +323,12 @@ gboolean bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *
  *
  */
 void bigdft_atoms_set_symmetries(BigDFT_Atoms *atoms, gboolean active,
-                                 double tol, double elecfield[3])
+                                 double tol, double elecfield[3], guint nspin)
 {
   int disable;
 
   disable = (!active);
-  FC_FUNC_(astruct_set_symmetries, ASTRUCT_SET_SYMMETRIES)(atoms->astruct, &disable, &tol, elecfield);
+  FC_FUNC_(astruct_set_symmetries, ASTRUCT_SET_SYMMETRIES)(atoms->astruct, &disable, &tol, elecfield, (int*)&nspin);
 }
 
 void bigdft_atoms_set_displacement(BigDFT_Atoms *atoms, double randdis)
@@ -358,12 +358,12 @@ void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar
       bigdft_atoms_get_ntypes_arrays(atoms);
     }
 
-  FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(&verb, atoms->data, &ixc);
-  FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA)
-    (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc));
-  ln = (occup)?strlen(occup):0;
-  FC_FUNC_(atoms_read_variables, ATOMS_READ_VARIABLES)(atoms->data, (int*)&nspin,
-                                                       occup, &ln, ln);
+  /* FC_FUNC_(init_atomic_values, INIT_ATOMIC_VALUES)(&verb, atoms->data, &ixc); */
+  /* FC_FUNC_(atoms_copy_psp_data, ATOMS_COPY_PSP_DATA) */
+  /*   (atoms->data, (int*)(&atoms->natsc), (int*)(&atoms->donlcc)); */
+  /* ln = (occup)?strlen(occup):0; */
+  /* FC_FUNC_(atoms_read_variables, ATOMS_READ_VARIABLES)(atoms->data, (int*)&nspin, */
+  /*                                                      occup, &ln, ln); */
 }
 /**
  * bigdft_atoms_get_radii:

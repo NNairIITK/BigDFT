@@ -53,9 +53,9 @@ module dictionaries
       module procedure dicts_are_not_equal
    end interface
 
-
    interface assignment(=)
-      module procedure get_value,get_integer,get_real,get_double,get_long,get_lg!,get_dict, xlf does not like
+      module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
+      module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec
    end interface
    interface pop
       module procedure pop_dict,pop_item,pop_last
@@ -879,7 +879,7 @@ contains
    end function list_new_elems
 
 
-   !> Get the value from the dictionary
+   !! here the dictionary has to be associated
    subroutine get_value(val,dict)
      implicit none
      character(len=*), intent(out) :: val
@@ -907,6 +907,8 @@ contains
 
    !> Set and get routines for different types (this routine can be called from error_check also)
    recursive subroutine get_integer(ival,dict)
+     use yaml_strings, only: is_atoi
+     implicit none
      integer, intent(out) :: ival
      type(dictionary), intent(in) :: dict
      !local variables
@@ -924,11 +926,12 @@ contains
            return
         end if
      end if
-     if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
+     if (f_err_raise(ierror/=0 .or. .not. is_atoi(val),'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
    end subroutine get_integer
 
    !> Set and get routines for different types
    subroutine get_long(ival,dict)
+     implicit none
      integer(kind=8), intent(out) :: ival
      type(dictionary), intent(in) :: dict
      !local variables
@@ -944,6 +947,60 @@ contains
 
    end subroutine get_long
 
+   !>routine to retrieve an array from a dictionary
+   subroutine get_dvec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     double precision, dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     double precision :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_dvec
+
+   !>routine to retrieve an array from a dictionary
+   subroutine get_rvec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     real, dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     real :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_rvec
+
+   !>routine to retrieve an array from a dictionary
+   subroutine get_ivec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     integer, dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     integer :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_ivec
+
+   !>routine to retrieve an array from a dictionary
+   subroutine get_ilvec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     integer(kind=8), dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     integer(kind=8) :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_ilvec
+
+   !>routine to retrieve an array from a dictionary
+   subroutine get_lvec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     logical, dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     logical :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_lvec
 
    !> Read a real or real/real, real:real 
    !! Here the fraction is indicated by the ':' or '/'
@@ -971,7 +1028,7 @@ contains
      else 
         read(tmp(1:pfr-1),*,iostat=ierror) num
         read(tmp(pfr+1:psp),*,iostat=ierror) den
-        if (ierror == 0) var=real(num)/real(den)
+        if (ierror == 0) var=dble(num)/dble(den)
      end if
      !Value by defaut
      if (ierror /= 0) var = huge(1.d0) 

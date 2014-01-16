@@ -122,6 +122,7 @@ module bigdft_forces
    !! Routine to initialize all BigDFT stuff
    subroutine bigdft_init_art( nat, me_, nproc_, my_gnrm,passivate,total_nb_atoms )
      use dictionaries
+     use module_input_dicts
       implicit none
 
       !Arguments
@@ -134,10 +135,12 @@ module bigdft_forces
       !Local variables
       character(len=*), parameter :: subname='bigdft_init_art'
       real(gp),dimension(3*total_nb_atoms) :: posquant
-      integer :: natoms_calcul
+      integer :: natoms_calcul, i_stat
       type(dictionary), pointer :: dict
       !_______________________
+
       nullify(dict)
+      call read_input_dict_from_files("input", bigdft_mpi,dict)
 
       me = me_
       nproc = nproc_
@@ -156,15 +159,15 @@ module bigdft_forces
          call copy_atoms_object(atoms_all,runObj%atoms,runObj%atoms%astruct%rxyz,natoms_calcul,total_nb_atoms,posquant)
          call initialize_atomic_file(me_,runObj%atoms,runObj%atoms%astruct%rxyz)
       endif
+      call astruct_merge_to_dict(dict // "posinp", runObj%atoms%astruct, runObj%atoms%astruct%rxyz)
 
-      call read_input_dict_from_files("input", bigdft_mpi,dict)
+      call atoms_file_merge_to_dict(dict)
+
       call standard_inputfile_names(runObj%inputs,'input')
       call inputs_from_dict(runObj%inputs, runObj%atoms, dict, .true.)
+
       call dict_free(dict)
       
-      call init_atomic_values((me_ == 0), runObj%atoms, runObj%inputs%ixc)
-      call read_atomic_variables(runObj%atoms, trim(runObj%inputs%file_igpop),runObj%inputs%nspin)
-
       ! Transfer "at" data to ART variables.
       gnrm_l = runObj%inputs%gnrm_cv
       if ( my_gnrm == 1.0d0 ) then 
@@ -175,6 +178,11 @@ module bigdft_forces
       ! The BigDFT restart structure.
       allocate(runObj%rst)
       call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst, subname)
+
+      allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
+      call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+      call read_radii_variables(runObj%atoms, runObj%radii_cf, &
+           & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 
    END SUBROUTINE bigdft_init_art
 

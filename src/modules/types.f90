@@ -17,6 +17,7 @@ module module_types
        bigdft_mpi,ndebug,memocc,vcopy
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
+  use dictionaries, only: dictionary
 
   implicit none
 
@@ -191,9 +192,9 @@ module module_types
     real(kind=8) :: early_stop
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
-    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization
+    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization, new_pulay_correction
     logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
-    integer :: extra_states
+    integer :: extra_states, order_taylor
   end type linearInputParameters
 
   !> Contains all parameters for the calculation of the fragments
@@ -409,6 +410,20 @@ module module_types
      integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
   end type energy_terms
 
+  !> Memory estimation requirements
+  type, public :: memory_estimation
+     double precision :: submat
+     integer :: ncomponents, norb, norbp
+     double precision :: oneorb, allpsi_mpi, psistorage
+     double precision :: projarr
+     double precision :: grid
+     double precision :: workarr
+
+     double precision :: kernel, density, psolver, ham
+
+     double precision :: peak
+  end type memory_estimation
+
   !> Bounds for coarse and fine grids for kinetic operations
   !! Useful only for isolated systems AND in CPU
   type, public :: kinetic_bounds
@@ -474,6 +489,7 @@ module module_types
   !> Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
      integer :: nproj,nprojel,natoms                  !< Number of projectors and number of elements
+     real(gp) :: zerovol !< Proportion of zero components.
      type(locreg_descriptors), dimension(:), pointer :: plr !< pointer which indicates the different localization region per processor
   end type nonlocal_psp_descriptors
 
@@ -606,7 +622,7 @@ module module_types
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
-     integer, dimension(:), pointer :: inwhichlocreg,onWhichMPI,onwhichatom
+     integer, dimension(:), pointer :: inwhichlocreg,onwhichatom
      integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -1001,9 +1017,12 @@ module module_types
 
   !> Public container to be used with call_bigdft().
   type, public :: run_objects
+     type(dictionary), pointer :: user_inputs
+
      type(input_variables), pointer    :: inputs
      type(atoms_data), pointer         :: atoms
      type(restart_objects), pointer    :: rst
+     real(gp), dimension(:,:), pointer :: radii_cf
   end type run_objects
 
   !> Used to store results of a DFT calculation.
@@ -1476,9 +1495,6 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
     deallocate(orbs%isorb_par,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%isorb_par',subname)
-    i_all=-product(shape(orbs%onWhichMPI))*kind(orbs%onWhichMPI)
-    deallocate(orbs%onWhichMPI,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%onWhichMPI',subname)
     if (associated(orbs%ispot)) then
        i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
        deallocate(orbs%ispot,stat=i_stat)

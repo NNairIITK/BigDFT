@@ -308,10 +308,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 !!  deallocate(orbs_gauss%isorb_par,stat=istat)
 !!  call memocc(istat,iall,'orbs_gauss%isorb_par',subname)
 !!
-!!  iall=-product(shape(orbs_gauss%onwhichmpi))*kind(orbs_gauss%onwhichmpi)
-!!  deallocate(orbs_gauss%onwhichmpi,stat=istat)
-!!  call memocc(istat,iall,'orbs_gauss%onwhichmpi',subname)
-!!
 !!  iall=-product(shape(G%ndoc))*kind(G%ndoc)
 !!  deallocate(G%ndoc,stat=istat)
 !!  call memocc(istat,iall,'G%ndoc',subname)
@@ -345,7 +341,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 !!  !!call f_free(tmb%orbs%iokpt)
 !!  !!call f_free(tmb%orbs%ispot)
 !!  !!call f_free(tmb%orbs%isorb_par)
-!!  !!call f_free(tmb%orbs%onwhichmpi)
 !!  !!call f_free(G%ndoc)
 !!  !!call f_free(G%nshell)
 !!  !!call f_free(G%xp)
@@ -615,7 +610,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
 
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
          call deallocate_sparsematrix(ham_small,subname)
@@ -623,7 +618,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor)
 
       call dcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)

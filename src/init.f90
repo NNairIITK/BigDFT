@@ -29,16 +29,10 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
   integer :: i_all,i_stat,i1,i2,i3,iat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  logical :: my_output_denspot
-  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+  logical :: output_denspot_
+  logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
 
   call timing(iproc,'CrtDescriptors','ON')
-
-  if (iproc == 0) then
-     call yaml_open_map('Wavefunctions Descriptors, full simulation domain')
-     !write(*,'(1x,a)')&
-     !   &   '------------------------------------------------- Wavefunctions Descriptors Creation'
-  end if
 
   !assign the dimensions to improve (a little) readability
   n1=Glr%d%n1
@@ -72,15 +66,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   end if
   call wfd_from_grids(logrid_c,logrid_f,Glr)
 
-  if (iproc == 0) then
-     !write(*,'(2(1x,a,i10))') &
-     !     &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
-     call yaml_open_map('Coarse resolution grid')!,flow=.true.)
-     call yaml_map('No. of segments',Glr%wfd%nseg_c)
-     call yaml_map('No. of points',Glr%wfd%nvctr_c)
-     call yaml_close_map()
-  end if
-
   if (atoms%astruct%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
      if (iproc ==0) then
         call yaml_warning('The coarse grid does not fill the entire periodic box')
@@ -100,54 +85,11 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      end if
   end if
 
-  if (iproc == 0) then
-     !write(*,'(2(1x,a,i10))')
-     !'  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
-     call yaml_open_map('Fine resolution grid')!,flow=.true.)
-     call yaml_map('No. of segments',Glr%wfd%nseg_f)
-     call yaml_map('No. of points',Glr%wfd%nvctr_f)
-     call yaml_close_map()
-     call yaml_close_map()
+  output_denspot_ = .false.
+  if (present(output_denspot)) output_denspot_ = output_denspot
+  if (output_denspot_) then
+     call export_grids("grid.xyz", atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
   end if
-
-  ! Create the file grid.xyz to visualize the grid of functions
-  my_output_denspot = .false.
-  if (present(output_denspot)) my_output_denspot = output_denspot
-  if (my_output_denspot) then
-     open(unit=22,file='grid.xyz',status='unknown')
-     write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
-     if (atoms%astruct%geocode=='F') then
-                write(22,*)'complete simulation grid with low and high resolution points'
-     else if (atoms%astruct%geocode =='S') then
-        write(22,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3)
-     else if (atoms%astruct%geocode =='P') then
-        write(22,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
-             atoms%astruct%cell_dim(3)
-     end if
-     do iat=1,atoms%astruct%nat
-        write(22,'(a6,2x,3(1x,e12.5),3x)') &
-           &   trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
-     enddo
-     do i3=0,n3  
-        do i2=0,n2  
-           do i1=0,n1
-              if (logrid_c(i1,i2,i3))&
-                 &   write(22,'(a4,2x,3(1x,e10.3))') &
-                 &   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
-           enddo
-        enddo
-     end do
-     do i3=0,n3 
-        do i2=0,n2 
-           do i1=0,n1
-              if (logrid_f(i1,i2,i3))&
-                 &   write(22,'(a4,2x,3(1x,e10.3))') &
-                 &   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
-           enddo
-        enddo
-     enddo
-     close(22)
-  endif
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
@@ -295,111 +237,119 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
 end subroutine wfd_from_grids
 
 
-        !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
+!> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
-         & radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_G,proj)
-     use module_base
-     use module_types
-     use gaussians, only: gaussian_basis
-     implicit none
-     integer, intent(in) :: iproc
-     real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
-     type(locreg_descriptors),intent(in) :: lr
-     type(atoms_data), intent(in) :: at
-     type(orbitals_data), intent(in) :: orbs
-     real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-     real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
-     type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-     real(wp), dimension(:), pointer :: proj
-     type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
-     !local variables
-     character(len=*), parameter :: subname='createProjectorsArrays'
-     integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
-     integer :: iat,i_stat,i_all,iseg
-     logical, dimension(:,:,:), allocatable :: logrid
+         & radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nlpspd,proj_G,proj)
+  use module_base
+  use module_types
+  use gaussians, only: gaussian_basis
+  implicit none
+  integer, intent(in) :: iproc
+  real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+  type(locreg_descriptors),intent(in) :: lr
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+  real(wp), dimension(:), pointer :: proj
+  type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
+  logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
+  !local variables
+  character(len=*), parameter :: subname='createProjectorsArrays'
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+  integer :: iat,i_stat,i_all,iseg
+  logical, dimension(:,:,:), allocatable :: logrid
 
-     !allocate the different localization regions of the projectors
-     nlpspd%natoms=at%astruct%nat
-     allocate(nlpspd%plr(at%astruct%nat),stat=i_stat)
-     do iat=1,at%astruct%nat
-        nlpspd%plr(iat)=locreg_null() !< set in types
-     end do
+  !allocate the different localization regions of the projectors
+  nlpspd%natoms=at%astruct%nat
+  allocate(nlpspd%plr(at%astruct%nat),stat=i_stat)
+  do iat=1,at%astruct%nat
+     nlpspd%plr(iat)=locreg_null() !< set in types
+  end do
 
-    ! define the region dimensions
-      n1 = lr%d%n1
-      n2 = lr%d%n2
-      n3 = lr%d%n3
+  ! define the region dimensions
+  n1 = lr%d%n1
+  n2 = lr%d%n2
+  n3 = lr%d%n3
 
-     ! determine localization region for all projectors, but do not yet fill the descriptor arrays
-     allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-     call memocc(i_stat,logrid,'logrid',subname)
+  ! determine localization region for all projectors, but do not yet fill the descriptor arrays
+  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid,'logrid',subname)
 
-     call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
-          rxyz,radii_cf,logrid,at,orbs,nlpspd,proj_G)
+  call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
+       rxyz,radii_cf,logrid,at,orbs,nlpspd,proj_G)
 
-     !here the allocation is possible
-     do iat=1,nlpspd%natoms
-        !for the moments the bounds are not needed for projectors
-        call allocate_wfd(nlpspd%plr(iat)%wfd,subname)
-     end do
+  if (dry_run) then
+     i_all=-product(shape(logrid))*kind(logrid)
+     deallocate(logrid,stat=i_stat)
+     call memocc(i_stat,i_all,'logrid',subname)
+     return
+  end if
 
-     allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
-     call memocc(i_stat,proj,'proj',subname)
-     if (nlpspd%nprojel >0) call to_zero(nlpspd%nprojel,proj(1))
+  !here the allocation is possible
+  do iat=1,nlpspd%natoms
+     !for the moments the bounds are not needed for projectors
+     call allocate_wfd(nlpspd%plr(iat)%wfd,subname)
+  end do
 
-     ! After having determined the size of the projector descriptor arrays fill them
-    do iat=1,at%astruct%nat
-       if(at%npspcode(at%astruct%iatype(iat))==7) then  
-          call numb_proj_paw_tr(at%astruct%iatype(iat),at%astruct%ntypes,proj_G(at%astruct%iatype(iat)),mproj)
-       else
-         call numb_proj(at%astruct%iatype(iat),at%astruct%ntypes,at%psppar,at%npspcode,mproj)
-       end if
-       if (mproj.ne.0) then 
+  allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
+  call memocc(i_stat,proj,'proj',subname)
+  if (nlpspd%nprojel >0) call to_zero(nlpspd%nprojel,proj(1))
 
-          call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
-               nl1,nl2,nl3,nu1,nu2,nu3)         
+  ! After having determined the size of the projector descriptor arrays fill them
+  do iat=1,at%astruct%nat
+     if(at%npspcode(at%astruct%iatype(iat))==7) then  
+        call numb_proj_paw_tr(at%astruct%iatype(iat),at%astruct%ntypes,proj_G(at%astruct%iatype(iat)),mproj)
+     else
+        call numb_proj(at%astruct%iatype(iat),at%astruct%ntypes,at%psppar,at%npspcode,mproj)
+     end if
+     if (mproj.ne.0) then 
 
-          call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-               at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
-               cpmult,hx,hy,hz,logrid)
+        call bounds_to_plr_limits(.false.,1,nlpspd%plr(iat),&
+             nl1,nl2,nl3,nu1,nu2,nu3)         
 
-          call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
-               nlpspd%plr(iat)%wfd%nseg_c,&
-               nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keyvglob(1))
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+             cpmult,hx,hy,hz,logrid)
 
-          call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),nlpspd%plr(iat)%wfd%nseg_c,&
-               nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keygloc(1,1))
+        call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
+             nlpspd%plr(iat)%wfd%nseg_c,&
+             nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keyvglob(1))
 
-          ! fine grid quantities
-          call bounds_to_plr_limits(.false.,2,nlpspd%plr(iat),&
-               nl1,nl2,nl3,nu1,nu2,nu3)         
+        call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),nlpspd%plr(iat)%wfd%nseg_c,&
+             nlpspd%plr(iat)%wfd%keyglob(1,1),nlpspd%plr(iat)%wfd%keygloc(1,1))
 
-          call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+        ! fine grid quantities
+        call bounds_to_plr_limits(.false.,2,nlpspd%plr(iat),&
+             nl1,nl2,nl3,nu1,nu2,nu3)         
+
+        call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              & at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,2),&
-               fpmult,hx,hy,hz,logrid)
+             fpmult,hx,hy,hz,logrid)
 
-          mseg=nlpspd%plr(iat)%wfd%nseg_f
-          iseg=nlpspd%plr(iat)%wfd%nseg_c+1
+        mseg=nlpspd%plr(iat)%wfd%nseg_f
+        iseg=nlpspd%plr(iat)%wfd%nseg_c+1
 
-          if (mseg > 0) then
-             call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-                  logrid,mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
-                  nlpspd%plr(iat)%wfd%keyvglob(iseg))
+        if (mseg > 0) then
+           call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+                logrid,mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
+                nlpspd%plr(iat)%wfd%keyvglob(iseg))
 
-             call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
-                  nlpspd%plr(iat)%wfd%keygloc(1,iseg)) 
-          end if
-       endif
-    enddo
+           call transform_keyglob_to_keygloc(lr,nlpspd%plr(iat),mseg,nlpspd%plr(iat)%wfd%keyglob(1,iseg),&
+                nlpspd%plr(iat)%wfd%keygloc(1,iseg)) 
+        end if
+     endif
+  enddo
 
-    i_all=-product(shape(logrid))*kind(logrid)
-    deallocate(logrid,stat=i_stat)
-    call memocc(i_stat,i_all,'logrid',subname)
-    !fill the projectors if the strategy is a distributed calculation
-    if (.not. DistProjApply) then
-       !calculate the wavelet expansion of projectors
-      call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
-    end if
+  i_all=-product(shape(logrid))*kind(logrid)
+  deallocate(logrid,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid',subname)
+  !fill the projectors if the strategy is a distributed calculation
+  if (.not. DistProjApply) then
+     !calculate the wavelet expansion of projectors
+     call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
+  end if
 
 END SUBROUTINE createProjectorsArrays
 
@@ -1555,6 +1505,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_types
   use module_interfaces, except_this_one => input_memory_linear
   use module_fragments
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -1570,7 +1521,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   type(GPU_pointers), intent(inout) :: GPU
-  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+  type(system_fragment), dimension(:), intent(in) :: ref_frags
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat
@@ -1702,8 +1653,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !overlap_calculated = .false.
       !nullify(tmb%psit_c)
       !nullify(tmb%psit_f)
-      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-           KSwfn%orbs, tmb, overlap_calculated)
+      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, &
+           tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
       i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
       deallocate(tmb%psit_c,stat=i_stat)
       call memocc(i_stat,i_all,'tmb%psit_c',subname)
@@ -1753,6 +1704,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
   end if
 
+  ! Orthonormalize the input guess if necessary
+  if (input%experimental_mode .and. input%lin%scf_mode/=LINEAR_FOE) then                 
+      if (iproc==0) call yaml_map('orthonormalization of input guess','standard')        
+      tmb%can_use_transposed = .false.                                         
+      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+  end if  
 
 
 END SUBROUTINE input_memory_linear
@@ -2777,11 +2735,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
      if (in%lin%diag_start) then
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             tmb%orbs, tmb, overlap_calculated)  
+        ! not worrying about this case as not currently used anyway
+        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+             tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
      else
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-             KSwfn%orbs, tmb, overlap_calculated)     
+        ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
+        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, &
+             tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
      !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
      !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
@@ -2883,7 +2843,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpspd,proj,in%SIC,tmb,pnrm,.false.,.false.,&
-             .true.,ham_small,0,0,0,0) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             .true.,ham_small,0,0,0,0,in%lin%order_taylor) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then
         !print*,'coeffs after extra diag:'
@@ -2904,8 +2864,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end do
 
         ! use the coeffs from the more balanced kernel to get the correctly occupied kernel (maybe reconstruct not needed?)
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-            KSwfn%orbs, tmb, overlap_calculated)     
+        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)     
         !then redo density and potential with correct charge? - for ease doing in linear scaling
      end if
 
