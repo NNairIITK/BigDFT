@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.1
- Timestamp of this run                 : 2014-01-15 10:21:36.642
+ Timestamp of this run                 : 2014-01-16 10:42:32.636
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -91,6 +91,7 @@
    write_orbitals                      : No #     linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     linear scaling explicitely specify localization centers
    calculate_KS_residue                : Yes #    linear scaling calculate Kohn-Sham residue
+   intermediate_forces                 : No #     linear scaling calculate intermediate forces
  dft:
    hgrids: [0.50000000000000000, 0.50000000000000000, 0.50000000000000000] # grid spacing in the three directions (bohr)
    rmult: [4.0000000000000000, 5.0000000000000000] # c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -499,13 +500,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.349833E-05, D Tr:  7.270896E-04, interpol possible:  Yes}, 
  Search new eF: {det: -2.215E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  13, Tr(K):  7.200000562E+01, charge diff:  5.617841268E-06}
+ iter:  13, Tr(K):  7.200000562E+01, charge diff:  5.617841239E-06}
      -  { #--------------------------------------------------------------------- it FOE: 14
  bisec/eval bounds:  [  0.35,  0.35, -2.00,  2.20 ], pol deg:  420, eF:  3.515252632E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.042945E-07, D Tr: -5.616500E-06, interpol possible:  Yes}, 
- Search new eF: {det:  1.556E-27, limit:  1.000E-12, method: linear interpolation}, 
- iter:  14, Tr(K):  7.200000000E+01, charge diff:  1.341135203E-09}
+ Search new eF: {det:  1.567E-27, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  14, Tr(K):  7.200000000E+01, charge diff:  1.341163625E-09}
       #-------------------------------------------------- FOE calculation of kernel finished
      Kohn-Sham residue                 :  5.694E-01
      Coefficients available            :  No
@@ -536,7 +537,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.44756391724E+02, Epot: -1.19149561505E+02, Enl:  8.71648231858E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  8.95E-01, Omega: -8.80832075804489705E+01, D: -8.808E+01, 
+ iter:  1, fnrm:  8.95E-01, Omega: -8.80832075804486294E+01, D: -8.808E+01, 
  Optimization: {algorithm: SD, mean alpha:  2.000E-01, max alpha:  2.000E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -547,7 +548,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.46016829721E+02, Epot: -1.20745660689E+02, Enl:  8.96751617645E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  6.653E-01, 
- iter:  2, fnrm:  6.20E-01, Omega: -9.03910918022315855E+01, D: -2.308E+00, 
+ iter:  2, fnrm:  6.20E-01, Omega: -9.03910918022313581E+01, D: -2.308E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.200E-01, max alpha:  2.200E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -558,7 +559,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.46878949282E+02, Epot: -1.22092913295E+02, Enl:  9.23228666846E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  8.447E-01, 
- iter:  3, fnrm:  4.32E-01, Omega: -9.21694875995124221E+01, D: -1.778E+00, 
+ iter:  3, fnrm:  4.32E-01, Omega: -9.21694875995120810E+01, D: -1.778E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.420E-01, max alpha:  2.420E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -569,7 +570,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.47776917560E+02, Epot: -1.23267115390E+02, Enl:  9.48050127693E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  8.678E-01, 
- iter:  4, fnrm:  3.25E-01, Omega: -9.32967854311974634E+01, D: -1.127E+00, 
+ iter:  4, fnrm:  3.25E-01, Omega: -9.32967854311972360E+01, D: -1.127E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.662E-01, max alpha:  2.662E-01, 
     consecutive successes:  4}, 
  Orthogonalization:  Yes}
@@ -580,12 +581,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.48671142331E+02, Epot: -1.24283825870E+02, Enl:  9.68599950004E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  8.711E-01, 
- iter:  5, fnrm:  2.62E-01, Omega: -9.40823971890804387E+01, D: -7.856E-01, 
+ iter:  5, fnrm:  2.62E-01, Omega: -9.40823971890802113E+01, D: -7.856E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.48671142331E+02, Epot: -1.24283825870E+02, Enl:  9.68599950004E+00}, 
- iter:  5, fnrm:  2.62E-01, Omega: -9.40823971890804387E+01, D: -7.856E-01}
+ iter:  5, fnrm:  2.62E-01, Omega: -9.40823971890802113E+01, D: -7.856E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -656,7 +657,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.110752E-05, D Tr:  4.167313E-05, interpol possible:  Yes}, 
  Search new eF: {det: -3.958E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  11, Tr(K):  7.200000035E+01, charge diff:  3.523765031E-07}
+ iter:  11, Tr(K):  7.200000035E+01, charge diff:  3.523765315E-07}
           #---------------------------------------------- FOE calculation of kernel finished
          Coefficients available        :  No
        Hamiltonian update: {
@@ -665,7 +666,7 @@
     Total charge:  7.199990789624E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  5.37E-06, energy: -1.29037651862017810E+02, D: -1.290E+02}]
+ iter:  1, delta:  5.37E-06, energy: -1.29037651862017697E+02, D: -1.290E+02}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  5.34E-03
@@ -735,7 +736,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.109160E-05, D Tr:  3.760488E-05, interpol possible:  Yes}, 
  Search new eF: {det: -3.851E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  11, Tr(K):  7.200000034E+01, charge diff:  3.394411010E-07}
+ iter:  11, Tr(K):  7.200000034E+01, charge diff:  3.394411294E-07}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  4.360E-01
          Coefficients available        :  No
@@ -745,16 +746,16 @@
     Total charge:  7.199990562790E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.20E-06, energy: -1.28972685750852520E+02, D:  6.497E-02}]
+ iter:  2, delta:  2.20E-06, energy: -1.28972685750852747E+02, D:  6.497E-02}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.20E-06, energy: -1.28972685750852520E+02, D:  6.497E-02}]}
+ iter:  3, delta:  2.20E-06, energy: -1.28972685750852747E+02, D:  6.497E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: HYBRID, mean conf prefac:  1.40E-01,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  1, delta out:  1.753E-06, energy: -1.28972685750852520E+02, D: -1.290E+02}
-   multiplicator for the confinement   :  0.87108612612740999
+ iter low:  1, delta out:  1.753E-06, energy: -1.28972685750852747E+02, D: -1.290E+02}
+   multiplicator for the confinement   :  0.87108612612741043
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -764,7 +765,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.48671142331E+02, Epot: -1.26081075318E+02, Enl:  9.68599950004E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.68E-01, Omega: -9.78675192719917959E+01, D: -4.571E+00, 
+ iter:  1, fnrm:  2.68E-01, Omega: -9.78675192719912275E+01, D: -4.571E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.928E-01, max alpha:  2.928E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -775,7 +776,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.48435306732E+02, Epot: -1.25687790208E+02, Enl:  9.74704251445E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  7.752E-01, 
- iter:  2, fnrm:  2.24E-01, Omega: -9.84906050713738068E+01, D: -6.231E-01, 
+ iter:  2, fnrm:  2.24E-01, Omega: -9.84906050713733521E+01, D: -6.231E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.221E-01, max alpha:  3.221E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -786,7 +787,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.48970612276E+02, Epot: -1.26133208000E+02, Enl:  9.84329725158E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  7.862E-01, 
- iter:  3, fnrm:  1.96E-01, Omega: -9.89248796276001485E+01, D: -4.343E-01, 
+ iter:  3, fnrm:  1.96E-01, Omega: -9.89248796275996938E+01, D: -4.343E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.516E-01, max alpha:  3.543E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -797,7 +798,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.49389407035E+02, Epot: -1.26380058857E+02, Enl:  9.91417895944E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  7.760E-01, 
- iter:  4, fnrm:  1.79E-01, Omega: -9.92853306798135691E+01, D: -3.605E-01, 
+ iter:  4, fnrm:  1.79E-01, Omega: -9.92853306798130006E+01, D: -3.605E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.809E-01, max alpha:  3.897E-01, 
     consecutive successes:  4}, 
  Orthogonalization:  Yes}
@@ -808,12 +809,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.50058727194E+02, Epot: -1.26879988739E+02, Enl:  9.98784932989E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  7.411E-01, 
- iter:  5, fnrm:  1.65E-01, Omega: -9.95907044368752850E+01, D: -3.054E-01, 
+ iter:  5, fnrm:  1.65E-01, Omega: -9.95907044368747165E+01, D: -3.054E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.50058727194E+02, Epot: -1.26879988739E+02, Enl:  9.98784932989E+00}, 
- iter:  5, fnrm:  1.65E-01, Omega: -9.95907044368752850E+01, D: -3.054E-01}
+ iter:  5, fnrm:  1.65E-01, Omega: -9.95907044368747165E+01, D: -3.054E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -872,13 +873,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.384784E-04, D Tr:  1.883027E-04, interpol possible:  Yes}, 
  Search new eF: {det:  5.817E-19, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.200001017E+01, charge diff:  1.017285993E-05}
+ iter:  9, Tr(K):  7.200001017E+01, charge diff:  1.017285996E-05}
          -  { #----------------------------------------------------------------- it FOE: 10
  bisec/eval bounds:  [  0.33,  0.34, -2.00,  2.20 ], pol deg:  420, eF:  3.349977765E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -7.481156E-06, D Tr: -1.008376E-05, interpol possible:  Yes}, 
  Search new eF: {det:  9.301E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  7.200000009E+01, charge diff:  8.910382121E-08}
+ iter:  10, Tr(K):  7.200000009E+01, charge diff:  8.910379279E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Coefficients available        :  No
        Hamiltonian update: {
@@ -887,7 +888,7 @@
     Total charge:  7.199990992817E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.67E-06, energy: -1.29749852543328529E+02, D: -7.772E-01}]
+ iter:  1, delta:  1.67E-06, energy: -1.29749852543328302E+02, D: -7.772E-01}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  7.38E-03
@@ -945,13 +946,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.118253E-04, D Tr: -1.393047E-04, interpol possible:  Yes}, 
  Search new eF: {det:  1.161E-18, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.200000675E+01, charge diff:  6.747585928E-06}
+ iter:  9, Tr(K):  7.200000675E+01, charge diff:  6.747585900E-06}
          -  { #----------------------------------------------------------------- it FOE: 10
  bisec/eval bounds:  [  0.33,  0.33, -2.00,  2.20 ], pol deg:  420, eF:  3.328432413E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF: -5.416548E-06, D Tr: -6.799224E-06, interpol possible:  Yes}, 
+ interpol check: {D eF: -5.416547E-06, D Tr: -6.799223E-06, interpol possible:  Yes}, 
  Search new eF: {det: -3.063E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  7.199999995E+01, charge diff: -5.163758487E-08}
+ iter:  10, Tr(K):  7.199999995E+01, charge diff: -5.163755645E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  4.023E-01
          Coefficients available        :  No
@@ -961,16 +962,16 @@
     Total charge:  7.199990900171E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  7.32E-07, energy: -1.29741674445894546E+02, D:  8.178E-03}]
+ iter:  2, delta:  7.32E-07, energy: -1.29741674445894319E+02, D:  8.178E-03}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  7.32E-07, energy: -1.29741674445894546E+02, D:  8.178E-03}]}
+ iter:  3, delta:  7.32E-07, energy: -1.29741674445894319E+02, D:  8.178E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, target function: HYBRID, mean conf prefac:  1.22E-01,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  2, delta out:  5.579E-07, energy: -1.29741674445894546E+02, D: -7.690E-01}
-   multiplicator for the confinement   :  0.74112071406941871
+ iter low:  2, delta out:  5.579E-07, energy: -1.29741674445894319E+02, D: -7.690E-01}
+   multiplicator for the confinement   :  0.74112071406941860
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -980,7 +981,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.50058727194E+02, Epot: -1.30630043639E+02, Enl:  9.98784932989E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.02E-01, Omega: -1.08619137377521383E+02, D: -9.334E+00, 
+ iter:  1, fnrm:  2.02E-01, Omega: -1.08619137377521042E+02, D: -9.334E+00, 
  Optimization: {algorithm: SD, mean alpha:  4.092E-01, max alpha:  4.092E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -991,7 +992,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.47554847592E+02, Epot: -1.27515041382E+02, Enl:  9.74673313385E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  4.446E-01, 
- iter:  2, fnrm:  1.70E-01, Omega: -1.09163773498533374E+02, D: -5.446E-01, 
+ iter:  2, fnrm:  1.70E-01, Omega: -1.09163773498533033E+02, D: -5.446E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.581E-01, max alpha:  4.502E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1002,7 +1003,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.47780653621E+02, Epot: -1.27608500589E+02, Enl:  9.78144910250E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  5.097E-01, 
- iter:  3, fnrm:  1.47E-01, Omega: -1.09362400059118158E+02, D: -1.986E-01, 
+ iter:  3, fnrm:  1.47E-01, Omega: -1.09362400059117931E+02, D: -1.986E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.816E-01, max alpha:  4.952E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -1013,7 +1014,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.47729931630E+02, Epot: -1.27337472010E+02, Enl:  9.79899977216E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  5.295E-01, 
- iter:  4, fnrm:  1.43E-01, Omega: -1.09500875235604667E+02, D: -1.385E-01, 
+ iter:  4, fnrm:  1.43E-01, Omega: -1.09500875235604440E+02, D: -1.385E-01, 
  Optimization: {algorithm: SD, mean alpha:  4.198E-01, max alpha:  5.447E-01, 
     consecutive successes:  4}, 
  Orthogonalization:  Yes}
@@ -1024,12 +1025,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.47949521915E+02, Epot: -1.27338722425E+02, Enl:  9.81984354155E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  4.918E-01, 
- iter:  5, fnrm:  1.38E-01, Omega: -1.09624295374259532E+02, D: -1.234E-01, 
+ iter:  5, fnrm:  1.38E-01, Omega: -1.09624295374259304E+02, D: -1.234E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.47949521915E+02, Epot: -1.27338722425E+02, Enl:  9.81984354155E+00}, 
- iter:  5, fnrm:  1.38E-01, Omega: -1.09624295374259532E+02, D: -1.234E-01}
+ iter:  5, fnrm:  1.38E-01, Omega: -1.09624295374259304E+02, D: -1.234E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1109,13 +1110,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  9.597262E-05, D Tr:  2.251528E-04, interpol possible:  Yes}, 
  Search new eF: {det:  8.343E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  15, Tr(K):  7.199999076E+01, charge diff: -9.236978357E-06}
+ iter:  15, Tr(K):  7.199999076E+01, charge diff: -9.236978343E-06}
          -  { #----------------------------------------------------------------- it FOE: 16
  bisec/eval bounds:  [  0.63,  0.63, -2.00,  2.20 ], pol deg:  420, eF:  6.300130373E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  3.937313E-06, D Tr:  9.290042E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.451E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  16, Tr(K):  7.200000005E+01, charge diff:  5.306389994E-08}
+ iter:  16, Tr(K):  7.200000005E+01, charge diff:  5.306391415E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Coefficients available        :  No
        Hamiltonian update: {
@@ -1176,19 +1177,19 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  7.328606E-04, D Tr:  1.686018E-03, interpol possible:  Yes}, 
  Search new eF: {det:  5.921E-17, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.200041785E+01, charge diff:  4.178518700E-04}
+ iter:  8, Tr(K):  7.200041785E+01, charge diff:  4.178518701E-04}
          -  { #------------------------------------------------------------------ it FOE: 9
  bisec/eval bounds:  [  0.61,  0.61, -2.00,  2.20 ], pol deg:  420, eF:  6.112900998E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.816275E-04, D Tr: -4.311440E-04, interpol possible:  Yes}, 
  Search new eF: {det:  2.202E-19, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.199998671E+01, charge diff: -1.329213131E-05}
+ iter:  9, Tr(K):  7.199998671E+01, charge diff: -1.329213134E-05}
          -  { #----------------------------------------------------------------- it FOE: 10
  bisec/eval bounds:  [  0.61,  0.61, -2.00,  2.20 ], pol deg:  420, eF:  6.112956993E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  5.599559E-06, D Tr:  1.315893E-05, interpol possible:  Yes}, 
- Search new eF: {det:  4.028E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  7.199999987E+01, charge diff: -1.332028745E-07}
+ Search new eF: {det:  4.027E-23, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  10, Tr(K):  7.199999987E+01, charge diff: -1.332028887E-07}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  3.454E-01
          Coefficients available        :  No
@@ -1198,16 +1199,16 @@
     Total charge:  7.199991293449E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.23E-06, energy: -1.31423813483509207E+02, D:  2.585E-02}]
+ iter:  2, delta:  1.23E-06, energy: -1.31423813483509093E+02, D:  2.585E-02}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.23E-06, energy: -1.31423813483509207E+02, D:  2.585E-02}]}
+ iter:  3, delta:  1.23E-06, energy: -1.31423813483509093E+02, D:  2.585E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, target function: HYBRID, mean conf prefac:  9.04E-02,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  3, delta out:  9.442E-07, energy: -1.31423813483509207E+02, D: -1.682E+00}
-   multiplicator for the confinement   :  0.49178464393350529
+ iter low:  3, delta out:  9.442E-07, energy: -1.31423813483509093E+02, D: -1.682E+00}
+   multiplicator for the confinement   :  0.49178464393350485
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1217,7 +1218,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.47949521915E+02, Epot: -1.35148136342E+02, Enl:  9.81984354155E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.52E-01, Omega: -1.26096437601931939E+02, D: -1.660E+01, 
+ iter:  1, fnrm:  2.52E-01, Omega: -1.26096437601931825E+02, D: -1.660E+01, 
  Optimization: {algorithm: SD, mean alpha:  4.617E-01, max alpha:  4.617E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -1228,7 +1229,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.43137919844E+02, Epot: -1.30015636578E+02, Enl:  9.39565240551E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  5.048E-01, 
- iter:  2, fnrm:  1.56E-01, Omega: -1.27506233427903226E+02, D: -1.410E+00, 
+ iter:  2, fnrm:  1.56E-01, Omega: -1.27506233427903112E+02, D: -1.410E+00, 
  Optimization: {algorithm: SD, mean alpha:  3.579E-01, max alpha:  5.079E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1239,7 +1240,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.42260657924E+02, Epot: -1.29111365024E+02, Enl:  9.39982207732E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.755E-01, 
- iter:  3, fnrm:  1.46E-01, Omega: -1.27622467758579887E+02, D: -1.162E-01, 
+ iter:  3, fnrm:  1.46E-01, Omega: -1.27622467758579774E+02, D: -1.162E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.936E-01, max alpha:  5.587E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -1250,7 +1251,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.41662040927E+02, Epot: -1.28427397667E+02, Enl:  9.40030482215E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.314E-01, 
- iter:  4, fnrm:  1.42E-01, Omega: -1.27677597117484311E+02, D: -5.513E-02, 
+ iter:  4, fnrm:  1.42E-01, Omega: -1.27677597117484197E+02, D: -5.513E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.330E-01, max alpha:  6.146E-01, 
     consecutive successes:  4}, 
  Orthogonalization:  Yes}
@@ -1261,12 +1262,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.41265720867E+02, Epot: -1.27937416923E+02, Enl:  9.40304164667E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  1.891E-01, 
- iter:  5, fnrm:  1.37E-01, Omega: -1.27720927172014171E+02, D: -4.333E-02, 
+ iter:  5, fnrm:  1.37E-01, Omega: -1.27720927172014058E+02, D: -4.333E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.41265720867E+02, Epot: -1.27937416923E+02, Enl:  9.40304164667E+00}, 
- iter:  5, fnrm:  1.37E-01, Omega: -1.27720927172014171E+02, D: -4.333E-02}
+ iter:  5, fnrm:  1.37E-01, Omega: -1.27720927172014058E+02, D: -4.333E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1331,13 +1332,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  4.586695E-05, D Tr:  2.442379E-04, interpol possible:  Yes}, 
  Search new eF: {det:  1.287E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  7.199999780E+01, charge diff: -2.202753194E-06}
+ iter:  10, Tr(K):  7.199999780E+01, charge diff: -2.202753237E-06}
          -  { #----------------------------------------------------------------- it FOE: 11
  bisec/eval bounds:  [  0.60,  0.60, -2.00,  2.20 ], pol deg:  420, eF:  5.978042538E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  4.136688E-07, D Tr:  2.207642E-06, interpol possible:  Yes}, 
- Search new eF: {det: -7.169E-27, limit:  1.000E-12, method: linear interpolation}, 
- iter:  11, Tr(K):  7.200000000E+01, charge diff:  4.888391913E-09}
+ Search new eF: {det: -7.139E-27, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  11, Tr(K):  7.200000000E+01, charge diff:  4.888448757E-09}
           #---------------------------------------------- FOE calculation of kernel finished
          Coefficients available        :  No
        Hamiltonian update: {
@@ -1346,7 +1347,7 @@
     Total charge:  7.199992137669E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  4.86E-06, energy: -1.33931225629210530E+02, D: -2.507E+00}]
+ iter:  1, delta:  4.86E-06, energy: -1.33931225629210417E+02, D: -2.507E+00}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.22E-02
@@ -1401,13 +1402,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -6.475554E-05, D Tr: -3.449498E-04, interpol possible:  Yes}, 
  Search new eF: {det: -1.026E-18, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.200003028E+01, charge diff:  3.028407468E-05}
+ iter:  9, Tr(K):  7.200003028E+01, charge diff:  3.028407467E-05}
          -  { #----------------------------------------------------------------- it FOE: 10
  bisec/eval bounds:  [  0.54,  0.54, -2.00,  2.20 ], pol deg:  420, eF:  5.395455032E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -5.685063E-06, D Tr: -3.018250E-05, interpol possible:  Yes}, 
  Search new eF: {det:  1.381E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  7.200000010E+01, charge diff:  1.015729794E-07}
+ iter:  10, Tr(K):  7.200000010E+01, charge diff:  1.015729936E-07}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.799E-01
          Coefficients available        :  No
@@ -1417,16 +1418,16 @@
     Total charge:  7.199992003361E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.32E-06, energy: -1.33813659731850862E+02, D:  1.176E-01}]
+ iter:  2, delta:  2.32E-06, energy: -1.33813659731850976E+02, D:  1.176E-01}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.32E-06, energy: -1.33813659731850862E+02, D:  1.176E-01}]}
+ iter:  3, delta:  2.32E-06, energy: -1.33813659731850976E+02, D:  1.176E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, target function: HYBRID, mean conf prefac:  4.44E-02,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  4, delta out:  1.755E-06, energy: -1.33813659731850862E+02, D: -2.390E+00}
-   multiplicator for the confinement   :  0.18907180695374043
+ iter low:  4, delta out:  1.755E-06, energy: -1.33813659731850976E+02, D: -2.390E+00}
+   multiplicator for the confinement   :  0.18907180695374035
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1436,7 +1437,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.41265720867E+02, Epot: -1.38380570164E+02, Enl:  9.40304164667E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.48E-01, Omega: -1.47011174192481235E+02, D: -1.933E+01, 
+ iter:  1, fnrm:  2.48E-01, Omega: -1.47011174192481121E+02, D: -1.933E+01, 
  Optimization: {algorithm: SD, mean alpha:  4.763E-01, max alpha:  4.763E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -1447,7 +1448,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.36875138854E+02, Epot: -1.34228320804E+02, Enl:  9.08594914184E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  5.861E-01, 
- iter:  2, fnrm:  1.64E-01, Omega: -1.48630278804172235E+02, D: -1.619E+00, 
+ iter:  2, fnrm:  1.64E-01, Omega: -1.48630278804172121E+02, D: -1.619E+00, 
  Optimization: {algorithm: SD, mean alpha:  5.001E-01, max alpha:  5.239E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1547,13 +1548,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -4.030266E-05, D Tr: -3.336773E-04, interpol possible:  Yes}, 
  Search new eF: {det:  6.032E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  7.199999595E+01, charge diff: -4.052714331E-06}
+ iter:  10, Tr(K):  7.199999595E+01, charge diff: -4.052714360E-06}
          -  { #----------------------------------------------------------------- it FOE: 11
  bisec/eval bounds:  [  0.49,  0.49, -2.00,  2.20 ], pol deg:  420, eF:  4.926629552E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  4.895004E-07, D Tr:  4.046032E-06, interpol possible:  Yes}, 
- Search new eF: {det:  2.298E-26, limit:  1.000E-12, method: linear interpolation}, 
- iter:  11, Tr(K):  7.199999999E+01, charge diff: -6.682313369E-09}
+ Search new eF: {det:  2.300E-26, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  11, Tr(K):  7.199999999E+01, charge diff: -6.682299158E-09}
           #---------------------------------------------- FOE calculation of kernel finished
          Coefficients available        :  No
        Hamiltonian update: {
@@ -1562,7 +1563,7 @@
     Total charge:  7.199992928551E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  6.11E-06, energy: -1.35394395744311282E+02, D: -1.581E+00}]
+ iter:  1, delta:  6.11E-06, energy: -1.35394395744311510E+02, D: -1.581E+00}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.79E-02
@@ -1614,19 +1615,19 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  4.866034E-04, D Tr:  3.927263E-03, interpol possible:  Yes}, 
  Search new eF: {det: -2.500E-18, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.199974715E+01, charge diff: -2.528546522E-04}
+ iter:  9, Tr(K):  7.199974715E+01, charge diff: -2.528546523E-04}
          -  { #----------------------------------------------------------------- it FOE: 10
  bisec/eval bounds:  [  0.40,  0.40, -2.00,  2.20 ], pol deg:  420, eF:  4.045074080E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  3.132969E-05, D Tr:  2.583354E-04, interpol possible:  Yes}, 
  Search new eF: {det:  8.410E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  7.200000548E+01, charge diff:  5.480780572E-06}
+ iter:  10, Tr(K):  7.200000548E+01, charge diff:  5.480780601E-06}
          -  { #----------------------------------------------------------------- it FOE: 11
  bisec/eval bounds:  [  0.40,  0.40, -2.00,  2.20 ], pol deg:  420, eF:  4.045067434E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -6.646830E-07, D Tr: -5.487732E-06, interpol possible:  Yes}, 
- Search new eF: {det: -8.314E-26, limit:  1.000E-12, method: linear interpolation}, 
- iter:  11, Tr(K):  7.199999999E+01, charge diff: -6.951779596E-09}
+ Search new eF: {det: -8.321E-26, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  11, Tr(K):  7.199999999E+01, charge diff: -6.951836440E-09}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  3.183E-01
          Coefficients available        :  No
@@ -1636,16 +1637,16 @@
     Total charge:  7.199992748022E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.96E-06, energy: -1.35170757731456547E+02, D:  2.236E-01}]
+ iter:  2, delta:  2.96E-06, energy: -1.35170757731456661E+02, D:  2.236E-01}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.96E-06, energy: -1.35170757731456547E+02, D:  2.236E-01}]}
+ iter:  3, delta:  2.96E-06, energy: -1.35170757731456661E+02, D:  2.236E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, target function: HYBRID, mean conf prefac:  8.40E-03,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  5, delta out:  2.218E-06, energy: -1.35170757731456547E+02, D: -1.357E+00}
-   multiplicator for the confinement   :  8.51196420454498892E-002
+ iter low:  5, delta out:  2.218E-06, energy: -1.35170757731456661E+02, D: -1.357E+00}
+   multiplicator for the confinement   :  8.51196420454498337E-002
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1655,7 +1656,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32943633319E+02, Epot: -1.38718969379E+02, Enl:  9.06344727230E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  1.47E-01, Omega: -1.60400612010460918E+02, D: -1.139E+01, 
+ iter:  1, fnrm:  1.47E-01, Omega: -1.60400612010460804E+02, D: -1.139E+01, 
  Optimization: {algorithm: SD, mean alpha:  6.657E-01, max alpha:  6.657E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -1666,7 +1667,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32539901325E+02, Epot: -1.38568180166E+02, Enl:  9.21398207966E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.373E-01, 
- iter:  2, fnrm:  1.36E-01, Omega: -1.60529113327361074E+02, D: -1.285E-01, 
+ iter:  2, fnrm:  1.36E-01, Omega: -1.60529113327360960E+02, D: -1.285E-01, 
  Optimization: {algorithm: SD, mean alpha:  6.823E-01, max alpha:  7.322E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1677,7 +1678,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32412547322E+02, Epot: -1.38432257957E+02, Enl:  9.16517550767E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  5.202E-02, 
- iter:  3, fnrm:  1.31E-01, Omega: -1.60547962561315330E+02, D: -1.885E-02, 
+ iter:  3, fnrm:  1.31E-01, Omega: -1.60547962561315217E+02, D: -1.885E-02, 
  Optimization: {algorithm: SD, mean alpha:  7.505E-01, max alpha:  8.054E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -1699,12 +1700,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32204550787E+02, Epot: -1.38273705466E+02, Enl:  9.16141008748E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.506E-02, 
- iter:  5, fnrm:  1.25E-01, Omega: -1.60572871215951068E+02, D: -1.303E-02, 
+ iter:  5, fnrm:  1.25E-01, Omega: -1.60572871215950954E+02, D: -1.303E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun006  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.32204550787E+02, Epot: -1.38273705466E+02, Enl:  9.16141008748E+00}, 
- iter:  5, fnrm:  1.25E-01, Omega: -1.60572871215951068E+02, D: -1.303E-02}
+ iter:  5, fnrm:  1.25E-01, Omega: -1.60572871215950954E+02, D: -1.303E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
@@ -1748,18 +1749,18 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.279974E-03, D Tr:  8.301109E-03, interpol possible:  Yes}, 
  Search new eF: {det: -2.875E-14, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.200002007E+01, charge diff:  2.007265236E-05}
+ iter:  7, Tr(K):  7.200002007E+01, charge diff:  2.007265240E-05}
          -  { #------------------------------------------------------------------ it FOE: 8
  bisec/eval bounds:  [  0.35,  0.35, -2.00,  2.20 ], pol deg:  420, eF:  3.484555507E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -3.095064E-06, D Tr: -2.122192E-05, interpol possible:  Yes}, 
  Search new eF: {det:  2.890E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.199999885E+01, charge diff: -1.149271668E-06}
+ iter:  8, Tr(K):  7.199999885E+01, charge diff: -1.149271696E-06}
          -  { #------------------------------------------------------------------ it FOE: 9
  bisec/eval bounds:  [  0.35,  0.35, -2.00,  2.20 ], pol deg:  420, eF:  3.484557183E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.676130E-07, D Tr:  1.149125E-06, interpol possible:  Yes}, 
- Search new eF: {det:  3.146E-27, limit:  1.000E-12, method: linear interpolation}, 
+ Search new eF: {det:  3.169E-27, limit:  1.000E-12, method: linear interpolation}, 
  iter:  9, Tr(K):  7.200000000E+01, charge diff: -1.465139121E-10}
           #---------------------------------------------- FOE calculation of kernel finished
          Coefficients available        :  No
@@ -1769,7 +1770,7 @@
     Total charge:  7.199992574939E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.74E-06, energy: -1.35234444034628950E+02, D: -6.369E-02}]
+ iter:  1, delta:  1.74E-06, energy: -1.35234444034628723E+02, D: -6.369E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  2.09E-02
@@ -1821,7 +1822,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -5.862470E-06, D Tr: -4.042162E-05, interpol possible:  Yes}, 
  Search new eF: {det:  1.499E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.200000017E+01, charge diff:  1.664488707E-07}
+ iter:  8, Tr(K):  7.200000017E+01, charge diff:  1.664488991E-07}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  3.482E-01
          Coefficients available        :  No
@@ -1840,7 +1841,7 @@
    -  {iter:  6, target function: HYBRID, mean conf prefac:  7.15E-04,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
  iter low:  6, delta out:  6.492E-07, energy: -1.35219977547018971E+02, D: -4.922E-02}
-   multiplicator for the confinement   :  3.50582005998687704E-002
+   multiplicator for the confinement   :  3.50582005995629664E-002
     #========================================================= support function optimization
  - support function optimization: &it_supfun007
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1850,7 +1851,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32204550787E+02, Epot: -1.39876260042E+02, Enl:  9.16141008748E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  1.25E-01, Omega: -1.62504213087400331E+02, D: -1.944E+00, 
+ iter:  1, fnrm:  1.25E-01, Omega: -1.62504213087400103E+02, D: -1.944E+00, 
  Optimization: {algorithm: SD, mean alpha:  9.081E-01, max alpha:  9.081E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -1861,7 +1862,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32325561841E+02, Epot: -1.40075389876E+02, Enl:  9.21929423677E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.126E-02, 
- iter:  2, fnrm:  1.22E-01, Omega: -1.62515857820324641E+02, D: -1.164E-02, 
+ iter:  2, fnrm:  1.22E-01, Omega: -1.62515857820324413E+02, D: -1.164E-02, 
  Optimization: {algorithm: SD, mean alpha:  9.990E-01, max alpha:  9.990E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -1872,7 +1873,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32295470276E+02, Epot: -1.40006579746E+02, Enl:  9.15451636473E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  4.054E-02, 
- iter:  3, fnrm:  1.19E-01, Omega: -1.62531432430456448E+02, D: -1.557E-02, 
+ iter:  3, fnrm:  1.19E-01, Omega: -1.62531432430456107E+02, D: -1.557E-02, 
  Optimization: {algorithm: SD, mean alpha:  1.091E+00, max alpha:  1.099E+00, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -1883,7 +1884,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32234046922E+02, Epot: -1.40023437417E+02, Enl:  9.20651761268E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  4.261E-02, 
- iter:  4, fnrm:  1.17E-01, Omega: -1.62548454773111757E+02, D: -1.702E-02, 
+ iter:  4, fnrm:  1.17E-01, Omega: -1.62548454773111530E+02, D: -1.702E-02, 
  Optimization: {algorithm: SD, mean alpha:  1.200E+00, max alpha:  1.209E+00, 
     consecutive successes:  4}, 
  Orthogonalization:  Yes}
@@ -1894,12 +1895,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32208384634E+02, Epot: -1.39940355520E+02, Enl:  9.12348795418E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  4.986E-02, 
- iter:  5, fnrm:  1.14E-01, Omega: -1.62569338947408824E+02, D: -2.088E-02, 
+ iter:  5, fnrm:  1.14E-01, Omega: -1.62569338947408596E+02, D: -2.088E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun007  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.32208384634E+02, Epot: -1.39940355520E+02, Enl:  9.12348795418E+00}, 
- iter:  5, fnrm:  1.14E-01, Omega: -1.62569338947408824E+02, D: -2.088E-02}
+ iter:  5, fnrm:  1.14E-01, Omega: -1.62569338947408596E+02, D: -2.088E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel007
@@ -1949,13 +1950,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  4.125818E-05, D Tr:  2.155158E-04, interpol possible:  Yes}, 
  Search new eF: {det: -1.503E-16, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.199998010E+01, charge diff: -1.989895858E-05}
+ iter:  8, Tr(K):  7.199998010E+01, charge diff: -1.989895861E-05}
          -  { #------------------------------------------------------------------ it FOE: 9
  bisec/eval bounds:  [  0.30,  0.30, -2.00,  2.20 ], pol deg:  420, eF:  3.030452909E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  3.809440E-06, D Tr:  1.994105E-05, interpol possible:  Yes}, 
  Search new eF: {det: -4.827E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.200000004E+01, charge diff:  4.208676785E-08}
+ iter:  9, Tr(K):  7.200000004E+01, charge diff:  4.208679627E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Coefficients available        :  No
        Hamiltonian update: {
@@ -1964,7 +1965,7 @@
     Total charge:  7.199992530993E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  4.25E-07, energy: -1.35256823731719237E+02, D: -3.685E-02}]
+ iter:  1, delta:  4.25E-07, energy: -1.35256823731719123E+02, D: -3.685E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  2.16E-02
@@ -2016,13 +2017,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  4.972696E-05, D Tr:  2.599526E-04, interpol possible:  Yes}, 
  Search new eF: {det:  9.566E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.199999326E+01, charge diff: -6.744175437E-06}
+ iter:  8, Tr(K):  7.199999326E+01, charge diff: -6.744175423E-06}
          -  { #------------------------------------------------------------------ it FOE: 9
  bisec/eval bounds:  [  0.30,  0.30, -2.00,  2.20 ], pol deg:  420, eF:  2.999774239E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.290109E-06, D Tr:  6.760315E-06, interpol possible:  Yes}, 
- Search new eF: {det: -5.803E-25, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.200000002E+01, charge diff:  1.613946665E-08}
+ Search new eF: {det: -5.802E-25, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  9, Tr(K):  7.200000002E+01, charge diff:  1.613945244E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  3.462E-01
          Coefficients available        :  No
@@ -2032,16 +2033,16 @@
     Total charge:  7.199992527910E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.08E-07, energy: -1.35256188282853600E+02, D:  6.354E-04}]
+ iter:  2, delta:  2.08E-07, energy: -1.35256188282853486E+02, D:  6.354E-04}]
    -  &final_kernel007  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.08E-07, energy: -1.35256188282853600E+02, D:  6.354E-04}]}
+ iter:  3, delta:  2.08E-07, energy: -1.35256188282853486E+02, D:  6.354E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc007
    -  {iter:  7, target function: HYBRID, mean conf prefac:  2.51E-05,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  7, delta out:  1.578E-07, energy: -1.35256188282853600E+02, D: -3.621E-02}
-   multiplicator for the confinement   :  4.98552936036019134E-002
+ iter low:  7, delta out:  1.578E-07, energy: -1.35256188282853486E+02, D: -3.621E-02}
+   multiplicator for the confinement   :  4.98552936036014624E-002
     #========================================================= support function optimization
  - support function optimization: &it_supfun008
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2051,7 +2052,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32208384634E+02, Epot: -1.40086433795E+02, Enl:  9.12348795418E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  1.14E-01, Omega: -1.62761106795455589E+02, D: -2.127E-01, 
+ iter:  1, fnrm:  1.14E-01, Omega: -1.62761106795455476E+02, D: -2.127E-01, 
  Optimization: {algorithm: SD, mean alpha:  1.289E+00, max alpha:  1.289E+00, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes}
@@ -2062,7 +2063,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32190659399E+02, Epot: -1.40232052408E+02, Enl:  9.25835893850E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.947E-02, 
- iter:  2, fnrm:  1.14E-01, Omega: -1.62778086779128785E+02, D: -1.698E-02, 
+ iter:  2, fnrm:  1.14E-01, Omega: -1.62778086779128557E+02, D: -1.698E-02, 
  Optimization: {algorithm: SD, mean alpha:  1.268E+00, max alpha:  1.418E+00, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes}
@@ -2073,7 +2074,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.32137405704E+02, Epot: -1.40062575515E+02, Enl:  9.11326012846E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  3.274E-02, 
- iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004395E+02, D: -1.471E-02, 
+ iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004168E+02, D: -1.471E-02, 
  Optimization: {algorithm: SD, mean alpha:  1.139E+00, max alpha:  1.560E+00, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes}
@@ -2087,7 +2088,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 2.062E-04
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  4, fnrm:  1.28E-01, Omega: -1.62792592399098453E+02, D:  2.062E-04}
+ iter:  4, fnrm:  1.28E-01, Omega: -1.62792592399098226E+02, D:  2.062E-04}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -2096,7 +2097,7 @@
  Energies: {Ekin:  1.32137405704E+02, Epot: -1.40062575515E+02, Enl:  9.11326012846E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004395E+02, D: -1.628E+02, 
+ iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004168E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  5.833E-01, max alpha:  1.030E+00, 
     consecutive successes:  4}, 
  Orthogonalization:  Yes}
@@ -2110,7 +2111,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 9.629E-02
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  4, fnrm:  1.33E-01, Omega: -1.62696507552500520E+02, D:  9.629E-02}
+ iter:  4, fnrm:  1.33E-01, Omega: -1.62696507552500293E+02, D:  9.629E-02}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -2119,7 +2120,7 @@
  Energies: {Ekin:  1.32137405704E+02, Epot: -1.40062575515E+02, Enl:  9.11326012846E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004395E+02, D: -1.628E+02, 
+ iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004168E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  3.850E-01, max alpha:  6.796E-01, 
     consecutive successes:  5}, 
  Orthogonalization:  Yes}
@@ -2133,7 +2134,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 1.458E-01
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  4, fnrm:  1.39E-01, Omega: -1.62646997570049962E+02, D:  1.458E-01}
+ iter:  4, fnrm:  1.39E-01, Omega: -1.62646997570049848E+02, D:  1.458E-01}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -2142,7 +2143,7 @@
  Energies: {Ekin:  1.32137405704E+02, Epot: -1.40062575515E+02, Enl:  9.11326012846E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004395E+02, D: -1.628E+02, 
+ iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004168E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.541E-01, max alpha:  4.485E-01, 
     consecutive successes:  6}, 
  Orthogonalization:  Yes}
@@ -2156,9 +2157,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 1.809E-01
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  4, fnrm:  1.44E-01, Omega: -1.62611874965615016E+02, D:  1.809E-01, 
+ iter:  4, fnrm:  1.44E-01, Omega: -1.62611874965614788E+02, D:  1.809E-01, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  2, fnrm:  1.44E-01, Omega: -1.62611874965615016E+02, D:  1.809E-01, 
+ iter:  2, fnrm:  1.44E-01, Omega: -1.62611874965614788E+02, D:  1.809E-01, 
  Optimization: {algorithm: SD, mean alpha:  1.525E-01, max alpha:  2.691E-01, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -2171,7 +2172,7 @@
  Energies: {Ekin:  1.32137405704E+02, Epot: -1.40062575515E+02, Enl:  9.11326012846E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004395E+02, D: -1.809E-01, 
+ iter:  3, fnrm:  1.17E-01, Omega: -1.62792798590004168E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.541E-01, max alpha:  4.485E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2182,7 +2183,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31830797467E+02, Epot: -1.39907280981E+02, Enl:  9.12484778375E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.101E+00, 
- iter:  4, fnrm:  9.10E-02, Omega: -1.63032980192235982E+02, D: -2.402E-01, 
+ iter:  4, fnrm:  9.10E-02, Omega: -1.63032980192235755E+02, D: -2.402E-01, 
  Optimization: {algorithm: SD, mean alpha:  2.795E-01, max alpha:  4.934E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2193,12 +2194,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31625251641E+02, Epot: -1.39809945859E+02, Enl:  9.13546928540E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.043E+00, 
- iter:  5, fnrm:  7.40E-02, Omega: -1.63199240519464752E+02, D: -1.663E-01, 
+ iter:  5, fnrm:  7.40E-02, Omega: -1.63199240519464524E+02, D: -1.663E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun008  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.31625251641E+02, Epot: -1.39809945859E+02, Enl:  9.13546928540E+00}, 
- iter:  5, fnrm:  7.40E-02, Omega: -1.63199240519464752E+02, D: -1.663E-01}
+ iter:  5, fnrm:  7.40E-02, Omega: -1.63199240519464524E+02, D: -1.663E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel008
@@ -2316,19 +2317,19 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.892843E-04, D Tr:  2.365380E-03, interpol possible:  Yes}, 
  Search new eF: {det: -1.354E-19, limit:  1.000E-12, method: linear interpolation}, 
- iter:  25, Tr(K):  7.200042793E+01, charge diff:  4.279266306E-04}
+ iter:  25, Tr(K):  7.200042793E+01, charge diff:  4.279266305E-04}
          -  { #----------------------------------------------------------------- it FOE: 26
  bisec/eval bounds:  [ -0.04, -0.04, -2.00,  2.20 ], pol deg:  420, eF: -3.819277756E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -3.424388E-05, D Tr: -4.248449E-04, interpol possible:  Yes}, 
  Search new eF: {det:  3.265E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  26, Tr(K):  7.200000308E+01, charge diff:  3.081757441E-06}
+ iter:  26, Tr(K):  7.200000308E+01, charge diff:  3.081757455E-06}
          -  { #----------------------------------------------------------------- it FOE: 27
  bisec/eval bounds:  [ -0.04, -0.04, -2.00,  2.20 ], pol deg:  420, eF: -3.819302596E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.483997E-07, D Tr: -3.086712E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.333E-27, limit:  1.000E-12, method: linear interpolation}, 
- iter:  27, Tr(K):  7.200000000E+01, charge diff: -4.954387123E-09}
+ iter:  27, Tr(K):  7.200000000E+01, charge diff: -4.954401334E-09}
           #---------------------------------------------- FOE calculation of kernel finished
          Coefficients available        :  No
        Hamiltonian update: {
@@ -2337,7 +2338,7 @@
     Total charge:  7.199992591960E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.39E-07, energy: -1.35481455741052173E+02, D: -2.253E-01}]
+ iter:  1, delta:  3.39E-07, energy: -1.35481455741051946E+02, D: -2.253E-01}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  4.11E-02
@@ -2401,13 +2402,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.258192E-04, D Tr: -1.566957E-03, interpol possible:  Yes}, 
  Search new eF: {det: -7.971E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  7.199996438E+01, charge diff: -3.562270072E-05}
+ iter:  10, Tr(K):  7.199996438E+01, charge diff: -3.562270071E-05}
          -  { #----------------------------------------------------------------- it FOE: 11
  bisec/eval bounds:  [ -0.04, -0.04, -2.00,  2.20 ], pol deg:  420, eF: -4.135100649E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  2.860333E-06, D Tr:  3.583064E-05, interpol possible:  Yes}, 
  Search new eF: {det:  2.073E-25, limit:  1.000E-12, method: linear interpolation}, 
- iter:  11, Tr(K):  7.200000021E+01, charge diff:  2.079356705E-07}
+ iter:  11, Tr(K):  7.200000021E+01, charge diff:  2.079356420E-07}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  3.172E-01
          Coefficients available        :  No
@@ -2437,7 +2438,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31625251641E+02, Epot: -1.39731509403E+02, Enl:  9.13546928540E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  7.42E-02, Omega: -1.63185930376791021E+02, D: -1.530E-01, 
+ iter:  1, fnrm:  7.42E-02, Omega: -1.63185930376791134E+02, D: -1.530E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.075E-01, max alpha:  3.075E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2448,7 +2449,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31533029294E+02, Epot: -1.39725428203E+02, Enl:  9.16202317805E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.477E+00, 
- iter:  2, fnrm:  6.34E-02, Omega: -1.63297247837553414E+02, D: -1.113E-01, 
+ iter:  2, fnrm:  6.34E-02, Omega: -1.63297247837553527E+02, D: -1.113E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.382E-01, max alpha:  3.382E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2459,7 +2460,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31469215230E+02, Epot: -1.39715616600E+02, Enl:  9.17178587005E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.181E+00, 
- iter:  3, fnrm:  5.59E-02, Omega: -1.63376466756283435E+02, D: -7.922E-02, 
+ iter:  3, fnrm:  5.59E-02, Omega: -1.63376466756283548E+02, D: -7.922E-02, 
  Optimization: {algorithm: SD, mean alpha:  3.720E-01, max alpha:  3.720E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2481,12 +2482,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31383345814E+02, Epot: -1.39695547981E+02, Enl:  9.18010463669E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  1.549E+00, 
- iter:  5, fnrm:  4.46E-02, Omega: -1.63475093675570747E+02, D: -4.101E-02, 
+ iter:  5, fnrm:  4.46E-02, Omega: -1.63475093675570861E+02, D: -4.101E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun009  { #-------------------------------------------------------- iter: 5
  target function: HYBRID, 
  Energies: {Ekin:  1.31383345814E+02, Epot: -1.39695547981E+02, Enl:  9.18010463669E+00}, 
- iter:  5, fnrm:  4.46E-02, Omega: -1.63475093675570747E+02, D: -4.101E-02}
+ iter:  5, fnrm:  4.46E-02, Omega: -1.63475093675570861E+02, D: -4.101E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel009
@@ -2551,13 +2552,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  3.071804E-05, D Tr:  3.602543E-04, interpol possible:  Yes}, 
  Search new eF: {det: -1.611E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  10, Tr(K):  7.199999547E+01, charge diff: -4.530155124E-06}
+ iter:  10, Tr(K):  7.199999547E+01, charge diff: -4.530155167E-06}
          -  { #----------------------------------------------------------------- it FOE: 11
  bisec/eval bounds:  [ -0.04, -0.04, -2.00,  2.20 ], pol deg:  420, eF: -4.150085547E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
- interpol check: {D eF:  3.862757E-07, D Tr:  4.523412E-06, interpol possible:  Yes}, 
+ interpol check: {D eF:  3.862758E-07, D Tr:  4.523412E-06, interpol possible:  Yes}, 
  Search new eF: {det:  5.800E-27, limit:  1.000E-12, method: linear interpolation}, 
- iter:  11, Tr(K):  7.199999999E+01, charge diff: -6.743562153E-09}
+ iter:  11, Tr(K):  7.199999999E+01, charge diff: -6.743533731E-09}
           #---------------------------------------------- FOE calculation of kernel finished
          Coefficients available        :  No
        Hamiltonian update: {
@@ -2624,7 +2625,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  4.033200E-07, D Tr:  4.658424E-06, interpol possible:  Yes}, 
  Search new eF: {det: -1.552E-26, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.200000000E+01, charge diff:  3.391065206E-09}
+ iter:  9, Tr(K):  7.200000000E+01, charge diff:  3.391079417E-09}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.997E-01
          Coefficients available        :  No
@@ -2665,7 +2666,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31351165438E+02, Epot: -1.39602663887E+02, Enl:  9.18475478067E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  1.093E+00, 
- iter:  2, fnrm:  4.04E-02, Omega: -1.63420008414995095E+02, D: -2.647E-02, 
+ iter:  2, fnrm:  4.04E-02, Omega: -1.63420008414994982E+02, D: -2.647E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.952E-01, max alpha:  4.952E-01, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2676,7 +2677,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31323803787E+02, Epot: -1.39593488058E+02, Enl:  9.19175998387E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  6.788E-01, 
- iter:  3, fnrm:  3.63E-02, Omega: -1.63434239301475600E+02, D: -1.423E-02, 
+ iter:  3, fnrm:  3.63E-02, Omega: -1.63434239301475486E+02, D: -1.423E-02, 
  Optimization: {algorithm: SD, mean alpha:  5.447E-01, max alpha:  5.447E-01, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2687,7 +2688,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39585390298E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, kappa:  2.567E-01, 
- iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249229E+02, D: -4.734E-03, 
+ iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249115E+02, D: -4.734E-03, 
  Optimization: {algorithm: SD, mean alpha:  5.992E-01, max alpha:  5.992E-01, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2710,7 +2711,7 @@
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39585390298E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249229E+02, D: -1.634E+02, 
+ iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249115E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  3.955E-01, max alpha:  3.955E-01, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2733,7 +2734,7 @@
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39585390298E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249229E+02, D: -1.634E+02, 
+ iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249115E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.610E-01, max alpha:  2.610E-01, 
     consecutive successes:  6}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2756,7 +2757,7 @@
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39585390298E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249229E+02, D: -1.634E+02, 
+ iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249115E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.723E-01, max alpha:  1.723E-01, 
     consecutive successes:  7}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2770,9 +2771,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.625E-04
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  5, fnrm:  3.18E-02, Omega: -1.63438311090928096E+02, D:  6.625E-04, 
+ iter:  5, fnrm:  3.18E-02, Omega: -1.63438311090927982E+02, D:  6.625E-04, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  3, fnrm:  3.18E-02, Omega: -1.63438311090928096E+02, D:  6.625E-04, 
+ iter:  3, fnrm:  3.18E-02, Omega: -1.63438311090927982E+02, D:  6.625E-04, 
  Optimization: {algorithm: SD, mean alpha:  1.034E-01, max alpha:  1.034E-01, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -2785,7 +2786,7 @@
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39585390298E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249229E+02, D: -6.625E-04, 
+ iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249115E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.723E-01, max alpha:  1.723E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2799,9 +2800,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.625E-04
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  5, fnrm:  3.18E-02, Omega: -1.63438311090928096E+02, D:  6.625E-04, 
+ iter:  5, fnrm:  3.18E-02, Omega: -1.63438311090927982E+02, D:  6.625E-04, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  3, fnrm:  3.18E-02, Omega: -1.63438311090928096E+02, D:  6.625E-04, 
+ iter:  3, fnrm:  3.18E-02, Omega: -1.63438311090927982E+02, D:  6.625E-04, 
  Optimization: {algorithm: SD, mean alpha:  1.034E-01, max alpha:  1.034E-01, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -2814,7 +2815,7 @@
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39585390298E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249229E+02, D: -6.625E-04, 
+ iter:  4, fnrm:  3.28E-02, Omega: -1.63438973624249115E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.723E-01, max alpha:  1.723E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -2828,13 +2829,13 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.625E-04
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  5, fnrm:  3.18E-02, Omega: -1.63438311090928096E+02, D:  6.625E-04, 
- iter:  3, fnrm:  3.18E-02, Omega: -1.63438311090928096E+02, D:  6.625E-04, 
+ iter:  5, fnrm:  3.18E-02, Omega: -1.63438311090927982E+02, D:  6.625E-04, 
+ iter:  3, fnrm:  3.18E-02, Omega: -1.63438311090927982E+02, D:  6.625E-04, 
  exit criterion: total number of iterations}
    -  &final_supfun010  { #-------------------------------------------------------- iter: 3
  target function: HYBRID, 
  Energies: {Ekin:  1.31296634369E+02, Epot: -1.39583484471E+02, Enl:  9.20260572585E+00}, 
- iter:  3, fnrm:  3.18E-02, Omega: -1.63438311090928096E+02, D:  6.625E-04}
+ iter:  3, fnrm:  3.18E-02, Omega: -1.63438311090927982E+02, D:  6.625E-04}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel010
@@ -2943,7 +2944,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  3.588930E-06, D Tr:  1.011074E-05, interpol possible:  Yes}, 
  Search new eF: {det:  1.357E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  22, Tr(K):  7.199999995E+01, charge diff: -4.734908998E-08}
+ iter:  22, Tr(K):  7.199999995E+01, charge diff: -4.734906156E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -2999,19 +3000,19 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  2.497548E-03, D Tr:  6.146953E-03, interpol possible:  Yes}, 
  Search new eF: {det:  4.247E-14, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.199998446E+01, charge diff: -1.553605590E-05}
+ iter:  7, Tr(K):  7.199998446E+01, charge diff: -1.553605591E-05}
          -  { #------------------------------------------------------------------ it FOE: 8
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.868232336E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  6.312402E-06, D Tr:  1.777143E-05, interpol possible:  Yes}, 
  Search new eF: {det: -2.621E-18, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.200000224E+01, charge diff:  2.235377465E-06}
+ iter:  8, Tr(K):  7.200000224E+01, charge diff:  2.235377480E-06}
          -  { #------------------------------------------------------------------ it FOE: 9
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.868224396E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -7.940047E-07, D Tr: -2.236044E-06, interpol possible:  Yes}, 
- Search new eF: {det: -4.329E-25, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.200000000E+01, charge diff: -6.663469776E-10}
+ Search new eF: {det: -4.328E-25, limit:  1.000E-12, method: linear interpolation}, 
+ iter:  9, Tr(K):  7.200000000E+01, charge diff: -6.663327667E-10}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -3021,15 +3022,15 @@
     Total charge:  7.199992573884E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  8.52E-08, energy: -1.35645923154255115E+02, D:  3.544E-04}]
+ iter:  2, delta:  8.52E-08, energy: -1.35645923154255229E+02, D:  3.544E-04}]
    -  &final_kernel010  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  8.52E-08, energy: -1.35645923154255115E+02, D:  3.544E-04}]}
+ iter:  3, delta:  8.52E-08, energy: -1.35645923154255229E+02, D:  3.544E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc010
    -  {iter:  10, target function: HYBRID, mean conf prefac:  1.25E-06,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  10, delta out:  5.760E-08, energy: -1.35645923154255115E+02, D: -2.181E-02}
+ iter low:  10, delta out:  5.760E-08, energy: -1.35645923154255229E+02, D: -2.181E-02}
    multiplicator for the confinement   :  0.50000000000000000
     #========================================================= support function optimization
  - support function optimization: &it_supfun011
@@ -3040,7 +3041,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39536219174E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047266E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047152E+02, D: -1.634E+02, 
  Optimization: {algorithm: SD, mean alpha:  1.034E-01, max alpha:  1.034E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3054,7 +3055,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 3.787E-04
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.31E-02, Omega: -1.63362533958198355E+02, D:  3.787E-04}
+ iter:  2, fnrm:  3.31E-02, Omega: -1.63362533958198242E+02, D:  3.787E-04}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3062,7 +3063,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39536219174E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047266E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047152E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  6.201E-02, max alpha:  6.201E-02, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3076,7 +3077,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 2.192E-04
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.34E-02, Omega: -1.63362693425266912E+02, D:  2.192E-04}
+ iter:  2, fnrm:  3.34E-02, Omega: -1.63362693425266798E+02, D:  2.192E-04}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3084,7 +3085,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39536219174E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047266E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047152E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  3.721E-02, max alpha:  3.721E-02, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3098,7 +3099,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 1.287E-04
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.35E-02, Omega: -1.63362783996856592E+02, D:  1.287E-04}
+ iter:  2, fnrm:  3.35E-02, Omega: -1.63362783996856365E+02, D:  1.287E-04}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3106,7 +3107,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39536219174E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047266E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047152E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.232E-02, max alpha:  2.232E-02, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3120,7 +3121,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 7.617E-05
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.36E-02, Omega: -1.63362836501467996E+02, D:  7.617E-05}
+ iter:  2, fnrm:  3.36E-02, Omega: -1.63362836501467768E+02, D:  7.617E-05}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3128,7 +3129,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39536219174E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047266E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047152E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.339E-02, max alpha:  1.339E-02, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3142,9 +3143,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.533E-05
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.37E-02, Omega: -1.63362867342598406E+02, D:  4.533E-05, 
+ iter:  2, fnrm:  3.37E-02, Omega: -1.63362867342598179E+02, D:  4.533E-05, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.37E-02, Omega: -1.63362867342598406E+02, D:  4.533E-05, 
+ iter:  0, fnrm:  3.37E-02, Omega: -1.63362867342598179E+02, D:  4.533E-05, 
  Optimization: {algorithm: SD, mean alpha:  8.037E-03, max alpha:  8.037E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -3156,7 +3157,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39536219174E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047266E+02, D: -4.533E-05, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047152E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.339E-02, max alpha:  1.339E-02, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3170,9 +3171,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.533E-05
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.37E-02, Omega: -1.63362867342598406E+02, D:  4.533E-05, 
+ iter:  2, fnrm:  3.37E-02, Omega: -1.63362867342598179E+02, D:  4.533E-05, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.37E-02, Omega: -1.63362867342598406E+02, D:  4.533E-05, 
+ iter:  0, fnrm:  3.37E-02, Omega: -1.63362867342598179E+02, D:  4.533E-05, 
  Optimization: {algorithm: SD, mean alpha:  8.037E-03, max alpha:  8.037E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -3184,7 +3185,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39536219174E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047266E+02, D: -4.533E-05, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047152E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.339E-02, max alpha:  1.339E-02, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3198,9 +3199,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.533E-05
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.37E-02, Omega: -1.63362867342598406E+02, D:  4.533E-05, 
+ iter:  2, fnrm:  3.37E-02, Omega: -1.63362867342598179E+02, D:  4.533E-05, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.37E-02, Omega: -1.63362867342598406E+02, D:  4.533E-05, 
+ iter:  0, fnrm:  3.37E-02, Omega: -1.63362867342598179E+02, D:  4.533E-05, 
  Optimization: {algorithm: SD, mean alpha:  8.037E-03, max alpha:  8.037E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -3212,12 +3213,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39536219174E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047266E+02, D: -4.533E-05, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047152E+02, D:  0.000E+00, 
  exit criterion: total number of iterations}
    -  &final_supfun011  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39536219174E+02, Enl:  9.19999704777E+00}, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047266E+02, D: -4.533E-05}
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63362912674047152E+02, D:  0.000E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel011
@@ -3266,13 +3267,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.127148E-04, D Tr: -3.191483E-04, interpol possible:  Yes}, 
  Search new eF: {det: -6.679E-16, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.200000290E+01, charge diff:  2.899619147E-06}
+ iter:  7, Tr(K):  7.200000290E+01, charge diff:  2.899618892E-06}
          -  { #------------------------------------------------------------------ it FOE: 8
  bisec/eval bounds:  [  0.28,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.880100261E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.024070E-06, D Tr: -2.881866E-06, interpol possible:  Yes}, 
  Search new eF: {det:  3.534E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.200000002E+01, charge diff:  1.775330816E-08}
+ iter:  8, Tr(K):  7.200000002E+01, charge diff:  1.775326552E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -3282,7 +3283,7 @@
     Total charge:  7.199992575820E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  4.32E-08, energy: -1.35645877949511600E+02, D:  4.520E-05}]
+ iter:  1, delta:  4.32E-08, energy: -1.35645877949511487E+02, D:  4.520E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  6.74E-02
@@ -3334,13 +3335,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  2.462643E-04, D Tr:  6.826812E-04, interpol possible:  Yes}, 
  Search new eF: {det: -5.491E-17, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.199996626E+01, charge diff: -3.373514174E-05}
+ iter:  8, Tr(K):  7.199996626E+01, charge diff: -3.373514173E-05}
          -  { #------------------------------------------------------------------ it FOE: 9
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.884315101E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.216931E-05, D Tr:  3.420893E-05, interpol possible:  Yes}, 
  Search new eF: {det: -6.800E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.200000047E+01, charge diff:  4.737881341E-07}
+ iter:  9, Tr(K):  7.200000047E+01, charge diff:  4.737880914E-07}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -3369,7 +3370,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535446180E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578634E+02, D:  2.342E-03, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578975E+02, D:  2.342E-03, 
  Optimization: {algorithm: SD, mean alpha:  1.339E-02, max alpha:  1.339E-02, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3383,7 +3384,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 5.125E-05
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.37E-02, Omega: -1.63360474364666970E+02, D:  5.125E-05}
+ iter:  2, fnrm:  3.37E-02, Omega: -1.63360474364667311E+02, D:  5.125E-05}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3391,7 +3392,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535446180E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578634E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578975E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  8.037E-03, max alpha:  8.037E-03, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3405,7 +3406,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 3.061E-05
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.37E-02, Omega: -1.63360494997993328E+02, D:  3.061E-05}
+ iter:  2, fnrm:  3.37E-02, Omega: -1.63360494997993555E+02, D:  3.061E-05}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3413,7 +3414,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535446180E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578634E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578975E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  4.822E-03, max alpha:  4.822E-03, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3427,7 +3428,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 1.832E-05
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.37E-02, Omega: -1.63360507291611498E+02, D:  1.832E-05}
+ iter:  2, fnrm:  3.37E-02, Omega: -1.63360507291611839E+02, D:  1.832E-05}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3435,7 +3436,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535446180E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578634E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578975E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.893E-03, max alpha:  2.893E-03, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3449,7 +3450,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 1.097E-05
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.37E-02, Omega: -1.63360514636688094E+02, D:  1.097E-05}
+ iter:  2, fnrm:  3.37E-02, Omega: -1.63360514636688436E+02, D:  1.097E-05}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3457,7 +3458,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535446180E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578634E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578975E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3471,9 +3472,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.578E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360519032540537E+02, D:  6.578E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360519032540878E+02, D:  6.578E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360519032540537E+02, D:  6.578E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360519032540878E+02, D:  6.578E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -3485,7 +3486,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535446180E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578634E+02, D: -6.578E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578975E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3499,9 +3500,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.578E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360519032540537E+02, D:  6.578E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360519032540878E+02, D:  6.578E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360519032540537E+02, D:  6.578E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360519032540878E+02, D:  6.578E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -3513,7 +3514,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535446180E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578634E+02, D: -6.578E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578975E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3527,9 +3528,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.578E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360519032540537E+02, D:  6.578E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360519032540878E+02, D:  6.578E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360519032540537E+02, D:  6.578E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360519032540878E+02, D:  6.578E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -3541,12 +3542,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535446180E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578634E+02, D: -6.578E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578975E+02, D:  0.000E+00, 
  exit criterion: total number of iterations}
    -  &final_supfun012  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535446180E+02, Enl:  9.19999704777E+00}, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578634E+02, D: -6.578E-06}
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360525610578975E+02, D:  0.000E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel012
@@ -3601,13 +3602,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.691927E-04, D Tr: -4.808275E-04, interpol possible:  Yes}, 
  Search new eF: {det:  3.236E-17, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.200003330E+01, charge diff:  3.330443144E-05}
+ iter:  8, Tr(K):  7.200003330E+01, charge diff:  3.330443145E-05}
          -  { #------------------------------------------------------------------ it FOE: 9
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.885993577E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.171910E-05, D Tr: -3.298079E-05, interpol possible:  Yes}, 
  Search new eF: {det:  6.016E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  9, Tr(K):  7.200000032E+01, charge diff:  3.236444286E-07}
+ iter:  9, Tr(K):  7.200000032E+01, charge diff:  3.236443575E-07}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -3617,7 +3618,7 @@
     Total charge:  7.199992606461E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.10E-08, energy: -1.35645864098897846E+02, D:  2.882E-06}]
+ iter:  1, delta:  1.10E-08, energy: -1.35645864098897619E+02, D:  2.882E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  6.74E-02
@@ -3663,13 +3664,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  3.888565E-04, D Tr:  1.071016E-03, interpol possible:  Yes}, 
  Search new eF: {det: -8.056E-19, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.200000307E+01, charge diff:  3.065948420E-06}
+ iter:  7, Tr(K):  7.200000307E+01, charge diff:  3.065948448E-06}
          -  { #------------------------------------------------------------------ it FOE: 8
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.886710677E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.113162E-06, D Tr: -3.130735E-06, interpol possible:  Yes}, 
  Search new eF: {det: -8.773E-22, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.199999994E+01, charge diff: -6.478616399E-08}
+ iter:  8, Tr(K):  7.199999994E+01, charge diff: -6.478617820E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -3698,7 +3699,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535722469E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994140E+02, D: -6.672E-05, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994595E+02, D: -6.672E-05, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3712,7 +3713,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.742E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360579007186971E+02, D:  6.742E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360579007187539E+02, D:  6.742E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3720,7 +3721,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535722469E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994140E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994595E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3734,7 +3735,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.043E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360581706180255E+02, D:  4.043E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360581706180824E+02, D:  4.043E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3742,7 +3743,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535722469E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994140E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994595E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3756,7 +3757,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.043E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360581706180255E+02, D:  4.043E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360581706180824E+02, D:  4.043E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3764,7 +3765,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535722469E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994140E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994595E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3778,7 +3779,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.043E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360581706180255E+02, D:  4.043E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360581706180824E+02, D:  4.043E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -3786,7 +3787,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535722469E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994140E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994595E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3800,9 +3801,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.043E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360581706180255E+02, D:  4.043E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360581706180824E+02, D:  4.043E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360581706180255E+02, D:  4.043E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360581706180824E+02, D:  4.043E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -3814,7 +3815,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535722469E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994140E+02, D: -4.043E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994595E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3828,9 +3829,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.742E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360579007186971E+02, D:  6.742E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360579007187539E+02, D:  6.742E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360579007186971E+02, D:  6.742E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360579007187539E+02, D:  6.742E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -3842,7 +3843,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535722469E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994140E+02, D: -6.742E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994595E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -3856,9 +3857,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.742E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360579007186971E+02, D:  6.742E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360579007187539E+02, D:  6.742E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360579007186971E+02, D:  6.742E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360579007187539E+02, D:  6.742E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -3870,12 +3871,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535722469E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994140E+02, D: -6.742E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994595E+02, D:  0.000E+00, 
  exit criterion: total number of iterations}
    -  &final_supfun013  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535722469E+02, Enl:  9.19999704777E+00}, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994140E+02, D: -6.742E-06}
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360585748994595E+02, D:  0.000E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel013
@@ -3924,7 +3925,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.153572E-04, D Tr:  3.226657E-04, interpol possible:  Yes}, 
  Search new eF: {det: -3.944E-19, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.200002145E+01, charge diff:  2.144608467E-05}
+ iter:  7, Tr(K):  7.200002145E+01, charge diff:  2.144608469E-05}
          -  { #------------------------------------------------------------------ it FOE: 8
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.887024145E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
@@ -3940,7 +3941,7 @@
     Total charge:  7.199992561600E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.76E-09, energy: -1.35645862894805873E+02, D:  3.437E-07}]
+ iter:  1, delta:  2.76E-09, energy: -1.35645862894805759E+02, D:  3.437E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  6.74E-02
@@ -3992,7 +3993,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  4.077840E-06, D Tr:  1.146525E-05, interpol possible:  Yes}, 
  Search new eF: {det:  2.053E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  8, Tr(K):  7.199999994E+01, charge diff: -5.990010266E-08}
+ iter:  8, Tr(K):  7.199999994E+01, charge diff: -5.990011687E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -4002,15 +4003,15 @@
     Total charge:  7.199992568106E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.38E-09, energy: -1.35645862723769142E+02, D:  1.710E-07}]
+ iter:  2, delta:  1.38E-09, energy: -1.35645862723769028E+02, D:  1.710E-07}]
    -  &final_kernel013  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.38E-09, energy: -1.35645862723769142E+02, D:  1.710E-07}]}
+ iter:  3, delta:  1.38E-09, energy: -1.35645862723769028E+02, D:  1.710E-07}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc013
    -  {iter:  13, target function: HYBRID, mean conf prefac:  1.56E-07,  #WARNING: support function optimization not converged
  kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  13, delta out:  1.036E-09, energy: -1.35645862723769142E+02, D:  5.147E-07}
+ iter low:  13, delta out:  1.036E-09, energy: -1.35645862723769028E+02, D:  5.147E-07}
    multiplicator for the confinement   :  0.50000000000000000
     #========================================================= support function optimization
  - support function optimization: &it_supfun014
@@ -4021,7 +4022,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535835527E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628465E+02, D: -9.458E-05, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628692E+02, D: -9.458E-05, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4035,7 +4036,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.780E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360666802700052E+02, D:  6.780E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360666802700280E+02, D:  6.780E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4043,7 +4044,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535835527E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628465E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628692E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4057,7 +4058,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.066E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360669516942721E+02, D:  4.066E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360669516942949E+02, D:  4.066E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4065,7 +4066,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535835527E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628465E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628692E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4079,7 +4080,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.066E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360669516942721E+02, D:  4.066E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360669516942949E+02, D:  4.066E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4087,7 +4088,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535835527E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628465E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628692E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4101,7 +4102,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.066E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360669516942721E+02, D:  4.066E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360669516942949E+02, D:  4.066E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4109,7 +4110,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535835527E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628465E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628692E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4123,9 +4124,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.066E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360669516942721E+02, D:  4.066E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360669516942949E+02, D:  4.066E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360669516942721E+02, D:  4.066E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360669516942949E+02, D:  4.066E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4137,7 +4138,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535835527E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628465E+02, D: -4.066E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628692E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4151,9 +4152,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.780E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360666802700052E+02, D:  6.780E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360666802700280E+02, D:  6.780E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360666802700052E+02, D:  6.780E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360666802700280E+02, D:  6.780E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4165,7 +4166,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535835527E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628465E+02, D: -6.780E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628692E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4179,9 +4180,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.780E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360666802700052E+02, D:  6.780E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360666802700280E+02, D:  6.780E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360666802700052E+02, D:  6.780E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360666802700280E+02, D:  6.780E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4193,12 +4194,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535835527E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628465E+02, D: -6.780E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628692E+02, D:  0.000E+00, 
  exit criterion: total number of iterations}
    -  &final_supfun014  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535835527E+02, Enl:  9.19999704777E+00}, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628465E+02, D: -6.780E-06}
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360673582628692E+02, D:  0.000E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel014
@@ -4263,15 +4264,15 @@
     Total charge:  7.199992557411E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  6.92E-10, energy: -1.35645862695669507E+02, D:  2.810E-08}]
+ iter:  1, delta:  6.92E-10, energy: -1.35645862695669393E+02, D:  2.810E-08}]
    -  &final_kernel014  { #-------------------------------------------------------- iter: 1
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  6.92E-10, energy: -1.35645862695669507E+02, D:  2.810E-08}]}
+ iter:  1, delta:  6.92E-10, energy: -1.35645862695669393E+02, D:  2.810E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc014
    -  {iter:  14, target function: HYBRID, mean conf prefac:  7.81E-08,  #WARNING: support function optimization not converged
  kernel optimization: FOE, iterations to converge kernel optimization:  1, 
- iter low:  14, delta out:  1.729E-10, energy: -1.35645862695669507E+02, D:  2.810E-08}
+ iter low:  14, delta out:  1.729E-10, energy: -1.35645862695669393E+02, D:  2.810E-08}
    multiplicator for the confinement   :  0.50000000000000000
     #========================================================= support function optimization
  - support function optimization: &it_supfun015
@@ -4282,7 +4283,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535864295E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526650001E+02, D: -4.172E-05, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526649887E+02, D: -4.172E-05, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4296,7 +4297,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.784E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360701742831793E+02, D:  6.784E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360701742831679E+02, D:  6.784E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4304,7 +4305,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535864295E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526650001E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526649887E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4318,7 +4319,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.068E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360704458630494E+02, D:  4.068E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360704458630266E+02, D:  4.068E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4326,7 +4327,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535864295E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526650001E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526649887E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4340,7 +4341,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.068E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360704458630494E+02, D:  4.068E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360704458630266E+02, D:  4.068E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4348,7 +4349,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535864295E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526650001E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526649887E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4362,7 +4363,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.068E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360704458630494E+02, D:  4.068E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360704458630266E+02, D:  4.068E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4370,7 +4371,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535864295E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526650001E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526649887E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4384,9 +4385,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.068E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360704458630494E+02, D:  4.068E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360704458630266E+02, D:  4.068E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360704458630494E+02, D:  4.068E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360704458630266E+02, D:  4.068E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4398,7 +4399,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535864295E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526650001E+02, D: -4.068E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526649887E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4412,9 +4413,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.784E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360701742831793E+02, D:  6.784E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360701742831679E+02, D:  6.784E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360701742831793E+02, D:  6.784E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360701742831679E+02, D:  6.784E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4426,7 +4427,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535864295E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526650001E+02, D: -6.784E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526649887E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4440,9 +4441,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.784E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360701742831793E+02, D:  6.784E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360701742831679E+02, D:  6.784E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360701742831793E+02, D:  6.784E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360701742831679E+02, D:  6.784E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4454,12 +4455,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535864295E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526650001E+02, D: -6.784E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526649887E+02, D:  0.000E+00, 
  exit criterion: total number of iterations}
    -  &final_supfun015  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535864295E+02, Enl:  9.19999704777E+00}, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526650001E+02, D: -6.784E-06}
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360708526649887E+02, D:  0.000E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel015
@@ -4502,13 +4503,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.680781E-04, D Tr:  4.677675E-04, interpol possible:  Yes}, 
  Search new eF: {det:  3.039E-18, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  7.199996465E+01, charge diff: -3.534530843E-05}
+ iter:  6, Tr(K):  7.199996465E+01, charge diff: -3.534530845E-05}
          -  { #------------------------------------------------------------------ it FOE: 7
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.887257403E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  1.270027E-05, D Tr:  3.569185E-05, interpol possible:  Yes}, 
  Search new eF: {det: -1.036E-21, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.200000035E+01, charge diff:  3.465376608E-07}
+ iter:  7, Tr(K):  7.200000035E+01, charge diff:  3.465376324E-07}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -4518,15 +4519,15 @@
     Total charge:  7.199992608750E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.46E-10, energy: -1.35645862493836262E+02, D:  2.018E-07}]
+ iter:  1, delta:  3.46E-10, energy: -1.35645862493835921E+02, D:  2.018E-07}]
    -  &final_kernel015  { #-------------------------------------------------------- iter: 1
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.46E-10, energy: -1.35645862493836262E+02, D:  2.018E-07}]}
+ iter:  1, delta:  3.46E-10, energy: -1.35645862493835921E+02, D:  2.018E-07}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc015
    -  {iter:  15, target function: HYBRID, mean conf prefac:  3.91E-08,  #WARNING: support function optimization not converged
  kernel optimization: FOE, iterations to converge kernel optimization:  1, 
- iter low:  15, delta out:  8.647E-11, energy: -1.35645862493836262E+02, D:  2.018E-07}
+ iter low:  15, delta out:  8.647E-11, energy: -1.35645862493835921E+02, D:  2.018E-07}
    multiplicator for the confinement   :  0.50000000000000000
     #========================================================= support function optimization
  - support function optimization: &it_supfun016
@@ -4537,7 +4538,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535875624E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179617937E+02, D: -2.044E-05, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179618051E+02, D: -2.044E-05, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4551,7 +4552,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.786E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360715393968803E+02, D:  6.786E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360715393969031E+02, D:  6.786E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4559,7 +4560,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535875624E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179617937E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179618051E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4573,7 +4574,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.069E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360718110499874E+02, D:  4.069E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360718110500102E+02, D:  4.069E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4581,7 +4582,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535875624E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179617937E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179618051E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4595,7 +4596,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.069E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360718110499874E+02, D:  4.069E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360718110500102E+02, D:  4.069E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4603,7 +4604,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535875624E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179617937E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179618051E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4617,7 +4618,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.069E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360718110499874E+02, D:  4.069E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360718110500102E+02, D:  4.069E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4625,7 +4626,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535875624E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179617937E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179618051E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4639,9 +4640,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.069E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360718110499874E+02, D:  4.069E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360718110500102E+02, D:  4.069E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360718110499874E+02, D:  4.069E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360718110500102E+02, D:  4.069E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4653,7 +4654,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535875624E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179617937E+02, D: -4.069E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179618051E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4667,9 +4668,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.786E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360715393968803E+02, D:  6.786E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360715393969031E+02, D:  6.786E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360715393968803E+02, D:  6.786E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360715393969031E+02, D:  6.786E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4681,7 +4682,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535875624E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179617937E+02, D: -6.786E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179618051E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4695,9 +4696,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.786E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360715393968803E+02, D:  6.786E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360715393969031E+02, D:  6.786E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360715393968803E+02, D:  6.786E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360715393969031E+02, D:  6.786E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4709,12 +4710,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535875624E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179617937E+02, D: -6.786E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179618051E+02, D:  0.000E+00, 
  exit criterion: total number of iterations}
    -  &final_supfun016  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535875624E+02, Enl:  9.19999704777E+00}, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179617937E+02, D: -6.786E-06}
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360722179618051E+02, D:  0.000E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel016
@@ -4745,7 +4746,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  2.426815E-03, D Tr:  6.846146E-03, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method}, 
- iter:  4, Tr(K):  7.200366865E+01, charge diff:  3.668653709E-03}
+ iter:  4, Tr(K):  7.200366865E+01, charge diff:  3.668653710E-03}
          -  { #------------------------------------------------------------------ it FOE: 5
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.886912687E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
@@ -4763,7 +4764,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  2.292786E-06, D Tr:  6.447003E-06, interpol possible:  Yes}, 
  Search new eF: {det: -5.158E-24, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.200000001E+01, charge diff:  1.243648740E-08}
+ iter:  7, Tr(K):  7.200000001E+01, charge diff:  1.243647318E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -4773,15 +4774,15 @@
     Total charge:  7.199992575339E+01, 
  Poisson Solver: {BC: Free, Box:  [  125,  113,  109 ], MPI tasks:  3}}
        summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.73E-10, energy: -1.35645862592322032E+02, D: -9.849E-08}]
+ iter:  1, delta:  1.73E-10, energy: -1.35645862592321919E+02, D: -9.849E-08}]
    -  &final_kernel016  { #-------------------------------------------------------- iter: 1
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.73E-10, energy: -1.35645862592322032E+02, D: -9.849E-08}]}
+ iter:  1, delta:  1.73E-10, energy: -1.35645862592321919E+02, D: -9.849E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc016
    -  {iter:  16, target function: HYBRID, mean conf prefac:  1.95E-08,  #WARNING: support function optimization not converged
  kernel optimization: FOE, iterations to converge kernel optimization:  1, 
- iter low:  16, delta out:  4.323E-11, energy: -1.35645862592322032E+02, D: -9.849E-08}
+ iter low:  16, delta out:  4.323E-11, energy: -1.35645862592321919E+02, D: -9.849E-08}
    multiplicator for the confinement   :  0.50000000000000000
     #========================================================= support function optimization
  - support function optimization: &it_supfun017
@@ -4792,7 +4793,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535884279E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673235E+02, D: -1.761E-05, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673576E+02, D: -1.761E-05, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4806,7 +4807,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.787E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360726213932026E+02, D:  6.787E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360726213932480E+02, D:  6.787E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4814,7 +4815,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535884279E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673235E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673576E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4828,7 +4829,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.070E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360728930899882E+02, D:  4.070E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360728930900336E+02, D:  4.070E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4836,7 +4837,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535884279E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673235E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673576E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4850,7 +4851,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.070E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360728930899882E+02, D:  4.070E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360728930900336E+02, D:  4.070E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4858,7 +4859,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535884279E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673235E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673576E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4872,7 +4873,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.070E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360728930899882E+02, D:  4.070E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360728930900336E+02, D:  4.070E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -4880,7 +4881,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535884279E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673235E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673576E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4894,9 +4895,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.070E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360728930899882E+02, D:  4.070E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360728930900336E+02, D:  4.070E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360728930899882E+02, D:  4.070E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360728930900336E+02, D:  4.070E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4908,7 +4909,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535884279E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673235E+02, D: -4.070E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673576E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4922,9 +4923,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.787E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360726213932026E+02, D:  6.787E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360726213932480E+02, D:  6.787E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360726213932026E+02, D:  6.787E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360726213932480E+02, D:  6.787E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4936,7 +4937,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535884279E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673235E+02, D: -6.787E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673576E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -4950,9 +4951,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.787E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360726213932026E+02, D:  6.787E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360726213932480E+02, D:  6.787E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360726213932026E+02, D:  6.787E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360726213932480E+02, D:  6.787E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -4964,12 +4965,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535884279E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673235E+02, D: -6.787E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673576E+02, D:  0.000E+00, 
  exit criterion: total number of iterations}
    -  &final_supfun017  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535884279E+02, Enl:  9.19999704777E+00}, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673235E+02, D: -6.787E-06}
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360733000673576E+02, D:  0.000E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel017
@@ -5012,13 +5013,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -4.319176E-05, D Tr: -1.217819E-04, interpol possible:  Yes}, 
  Search new eF: {det: -6.244E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  7.200000730E+01, charge diff:  7.304775266E-06}
+ iter:  6, Tr(K):  7.200000730E+01, charge diff:  7.304775238E-06}
          -  { #------------------------------------------------------------------ it FOE: 7
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.887276157E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.590747E-06, D Tr: -7.286747E-06, interpol possible:  Yes}, 
  Search new eF: {det:  6.183E-24, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.200000002E+01, charge diff:  1.802828820E-08}
+ iter:  7, Tr(K):  7.200000002E+01, charge diff:  1.802831662E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -5047,7 +5048,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535888570E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624885E+02, D: -1.209E-05, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624657E+02, D: -1.209E-05, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5061,7 +5062,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.787E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360731516370038E+02, D:  6.787E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360731516369810E+02, D:  6.787E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -5069,7 +5070,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535888570E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624885E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624657E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5083,7 +5084,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.070E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360734233543440E+02, D:  4.070E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360734233543212E+02, D:  4.070E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -5091,7 +5092,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535888570E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624885E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624657E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5105,7 +5106,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.070E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360734233543440E+02, D:  4.070E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360734233543212E+02, D:  4.070E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -5113,7 +5114,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535888570E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624885E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624657E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5127,7 +5128,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.070E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360734233543440E+02, D:  4.070E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360734233543212E+02, D:  4.070E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -5135,7 +5136,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535888570E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624885E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624657E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5149,9 +5150,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 4.070E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360734233543440E+02, D:  4.070E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360734233543212E+02, D:  4.070E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360734233543440E+02, D:  4.070E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360734233543212E+02, D:  4.070E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -5163,7 +5164,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535888570E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624885E+02, D: -4.070E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624657E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5177,9 +5178,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.787E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360731516370038E+02, D:  6.787E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360731516369810E+02, D:  6.787E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360731516370038E+02, D:  6.787E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360731516369810E+02, D:  6.787E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -5191,7 +5192,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535888570E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624885E+02, D: -6.787E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624657E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5205,9 +5206,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.787E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360731516370038E+02, D:  6.787E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360731516369810E+02, D:  6.787E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360731516370038E+02, D:  6.787E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360731516369810E+02, D:  6.787E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -5219,12 +5220,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535888570E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624885E+02, D: -6.787E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624657E+02, D:  0.000E+00, 
  exit criterion: total number of iterations}
    -  &final_supfun018  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535888570E+02, Enl:  9.19999704777E+00}, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624885E+02, D: -6.787E-06}
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360738303624657E+02, D:  0.000E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel018
@@ -5249,7 +5250,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -5.033433E-03, D Tr: -1.761076E-02, interpol possible:  Yes}, 
  Search new eF: {method: bisection / secant method}, 
- iter:  3, Tr(K):  7.199854056E+01, charge diff: -1.459437025E-03}
+ iter:  3, Tr(K):  7.199854056E+01, charge diff: -1.459437026E-03}
          -  { #------------------------------------------------------------------ it FOE: 4
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.896606823E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
@@ -5267,13 +5268,13 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -8.212511E-05, D Tr: -2.320852E-04, interpol possible:  Yes}, 
  Search new eF: {det: -3.163E-20, limit:  1.000E-12, method: linear interpolation}, 
- iter:  6, Tr(K):  7.200001192E+01, charge diff:  1.192231127E-05}
+ iter:  6, Tr(K):  7.200001192E+01, charge diff:  1.192231129E-05}
          -  { #------------------------------------------------------------------ it FOE: 7
  bisec/eval bounds:  [  0.29,  0.29, -2.00,  2.20 ], pol deg:  420, eF:  2.887279046E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -4.218801E-06, D Tr: -1.186688E-05, interpol possible:  Yes}, 
  Search new eF: {det:  2.193E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.200000006E+01, charge diff:  5.543459736E-08}
+ iter:  7, Tr(K):  7.200000006E+01, charge diff:  5.543458315E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -5302,7 +5303,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535890506E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259604E+02, D: -9.174E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259718E+02, D: -9.174E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5316,7 +5317,7 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.788E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360733902752031E+02, D:  6.788E-06}
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360733902752145E+02, D:  6.788E-06}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Calculating wavelets expansion of projectors, found warnings:  94, 
@@ -5324,7 +5325,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535890506E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259604E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259718E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  2}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5346,7 +5347,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535890506E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259604E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259718E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  3}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5368,7 +5369,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535890506E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259604E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259718E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  4}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5390,7 +5391,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535890506E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259604E+02, D: -1.634E+02, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259718E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  5}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5418,7 +5419,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535890506E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259604E+02, D: -4.070E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259718E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5432,9 +5433,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.788E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360733902752031E+02, D:  6.788E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360733902752145E+02, D:  6.788E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360733902752031E+02, D:  6.788E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360733902752145E+02, D:  6.788E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -5446,7 +5447,7 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535890506E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259604E+02, D: -6.788E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259718E+02, D:  0.000E+00, 
  Optimization: {algorithm: SD, mean alpha:  1.736E-03, max alpha:  1.736E-03, 
     consecutive successes:  1}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes}
@@ -5460,9 +5461,9 @@
   #WARNING: target function larger than its minimal value reached so far, D= 6.788E-06
  Preconditioning:  Yes,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, 
- iter:  2, fnrm:  3.38E-02, Omega: -1.63360733902752031E+02, D:  6.788E-06, 
+ iter:  2, fnrm:  3.38E-02, Omega: -1.63360733902752145E+02, D:  6.788E-06, 
   #WARNING: Energy increasing, switching off orthonormalization of tmbs
- iter:  0, fnrm:  3.38E-02, Omega: -1.63360733902752031E+02, D:  6.788E-06, 
+ iter:  0, fnrm:  3.38E-02, Omega: -1.63360733902752145E+02, D:  6.788E-06, 
  Optimization: {algorithm: SD, mean alpha:  1.042E-03, max alpha:  1.042E-03, 
     consecutive successes:  0}, 
   #WARNING: no improvement of the orbitals, recalculate gradient
@@ -5474,12 +5475,12 @@
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535890506E+02, Enl:  9.19999704777E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259604E+02, D: -6.788E-06, 
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259718E+02, D:  0.000E+00, 
  exit criterion: total number of iterations}
    -  &final_supfun019  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  1.31301673414E+02, Epot: -1.39535890506E+02, Enl:  9.19999704777E+00}, 
- iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259604E+02, D: -6.788E-06}
+ iter:  1, fnrm:  3.38E-02, Omega: -1.63360740690259718E+02, D:  0.000E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel019
@@ -5528,7 +5529,7 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -4.234300E-06, D Tr: -1.191049E-05, interpol possible:  Yes}, 
  Search new eF: {det:  1.809E-23, limit:  1.000E-12, method: linear interpolation}, 
- iter:  7, Tr(K):  7.200000007E+01, charge diff:  6.573490907E-08}
+ iter:  7, Tr(K):  7.200000007E+01, charge diff:  6.573493749E-08}
           #---------------------------------------------- FOE calculation of kernel finished
          Kohn-Sham residue             :  2.933E-01
          Coefficients available        :  No
@@ -5627,38 +5628,38 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.05020599E-01, y:  6.15446744E-02, z:  1.41040662E-01, 
                     total:  1.86304969E-01}
- Clean forces norm (Ha/Bohr): {maxval:  2.790652593926E-01, fnrm2:  2.926849631474E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  2.790652593925E-01, fnrm2:  2.926849631474E-01}
  Raw forces norm (Ha/Bohr): {maxval:  3.272312097772E-01, fnrm2:  3.346218861872E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [-6.031327492875E-06,  6.014295576234E-03, -2.378316448239E-02]} # 0001
- -  {C: [-1.028284884962E-02, -3.991592363663E-02, -1.562155183045E-02]} # 0002
- -  {C: [ 1.099245455977E-02,  2.355303893585E-02, -6.667163823430E-04]} # 0003
- -  {C: [ 1.869818205505E-02,  2.390358659895E-02, -6.840656552095E-02]} # 0004
+ -  {C: [-6.031327488569E-06,  6.014295576247E-03, -2.378316448241E-02]} # 0001
+ -  {C: [-1.028284884961E-02, -3.991592363663E-02, -1.562155183044E-02]} # 0002
+ -  {C: [ 1.099245455977E-02,  2.355303893588E-02, -6.667163823097E-04]} # 0003
+ -  {C: [ 1.869818205505E-02,  2.390358659896E-02, -6.840656552097E-02]} # 0004
  -  {O: [ 7.966946775800E-02, -1.294059190739E-01,  1.571812327183E-01]} # 0005
- -  {C: [-1.699021736019E-02, -2.126412911815E-04, -4.274888969369E-02]} # 0006
- -  {O: [ 1.984623142679E-02,  1.801431140993E-01,  2.122074563737E-01]} # 0007
- -  {O: [ 1.028571959573E-01, -1.176852021648E-02,  1.601048750738E-01]} # 0008
+ -  {C: [-1.699021736018E-02, -2.126412911923E-04, -4.274888969369E-02]} # 0006
+ -  {O: [ 1.984623142676E-02,  1.801431140993E-01,  2.122074563737E-01]} # 0007
+ -  {O: [ 1.028571959573E-01, -1.176852021650E-02,  1.601048750738E-01]} # 0008
  -  {O: [-1.579482085514E-02,  9.649038677707E-02, -1.051825365164E-02]} # 0009
- -  {C: [ 3.290513660996E-02,  2.413639586349E-03, -1.155627002369E-01]} # 0010
- -  {O: [ 8.198124286492E-03, -2.539490592790E-02, -6.630649523284E-03]} # 0011
- -  {O: [ 4.979313268271E-02,  1.632234291272E-02,  1.919755463153E-01]} # 0012
- -  {H: [ 1.660464808246E-02,  8.446084769232E-03, -2.575044343523E-02]} # 0013
+ -  {C: [ 3.290513660997E-02,  2.413639586352E-03, -1.155627002369E-01]} # 0010
+ -  {O: [ 8.198124286488E-03, -2.539490592791E-02, -6.630649523303E-03]} # 0011
+ -  {O: [ 4.979313268270E-02,  1.632234291272E-02,  1.919755463154E-01]} # 0012
+ -  {H: [ 1.660464808246E-02,  8.446084769235E-03, -2.575044343524E-02]} # 0013
  -  {H: [-2.905366756074E-02, -4.617990213815E-02, -2.481156202967E-02]} # 0014
- -  {H: [-3.278868969176E-02, -1.547920263308E-03,  1.237101902601E-03]} # 0015
- -  {H: [-2.270336267520E-02,  2.587333376853E-02,  4.311558193329E-03]} # 0016
- -  {H: [-1.112040172742E-02, -2.993690266357E-02, -5.100123205881E-02]} # 0017
- -  {H: [-4.731671560230E-03, -6.406002064944E-03, -2.003430453788E-02]} # 0018
- -  {H: [-1.301466387784E-02,  2.417207910701E-02, -1.838100157529E-02]} # 0019
- -  {H: [-1.039467703766E-02, -1.243460476446E-02, -4.117492169326E-02]} # 0020
- -  {H: [ 7.999034861345E-04, -2.646628172478E-02, -4.567104216337E-02]} # 0021
+ -  {H: [-3.278868969176E-02, -1.547920263306E-03,  1.237101902598E-03]} # 0015
+ -  {H: [-2.270336267520E-02,  2.587333376853E-02,  4.311558193331E-03]} # 0016
+ -  {H: [-1.112040172742E-02, -2.993690266358E-02, -5.100123205881E-02]} # 0017
+ -  {H: [-4.731671560232E-03, -6.406002064942E-03, -2.003430453789E-02]} # 0018
+ -  {H: [-1.301466387784E-02,  2.417207910702E-02, -1.838100157529E-02]} # 0019
+ -  {H: [-1.039467703766E-02, -1.243460476445E-02, -4.117492169327E-02]} # 0020
+ -  {H: [ 7.999034861345E-04, -2.646628172477E-02, -4.567104216337E-02]} # 0021
  -  {H: [-1.048246212218E-01,  1.221013650697E-02, -7.581311926961E-02]} # 0022
- -  {H: [-1.042424215496E-02,  5.829490404251E-04, -6.772672742854E-02]} # 0023
- -  {H: [-5.823456100465E-02, -9.045546391336E-02, -7.271492506379E-02]} # 0024
+ -  {H: [-1.042424215496E-02,  5.829490404243E-04, -6.772672742854E-02]} # 0023
+ -  {H: [-5.823456100465E-02, -9.045546391335E-02, -7.271492506378E-02]} # 0024
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  542.62
-   Elapsed time (s)                    :  274.14
+   CPU time (s)                        :  539.59
+   Elapsed time (s)                    :  272.82
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -6140,7 +6141,7 @@
  - support function optimization not converged
  Status of the memory at finalization:
    Timestamp of Profile initialization:
-     2014-01-15 10:21:35.594
+     2014-01-16 10:42:31.588
    Process Id:
      0
  Memory Consumption Report:
@@ -6151,4 +6152,4 @@
      Peak Value (MB)                   :  280
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
- Max No. of dictionaries used          :  1271 #(  138 still in use)
+ Max No. of dictionaries used          :  1278 #(  138 still in use)

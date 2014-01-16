@@ -293,6 +293,8 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+allocate(ldiis%energy_hist(isx), stat=istat)
+call memocc(istat, ldiis%energy_hist, 'ldiis%energy_hist', subname)
 
 end subroutine initializeDIIS
 
@@ -321,6 +323,10 @@ call memocc(istat, iall, 'ldiis%phiHist', subname)
 iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
 deallocate(ldiis%hphiHist, stat=istat)
 call memocc(istat, iall, 'ldiis%hphiHist', subname)
+
+iall=-product(shape(ldiis%energy_hist))*kind(ldiis%energy_hist)
+deallocate(ldiis%energy_hist, stat=istat)
+call memocc(istat, iall, 'ldiis%energy_hist', subname)
 
 end subroutine deallocateDIIS
 

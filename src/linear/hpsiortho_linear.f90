@@ -931,7 +931,7 @@ end subroutine calculate_residue_ks
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
            lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
-           experimental_mode)
+           experimental_mode, trH_ref)
   use module_base
   use module_types
   use yaml_output
@@ -948,6 +948,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: hpsi_small
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: psidiff
   logical, intent(in) :: ortho, experimental_mode
+  real(kind=8),intent(out) :: trH_ref
   
   ! Local variables
   integer :: istat, iall, i
@@ -956,7 +957,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   real(kind=8), dimension(:),allocatable :: norm
   real(kind=8) :: ddot
 
-  call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold)
+  call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold, trH_ref)
   if(iproc==0) then
       call yaml_newline()
       call yaml_open_map('Optimization',flow=.true.)

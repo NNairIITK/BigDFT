@@ -451,7 +451,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(3) :: interpol_vector, interpol_solution
   integer :: i, ist, iiorb, ilr, ii, info
-  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh
+  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh, trH_ref
   integer,dimension(3) :: ipiv
   real(kind=8),dimension(:,:),allocatable :: psi_old
   real(kind=8),dimension(:),allocatable :: psi_tmp
@@ -494,6 +494,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ediff=1.d0
   delta_energy_prev=1.d0
   delta_energy_arr=1.d0
+  trH_ref=trH_old
 
   iterLoop: do
       it=it+1
@@ -695,7 +696,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       end if
 
-      ediff=trH-trH_old
+      !ediff=trH-trH_old
+      ediff=trH-trH_ref
 
       if (it>1 .and. (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode)) then
           if (.not.energy_increased .and. .not.energy_increased_previous) then
@@ -822,9 +824,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       trH_old=trH
 
+      if (ldiis%isx>0) then
+          ldiis%mis=mod(ldiis%is,ldiis%isx)+1 !to store the energy at the correct location in the history
+      end if
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
-           experimental_mode)
+           experimental_mode, trH_ref)
 
 
       overlap_calculated=.false.
@@ -1393,7 +1398,7 @@ end subroutine communicate_basis_for_density_collective
 
 
 
-subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt, trH_ref)
   use module_base
   use module_types
   use yaml_output
@@ -1406,6 +1411,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
+  real(kind=8),intent(out) :: trH_ref
   
   ! Local variables
   integer :: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
@@ -1422,6 +1428,10 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   !   back to DIIS, but decrease the DIIS history length by one. However the DIIS
   !   history length is limited to be larger or equal than lin%DIISHistMin.
 
+  ! history of the energy
+  if (ldiis%isx>0) then
+      ldiis%energy_hist(ldiis%mis)=trH
+  end if
 
   ! If we swicthed to SD in the previous iteration, reset this flag.
   if(ldiis%switchSD) ldiis%switchSD=.false.
@@ -1441,6 +1451,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
       ldiis%itBest=it
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
+      trH_ref=trH
       !if(iproc==0) write(*,*) 'everything ok, copy last psi...'
       call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
@@ -1534,9 +1545,12 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
                  offset=offset+ldiis%isx*ncount
                  istdest=istdest+ncount
              end do
+             trH_ref=ldiis%energy_hist(ii)
+             if (iproc==0) write(*,*) 'take energy from entry',ii
          else
              !if(iproc==0) write(*,*) 'copy last psi...'
              call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
+             trH_ref=trH
          end if
          ldiis%isx=0
          ldiis%switchSD=.true.

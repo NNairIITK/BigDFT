@@ -622,7 +622,7 @@ linearcubic_linear:
 
 highertaylor_experimental_order2:
  Atomic Forces (Ha/Bohr): 1.8e-8
- Average noise forces: 5.3e-9
+ Average noise forces: 2.1e-8
  Clean forces norm (Ha/Bohr): 1.9e-8
  Raw forces norm (Ha/Bohr): 2.1e-08
  charge diff: 2.4e-06
@@ -763,7 +763,7 @@ explicit_locregcenters:
  EH: 1.1e-9
 
 intermediateforces:
- Atomic Forces (Ha/Bohr): 4.9e-10
+ Atomic Forces (Ha/Bohr): 1.3e-9
  Average noise forces: 4.6e-9
  Clean forces norm (Ha/Bohr): 3.0e-9
  Raw forces norm (Ha/Bohr): 3.3e-9

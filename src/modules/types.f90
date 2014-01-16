@@ -788,7 +788,7 @@ module module_types
   type,public:: localizedDIISParameters
     integer :: is, isx, mis, DIISHistMax, DIISHistMin
     integer :: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
-    real(kind=8),dimension(:),pointer :: phiHist, hphiHist
+    real(kind=8),dimension(:),pointer :: phiHist, hphiHist, energy_hist
     real(kind=8) :: alpha_coeff !step size for optimization of coefficients
     real(kind=8),dimension(:,:,:),pointer :: mat
     real(kind=8) :: trmin, trold, alphaSD, alphaDIIS
