@@ -341,9 +341,7 @@ cluster.o geometry.o xabsorber.o: scfloop_API.o
 
 lanczos_interface.o: abscalc_module.o lanczos_base.o
 
-libabscalc.a: libmain.a
-
-abscalc_init.o:	esatto.o lanczos_interface.o
+abscalc_init.o abscalc-abscalc.o: esatto.o lanczos_interface.o
 
 lanczos.o : lanczos_interface.o
 
