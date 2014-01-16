@@ -33,7 +33,7 @@ EXTRA_DIST = \
 
 # Build targets, binaries and libraries.
 # -------------
-noinst_LIBRARIES = libmain.a
+noinst_LIBRARIES = libmain.a libabscalc.a
 # put all subs
 subs_static_library = \
 	modules/libmodules.a \
@@ -62,15 +62,17 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis $(minima_hopping_sources) bart abscalc BigDFT2Wannier WaCo NEB_images
+binaries_sources = bigdft memguess splsad NEB frequencies $(minima_hopping_sources) abscalc
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
+check_PROGRAMS = MDanalysis bart BigDFT2Wannier WaCo NEB_images
 else
 binaries_sources =
 local_binaries =
 scripts_sources =
 sub_dirs_bin =
+check_PROGRAMS =
 endif
 
 # Additional sources.
@@ -220,6 +222,14 @@ libmain_a_SOURCES = \
 	$(low_level) \
 	$(high_level)
 
+libabscalc_a_SOURCES = \
+	lanczos_base.f90 \
+	abscalc_module.f90 \
+	lanczos_interface.f90 \
+	lanczos.f90 \
+	abscalc_init.f90 \
+	esatto.f90
+
 libbigdft_1_a_SOURCES =
 
 input_variables_description.o: input_variables_definition-inc.h
@@ -290,17 +300,12 @@ WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
 MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
-abscalc_SOURCES = abscalc.f90 lanczos_base.f90 abscalc_module.f90 \
-	lanczos_interface.f90 \
-	lanczos.f90 \
-	abscalc_init.f90 \
-	esatto.f90
-
+abscalc_SOURCES = abscalc.f90 
 abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver/src \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
-abscalc_LDADD = $(bigdft_library) @LINALG_LIBS@
+abscalc_LDADD = libabscalc.a $(bigdft_library) @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDADD = $(bigdft_library)
@@ -336,9 +341,9 @@ cluster.o geometry.o xabsorber.o: scfloop_API.o
 
 lanczos_interface.o: abscalc_module.o lanczos_base.o
 
-abscalc.o abscalc_init.o: abscalc_module.o esatto.o
+abscalc_init.o:	esatto.o lanczos_interface.o
 
-lanczos.o : lanczos_base.o lanczos_interface.o
+lanczos.o : lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90
 

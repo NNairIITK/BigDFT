@@ -25,6 +25,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   !real(kind=8), parameter :: eps_mach=1.d-12
   integer :: iseg,j,ind1,iorb,i_all,i_stat,oidx,sidx !n(c) nvctrp_old
   real(kind=8) :: tt
+  call f_routine(id=subname)
 
   wfd_old%nvctr_c = wfd%nvctr_c
   wfd_old%nvctr_f = wfd%nvctr_f
@@ -53,6 +54,9 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
   !n(c) nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
+!  psi_old=&
+!       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,!&
+!       id='psi_old')
   allocate(psi_old((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor+ndebug),&
        stat=i_stat)
   call memocc(i_stat,psi_old,'psi_old',subname)
@@ -79,6 +83,8 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi',subname)
+
+  call f_release_routine()
 
 END SUBROUTINE copy_old_wavefunctions
 

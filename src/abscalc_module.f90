@@ -200,11 +200,7 @@ contains
     type(pawproj_data_type), intent(inout) :: pawproj_data
     !local variables
     integer :: i_all,i_stat
-    if(associated(pawproj_data%paw_proj)) then
-
-       i_all=-product(shape(  pawproj_data% paw_proj ))*kind( pawproj_data% paw_proj  )
-       deallocate(pawproj_data%  paw_proj  ,stat=i_stat)
-       call memocc(i_stat,i_all,'paw_proj',subname)
+    if(associated(pawproj_data%paw_nl%proj)) then
 
        i_all=-product(shape( pawproj_data%ilr_to_mproj   ))*kind(pawproj_data% ilr_to_mproj   )
        deallocate( pawproj_data% ilr_to_mproj  ,stat=i_stat)
@@ -231,7 +227,6 @@ contains
        if(pawproj_data%DistProjApply) then
           call deallocate_gwf_c(pawproj_data%G,subname)
        endif
-       nullify(pawproj_data%paw_proj)
     end if
   END SUBROUTINE deallocate_pawproj_data
 
@@ -244,12 +239,7 @@ contains
     type(pcproj_data_type), intent(inout) :: pcproj_data
     !local variables
     integer :: i_all,i_stat
-    if(associated(pcproj_data%pc_proj)) then
-
-       i_all=-product(shape(  pcproj_data% pc_proj ))*kind( pcproj_data% pc_proj  )
-       deallocate(pcproj_data%  pc_proj  ,stat=i_stat)
-       call memocc(i_stat,i_all,'pc_proj',subname)
-
+    if(associated(pcproj_data%pc_nl%proj)) then
        i_all=-product(shape( pcproj_data%ilr_to_mproj   ))*kind(pcproj_data% ilr_to_mproj   )
        deallocate( pcproj_data% ilr_to_mproj  ,stat=i_stat)
        call memocc(i_stat,i_all,'ilr_to_mproj',subname)
@@ -276,26 +266,6 @@ contains
 
 
        call free_DFT_PSP_projectors(pcproj_data%pc_nl)
-
-!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%nboxp_c))*kind(pcproj_data%pc_nlpspd%nboxp_c)
-!!$       deallocate(pcproj_data%pc_nlpspd%nboxp_c,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'nboxp_c',subname)
-!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%nboxp_f))*kind(pcproj_data%pc_nlpspd%nboxp_f)
-!!$       deallocate(pcproj_data%pc_nlpspd%nboxp_f,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'nboxp_f',subname)
-!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%keyg_p))*kind(pcproj_data%pc_nlpspd%keyg_p)
-!!$       deallocate(pcproj_data%pc_nlpspd%keyg_p,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'keyg_p',subname)
-!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%keyv_p))*kind(pcproj_data%pc_nlpspd%keyv_p)
-!!$       deallocate(pcproj_data%pc_nlpspd%keyv_p,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'keyv_p',subname)
-!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%nvctr_p))*kind(pcproj_data%pc_nlpspd%nvctr_p)
-!!$       deallocate(pcproj_data%pc_nlpspd%nvctr_p,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'nvctr_p',subname)
-!!$       i_all=-product(shape(pcproj_data%pc_nlpspd%nseg_p))*kind(pcproj_data%pc_nlpspd%nseg_p)
-!!$       deallocate(pcproj_data%pc_nlpspd%nseg_p,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'nseg_p',subname)
-
 
        if(pcproj_data%DistProjApply) then
           call deallocate_gwf(pcproj_data%G,subname)
@@ -438,7 +408,7 @@ contains
                                        mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                                        PAWD%paw_nl%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
                                        PAWD%paw_nl%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
-                                       PAWD%paw_proj(istart_c),&
+                                       PAWD%paw_nl%proj(istart_c),&
                                        dotbuffer( ibuffer ) )
                                end if
                                ibuffer=ibuffer + (ncplx-1)
@@ -531,7 +501,7 @@ contains
 !!$                                 &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
                                     PAWD%paw_nl%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
                                     PAWD%paw_nl%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
-                                    PAWD%paw_proj(istart_c),&
+                                    PAWD%paw_nl%proj(istart_c),&
                                     Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
                                     Glr%wfd%keyvglob(1),Glr%wfd%keyglob(1,1),&
                                     hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  )&
@@ -679,7 +649,7 @@ contains
                         PPD%pc_nl%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
                         PPD%pc_nl%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
 !!$                       PPD%pc_nlpspd%keyv_p(jseg_c),PPD%pc_nlpspd%keyg_p(1,jseg_c),&
-                        PPD%pc_proj(istart_c),&
+                        PPD%pc_nl%proj(istart_c),&
                         psi(ispsi+ (ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  ),&
                         hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  ),&
                         eproj_spinor)

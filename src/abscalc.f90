@@ -274,6 +274,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_abscalc
    use m_ab6_symmetry
    use m_ab6_kpoints
+   use lanczos_interface, only: xabs_lanczos,xabs_cg,xabs_chebychev
    use esatto, only: binary_search
    implicit none
    integer, intent(in) :: nproc,iproc
@@ -595,7 +596,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$      call memocc(i_stat,atoms%astruct%sym%phnons,'phnons',subname)
 !!$   end if
 
-   if(sum(atoms%paw_NofL).gt.0) then
+   if(sum(atoms%paw_NofL) > 0) then
       ! Calculate all paw_projectors, or allocate array for on-the-fly calculation
       call timing(iproc,'CrtPawProjects ','ON')
       PAWD%DistProjApply =  .false. !! .true.
@@ -608,6 +609,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    endif
 
    if (in%iabscalc_type==3) then
+      stop 'should not enter here'
       ! Calculate all pc_projectors, or allocate array for on-the-fly calculation
       call timing(iproc,'CrtPcProjects ','ON')
       PPD%DistProjApply  =  DistProjApply
