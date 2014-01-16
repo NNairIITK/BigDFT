@@ -619,4 +619,7 @@
    explicit_locregcenters:
      COMMENT: linear scaling explicitely specify localization centers 
      default: No
+   calculate_ks_residue:
+     COMMENT: calculate ks residue
+     default: Yes
 
