@@ -94,7 +94,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(gp), allocatable, dimension(:) :: psi2, gpsi, gpsi2
   real(gp), allocatable, dimension(:,:,:,:) :: psir2
   real(gp) :: tmb_diff, max_tmb_diff, cut
-  integer :: j, k, n1i, n2i, n3i, i1, i2, i3, num_points
+  integer :: j, k, n1i, n2i, n3i, i1, i2, i3, num_points, num_points_tot
 
   integer :: ist, iiorb, ncount
   real(kind=8) :: fnoise, pressure, ehart_fake, dnrm2
@@ -718,15 +718,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !!! TEST ###############################################################
                 !!phi_delta=f_malloc0((/tmb%npsidim_orbs,3/),id='phi_delta')
                 !!! Get the values of the support functions on the boundary of the localization region
-                !!call extract_boundary(tmb, phi_delta, num_points)
+                !!call extract_boundary(tmb, phi_delta, num_points, num_points_tot)
                 !!weight_boundary=ddot(3*tmb%npsidim_orbs, phi_delta(1,1), 1, phi_delta(1,1), 1)
                 !!call mpiallred(weight_boundary, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                 !!weight_boundary=sqrt(weight_boundary/tmb%orbs%norb)
                 !!weight_tot=ddot(tmb%npsidim_orbs, tmb%psi(1), 1, tmb%psi(1), 1)
                 !!call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                 !!weight_tot=sqrt(weight_tot/tmb%orbs%norb)
-                !!if (iproc==0) write(*,'(a,3es12.4,I10)') 'weight boundary, weight tot, ratio, num points', &
-                !!    weight_boundary, weight_tot, weight_boundary/weight_tot, num_points
+                !!call mpiallred(num_points, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                !!call mpiallred(num_points_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                !!if (iproc==0) write(*,'(a,3es12.4,2I10)') 'weight boundary, weight tot, ratio, num points', &
+                !!    weight_boundary, weight_tot, weight_boundary/weight_tot, num_points, num_points_tot
                 !!call f_free(phi_delta)
                 !!! END TEST ###########################################################
                 if (input%lin%constrained_dft) then
