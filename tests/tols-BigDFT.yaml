@@ -624,21 +624,21 @@ highertaylor_experimental_order2:
  Atomic Forces (Ha/Bohr): 1.8e-8
  Average noise forces: 5.3e-9
  Clean forces norm (Ha/Bohr): 1.9e-8
- Raw forces norm (Ha/Bohr): 2.0e-08
- charge diff: 2.3e-06
- multiplicator for the confinement: 5.3e-10
+ Raw forces norm (Ha/Bohr): 2.1e-08
+ charge diff: 2.4e-06
+ multiplicator for the confinement: 5.4e-10
  Omega: 1.3e-06
- Tr(K): 2.3e-06
- eF: 6.9e-08
+ Tr(K): 2.4e-06
+ eF: 7.1e-08
  D Tr: 1.8e-06
  D eF: 7.2e-08
  energy: 1.6e-07
  EH: 1.5e-06
- EXC: 3.0e-07
- Ekin: 1.3e-07
- Enl: 1.6e-08
+ EXC: 3.1e-07
+ Ekin: 1.4e-07
+ Enl: 1.7e-08
  Epot: 1.4e-06
- EvXC: 3.9e-07
+ EvXC: 4.0e-07
  D: 1.1e-07
  Total charge: 3.1e-11
 
@@ -666,24 +666,24 @@ highertaylor_experimental_order3:
 
 highertaylor_experimental_order4:
  Atomic Forces (Ha/Bohr): 5.0e-9
- Average noise forces: 2.5e-9
+ Average noise forces: 5.6e-9
  Clean forces norm (Ha/Bohr): 5.0e-9
  Raw forces norm (Ha/Bohr): 3.5e-9
  EH: 2.0e-7
  EXC: 4.3e-8
- Ekin: 2.4e-8
- Enl: 2.7e-9
+ Ekin: 1.4e-7
+ Enl: 1.7e-8
  Epot: 1.9e-7
- EvXC: 5.7e-8
+ EvXC: 4.0e-7
  det: 1.4e-1
  Tr(K): 2.4e-2
  D Tr: 1.5e-2
  D eF: 3.2e-2
  bisec/eval bounds: 3.2e-2
  charge diff: 2.4e-2
- eF: 3.2e-2
+ eF: 7.0e-8
  energy: 2.9e-8
- multiplicator for the confinement: 5.0e-10
+ multiplicator for the confinement: 5.4e-10
  Omega: 1.5e-7
  Total charge: 2.1e-11
  D: 1.1e-9
@@ -764,12 +764,16 @@ explicit_locregcenters:
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 4.9e-10
- Average noise forces: 6.6e-10
- Clean forces norm (Ha/Bohr): 4.3e-10
- Raw forces norm (Ha/Bohr): 4.8e-10
- EvXC: 1.1e-10
- e: 3.3e-11
- energy: 5.9e-11
+ Average noise forces: 4.6e-9
+ Clean forces norm (Ha/Bohr): 3.0e-9
+ Raw forces norm (Ha/Bohr): 3.3e-9
+ e: 2.4e-10
+ energy: 4.9e-10
  Omega: 9.4e-11
- Epot: 6.6e-10
  EXC: 6.6e-10
+ EvXC: 8.1e-10
+ EH: 2.1e-09
+ Ekin: 2.1e-10
+ Enl: 2.1e-11
+ Epot: 2.3e-09
+ multiplicator for the confinement: 1.6e-11
