@@ -138,10 +138,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%convCrit_lowaccuracy,'1.d-3',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%convCrit_highaccuracy,'1.d-5',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%lin%early_stop,'1.d-4',ranges=(/0.0_gp,1.0_gp/),comment=comments)
-  
-  comments = 'multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode'
-  call input_var(in%lin%deltaenergy_multiplier_TMBexit,'1.d0',ranges=(/1.d-5,1.d1/))
-  call input_var(in%lin%deltaenergy_multiplier_TMBfix,'1.d0',ranges=(/1.d-5,1.d1/),comment=comments)
 
   comments = 'factor to reduce the confinement. Only used for hybrid mode.'
   call input_var(in%lin%reduce_confinement_factor,'0.5d0',ranges=(/-1.d100,1.d0/),comment=comments)

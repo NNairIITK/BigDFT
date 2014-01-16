@@ -393,8 +393,8 @@ end subroutine get_coeff
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
-    reduce_conf,fix_supportfunctions,nit_precond,target_function,&
-    correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit,deltaenergy_multiplier_TMBfix,&
+    nit_precond,target_function,&
+    correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
   !
   ! Purpose:
@@ -427,9 +427,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(DFT_wavefunction),target,intent(inout) :: tmb
   type(SIC_data) :: SIC !<parameters for the SIC methods
   type(energy_terms),intent(in) :: energs_base
-  logical,intent(out) :: reduce_conf, fix_supportfunctions
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
-  real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
   real(kind=8),intent(out) :: ratio_deltas
   logical, intent(inout) :: ortho_on
   integer, intent(in) :: extra_states
@@ -449,11 +447,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(8),dimension(2):: reducearr
-  real(gp) :: econf, ediff_sum, delta_energy_prev_sum
+  real(gp) :: econf
   real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(3) :: interpol_vector, interpol_solution
   integer :: i, ist, iiorb, ilr, ii, info
-  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh
+  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh, trH_ref
   integer,dimension(3) :: ipiv
   real(kind=8),dimension(:,:),allocatable :: psi_old
   real(kind=8),dimension(:),allocatable :: psi_tmp
@@ -489,13 +487,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
-  reduce_conf=.false.
-  fix_supportfunctions=.false.
   delta_energy_prev=1.d100
 
-  ediff_sum=0.d0
-  delta_energy_prev_sum=0.d0
   energy_increased_previous=.false.
+  ratio_deltas=1.d0
+  ediff=1.d0
+  delta_energy_prev=1.d0
+  delta_energy_arr=1.d0
+  trH_ref=trH_old
 
   iterLoop: do
       it=it+1
@@ -505,15 +504,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       fnrmMax=0.d0
       fnrm=0.d0
   
-      !!if (iproc==0) then
-      !!    write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
-      !!endif
       if (iproc==0) then
-          !if (it>=nit_basis) then
-          !    call yaml_sequence(label='final_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
-          !else
-              call yaml_sequence(advance='no')
-          !end if
+          call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
           if (target_function==TARGET_FUNCTION_IS_TRACE) then
@@ -578,10 +570,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
       !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
-      ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
-      !!if(iproc==0) then
-      !!    write(*,'(a)', advance='no') ' Orthoconstraint... '
-      !!end if
       if (iproc==0) then
           call yaml_map('Orthoconstraint',.true.)
       end if
@@ -708,9 +696,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       end if
 
-      ediff=trH-trH_old
+      !ediff=trH-trH_old
+      ediff=trH-trH_ref
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
+      if (it>1 .and. (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode)) then
           if (.not.energy_increased .and. .not.energy_increased_previous) then
               if (.not.ldiis%switchSD) then
                   ratio_deltas=ediff/delta_energy_prev
@@ -725,26 +714,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               end if
               ratio_deltas=0.5d0
           end if
-          if (.not.energy_increased_previous .and. it>1) then
-              ediff_sum=ediff_sum+ediff
-              delta_energy_prev_sum=delta_energy_prev_sum+delta_energy_prev
-          end if
           if (ldiis%switchSD) then
               !!ratio_deltas=0.5d0
               !!if (iproc==0) write(*,*) 'WARNING: TEMPORARY FIX for ratio_deltas!'
           end if
-          !if (iproc==0) write(*,*) 'WARNING: HACK FOR ratio_deltas, set to 1.d0!!'
-          !if (iproc==0) write(*,*) 'WARNING: HACK FOR ratio_deltas, set to 0.5d0*(ratio_deltas+1.d0)!!'
-          !ratio_deltas=0.5d0*(ratio_deltas+1.d0)
-          !ratio_deltas=1.d0
-          !!if (iproc==0) write(*,*) 'ediff, delta_energy_prev', ediff, delta_energy_prev
-          !!if (iproc==0) write(*,*) 'ratio_deltas',ratio_deltas
           if (iproc==0) call yaml_map('kappa',ratio_deltas,fmt='(es10.3)')
-          if ((ediff>deltaenergy_multiplier_TMBexit*delta_energy_prev .or. energy_increased) .and. it>1) then
-          !if ((it>=nit_basis .or.  energy_increased) .and. it>1) then
-              !if (iproc==0) write(*,*) 'reduce the confinement'
-              reduce_conf=.true.
-          end if
       end if
 
       if (energy_increased) then
@@ -754,11 +728,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
 
-      !!if ((ediff>deltaenergy_multiplier_TMBfix*delta_energy_prev .and. .not.energy_increased) .and. it>1 .and. &
-      !!    target_function==TARGET_FUNCTION_IS_HYBRID) then
-      !!    if (iproc==0) write(*,*) 'Will fix the support functions'
-      !!    fix_supportfunctions=.true.
-      !!end if
 
       !!delta_energy_prev=delta_energy
 
@@ -811,17 +780,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if 
 
 
-      ! Write some information to the screen.
-      !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
-      !!    write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, trace, diff', &
-      !!    it, fnrm, fnrmMax, trH, ediff
-      !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
-      !!    write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, ebs, diff', &
-      !!    it, fnrm, fnrmMax, trH, ediff
-      !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_HYBRID) &
-      !!    write(*,'(1x,a,i6,2es15.7,f17.10,es13.4)') 'iter, fnrm, fnrmMax, hybrid, diff', &
-      !!    it, fnrm, fnrmMax, trH, ediff
-
       ! information on the progress of the optimization
       if (iproc==0) then
           call yaml_newline()
@@ -831,50 +789,24 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('D',ediff,fmt='(es10.3)')
       end if
 
-      !!if(it>=nit_basis .or. it_tot>=3*nit_basis .or. reduce_conf) then
-      !!    if(it>=nit_basis .and. .not.energy_increased) then
-      !if(it>=nit_basis .or. it_tot>=3*nit_basis) then
       if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or. (fnrm<conv_crit .and. experimental_mode) .or. &
           (itout==0 .and. it>1 .and. ratio_deltas<0.1d0)) then
           if(it>=nit_basis) then
-              !!if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: not converged within ', it, &
-              !!    ' iterations! Exiting loop due to limitations of iterations.'
-              !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
-              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-              !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
-              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=0
               if(iproc==0) call yaml_map('exit criterion','net number of iterations')
           else if(it_tot>=3*nit_basis) then
-              !!if(iproc==0) write(*,'(1x,a,i0,a)') 'WARNING: there seem to be some problems, exiting now...'
-              !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_TRACE) &
-              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-              !!if(iproc==0 .and. target_function==TARGET_FUNCTION_IS_ENERGY) &
-              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, ebs: ', fnrm, fnrmMax, trH
               infoBasisFunctions=-1
               if (iproc==0) call yaml_map('exit criterion','total number of iterations')
           else if (stop_optimization) then
-              !!if (iproc==0) then
-              !!    write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
-              !!end if
               infoBasisFunctions=0
               if (iproc==0) call yaml_map('exit criterion','energy difference')
-          !!else if (reduce_conf) then
-          !!    if (iproc==0) then
-          !!        write(*,'(1x,a,2es15.7,f15.7)') 'Final values for fnrm, fnrmMax, hybrid: ', fnrm, fnrmMax, trH
-          !!    end if
-          !!    infoBasisFunctions=0
-          !else if (fnrm<2.3d-4) then
           else if (fnrm<conv_crit .and. experimental_mode) then
-              !!if (iproc==0) write(*,* ) 'converged!'
               if (iproc==0) call yaml_map('exit criterion','gradient')
               infoBasisFunctions=0
           else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0) then
-              !!if (iproc==0) write(*,*) 'extended input guess converged!'
               infoBasisFunctions=0
               if (iproc==0) call yaml_map('exit criterion','extended input guess')
           end if
-          !!if(iproc==0) write(*,'(1x,a)') '============================= Basis functions created. ============================='
           if (infoBasisFunctions>=0) then
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
@@ -892,14 +824,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       trH_old=trH
 
-      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-         call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-              lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
-              experimental_mode)
-      !else
-      !   call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
-      !        lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on)
-      !end if
+      if (ldiis%isx>0) then
+          ldiis%mis=mod(ldiis%is,ldiis%isx)+1 !to store the energy at the correct location in the history
+      end if
+      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+           lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
+           experimental_mode, trH_ref)
 
 
       overlap_calculated=.false.
@@ -933,9 +863,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call dcopy(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1), 1, coeff_old(1,1), 1)
       end if
 
-      !!if (itout>=12) then
-      !!    if (iproc==0) write(*,*) 'WARNING: NO UPDATE OF KERNEL'
-      !!else
 
       ! Only need to reconstruct the kernel if it is actually used.
       if (target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
@@ -950,10 +877,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               end if
               call purify_kernel(iproc, nproc, tmb, overlap_calculated)
           end if
-      !!end if
-          !!if(iproc==0) then
-          !!    write(*,'(a)') 'done.'
-          !!end if
       end if
 
       if (iproc==0) then
@@ -988,17 +911,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   end if
 
 
-  ! Close sequence for the optimization steps
-  !!if (iproc==0) then
-  !!    call yaml_close_sequence()
-  !!end if
   if (iproc==0) then
       call yaml_comment('Support functions created')
   end if
 
-  !if (iproc==0) write(*,'(a,3es16.6)') 'NEW RATIO: ediff_sum, delta_energy_prev_sum, ratio_deltas', &
-  !    ediff_sum, delta_energy_prev_sum, ratio_deltas
-  !ratio_deltas=ediff_sum/delta_energy_prev_sum
 
   ! Deallocate potential
   iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
@@ -1482,7 +1398,7 @@ end subroutine communicate_basis_for_density_collective
 
 
 
-subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt, trH_ref)
   use module_base
   use module_types
   use yaml_output
@@ -1495,6 +1411,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   type(localizedDIISParameters),intent(inout) :: ldiis
   real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
+  real(kind=8),intent(out) :: trH_ref
   
   ! Local variables
   integer :: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
@@ -1511,6 +1428,10 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
   !   back to DIIS, but decrease the DIIS history length by one. However the DIIS
   !   history length is limited to be larger or equal than lin%DIISHistMin.
 
+  ! history of the energy
+  if (ldiis%isx>0) then
+      ldiis%energy_hist(ldiis%mis)=trH
+  end if
 
   ! If we swicthed to SD in the previous iteration, reset this flag.
   if(ldiis%switchSD) ldiis%switchSD=.false.
@@ -1530,6 +1451,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
       ldiis%itBest=it
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
+      trH_ref=trH
       !if(iproc==0) write(*,*) 'everything ok, copy last psi...'
       call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
@@ -1623,9 +1545,12 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
                  offset=offset+ldiis%isx*ncount
                  istdest=istdest+ncount
              end do
+             trH_ref=ldiis%energy_hist(ii)
+             if (iproc==0) write(*,*) 'take energy from entry',ii
          else
              !if(iproc==0) write(*,*) 'copy last psi...'
              call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
+             trH_ref=trH
          end if
          ldiis%isx=0
          ldiis%switchSD=.true.

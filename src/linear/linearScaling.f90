@@ -52,7 +52,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(localizedDIISParameters) :: ldiis!, ldiis_coeff
   type(DIIS_obj) :: ldiis_coeff, vdiis
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
-  logical :: fix_support_functions, check_initialguess, fix_supportfunctions
+  logical :: fix_support_functions, check_initialguess
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   real(8),dimension(:),allocatable :: locrad_tmp
   integer :: ldiis_coeff_hist, nitdmin
@@ -97,10 +97,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: j, k, n1i, n2i, n3i, i1, i2, i3, num_points, num_points_tot
 
   integer :: ist, iiorb, ncount
-  real(kind=8),dimension(6) :: ewaldstr, hstrten, xcstr, strten
-  real(kind=8) :: fnoise, pressure, ehart_fake, dnrm2, eh_tmp, exc_tmp, evxc_tmp, eexctX_tmp
+  real(kind=8) :: fnoise, pressure, ehart_fake, dnrm2
   real(kind=8),dimension(:,:),allocatable :: fxyz
-  real(kind=8),dimension(:),allocatable :: rhopot_work
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -492,10 +490,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    else if (ratio_deltas>1.d0) then
                        !if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
-                       if (iproc==0) call yaml_warning('ratio_deltas>1, using 0.5 instead')
+                       if (iproc==0) call yaml_warning('ratio_deltas>1, using 1.0 instead')
                        if (iproc==0) call yaml_newline()
-                       if (iproc==0) call yaml_map('multiplicator for the confinement',0.5d0)
-                       tmb%confdatarr(:)%prefac=0.5d0*tmb%confdatarr(:)%prefac
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',1.0d0)
+                       tmb%confdatarr(:)%prefac=1.0d0*tmb%confdatarr(:)%prefac
                    else if (ratio_deltas<=0.d0) then
                        !if (iproc==0) write(*,*) 'WARNING: ratio_deltas<=0.d0!. Using 0.5 instead'
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
@@ -541,10 +539,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            !!if (itout<=2) then
                call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                    info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
-                   reduce_conf,fix_supportfunctions,input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
-                   nit_basis,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
+                   input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
+                   nit_basis,&
                    ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                    input%lin%early_stop)
+               reduce_conf=.true.
            !!else
            !!    cut=cut-0.5d0
            !!    if (iproc==0) write(*,'(a,f7.2)') 'new cutoff:', cut
@@ -828,47 +827,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                   tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
-             !!! EXPERIMENTAL ################################
-             !!if (iproc==0) then
-             !!     write(*,*) 'sum1',sum(tmb%linmat%denskern%matrix_compr)
-             !!     write(*,*) 'sum2',sum(denskern_init%matrix_compr)
-             !!end if
-             !!call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-             !!     tmb%collcom_sr, denskern_init, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, rho_init)
-             !!     !if (iproc==0) then
-             !!     !     write(200,*) denspot%rhov
-             !!     !     write(201,*) rho_init
-             !!     !end if
-             !!!call daxpy(size(denspot%rhov), -1.d0, denspot%rhov(1), 1, rho_init(1), 1)
-             !!!tt=ddot(size(denspot%rhov), rho_init(1), 1, rho_init(1), 1)
-             !!!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-             !!!tt=sqrt(tt)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-             !!!if (it_scc==1) then
-             !!!    if (iproc==0) write(*,*) 'derivative tt', tt-tt_old
-             !!!    tt_old=tt
-             !!!end if
-             !!!if (iproc==0) write(*,*) 'iproc, tt', iproc, tt
-             !!tt=0.d0
-             !!do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-             !!    tt=tt+(rho_init(i)-rho_init_old(i))**2
-             !!end do
-             !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-             !!tt=sqrt(tt)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-             !!if (it_scc==1) then
-             !!    if (iproc==0) write(*,*) 'charge diff:',tt
-             !!    rho_init_old=rho_init
-             !!    if (tt<1.d-8) then
-             !!        idens_cons=idens_cons+1
-             !!    else
-             !!        idens_cons=0
-             !!    end if
-             !!    if (idens_cons>=3) then
-             !!        fix_supportfunctions=.true.
-             !!        if (iproc==0) write(*,*) 'new convergence criterion: will fix support functions'
-             !!    end if
-             !!end if
-
-             !!! #############################################
 
              ! Mix the density.
              if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
@@ -1097,75 +1055,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
 
-      !!! TEST: calculate forces here ####################################################
-      !!allocate(fxyz(3,at%astruct%nat))
-      !!ewaldstr=1.d100
-      !!hstrten=1.d100
-      !!xcstr=1.d100
-      !!eh_tmp=energs%eh
-      !!exc_tmp=energs%exc
-      !!evxc_tmp=energs%evxc
-      !!eexctX_tmp=energs%eexctX
-
-      !!if (denspot%dpbox%ndimpot>0) then
-      !!   allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
-      !!   call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
-      !!   allocate(rhopot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
-      !!   call memocc(i_stat,rhopot_work,'rhopot_work',subname)
-      !!else
-      !!   allocate(denspot%pot_work(1+ndebug),stat=i_stat)
-      !!   call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
-      !!   allocate(rhopot_work(1+ndebug),stat=i_stat)
-      !!   call memocc(i_stat,rhopot_work,'rhopot_work',subname)
-      !!end if
-      !!call dcopy(denspot%dpbox%ndimpot,denspot%rhov,1,rhopot_work,1)
-
-
-      !!call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-      !!     tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-      !!allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
-      !!call memocc(i_stat,denspot%rho_work,'rho',subname)
-      !!call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
-      !!     denspot%rhov(1),1,denspot%rho_work(1),1)
-      !!call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-
-      !!! Density already present in denspot%rho_work
-      !!call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
-      !!call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
-      !!     0.0_dp,.false.,stress_tensor=hstrten)
-
-      !!
-      !!allocate(KSwfn%psi(1))
-
-      !!fpulay=0.d0
-      !!call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpspd,rxyz,& 
-      !!     KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-      !!     proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
-      !!     denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
-      !!     denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
-      !!     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
-      !!deallocate(fxyz)
-      !!deallocate(KSwfn%psi)
-
-      !!call dcopy(denspot%dpbox%ndimpot,rhopot_work,1,denspot%rhov,1)
-      !!energs%eh=eh_tmp
-      !!energs%exc=exc_tmp
-      !!energs%evxc=evxc_tmp
-      !!energs%eexctX=eexctX_tmp
-
-      !!i_all=-product(shape(rhopot_work))*kind(rhopot_work)
-      !!deallocate(rhopot_work,stat=i_stat)
-      !!call memocc(i_stat,i_all,'denspot%rho',subname)
-
-      !!i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
-      !!deallocate(denspot%rho_work,stat=i_stat)
-      !!call memocc(i_stat,i_all,'denspot%rho',subname)
-      !!i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-      !!deallocate(denspot%pot_work,stat=i_stat)
-      !!call memocc(i_stat,i_all,'denspot%pot_work',subname)
-      !!nullify(denspot%rho_work,denspot%pot_work)
-
-      !!! TEST: calculate forces here ####################################################
+      if (input%intermediate_forces) then
+          call intermediate_forces()
+      end if
 
 
 
@@ -1173,8 +1065,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call check_for_exit()
       if(exit_outer_loop) exit outerLoop
 
-      if(pnrm_out<input%lin%support_functions_converged.and.lowaccur_converged .or. &
-         fix_supportfunctions) then
+      if(pnrm_out<input%lin%support_functions_converged.and.lowaccur_converged) then
           !if(iproc==0) write(*,*) 'fix the support functions from now on'
           if (iproc==0) call yaml_map('fix the support functions from now on',.true.)
           fix_support_functions=.true.
@@ -1399,184 +1290,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         i_all=-product(shape(psir))*kind(psir)
         deallocate(psir,stat=i_stat)
         call memocc(i_stat,i_all,'psir',subname)
-        !i_all=-product(shape(psir2))*kind(psir2)
-        !deallocate(psir2,stat=i_stat)
-        !call memocc(i_stat,i_all,'psir2',subname)
      end do
-     !i_all=-product(shape(psi2))*kind(psi2)
-     !deallocate(psi2,stat=i_stat)
-     !call memocc(i_stat,i_all,'psi2',subname)
   end if
-
-  !!ind=1
-  !!allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
-  !!call memocc(i_stat,gpsi,'gpsi',subname)
-
-  !!allocate (gpsi2(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
-  !!call memocc(i_stat,gpsi2,'gpsi2',subname)
-
-  !!do iorb=1,tmb%orbs%norbp
-  !!   iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
-  !!   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-  !!
-  !!   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-  !!   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-  !!        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-  !!        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-
-  !!   allocate(psir(tmb%lzd%glr%d%n1i, tmb%lzd%glr%d%n2i, tmb%lzd%glr%d%n3i, 1+ndebug),stat=i_stat)
-  !!   call memocc(i_stat,psir,'psir',subname)
-  !!   allocate(psir2(tmb%lzd%glr%d%n1i, tmb%lzd%glr%d%n2i, tmb%lzd%glr%d%n3i, 1+ndebug),stat=i_stat)
-  !!   call memocc(i_stat,psir,'psir2',subname)
-  !!   call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
-  !!
-  !!   call daub_to_isf(tmb%lzd%glr,w,gpsi,psir)
-  !!
-  !!   write(orbname,*) iorb+tmb%orbs%isorb
-  !!   !call write_cube_fields('tmbisf'//trim(adjustl(orbname)),'tmb in isf',at,1.0d0,rxyz,&
-  !!   !     tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i,&
-  !!   !     tmb%lzd%llr(ilr)%nsi1,tmb%lzd%llr(ilr)%nsi2,tmb%lzd%llr(ilr)%nsi3,&
-  !!   !     tmb%Lzd%hgrids(1)*0.5d0,tmb%Lzd%hgrids(2)*0.5d0,tmb%Lzd%hgrids(3)*0.5d0,&
-  !!   !     1.0_gp,psir,1,0.0_gp,psir)
-
-  !!   open(370,file='tmbisf'//trim(adjustl(orbname))//'.dat')
-  !!   do i=1,tmb%lzd%glr%d%n1i
-  !!   do j=1,tmb%lzd%glr%d%n2i
-  !!   do k=1,tmb%lzd%glr%d%n3i
-  !!      write(370,*) psir(i,j,k,1)
-  !!   end do
-  !!   end do
-  !!   end do
-  !!   close(370)
-
-  !!   !call read_cube_field('tmbisf'//trim(adjustl(orbname)),tmb%lzd%llr(ilr)%geocode,&
-  !!   !     tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i,psir2)
-
-  !!   open(370,file='tmbisf'//trim(adjustl(orbname))//'.dat')
-  !!   do i=1,tmb%lzd%glr%d%n1i
-  !!   do j=1,tmb%lzd%glr%d%n2i
-  !!   do k=1,tmb%lzd%glr%d%n3i
-  !!      read(370,*) psir2(i,j,k,1)
-  !!   end do
-  !!   end do
-  !!   end do
-  !!   close(370)
-
-  !!   call razero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi2)
-  !!   call isf_to_daub(tmb%lzd%glr,w,psir2,gpsi2)
-  !!
-  !!   !tmb_diff=0.0d0
-  !!   !max_tmb_diff=0.0d0
-  !!   !do i=1,tmb%lzd%llr(ilr)%d%n1i
-  !!   !do j=1,tmb%lzd%llr(ilr)%d%n2i
-  !!   !do k=1,tmb%lzd%llr(ilr)%d%n3i
-  !!   !   tmb_diff=tmb_diff+dabs(psir(i,j,k,1)-psir2(i,j,k,1))
-  !!   !   max_tmb_diff=max(max_tmb_diff,dabs(psir(i,j,k,1)-psir2(i,j,k,1)))
-  !!   !   write(370+iorb+tmb%orbs%isorb,*) psir(i,j,k,1),psir2(i,j,k,1),dabs(psir(i,j,k,1)-psir2(i,j,k,1))
-  !!   !end do
-  !!   !end do
-  !!   !end do
-  !!   !print*,'tmbr diff',iorb+tmb%orbs%isorb,tmb_diff,max_tmb_diff
-
-  !!   tmb_diff=0.0d0
-  !!   max_tmb_diff=0.0d0
-  !!   n1i=tmb%lzd%glr%d%n1i
-  !!   n2i=tmb%lzd%glr%d%n2i
-  !!   n3i=tmb%lzd%glr%d%n3i
-  !!   do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-  !!      i3=(i/(n1i*n2i))+1
-  !!      i2=(i-(i3-1)*n1i*n2i)/n1i+1
-  !!      i1=mod(i,n1i)+1
-  !!      tmb_diff=tmb_diff+dabs(gpsi(i)-gpsi2(i))
-  !!      max_tmb_diff=max(max_tmb_diff,dabs(gpsi(i)-gpsi2(i)))
-  !!      !write(370+iorb+tmb%orbs%isorb,*) gpsi(i),gpsi2(i),dabs(gpsi(i)-gpsi2(i))
-  !!      !if (dabs(gpsi(i)-gpsi2(i))>1.0d-5) print*,'large error',iorb+tmb%orbs%isorb,&
-  !!      !     gpsi(i),psi2(i),dabs(gpsi(i)-gpsi2(i)),i1,i2,i3,n1i,n2i,n3i
-  !!   end do
-  !!   print*,'gtmb diff',iorb+tmb%orbs%isorb,tmb_diff/(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f),max_tmb_diff
-
-  !!   ind=ind+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !!   call deallocate_work_arrays_sumrho(w)
-  !!   i_all=-product(shape(psir))*kind(psir)
-  !!   deallocate(psir,stat=i_stat)
-  !!   call memocc(i_stat,i_all,'psir',subname)
-  !!   i_all=-product(shape(psir2))*kind(psir2)
-  !!   deallocate(psir2,stat=i_stat)
-  !!   call memocc(i_stat,i_all,'psir2',subname)
-  !!end do
-
-  !!i_all=-product(shape(gpsi))*kind(gpsi)
-  !!deallocate(gpsi,stat=i_stat)
-  !!call memocc(i_stat,i_all,'gpsi',subname)
-
-  !!i_all=-product(shape(gpsi2))*kind(gpsi2)
-  !!deallocate(gpsi2,stat=i_stat)
-  !!call memocc(i_stat,i_all,'gpsi2',subname)
-  !!! END DEBUG
-
-  !!ind=1
-  !!allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
-  !!call memocc(i_stat,gpsi,'gpsi',subname)
-
-  !!allocate (gpsi2(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
-  !!call memocc(i_stat,gpsi2,'gpsi2',subname)
-
-  !!do iorb=1,tmb%orbs%norbp
-  !!   iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
-  !!   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-  !!
-  !!   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-  !!   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-  !!        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-  !!        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-
-  !!   allocate(psir(tmb%lzd%glr%d%n1i, tmb%lzd%glr%d%n2i, tmb%lzd%glr%d%n3i, 1+ndebug),stat=i_stat)
-  !!   call memocc(i_stat,psir,'psir',subname)
-  !!   allocate(psir2(tmb%lzd%glr%d%n1i, tmb%lzd%glr%d%n2i, tmb%lzd%glr%d%n3i, 1+ndebug),stat=i_stat)
-  !!   call memocc(i_stat,psir,'psir2',subname)
-  !!   call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
-  !!
-  !!   call daub_to_isf(tmb%lzd%glr,w,gpsi,psir)
-
-  !!   ! psir is now starting point
-  !!   call razero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-  !!   call isf_to_daub(tmb%lzd%glr,w,psir,gpsi)
-  !!   call daub_to_isf(tmb%lzd%glr,w,gpsi,psir2)
-  !!
-  !!   tmb_diff=0.0d0
-  !!   max_tmb_diff=0.0d0
-  !!   do k=1,tmb%lzd%glr%d%n3i
-  !!   do j=1,tmb%lzd%glr%d%n2i
-  !!   do i=1,tmb%lzd%glr%d%n1i
-  !!      tmb_diff=tmb_diff+dabs(psir(i,j,k,1)-psir2(i,j,k,1))
-  !!      max_tmb_diff=max(max_tmb_diff,dabs(psir(i,j,k,1)-psir2(i,j,k,1)))
-  !!      if (dabs(psir(i,j,k,1)-psir2(i,j,k,1))>1.0d-6) print*,'grlarge error',iorb+tmb%orbs%isorb,&
-  !!           psir(i,j,k,1),psir2(i,j,k,1),dabs(psir(i,j,k,1)-psir2(i,j,k,1)),i,j,k,&
-  !!           tmb%lzd%glr%d%n1i,tmb%lzd%glr%d%n2i,tmb%lzd%glr%d%n3i
-  !!   end do
-  !!   end do
-  !!   end do
-  !!   print*,'gtmbr diff',iorb+tmb%orbs%isorb,tmb_diff/(tmb%lzd%glr%d%n3i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i),max_tmb_diff
-
-
-  !!   ind=ind+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !!   call deallocate_work_arrays_sumrho(w)
-  !!   i_all=-product(shape(psir))*kind(psir)
-  !!   deallocate(psir,stat=i_stat)
-  !!   call memocc(i_stat,i_all,'psir',subname)
-  !!   i_all=-product(shape(psir2))*kind(psir2)
-  !!   deallocate(psir2,stat=i_stat)
-  !!   call memocc(i_stat,i_all,'psir2',subname)
-  !!end do
-
-  !!i_all=-product(shape(gpsi))*kind(gpsi)
-  !!deallocate(gpsi,stat=i_stat)
-  !!call memocc(i_stat,i_all,'gpsi',subname)
-
-  !!i_all=-product(shape(gpsi2))*kind(gpsi2)
-  !!deallocate(gpsi2,stat=i_stat)
-  !!call memocc(i_stat,i_all,'gpsi2',subname)
-  !!! END DEBUG
 
 
   ! check why this is here!
@@ -1652,8 +1367,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (iproc==0) call yaml_map('fnrm Pulay',fnrm_pulay)
 
              if (fnrm_pulay>1.d-1) then !1.d-10
-                !!if (iproc==0) write(*,'(1x,a)') 'The pulay force is too large after the restart. &
-                !!                                   &Start over again with an AO input guess.'
                 if (iproc==0) then
                     call yaml_warning('The pulay force is too large after the restart. &
                          &Start over again with an AO input guess.')
@@ -1700,10 +1413,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      'The pulay forces are fairly small, so not reoptimising basis.'
                     nit_lowaccuracy=0
                     nit_highaccuracy=0
-                    !!nit_highaccuracy=2
-                    !!input%lin%nItBasis_highaccuracy=2
-                    !!input%lin%nitSCCWhenFixed_highaccuracy=100
-                    !!input%lin%highaccuracy_conv_crit=1.d-8
              end if
           else
               ! Calculation of Pulay forces not possible, so always start with low accuracy
@@ -1752,22 +1461,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       implicit none
 
       if(iproc==0) then
-          !write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
-          !write(*,'(1x,a,i0,a)') 'at iteration ', it_SCC, ' of the density optimization:'
-          !!if(infoCoeff<0) then
-          !!    write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-          !!else if(infoCoeff>0) then
-          !!    write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
           call yaml_open_sequence('summary',flow=.true.)
           call yaml_open_map()
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              !!write(*,'(3x,a)') 'coefficients / kernel obtained by direct minimization.'
               call yaml_map('kernel optimization','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
-              !!write(*,'(3x,a)') 'kernel obtained by Fermi Operator Expansion'
               call yaml_map('kernel optimization','FOE')
           else
-              !!write(*,'(3x,a)') 'coefficients / kernel obtained by diagonalization.'
               call yaml_map('kernel optimization','DIAG')
           end if
 
@@ -1781,37 +1481,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
           if (input%lin%constrained_dft) then
-             !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
-             !!         it_SCC, pnrm, energy, energyDiff, ebs
-             !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta POT, energy, energyDiff, Tr[KW]', &
-             !!         it_SCC, pnrm, energy, energyDiff, ebs
-             !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4,es14.4)') 'it, Delta DENS, energy, energyDiff, Tr[KW]', &
-             !!         it_SCC, pnrm, energy, energyDiff, ebs
-             !!end if
              if (iproc==0) then
                  call yaml_newline()
                  call yaml_map('iter',it_scc,fmt='(i6)')
                  call yaml_map('delta',pnrm,fmt='(es9.2)')
                  call yaml_map('energy',energy,fmt='(es24.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
-                 !call yaml_map('Tr[KW]',ebs,fmt='(es14.4)')
                  call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
                  call yaml_close_map()
              end if
           else
-             !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-             !!         it_SCC, pnrm, energy, energyDiff
-             !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta POT, energy, energyDiff', &
-             !!         it_SCC, pnrm, energy, energyDiff
-             !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-             !!    write(*,'(3x,a,3x,i0,2x,es13.7,es27.17,es14.4)') 'it, Delta DENS, energy, energyDiff', &
-             !!         it_SCC, pnrm, energy, energyDiff
-             !!end if
              if (iproc==0) then
                  call yaml_newline()
                  call yaml_map('iter',it_scc,fmt='(i6)')
@@ -1821,7 +1500,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_close_map()
              end if
           end if     
-          !write(*,'(1x,a)') repeat('+',92 + int(log(real(it_SCC))/log(10.)))
           call yaml_close_sequence()
       end if
 
@@ -1837,23 +1515,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       energyDiff = energy - energyoldout
 
-      !if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-          mean_conf=0.d0
-          do iorb=1,tmb%orbs%norbp
-              mean_conf=mean_conf+tmb%confdatarr(iorb)%prefac
-          end do
-          call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          mean_conf=mean_conf/dble(tmb%orbs%norb)
-      !end if
+      mean_conf=0.d0
+      do iorb=1,tmb%orbs%norbp
+          mean_conf=mean_conf+tmb%confdatarr(iorb)%prefac
+      end do
+      call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      mean_conf=mean_conf/dble(tmb%orbs%norb)
 
       ! Print out values related to two iterations of the outer loop.
       if(iproc==0.and.(.not.final)) then
 
           call yaml_comment('Summary of both steps',hfill='=')
-          !call yaml_sequence(advance='no')
-          !call yaml_open_map(flow=.true.)
-          !call yaml_open_map('self consistency summary',label=&
-          !    'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
           call yaml_open_sequence('self consistency summary',label=&
               'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
           call yaml_sequence(advance='no')
@@ -1865,7 +1537,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
               call yaml_map('target function','ENERGY')
           else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
               call yaml_map('target function','HYBRID')
-              !write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
           end if
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
               call yaml_map('mean conf prefac',mean_conf,fmt='(es9.2)')
@@ -1890,32 +1561,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
               call yaml_map('iterations to converge kernel optimization',info_scf)
               call yaml_newline()
           end if
-          !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
-          !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
-          !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
-          !!end if
-          !!! Use this subroutine to write the energies, with some fake
-          !!! number to prevent it from writing too much
-          !!call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
-          !!call yaml_map('final target function',trace)
-          !!call yaml_map('final fnrm',fnrm_tmb)
-
-          !Before convergence
-          !!write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-          !!    energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                 !!     'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                 !!     energyDiff
                  call yaml_map('iter low',itout)
              else
-                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                 !!     'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                 !!     energyDiff
                  call yaml_map('iter high',itout)
              end if
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
@@ -1923,12 +1572,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                 !!     'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
                  call yaml_map('iter low',itout)
              else
-                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4)')&
-                 !!     'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff
                  call yaml_map('iter high',itout)
              end if
              call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
@@ -1937,65 +1582,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
           call yaml_close_map()
 
-          !!!when convergence is reached, use this block
-          !!write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
-          !!write(*,'(1x,a,i0,a)') 'at iteration ', itout, ' of the outer loop:'
-          !!write(*,'(3x,a)') '> basis functions optimization:'
-          !!if(target_function==TARGET_FUNCTION_IS_TRACE) then
-          !!    write(*,'(5x,a)') '- target function is trace'
-          !!else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
-          !!    write(*,'(5x,a)') '- target function is energy'
-          !!else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-          !!    write(*,'(5x,a,es8.2)') '- target function is hybrid; mean confinement prefactor = ',mean_conf
-          !!end if
-          !!if(info_basis_functions<=0) then
-          !!    write(*,'(5x,a)') '- WARNING: basis functions not converged!'
-          !!else
-          !!    write(*,'(5x,a,i0,a)') '- basis functions converged in ', info_basis_functions, ' iterations.'
-          !!end if
-          !!write(*,'(5x,a,es15.6,2x,es10.2)') 'Final values: target function, fnrm', trace, fnrm_tmb
-          !!write(*,'(3x,a)') '> density optimization:'
-          !!if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          !!    write(*,'(5x,a)') '- using direct minimization.'
-          !!else if (input%lin%scf_mode==LINEAR_FOE) then
-          !!    write(*,'(5x,a)') '- using Fermi Operator Expansion / mixing.'
-          !!else
-          !!    write(*,'(5x,a)') '- using diagonalization / mixing.'
-          !!end if
-          !!if(info_scf<0) then
-          !!    write(*,'(5x,a)') '- WARNING: density optimization not converged!'
-          !!else
-          !!    write(*,'(5x,a,i0,a)') '- density optimization converged in ', info_scf, ' iterations.'
-          !!end if
-          !!if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
-          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
-          !!else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta POT, energy', itout, pnrm, energy
-          !!else if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          !!    write(*,'(5x,a,3x,i0,es12.2,es27.17)') 'FINAL values: it, Delta DENS, energy', itout, pnrm, energy
-          !!end if
-          !!write(*,'(3x,a,es14.6)') '> energy difference to last iteration:', energyDiff
-          !!write(*,'(1x,a)') repeat('#',92 + int(log(real(itout))/log(10.)))
+          !when convergence is reached, use this block
       else if (iproc==0.and.final) then
           call yaml_comment('final results',hfill='=')
-          !call yaml_sequence(advance='no')
-          !call yaml_open_map(flow=.true.)
-          !at convergence
-          !call yaml_open_map('self consistency summary',label=&
-          !    'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
-          !call yaml_open_map('self consistency summary')
           call yaml_open_sequence('self consistency summary')
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           call yaml_map('iter',itout)
           call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
-          !!write(*,'(3x,a,7es20.12)') 'ebs, ehart, eexcu, vexcu, eexctX, eion, edisp', &
-          !!    energs%ebs, energs%eh, energs%exc, energs%evxc, energs%eexctX, energs%eion, energs%edisp
           if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                 !!     'itoutL, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                 !!     energyDiff,'FINAL'
                  call yaml_map('iter low',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
@@ -2003,9 +1599,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_comment('FINAL')
                  call yaml_close_map()
              else
-                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                 !!     'itoutH, Delta DENSOUT, energy, energyDiff', itout, pnrm_out, energy, &
-                 !!     energyDiff,'FINAL'
                  call yaml_map('iter high',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
@@ -2015,8 +1608,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
-                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                 !!     'itoutL, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
                  call yaml_map('iter low',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
@@ -2024,8 +1615,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_comment('FINAL')
                  call yaml_close_map()
              else
-                 !!write(*,'(3x,a,3x,i0,es11.2,es27.17,es14.4,3x,a)')&
-                 !!     'itoutH, Delta POTOUT, energy energyDiff', itout, pnrm_out, energy, energyDiff,'FINAL'
                  call yaml_map('iter high',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
@@ -2041,6 +1630,71 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
     end subroutine print_info
+
+
+    subroutine intermediate_forces()
+
+      ! Local variables
+      real(kind=8) :: eh_tmp, exc_tmp, evxc_tmp, eexctX_tmp
+      real(kind=8),dimension(6) :: ewaldstr, hstrten, xcstr, strten
+      real(kind=8),dimension(:),allocatable :: rhopot_work
+
+      ! TEST: calculate forces here ####################################################
+      fxyz=f_malloc((/3,at%astruct%nat/),id='fxyz')
+      ewaldstr=1.d100
+      hstrten=1.d100
+      xcstr=1.d100
+      eh_tmp=energs%eh
+      exc_tmp=energs%exc
+      evxc_tmp=energs%evxc
+      eexctX_tmp=energs%eexctX
+
+      if (denspot%dpbox%ndimpot>0) then
+          denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+          rhopot_work=f_malloc(denspot%dpbox%ndimpot+ndebug,id='rhopot_work')
+      else
+          denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+          rhopot_work=f_malloc(1+ndebug,id='rhopot_work')
+      end if
+      call dcopy(denspot%dpbox%ndimpot,denspot%rhov,1,rhopot_work,1)
+
+
+      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+           tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+      denspot%rho_work=f_malloc_ptr(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),id='denspot%rho_work')
+      call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
+           denspot%rhov(1),1,denspot%rho_work(1),1)
+      call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+      ! Density already present in denspot%rho_work
+      call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
+      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
+           0.0_dp,.false.,stress_tensor=hstrten)
+
+      
+      KSwfn%psi=f_malloc_ptr(1,id='KSwfn%psi')
+
+      fpulay=0.d0
+      call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpspd,rxyz,& 
+           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+           proj,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
+           denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
+           denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
+           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+      call f_free(fxyz)
+      call f_free_ptr(KSwfn%psi)
+
+      call dcopy(denspot%dpbox%ndimpot,rhopot_work,1,denspot%rhov,1)
+      energs%eh=eh_tmp
+      energs%exc=exc_tmp
+      energs%evxc=evxc_tmp
+      energs%eexctX=eexctX_tmp
+
+      call f_free(rhopot_work)
+      call f_free_ptr(denspot%rho_work)
+      call f_free_ptr(denspot%pot_work)
+
+    end subroutine intermediate_forces
 
 
 end subroutine linearScaling
@@ -2163,117 +1817,3 @@ subroutine output_fragment_rotations(iproc,nproc,nat,rxyz,iformat,filename,input
    end if
 
 end subroutine output_fragment_rotations
-
-
-subroutine cut_at_boundaries(cut, tmb)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  real(kind=8),intent(in)  :: cut
-  type(DFT_wavefunction),intent(inout) :: tmb
-
-  ! Local variables
-  integer :: iorb, iiorb, ilr, icount, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, istart, iend
-  real(kind=8) :: dist, cut2
-
-  ! square of the cutoff radius
-  cut2=cut**2
-
-  ishift=0
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-
-      icount=0
-      do iseg=1,tmb%lzd%llr(ilr)%wfd%nseg_c
-         jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
-         j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
-         j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
-         ii=j0-1
-         i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
-         ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
-         i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
-         i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
-         i1=i0+j1-j0
-         do i=i0,i1
-            dist = ((tmb%lzd%llr(ilr)%ns1+i )*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
-                 + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
-                 + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
-            if (dist>=cut2) then
-                !tmb%psi(ishift+i-i0+jj)=0.d0
-                icount=icount+1
-                tmb%psi(ishift+icount)=0.d0
-            else
-                icount=icount+1
-            end if
-            !psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
-         end do
-      end do
-      if (icount/=tmb%lzd%llr(ilr)%wfd%nvctr_c) then
-          write(*,*) 'ERROR: icount /= tmb%lzd%llr(ilr)%wfd%nvctr_c', icount, tmb%lzd%llr(ilr)%wfd%nvctr_c
-          stop
-      end if
-      ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c
-
-      ! fine part
-      istart=tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))
-      iend=tmb%lzd%llr(ilr)%wfd%nseg_c+tmb%lzd%llr(ilr)%wfd%nseg_f
-      icount=0
-      do iseg=istart,iend
-         jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
-         j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
-         j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
-         ii=j0-1
-         i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
-         ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
-         i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
-         i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
-         i1=i0+j1-j0
-         do i=i0,i1
-            dist = ((tmb%lzd%llr(ilr)%ns1+i )*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
-                 + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
-                 + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
-            if (dist>=cut2) then
-                !tmb%psi(ishift+(i-i0+jj-1)*7+1)=0.d0
-                !tmb%psi(ishift+(i-i0+jj-1)*7+2)=0.d0
-                !tmb%psi(ishift+(i-i0+jj-1)*7+3)=0.d0
-                !tmb%psi(ishift+(i-i0+jj-1)*7+4)=0.d0
-                !tmb%psi(ishift+(i-i0+jj-1)*7+5)=0.d0
-                !tmb%psi(ishift+(i-i0+jj-1)*7+6)=0.d0
-                !tmb%psi(ishift+(i-i0+jj-1)*7+7)=0.d0
-                !icount=icount+7
-                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
-                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
-                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
-                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
-                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
-                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
-                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
-            else
-                icount=icount+7
-            end if
-            !psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
-            !psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
-            !psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
-            !psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
-            !psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
-            !psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
-            !psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
-         end do
-      end do
-      if (icount/=7*tmb%lzd%llr(ilr)%wfd%nvctr_f) then
-          write(*,*) 'ERROR: icount /= 7*tmb%lzd%llr(ilr)%wfd%nvctr_f', icount, 7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-          stop
-      end if
-      ishift=ishift+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-
-  end do
-
-  if (ishift/=tmb%npsidim_orbs) then
-      write(*,*) 'ERROR: ishift /= tmb%npsidim_orbs', ishift, tmb%npsidim_orbs
-      stop
-  end if
-
-end subroutine cut_at_boundaries

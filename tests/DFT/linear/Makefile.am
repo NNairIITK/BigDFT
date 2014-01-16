@@ -17,7 +17,8 @@ TESTDIRS = Locreg \
 	   linearcubic \
 	   highertaylor \
 	   newpulay \
-	   explicit_locregcenters
+	   explicit_locregcenters \
+	   intermediateforces
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \

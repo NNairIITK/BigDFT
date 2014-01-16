@@ -1398,6 +1398,8 @@ subroutine perf_input_analyse(iproc,in,dict)
   in%explicit_locregcenters = dict//EXPLICIT_LOCREGCENTERS
   ! linear scaling: calculate Kohn-Sham residue
   in%calculate_KS_residue = dict//CALCULATE_KS_RESIDUE
+  ! linear scaling: calculate intermediate forces
+  in%intermediate_forces = dict//INTERMEDIATE_FORCES
   call f_release_routine()
 END SUBROUTINE perf_input_analyse
 

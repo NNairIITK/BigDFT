@@ -2028,8 +2028,8 @@ module module_interfaces
 
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
-          reduce_conf, fix_supportfunctions,nit_precond,target_function,&
-          correction_orthoconstraint,nit_basis,deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix,&
+          nit_precond,target_function,&
+          correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
         use module_base
         use module_types
@@ -2052,9 +2052,7 @@ module module_interfaces
         type(DFT_wavefunction),target,intent(inout) :: tmb
         type(SIC_data) :: SIC !<parameters for the SIC methods
         type(energy_terms),intent(in) :: energs_base
-        logical,intent(out) :: reduce_conf, fix_supportfunctions
         integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
-        real(kind=8),intent(in) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
         real(kind=8),intent(out) :: ratio_deltas
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
@@ -3412,7 +3410,7 @@ module module_interfaces
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
                   lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
-                  experimental_mode)
+                  experimental_mode, trH_ref)
          use module_base
          use module_types
          implicit none
@@ -3425,9 +3423,10 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
          logical, intent(in) :: ortho, experimental_mode
+         real(kind=8),intent(out) :: trH_ref
        end subroutine hpsitopsi_linear
        
-       subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt)
+       subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt, trH_ref)
          use module_base
          use module_types
          implicit none
@@ -3437,6 +3436,7 @@ module module_interfaces
          type(localizedDIISParameters),intent(inout):: ldiis
          real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
+         real(kind=8),intent(out) :: trH_ref
        end subroutine DIISorSD
  
        subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&

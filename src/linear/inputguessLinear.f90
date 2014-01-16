@@ -65,7 +65,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8),dimension(:),allocatable :: philarge
   integer :: npsidim_large, sdim, ldim, ists, istl, ilr, nspin, info_basis_functions
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
-  logical :: ortho_on, fix_supportfunctions, reduce_conf
+  logical :: ortho_on, reduce_conf
   type(localizedDIISParameters) :: ldiis
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
@@ -587,7 +587,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  if (input%experimental_mode) then
      ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
      ortho_on=.true.
-     fix_supportfunctions=.false.
      call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
      ldiis%alphaSD=input%lin%alphaSD
      ldiis%alphaDIIS=input%lin%alphaDIIS
@@ -602,9 +601,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      end if
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
-         reduce_conf,fix_supportfunctions,input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
-         50,input%lin%deltaenergy_multiplier_TMBexit,input%lin%deltaenergy_multiplier_TMBfix,&
+         input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
+         50,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop)
+     reduce_conf=.true.
      call yaml_close_sequence()
      call yaml_close_map()
      call deallocateDIIS(ldiis)
