@@ -235,6 +235,7 @@ call timing(iproc,'misc','ON')
          if (iorb==jorb) then
              if (iproc==0 .and. iorb==1) then
                  call yaml_warning('EXPERIMENTAL: modify eval')
+                 call yaml_newline()
              end if
              orbs%eval(iorb)=lagmat%matrix_compr(ii)
          end if

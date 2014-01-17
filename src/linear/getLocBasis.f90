@@ -454,13 +454,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh, trH_ref
   integer,dimension(3) :: ipiv
   real(kind=8),dimension(:,:),allocatable :: psi_old
-  real(kind=8),dimension(:),allocatable :: psi_tmp
+  real(kind=8),dimension(:),allocatable :: psi_tmp, kernel_best
   integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin
   logical :: stop_optimization, energy_increased_previous
 
   call f_routine(id='getLocalizedBasis')
 
-  delta_energy_arr=f_malloc(nit_basis)
+  delta_energy_arr=f_malloc(nit_basis,id='delta_energy_arr')
+  kernel_best=f_malloc(tmb%linmat%denskern%nvctr,id='kernel_best')
   stop_optimization=.false.
 
 
@@ -829,7 +830,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
-           experimental_mode, trH_ref)
+           experimental_mode, trH_ref, kernel_best)
 
 
       overlap_calculated=.false.
@@ -940,6 +941,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
   call f_free(delta_energy_arr)
+  call f_free(kernel_best)
 
   call f_release_routine()
 
@@ -1398,7 +1400,7 @@ end subroutine communicate_basis_for_density_collective
 
 
 
-subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt, trH_ref)
+subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt, trH_ref, kernel_best)
   use module_base
   use module_types
   use yaml_output
@@ -1412,6 +1414,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
   real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
   real(kind=8),intent(out) :: trH_ref
+  real(kind=8),dimension(tmbopt%linmat%denskern%nvctr),intent(out) :: kernel_best
   
   ! Local variables
   integer :: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
@@ -1452,6 +1455,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
       trH_ref=trH
+      call vcopy(tmbopt%linmat%denskern%nvctr, tmbopt%linmat%denskern%matrix_compr(1), 1, kernel_best(1), 1)
       !if(iproc==0) write(*,*) 'everything ok, copy last psi...'
       call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
@@ -1546,7 +1550,8 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
                  istdest=istdest+ncount
              end do
              trH_ref=ldiis%energy_hist(ii)
-             if (iproc==0) write(*,*) 'take energy from entry',ii
+             !if (iproc==0) write(*,*) 'take energy from entry',ii
+             call vcopy(tmbopt%linmat%denskern%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern%matrix_compr(1), 1)
          else
              !if(iproc==0) write(*,*) 'copy last psi...'
              call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)

@@ -622,13 +622,13 @@ linearcubic_linear:
 
 highertaylor_experimental_order2:
  Atomic Forces (Ha/Bohr): 1.8e-8
- Average noise forces: 2.1e-8
- Clean forces norm (Ha/Bohr): 1.9e-8
- Raw forces norm (Ha/Bohr): 2.1e-08
- charge diff: 2.4e-06
+ Average noise forces: 2.0e-7
+ Clean forces norm (Ha/Bohr): 7.2e-8
+ Raw forces norm (Ha/Bohr): 7.5e-08
+ charge diff: 2.9e-06
  multiplicator for the confinement: 5.4e-10
  Omega: 1.3e-06
- Tr(K): 2.4e-06
+ Tr(K): 2.9e-06
  eF: 7.1e-08
  D Tr: 1.8e-06
  D eF: 7.2e-08
@@ -644,49 +644,50 @@ highertaylor_experimental_order2:
 
 highertaylor_experimental_order3:
  Atomic Forces (Ha/Bohr): 1.4e-8
- Average noise forces: 3.5e-09
- Clean forces norm (Ha/Bohr): 1.7e-08
- Raw forces norm (Ha/Bohr): 1.8e-08
- charge diff: 2.3e-06
+ Average noise forces: 2.0e-07
+ Clean forces norm (Ha/Bohr): 1.6e-07
+ Raw forces norm (Ha/Bohr): 1.6e-07
+ charge diff: 3.3e-05
  multiplicator for the confinement: 5.1e-10
- Omega: 1.2e-06
- Tr(K): 2.3e-06
- eF: 5.8e-08
- D Tr: 1.5e-06
- D eF: 6.1e-08
+ Omega: 5.8e-06
+ Tr(K): 3.3e-05
+ eF: 3.6e-07
+ D Tr: 1.5e-05
+ D eF: 3.2e-07
  energy: 1.4e-07
- EH: 1.5e-06
- EXC: 2.9e-07
- Ekin: 1.2e-07
- Enl: 1.4e-08
- Epot: 1.3e-06
- EvXC: 3.8e-07
+ EH: 1.2e-05
+ EXC: 3.3e-06
+ Ekin: 1.8e-07
+ Enl: 1.5e-08
+ Epot: 8.8e-06
+ EvXC: 4.3e-06
  D: 2.1e-10
  delta: 1.1e-10
+ Total charge: 1.3e-09
 
 highertaylor_experimental_order4:
- Atomic Forces (Ha/Bohr): 5.0e-9
- Average noise forces: 5.6e-9
- Clean forces norm (Ha/Bohr): 5.0e-9
- Raw forces norm (Ha/Bohr): 3.5e-9
- EH: 2.0e-7
- EXC: 4.3e-8
- Ekin: 1.4e-7
- Enl: 1.7e-8
- Epot: 1.9e-7
- EvXC: 4.0e-7
+ Atomic Forces (Ha/Bohr): 6.5e-9
+ Average noise forces: 3.1e-7
+ Clean forces norm (Ha/Bohr): 8.1e-7
+ Raw forces norm (Ha/Bohr): 7.7e-9
+ EH: 2.9e-5
+ EXC: 5.0e-6
+ Ekin: 5.1e-6
+ Enl: 7.8e-7
+ Epot: 2.6e-5
+ EvXC: 6.5e-6
  det: 1.4e-1
  Tr(K): 2.4e-2
  D Tr: 1.5e-2
  D eF: 3.2e-2
  bisec/eval bounds: 3.2e-2
  charge diff: 2.4e-2
- eF: 7.0e-8
+ eF: 4.9e-7
  energy: 2.9e-8
  multiplicator for the confinement: 5.4e-10
- Omega: 1.5e-7
+ Omega: 2.1e-5
  Total charge: 2.1e-11
- D: 1.1e-9
+ D: 1.1e-6
 
 newpulay:
  EXC: 1.1e-10
