@@ -318,6 +318,7 @@ directmin:
  Epsilon: 3.5e-10
  mean alpha: 1.1e-04
  max alpha: 1.1e-04
+ Electric Dipole Moment (Debye): 1.1e-07
 
 experimentalmode:
  D: 1.1e-06
