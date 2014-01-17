@@ -1920,9 +1920,8 @@ module module_interfaces
     end subroutine readAtomicOrbitals
 
     subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-         rxyz, nlpspd, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs,&
+         rxyz, nlpsp, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs,&
          locregcenters)
-         
       ! Input wavefunctions are found by a diagonalization in a minimal basis set
       ! Each processors write its initial wavefunctions into the wavefunction file
       ! The files are then read by readwave
@@ -2705,7 +2704,7 @@ module module_interfaces
 
        subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,in,atoms,rxyz,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,radii_cf,&
-            ref_frags, locregcenters, denspot, inwhichlocreg_old, onwhichatom_old, output_grid)
+            ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, output_grid)
          use module_base
          use module_types
          use module_fragments

@@ -305,18 +305,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   type(gaussian_basis),dimension(max(atoms%astruct%ntypes,0))::proj_G
   type(rholoc_objects)::rholoc_tmp
 
-  !debug
-  !real(kind=8) :: ddot
-
-  call f_routine(id=subname)
-
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
   integer :: ilr, nlr
   character(len=20) :: comment
 
+  !debug
+  !real(kind=8) :: ddot
 
-  call f_routine(id='linearScaling')
+  call f_routine(id=subname)
+
 
   call nullify_rholoc_objects(rholoc_tmp)
 
@@ -444,9 +442,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
          KSwfn%comms,shift,radii_cf,ref_frags,denspot,locregcenters,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
   else if(in%inputPsiId == INPUT_PSI_LINEAR_AO .or. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-    call system_initialization(iproc,nproc,inputpsi,input_wf_format,in,atoms,rxyz,&
-         KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,denspot,nlpspd,&
-         KSwfn%comms,shift,proj,radii_cf,ref_frags,locregcenters)
+    call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,&
+         KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
+         KSwfn%comms,shift,radii_cf,ref_frags,denspot,locregcenters)
   else
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
@@ -600,11 +598,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
       in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
       in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
+      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
            inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
            locregcenters)
   else
-      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
+      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
            inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
   end if
 
@@ -1319,9 +1317,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !?!    endif
 
   call deallocate_before_exiting
-
-  call f_release_routine()
-    
 
   call f_release_routine()
 contains

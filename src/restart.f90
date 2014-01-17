@@ -1200,10 +1200,6 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 
       end if
 
-      i_all = -product(shape(frag_trans%discrete_operations))*kind(frag_trans%discrete_operations)
-      deallocate(frag_trans%discrete_operations,stat=i_stat)
-      call memocc(i_stat,i_all,'frag_trans%discrete_operations',subname)
-
   end do
 
   call print_reformat_summary(iproc,reformat_reason)

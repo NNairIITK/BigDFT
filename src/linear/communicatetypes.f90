@@ -319,7 +319,7 @@ subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs
       end do
       if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
          do jlr=max(ilr-max_sim_comms+1,1),ilr
-            if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd,subname)
+            if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
          end do
          call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
          if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&

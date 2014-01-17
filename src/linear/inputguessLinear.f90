@@ -13,7 +13,7 @@
 !! Each processors write its initial wavefunctions into the wavefunction file
 !! The files are then read by readwave
 subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-     rxyz, nlpspd, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs, &
+     rxyz, nlpsp, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs, &
      locregcenters)
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement

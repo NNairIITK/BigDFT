@@ -1785,7 +1785,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      tmb%can_use_transposed=.false.
      if (.not.present(locregcenters)) stop 'locregcenters not present!'
      call inputguessConfinement(iproc,nproc,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-          rxyz,nlpspd,GPU,KSwfn%orbs,kswfn,tmb,denspot,denspot0,energs,locregcenters)
+          rxyz,nlpsp,GPU,KSwfn%orbs,kswfn,tmb,denspot,denspot0,energs,locregcenters)
      if(tmb%can_use_transposed) then
          i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
          deallocate(tmb%psit_c, stat=i_stat)
