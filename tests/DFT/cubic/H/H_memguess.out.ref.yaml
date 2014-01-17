@@ -142,8 +142,6 @@
      Number of plotted density orbitals:  0
    Density/Potential:
      Max. Iterations                   :  1
- Exchange-Correlation reference        : "XC: Teter 93"
- XC functional implementation          : ABINIT
   #----------------------------------------------------------------------- System Properties
  Properties of atoms in the system:
  - Symbol                              : H #Type No.  01

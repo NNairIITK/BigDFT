@@ -57,7 +57,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   end if
 
   if (iproc==0) then
-      call yamL_newline()
+      call yaml_newline()
       call yaml_open_sequence('expansion coefficients optimization',label=&
            'it_coeff'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'_'//&
            trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))//&

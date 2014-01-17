@@ -34,6 +34,10 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 
   nullify(dict) !this is however put in the case the dictionary comes undefined
 
+  call dict_init(dict)
+  if (trim(radical) /= "" .and. trim(radical) /= "input") &
+       & call set(dict // "radical", radical)
+
   ! Handle error with master proc only.
   if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
 
@@ -53,7 +57,6 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   ! We fallback on the old text format (to be eliminated in the future)
   if (.not.exists_default .and. .not. exists_user) then
      ! Parse all files.
-     call dict_init(dict)
      call set_inputfile(f0, radical, PERF_VARIABLES)
      call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, DFT_VARIABLES)
@@ -147,19 +150,32 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   use module_interfaces, except => inputs_from_dict
   use dictionaries
   use module_input_keys
+  use module_input_dicts
+  use dynamic_memory
   implicit none
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(inout) :: atoms
+  type(input_variables), intent(out) :: in
+  type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
   logical, intent(in) :: dump
 
   !type(dictionary), pointer :: profs
-  integer :: ierr
+  integer :: ierr, ityp
   type(dictionary), pointer :: dict_minimal
+  character(max_field_length) :: radical
+
   call f_routine(id='inputs_from_dict')
 
+  ! Atoms case.
+  atoms = atoms_null()
+  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
+
+  ! Input variables case.
   call default_input_variables(in)
 
+  ! Setup radical for output dir.
+  write(radical, "(A)") "input"
+  if (has_key(dict, "radical")) radical = dict // "radical"
+  call standard_inputfile_names(in,trim(radical))
   ! To avoid race conditions where procs create the default file and other test its
   ! presence, we put a barrier here.
   if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
@@ -179,10 +195,19 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   call astruct_set_displacement(atoms%astruct, in%randdis)
   if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
   ! Update atoms with symmetry information
-  call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield)
+  call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield, in%nspin)
 
   call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
+
+  ! Add missing pseudo information.
+  do ityp = 1, atoms%astruct%ntypes, 1
+     call psp_dict_fill_all(dict, atoms%astruct%atomnames(ityp), in%ixc)
+  end do
+
+  ! Update atoms with pseudo information.
+  call psp_dict_analyse(dict, atoms)
+  call atomic_data_set_from_dict(dict, "Atomic occupation", atoms, in%nspin)
   
   if (bigdft_mpi%iproc == 0 .and. dump) then
      call input_keys_dump(dict)
@@ -214,17 +239,16 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      DistProjApply=.true.
   end if
 
+  !if other steps are supposed to be done leave the last_run to minus one
+  !otherwise put it to one
+  if (in%last_run == -1 .and. in%ncount_cluster_x <=1 .or. in%ncount_cluster_x <= 1) then
+     in%last_run = 1
+  end if
+
   ! Stop the code if it is trying to run GPU with spin=4
   if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
      if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-  end if
-
-  ! This should be moved to init_atomic_values, but we can't since
-  ! input.lin needs some arrays allocated here.
-  if (.not. associated(atoms%nzatom)) then
-     call allocate_atoms_nat(atoms, "inputs_from_dict")
-     call allocate_atoms_ntypes(atoms, "inputs_from_dict")
   end if
 
   ! Linear scaling (if given)
@@ -1088,17 +1112,18 @@ subroutine geopt_input_analyse(iproc,in,dict)
   integer :: i_stat,i
   character(len = max_field_length) :: prof, meth
   real(gp) :: betax_, dtmax_
+  logical :: user_defined
 
   ! Additional treatments.
   meth = dict // GEOPT_METHOD
   if (input_keys_equal(trim(meth), "FIRE")) then
-     prof = input_keys_get_source(dict, DTMAX)
-     if (trim(prof) == "default") then
+     prof = input_keys_get_source(dict, DTMAX, user_defined)
+     if (trim(prof) == "default" .and. .not. user_defined) then
         betax_ = dict // BETAX
         call set(dict // DTMAX, 0.25 * pi_param * sqrt(betax_), fmt = "(F7.4)")
      end if
-     prof = input_keys_get_source(dict, DTINIT)
-     if (trim(prof) == "default") then
+     prof = input_keys_get_source(dict, DTINIT, user_defined)
+     if (trim(prof) == "default" .and. .not. user_defined) then
         dtmax_ = dict // DTMAX
         call set(dict // DTINIT, 0.5 * dtmax_, fmt = "(F7.4)")
      end if

@@ -375,7 +375,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
         Lzd%lintyp = 0
         !copy Glr to Llr(1)
         call nullify_locreg_descriptors(Lzd%Llr(1))
-        call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1),subname)
+        call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1))
      else 
         Lzd%lintyp = 1
         ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
@@ -507,7 +507,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
 
 !  print *,'before Glr => Lzd%Glr'
   call nullify_locreg_descriptors(Lzd%Glr)
-  call copy_locreg_descriptors(Glr,Lzd%Glr,subname)
+  call copy_locreg_descriptors(Glr,Lzd%Glr)
 
   if(linearmode /= INPUT_IG_TMO) then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
@@ -521,7 +521,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
         !copy Glr Lzd%Llr(1)
         call nullify_locreg_descriptors(Lzd%Llr(1))
 !        print *,'before Glr => Lzd%Llr(1)'
-        call copy_locreg_descriptors(Glr,Lzd%Llr(1),subname)
+        call copy_locreg_descriptors(Glr,Lzd%Llr(1))
      else 
         Lzd%lintyp = 1
         ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
@@ -818,7 +818,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
   call initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, glr_tmp, 's')!, llborbs)
   call timing(iproc,'updatelocreg1','ON') 
   call nullify_locreg_descriptors(lzd%glr)
-  call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
+  call copy_locreg_descriptors(glr_tmp, lzd%glr)
   lzd%hgrids(1)=hx
   lzd%hgrids(2)=hy
   lzd%hgrids(3)=hz

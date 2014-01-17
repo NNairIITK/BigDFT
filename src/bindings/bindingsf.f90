@@ -192,7 +192,7 @@ subroutine glr_copy(glr, d, wfd, from)
   call nullify_locreg_descriptors(glr)
   d => glr%d
   wfd => glr%wfd
-  call copy_locreg_descriptors(from, glr, "glr_copy")
+  call copy_locreg_descriptors(from, glr)
 end subroutine glr_copy
 subroutine glr_init(glr, d, wfd)
   use module_types
@@ -223,11 +223,11 @@ subroutine glr_free(glr)
   deallocate(glr)
 end subroutine glr_free
 subroutine glr_empty(glr)
-  use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
 
-  call deallocate_locreg_descriptors(glr, "glr_empty")
+  call deallocate_locreg_descriptors(glr)
 end subroutine glr_empty
 subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   use module_types
@@ -306,7 +306,7 @@ subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   glr%wfd%nseg_f = nseg_f
   glr%wfd%nvctr_c = nvctr_c
   glr%wfd%nvctr_f = nvctr_f
-  call allocate_wfd(glr%wfd, "glr_set_wfd_dims")
+  call allocate_wfd(glr%wfd)
 END SUBROUTINE glr_set_wfd_dims
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
@@ -402,7 +402,8 @@ subroutine lzd_empty(lzd)
   call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
 END SUBROUTINE lzd_empty
 subroutine lzd_set_nlr(lzd, nlr, geocode)
-  use module_types
+  use locregs
+  use module_types, only: local_zone_descriptors
   implicit none
   type(local_zone_descriptors), intent(inout) :: lzd
   integer, intent(in) :: nlr
@@ -412,7 +413,7 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
   
   if (lzd%nlr > 0) then
      do i = 1, lzd%nlr, 1
-        call deallocate_locreg_descriptors(lzd%Llr(i), "lzd_set_nlr")
+        call deallocate_locreg_descriptors(lzd%Llr(i))
      end do
      deallocate(lzd%llr)
   end if
@@ -468,7 +469,7 @@ subroutine inputs_set(dict, file, key, val)
   character(len = *), intent(in) :: file, key, val
 
   ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file // key, val(1:len(val)))
+  call set(dict // file(1:len(file)) // key(1:len(key)), val(1:len(val)))
 END SUBROUTINE inputs_set
 subroutine inputs_set_at(dict, file, key, i, val)
   use dictionaries
@@ -479,8 +480,18 @@ subroutine inputs_set_at(dict, file, key, i, val)
   character(len = *), intent(in) :: file, key, val
 
   ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file // key // i, val(1:len(val)))
+  call set(dict // file(1:len(file)) // key(1:len(key)) // i, val(1:len(val)))
 END SUBROUTINE inputs_set_at
+subroutine inputs_set_at2(dict, file, key, i, j, val)
+  use dictionaries
+  use module_types
+  implicit none
+  type(dictionary), pointer :: dict
+  integer, intent(in) :: i, j
+  character(len = *), intent(in) :: file, key, val
+  ! This is a patch for Intel, to be corrected properly later.
+  call set(dict // file(1:len(file)) // key(1:len(key)) // i // j, val(1:len(val)))
+END SUBROUTINE inputs_set_at2
 
 subroutine inputs_set_from_file(dict, fname)
   use dictionaries, only: dictionary
@@ -493,6 +504,40 @@ subroutine inputs_set_from_file(dict, fname)
 
   call read_input_dict_from_files(fname, bigdft_mpi,dict)
 end subroutine inputs_set_from_file
+subroutine inputs_dump_to_file(iostat, dict, fname, userOnly)
+  use dictionaries, only: dictionary
+  use module_input_keys, only: input_keys_dump
+  use yaml_output
+  implicit none
+  integer, intent(out) :: iostat
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: fname
+  logical, intent(in) :: userOnly
+
+  integer, parameter :: iunit = 756841 !< Hopefully being unique...
+  integer :: iunit_def
+
+  call yaml_get_default_stream(iunit_def)
+  if (iunit_def == iunit) then
+     iostat = 1
+     return
+  end if
+  
+  open(unit = iunit, file = fname(1:len(fname)), iostat = iostat)
+  if (iostat /= 0) return
+
+  call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)
+  if (iostat /= 0) return
+
+  call yaml_new_document(unit = iunit)
+  call input_keys_dump(dict, userOnly)
+
+  call yaml_close_stream(iunit, iostat)
+  if (iostat /= 0) return
+  close(unit = iunit)
+
+  call yaml_set_default_stream(iunit_def, iostat)
+end subroutine inputs_dump_to_file
 
 subroutine inputs_fill_all(inputs_values)
   use module_input_keys
@@ -831,23 +876,24 @@ subroutine proj_new(nlpspd)
   allocate(nlpspd)
 END SUBROUTINE proj_new
 subroutine proj_free(nlpspd, proj)
+  use psp_projectors
   use module_types
   use memory_profiling
   implicit none
-  type(nonlocal_psp_descriptors), pointer :: nlpspd
+  type(DFT_PSP_projectors), pointer :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
 
   integer :: i_stat, i_all
 
-  call deallocate_proj_descr(nlpspd,"proj_free")
-  i_all=-product(shape(proj))*kind(proj)
-  deallocate(proj,stat=i_stat)
-  call memocc(i_stat,i_all,'proj',"proj_free")
+  call free_DFT_PSP_projectors(nlpspd)
+!!$  i_all=-product(shape(proj))*kind(proj)
+!!$  deallocate(proj,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'proj',"proj_free")
 END SUBROUTINE proj_free
 subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   use module_types
   implicit none
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(in) :: nlpspd
   integer, intent(out) :: nproj, nprojel
   
   nproj = nlpspd%nproj
@@ -1444,6 +1490,7 @@ subroutine run_objects_destroy(runObj)
   ! We don't do it here, we just destroy the container,
   !  The caller is responsible to free public attributes.
   !call run_objects_free(runObj)
+  call run_objects_free_container(runObj)
   deallocate(runObj)
 end subroutine run_objects_destroy
 subroutine run_objects_get(runObj, inputs, atoms, rst)
@@ -1460,14 +1507,95 @@ subroutine run_objects_get(runObj, inputs, atoms, rst)
 END SUBROUTINE run_objects_get
 subroutine run_objects_association(runObj, inputs, atoms, rst)
   use module_types
+  use module_interfaces, only: run_objects_associate
   implicit none
   type(run_objects), intent(out) :: runObj
   type(input_variables), intent(in), target :: inputs
   type(atoms_data), intent(in), target :: atoms
   type(restart_objects), intent(in), target :: rst
 
-  call run_objects_nullify(runObj)
-  runObj%atoms  => atoms
-  runObj%inputs => inputs
-  runObj%rst    => rst
+  call run_objects_associate(runObj, inputs, atoms, rst)
 END SUBROUTINE run_objects_association
+subroutine run_objects_dump_to_file(iostat, dict, atoms, fname, userOnly, comment)
+  use dictionaries, only: dictionary
+  use module_input_keys, only: input_keys_dump
+  use module_types, only: atoms_data
+  use module_defs, only: UNINITIALIZED, gp
+  use yaml_output
+  implicit none
+  integer, intent(out) :: iostat
+  type(dictionary), pointer :: dict
+  type(atoms_data), intent(in) :: atoms
+  character(len = *), intent(in) :: fname, comment
+  logical, intent(in) :: userOnly
+
+  integer, parameter :: iunit = 145214 !< Hopefully being unique...
+  integer :: iunit_def
+  real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
+
+  call yaml_get_default_stream(iunit_def)
+  if (iunit_def == iunit) then
+     iostat = 1
+     return
+  end if
+  
+  open(unit = iunit, file = fname(1:len(fname)), iostat = iostat)
+  if (iostat /= 0) return
+
+  call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)
+  if (iostat /= 0) return
+
+  call yaml_new_document(unit = iunit)
+  call input_keys_dump(dict, userOnly)
+  call yaml_open_map("Atomic structure")
+  call wtyaml(iunit, UNINITIALIZED(1.d0), atoms%astruct%rxyz, atoms, &
+       & .false., atoms%astruct%rxyz, .false., dummy, dummy)
+  call yaml_close_map()
+
+  call yaml_close_stream(iunit, iostat)
+  if (iostat /= 0) return
+  close(unit = iunit)
+
+  call yaml_set_default_stream(iunit_def, iostat)
+END SUBROUTINE run_objects_dump_to_file
+
+subroutine mem_new(mem)
+  use module_types, only: memory_estimation
+  implicit none
+  type(memory_estimation), pointer :: mem
+
+  allocate(mem)
+end subroutine mem_new
+subroutine mem_destroy(mem)
+  use module_types, only: memory_estimation
+  implicit none
+  type(memory_estimation), pointer :: mem
+
+  deallocate(mem)
+  nullify(mem)
+end subroutine mem_destroy
+subroutine mem_to_c(mem, submat, ncomponents, norb, norbp, oneorb, allpsi_mpi, &
+     & psistorage, projarr, grid, workarr, kernel, density, psolver, ham, peak)
+  use module_types, only: memory_estimation
+  implicit none
+  type(memory_estimation), intent(in) :: mem
+  double precision, intent(out) :: submat, oneorb, allpsi_mpi, &
+     & psistorage, projarr, grid, workarr, kernel, density, psolver, ham, peak
+  integer, intent(out) :: ncomponents, norb, norbp
+
+  submat = mem%submat
+  ncomponents = mem%ncomponents
+  norb = mem%norb
+  norbp = mem%norbp
+  oneorb = mem%oneorb
+  allpsi_mpi = mem%allpsi_mpi
+  psistorage = mem%psistorage
+  projarr = mem%projarr
+  grid = mem%grid
+  workarr = mem%workarr
+  kernel = mem%kernel
+  density = mem%density
+  psolver = mem%psolver
+  ham = mem%ham
+  peak = mem%peak
+END SUBROUTINE mem_to_c

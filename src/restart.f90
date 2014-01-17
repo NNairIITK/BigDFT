@@ -25,6 +25,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   !real(kind=8), parameter :: eps_mach=1.d-12
   integer :: iseg,j,ind1,iorb,i_all,i_stat,oidx,sidx !n(c) nvctrp_old
   real(kind=8) :: tt
+  call f_routine(id=subname)
 
   wfd_old%nvctr_c = wfd%nvctr_c
   wfd_old%nvctr_f = wfd%nvctr_f
@@ -32,7 +33,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   wfd_old%nseg_f  = wfd%nseg_f
 
   !allocations
-  call allocate_wfd(wfd_old,subname)
+  call allocate_wfd(wfd_old)
 
   do iseg=1,wfd_old%nseg_c+wfd_old%nseg_f
      wfd_old%keyglob(1,iseg)    = wfd%keyglob(1,iseg) 
@@ -43,7 +44,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      wfd_old%keyvglob(iseg)      = wfd%keyvglob(iseg)
   enddo
   !deallocation
-  call deallocate_wfd(wfd,subname)
+  call deallocate_wfd(wfd)
 
   n1_old = n1
   n2_old = n2
@@ -53,6 +54,9 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
   !n(c) nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
+!  psi_old=&
+!       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,!&
+!       id='psi_old')
   allocate(psi_old((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor+ndebug),&
        stat=i_stat)
   call memocc(i_stat,psi_old,'psi_old',subname)
@@ -79,6 +83,8 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi',subname)
+
+  call f_release_routine()
 
 END SUBROUTINE copy_old_wavefunctions
 
@@ -1194,6 +1200,10 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 
       end if
 
+      i_all = -product(shape(frag_trans%discrete_operations))*kind(frag_trans%discrete_operations)
+      deallocate(frag_trans%discrete_operations,stat=i_stat)
+      call memocc(i_stat,i_all,'frag_trans%discrete_operations',subname)
+
   end do
 
   call print_reformat_summary(iproc,reformat_reason)
@@ -1207,14 +1217,14 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   lzd_tmp%hgrids(:)=tmb%lzd%hgrids(:)
 
   call nullify_locreg_descriptors(lzd_tmp%glr)
-  call copy_locreg_descriptors(tmb%lzd%glr, lzd_tmp%glr, subname)
+  call copy_locreg_descriptors(tmb%lzd%glr, lzd_tmp%glr)
 
   iis1=lbound(tmb%lzd%llr,1)
   iie1=ubound(tmb%lzd%llr,1)
   allocate(lzd_tmp%llr(iis1:iie1), stat=i_stat)
   do i1=iis1,iie1
      call nullify_locreg_descriptors(lzd_tmp%llr(i1))
-     call copy_locreg_descriptors(tmb%lzd%llr(ilr_tmp), lzd_tmp%llr(i1), subname)
+     call copy_locreg_descriptors(tmb%lzd%llr(ilr_tmp), lzd_tmp%llr(i1))
   end do
 
   call nullify_collective_comms(collcom_tmp)
@@ -1480,14 +1490,14 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   lzd_tmp%hgrids(:)=tmb%lzd%hgrids(:)
 
   call nullify_locreg_descriptors(lzd_tmp%glr)
-  call copy_locreg_descriptors(tmb%lzd%glr, lzd_tmp%glr, subname)
+  call copy_locreg_descriptors(tmb%lzd%glr, lzd_tmp%glr)
 
   iis1=lbound(tmb%lzd%llr,1)
   iie1=ubound(tmb%lzd%llr,1)
   allocate(lzd_tmp%llr(iis1:iie1), stat=i_stat)
   do i1=iis1,iie1
      call nullify_locreg_descriptors(lzd_tmp%llr(i1))
-     call copy_locreg_descriptors(tmb%lzd%llr(jlr), lzd_tmp%llr(i1), subname)
+     call copy_locreg_descriptors(tmb%lzd%llr(jlr), lzd_tmp%llr(i1))
   end do
 
   call nullify_collective_comms(collcom_tmp)
@@ -2664,7 +2674,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   lzd_old%glr%wfd%nseg_f  = lzd%glr%wfd%nseg_f
 
   !allocations
-  call allocate_wfd(lzd_old%glr%wfd,subname)
+  call allocate_wfd(lzd_old%glr%wfd)
 
   do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
      lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
@@ -2731,7 +2741,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
-      call copy_locreg_descriptors(lzd%llr(ilr), lzd_old%llr(ilr), subname)
+      call copy_locreg_descriptors(lzd%llr(ilr), lzd_old%llr(ilr))
       ii = ii + lzd_old%llr(ilr)%wfd%nvctr_c + 7*lzd_old%llr(ilr)%wfd%nvctr_f
   end do
 

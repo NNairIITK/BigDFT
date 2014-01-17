@@ -159,12 +159,12 @@ subroutine dasxpdy(n,da,dx,incx,dy,incy)
   !local variables
   integer :: i,ix,iy
   
-  ix=0
-  iy=0
+  ix=1
+  iy=1
   do i=1,n
+     dy(iy)=dy(iy)+da*real(dx(ix),kind=8)
      ix=ix+incx
      iy=iy+incy
-     dy(iy)=dy(iy)+da*real(dx(ix),kind=8)
   end do
 end subroutine dasxpdy
 
@@ -176,12 +176,12 @@ subroutine dscopy(n,dx,incx,dy,incy)
   !local variables
   integer :: i,ix,iy
   
-  ix=0
-  iy=0
+  ix=1
+  iy=1
   do i=1,n
+     dy(iy)=real(dx(ix),kind=4)
      ix=ix+incx
      iy=iy+incy
-     dy(iy)=real(dx(ix),kind=4)
   end do
 
 end subroutine dscopy
@@ -194,12 +194,12 @@ subroutine icopy(n,dx,incx,dy,incy)
   !local variables
   integer :: i,ix,iy
   
-  ix=0
-  iy=0
+  ix=1
+  iy=1
   do i=1,n
+     dy(iy)=dx(ix)
      ix=ix+incx
      iy=iy+incy
-     dy(iy)=dx(ix)
   end do
 
 end subroutine icopy
