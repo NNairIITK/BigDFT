@@ -1611,7 +1611,6 @@ subroutine dict_append(dict)
   implicit none
   type(dictionary), pointer :: dict
 
-  ! This is a patch for Intel, to be corrected properly later.
   dict => dict // dict_len(dict)
 END SUBROUTINE dict_append
 subroutine dict_put(dict, val)

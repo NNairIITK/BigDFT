@@ -307,8 +307,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !debug
   !real(kind=8) :: ddot
 
-  call nullify_rholoc_objects(rholoc_tmp)
-
   !copying the input variables for readability
   !this section is of course not needed
   !note that this procedure is convenient ONLY in the case of scalar variables
@@ -316,33 +314,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !Hence WARNING: these variables are copied, in case of an update the new value should be 
   !reassigned inside the structure
 
-  write(gridformat, "(A)") ""
-  select case (in%output_denspot_format)
-  case (output_denspot_FORMAT_ETSF)
-     write(gridformat, "(A)") ".etsf"
-  case (output_denspot_FORMAT_CUBE)
-     write(gridformat, "(A)") ".cube"
-  end select
-  write(wfformat, "(A)") ""
-  select case (in%output_wf_format)
-  case (WF_FORMAT_ETSF)
-     write(wfformat, "(A)") ".etsf"
-  case (WF_FORMAT_BINARY)
-     write(wfformat, "(A)") ".bin"
-  end select
-     
-  !proj_G is dummy here, it is only used for PAW
-  do iatyp=1,atoms%astruct%ntypes
-     call nullify_gaussian_basis(proj_G(iatyp))
-  end do
-
-  norbv=abs(in%norbv)
-  nvirt=in%nvirt
-  !Nullify for new input guess
-  call nullify_local_zone_descriptors(lzd_old)
-  !call nullify_wavefunctions_descriptors(wfd_old)
-  call nullify_wfd(wfd_old)
-  
   if (iproc == 0) then
      !start a new document in the beginning of the output, if the document is closed before
      call yaml_new_document()
@@ -362,6 +333,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
+  !Nullify for new input guess
+  call nullify_local_zone_descriptors(lzd_old)
+  !call nullify_wavefunctions_descriptors(wfd_old)
+  call nullify_wfd(wfd_old)
   ! We save the variables that defined the previous psi if the restart is active
   if (in%inputPsiId == INPUT_PSI_MEMORY_WVL) then
      !regenerate grid spacings (this would not be needed if hgrids is in Lzd)
@@ -554,6 +529,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
        n1,n2,n3,denspot%V_ext,denspot%pkernel,denspot%psoffset)
   !calculate effective ionic potential, including counter ions if any.
+  call nullify_rholoc_objects(rholoc_tmp)
   call createEffectiveIonicPotential(iproc,nproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
        denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset,&
@@ -562,8 +538,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
 
+  norbv=abs(in%norbv)
   call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpspd,proj,KSwfn,tmb,energs,&
        inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
+  nvirt=in%nvirt
+  if(in%nvirt > norbv) then
+     nvirt = norbv
+  end if
 
   !!do i_stat=1,KSwfn%orbs%norb*(KSwfn%lzd%glr%wfd%nvctr_c+7*KSwfn%lzd%glr%wfd%nvctr_f)
   !!    write(601,'(i10,es16.7)') i_stat, KSwfn%psi(i_stat)
@@ -582,11 +563,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   ! modified by SM
   call deallocate_wavefunctions_descriptors(wfd_old, subname)
   call deallocate_local_zone_descriptors(lzd_old,subname)
-
-
- if(in%nvirt > norbv) then
-     nvirt = norbv
-  end if
 
   !save the new atomic positions in the rxyz_old array
   do iat=1,atoms%astruct%nat
@@ -850,6 +826,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
   end if
 
+  write(gridformat, "(A)") ""
+  select case (in%output_denspot_format)
+  case (output_denspot_FORMAT_ETSF)
+     write(gridformat, "(A)") ".etsf"
+  case (output_denspot_FORMAT_CUBE)
+     write(gridformat, "(A)") ".cube"
+  end select
+
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == output_denspot_DENSPOT .and. DoLastRunThings) then
      if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
@@ -932,6 +916,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         allocate(band_structure_eval(KSwfn%orbs%norbu+KSwfn%orbs%norbd+in%nspin*norbv,in%nkptv+ndebug),stat=i_stat)
         call memocc(i_stat,band_structure_eval,'band_structure_eval',subname)
      end if
+
+     !proj_G is dummy here, it is only used for PAW
+     do iatyp=1,atoms%astruct%ntypes
+        call nullify_gaussian_basis(proj_G(iatyp))
+     end do
 
      !calculate Davidson procedure for all the groups of k-points which are chosen
      ikpt=1
@@ -1022,6 +1011,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
         ! Write virtual wavefunctions in ETSF format: WORKS ONLY FOR ONE KPOINT 
         if(in%output_wf_format == 3 .and. abs(in%norbv) > 0) then
+           write(wfformat, "(A)") ""
+           select case (in%output_wf_format)
+           case (WF_FORMAT_ETSF)
+              write(wfformat, "(A)") ".etsf"
+           case (WF_FORMAT_BINARY)
+              write(wfformat, "(A)") ".bin"
+           end select
+
            call  writemywaves(iproc,trim(in%dir_output) // "virtuals" // trim(wfformat),&
                 in%output_wf_format, &
                 VTwfn%orbs,n1,n2,n3,&
