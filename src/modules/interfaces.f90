@@ -228,15 +228,6 @@ module module_interfaces
         logical, intent(in) :: dump
       end subroutine inputs_from_dict
 
-      subroutine input_set(in, val)
-        use dictionaries, only: dictionary, operator(//), assignment(=)
-        use module_types, only: input_variables
-        use module_input_keys
-        implicit none
-        type(input_variables), intent(inout) :: in
-        type(dictionary), pointer :: val
-      end subroutine input_set
-
       subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         use module_base
         use module_types
