@@ -11,6 +11,8 @@
 /*********************************/
 /* BigDFT_Goutput data structure */
 /*********************************/
+static void bigdft_goutput_dispose(GObject *energs);
+static void bigdft_goutput_finalize(GObject *energs);
 #ifdef HAVE_GLIB
 enum {
   EKS_READY_SIGNAL,
@@ -20,9 +22,6 @@ enum {
 G_DEFINE_TYPE(BigDFT_Goutput, bigdft_goutput, G_TYPE_OBJECT)
 
 static guint bigdft_goutput_signals[LAST_SIGNAL] = { 0 };
-
-static void bigdft_goutput_dispose(GObject *energs);
-static void bigdft_goutput_finalize(GObject *energs);
 
 static void bigdft_goutput_class_init(BigDFT_GoutputClass *klass)
 {
@@ -49,7 +48,6 @@ static void bigdft_goutput_init(BigDFT_Goutput *obj)
   G_OBJECT(obj)->ref_count = 1;
 #endif
 }
-#ifdef HAVE_GLIB
 static void bigdft_goutput_dispose(GObject *obj)
 {
   BigDFT_Goutput *energs = BIGDFT_GOUTPUT(obj);
@@ -58,10 +56,11 @@ static void bigdft_goutput_dispose(GObject *obj)
     return;
   energs->dispose_has_run = TRUE;
 
+#ifdef HAVE_GLIB
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_goutput_parent_class)->dispose(obj);
-}
 #endif
+}
 static void bigdft_goutput_finalize(GObject *obj)
 {
   BigDFT_Goutput *outs = BIGDFT_GOUTPUT(obj);
@@ -151,6 +150,7 @@ void bigdft_goutput_unref(BigDFT_Goutput *outs)
 #ifndef HAVE_GLIB
   if (G_OBJECT(outs)->ref_count <= 0)
     {
+      bigdft_goutput_dispose(G_OBJECT(outs));
       bigdft_goutput_finalize(G_OBJECT(outs));
       g_free(outs);
     }
@@ -182,11 +182,10 @@ void bigdft_goutput_emit_energs(BigDFT_Goutput *outs, guint istep, BigDFT_Energs
 /*********************************/
 /* BigDFT_Restart data structure */
 /*********************************/
-#ifdef HAVE_GLIB
-G_DEFINE_TYPE(BigDFT_Restart, bigdft_restart, G_TYPE_OBJECT)
-
 static void bigdft_restart_dispose(GObject *restart);
 static void bigdft_restart_finalize(GObject *restart);
+#ifdef HAVE_GLIB
+G_DEFINE_TYPE(BigDFT_Restart, bigdft_restart, G_TYPE_OBJECT)
 
 static void bigdft_restart_class_init(BigDFT_RestartClass *klass)
 {
@@ -209,13 +208,13 @@ static void bigdft_restart_init(BigDFT_Restart *obj)
 }
 static void bigdft_restart_dispose(GObject *obj)
 {
-#ifdef HAVE_GLIB
   BigDFT_Restart *restart = BIGDFT_RESTART(obj);
 
   if (restart->dispose_has_run)
     return;
   restart->dispose_has_run = TRUE;
 
+#ifdef HAVE_GLIB
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_restart_parent_class)->dispose(obj);
 #endif
@@ -284,10 +283,10 @@ void FC_FUNC_(restart_free_wrapper, RESTART_FREE_WRAPPER)(gpointer *obj)
 void bigdft_restart_unref(BigDFT_Restart *restart)
 {
   g_object_unref(G_OBJECT(restart));
-#ifdef HAVE_GLIB
-#else
+#ifndef HAVE_GLIB
   if (G_OBJECT(restart)->ref_count <= 0)
     {
+      bigdft_restart_dispose(G_OBJECT(restart));
       bigdft_restart_finalize(G_OBJECT(restart));
       g_free(restart);
     }
@@ -338,11 +337,10 @@ GType bigdft_memory_get_type(void)
 /*****************************/
 /* BigDFT_Run data structure */
 /*****************************/
-#ifdef HAVE_GLIB
-G_DEFINE_TYPE(BigDFT_Run, bigdft_run, G_TYPE_OBJECT)
-
 static void bigdft_run_dispose(GObject *run);
 static void bigdft_run_finalize(GObject *run);
+#ifdef HAVE_GLIB
+G_DEFINE_TYPE(BigDFT_Run, bigdft_run, G_TYPE_OBJECT)
 
 static void bigdft_run_class_init(BigDFT_RunClass *klass)
 {
@@ -363,7 +361,6 @@ static void bigdft_run_init(BigDFT_Run *obj)
   G_OBJECT(obj)->ref_count = 1;
 #endif
 }
-#ifdef HAVE_GLIB
 static void bigdft_run_dispose(GObject *obj)
 {
   BigDFT_Run *run = BIGDFT_RUN(obj);
@@ -383,10 +380,11 @@ static void bigdft_run_dispose(GObject *obj)
       bigdft_dict_unref(run->dict);
     }
 
+#ifdef HAVE_GLIB
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_run_parent_class)->dispose(obj);
-}
 #endif
+}
 static void bigdft_run_finalize(GObject *obj)
 {
   BigDFT_Run *run = BIGDFT_RUN(obj);
@@ -506,10 +504,10 @@ BigDFT_Run* bigdft_run_new_from_fortran(_run_objects *obj, gboolean create_wrapp
 void bigdft_run_unref(BigDFT_Run *run)
 {
   g_object_unref(G_OBJECT(run));
-#ifdef HAVE_GLIB
-#else
+#ifndef HAVE_GLIB
   if (G_OBJECT(run)->ref_count <= 0)
     {
+      bigdft_run_dispose(G_OBJECT(run));
       bigdft_run_finalize(G_OBJECT(run));
       g_free(run);
     }
