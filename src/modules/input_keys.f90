@@ -1160,12 +1160,12 @@ contains
     ! Additional treatments.
     meth = dict // GEOPT_VARIABLES // GEOPT_METHOD
     if (input_keys_equal(trim(meth), "FIRE")) then
-       prof = input_keys_get_source(dict, DTMAX, user_defined)
+       prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTMAX, user_defined)
        if (trim(prof) == "default" .and. .not. user_defined) then
           betax_ = dict // GEOPT_VARIABLES // BETAX
           call set(dict // GEOPT_VARIABLES // DTMAX, 0.25 * pi_param * sqrt(betax_), fmt = "(F7.4)")
        end if
-       prof = input_keys_get_source(dict, DTINIT, user_defined)
+       prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTINIT, user_defined)
        if (trim(prof) == "default" .and. .not. user_defined) then
           dtmax_ = dict // GEOPT_VARIABLES // DTMAX
           call set(dict // GEOPT_VARIABLES // DTINIT, 0.5 * dtmax_, fmt = "(F7.4)")
@@ -1406,7 +1406,6 @@ contains
          & call set(dict // (trim(key) // ATTRS) // PROF_KEY, profile_)
 
 !    call f_release_routine()
-
   contains
 
     function set_(dict, ref)
