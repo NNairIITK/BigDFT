@@ -375,6 +375,10 @@ program memguess
       end if
 
       call yaml_map("Export wavefunction from file", trim(filename_wfn))
+      ! @todo Very ugly patch for ref_frags that is nullified by system_initialization
+      ! but used as an allocated array by take_psi_from_file().
+      ! TO BE CORRECTED !!!!!
+      if (.not.associated(ref_frags)) allocate(ref_frags(runObj%inputs%frag%nfrag_ref))
       call take_psi_from_file(filename_wfn,runObj%inputs%frag,hx,hy,hz,runObj%rst%KSwfn%Lzd%Glr, &
            & runObj%atoms,runObj%atoms%astruct%rxyz,runObj%rst%KSwfn%orbs,runObj%rst%KSwfn%psi,&
            & iorbp,export_wf_ispinor,ref_frags)
