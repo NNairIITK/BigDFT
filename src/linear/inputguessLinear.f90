@@ -571,6 +571,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
  end if
 
+
  iall=-product(shape(aocc))*kind(aocc)
  deallocate(aocc,stat=istat)
  call memocc(istat, iall,'aocc',subname)
