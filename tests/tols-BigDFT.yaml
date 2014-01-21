@@ -227,6 +227,7 @@ mixpotential:
  energy: 6.55e-11
  Omega: 6.55e-11
  Ekin: 1.1e-10
+ EXC: 1.1e-10
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -341,6 +342,7 @@ experimentalmode:
 restartdisk_charge:
  Epot: 1.1e-10
  EH: 1.1e-10
+ Ekin: 1.1e-10
  Patterns to ignore:
  - Wavefunction written
 
@@ -517,7 +519,7 @@ water_foe:
 
 water_dirmin:
  max alpha: 1.1e-04
- mean alpha: 1.1e-03
+ mean alpha: 1.1e-04
  EXC: 1.1e-10
  EvXC: 1.1e-10
  EH: 1.0e-9
@@ -598,6 +600,8 @@ foe:
  eF: 1.01e-10
  Pulay Forces (Ha/Bohr): 1.2e-11
  Atomic Forces (Ha/Bohr): 4.0e-11
+ mean alpha: 1.1e-4
+ max alpha: 1.1e-4
 
 onlyhigh:
  EH: 1.1e-10
@@ -771,16 +775,16 @@ explicit_locregcenters:
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 1.3e-9
- Average noise forces: 4.6e-9
- Clean forces norm (Ha/Bohr): 3.0e-9
- Raw forces norm (Ha/Bohr): 3.3e-9
+ Average noise forces: 5.7e-9
+ Clean forces norm (Ha/Bohr): 3.7e-9
+ Raw forces norm (Ha/Bohr): 4.1e-9
  e: 2.4e-10
- energy: 4.9e-10
- Omega: 9.4e-11
- EXC: 6.6e-10
- EvXC: 8.1e-10
- EH: 2.1e-09
+ energy: 6.1e-10
+ Omega: 7.8e-10
+ EXC: 7.1e-10
+ EvXC: 1.1e-9
+ EH: 3.1e-09
  Ekin: 2.1e-10
  Enl: 2.1e-11
- Epot: 2.3e-09
+ Epot: 2.8e-09
  multiplicator for the confinement: 1.6e-11
