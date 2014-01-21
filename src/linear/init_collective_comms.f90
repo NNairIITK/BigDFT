@@ -2818,6 +2818,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       call mpiallred(ovrlp%matrix_compr(1), ovrlp%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
+  ovrlp%can_use_dense=.false.
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 
 end subroutine calculate_overlap_transposed

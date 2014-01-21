@@ -1114,6 +1114,12 @@ subroutine deallocate_sparseMatrix(sparsemat, subname)
   call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
   call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_fortransposed, &
        'sparseMat%matrixindex_in_compressed_fortransposed', subname)
+  call f_free_ptr(sparseMat%isvctr_par)
+  call f_free_ptr(sparseMat%nvctr_par)
+  call f_free_ptr(sparseMat%isfvctr_par)
+  call f_free_ptr(sparseMat%nfvctr_par)
+  call f_free_ptr(sparseMat%matrixp)
+  call f_free_ptr(sparseMat%matrix_comprp)
 
 end subroutine deallocate_sparseMatrix
 
