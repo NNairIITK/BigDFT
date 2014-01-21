@@ -48,7 +48,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(kind=8), dimension(:), allocatable :: locrad
   !Note proj_G should be filled for PAW:
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
-
+  call f_routine(id=subname)
   !nullify dummy variables only used for PAW:
   do iatyp=1,atoms%astruct%ntypes
     call nullify_gaussian_basis(proj_G(iatyp))
@@ -256,8 +256,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !calculate the partitioning of the orbitals between the different processors
 
-  if (dry_run) return
-  
+  if (dry_run) then
+     call f_release_routine()
+     return
+  end if
+
+
   if (present(denspot)) then
      !here dpbox can be put as input
      call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
@@ -282,7 +286,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
-
+  call f_release_routine()
   !---end of system definition routine
 END SUBROUTINE system_initialization
 
