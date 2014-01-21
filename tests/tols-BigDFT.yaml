@@ -480,7 +480,8 @@ cdft_oh-a:
 fructose:
  Epot: 1.1e-09
  Ekin: 1.1e-09
- Enl: 1.01e-10
+ Enl: 1.1e-10
+ EXC: 1.1e-10
  Epsilon: 1.1e-11
  D: 1.1e-10
  D eF: 1.1e-9
