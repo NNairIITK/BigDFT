@@ -139,3 +139,203 @@ GArray* g_array_sized_new(gboolean zero, gboolean nullify, guint ele_size, guint
   return arr;
 }
 #endif
+
+/******************************/
+/* BigDFT_Dict data structure */
+/******************************/
+#ifdef GLIB_MAJOR_VERSION
+G_DEFINE_TYPE(BigDFT_Dict, bigdft_dict, G_TYPE_OBJECT)
+
+static void bigdft_dict_dispose(GObject *dict);
+static void bigdft_dict_finalize(GObject *dict);
+
+static void bigdft_dict_class_init(BigDFT_DictClass *klass)
+{
+  /* Connect the overloading methods. */
+  G_OBJECT_CLASS(klass)->dispose      = bigdft_dict_dispose;
+  G_OBJECT_CLASS(klass)->finalize     = bigdft_dict_finalize;
+  /* G_OBJECT_CLASS(klass)->set_property = visu_data_set_property; */
+  /* G_OBJECT_CLASS(klass)->get_property = visu_data_get_property; */
+}
+#endif
+
+static void bigdft_dict_init(BigDFT_Dict *obj)
+{
+#ifdef HAVE_GLIB
+  memset((void*)((char*)obj + sizeof(GObject)), 0, sizeof(BigDFT_Dict) - sizeof(GObject));
+#else
+  memset(obj, 0, sizeof(BigDFT_Dict));
+  G_OBJECT(obj)->ref_count = 1;
+#endif
+}
+#ifdef HAVE_GLIB
+static void bigdft_dict_dispose(GObject *obj)
+{
+  BigDFT_Dict *dict = BIGDFT_DICT(obj);
+
+  if (dict->dispose_has_run)
+    return;
+  dict->dispose_has_run = TRUE;
+
+  /* Chain up to the parent class */
+  G_OBJECT_CLASS(bigdft_dict_parent_class)->dispose(obj);
+}
+#endif
+static void bigdft_dict_finalize(GObject *obj)
+{
+  BigDFT_Dict *dict = BIGDFT_DICT(obj);
+
+  if (dict->root)
+    FC_FUNC_(dict_free, DICT_FREE)(&dict->root);
+
+#ifdef HAVE_GLIB
+  G_OBJECT_CLASS(bigdft_dict_parent_class)->finalize(obj);
+#endif
+}
+void bigdft_dict_unref(BigDFT_Dict *dict)
+{
+  g_object_unref(G_OBJECT(dict));
+#ifdef HAVE_GLIB
+#else
+  if (G_OBJECT(dict)->ref_count <= 0)
+    {
+      bigdft_dict_finalize(G_OBJECT(dict));
+      g_free(dict);
+    }
+#endif
+}
+
+/**
+ * bigdft_dict_new:
+ * @root: (allow-none) (out) (caller-allocates):
+ *
+ * Pouet.
+ *
+ * Returns: (transfer full):
+ **/
+BigDFT_Dict *bigdft_dict_new(BigDFT_DictIter *root)
+{
+  BigDFT_Dict *dict;
+
+#ifdef HAVE_GLIB
+  dict = BIGDFT_DICT(g_object_new(BIGDFT_DICT_TYPE, NULL));
+#else
+  dict = g_malloc(sizeof(BigDFT_Dict));
+  bigdft_dict_init(dict);
+#endif
+  FC_FUNC_(dict_new, DICT_NEW)(&dict->root);
+  dict->current = dict->root;
+
+  if (root)
+    {
+      (*root).dict = dict;
+      (*root).pointer = dict->root;
+    } 
+
+  return dict;
+}
+/**
+ * bigdft_dict_new_from_yaml:
+ * @buf: 
+ *
+ * Pouet.
+ *
+ * Returns: (transfer full):
+ **/
+BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf)
+{
+  BigDFT_Dict *dict;
+
+  dict = bigdft_dict_new(NULL);
+  FC_FUNC_(dict_parse, DICT_PARSE)(&dict->root, buf, strlen(buf));
+  dict->current = dict->root;
+  return dict;
+}
+gboolean bigdft_dict_move_to(BigDFT_Dict *dict, BigDFT_DictIter *iter)
+{
+  if (iter->dict != dict)
+    return FALSE;
+  dict->current = iter->pointer;
+  return TRUE;
+}
+/**
+ * bigdft_dict_insert:
+ * @dict: 
+ * @id: 
+ * @iter: (out) (caller-allocates) (allow-none):
+ *
+ * Pouet.
+ **/
+void bigdft_dict_insert(BigDFT_Dict *dict, const gchar *id, BigDFT_DictIter *iter)
+{
+  FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
+  if (iter)
+    {
+      (*iter).dict = dict;
+      (*iter).pointer = dict->current;
+    }
+}
+/**
+ * bigdft_dict_append:
+ * @dict: 
+ * @iter: (out) (caller-allocates) (allow-none):
+ *
+ * Pouet.
+ **/
+void bigdft_dict_append(BigDFT_Dict *dict, BigDFT_DictIter *iter)
+{
+  FC_FUNC_(dict_append, DICT_APPEND)(&dict->current);
+  if (iter)
+    {
+      (*iter).dict = dict;
+      (*iter).pointer = dict->current;
+    }
+}
+/**
+ * bigdft_dict_set:
+ * @dict: 
+ * @id: (allow-none): 
+ * @value: 
+ *
+ * Pouet.
+ **/
+void  bigdft_dict_set(BigDFT_Dict *dict, const gchar *id, const gchar *value)
+{
+  _dictionary *root;
+  
+  root = dict->current;
+  if (id)
+    FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
+  FC_FUNC_(dict_put, DICT_PUT)(&dict->current, value, strlen(value));
+  dict->current = root;
+}
+/**
+ * bigdft_dict_set_array:
+ * @in: 
+ * @id: (allow-none):
+ * @value: (array zero-terminated=1):
+ *
+ * 
+ **/
+void  bigdft_dict_set_array(BigDFT_Dict *dict, const gchar *id, const gchar **value)
+{
+  guint i;
+  _dictionary *root, *key;
+
+  root = dict->current;
+  if (id)
+    FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
+  key = dict->current;
+  for (i = 0; value[i]; i++)
+    {
+      dict->current = key;
+      FC_FUNC_(dict_append, DICT_APPEND)(&dict->current);
+      FC_FUNC_(dict_put, DICT_PUT)(&dict->current, value[i], strlen(value[i]));
+    }
+  dict->current = root;
+}
+void bigdft_dict_dump(BigDFT_Dict *dict)
+{
+  FC_FUNC_(dict_dump, DICT_DUMP)(&dict->root);
+}
+/*********************************/

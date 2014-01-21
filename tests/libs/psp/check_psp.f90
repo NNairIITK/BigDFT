@@ -25,14 +25,13 @@ program psp_test
   real(gp) :: psppar_d(0:4,0:6)
   !ALEX: If psp_from_file supports NLCC, it needs additional arguments:
   real(gp):: rcore, qcore
-  logical:: donlcc
+  logical:: donlcc, pawpatch
 
   call get_command_argument(1, value = path, status = istat)
   if (istat /= 0) stop "argument"
 
   call psp_from_file(path, nzatom, nelpsp, npspcode, ixcpsp, psppar, &
-         donlcc, rcore, qcore, radii_cf, &
-       & read_radii, exists)
+         donlcc, rcore, qcore, radii_cf, exists, pawpatch)
   if (.not. exists) stop "psp file"
 
   i = index(path, "/", back = .true.)

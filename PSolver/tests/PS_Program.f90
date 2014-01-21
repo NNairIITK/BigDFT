@@ -15,7 +15,7 @@
 program PSolver_Program
   use Poisson_Solver
   use wrapper_mpi
-  use module_base, only: memocc,ndebug
+  use memory_profiling, only: memocc,ndebug
   implicit none
   !include 'mpif.h'
   !Order of interpolating scaling function
