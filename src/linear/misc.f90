@@ -848,7 +848,7 @@ end subroutine print_orbital_distribution
 
 
 subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-           energs, nlpspd, proj, input, &
+           energs, nlpsp, input, &
            energy, energyDiff, energyold)
   use module_base
   use module_types
@@ -863,8 +863,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers), intent(inout) :: GPU
   type(energy_terms),intent(inout) :: energs
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(input_variables),intent(in) :: input
   real(kind=8),intent(out) :: energy, energyDiff, energyold
 
@@ -892,7 +891,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
 
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-       energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
+       energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
        input%lin%order_taylor,input%calculate_KS_residue)
 
 
@@ -987,7 +986,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-       energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
+       energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
        input%lin%order_taylor, input%calculate_KS_residue, updatekernel=.false.)
   energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
   energyDiff=energy-energyold

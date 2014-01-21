@@ -86,6 +86,7 @@ MODULE NEB_routines
       use yaml_output
       use dictionaries
       use module_interfaces
+      use module_input_dicts
 
       IMPLICIT NONE
 
@@ -102,6 +103,7 @@ MODULE NEB_routines
       character(len=60) :: run_id
       CHARACTER (LEN=80) :: first_config, last_config
       type(dictionary), pointer :: dict
+      type(atomic_structure) :: astruct
 
       NAMELIST /NEB/ first_config,        &
                      last_config,         &
@@ -192,25 +194,27 @@ MODULE NEB_routines
       bigdft_mpi%igroup = 0
       bigdft_mpi%ngroup = num_of_images
       do i = 1, num_of_images
-         call atoms_nullify(atoms(i))
-         call read_atomic_file(trim(arr_posinp(i)), bigdft_mpi%iproc, atoms(i)%astruct, status = ierr)
+         call astruct_nullify(astruct)
+         call read_atomic_file(trim(arr_posinp(i)), bigdft_mpi%iproc, astruct, status = ierr)
          if (ierr /= 0) then
             if (i == 1 .or. i == num_of_images) stop "Missing images"
             ! we read the last valid image instead.
-            call read_atomic_file(trim(arr_posinp(istart)), bigdft_mpi%iproc, atoms(i)%astruct)
+            call read_atomic_file(trim(arr_posinp(istart)), bigdft_mpi%iproc, astruct)
             read_posinp(i) = .false.
          else
             istart = i
             read_posinp(i) = .true.
          end if
 
-         call read_input_dict_from_files(trim(arr_radical(i)), bigdft_mpi,dict)
-         call standard_inputfile_names(ins(i),trim(arr_radical(i)))
-         call inputs_from_dict(ins(i), atoms(i), dict, .true.)
-         call dict_free(dict)
+         nullify(dict)
+         call read_input_dict_from_files(trim(arr_radical(i)), bigdft_mpi, dict)
+         call astruct_merge_to_dict(dict // "posinp", astruct, astruct%rxyz)
+         call atoms_file_merge_to_dict(dict)
 
-         call init_atomic_values((bigdft_mpi%iproc == 0), atoms(i), ins(1)%ixc)
-         call read_atomic_variables(atoms(i), trim(ins(1)%file_igpop), ins(1)%nspin)
+         call inputs_from_dict(ins(i), atoms(i), dict, .true.)
+
+         call dict_free(dict)
+         call deallocate_atomic_structure(astruct, "NEB")
       end do
       bigdft_mpi = bigdft_mpi_svg
 

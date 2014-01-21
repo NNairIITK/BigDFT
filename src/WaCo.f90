@@ -16,6 +16,7 @@ program WaCo
    use module_interfaces, except_this_one => writeonewave
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use yaml_output
+   use module_input_dicts
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -64,6 +65,7 @@ program WaCo
    integer, dimension(:),allocatable :: bandlist
    logical :: idemp
    integer, dimension(4) :: mpi_info
+   type(dictionary), pointer :: user_inputs
 
    ! ONLY FOR DEBUG
 !   real(gp) :: Gnorm, Lnorm
@@ -110,8 +112,13 @@ program WaCo
 
    if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
-  call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
-       input,atoms)
+   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
+        & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
+   call inputs_from_dict(input, atoms, user_inputs, .true.)
+   if (iproc == 0) then
+      call print_general_parameters(input,atoms)
+   end if
+   call dict_free(user_inputs)
 
    if (input%verbosity > 2) then
       nproctiming=-nproc !timing in debug mode                                                                                                                                                                 
@@ -148,8 +155,10 @@ program WaCo
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(iproc,atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         Glr,shift)
+   if (iproc == 0) &
+        & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
    
    box(1) = atoms%astruct%cell_dim(1)*b2a !Glr%d%n1*input%hx * b2a
    box(2) = atoms%astruct%cell_dim(2)*b2a !Glr%d%n2*input%hy * b2a
@@ -158,6 +167,7 @@ program WaCo
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
         atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
+   if (iproc == 0) call print_wfd(Glr%wfd)
 
    ! don't need radii_cf anymore
    i_all = -product(shape(radii_cf))*kind(radii_cf)
@@ -830,7 +840,7 @@ program WaCo
  
      ! Should construct a proper Lzd for each Wannier, then use global -> local transformation
        call nullify_local_zone_descriptors(Lzd)
-       call copy_locreg_descriptors(Glr, Lzd%Glr, subname)
+       call copy_locreg_descriptors(Glr, Lzd%Glr)
        lzd%hgrids(1)=input%hx
        lzd%hgrids(2)=input%hy
        lzd%hgrids(3)=input%hz

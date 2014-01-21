@@ -34,6 +34,8 @@ program art90
 ! _________
   call CPU_TIME( t1 )
 
+  call f_lib_initialize()
+
   call read_parameters( )             ! Read options & initial allocation.
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -237,6 +239,8 @@ program art90
   end do Do_ev
 
   call end_art( )
+
+  call f_lib_finalize()
 
 END PROGRAM art90
 

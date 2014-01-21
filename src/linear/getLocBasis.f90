@@ -9,7 +9,7 @@
 
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-    energs,nlpspd,proj,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+    energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,calculate_KS_residue,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
@@ -31,8 +31,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   integer,intent(out) :: infoCoeff
   type(energy_terms),intent(inout) :: energs
   real(kind=8),intent(inout) :: fnrm
-  type(nonlocal_psp_descriptors),intent(in) :: nlpspd
-  real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+  type(DFT_PSP_projectors),intent(inout) :: nlpsp
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
@@ -55,7 +54,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(sparseMatrix) :: gradmat 
-  logical :: update_kernel
+  logical :: update_kernel, overlap_calculated
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
@@ -139,7 +138,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
 
       call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-           proj,tmb%ham_descr%lzd,nlpspd,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
+           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
       ! only kinetic as waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
            tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
@@ -369,6 +368,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmb%orbs%eval=-.5d0
 
   end if
+
+
+
   if (calculate_ham) then
       if (calculate_KS_residue) then
           call get_KS_residue(iproc, nproc, tmb, orbs, hpsit_c, hpsit_f, KSres)
@@ -392,7 +394,7 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-    fnrm,infoBasisFunctions,nlpspd,scf_mode, proj,ldiis,SIC,tmb,energs_base,&
+    fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
@@ -420,9 +422,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(GPU_pointers), intent(inout) :: GPU
   real(kind=8),intent(out) :: trH, fnrm
   real(kind=8),intent(inout) :: trH_old
-  type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+  type(DFT_PSP_projectors),intent(inout) :: nlpsp
   integer,intent(in) :: scf_mode
-  real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
   type(localizedDIISParameters),intent(inout) :: ldiis
   type(DFT_wavefunction),target,intent(inout) :: tmb
   type(SIC_data) :: SIC !<parameters for the SIC methods
@@ -437,7 +438,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, alpha_max, delta_energy, delta_energy_prev
-  integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, lwork
+  integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, lwork, ncharge
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: psit_c_tmp, psit_f_tmp, work, eval, delta_energy_arr
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
@@ -451,16 +452,17 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(3) :: interpol_vector, interpol_solution
   integer :: i, ist, iiorb, ilr, ii, info
-  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh, trH_ref
+  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh, trH_ref, dnrm2, charge
   integer,dimension(3) :: ipiv
   real(kind=8),dimension(:,:),allocatable :: psi_old
-  real(kind=8),dimension(:),allocatable :: psi_tmp
-  integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin
-  logical :: stop_optimization, energy_increased_previous
+  real(kind=8),dimension(:),allocatable :: psi_tmp, kernel_best
+  integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
+  logical :: stop_optimization, energy_increased_previous, complete_reset, even
 
   call f_routine(id='getLocalizedBasis')
 
-  delta_energy_arr=f_malloc(nit_basis)
+  delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
+  kernel_best=f_malloc(tmb%linmat%denskern%nvctr,id='kernel_best')
   stop_optimization=.false.
 
 
@@ -496,6 +498,39 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   delta_energy_arr=1.d0
   trH_ref=trH_old
 
+  !!! normalize
+  !!ist=1
+  !!do iorb=1,tmb%orbs%norbp
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!    tt=dnrm2(ncount, tmb%psi(ist), 1)
+  !!    tt=1/tt
+  !!    call dscal(ncount, tt, tmb%psi(ist), 1)
+  !!    ist=ist+ncount
+  !!end do
+
+  ! Count whether there is an even or an odd number of electrons
+  charge=0.d0
+  do iorb=1,orbs%norb
+      charge=charge+orbs%occup(iorb)
+  end do
+  ncharge=nint(charge)
+  even=(mod(ncharge,2)==0)
+
+  ! Purify the initial kernel (only when necessary and if there is an even number of electrons)
+  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even) then
+      if (iproc==0) then
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          call yaml_map('Initial kernel purification',.true.)
+      end if
+      overlap_calculated=.false.
+      tmb%can_use_transposed=.false.
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+      if (iproc==0) call yaml_close_map()
+  end if
+
   iterLoop: do
       it=it+1
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
@@ -519,12 +554,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
+      !!if (iproc==0) write(*,*) 'tmb%psi(1)',tmb%psi(1)
       if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
       call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
       call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-           proj,tmb%ham_descr%lzd,nlpspd,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
+           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
       ! only kinetic because waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
            tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
@@ -641,6 +677,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!! END PLOT #######################################################################
 
 
+      !!if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
@@ -698,6 +735,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       !ediff=trH-trH_old
       ediff=trH-trH_ref
+      !!if (iproc==0) write(*,*) 'trH, trH_ref', trH, trH_ref
 
       if (it>1 .and. (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode)) then
           if (.not.energy_increased .and. .not.energy_increased_previous) then
@@ -744,12 +782,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
           tmb%ham_descr%can_use_transposed=.false.
           call dcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
-          if (scf_mode/=LINEAR_FOE) then
-              ! Recalculate the kernel with the old coefficients
-              call dcopy(tmb%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%coeff(1,1), 1)
-              call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
-                   tmb%coeff, tmb%linmat%denskern)
-          end if
+          !!if (scf_mode/=LINEAR_FOE) then
+          !!    ! Recalculate the kernel with the old coefficients
+          !!    call dcopy(tmb%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%coeff(1,1), 1)
+          !!    call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
+          !!         tmb%coeff, tmb%linmat%denskern)
+          !!else
+          call vcopy(tmb%linmat%denskern%nvctr, kernel_best(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
+          !!end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
           if(associated(tmb%ham_descr%psit_c)) then
@@ -789,9 +829,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('D',ediff,fmt='(es10.3)')
       end if
 
-      if(it>=nit_basis .or. it_tot>=3*nit_basis .or. stop_optimization .or. (fnrm<conv_crit .and. experimental_mode) .or. &
+      ! Add some extra iterations if DIIS failed (max 6 failures are allowed before switching to SD)
+      nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
+
+      if(it>=nit_exit .or. it_tot>=3*nit_basis .or. stop_optimization .or. (fnrm<conv_crit .and. experimental_mode) .or. &
           (itout==0 .and. it>1 .and. ratio_deltas<0.1d0)) then
-          if(it>=nit_basis) then
+          if(it>=nit_exit) then
               infoBasisFunctions=0
               if(iproc==0) call yaml_map('exit criterion','net number of iterations')
           else if(it_tot>=3*nit_basis) then
@@ -829,7 +872,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
-           experimental_mode, trH_ref)
+           experimental_mode, trH_ref, kernel_best, complete_reset)
+      !!if (iproc==0) write(*,*) 'kernel_best(1)',kernel_best(1)
+      !!if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
 
 
       overlap_calculated=.false.
@@ -870,7 +915,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
                    orbs, tmb, overlap_calculated)
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
-          else if (experimental_mode) then
+          else if (experimental_mode .and. .not.complete_reset) then
               if (iproc==0) then
                   call yaml_map('purify kernel',.true.)
                   call yaml_newline()
@@ -940,6 +985,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ! Deallocate all local arrays.
   call deallocateLocalArrays()
   call f_free(delta_energy_arr)
+  call f_free(kernel_best)
 
   call f_release_routine()
 
@@ -1398,7 +1444,7 @@ end subroutine communicate_basis_for_density_collective
 
 
 
-subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt, trH_ref)
+subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt, trH_ref, kernel_best, complete_reset)
   use module_base
   use module_types
   use yaml_output
@@ -1412,6 +1458,8 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
   real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
   real(kind=8),intent(out) :: trH_ref
+  real(kind=8),dimension(tmbopt%linmat%denskern%nvctr),intent(out) :: kernel_best
+  logical,intent(out) :: complete_reset
   
   ! Local variables
   integer :: idsx, ii, offset, istdest, iorb, iiorb, ilr, ncount, istsource
@@ -1428,10 +1476,14 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
   !   back to DIIS, but decrease the DIIS history length by one. However the DIIS
   !   history length is limited to be larger or equal than lin%DIISHistMin.
 
+  ! indicates whether both the support functions and the kernel have been reset
+  complete_reset=.false.
+
   ! history of the energy
   if (ldiis%isx>0) then
       ldiis%energy_hist(ldiis%mis)=trH
   end if
+  !!write(*,'(a,10es14.6)') 'ldiis%energy_hist', ldiis%energy_hist
 
   ! If we swicthed to SD in the previous iteration, reset this flag.
   if(ldiis%switchSD) ldiis%switchSD=.false.
@@ -1452,6 +1504,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
       trH_ref=trH
+      call vcopy(tmbopt%linmat%denskern%nvctr, tmbopt%linmat%denskern%matrix_compr(1), 1, kernel_best(1), 1)
       !if(iproc==0) write(*,*) 'everything ok, copy last psi...'
       call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
@@ -1481,8 +1534,10 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
       ! The trace is growing.
       ! Count how many times this occurs and (if we are using DIIS) switch to SD after 3 
       ! total failures or after 2 consecutive failures.
-      ldiis%icountDIISFailureCons=ldiis%icountDIISFailureCons+1
-      ldiis%icountDIISFailureTot=ldiis%icountDIISFailureTot+1
+      if (ldiis%isx>0) then
+          ldiis%icountDIISFailureCons=ldiis%icountDIISFailureCons+1
+          ldiis%icountDIISFailureTot=ldiis%icountDIISFailureTot+1
+      end if
       ldiis%icountSDSatur=0
       if((ldiis%icountDIISFailureCons>=4 .or. ldiis%icountDIISFailureTot>=6 .or. ldiis%resetDIIS) .and. ldiis%isx>0) then
           ! Switch back to SD.
@@ -1531,7 +1586,8 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
                      call yaml_map('Take best TMBs from history',ldiis%itBest)
                  end if
              end if
-             ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%mis)
+             ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%isx)
+             !!if (iproc==0) write(*,*) 'ii',ii
              offset=0
              istdest=1
              !if(iproc==0) write(*,*) 'copy DIIS history psi...'
@@ -1539,14 +1595,17 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
                  iiorb=tmbopt%orbs%isorb+iorb
                  ilr=tmbopt%orbs%inWhichLocreg(iiorb)
                  ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-                 istsource=offset+ii*ncount+1
+                 istsource=offset+(ii-1)*ncount+1
                  call dcopy(ncount, ldiis%phiHist(istsource), 1, tmbopt%psi(istdest), 1)
                  call dcopy(ncount, ldiis%phiHist(istsource), 1, lphioldopt(istdest), 1)
+                 !!if (iproc==0 .and. iorb==1) write(*,*) 'istsource, istdest, val', istsource, istdest, tmbopt%psi(istdest)
                  offset=offset+ldiis%isx*ncount
                  istdest=istdest+ncount
              end do
              trH_ref=ldiis%energy_hist(ii)
-             if (iproc==0) write(*,*) 'take energy from entry',ii
+             !!if (iproc==0) write(*,*) 'take energy from entry',ii
+             call vcopy(tmbopt%linmat%denskern%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern%matrix_compr(1), 1)
+             complete_reset=.true.
          else
              !if(iproc==0) write(*,*) 'copy last psi...'
              call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
@@ -1939,9 +1998,35 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
 
+
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,iorb
+  !!        call random_number(diff)
+  !!        diff=diff-.5d0
+  !!        diff=diff*.1d0
+  !!        tmb%linmat%denskern%matrix(jorb,iorb)=tmb%linmat%denskern%matrix(jorb,iorb)+diff
+  !!        tmb%linmat%denskern%matrix(iorb,jorb)=tmb%linmat%denskern%matrix(jorb,iorb)
+  !!    end do
+  !!end do
+
   if (iproc==0) call yaml_open_sequence('purification process')
 
   do it=1,20
+
+      !!ks=tmb%linmat%denskern%matrix
+      !!ksk=tmb%linmat%ovrlp%matrix
+      !!call dsygv(1, 'n', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksk, tmb%orbs%norb, &
+      !!    ksksk(1,1), ksksk(1,2), (tmb%orbs%norb-1)*tmb%orbs%norb, istat)
+      !!if (istat==0) then
+      !!    if (iproc==0) write(*,*) 'eval min, max',ksksk(1,1), ksksk(tmb%orbs%norb,1)
+      !!    if (iproc==0) then
+      !!        do iorb=1,tmb%orbs%norb
+      !!            write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
+      !!        end do
+      !!    end if
+      !!else
+      !!    write(*,*) 'ERROR in dsygv'
+      !!end if
 
       call to_zero(tmb%orbs%norb**2, ks(1,1))
       if (tmb%orbs%norbp>0) then
@@ -1972,6 +2057,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
           do jorb=1,tmb%orbs%norb
               diff = diff + (ksk(jorb,iorb)-tmb%linmat%denskern%matrix(jorb,iorb))**2
+              !if (iproc==0) write(*,*) 'iorb,jorb,diff',iorb,jorb,(ksk(jorb,iorb)-tmb%linmat%denskern%matrix(jorb,iorb))**2
           end do
       end do
       call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -1981,7 +2067,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           call yaml_map('iter',it)
-          call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
+          call yaml_map('diff from idempotency',diff,fmt='(es16.8)')
           call yaml_close_map()
       end if
 
@@ -1989,6 +2075,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
           do jorb=1,tmb%orbs%norb
               tmb%linmat%denskern%matrix(jorb,iorb) = 3*ksk(jorb,iorb) - 2*ksksk(jorb,iorb)
+              !if (iproc==0) write(*,'(a,2i8,2es16.8)') 'iorb,jorb,ksk,ksksk',iorb,jorb,ksk(jorb,iorb),ksksk(jorb,iorb)
           end do
       end do
       call mpiallred(tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)

@@ -346,8 +346,6 @@ subroutine d6_all_free(array)
   include 'deallocate-inc.f90' 
 end subroutine d6_all_free
 
-
-
 !test to see if this is convenient
 subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
   implicit none
@@ -360,27 +358,26 @@ subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,ar
   double precision, dimension(:), allocatable, optional, intent(inout) :: arrayG
   double precision, dimension(:), allocatable, optional, intent(inout) :: arrayH
 
-  call d1_all_free(arrayA)
-  call d1_all_free(arrayB)
-  if (present(arrayC)) then
-     call d1_all_free(arrayC)
-  end if
-  if (present(arrayD)) then
-     call d1_all_free(arrayD)
-  end if
-  if (present(arrayE)) then
-     call d1_all_free(arrayE)
-  end if
-  if (present(arrayF)) then
-     call d1_all_free(arrayF)
-  end if
-  if (present(arrayG)) then
-     call d1_all_free(arrayG)
-  end if
-  if (present(arrayH)) then
-     call d1_all_free(arrayH)
-  end if
+  include 'deallocate-multiple-inc.f90'
+
 end subroutine d1_all_free_multi
+
+!test to see if this is convenient
+subroutine i1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
+  implicit none
+  integer, dimension(:), allocatable, intent(inout) :: arrayA
+  integer, dimension(:), allocatable, intent(inout) :: arrayB
+  integer, dimension(:), allocatable, optional, intent(inout) :: arrayC
+  integer, dimension(:), allocatable, optional, intent(inout) :: arrayD
+  integer, dimension(:), allocatable, optional, intent(inout) :: arrayE
+  integer, dimension(:), allocatable, optional, intent(inout) :: arrayF
+  integer, dimension(:), allocatable, optional, intent(inout) :: arrayG
+  integer, dimension(:), allocatable, optional, intent(inout) :: arrayH
+
+  include 'deallocate-multiple-inc.f90'
+
+end subroutine i1_all_free_multi
+
 
 !pointers
 subroutine d1_ptr(array,m)
@@ -429,6 +426,21 @@ subroutine i1_ptr_free(array)
   nullify(array)
 end subroutine i1_ptr_free
 
+!test to see if this is convenient
+subroutine i1_ptr_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
+  implicit none
+  integer, dimension(:), pointer, intent(inout) :: arrayA
+  integer, dimension(:), pointer, intent(inout) :: arrayB
+  integer, dimension(:), pointer, optional, intent(inout) :: arrayC
+  integer, dimension(:), pointer, optional, intent(inout) :: arrayD
+  integer, dimension(:), pointer, optional, intent(inout) :: arrayE
+  integer, dimension(:), pointer, optional, intent(inout) :: arrayF
+  integer, dimension(:), pointer, optional, intent(inout) :: arrayG
+  integer, dimension(:), pointer, optional, intent(inout) :: arrayH
+
+  include 'deallocate-multiple-inc-ptr.f90'
+
+end subroutine i1_ptr_free_multi
 
 subroutine d2_ptr(array,m)
   use metadata_interfaces, metadata_address => getdp2ptr

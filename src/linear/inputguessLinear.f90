@@ -13,7 +13,7 @@
 !! Each processors write its initial wavefunctions into the wavefunction file
 !! The files are then read by readwave
 subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
-     rxyz, nlpspd, proj, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs, &
+     rxyz, nlpsp, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs, &
      locregcenters)
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
@@ -25,11 +25,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx, hy, hz
   type(atoms_data), intent(inout) :: at
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(GPU_pointers), intent(inout) :: GPU
   type(input_variables),intent(in) :: input
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   type(orbitals_data),intent(inout) :: orbs
   type(DFT_wavefunction),intent(inout) :: kswfn, tmb
   type(DFT_local_fields), intent(inout) :: denspot
@@ -572,6 +571,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
  end if
 
+
  iall=-product(shape(aocc))*kind(aocc)
  deallocate(aocc,stat=istat)
  call memocc(istat, iall,'aocc',subname)
@@ -600,7 +600,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                                            'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
      end if
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-         info_basis_functions,nlpspd,input%lin%scf_mode,proj,ldiis,input%SIC,tmb,energs, &
+         info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
          50,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop)
@@ -637,7 +637,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
       call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
 
-      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
+      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,input%calculate_KS_residue)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
@@ -645,7 +645,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       end if
 
   else
-      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpspd,proj,&
+      call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,input%calculate_KS_residue)
 
       call dcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)

@@ -101,7 +101,7 @@
    Number of atoms                     :  3
    Types of atoms                      :  [ O, H ]
    Boundary Conditions                 : Surface #Code: S
-   Box Sizes (AU)                      :  [  6.61404E+00,  1.88973E+00,  5.66918E+00 ]
+   Box Sizes (AU)                      :  [  6.61404E+00,  0.00000E+00,  5.66918E+00 ]
    Number of Symmetries                :  0
    Space group                         : disabled
   #------------------------------ Geometry optimization Input Parameters (file: input.geopt)

@@ -274,7 +274,7 @@ contains
     REAL (gp), DIMENSION(:), INTENT(IN)  :: vect
     real (gp), intent(in) :: Lx, Ly, Lz
     REAL (gp), DIMENSION( SIZE( vect ) ) :: cubic_pbc
-    REAL (gp)                            :: vect_i, invLx, invLy, invLz
+    REAL (gp)                            :: invLx, invLy, invLz
     INTEGER                                    :: i, dim
 
     invLx = 1.D0 / Lx
@@ -283,13 +283,14 @@ contains
 
     dim = size(vect)
     DO i = 1, dim
-       vect_i = vect(i)
-       IF ( MOD(i,3) == 1 ) THEN
-          cubic_pbc(i) = vect_i - ANINT( vect_i * invLx ) * Lx
-       ELSE IF ( MOD(i,3) == 2 ) THEN
-          cubic_pbc(i) = vect_i - ANINT( vect_i * invLy ) * Ly
-       ELSE
-          cubic_pbc(i) = vect_i - ANINT( vect_i * invLz ) * Lz
+       IF ( MOD(i,3) == 1 .and. Lx /= 0._gp) THEN
+          cubic_pbc(i) = vect(i) - ANINT( vect(i) * invLx ) * Lx
+       ELSE IF ( MOD(i,3) == 2 .and. Ly /= 0._gp) THEN
+          cubic_pbc(i) = vect(i) - ANINT( vect(i) * invLy ) * Ly
+       ELSE if ( MOD(i,3) == 0 .and. Lz /= 0._gp) then
+          cubic_pbc(i) = vect(i) - ANINT( vect(i) * invLz ) * Lz
+       else
+          cubic_pbc(i) = vect(i)
        END IF
     END DO
   END FUNCTION cubic_pbc
@@ -314,6 +315,7 @@ contains
     nullify(img%delta_pos)
     nullify(img%vel)
 
+    call run_objects_nullify(img%run)
     call run_objects_associate(img%run, inputs, atoms, rst)
     call init_global_output(img%outs, atoms%astruct%nat)
 

@@ -15,6 +15,8 @@ program wvl
   use BigDFT_API
   use dynamic_memory
   use yaml_output
+  use module_input_dicts
+  use module_interfaces, only: inputs_from_dict
   
   implicit none
 
@@ -44,6 +46,7 @@ program wvl
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
+  type(dictionary), pointer :: user_inputs
   !temporary variables
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
@@ -57,7 +60,12 @@ program wvl
    !just for backward compatibility
    iproc=mpi_info(1)
    nproc=mpi_info(2)
-   call bigdft_set_input('input','posinp',inputs,atoms)
+   call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
+   call inputs_from_dict(inputs, atoms, user_inputs, .true.)
+   if (iproc == 0) then
+      call print_general_parameters(inputs,atoms)
+   end if
+   call dict_free(user_inputs)
 
 !!$  ! Start MPI in parallel version
 !!$  call MPI_INIT(ierr)
@@ -79,13 +87,16 @@ program wvl
   call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf)
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
-  call system_size(iproc,atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult, &
+  call system_size(atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,shift)
+  call print_atoms_and_grid(Lzd%Glr, atoms, atoms%astruct%rxyz, shift, &
+       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
 
   ! Setting up the wavefunction representations (descriptors for the
   !  compressed form...).
   call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
        & atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
+  call print_wfd(Lzd%Glr%wfd)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
   call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,atoms%astruct%rxyz)
@@ -275,7 +286,7 @@ program wvl
   deallocate(psi)
 
   call deallocate_comms(comms,"main")
-  call deallocate_wfd(Lzd%Glr%wfd,"main")
+  call deallocate_wfd(Lzd%Glr%wfd)
 
   call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,"main")
 

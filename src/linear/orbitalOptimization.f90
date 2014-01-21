@@ -67,6 +67,7 @@ do iorb=1,orbs%norbp
     jst=jst+(ldiis%mis-1)*ncount
     call dcopy(ncount, phi(ist), 1, ldiis%phiHist(jst), 1)
     call dcopy(ncount, hphi(ist), 1, ldiis%hphiHist(jst), 1)
+    !!if (iproc==0 .and. iorb==1) write(*,*) 'copy to: jst, val', jst, ldiis%phiHist(jst)
 
 
     !ilr=onWhichAtom(iorb)
