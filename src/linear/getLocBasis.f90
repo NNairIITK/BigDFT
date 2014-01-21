@@ -54,7 +54,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(sparseMatrix) :: gradmat 
-  logical :: update_kernel
+  logical :: update_kernel, overlap_calculated
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
@@ -368,6 +368,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmb%orbs%eval=-.5d0
 
   end if
+
+
+
   if (calculate_ham) then
       if (calculate_KS_residue) then
           call get_KS_residue(iproc, nproc, tmb, orbs, hpsit_c, hpsit_f, KSres)
@@ -515,6 +518,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('Initial kernel purification',.true.)
       end if
       overlap_calculated=.false.
+      tmb%can_use_transposed=.false.
       call purify_kernel(iproc, nproc, tmb, overlap_calculated)
       if (iproc==0) call yaml_close_map()
   end if
