@@ -28,11 +28,11 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.1.10
- Timestamp of this run                 : 2014-01-20 18:30:17.105
+ Timestamp of this run                 : 2014-01-21 15:40:53.402
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
+ Maximal OpenMP threads per MPI task   :  6
  MPI tasks of root process node        :  3
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
@@ -346,7 +346,7 @@
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
    MPI tasks                           :  3
-   OpenMP threads per MPI task         :  2
+   OpenMP threads per MPI task         :  6
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
@@ -432,7 +432,7 @@
    transposition check, mean error     :  0.0
    transposition check, max error      :  0.0
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  5.647211307737178007E-15
+   calculation check, error sum        :  5.647211307737178796E-15
    Tolerance for the following test    :  1.000000000000000036E-10
    calculation check, error max        :  9.259260025373805547E-14
  Ion-Ion interaction energy            :  4.93139716176247
@@ -454,7 +454,7 @@
      Molecule was shifted              :  7
      Molecule was rotated              :  7
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  7.696,  4.139 ]}
+   -  {Process:  0, Timing:  [  3.137E+01,  1.183E+01 ]}
    nstates_max                         :  4
    ksorbs%norb                         :  4
    tmb%orbs%norb                       :  7
@@ -474,7 +474,7 @@
  {e: -2.68796504403E-01, f:  2.0},  # 00003
  {e: -9.570892839734E-02, f:  1.0}] # 00004
    communication strategy kernel       : ALLREDUCE
-   Total charge                        :  6.999999956388
+   Total charge                        :  6.999999956389
    Poisson Solver:
      BC                                : Free
      Box                               :  [  115,  113,  113 ]
@@ -508,37 +508,16 @@
      Coefficients available            :  Yes
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
-   -  {Initial kernel purification:  Yes, purification process: [
- {iter:  1, diff from idempotency:  2.5E-01}, 
- {iter:  2, diff from idempotency:  2.5E-01}, 
- {iter:  3, diff from idempotency:  2.5E-01}, 
- {iter:  4, diff from idempotency:  2.5E-01}, 
- {iter:  5, diff from idempotency:  2.5E-01}, 
- {iter:  6, diff from idempotency:  2.5E-01}, 
- {iter:  7, diff from idempotency:  2.5E-01}, 
- {iter:  8, diff from idempotency:  2.5E-01}, 
- {iter:  9, diff from idempotency:  2.5E-01}, 
- {iter:  10, diff from idempotency:  2.5E-01}, 
- {iter:  11, diff from idempotency:  2.5E-01}, 
- {iter:  12, diff from idempotency:  2.5E-01}, 
- {iter:  13, diff from idempotency:  2.5E-01}, 
- {iter:  14, diff from idempotency:  2.5E-01}, 
- {iter:  15, diff from idempotency:  2.5E-01}, 
- {iter:  16, diff from idempotency:  2.5E-01}, 
- {iter:  17, diff from idempotency:  2.5E-01}, 
- {iter:  18, diff from idempotency:  2.5E-01}, 
- {iter:  19, diff from idempotency:  2.5E-01}, 
- {iter:  20, diff from idempotency:  2.5E-01}]}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  5.01461064456, Epot: -6.66639130868, Enl:  1.18854978751}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.6E-01, Omega: -5.49457282593208962, D: -5.495, 
+ iter:  1, fnrm:  1.6E-01, Omega: -5.49457282593209495, D: -5.495, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  5.01461064456, Epot: -6.66639130868, Enl:  1.18854978751}, 
- iter:  1, fnrm:  1.6E-01, Omega: -5.49457282593208962, D: -5.495}
+ iter:  1, fnrm:  1.6E-01, Omega: -5.49457282593209495, D: -5.495}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -551,7 +530,7 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.02E-02, eBS: -2.01521327715131893, D: -2.952E-04, alpha:  2.0E-01}
+ iter:  1, fnrm:  2.02E-02, eBS: -2.01521327715110043, D: -2.952E-04, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  5.01461064456, Epot: -6.66639130868, Enl:  1.18854978751, 
@@ -565,15 +544,15 @@
  {e: -2.68796504403E-01, f:  2.0},  # 00003
  {e: -9.570892839734E-02, f:  1.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.18E-08, energy: -5.49486800344104065, D: -5.495}]
+ iter:  1, delta:  3.18E-08, energy: -5.49486800344104953, D: -5.495}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  3.18E-08, energy: -5.49486800344104065, D: -5.495}]}
+ iter:  2, delta:  3.18E-08, energy: -5.49486800344104953, D: -5.495}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  3.181E-08, energy: -5.49486800344104065, D: -5.495}
+ iter high:  1, delta out:  3.181E-08, energy: -5.49486800344104953, D: -5.495}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -4.394246225847E-01, f:  1.0},  # 00001
@@ -588,7 +567,7 @@
    -  {iter:  1, 
  Energies: {Ekin:  5.01461064456, Epot: -6.66639130868, Enl:  1.18854978751, 
               EH:  9.06718043113,  EXC: -2.18716677009, EvXC: -2.85448628952}, 
-       iter high:  1,        delta out:  3.181E-08,  energy: -5.49486800344104065, D:  0.0,  #FINAL
+       iter high:  1,        delta out:  3.181E-08,  energy: -5.49486800344104953, D:  0.0,  #FINAL
  }
  Total charge                          :  6.999999955747
  Site energies: [ #state, energy, orthog energy, frag eval, overlap, orthog overlap, occ
@@ -601,12 +580,12 @@
              frag eval: -2.68796504E-01, overlap:  1.000026, occ:  2.0, 
  state: HOMO, energy: -7.70989708E-02, orthog energy: -7.70985168E-02, 
            frag eval: -9.57089284E-02, overlap:  1.000006, occ:  1.0, 
- 2*frag sum: -2.0150394830095082, 2*frag sum orthog: -2.0150224140700295, 
- 2*eval sum: -2.051500040276518}, 
+ 2*frag sum: -2.0150394830088709, 2*frag sum orthog: -2.0150224140698083, 
+ 2*eval sum: -2.0515000402765171}, 
  ]
- 2.0_gp*frag_sum_tot                   : -2.0150394830095082
- 2.0_gp*frag_sum_tot_orthog            : -2.0150224140700295
- 2.0_gp*eval_sum_tot                   : -2.051500040276518
+ 2.0_gp*frag_sum_tot                   : -2.0150394830088709
+ 2.0_gp*frag_sum_tot_orthog            : -2.0150224140698083
+ 2.0_gp*eval_sum_tot                   : -2.0515000402765171
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -616,18 +595,18 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  4.29993887E-03, y: -2.58864987E-03, z:  3.75075648E-03, 
                     total:  6.26568086E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.985338228178E-02, fnrm2:  4.871868295642E-03}
- Raw forces norm (Ha/Bohr): {maxval:  4.024537739208E-02, fnrm2:  4.911815720433E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.985338228171E-02, fnrm2:  4.871868295637E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  4.024537739208E-02, fnrm2:  4.911815720429E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [-9.090067625487E-03,  5.88155583988E-03, -1.092998539489E-02]} # 0001
- -  {H: [-3.89776438012E-03,  2.909418981784E-02,  2.695603143971E-02]} # 0002
- -  {H: [-1.947286768259E-02, -3.282352858818E-02,  6.192026499465E-03]} # 0003
- -  {H: [ 3.24606996882E-02, -2.15221706954E-03, -2.221807254429E-02]} # 0004
+ -  {Si: [-9.090067625494E-03,  5.881555839933E-03, -1.092998539484E-02]} # 0001
+ -  {H: [-3.897764380141E-03,  2.909418981778E-02,  2.695603143966E-02]} # 0002
+ -  {H: [-1.947286768259E-02, -3.282352858816E-02,  6.192026499481E-03]} # 0003
+ -  {H: [ 3.246069968822E-02, -2.152217069549E-03, -2.221807254431E-02]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  12.88
-   Elapsed time (s)                    :  6.74
+   CPU time (s)                        :  53.58
+   Elapsed time (s)                    :  20.76
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
@@ -639,21 +618,21 @@
      Array Id                          : wfd%keyvloc
      Size (Bytes)                      : 6100
      Allocating Routine Id             : cluster
-     Address of first element          : 0x2aaed80
-     Address of metadata               : 44620472
+     Address of first element          : 0x16e12a0
+     Address of metadata               : 23853816
    wfd%keyglob:
      Array Id                          : wfd%keyglob
      Size (Bytes)                      : 12200
      Allocating Routine Id             : cluster
-     Address of first element          : 0x2ab32d0
-     Address of metadata               : 44620280
+     Address of first element          : 0x16e57f0
+     Address of metadata               : 23853624
    Timestamp of Profile initialization:
-     2014-01-20 18:30:16.060
+     2014-01-21 15:40:52.353
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  1850
-   Tot. No. of Deallocations           :  1850
+   Tot. No. of Allocations             :  1831
+   Tot. No. of Deallocations           :  1831
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  167

@@ -438,7 +438,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff, alpha_max, delta_energy, delta_energy_prev
-  integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, lwork
+  integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, lwork, ncharge
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: psit_c_tmp, psit_f_tmp, work, eval, delta_energy_arr
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
@@ -452,12 +452,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(3) :: interpol_vector, interpol_solution
   integer :: i, ist, iiorb, ilr, ii, info
-  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh, trH_ref, dnrm2
+  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh, trH_ref, dnrm2, charge
   integer,dimension(3) :: ipiv
   real(kind=8),dimension(:,:),allocatable :: psi_old
   real(kind=8),dimension(:),allocatable :: psi_tmp, kernel_best
   integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
-  logical :: stop_optimization, energy_increased_previous, complete_reset
+  logical :: stop_optimization, energy_increased_previous, complete_reset, even
 
   call f_routine(id='getLocalizedBasis')
 
@@ -510,8 +510,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   !!    ist=ist+ncount
   !!end do
 
+  ! Count whether there is an even or an odd number of electrons
+  charge=0.d0
+  do iorb=1,orbs%norb
+      charge=charge+orbs%occup(iorb)
+  end do
+  ncharge=nint(charge)
+  even=(mod(ncharge,2)==0)
 
-  if (target_function/=TARGET_FUNCTION_IS_TRACE) then
+  ! Purify the initial kernel (only when necessary and if there is an even number of electrons)
+  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even) then
       if (iproc==0) then
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
@@ -1988,9 +1996,35 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
 
+
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,iorb
+  !!        call random_number(diff)
+  !!        diff=diff-.5d0
+  !!        diff=diff*.1d0
+  !!        tmb%linmat%denskern%matrix(jorb,iorb)=tmb%linmat%denskern%matrix(jorb,iorb)+diff
+  !!        tmb%linmat%denskern%matrix(iorb,jorb)=tmb%linmat%denskern%matrix(jorb,iorb)
+  !!    end do
+  !!end do
+
   if (iproc==0) call yaml_open_sequence('purification process')
 
   do it=1,20
+
+      !!ks=tmb%linmat%denskern%matrix
+      !!ksk=tmb%linmat%ovrlp%matrix
+      !!call dsygv(1, 'n', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksk, tmb%orbs%norb, &
+      !!    ksksk(1,1), ksksk(1,2), (tmb%orbs%norb-1)*tmb%orbs%norb, istat)
+      !!if (istat==0) then
+      !!    if (iproc==0) write(*,*) 'eval min, max',ksksk(1,1), ksksk(tmb%orbs%norb,1)
+      !!    if (iproc==0) then
+      !!        do iorb=1,tmb%orbs%norb
+      !!            write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
+      !!        end do
+      !!    end if
+      !!else
+      !!    write(*,*) 'ERROR in dsygv'
+      !!end if
 
       call to_zero(tmb%orbs%norb**2, ks(1,1))
       if (tmb%orbs%norbp>0) then
@@ -2021,6 +2055,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
           do jorb=1,tmb%orbs%norb
               diff = diff + (ksk(jorb,iorb)-tmb%linmat%denskern%matrix(jorb,iorb))**2
+              !if (iproc==0) write(*,*) 'iorb,jorb,diff',iorb,jorb,(ksk(jorb,iorb)-tmb%linmat%denskern%matrix(jorb,iorb))**2
           end do
       end do
       call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -2030,7 +2065,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           call yaml_map('iter',it)
-          call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
+          call yaml_map('diff from idempotency',diff,fmt='(es16.8)')
           call yaml_close_map()
       end if
 
@@ -2038,6 +2073,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
           do jorb=1,tmb%orbs%norb
               tmb%linmat%denskern%matrix(jorb,iorb) = 3*ksk(jorb,iorb) - 2*ksksk(jorb,iorb)
+              !if (iproc==0) write(*,'(a,2i8,2es16.8)') 'iorb,jorb,ksk,ksksk',iorb,jorb,ksk(jorb,iorb),ksksk(jorb,iorb)
           end do
       end do
       call mpiallred(tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
