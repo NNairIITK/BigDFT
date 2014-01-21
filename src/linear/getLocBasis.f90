@@ -2065,7 +2065,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           call yaml_map('iter',it)
-          call yaml_map('diff from idempotency',diff,fmt='(es16.8)')
+          call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
           call yaml_close_map()
       end if
 
