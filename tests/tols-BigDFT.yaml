@@ -122,11 +122,13 @@ GEOPT-BFGS:
  Epsilon: 2.71e-10
 
 GEOPT-LBFGS: 
- Epsilon: 4.1e-10
- EH: 1.11e-9
- Epot: 3.3e-10
+ Epsilon: 4.8e-10
+ etot: 1.3e-9
+ EKS: 1.3e-9
+ EH: 1.81e-9
+ Epot: 1.1e-9
  Eion: 8.5e-10
- Enl: 6.5e-10
+ Enl: 1.33e-9
  DIIS weights: 1.1e-5
  
 NaCl:
@@ -318,6 +320,7 @@ directmin:
  Epsilon: 3.5e-10
  mean alpha: 1.1e-04
  max alpha: 1.1e-04
+ norm(P): 1.1e-7
 
 experimentalmode:
  D: 1.1e-06

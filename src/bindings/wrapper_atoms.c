@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+static void bigdft_atoms_dispose(GObject *atoms);
 static void bigdft_atoms_finalize(GObject *atoms);
 
 /**
@@ -28,7 +29,6 @@ static void bigdft_atoms_finalize(GObject *atoms);
 #ifdef HAVE_GLIB
 G_DEFINE_TYPE(BigDFT_Atoms, bigdft_atoms, G_TYPE_OBJECT)
 
-static void bigdft_atoms_dispose(GObject *atoms);
 static void bigdft_atoms_class_init(BigDFT_AtomsClass *klass)
 {
   /* Connect the overloading methods. */
@@ -60,7 +60,6 @@ static void bigdft_atoms_init(BigDFT_Atoms *obj)
   G_OBJECT(obj)->ref_count = 1;
 #endif
 }
-#ifdef HAVE_GLIB
 static void bigdft_atoms_dispose(GObject *obj)
 {
   BigDFT_Atoms *atoms = BIGDFT_ATOMS(obj);
@@ -69,10 +68,11 @@ static void bigdft_atoms_dispose(GObject *obj)
     return;
   atoms->dispose_has_run = TRUE;
 
+#ifdef HAVE_GLIB
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_atoms_parent_class)->dispose(obj);
-}
 #endif
+}
 static void bigdft_atoms_finalize(GObject *obj)
 {
   BigDFT_Atoms *atoms = BIGDFT_ATOMS(obj);
@@ -148,6 +148,7 @@ void bigdft_atoms_unref(BigDFT_Atoms *atoms)
 #else
   if (G_OBJECT(atoms)->ref_count <= 0)
     {
+      bigdft_atoms_dispose(G_OBJECT(atoms));
       bigdft_atoms_finalize(G_OBJECT(atoms));
       g_free(atoms);
     }
