@@ -331,7 +331,7 @@ end subroutine calc_transfer_integral
 ! parallelization to be improved
 ! only calculates transfer integrals if we have two fragments
 ! occs are for neutral reference fragments...
-subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frags,orbs,ham,ovrlp)
+subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,ref_frags,orbs,ham,ovrlp)
   use module_base
   use module_types
   use yaml_output
@@ -340,7 +340,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   use module_interfaces
   implicit none
 
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, meth_overlap
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
   type(sparseMatrix), intent(inout) :: ham, ovrlp
@@ -387,7 +387,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
         !call dcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,coeffs_tmp(ind,ih),1)
      end do
 
-     !call reorthonormalize_coeff(iproc, nproc, norb_tmp, -8, -8, 0, orbs, ovrlp, coeffs_tmp(1,1))
+     !call reorthonormalize_coeff(iproc, nproc, norb_tmp, -8, -8, meth_overlap, orbs, ovrlp, coeffs_tmp(1,1))
      !call dcopy(orbs%norb*norb_tmp,coeffs_tmp(1,1),1,homo_coeffs(1,istate),1)
 
      istate=istate+norb_tmp
@@ -403,7 +403,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,input_frag,ref_frag
   ! orthogonalize
   coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')
   call dcopy(orbs%norb*nstates,homo_coeffs(1,1),1,coeffs_tmp(1,1),1)
-  call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, 0, orbs, ovrlp, coeffs_tmp(1,1))
+  call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, meth_overlap, orbs, ovrlp, coeffs_tmp(1,1))
   coeffs_orthog=f_malloc((/orbs%norb,nstates/), id='coeffs_orthog')
   call dcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
   call f_free(coeffs_tmp)

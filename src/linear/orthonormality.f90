@@ -34,7 +34,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   !type(sparseMatrix) :: inv_ovrlp_half
   character(len=*), parameter :: subname='orthonormalizeLocalized'
   !real(kind=8), dimension(orbs%norb,orbs%norb) :: tempmat
-real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
+  real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
   real(kind=8) :: error
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
@@ -82,7 +82,7 @@ real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
       !!end if
 
       if (methTransformOverlap==-1) then
-          call overlap_power_minus_one_half_parallel(iproc, nproc, bigdft_mpi%mpi_comm, orbs, ovrlp, inv_ovrlp_half)
+          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, inv_ovrlp_half)
       else
           nullify(inv_ovrlp_null)
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, orthpar%blocksize_pdgemm, orbs%norb, &
@@ -377,7 +377,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp
   real(kind=8) :: factor, newfactor
   logical :: ovrlp_allocated, inv_ovrlp_allocated
-  logical, parameter :: check_accuracy=.true. ! move to input.perf
+  logical, parameter :: check_accuracy=.false. ! move to input.perf
 
 
   call f_routine(id='overlapPowerGeneral')
@@ -429,7 +429,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
      end if
   else if(iorder>0) then
      ! Taylor expansion
-     if (present(inv_ovrlp_smat).and.iorder==1) then
+     if (present(inv_ovrlp_smat)) then
         call first_order_taylor_sparse(power,ovrlp_smat,inv_ovrlp_smat)
         if (inv_ovrlp_smat%parallel_compression==1) then
            call mpiallred(inv_ovrlp_smat%matrix_compr(1), inv_ovrlp_smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -440,22 +440,28 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
                 mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
            call f_free_ptr(inv_ovrlp_smat%matrix_comprp)
         end if
-     else
-        if (present(inv_ovrlp_smat).and.iorder>1) then
+        if (iorder>1) then
            if (.not. inv_ovrlp_allocated) inv_ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='inv_ovrlp_smat%matrix')
+           call uncompressMatrix(iproc,inv_ovrlp_smat)
            inv_ovrlp => inv_ovrlp_smat%matrix
+           if (.not. ovrlp_allocated) ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='ovrlp_smat%matrix')
+           call uncompressMatrix(iproc,ovrlp_smat)
+           ovrlp => ovrlp_smat%matrix
         end if
+     end if
+     if (.not.present(inv_ovrlp_smat).or.iorder>1) then 
         if (present(orbs).and.nproc>1) then
            if (norb/=orbs%norb) stop 'Error with orbs%norb in overlapPowerGeneral'
            norbp=orbs%norbp
            isorb=orbs%isorb
            inv_ovrlpp=f_malloc_ptr((/norb,norbp/),id='inv_ovrlpp')
+           if (present(inv_ovrlp_smat)) call vcopy(norb*norbp,inv_ovrlp_smat%matrix(1,isorb+1),1,inv_ovrlpp(1,1),1)
         else
            norbp=norb
            isorb=0
            inv_ovrlpp => inv_ovrlp
         end if
-        call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+        if (.not.present(inv_ovrlp_smat)) call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
      end if
 
      ! add sparse here once we have sparse matrix multiply
@@ -510,15 +516,18 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
         else
            nullify(inv_ovrlpp)
         end if
-     else if (present(inv_ovrlp_smat).and.iorder>1) then
-        call compress_matrix_for_allreduce(iproc,inv_ovrlp_smat)
-        if (.not. inv_ovrlp_allocated) then
-           call f_free_ptr(inv_ovrlp_smat%matrix)
-        else
-           inv_ovrlp_smat%can_use_dense=.true.
+        if (present(inv_ovrlp_smat)) then
+           call compress_matrix_for_allreduce(iproc,inv_ovrlp_smat)
+           if (.not. inv_ovrlp_allocated) then
+              call f_free_ptr(inv_ovrlp_smat%matrix)
+           else
+              inv_ovrlp_smat%can_use_dense=.true.
+           end if
+           if (.not. ovrlp_allocated) then
+              call f_free_ptr(ovrlp_smat%matrix)
+           end if
         end if
      end if
-
   end if
 
   ! check how accurate calculation was
@@ -528,12 +537,14 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
         if (.not.(inv_ovrlp_smat%can_use_dense.and.inv_ovrlp_allocated)) call uncompressMatrix(iproc,inv_ovrlp_smat)
         if (.not.ovrlp_allocated) ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='ovrlp_smat%matrix')
         if (.not.(ovrlp_smat%can_use_dense.and.ovrlp_allocated)) call uncompressMatrix(iproc,ovrlp_smat)
+
         call check_accuracy_overlap_minus_one(iproc,norb,power,ovrlp_smat%matrix,inv_ovrlp_smat%matrix,error)
         if (.not.ovrlp_allocated) call f_free_ptr(ovrlp_smat%matrix)
-        if (.not.inv_ovrlp_allocated)call f_free_ptr(inv_ovrlp_smat%matrix)
+        if (.not.inv_ovrlp_allocated) call f_free_ptr(inv_ovrlp_smat%matrix)
      else
         call check_accuracy_overlap_minus_one(iproc,norb,power,ovrlp,inv_ovrlp,error)
      end if
+     !if (iproc==0) print*,'Accuracy of inverse overlap calculation: power, order, error',power,iorder,error
   else
      error=-1.0d0
   end if
@@ -740,6 +751,7 @@ subroutine first_order_taylor_sparse(power,ovrlp,inv_ovrlp)
 end subroutine first_order_taylor_sparse
 
 subroutine first_order_taylor_dense(norb,isorb,norbp,power,ovrlpp,inv_ovrlpp)
+use module_base
   implicit none
   integer,intent(in) :: norb, isorb, norbp, power
   real(kind=8),dimension(norb,norbp),intent(in) :: ovrlpp
@@ -1064,14 +1076,14 @@ subroutine deviation_from_symmetry(iproc, norb, ovrlp, deviation)
 
 end subroutine deviation_from_symmetry
 
-subroutine overlap_power_minus_one_half_parallel(iproc, nproc, comm, orbs, ovrlp, inv_ovrlp_half)
+subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orbs, ovrlp, inv_ovrlp_half)
   use module_base
   use module_types
   use module_interfaces
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, comm
+  integer,intent(in) :: iproc, nproc, meth_overlap
   type(orbitals_data),intent(in) :: orbs
   type(sparseMatrix),intent(in) :: ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half
@@ -1162,7 +1174,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, comm, orbs, ovrlp
      !end if
 
      ! Calculate S^-1/2 for the small overlap matrix
-     call overlapPowerGeneral(iproc, nproc, 0, -2, -8, n, ovrlp_tmp, ovrlp_tmp_inv_half, error)
+     call overlapPowerGeneral(iproc, nproc, meth_overlap, -2, -8, n, ovrlp_tmp, ovrlp_tmp_inv_half, error)
 
      !if (iiorb==orbs%norb) then
      !print*,''
@@ -1338,7 +1350,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
 
       if (methTransformOverlap==-1) then
-          call overlap_power_minus_one_half_parallel(iproc, nproc, bigdft_mpi%mpi_comm, orbs, ovrlp, inv_ovrlp_half)
+          call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, orbs, ovrlp, inv_ovrlp_half)
       else
           nullify(inv_ovrlp_null)
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, orthpar%blocksize_pdsyev, orbs%norb, &
@@ -1542,7 +1554,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
 
       !!if (methTransformOverlap==-1) then
-      !!    call overlap_power_minus_one_half_parallel(iproc, nproc, bigdft_mpi%mpi_comm, orbs, ovrlp, inv_ovrlp_half)
+      !!    call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, orbs, ovrlp, inv_ovrlp_half)
       !!else
       !!    call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
       !!        orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)

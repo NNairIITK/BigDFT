@@ -87,9 +87,10 @@ contains
   !! CDFT: and P is a projector matrix onto the tmbs of the desired fragment
   !! CDFT: for standalone CDFT calculations, assuming one charged fragment, for transfer integrals assuming two fragments
   !! CDFT: where we constrain the difference - should later generalize this
-  subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calculate_overlap_matrix)
+  subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calculate_overlap_matrix,meth_overlap)
     use module_fragments
     implicit none
+    integer, intent(in) :: meth_overlap
     type(cdft_data), intent(inout) :: cdft
     type(input_variables),intent(in) :: input
     type(dft_wavefunction), intent(inout) :: tmb
@@ -112,7 +113,7 @@ contains
     end if
 
     call calculate_weight_matrix_lowdin(cdft%weight_matrix,nfrag_charged,cdft%ifrag_charged,tmb,input,&
-         ref_frags,calculate_overlap_matrix,0)
+         ref_frags,calculate_overlap_matrix,meth_overlap)
 
   end subroutine calculate_weight_matrix_lowdin_wrapper
 
@@ -165,7 +166,7 @@ contains
 
     ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
 
-    call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 2, &!meth_overlap, 2, &
+    call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
           tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, ovrlp_half, error, tmb%orbs)
 
     call f_free_ptr(tmb%linmat%ovrlp%matrix)

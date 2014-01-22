@@ -912,8 +912,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Only need to reconstruct the kernel if it is actually used.
       if (target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
           if(scf_mode/=LINEAR_FOE) then
-              call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-                   orbs, tmb, overlap_calculated)
+              call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+                   tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
           else if (experimental_mode .and. .not.complete_reset) then
               if (iproc==0) then
@@ -2067,7 +2067,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           call yaml_map('iter',it)
-          call yaml_map('diff from idempotency',diff,fmt='(es16.8)')
+          call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
           call yaml_close_map()
       end if
 

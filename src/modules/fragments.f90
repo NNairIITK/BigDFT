@@ -1222,7 +1222,7 @@ contains
        ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
-            tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, 0,&
+            tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap,&
             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
 
        !! debug

@@ -195,15 +195,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
      ! instead of twice could add some criterion to check accuracy?
      if (present(num_extra)) then
-        call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
-        call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+        call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, tmb%orthpar%methTransformOverlap, &
+             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+        !call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
      else
-        call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
-        call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+        call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, tmb%orthpar%methTransformOverlap, &
+             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+        !call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
      end if
      !!!!!!!!!!!!!!!!!!!!!!!!
      !can't put coeffs directly in ksorbs%eval as intent in, so change after - problem with orthonormality of coeffs so adding extra
-     !call find_eval_from_coeffs(iproc, nproc, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, &
+     !call find_eval_from_coeffs(iproc, nproc, tmb%orthpar%methTransformOverlap, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, &
      !     tmb%coeff, tmb%orbs%eval, .true., .true.)
      !ipiv=f_malloc(tmb%orbs%norb,id='ipiv')
      !call order_coeffs_by_energy(orbs%norb,tmb%orbs%norb,tmb%coeff,tmb%orbs%eval,ipiv)
@@ -226,7 +228,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !   if (iproc==0) print*,'EBSdiff,alpha',energy-energy0,ldiis_coeff%alpha_coeff,energy,energy0
      !end if
 
-     if (iproc==0) write(*,*) ''
+     !if (iproc==0) write(*,*) ''
      if (sd_fit_curve .and. ldiis_coeff%idsx == 0) then
         !!if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))')'DminSD: it, fnrm, ebs, ebsdiff, alpha, pred E, diff',&
         !!     it,fnrm,energy0,energy-energy0,ldiis_coeff%alpha_coeff,pred_e,pred_e-energy
@@ -344,7 +346,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
      call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
-          .false.,0)!tmb%orthpar%methTransformOverlap)
+          .false.,tmb%orthpar%methTransformOverlap)
      allocate(weight_matrix%matrix(weight_matrix%nfvctr,weight_matrix%nfvctr), stat=istat)
      call memocc(istat, weight_matrix%matrix, 'weight_matrix%matrix', subname)
      call uncompressmatrix(iproc,weight_matrix)
@@ -390,14 +392,14 @@ end subroutine coeff_weight_analysis
 
 ! subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
 ! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
-subroutine find_eval_from_coeffs(iproc, nproc, ksorbs, basis_orbs, ham, ovrlp, coeff, eval, calc_overlap, diag)
+subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs, ham, ovrlp, coeff, eval, calc_overlap, diag)
   use module_base
   use module_types
   use module_interfaces
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, meth_overlap
   type(orbitals_data), intent(in) :: basis_orbs, ksorbs
   type(sparseMatrix),intent(in) :: ham, ovrlp
   real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
@@ -437,7 +439,7 @@ subroutine find_eval_from_coeffs(iproc, nproc, ksorbs, basis_orbs, ham, ovrlp, c
   end do
   offdiagsum=offdiagsum/(ksorbs%norb**2-ksorbs%norb)
   if (calc_overlap) offdiagsum2=offdiagsum2/(ksorbs%norb**2-ksorbs%norb)
-  if (iproc==0) print*,''
+  if (calc_overlap.and.iproc==0) print*,''
   if (calc_overlap) then
      if (iproc==0) print*,'offdiagsum (ham,ovrlp):',offdiagsum,offdiagsum2
   else
@@ -446,7 +448,7 @@ subroutine find_eval_from_coeffs(iproc, nproc, ksorbs, basis_orbs, ham, ovrlp, c
 
   ! if coeffs are too far from orthogonality
   if (calc_overlap .and. offdiagsum2>coeff_orthog_threshold) then
-     call reorthonormalize_coeff(iproc, nproc, ksorbs%norb, -8, -8, 0, basis_orbs, ovrlp, coeff, ksorbs)
+     call reorthonormalize_coeff(iproc, nproc, ksorbs%norb, -8, -8, meth_overlap, basis_orbs, ovrlp, coeff, ksorbs)
   end if
 
   if (diag.or.offdiagsum>1.0d-2) then
@@ -967,7 +969,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   if(tmb%orthpar%blocksize_pdsyev<0) then
      call timing(iproc,'dirmin_dgesv','OF')
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerGeneral(iproc, nproc, 1, 1, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp, error, tmb%orbs)
+     call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, &
+          tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp, error, tmb%orbs)
 
      !!!DEBUG checking S^-1 etc.
      !!!test dense version of S^-1
@@ -1269,7 +1272,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
      !   call f_free(ipiv)
      !end if
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerGeneral(iproc, nproc, 1, 1, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp, error, tmb%orbs)
+     call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, tmb%orbs%norb, &
+          tmb%linmat%ovrlp%matrix, inv_ovrlp, error, tmb%orbs)
 
      if (tmb%orbs%norbp>0) then
         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp(1,1), &
