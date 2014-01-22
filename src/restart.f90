@@ -946,14 +946,14 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%full_dim1,tmb%linmat%ham%full_dim1), stat=i_stat)
+     allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
 
      call uncompressMatrix(iproc,tmb%linmat%ham)
 
-     do iorb=1,tmb%linmat%ham%full_dim1
+     do iorb=1,tmb%linmat%ham%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%ham%full_dim1
+        do jorb=1,tmb%linmat%ham%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
               write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham%matrix(iorb,jorb),iat,jat
@@ -975,14 +975,14 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%full_dim1,tmb%linmat%ovrlp%full_dim1), stat=i_stat)
+     allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
 
      call uncompressMatrix(iproc,tmb%linmat%ovrlp)
 
-     do iorb=1,tmb%linmat%ovrlp%full_dim1
+     do iorb=1,tmb%linmat%ovrlp%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%ovrlp%full_dim1
+        do jorb=1,tmb%linmat%ovrlp%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
               write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat
@@ -1004,14 +1004,14 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%denskern%matrix(tmb%linmat%denskern%full_dim1,tmb%linmat%denskern%full_dim1), stat=i_stat)
+     allocate(tmb%linmat%denskern%matrix(tmb%linmat%denskern%nfvctr,tmb%linmat%denskern%nfvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
 
      call uncompressMatrix(iproc,tmb%linmat%denskern)
 
-     do iorb=1,tmb%linmat%denskern%full_dim1
+     do iorb=1,tmb%linmat%denskern%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%denskern%full_dim1
+        do jorb=1,tmb%linmat%denskern%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
               write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%denskern%matrix(iorb,jorb),iat,jat
@@ -1031,7 +1031,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 
   ! calculate 'onsite' overlap matrix as well - needs double checking
 
-  allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%full_dim1,tmb%linmat%ovrlp%full_dim1), stat=i_stat)
+  allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
   call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
 
   call tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
@@ -1044,9 +1044,9 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
      end if
 
-     do iorb=1,tmb%linmat%denskern%full_dim1
+     do iorb=1,tmb%linmat%denskern%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%denskern%full_dim1
+        do jorb=1,tmb%linmat%denskern%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
               write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat

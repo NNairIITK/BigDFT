@@ -814,73 +814,9 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
 end subroutine copy_local_zone_descriptors
 
 
-!only copying sparsity pattern here, not copying whole matrix
-subroutine sparse_copy_pattern_new(sparseMat_in, sparseMat_out, iproc, subname)
-  use module_base
-  use module_types
-  implicit none
 
-  ! Calling arguments
-  type(sparseMatrix),intent(in):: sparseMat_in
-  type(sparseMatrix),intent(out):: sparseMat_out
-  integer, intent(in) :: iproc
-  character(len=*),intent(in):: subname
 
-  ! Local variables
-  integer :: i1
-  !integer:: iis1, iie1, iis2, iie2, i2, istat, iall
-
-  call timing(iproc,'sparse_copy','ON')
-
-  !assume sparsemat_out is nullified, take advantage of pointers
-
-sparsemat_out=sparsemat_in
-
-  nullify(sparsemat_out%matrix)
-  nullify(sparsemat_out%matrix_compr)
-
-return
-
-  sparsemat_out%nvctr = sparsemat_in%nvctr
-  sparsemat_out%nseg = sparsemat_in%nseg
-  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
-  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
-
-  nullify(sparsemat_out%matrix)
-  nullify(sparsemat_out%matrix_compr)
-
-  if(associated(sparsemat_in%keyv)) then
-     sparsemat_out%keyv = sparsemat_in%keyv
-  end if
-
-  if(associated(sparsemat_in%nsegline)) then
-     sparsemat_out%nsegline(i1) = sparsemat_in%nsegline(i1)
-  end if
-
-  if(associated(sparsemat_in%istsegline)) then
-     sparsemat_out%istsegline = sparsemat_in%istsegline
-  end if
-
-  if(associated(sparsemat_in%keyg)) then
-     sparsemat_out%keyg = sparsemat_in%keyg
-  end if
-
-  !!if(associated(sparsemat_in%matrixindex_in_compressed)) then
-  !!   sparsemat_out%matrixindex_in_compressed = sparsemat_in%matrixindex_in_compressed
-  !!end if
-  if(associated(sparsemat_in%matrixindex_in_compressed_arr)) then
-     sparsemat_out%matrixindex_in_compressed_arr = sparsemat_in%matrixindex_in_compressed_arr
-  end if
-
-  if(associated(sparsemat_in%orb_from_index)) then
-     sparsemat_out%orb_from_index = sparsemat_in%orb_from_index
-  end if
-
-  call timing(iproc,'sparse_copy','OF')
-
-end subroutine sparse_copy_pattern_new
-
-!only copying sparsity pattern here, not copying whole matrix
+!only copying sparsity pattern here, not copying whole matrix (assuming matrices not allocated)
 subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   use module_base
   use module_types
@@ -897,15 +833,65 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
 
   call timing(iproc,'sparse_copy','ON')
 
-  sparsemat_out%nvctr = sparsemat_in%nvctr
   sparsemat_out%nseg = sparsemat_in%nseg
-  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
-  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
   sparsemat_out%store_index = sparsemat_in%store_index
+  sparsemat_out%nvctr = sparsemat_in%nvctr
+  sparsemat_out%nvctrp = sparsemat_in%nvctrp
+  sparsemat_out%isvctr = sparsemat_in%isvctr
+  sparsemat_out%nfvctr = sparsemat_in%nfvctr
+  sparsemat_out%nfvctrp = sparsemat_in%nfvctrp
+  sparsemat_out%isfvctr = sparsemat_in%isfvctr
+  sparsemat_out%parallel_compression = sparsemat_in%parallel_compression
 
+  if(associated(sparsemat_out%nvctr_par)) then
+     call f_free_ptr(sparsemat_out%nvctr_par)
+  end if
+  if(associated(sparsemat_in%nvctr_par)) then
+     iis1=lbound(sparsemat_in%nvctr_par,1)
+     iie1=ubound(sparsemat_in%nvctr_par,1)
+     sparsemat_out%nvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%nvctr_par')
+     do i1=iis1,iie1
+        sparsemat_out%nvctr_par(i1) = sparsemat_in%nvctr_par(i1)
+     end do
+  end if
+  if(associated(sparsemat_out%isvctr_par)) then
+     call f_free_ptr(sparsemat_out%isvctr_par)
+  end if
+  if(associated(sparsemat_in%isvctr_par)) then
+     iis1=lbound(sparsemat_in%isvctr_par,1)
+     iie1=ubound(sparsemat_in%isvctr_par,1)
+     sparsemat_out%isvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%isvctr_par')
+     do i1=iis1,iie1
+        sparsemat_out%isvctr_par(i1) = sparsemat_in%isvctr_par(i1)
+     end do
+  end if
+  if(associated(sparsemat_out%nfvctr_par)) then
+     call f_free_ptr(sparsemat_out%nfvctr_par)
+  end if
+  if(associated(sparsemat_in%nfvctr_par)) then
+     iis1=lbound(sparsemat_in%nfvctr_par,1)
+     iie1=ubound(sparsemat_in%nfvctr_par,1)
+     sparsemat_out%nfvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%nfvctr_par')
+     do i1=iis1,iie1
+        sparsemat_out%nfvctr_par(i1) = sparsemat_in%nfvctr_par(i1)
+     end do
+  end if
+  if(associated(sparsemat_out%isfvctr_par)) then
+     call f_free_ptr(sparsemat_out%isfvctr_par)
+  end if
+  if(associated(sparsemat_in%isfvctr_par)) then
+     iis1=lbound(sparsemat_in%isfvctr_par,1)
+     iie1=ubound(sparsemat_in%isfvctr_par,1)
+     sparsemat_out%isfvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%isfvctr_par')
+     do i1=iis1,iie1
+        sparsemat_out%isfvctr_par(i1) = sparsemat_in%isfvctr_par(i1)
+     end do
+  end if
 
   nullify(sparsemat_out%matrix)
   nullify(sparsemat_out%matrix_compr)
+  nullify(sparsemat_out%matrixp)
+  nullify(sparsemat_out%matrix_comprp)
 
   if(associated(sparsemat_out%keyv)) then
      iall=-product(shape(sparsemat_out%keyv))*kind(sparsemat_out%keyv)

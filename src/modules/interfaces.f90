@@ -4357,19 +4357,6 @@ module module_interfaces
           real(kind=8),dimension(nseq),intent(out) :: a_seq
         end subroutine sequential_acces_matrix
 
-        subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                   blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, plusminus, orbs)
-          use module_base
-          use module_types
-          implicit none
-  
-          integer,intent(in) :: iproc, nproc, norb, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm
-          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
-          real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
-          logical, intent(in) :: plusminus
-          type(orbitals_data), optional, intent(in) :: orbs
-        end subroutine overlapPowerPlusMinusOneHalf_old
-
         subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
                    orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
                    lphi, psit_c, psit_f, can_use_transposed)
@@ -4409,6 +4396,31 @@ module module_interfaces
           real(kind=8),dimension(:),pointer :: psit_c, psit_f
           logical,intent(inout) :: can_use_transposed
         end subroutine gramschmidt_subset
+
+        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, &
+             orbs, ovrlp_smat, inv_ovrlp_smat)
+          use module_base
+          use module_types
+          implicit none
+  
+          ! Calling arguments
+          integer,intent(in) :: iproc, nproc, iorder, power, blocksize, norb
+          real(kind=8),dimension(:,:),pointer :: ovrlp
+          real(kind=8),dimension(:,:),pointer :: inv_ovrlp
+          real(kind=8),intent(out) :: error
+          type(orbitals_data), optional, intent(in) :: orbs
+          type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+        end subroutine overlapPowerGeneral
+
+        subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,orbs)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: norb,blocksize
+          real(kind=8),dimension(:,:),pointer :: inv_ovrlp_half
+          logical, intent(in) :: plusminus
+          type(orbitals_data), optional, intent(in) :: orbs
+        end subroutine overlap_plus_minus_one_half_exact
 
         subroutine input_wf_memory_new(nproc,iproc, atoms, &
                  rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &

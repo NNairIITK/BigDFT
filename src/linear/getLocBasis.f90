@@ -912,8 +912,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Only need to reconstruct the kernel if it is actually used.
       if (target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
           if(scf_mode/=LINEAR_FOE) then
-              call reconstruct_kernel(iproc, nproc, 1, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
-                   orbs, tmb, overlap_calculated)
+              call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+                   tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
           else if (experimental_mode .and. .not.complete_reset) then
               if (iproc==0) then
@@ -1696,16 +1696,17 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer, intent(in) :: iproc, nproc, norb
   integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-  type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   type(sparseMatrix),intent(in) :: basis_overlap
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
+  type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   ! Local variables
   integer :: ierr, istat, iall, ind, iorb, korb, llorb, jorb
   integer :: npts_per_proc, ind_start, ind_end, indc
-  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ovrlp_coeff, ovrlp_coeff2, coefftrans
+  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, coefftrans
+  real(kind=8), dimension(:,:), pointer :: ovrlp_coeff, ovrlp_coeff2
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   !integer :: iorb, jorb !DEBUG
-  real(kind=8) :: tt!, tt2, tt3, ddot   !DEBUG
+  real(kind=8) :: tt, error!, tt2, tt3, ddot   !DEBUG
   !logical :: dense
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer, parameter :: communication_strategy=ALLGATHERV
@@ -1746,10 +1747,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   else ! sparse - still less efficient than dense, also needs moving to a subroutine
 
      call to_zero(norb**2, ovrlp_coeff(1,1))
-     npts_per_proc = nint(real(basis_overlap%nvctr + basis_overlap%full_dim1,dp) / real(nproc*2,dp))
+     npts_per_proc = nint(real(basis_overlap%nvctr + basis_overlap%nfvctr,dp) / real(nproc*2,dp))
      ind_start = 1+iproc*npts_per_proc
      ind_end = (iproc+1)*npts_per_proc
-     if (iproc==nproc-1) ind_end = basis_overlap%nvctr!ceiling(0.5d0*real(basis_overlap%nvctr + basis_overlap%full_dim1,dp))
+     if (iproc==nproc-1) ind_end = basis_overlap%nvctr!ceiling(0.5d0*real(basis_overlap%nvctr + basis_overlap%nfvctr,dp))
 
      indc=0
      do ind = 1, basis_overlap%nvctr
@@ -1799,8 +1800,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   call timing(iproc,'renormCoefCom1','OF')
 
-  call overlapPowerPlusMinusOneHalf_old(iproc, nproc, bigdft_mpi%mpi_comm, inversion_method, &
-       blocksize_dsyev, blocksize_pdgemm, norb, ovrlp_coeff, ovrlp_coeff2, .false., orbs)
+  call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
+       blocksize_dsyev, norb, ovrlp_coeff, ovrlp_coeff2, error, orbs)
+
   call timing(iproc,'renormCoefCom2','ON')
 
   iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)

@@ -680,7 +680,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !call f_free_ptr(in_frag_charge)
            !cdft%charge=-cdft%charge
 
-           !call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+           !call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
            !     KSwfn%orbs, tmb, overlap_calculated)     
            !tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
            !i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
@@ -723,7 +723,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            if (.not. in%lin%fragment_calculation) stop 'Error, fragment calculation needed for transfer integral calculation'
            !if (input%frag%nfrag==2) call calc_transfer_integrals_old(iproc,nproc,input%frag,ref_frags,tmb%orbs,&
            !     tmb%linmat%ham,tmb%linmat%ovrlp)
-           call calc_site_energies_transfer_integrals(iproc,nproc,in%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ovrlp)
+           call calc_site_energies_transfer_integrals(iproc,nproc,tmb%orthpar%methTransformOverlap,&
+                in%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ovrlp)
         end if
      end if
 

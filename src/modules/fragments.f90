@@ -910,13 +910,13 @@ contains
     end do
 
     if (J>1.0e-3) then
-       write(*,'(a,2es18.8)') ,"Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+       write(*,'(a,2es18.8)') "Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
     end if
 
     !check the pertinence of the suggested rotation
     !if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) print*,'frag_trans%theta=',frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-	 !if  (f_err_raise(abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle frag_trans%theta not optimal (frag_trans%theta= '//&
-	 !      yaml_toa(frag_trans%theta)//' )')) return
+    !if  (f_err_raise(abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle frag_trans%theta not optimal (frag_trans%theta= '//&
+    !      yaml_toa(frag_trans%theta)//' )')) return
 
   end subroutine find_frag_trans
 
@@ -1222,7 +1222,7 @@ contains
        ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
-            tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, 0,&
+            tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap,&
             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
 
        !! debug
