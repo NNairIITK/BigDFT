@@ -515,6 +515,7 @@ water_foe:
  EvXC: 1.1e-10
  EXC: 1.1e-10
  EH: 1.1e-9
+ Ekin: 1.1e-9
  energy: 1.8e-10
  Omega: 1.7e-10
  etot: 1.6e-10
@@ -525,7 +526,7 @@ water_dirmin:
  mean alpha: 1.1e-04
  EXC: 1.1e-10
  EvXC: 1.1e-10
- EH: 1.0e-9
+ EH: 1.1e-9
  energy: 1.7e-10
  Omega: 1.7e-10
  etot: 1.7e-10
