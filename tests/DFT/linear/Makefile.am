@@ -18,7 +18,8 @@ TESTDIRS = Locreg \
 	   highertaylor \
 	   newpulay \
 	   explicit_locregcenters \
-	   intermediateforces
+	   intermediateforces \
+	   DIIShistory
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \

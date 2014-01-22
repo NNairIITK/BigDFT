@@ -677,7 +677,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!! END PLOT #######################################################################
 
 
-      !!if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
+      !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
@@ -833,7 +833,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
 
       if(it>=nit_exit .or. it_tot>=3*nit_basis .or. stop_optimization .or. (fnrm<conv_crit .and. experimental_mode) .or. &
-          (itout==0 .and. it>1 .and. ratio_deltas<0.1d0)) then
+          (itout==0 .and. it>1 .and. ratio_deltas<0.1d0 .and. ratio_deltas>0.d0)) then
           if(it>=nit_exit) then
               infoBasisFunctions=0
               if(iproc==0) call yaml_map('exit criterion','net number of iterations')
@@ -846,7 +846,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           else if (fnrm<conv_crit .and. experimental_mode) then
               if (iproc==0) call yaml_map('exit criterion','gradient')
               infoBasisFunctions=0
-          else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0) then
+          else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0 .and. ratio_deltas>0.d0) then
               infoBasisFunctions=0
               if (iproc==0) call yaml_map('exit criterion','extended input guess')
           end if
@@ -873,8 +873,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
            experimental_mode, trH_ref, kernel_best, complete_reset)
-      !!if (iproc==0) write(*,*) 'kernel_best(1)',kernel_best(1)
-      !!if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
+      !if (iproc==0) write(*,*) 'kernel_best(1)',kernel_best(1)
+      !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
 
 
       overlap_calculated=.false.
@@ -910,7 +910,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       ! Only need to reconstruct the kernel if it is actually used.
-      if (target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
+           .and. .not.complete_reset ) then
           if(scf_mode/=LINEAR_FOE) then
               call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
                    tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
@@ -1579,40 +1580,40 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
           ! Try to get back the orbitals of the best iteration. This is possible if
           ! these orbitals are still present in the DIIS history.
           if(it-ldiis%itBest<ldiis%isx) then
-             if(iproc==0) then
-                 !!if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
-                 !!    ldiis%itBest, ' which are the best so far.'
-                 if (iproc==0) then
-                     call yaml_map('Take best TMBs from history',ldiis%itBest)
-                 end if
-             end if
-             ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%isx)
-             !!if (iproc==0) write(*,*) 'ii',ii
-             offset=0
-             istdest=1
-             !if(iproc==0) write(*,*) 'copy DIIS history psi...'
-             do iorb=1,tmbopt%orbs%norbp
-                 iiorb=tmbopt%orbs%isorb+iorb
-                 ilr=tmbopt%orbs%inWhichLocreg(iiorb)
-                 ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-                 istsource=offset+(ii-1)*ncount+1
-                 call dcopy(ncount, ldiis%phiHist(istsource), 1, tmbopt%psi(istdest), 1)
-                 call dcopy(ncount, ldiis%phiHist(istsource), 1, lphioldopt(istdest), 1)
-                 !!if (iproc==0 .and. iorb==1) write(*,*) 'istsource, istdest, val', istsource, istdest, tmbopt%psi(istdest)
-                 offset=offset+ldiis%isx*ncount
-                 istdest=istdest+ncount
-             end do
-             trH_ref=ldiis%energy_hist(ii)
-             !!if (iproc==0) write(*,*) 'take energy from entry',ii
-             call vcopy(tmbopt%linmat%denskern%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern%matrix_compr(1), 1)
-             complete_reset=.true.
-         else
-             !if(iproc==0) write(*,*) 'copy last psi...'
-             call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
-             trH_ref=trH
-         end if
-         ldiis%isx=0
-         ldiis%switchSD=.true.
+              if(iproc==0) then
+                  !!if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
+                  !!    ldiis%itBest, ' which are the best so far.'
+                  if (iproc==0) then
+                      call yaml_map('Take best TMBs from history',ldiis%itBest)
+                  end if
+              end if
+              ii=modulo(ldiis%mis-(it-ldiis%itBest)-1,ldiis%isx)+1
+              !if (iproc==0) write(*,*) 'ii',ii
+              offset=0
+              istdest=1
+              !if(iproc==0) write(*,*) 'copy DIIS history psi...'
+              do iorb=1,tmbopt%orbs%norbp
+                  iiorb=tmbopt%orbs%isorb+iorb
+                  ilr=tmbopt%orbs%inWhichLocreg(iiorb)
+                  ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+                  istsource=offset+(ii-1)*ncount+1
+                  call dcopy(ncount, ldiis%phiHist(istsource), 1, tmbopt%psi(istdest), 1)
+                  call dcopy(ncount, ldiis%phiHist(istsource), 1, lphioldopt(istdest), 1)
+                  !if (iproc==0 .and. iorb==1) write(*,*) 'istsource, istdest, val', istsource, istdest, tmbopt%psi(istdest)
+                  offset=offset+ldiis%isx*ncount
+                  istdest=istdest+ncount
+              end do
+              trH_ref=ldiis%energy_hist(ii)
+              !!if (iproc==0) write(*,*) 'take energy from entry',ii
+              call vcopy(tmbopt%linmat%denskern%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern%matrix_compr(1), 1)
+              complete_reset=.true.
+          else
+              !if(iproc==0) write(*,*) 'copy last psi...'
+              call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
+              trH_ref=trH
+          end if
+          ldiis%isx=0
+          ldiis%switchSD=.true.
       end if
       ! to indicate that no orthonormalization is required... (CHECK THIS!)
       if(ldiis%isx==0) ldiis%switchSD=.true. 

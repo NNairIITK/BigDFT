@@ -792,3 +792,18 @@ intermediateforces:
  Enl: 2.1e-11
  Epot: 2.8e-09
  multiplicator for the confinement: 1.6e-11
+
+DIIShistory:
+ Atomic Forces (Ha/Bohr): 7.2e-11
+ Clean forces norm (Ha/Bohr): 1.9e-11
+ Raw forces norm (Ha/Bohr): 2.4e-11
+ e: 5.2e-11
+ EH: 3.1e-09
+ EXC: 4.1e-10
+ Ekin: 2.1e-09
+ Enl: 6.1e-10
+ Epot: 3.1e-09
+ EvXC: 5.1e-10
+ energy: 1.3e-10
+ multiplicator for the confinement: 2.3e-11
+ Omega: 1.8e-9
