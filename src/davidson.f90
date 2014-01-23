@@ -10,7 +10,7 @@
 
 !>  Naive subroutine which performs a direct minimization of the energy 
 !!  for a given hamiltonian
-subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, &
+subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
      pkernel,dpcom,GPU,KSwfn,VTwfn)
    use module_base
    use module_types
@@ -21,11 +21,10 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    integer, intent(in) :: iproc,nproc,nvirt
    type(input_variables), intent(in) :: in
    type(atoms_data), intent(in) :: at
-   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+   type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
@@ -253,7 +252,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !endloop=endloop .or. ndiis_sd_sw > 2
 
       call FullHamiltonianApplication(iproc,nproc,at,VTwfn%orbs,rxyz,&
-           proj,VTwfn%Lzd,nlpspd,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
+           VTwfn%Lzd,nlpsp,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
            energs,in%SIC,GPU,&
            pkernel,KSwfn%orbs,psirocc)
 
@@ -296,8 +295,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !control the previous value of idsx_actual
       idsx_actual_before=VTwfn%diis%idsx
 
-      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,at,nlpspd)
-
+      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,at,nlpsp)
 
       if (occorbs) then
          !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -407,7 +405,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
 !!   (retranspose v and psi)\n
 subroutine davidson(iproc,nproc,in,at,&
      & orbs,orbsv,nvirt,Lzd,comms,commsv,&
-     & rxyz,rhopot,nlpspd,proj,pkernel,psi,v,dpcom,GPU)
+     & rxyz,rhopot,nlpsp,pkernel,psi,v,dpcom,GPU)
    use module_base
    use module_types
    use module_interfaces, except_this_one => davidson
@@ -418,13 +416,12 @@ subroutine davidson(iproc,nproc,in,at,&
    integer, intent(in) :: nvirt
    type(input_variables), intent(in) :: in
    type(atoms_data), intent(in) :: at
-   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+   type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
    type(orbitals_data), intent(inout) :: orbs !<could be modify in calculate_HOMO_LUMO_gap
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
@@ -626,7 +623,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !call add_parabolic_potential(at%astruct%geocode,at%astruct%nat,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
-        proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+        Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,&
         energs,in%SIC,GPU,&
         pkernel,orbs,psirocc)
 
@@ -942,7 +939,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call memocc(i_stat,hg,'hg',subname)
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
-           proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
+           Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,g,hg,&
            energs,in%SIC,GPU,&
            pkernel,orbs,psirocc)
 
@@ -1215,7 +1212,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
-           proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+           Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,&
            energs,in%SIC,GPU,&
            pkernel,orbs,psirocc)
 

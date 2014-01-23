@@ -570,16 +570,27 @@ subroutine test_dictionary_for_atoms()
   call yaml_close_map()
 
   !now print some double precision values to understand which is the best format
-  tt=sin(0.5678d0)
-  call yaml_map('Real without format',tt)
+  tt=real(0.5e0,kind=8) !use a conversion from float
+
+  call yaml_map('Real without format',clean_zeroes(yaml_toa('0.2000000000000000000')))
   fmts(1:len(fmts))='(1pe25.17)'
-  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  call yaml_map('Real with format '//trim(fmts),clean_zeroes(yaml_toa(tt,fmt=fmts)))
   fmts(1:len(fmts))='(1pe24.16)'
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
   fmts(1:len(fmts))='(es23.16)'
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
   fmts(1:len(fmts))='(es24.17)'
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(es25.18)'
+  call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(es26.19)'
+  call yaml_map('Real with format '//trim(fmts),tt+epsilon(1.d0),fmt=fmts)
+  fmts(1:len(fmts))='(es27.20)'
+  call yaml_map('Real with format '//trim(fmts),tt-epsilon(1.d0),fmt=fmts)
+  fmts(1:len(fmts))='(es26.19)'
+  call yaml_map('Real with format '//trim(fmts),epsilon(1.d0),fmt=fmts)
+  fmts(1:len(fmts))='(es27.20)'
+  call yaml_map('Real with format '//trim(fmts),-epsilon(1.d0),fmt=fmts)
 
 
   contains
@@ -601,5 +612,42 @@ subroutine test_dictionary_for_atoms()
       call yaml_comment(trim(yaml_toa(rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id))) !we can also put tabbing=
 
     end subroutine print_one_atom
+
+    !> when str represents a real number, clean it if there are lot of zeroes after the decimal point
+    !pure 
+    function clean_zeroes(str)
+      implicit none
+      integer, parameter:: max_value_length=95
+      character(len=*), intent(in) :: str
+      character(len=max_value_length) :: clean_zeroes
+      !local variables
+      integer :: idot,iexpo,i
+
+      !first fill with all the values up to the dot if it exist
+      idot=scan(str,'.')
+      if (idot==0) then
+         !no dot, nothing to clean
+         clean_zeroes(1:max_value_length)=str
+      else
+         !then search for the position of the exponent or of the space if present
+         iexpo=scan(str(idot+2:),'eE ')+idot+1
+         !print *,'there',iexpo,'str',str(idot+2:)
+         if (iexpo==idot+1) iexpo=len(str)+1
+         i=iexpo
+         find_last_zero: do while(i > idot+1) !first digit after comma always stays
+            i=i-1
+            if (str(i:i) /= '0') exit find_last_zero
+         end do find_last_zero
+         clean_zeroes(1:i)=str(1:i)
+         !print *,'here',i,clean_zeroes(1:i),'iexpo',iexpo,str(iexpo:)
+         !then copy the exponent
+         if (str(iexpo:) /= 'E+00' .and. str(iexpo:) /= 'e+00' .and. str(iexpo:) /= 'E+000' .and. &
+              str(iexpo:) /= 'e+000') then
+            clean_zeroes(i+1:max_value_length)=str(iexpo:)
+         else
+            clean_zeroes(i+1:max_value_length)=' '
+         end if
+      end if
+    end function clean_zeroes
 
 end subroutine test_dictionary_for_atoms

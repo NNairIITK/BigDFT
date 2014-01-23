@@ -647,7 +647,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   integer :: ierr, istat, iall, ipt
   real(kind=8) :: weight_tot, weight_ideal
   integer,dimension(:,:),allocatable :: istartend
-  character(len=*),parameter :: subname='determine_weights_sumrho'
+  character(len=*),parameter :: subname='init_collective_comms_sumro'
   real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
 
   ! Note: all weights are double precision to avoid integer overflow
@@ -1807,6 +1807,8 @@ subroutine check_communication_potential(denspot,tmb)
   real(dp),parameter :: tol_calculation_max=1.d-10
   character(len=200), parameter :: subname='check_communication_potential'
 
+  call timing(bigdft_mpi%iproc,'check_pot','ON')
+
   !assign constants
   i3s=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,3)+1 !< starting point of the planes in the z direction
   n3p=denspot%dpbox%nscatterarr(bigdft_mpi%iproc,2) !< number of planes for the potential
@@ -1892,7 +1894,7 @@ subroutine check_communication_potential(denspot,tmb)
       call yaml_map('Tolerance for the following test',tol_calculation_max,fmt='(1es25.18)')
       if (sumdiff>tol_calculation_max) then
          call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
-	      call f_err_throw('The communication of the potential is not correct for this setup, check communication routines',&
+         call f_err_throw('The communication of the potential is not correct for this setup, check communication routines',&
                  err_name='BIGDFT_MPI_ERROR')
       else
          call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
@@ -1904,6 +1906,8 @@ subroutine check_communication_potential(denspot,tmb)
   deallocate(denspot%pot_work,stat=i_stat)
   call memocc(i_stat,i_all,'denspot%pot_work',subname)
   nullify(denspot%pot_work)
+
+  call timing(bigdft_mpi%iproc,'check_pot','OF')
 
 end subroutine check_communication_potential
 

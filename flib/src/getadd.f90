@@ -604,7 +604,7 @@ subroutine call_external_f(routine)!,args)
 end subroutine call_external_f
 
 
-!> Function which identify the address of the scalar object
+!> Function which identifies the address of the scalar object
 !! associated to a unknown quantity
 function f_loc(routine)
   implicit none

@@ -192,7 +192,7 @@ subroutine glr_copy(glr, d, wfd, from)
   call nullify_locreg_descriptors(glr)
   d => glr%d
   wfd => glr%wfd
-  call copy_locreg_descriptors(from, glr, "glr_copy")
+  call copy_locreg_descriptors(from, glr)
 end subroutine glr_copy
 subroutine glr_init(glr, d, wfd)
   use module_types
@@ -223,11 +223,11 @@ subroutine glr_free(glr)
   deallocate(glr)
 end subroutine glr_free
 subroutine glr_empty(glr)
-  use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
 
-  call deallocate_locreg_descriptors(glr, "glr_empty")
+  call deallocate_locreg_descriptors(glr)
 end subroutine glr_empty
 subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   use module_types
@@ -306,7 +306,7 @@ subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   glr%wfd%nseg_f = nseg_f
   glr%wfd%nvctr_c = nvctr_c
   glr%wfd%nvctr_f = nvctr_f
-  call allocate_wfd(glr%wfd, "glr_set_wfd_dims")
+  call allocate_wfd(glr%wfd)
 END SUBROUTINE glr_set_wfd_dims
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
@@ -402,7 +402,8 @@ subroutine lzd_empty(lzd)
   call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
 END SUBROUTINE lzd_empty
 subroutine lzd_set_nlr(lzd, nlr, geocode)
-  use module_types
+  use locregs
+  use module_types, only: local_zone_descriptors
   implicit none
   type(local_zone_descriptors), intent(inout) :: lzd
   integer, intent(in) :: nlr
@@ -412,7 +413,7 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
   
   if (lzd%nlr > 0) then
      do i = 1, lzd%nlr, 1
-        call deallocate_locreg_descriptors(lzd%Llr(i), "lzd_set_nlr")
+        call deallocate_locreg_descriptors(lzd%Llr(i))
      end do
      deallocate(lzd%llr)
   end if
@@ -819,14 +820,6 @@ subroutine orbs_get_inwhichlocreg(orbs, locreg)
   
   locreg => orbs%inwhichlocreg
 END SUBROUTINE orbs_get_inwhichlocreg
-subroutine orbs_get_onwhichmpi(orbs, mpi)
-  use module_types
-  implicit none
-  type(orbitals_data) :: orbs
-  integer, dimension(:), pointer :: mpi
-  
-  mpi => orbs%onwhichmpi
-END SUBROUTINE orbs_get_onwhichmpi
 subroutine orbs_get_onwhichatom(orbs, atom)
   use module_types
   implicit none
@@ -862,23 +855,24 @@ subroutine proj_new(nlpspd)
   allocate(nlpspd)
 END SUBROUTINE proj_new
 subroutine proj_free(nlpspd, proj)
+  use psp_projectors
   use module_types
   use memory_profiling
   implicit none
-  type(nonlocal_psp_descriptors), pointer :: nlpspd
+  type(DFT_PSP_projectors), pointer :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
 
   integer :: i_stat, i_all
 
-  call deallocate_proj_descr(nlpspd,"proj_free")
-  i_all=-product(shape(proj))*kind(proj)
-  deallocate(proj,stat=i_stat)
-  call memocc(i_stat,i_all,'proj',"proj_free")
+  call free_DFT_PSP_projectors(nlpspd)
+!!$  i_all=-product(shape(proj))*kind(proj)
+!!$  deallocate(proj,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'proj',"proj_free")
 END SUBROUTINE proj_free
 subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   use module_types
   implicit none
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(in) :: nlpspd
   integer, intent(out) :: nproj, nprojel
   
   nproj = nlpspd%nproj

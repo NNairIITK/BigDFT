@@ -11,7 +11,7 @@
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,&
      & in,atoms,rxyz,&
-     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpspd,comms,shift,proj,radii_cf,&
+     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,radii_cf,&
      ref_frags, denspot, inwhichlocreg_old, onwhichatom_old,output_grid)
   use module_base
   use module_types
@@ -30,11 +30,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   type(orbitals_data), intent(inout) :: orbs, lorbs
   type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
-  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+  type(DFT_PSP_projectors), intent(out) :: nlpsp
   type(communications_arrays), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
-  real(wp), dimension(:), pointer :: proj
   type(system_fragment), dimension(:), pointer :: ref_frags
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   type(DFT_local_fields), intent(out), optional :: denspot
@@ -49,7 +48,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(kind=8), dimension(:), allocatable :: locrad
   !Note proj_G should be filled for PAW:
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
-
+  call f_routine(id=subname)
   !nullify dummy variables only used for PAW:
   do iatyp=1,atoms%astruct%ntypes
     call nullify_gaussian_basis(proj_G(iatyp))
@@ -116,7 +115,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                if(iat ==  lorbs%onwhichatom(iorb)) then
                   ii = ii + 1
                   lorbs%inwhichlocreg(iorb)= ii
-                  !lorbs%onwhichmpi(iorb) = ii-1
                end if
             end do 
          end do
@@ -237,7 +235,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
+     call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
         call lzd_init_llr(iproc, nproc, in, atoms%astruct, rxyz, lorbs, lzd_lin)
@@ -252,14 +250,18 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
-  call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
+  call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-       Lzd%hgrids(3),dry_run,nlpspd,proj_G,proj)
-  if (iproc == 0 .and. dump) call print_nlpspd(nlpspd)
+       Lzd%hgrids(3),dry_run,nlpsp,proj_G)
+  if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !calculate the partitioning of the orbitals between the different processors
 
-  if (dry_run) return
-  
+  if (dry_run) then
+     call f_release_routine()
+     return
+  end if
+
+
   if (present(denspot)) then
      !here dpbox can be put as input
      call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
@@ -284,7 +286,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
-
+  call f_release_routine()
   !---end of system definition routine
 END SUBROUTINE system_initialization
 

@@ -375,7 +375,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
         Lzd%lintyp = 0
         !copy Glr to Llr(1)
         call nullify_locreg_descriptors(Lzd%Llr(1))
-        call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1),subname)
+        call copy_locreg_descriptors(Lzd%Glr,Lzd%Llr(1))
      else 
         Lzd%lintyp = 1
         ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
@@ -507,7 +507,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
 
 !  print *,'before Glr => Lzd%Glr'
   call nullify_locreg_descriptors(Lzd%Glr)
-  call copy_locreg_descriptors(Glr,Lzd%Glr,subname)
+  call copy_locreg_descriptors(Glr,Lzd%Glr)
 
   if(linearmode /= INPUT_IG_TMO) then
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
@@ -521,7 +521,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
         !copy Glr Lzd%Llr(1)
         call nullify_locreg_descriptors(Lzd%Llr(1))
 !        print *,'before Glr => Lzd%Llr(1)'
-        call copy_locreg_descriptors(Glr,Lzd%Llr(1),subname)
+        call copy_locreg_descriptors(Glr,Lzd%Llr(1))
      else 
         Lzd%lintyp = 1
         ! Assign orbitals to locreg (for LCAO IG each orbitals corresponds to an atomic function. WILL NEED TO CHANGE THIS)
@@ -818,7 +818,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
   call initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, glr_tmp, 's')!, llborbs)
   call timing(iproc,'updatelocreg1','ON') 
   call nullify_locreg_descriptors(lzd%glr)
-  call copy_locreg_descriptors(glr_tmp, lzd%glr, subname)
+  call copy_locreg_descriptors(glr_tmp, lzd%glr)
   lzd%hgrids(1)=hx
   lzd%hgrids(2)=hy
   lzd%hgrids(3)=hz
@@ -1134,3 +1134,358 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz,
 
 end subroutine create_large_tmbs
 
+
+
+
+subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
+     convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+     convcrit_dmin, nitdmin, conv_crit_TMB)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: nlr
+  type(orbitals_data),intent(in) :: lorbs
+  type(input_variables),intent(in) :: input
+  type(atoms_data),intent(in) :: at
+  integer,dimension(lorbs%norb),intent(in) :: onwhichatom
+  type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
+  real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin, conv_crit_TMB
+  logical, intent(in) :: lowaccur_converged
+  integer, intent(out) :: nit_scc, mix_hist, nitdmin
+  real(kind=8), dimension(nlr), intent(out) :: locrad
+  integer, intent(out) :: target_function, nit_basis
+
+  ! Local variables
+  integer :: iorb, ilr, iiat
+
+  if(lowaccur_converged) then
+      do iorb=1,lorbs%norbp
+          iiat=onwhichatom(lorbs%isorb+iorb)
+          confdatarr(iorb)%prefac=input%lin%potentialPrefac_highaccuracy(at%astruct%iatype(iiat))
+      end do
+      target_function=TARGET_FUNCTION_IS_ENERGY
+      nit_basis=input%lin%nItBasis_highaccuracy
+      nit_scc=input%lin%nitSCCWhenFixed_highaccuracy
+      mix_hist=input%lin%mixHist_highaccuracy
+      do ilr=1,nlr
+          locrad(ilr)=input%lin%locrad_highaccuracy(ilr)
+      end do
+      alpha_mix=input%lin%alpha_mix_highaccuracy
+      convCritMix=input%lin%convCritMix_highaccuracy
+      convcrit_dmin=input%lin%convCritDmin_highaccuracy
+      nitdmin=input%lin%nItdmin_highaccuracy
+      conv_crit_TMB=input%lin%convCrit_lowaccuracy
+  else
+      do iorb=1,lorbs%norbp
+          iiat=onwhichatom(lorbs%isorb+iorb)
+          confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
+      end do
+      target_function=TARGET_FUNCTION_IS_TRACE
+      nit_basis=input%lin%nItBasis_lowaccuracy
+      nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+      mix_hist=input%lin%mixHist_lowaccuracy
+      do ilr=1,nlr
+          locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+      end do
+      alpha_mix=input%lin%alpha_mix_lowaccuracy
+      convCritMix=input%lin%convCritMix_lowaccuracy
+      convcrit_dmin=input%lin%convCritDmin_lowaccuracy
+      nitdmin=input%lin%nItdmin_lowaccuracy
+      conv_crit_TMB=input%lin%convCrit_highaccuracy
+  end if
+
+  !!! new hybrid version... not the best place here
+  !!if (input%lin%nit_highaccuracy==-1) then
+  !!    do iorb=1,lorbs%norbp
+  !!        ilr=lorbs%inwhichlocreg(lorbs%isorb+iorb)
+  !!        iiat=onwhichatom(lorbs%isorb+iorb)
+  !!        confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
+  !!    end do
+  !!    wfnmd%bs%target_function=TARGET_FUNCTION_IS_HYBRID
+  !!    wfnmd%bs%nit_basis_optimization=input%lin%nItBasis_lowaccuracy
+  !!    wfnmd%bs%conv_crit=input%lin%convCrit_lowaccuracy
+  !!    nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+  !!    mix_hist=input%lin%mixHist_lowaccuracy
+  !!    do ilr=1,nlr
+  !!        locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+  !!    end do
+  !!    alpha_mix=input%lin%alpha_mix_lowaccuracy
+  !!end if
+
+end subroutine set_optimization_variables
+
+
+
+subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
+           rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => adjust_locregs_and_confinement
+  use yaml_output
+  implicit none
+  
+  ! Calling argument
+  integer,intent(in) :: iproc, nproc
+  real(8),intent(in) :: hx, hy, hz
+  type(atoms_data),intent(in) :: at
+  type(input_variables),intent(in) :: input
+  real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
+  type(DFT_wavefunction),intent(inout) :: KSwfn, tmb
+  type(DFT_local_fields),intent(inout) :: denspot
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  logical, intent(out) :: locreg_increased
+  logical, intent(in) :: lowaccur_converged
+  real(8), dimension(tmb%lzd%nlr), intent(inout) :: locrad
+
+  ! Local variables
+  integer :: iall, istat, ilr, npsidim_orbs_tmp, npsidim_comp_tmp
+  real(kind=8),dimension(:,:),allocatable :: locregCenter
+  real(kind=8),dimension(:),allocatable :: lphilarge
+  type(local_zone_descriptors) :: lzd_tmp
+  character(len=*), parameter :: subname='adjust_locregs_and_confinement'
+
+  locreg_increased=.false.
+  if(lowaccur_converged ) then
+      do ilr = 1, tmb%lzd%nlr
+         if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
+             !!if(iproc==0) write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
+             if (iproc==0) call yaml_map('Increasing the localization radius for the high accuracy part',.true.)
+             locreg_increased=.true.
+             exit
+         end if
+      end do
+  end if
+  if (iproc==0) then
+      if (locreg_increased) then
+          call yaml_map('Locreg increased',.true.)
+      else
+          call yaml_map('Locreg increased',.false.)
+      end if
+  end if
+
+  if(locreg_increased) then
+     !tag=1
+     !call wait_p2p_communication(iproc, nproc, tmb%comgp)
+     call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
+     call deallocate_p2pComms(tmb%comgp, subname)
+
+     call deallocate_collective_comms(tmb%collcom, subname)
+     call deallocate_collective_comms(tmb%collcom_sr, subname)
+
+     call nullify_local_zone_descriptors(lzd_tmp)
+     call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
+     call deallocate_local_zone_descriptors(tmb%lzd, subname)
+
+     npsidim_orbs_tmp = tmb%npsidim_orbs
+     npsidim_comp_tmp = tmb%npsidim_comp
+
+     call deallocate_foe(tmb%foe_obj, subname)
+
+     call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
+     call deallocate_sparseMatrix(tmb%linmat%inv_ovrlp, subname)
+     call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
+     call deallocate_sparseMatrix(tmb%linmat%ham, subname)
+
+     allocate(locregCenter(3,lzd_tmp%nlr), stat=istat)
+     call memocc(istat, locregCenter, 'locregCenter', subname)
+     do ilr=1,lzd_tmp%nlr
+        locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
+     end do
+
+     !temporary,  moved from update_locreg
+     tmb%orbs%eval=-0.5_gp
+     call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locregCenter, lzd_tmp%glr, .false., &
+          denspot%dpbox%nscatterarr, hx, hy, hz, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%lzd, &
+          tmb%npsidim_orbs, tmb%npsidim_comp, tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
+
+     iall=-product(shape(locregCenter))*kind(locregCenter)
+     deallocate(locregCenter, stat=istat)
+     call memocc(istat, iall, 'locregCenter', subname)
+
+     ! calculate psi in new locreg
+     allocate(lphilarge(tmb%npsidim_orbs), stat=istat)
+     call memocc(istat, lphilarge, 'lphilarge', subname)
+     call to_zero(tmb%npsidim_orbs, lphilarge(1))
+     call small_to_large_locreg(iproc, npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
+          tmb%orbs, tmb%psi, lphilarge)
+
+     call deallocate_local_zone_descriptors(lzd_tmp, subname)
+     iall=-product(shape(tmb%psi))*kind(tmb%psi)
+     deallocate(tmb%psi, stat=istat)
+     call memocc(istat, iall, 'tmb%psi', subname)
+     allocate(tmb%psi(tmb%npsidim_orbs), stat=istat)
+     call memocc(istat, tmb%psi, 'tmb%psi', subname)
+     call dcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
+     iall=-product(shape(lphilarge))*kind(lphilarge)
+     deallocate(lphilarge, stat=istat)
+     call memocc(istat, iall, 'lphilarge', subname) 
+     
+     call update_ldiis_arrays(tmb, subname, ldiis)
+
+     ! Emit that lzd has been changed.
+     if (tmb%c_obj /= 0) then
+        call kswfn_emit_lzd(tmb, iproc, nproc)
+     end if
+
+     ! Now update hamiltonian descriptors
+     !call destroy_new_locregs(iproc, nproc, tmblarge)
+
+     ! to eventually be better sorted - replace with e.g. destroy_hamiltonian_descriptors
+     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
+     call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
+     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
+     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
+
+     call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
+     if(tmb%ham_descr%can_use_transposed) then
+        iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
+        deallocate(tmb%ham_descr%psit_c, stat=istat)
+        call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+        iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
+        deallocate(tmb%ham_descr%psit_f, stat=istat)
+        call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+        tmb%ham_descr%can_use_transposed=.false.
+     end if
+     
+     deallocate(tmb%confdatarr, stat=istat)
+
+     call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
+
+     ! Update sparse matrices
+     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%ham)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
+     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, input, tmb%linmat%ovrlp)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
+     !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
+     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern)
+     call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
+     call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
+     !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
+
+     allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=istat)
+     call memocc(istat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
+     allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
+     call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
+     allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
+     call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
+     !allocate(tmb%linmat%inv_ovrlp%matrix_compr(tmb%linmat%inv_ovrlp%nvctr), stat=istat)
+     !call memocc(istat, tmb%linmat%inv_ovrlp%matrix_compr, 'tmb%linmat%inv_ovrlp%matrix_compr', subname)
+
+  else ! no change in locrad, just confining potential that needs updating
+
+     call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
+          tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
+          4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
+
+  end if
+
+end subroutine adjust_locregs_and_confinement
+
+
+
+subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, ldiis_coeff_hist, ldiis_coeff_changed)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => adjust_DIIS_for_high_accuracy
+  implicit none
+  
+  ! Calling arguments
+  type(input_variables),intent(in) :: input
+  type(DFT_local_fields),intent(inout) :: denspot
+  type(mixrhopotDIISParameters),intent(inout) :: mixdiis
+  logical, intent(in) :: lowaccur_converged
+  integer, intent(inout) :: ldiis_coeff_hist
+  logical, intent(out) :: ldiis_coeff_changed  
+
+  if(lowaccur_converged) then
+     if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
+        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
+     else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
+        call deallocateMixrhopotDIIS(mixdiis)
+     end if
+     if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+        ! check whether ldiis_coeff_hist arrays will need reallocating due to change in history length
+        if (ldiis_coeff_hist /= input%lin%dmin_hist_highaccuracy) then
+           ldiis_coeff_changed=.true.
+        else
+           ldiis_coeff_changed=.false.
+        end if
+        ldiis_coeff_hist=input%lin%dmin_hist_highaccuracy
+     end if
+  else
+     if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+        ldiis_coeff_changed=.false.
+     end if
+  end if
+  
+end subroutine adjust_DIIS_for_high_accuracy
+
+
+subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccuracy_convcrit, &
+     lowaccur_converged, pnrm_out)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: itout
+  integer,intent(in) :: nit_lowaccuracy
+  real(8),intent(in) :: lowaccuracy_convcrit
+  logical, intent(inout) :: lowaccur_converged
+  real(kind=8), intent(in) :: pnrm_out
+  
+  if(.not.lowaccur_converged .and. &
+       (itout>=nit_lowaccuracy+1 .or. pnrm_out<lowaccuracy_convcrit)) then
+     lowaccur_converged=.true.
+     !cur_it_highaccuracy=0
+  end if 
+
+end subroutine check_whether_lowaccuracy_converged
+
+
+
+subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
+           target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
+           conv_crit_TMB)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nlr
+  type(input_variables),intent(in) :: input
+  type(atoms_data),intent(in) :: at
+  type(orbitals_data),intent(in) :: orbs
+  logical,intent(out) :: lowaccur_converged
+  type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
+  integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
+  real(kind=8),dimension(nlr),intent(out) :: locrad
+  real(kind=8),intent(out) :: alpha_mix, convCritMix, conv_crit_TMB
+
+  ! Local variables
+  integer :: iorb, ilr, iiat
+
+  lowaccur_converged=.false.
+  do iorb=1,orbs%norbp
+      ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
+      iiat=orbs%onwhichatom(orbs%isorb+iorb)
+      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
+  end do
+  target_function=TARGET_FUNCTION_IS_HYBRID
+  nit_basis=input%lin%nItBasis_lowaccuracy
+  nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
+  mix_hist=input%lin%mixHist_lowaccuracy
+  do ilr=1,nlr
+      locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
+  end do
+  alpha_mix=input%lin%alpha_mix_lowaccuracy
+  convCritMix=input%lin%convCritMix_lowaccuracy
+  conv_crit_TMB=input%lin%convCrit_lowaccuracy
+
+end subroutine set_variables_for_hybrid

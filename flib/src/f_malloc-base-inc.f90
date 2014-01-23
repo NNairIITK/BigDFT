@@ -12,4 +12,15 @@
   !local variables
   integer :: lgt
   call nullify_malloc_information(m)
-  include 'f_malloc-inc.f90'
+  if (present(id)) then
+     lgt=min(len(id),namelen)
+     m%array_id(1:lgt)=id(1:lgt)
+  end if
+  if (present(routine_id)) then
+     lgt=min(len(routine_id),namelen)
+     m%routine_id(1:lgt)=routine_id(1:lgt)
+  else
+     m%routine_id(1:len(m%routine_id))=mems(ictrl)%present_routine
+  end if
+
+  if(present(profile)) m%profile=profile
