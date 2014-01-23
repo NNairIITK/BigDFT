@@ -785,12 +785,12 @@ intermediateforces:
  e: 2.4e-10
  energy: 6.1e-10
  Omega: 7.8e-10
- EXC: 7.1e-10
- EvXC: 1.1e-9
- EH: 3.1e-09
+ EXC: 1.2e-9
+ EvXC: 1.5e-9
+ EH: 1.1e-8
  Ekin: 2.1e-10
  Enl: 2.1e-11
- Epot: 2.8e-09
+ Epot: 2.8e-9
  multiplicator for the confinement: 1.6e-11
 
 DIIShistory:
