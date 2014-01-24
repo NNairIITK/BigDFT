@@ -413,6 +413,7 @@ molecule_dmix:
  Raw forces norm (Ha/Bohr): 6.2e-11
  Average noise forces: 1.1e-8
  e: 1.4e-10
+ Total charge: 1.1e-08
 
 molecule_pmix:
  EXC: 1.1e-9
@@ -457,6 +458,8 @@ molecule_foe:
  Omega: 8.6e-9
  Total charge: 2.5e-10
  eF: 1.1e-10
+ Tr(K): 1.1e-07
+ D Tr: 1.1e-8
 
 hybrid-directmin:
  Epsilon: 1.4e-11
