@@ -34,7 +34,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_int_1(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -58,7 +58,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_sgl_1(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -82,7 +82,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_dbl_1(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -106,7 +106,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_log_1(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -130,7 +130,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_int_2(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -154,7 +154,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_sgl_2(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -178,7 +178,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_dbl_2(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -202,7 +202,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_log_2(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -226,7 +226,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_int_3(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -250,7 +250,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_sgl_3(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -274,7 +274,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_dbl_3(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -298,7 +298,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_log_3(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -322,7 +322,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_int_4(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -346,7 +346,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_sgl_4(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -370,7 +370,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_dbl_4(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -394,7 +394,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_log_4(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -419,7 +419,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_int_5(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -443,7 +443,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_sgl_5(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -467,7 +467,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_dbl_5(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -491,7 +491,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_log_5(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -515,7 +515,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_int_6(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -539,7 +539,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_sgl_6(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -563,7 +563,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_dbl_6(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -587,7 +587,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_log_6(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -611,7 +611,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_int_7(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -635,7 +635,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_sgl_7(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -659,7 +659,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_dbl_7(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -683,7 +683,7 @@ module deallocatePointers
 
 
     subroutine checkAndDeallocatePointer_log_7(array, arrayname, subname)
-      use module_base
+      use module_base, only: memocc
       implicit none
 
       ! Calling arguments
@@ -709,45 +709,42 @@ module deallocatePointers
 end module deallocatePointers
 
 
-!> Module to deallocate the interfaces for the linear scaling version
-module deallocationInterfaces
-  implicit none
-
-  interface
-    subroutine deallocate_local_zone_descriptors(lzd, subname)
-      use module_base
-      use module_types
-      use deallocatePointers
-      implicit none
-      type(local_zone_descriptors),intent(inout):: lzd
-      character(len=*),intent(in):: subname
-    end subroutine deallocate_local_zone_descriptors
-    
-    subroutine deallocate_orbitals_data(orbs, subname)
-      use module_base
-      use module_types
-      use deallocatePointers
-      implicit none
-      type(orbitals_data),intent(inout):: orbs
-      character(len=*),intent(in):: subname
-    end subroutine deallocate_orbitals_data
-    
-    subroutine deallocate_communications_arrays(comms, subname)
-      use module_base
-      use module_types
-      use deallocatePointers
-      implicit none
-      type(communications_arrays),intent(inout):: comms
-      character(len=*),intent(in):: subname
-    end subroutine deallocate_communications_arrays
-    
-  end interface
-
-end module deallocationInterfaces
+!!$!> Module to deallocate the interfaces for the linear scaling version
+!!$module deallocationInterfaces
+!!$  implicit none
+!!$
+!!$  interface
+!!$    subroutine deallocate_local_zone_descriptors(lzd, subname)
+!!$      use module_types
+!!$      implicit none
+!!$      type(local_zone_descriptors),intent(inout):: lzd
+!!$      character(len=*),intent(in):: subname
+!!$    end subroutine deallocate_local_zone_descriptors
+!!$    
+!!$    subroutine deallocate_orbitals_data(orbs, subname)
+!!$      use module_types
+!!$      use deallocatePointers
+!!$      implicit none
+!!$      type(orbitals_data),intent(inout):: orbs
+!!$      character(len=*),intent(in):: subname
+!!$    end subroutine deallocate_orbitals_data
+!!$    
+!!$    subroutine deallocate_communications_arrays(comms, subname)
+!!$      
+!!$      use module_types
+!!$      use deallocatePointers
+!!$      implicit none
+!!$      type(communications_arrays),intent(inout):: comms
+!!$      character(len=*),intent(in):: subname
+!!$    end subroutine deallocate_communications_arrays
+!!$    
+!!$  end interface
+!!$
+!!$end module deallocationInterfaces
 
 subroutine deallocate_local_zone_descriptors(lzd, subname)
   use locregs, only: deallocate_locreg_descriptors
-  use module_types
+  use module_types, only: local_zone_descriptors
   implicit none
   
   ! Calling arguments
@@ -773,8 +770,8 @@ end subroutine deallocate_local_zone_descriptors
 
 
 subroutine deallocate_Lzd_except_Glr(lzd, subname)
-  use locregs
-  use module_types
+  use locregs, only: deallocate_locreg_descriptors
+  use module_types, only: local_zone_descriptors
   implicit none
 
   ! Calling arguments
@@ -799,7 +796,7 @@ end subroutine deallocate_Lzd_except_Glr
 
 
 subroutine deallocate_orbitals_data(orbs, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   implicit none
@@ -826,7 +823,7 @@ end subroutine deallocate_orbitals_data
 
 
 subroutine deallocate_communications_arrays(comms, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   implicit none
@@ -845,7 +842,7 @@ end subroutine deallocate_communications_arrays
 
 
 subroutine deallocate_convolutions_bounds(bounds, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   implicit none
@@ -864,7 +861,7 @@ end subroutine deallocate_convolutions_bounds
 
 
 subroutine deallocate_kinetic_bounds(kb, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   implicit none
@@ -884,7 +881,7 @@ end subroutine deallocate_kinetic_bounds
 
 
 subroutine deallocate_shrink_bounds(sb, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   implicit none
@@ -903,7 +900,7 @@ end subroutine deallocate_shrink_bounds
 
 
 subroutine deallocate_grow_bounds(gb, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   implicit none
@@ -926,7 +923,7 @@ end subroutine deallocate_grow_bounds
 
 
 subroutine deallocate_p2pComms(p2pcomm, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   implicit none
@@ -957,7 +954,7 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
 end subroutine deallocate_p2pComms
 
 subroutine deallocate_foe(foe_obj, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   use module_interfaces, exceptThisOne => deallocate_foe
@@ -973,7 +970,7 @@ subroutine deallocate_foe(foe_obj, subname)
 end subroutine deallocate_foe
 
 subroutine deallocate_sparseMatrix(sparsemat, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   use module_interfaces, exceptThisOne => deallocate_sparseMatrix
@@ -1006,7 +1003,7 @@ end subroutine deallocate_sparseMatrix
 
 
 subroutine deallocate_collective_comms(collcom, subname)
-  use module_base
+  
   use module_types
   use deallocatePointers
   use module_interfaces, exceptThisOne => deallocate_collective_comms

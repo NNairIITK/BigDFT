@@ -93,6 +93,7 @@ SiBulk:
  EvXC: 1.1e-10
  Atomic Forces (Ha/Bohr): 1.2e-11
  Clean forces norm (Ha/Bohr): 1.2e-11
+ Average noise forces: 1.48e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -122,11 +123,13 @@ GEOPT-BFGS:
  Epsilon: 2.71e-10
 
 GEOPT-LBFGS: 
- Epsilon: 4.1e-10
- EH: 1.11e-9
- Epot: 3.3e-10
+ Epsilon: 4.8e-10
+ etot: 1.3e-9
+ EKS: 1.3e-9
+ EH: 1.81e-9
+ Epot: 1.1e-9
  Eion: 8.5e-10
- Enl: 6.5e-10
+ Enl: 1.33e-9
  DIIS weights: 1.1e-5
  
 NaCl:
@@ -320,6 +323,7 @@ directmin:
  mean alpha: 1.1e-04
  max alpha: 1.1e-04
  Electric Dipole Moment (Debye): 1.1e-07
+ norm(P): 1.1e-7
 
 experimentalmode:
  D: 1.1e-06

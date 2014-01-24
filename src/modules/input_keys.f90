@@ -1131,10 +1131,15 @@ contains
   subroutine input_keys_fill_all(dict,dict_minimal)
     use dictionaries
     use dynamic_memory
+    use module_defs, only: gp, pi_param
     use yaml_output
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
+
+    character(max_field_length) :: meth, prof
+    real(gp) :: dtmax_, betax_
+    logical :: user_defined
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -1154,6 +1159,21 @@ contains
 
     !create a shortened dictionary which will be associated to the given run
     call input_minimal(dict,dict_minimal)
+
+    ! Additional treatments.
+    meth = dict // GEOPT_VARIABLES // GEOPT_METHOD
+    if (input_keys_equal(trim(meth), "FIRE")) then
+       prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTMAX, user_defined)
+       if (trim(prof) == "default" .and. .not. user_defined) then
+          betax_ = dict // GEOPT_VARIABLES // BETAX
+          call set(dict // GEOPT_VARIABLES // DTMAX, 0.25 * pi_param * sqrt(betax_), fmt = "(F7.4)")
+       end if
+       prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTINIT, user_defined)
+       if (trim(prof) == "default" .and. .not. user_defined) then
+          dtmax_ = dict // GEOPT_VARIABLES // DTMAX
+          call set(dict // GEOPT_VARIABLES // DTINIT, 0.5 * dtmax_, fmt = "(F7.4)")
+       end if
+    end if
 
     call input_keys_finalize()
 
@@ -1389,7 +1409,6 @@ contains
          & call set(dict // (trim(key) // ATTRS) // PROF_KEY, profile_)
 
 !    call f_release_routine()
-
   contains
 
     function set_(dict, ref)

@@ -273,6 +273,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     use module_input_keys, only:DFT_VARIABLES, KPT_VARIABLES
     use minimization_sp, only:parameterminimization_sp  !Reza
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use module_input_dicts
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -291,6 +292,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     type(parametersplinedsaddle)::pnow
     type(dictionary), pointer :: dict
     type(input_variables), target :: ll_inputs
+    type(atoms_data) :: ll_atoms
     type(run_objects) :: ll_runObj, runObj
     type(DFT_global_output), dimension(2) :: outends
     !character(50)::ssm
@@ -322,14 +324,20 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         write(*,*) 'degree of freedom: n,nr ',n,nr
     endif
     !-----------------------------------------------------------
+    ! We read the input variable files.
     if(trim(pnow%hybrid)=='yes') then
        call read_input_dict_from_files("ll_input", bigdft_mpi,dict)
     else
        call read_input_dict_from_files("input", bigdft_mpi,dict)
     endif
-    call standard_inputfile_names(ll_inputs,'input')
-    call inputs_from_dict(ll_inputs, atoms, dict, .true.)
+    ! We add the atomic data.
+    call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rxyz)
+    call atoms_file_merge_to_dict(dict)
+    call atomic_data_file_merge_to_dict(dict, "Atomic occupation", "input.occup")
+    ! We parse the dictionary.
+    call inputs_from_dict(ll_inputs, ll_atoms, dict, .true.)
     call dict_free(dict)
+    call deallocate_atoms(ll_atoms, "givemesaddle")
     
     !-----------------------------------------------------------
     allocate(rxyz_2(3,atoms%astruct%nat+ndeb1))

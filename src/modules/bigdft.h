@@ -26,6 +26,61 @@ int bigdft_mpi_set_distribution(guint *mpi_iproc, guint *mpi_nproc,
 void bigdft_mpi_force_group(guint igroup, guint ngroup);
 int bigdft_finalize();
 guint bigdft_get_count(GObject *obj);
+
+/******************************/
+/* BigDFT_Dict data structure */
+/******************************/
+#ifdef GLIB_MAJOR_VERSION
+#define BIGDFT_DICT_TYPE    (bigdft_dict_get_type())
+#define BIGDFT_DICT(obj)                                               \
+  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_DICT_TYPE, BigDFT_Dict))
+#define BIGDFT_DICT_CLASS(klass)                                       \
+  (G_TYPE_CHECK_CLASS_CAST(klass, BIGDFT_DICT_TYPE, BigDFT_DictClass))
+#define BIGDFT_DICT_GET_CLASS(obj)                                     \
+  (G_TYPE_INSTANCE_GET_CLASS(obj, BIGDFT_DICT_TYPE, BigDFT_DictClass))
+#define BIGDFT_IS_CLASS_DICT(klass)                    \
+  (G_TYPE_CHECK_CLASS_TYPE(klass, BIGDFT_DICT_TYPE))
+#define BIGDFT_IS_TYPE_DICT(obj)                       \
+  (G_TYPE_CHECK_INSTANCE_TYPE(obj, BIGDFT_DICT_TYPE))
+
+typedef struct _BigDFT_DictClass BigDFT_DictClass;
+struct _BigDFT_DictClass
+{
+  GObjectClass parent;
+};
+GType bigdft_dict_get_type(void);
+#else
+#define BIGDFT_DICT_TYPE    (999)
+#define BIGDFT_DICT(obj)    ((BigDFT_Dict*)obj)
+#endif
+typedef struct _BigDFT_Dict BigDFT_Dict;
+struct _BigDFT_Dict
+{
+  /* Object management. */
+  GObject parent;
+  gboolean dispose_has_run;
+
+  /* Private. */
+  _dictionary *current;
+  _dictionary *root;
+};
+typedef struct _BigDFT_DictIter BigDFT_DictIter;
+struct _BigDFT_DictIter
+{
+  BigDFT_Dict *dict;
+  _dictionary *pointer;
+};
+BigDFT_Dict *bigdft_dict_new  (BigDFT_DictIter *root);
+BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf);
+gboolean bigdft_dict_move_to  (BigDFT_Dict *dict, BigDFT_DictIter *iter);
+void  bigdft_dict_insert      (BigDFT_Dict *dict, const gchar *id, BigDFT_DictIter *iter);
+void  bigdft_dict_append      (BigDFT_Dict *dict, BigDFT_DictIter *iter);
+void  bigdft_dict_set         (BigDFT_Dict *dict, const gchar *id, const gchar *value);
+void  bigdft_dict_set_array   (BigDFT_Dict *dict, const gchar *id, const gchar **value);
+void  bigdft_dict_unref       (BigDFT_Dict *dict);
+void  bigdft_dict_dump        (BigDFT_Dict *dict);
+/*********************************/
+
 /********************************/
 /* BigDFT_Atoms data structure. */
 /********************************/
@@ -132,7 +187,6 @@ typedef enum
     SMEARING_DIST_COLD2 = 4,
     SMEARING_DIST_METPX = 5
   } BigDFT_Smearing;
-#include "bigdft_input_keys.h"
 typedef struct _BigDFT_Inputs BigDFT_Inputs;
 struct _BigDFT_Inputs
 {
@@ -181,13 +235,11 @@ void           bigdft_inputs_free             (BigDFT_Inputs *in);
 BigDFT_Inputs* bigdft_inputs_new              (const gchar *naming);
 BigDFT_Inputs* bigdft_inputs_new_from_files   (const gchar *naming, guint iproc);
 void           bigdft_inputs_set              (BigDFT_Inputs *in,
-                                               BigDFT_InputsKeyIds id, const gchar *value);
+                                               const gchar *id, const gchar *value);
 void           bigdft_inputs_set_array        (BigDFT_Inputs *in,
-                                               BigDFT_InputsKeyIds id, const gchar **value);
-void           bigdft_inputs_set_array_at     (BigDFT_Inputs *in,
-                                               BigDFT_InputsKeyIds id, guint at, const gchar **value);
-gboolean       bigdft_inputs_dump             (BigDFT_Inputs *in, const gchar *filename,
-                                               gboolean useronly);
+                                               const gchar *id, const gchar **value);
+void           bigdft_inputs_set_array_at     (BigDFT_Inputs *in, const gchar *id,
+                                               guint at, const gchar **value);
 void           bigdft_inputs_analyse          (BigDFT_Inputs *in, BigDFT_Atoms *atoms,
                                                gboolean dump);
 void           bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc);
@@ -339,15 +391,15 @@ struct _BigDFT_Run
   BigDFT_Restart *restart;
 
   /* Private. */
+  BigDFT_Dict  *dict; /* Not null if built from a dict. */
   _run_objects *data;
 };
 /*********************************/
 BigDFT_Run*     bigdft_run_new();
 BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
-BigDFT_Run*     bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inputs,
-                                            BigDFT_Restart *rst, guint iproc, gboolean dump);
+BigDFT_Run*     bigdft_run_new_from_dict   (BigDFT_Dict *dict, gboolean dump);
 gboolean        bigdft_run_dump            (BigDFT_Run *run, const gchar *filename,
-                                            const gchar *comment, gboolean full);
+                                            gboolean full);
 BigDFT_Memory*  bigdft_run_memoryEstimation(BigDFT_Run *run, guint iproc, guint nproc);
 BigDFT_Goutput* bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint nproc);
 BigDFT_Atoms*   bigdft_run_get_atoms       (BigDFT_Run *run);
