@@ -437,7 +437,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(in) :: experimental_mode
  
   ! Local variables
-  real(kind=8) :: fnrmMax, meanAlpha, ediff, alpha_max, delta_energy, delta_energy_prev
+  real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
   integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, lwork, ncharge
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: psit_c_tmp, psit_f_tmp, work, eval, delta_energy_arr
@@ -493,6 +493,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   energy_increased_previous=.false.
   ratio_deltas=1.d0
+  ediff_best=1.d0
   ediff=1.d0
   delta_energy_prev=1.d0
   delta_energy_arr=1.d0
@@ -733,16 +734,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       end if
 
-      !ediff=trH-trH_old
-      ediff=trH-trH_ref
+      ediff=trH-trH_old
+      ediff_best=trH-trH_ref
       !!if (iproc==0) write(*,*) 'trH, trH_ref', trH, trH_ref
 
       if (it>1 .and. (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode)) then
           if (.not.energy_increased .and. .not.energy_increased_previous) then
               if (.not.ldiis%switchSD) then
-                  ratio_deltas=ediff/delta_energy_prev
+                  ratio_deltas=ediff_best/delta_energy_prev
               else
-                  ratio_deltas=ediff/delta_energy_arr(ldiis%itBest)
+                  ratio_deltas=ediff_best/delta_energy_arr(ldiis%itBest)
               end if
           else
               ! use a default value
@@ -775,10 +776,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
           if (iproc==0) then
               call yaml_newline()
-              call yaml_map('iter',it,fmt='(i6)')
+              call yaml_map('iter',it,fmt='(i5)')
               call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-              call yaml_map('Omega',trH,fmt='(es24.17)')
-              call yaml_map('D',ediff,fmt='(es10.3)')
+              call yaml_map('Omega',trH,fmt='(es22.15)')
+              call yaml_map('D',ediff,fmt='(es9.2)')
+              call yaml_map('D best',ediff_best,fmt='(es9.2)')
           end if
           tmb%ham_descr%can_use_transposed=.false.
           call dcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
@@ -823,10 +825,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! information on the progress of the optimization
       if (iproc==0) then
           call yaml_newline()
-          call yaml_map('iter',it,fmt='(i6)')
+          call yaml_map('iter',it,fmt='(i5)')
           call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-          call yaml_map('Omega',trH,fmt='(es24.17)')
-          call yaml_map('D',ediff,fmt='(es10.3)')
+          call yaml_map('Omega',trH,fmt='(es22.15)')
+          call yaml_map('D',ediff,fmt='(es9.2)')
+          call yaml_map('D best',ediff_best,fmt='(es9.2)')
       end if
 
       ! Add some extra iterations if DIIS failed (max 6 failures are allowed before switching to SD)
@@ -948,10 +951,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
       call yaml_newline()
-      call yaml_map('iter',it,fmt='(i6)')
+      call yaml_map('iter',it,fmt='(i5)')
       call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-      call yaml_map('Omega',trH,fmt='(es24.17)')
-      call yaml_map('D',ediff,fmt='(es10.3)')
+      call yaml_map('Omega',trH,fmt='(es22.15)')
+      call yaml_map('D',ediff,fmt='(es9.2)')
+      call yaml_map('D best',ediff_best,fmt='(es9.2)')
       call yaml_close_map() !iteration
       call bigdft_utils_flush(unit=6)
   end if
