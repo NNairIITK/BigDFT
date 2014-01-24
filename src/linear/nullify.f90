@@ -64,9 +64,15 @@ pure subroutine nullify_sparsematrix(sparsemat)
   nullify(sparsemat%istsegline)
   nullify(sparsemat%matrix)
   nullify(sparsemat%matrix_compr)
+  nullify(sparsemat%matrixp)
+  nullify(sparsemat%matrix_comprp)
   nullify(sparsemat%matrixindex_in_compressed_arr)
   nullify(sparsemat%orb_from_index)
   nullify(sparsemat%matrixindex_in_compressed_fortransposed)
+  nullify(sparsemat%nvctr_par)
+  nullify(sparsemat%isvctr_par)
+  nullify(sparsemat%nfvctr_par)
+  nullify(sparsemat%isfvctr_par)
 
 end subroutine nullify_sparsematrix
 

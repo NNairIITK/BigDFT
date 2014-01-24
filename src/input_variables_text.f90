@@ -174,12 +174,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
 
   call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/),comment=comments)
-  
-  !these variables seems deprecated, put them to their default value
-  comments = 'multiplier to (exit one TMB optimization, fix TMB completely). Only used for hybrid mode'
-  call input_var(in%lin%deltaenergy_multiplier_TMBexit,'1.d0',ranges=(/1.d-5,1.d1/))
-  call input_var(in%lin%deltaenergy_multiplier_TMBfix,'1.d0',ranges=(/1.d-5,1.d1/),comment=comments)
 
+  !these variables seems deprecated, put them to their default value
 
   comments = 'factor to reduce the confinement. Only used for hybrid mode.'
   call input_var(dummy_real,'0.5d0',dict//LIN_GENERAL//CONF_DAMPING,ranges=(/-1.d100,1.d0/),comment=comments)
@@ -230,7 +226,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
-  call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,1/))
+  call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
 
   !this variable seems deprecated
   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)

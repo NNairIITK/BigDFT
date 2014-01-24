@@ -195,15 +195,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
      ! instead of twice could add some criterion to check accuracy?
      if (present(num_extra)) then
-        call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
-        call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+        call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, tmb%orthpar%methTransformOverlap, &
+             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+        !call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
      else
-        call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
-        call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+        call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, tmb%orthpar%methTransformOverlap, &
+             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+        !call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
      end if
      !!!!!!!!!!!!!!!!!!!!!!!!
      !can't put coeffs directly in ksorbs%eval as intent in, so change after - problem with orthonormality of coeffs so adding extra
-     !call find_eval_from_coeffs(iproc, nproc, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, &
+     !call find_eval_from_coeffs(iproc, nproc, tmb%orthpar%methTransformOverlap, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, &
      !     tmb%coeff, tmb%orbs%eval, .true., .true.)
      !ipiv=f_malloc(tmb%orbs%norb,id='ipiv')
      !call order_coeffs_by_energy(orbs%norb,tmb%orbs%norb,tmb%coeff,tmb%orbs%eval,ipiv)
@@ -226,7 +228,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !   if (iproc==0) print*,'EBSdiff,alpha',energy-energy0,ldiis_coeff%alpha_coeff,energy,energy0
      !end if
 
-     if (iproc==0) write(*,*) ''
+     !if (iproc==0) write(*,*) ''
      if (sd_fit_curve .and. ldiis_coeff%idsx == 0) then
         !!if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))')'DminSD: it, fnrm, ebs, ebsdiff, alpha, pred E, diff',&
         !!     it,fnrm,energy0,energy-energy0,ldiis_coeff%alpha_coeff,pred_e,pred_e-energy
@@ -344,8 +346,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
      call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
-          .false.,0)!tmb%orthpar%methTransformOverlap)
-     allocate(weight_matrix%matrix(weight_matrix%full_dim1,weight_matrix%full_dim1), stat=istat)
+          .false.,tmb%orthpar%methTransformOverlap)
+     allocate(weight_matrix%matrix(weight_matrix%nfvctr,weight_matrix%nfvctr), stat=istat)
      call memocc(istat, weight_matrix%matrix, 'weight_matrix%matrix', subname)
      call uncompressmatrix(iproc,weight_matrix)
      call calculate_coeffMatcoeff(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
@@ -390,14 +392,14 @@ end subroutine coeff_weight_analysis
 
 ! subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
 ! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
-subroutine find_eval_from_coeffs(iproc, nproc, ksorbs, basis_orbs, ham, ovrlp, coeff, eval, calc_overlap, diag)
+subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs, ham, ovrlp, coeff, eval, calc_overlap, diag)
   use module_base
   use module_types
   use module_interfaces
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, meth_overlap
   type(orbitals_data), intent(in) :: basis_orbs, ksorbs
   type(sparseMatrix),intent(in) :: ham, ovrlp
   real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
@@ -437,7 +439,7 @@ subroutine find_eval_from_coeffs(iproc, nproc, ksorbs, basis_orbs, ham, ovrlp, c
   end do
   offdiagsum=offdiagsum/(ksorbs%norb**2-ksorbs%norb)
   if (calc_overlap) offdiagsum2=offdiagsum2/(ksorbs%norb**2-ksorbs%norb)
-  if (iproc==0) print*,''
+  if (calc_overlap.and.iproc==0) print*,''
   if (calc_overlap) then
      if (iproc==0) print*,'offdiagsum (ham,ovrlp):',offdiagsum,offdiagsum2
   else
@@ -446,7 +448,7 @@ subroutine find_eval_from_coeffs(iproc, nproc, ksorbs, basis_orbs, ham, ovrlp, c
 
   ! if coeffs are too far from orthogonality
   if (calc_overlap .and. offdiagsum2>coeff_orthog_threshold) then
-     call reorthonormalize_coeff(iproc, nproc, ksorbs%norb, -8, -8, 0, basis_orbs, ovrlp, coeff, ksorbs)
+     call reorthonormalize_coeff(iproc, nproc, ksorbs%norb, -8, -8, meth_overlap, basis_orbs, ovrlp, coeff, ksorbs)
   end if
 
   if (diag.or.offdiagsum>1.0d-2) then
@@ -845,12 +847,16 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
   energy=0.0_gp
   do iorbp=1,tmb_orbs%norbp
      iorb=iorbp+tmb_orbs%isorb
+     !$omp parallel default(private) shared(iorb,denskern,ham,tmb_orbs,energy)
+     !$omp do reduction(+:energy)
      do jorb=1,tmb_orbs%norb
         ind_ham = matrixindex_in_compressed(ham,iorb,jorb)
         ind_denskern = matrixindex_in_compressed(denskern,jorb,iorb)
         if (ind_ham==0.or.ind_denskern==0) cycle
         energy = energy + denskern%matrix_compr(ind_denskern)*ham%matrix_compr(ind_ham)
      end do
+     !$omp end do
+     !$omp end parallel
   end do
   if (nproc>1) then
      call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -865,6 +871,7 @@ end subroutine calculate_kernel_and_energy
 subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
 
   integer, intent(in) :: iproc, nproc
@@ -873,10 +880,17 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   real(gp), dimension(tmb%orbs%norb,KSorbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
 
   integer :: iorb, iiorb, info, ierr
-  real(gp),dimension(:,:),allocatable :: sk, skh, skhp, inv_ovrlp
+  real(gp),dimension(:,:),allocatable :: sk, skh, skhp
+  real(gp),dimension(:,:),pointer :: inv_ovrlp
   integer,dimension(:),allocatable:: ipiv
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   character(len=*),parameter:: subname='calculate_coeff_gradient'
+
+  integer :: itmp, itrials
+  integer :: ncount1, ncount_rate, ncount_max, ncount2
+  real(kind=4) :: tr0, tr1
+  real(kind=8) :: tel, deviation, time, error, maxerror
+
 
   call f_routine(id='calculate_coeff_gradient')
   call timing(iproc,'dirmin_lagmat1','ON')
@@ -951,50 +965,189 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   call timing(iproc,'dirmin_lagmat1','OF')
   call timing(iproc,'dirmin_dgesv','ON') !lr408t
 
-  info = 0 ! needed for when some processors have orbs%norbp=0
   ! Solve the linear system ovrlp*grad=grad_cov
   if(tmb%orthpar%blocksize_pdsyev<0) then
-     !! keep the covariant gradient to calculate fnrm correctly
-     !call dcopy(tmb%orbs%norb*KSorbs%norbp,grad_cov,1,grad,1)
-     !if (KSorbs%norbp>0) then
-     !   ipiv=f_malloc(tmb%orbs%norb,id='ipiv')
-     !   call dgesv(tmb%orbs%norb, KSorbs%norbp, tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, ipiv(1), &
-     !        grad(1,1), tmb%orbs%norb, info)
-     !   call f_free(ipiv)
-     !end if
-     inv_ovrlp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerMinusOne(iproc, nproc, 1, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp)
+     call timing(iproc,'dirmin_dgesv','OF')
+     inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
+     call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, &
+          tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp, error, tmb%orbs)
+
+     !!!DEBUG checking S^-1 etc.
+     !!!test dense version of S^-1
+     !!inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
+     !!if (iproc==0)write(*,*) ''
+     !!do itmp=0,20
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr0)
+     !!   call system_clock(ncount1,ncount_rate,ncount_max)
+     !!   maxerror=0.0d0
+     !!   do itrials=1,50
+     !!      call overlapPowerGeneral(iproc, nproc, itmp, 1, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, &
+     !!           inv_ovrlp, error, tmb%orbs)
+     !!      maxerror=max(maxerror,error)
+     !!   end do
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr1)
+     !!   call system_clock(ncount2,ncount_rate,ncount_max)
+     !!   if (iproc==0) then
+     !!      write(*,*) 'order,maxerror,time',itmp,maxerror,real(tr1-tr0,kind=8)/real(itrials-1,kind=8),&
+     !!           (dble(ncount2-ncount1)/dble(ncount_rate))/real(itrials-1,kind=8)
+     !!   end if
+     !!end do
+     !!call f_free_ptr(inv_ovrlp)
+
+     !!! test S^+/-1/2
+     !!inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
+     !!if (iproc==0)write(*,*) ''
+     !!do itmp=0,20
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr0)
+     !!   call system_clock(ncount1,ncount_rate,ncount_max)
+     !!   maxerror=0.0d0
+     !!   do itrials=1,50
+     !!      call overlapPowerGeneral(iproc, nproc, itmp, 2, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, &
+     !!           inv_ovrlp, error, tmb%orbs)
+     !!      maxerror=max(maxerror,error)
+     !!   end do
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr1)
+     !!   call system_clock(ncount2,ncount_rate,ncount_max)
+     !!   if (iproc==0) then
+     !!      write(*,*) 'order,maxerror,time',itmp,maxerror,real(tr1-tr0,kind=8)/real(itrials-1,kind=8),&
+     !!           (dble(ncount2-ncount1)/dble(ncount_rate))/real(itrials-1,kind=8)
+     !!   end if
+     !!end do
+
+     !!if (iproc==0)write(*,*) ''
+     !!do itmp=0,20
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr0)
+     !!   call system_clock(ncount1,ncount_rate,ncount_max)
+     !!   maxerror=0.0d0
+     !!   do itrials=1,50
+     !!      call overlapPowerGeneral(iproc, nproc, itmp, -2, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, &
+     !!           inv_ovrlp, error, tmb%orbs)
+     !!      maxerror=max(maxerror,error)
+     !!   end do
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr1)
+     !!   call system_clock(ncount2,ncount_rate,ncount_max)
+     !!   if (iproc==0) then
+     !!      write(*,*) 'order,maxerror,time',itmp,maxerror,real(tr1-tr0,kind=8)/real(itrials-1,kind=8),&
+     !!           (dble(ncount2-ncount1)/dble(ncount_rate))/real(itrials-1,kind=8)
+     !!   end if
+     !!end do
+
+     !!!test sparse version of S^-1
+     !!deallocate(tmb%linmat%ovrlp%matrix)
+
+     !!if (iproc==0)write(*,*) ''
+     !!call f_free_ptr(inv_ovrlp)
+     !!tmb%linmat%inv_ovrlp%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp%nvctr,id='tmb%linmat%inv_ovrlp%matrix_compr')
+     !!do itmp=0,2
+     !!   tmb%linmat%inv_ovrlp%parallel_compression=itmp
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr0)
+     !!   call system_clock(ncount1,ncount_rate,ncount_max)
+     !!   maxerror=0.0d0
+     !!   do itrials=1,50
+     !!      call overlapPowerGeneral(iproc, nproc, 1, 1, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp, &
+     !!           error, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp)
+     !!      maxerror=max(maxerror,error)
+     !!   end do
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr1)
+     !!   call system_clock(ncount2,ncount_rate,ncount_max)
+     !!   if (iproc==0) then
+     !!      write(*,*) 'order,maxerror,time',1,maxerror,real(tr1-tr0,kind=8)/real(itrials-1,kind=8),&
+     !!           (dble(ncount2-ncount1)/dble(ncount_rate))/real(itrials-1,kind=8)
+     !!   end if
+     !!end do
+     !!call f_free_ptr(tmb%linmat%inv_ovrlp%matrix_compr)
+
+     !!!test sparse version of S^1/2
+     !!if (iproc==0)write(*,*) ''
+     !!nullify(inv_ovrlp)
+     !!tmb%linmat%inv_ovrlp%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp%nvctr,id='tmb%linmat%inv_ovrlp%matrix_compr')
+     !!do itmp=0,2
+     !!   tmb%linmat%inv_ovrlp%parallel_compression=itmp
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr0)
+     !!   call system_clock(ncount1,ncount_rate,ncount_max)
+     !!   maxerror=0.0d0
+     !!   do itrials=1,50
+     !!      call overlapPowerGeneral(iproc, nproc, 1, 2, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp, &
+     !!           error, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp)
+     !!      maxerror=max(maxerror,error)
+     !!   end do
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr1)
+     !!   call system_clock(ncount2,ncount_rate,ncount_max)
+     !!   if (iproc==0) then
+     !!      write(*,*) 'order,maxerror,time',1,maxerror,real(tr1-tr0,kind=8)/real(itrials-1,kind=8),&
+     !!           (dble(ncount2-ncount1)/dble(ncount_rate))/real(itrials-1,kind=8)
+     !!   end if
+     !!end do
+     !!call f_free_ptr(tmb%linmat%inv_ovrlp%matrix_compr)
+
+     !!!test sparse version of S^-1/2
+     !!if (iproc==0)write(*,*) ''
+     !!nullify(inv_ovrlp)
+     !!tmb%linmat%inv_ovrlp%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp%nvctr,id='tmb%linmat%inv_ovrlp%matrix_compr')
+     !!do itmp=0,2
+     !!   tmb%linmat%inv_ovrlp%parallel_compression=itmp
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr0)
+     !!   call system_clock(ncount1,ncount_rate,ncount_max)
+     !!   maxerror=0.0d0
+     !!   do itrials=1,50
+     !!      call overlapPowerGeneral(iproc, nproc, 1, -2, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp, &
+     !!           error, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp)
+     !!      maxerror=max(maxerror,error)
+     !!   end do
+     !!   call mpi_barrier(mpi_comm_world,ierr)
+     !!   call cpu_time(tr1)
+     !!   call system_clock(ncount2,ncount_rate,ncount_max)
+     !!   if (iproc==0) then
+     !!      write(*,*) 'order,maxerror,time',1,maxerror,real(tr1-tr0,kind=8)/real(itrials-1,kind=8),&
+     !!           (dble(ncount2-ncount1)/dble(ncount_rate))/real(itrials-1,kind=8)
+     !!   end if
+     !!end do
+     !!call f_free_ptr(tmb%linmat%inv_ovrlp%matrix_compr)
+
+     !!call mpi_finalize(bigdft_mpi%mpi_comm)
+     !!stop
+     !!END DEBUG
+
+     call timing(iproc,'dirmin_dgesv','ON')
      if (KSorbs%norbp>0) then
         call dgemm('n', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp(1,1), &
              tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
      else
         call dcopy(tmb%orbs%norb*KSorbs%norbp,grad_cov,1,grad,1)
      end if
-     call f_free(inv_ovrlp)
+     call f_free_ptr(inv_ovrlp)
   else
-      grad_full=f_malloc((/tmb%orbs%norb,KSorbs%norb/),id='grad_full')
-      ! do allgather instead of allred so we can keep grad as per proc
-      if(nproc > 1) then 
-         call mpi_allgatherv(grad_cov, tmb%orbs%norb*KSorbs%norbp, mpi_double_precision, grad_full, &
-            tmb%orbs%norb*KSorbs%norb_par(:,0), tmb%orbs%norb*KSorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      else
-         call dcopy(tmb%orbs%norb*KSorbs%norb,grad_cov(1,1),1,grad_full(1,1),1)
-      end if
-      !call mpiallred(grad(1,1), tmb%orbs%norb*KSorbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     info = 0 ! needed for when some processors have orbs%norbp=0
+     grad_full=f_malloc((/tmb%orbs%norb,KSorbs%norb/),id='grad_full')
+     ! do allgather instead of allred so we can keep grad as per proc
+     if(nproc > 1) then 
+        call mpi_allgatherv(grad_cov, tmb%orbs%norb*KSorbs%norbp, mpi_double_precision, grad_full, &
+           tmb%orbs%norb*KSorbs%norb_par(:,0), tmb%orbs%norb*KSorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+     else
+        call dcopy(tmb%orbs%norb*KSorbs%norb,grad_cov(1,1),1,grad_full(1,1),1)
+     end if
 
-      call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
-           tmb%orbs%norb, KSorbs%norb, tmb%linmat%ovrlp%matrix, tmb%orbs%norb, grad_full, tmb%orbs%norb, info)
+     call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
+          tmb%orbs%norb, KSorbs%norb, tmb%linmat%ovrlp%matrix, tmb%orbs%norb, grad_full, tmb%orbs%norb, info)
+     call dcopy(tmb%orbs%norb*KSorbs%norbp,grad_full(1,KSorbs%isorb+1),1,grad(1,1),1)
 
-      call dcopy(tmb%orbs%norb*KSorbs%norbp,grad_full(1,KSorbs%isorb+1),1,grad(1,1),1)
-
-      call f_free(grad_full)
+     call f_free(grad_full)
+     if(info/=0) then
+        write(*,'(a,i0)') 'ERROR in dgesv: info=',info
+        stop
+     end if
   end if
-
-  if(info/=0) then
-      write(*,'(a,i0)') 'ERROR in dgesv: info=',info
-      stop
-  end if
-
 
   call timing(iproc,'dirmin_dgesv','OF') !lr408t
   call f_release_routine()
@@ -1006,6 +1159,7 @@ end subroutine calculate_coeff_gradient
 subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_cov,grad)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
 
   integer, intent(in) :: iproc, nproc, num_extra
@@ -1014,11 +1168,13 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   real(gp), dimension(tmb%orbs%norb,tmb%orbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
 
   integer :: iorb, iiorb, info, ierr
-  real(gp),dimension(:,:),allocatable :: sk, skh, skhp, inv_ovrlp
+  real(gp),dimension(:,:),allocatable :: sk, skh, skhp
+  real(gp),dimension(:,:),pointer ::  inv_ovrlp
   integer :: matrixindex_in_compressed
   integer,dimension(:),allocatable:: ipiv
   real(kind=gp), dimension(:), allocatable:: occup_tmp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
+  real(kind=gp) :: error
   character(len=*),parameter:: subname='calculate_coeff_gradient'
 
   call f_routine(id='calculate_coeff_gradient')
@@ -1115,15 +1271,17 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
      !        grad(1,1), tmb%orbs%norb, info)
      !   call f_free(ipiv)
      !end if
-     inv_ovrlp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerMinusOne(iproc, nproc, 1, -8, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp)
+     inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
+     call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, tmb%orbs%norb, &
+          tmb%linmat%ovrlp%matrix, inv_ovrlp, error, tmb%orbs)
+
      if (tmb%orbs%norbp>0) then
         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp(1,1), &
              tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
      else
         call dcopy(tmb%orbs%norb*tmb%orbs%norbp,grad_cov,1,grad,1)
      end if
-     call f_free(inv_ovrlp)
+     call f_free_ptr(inv_ovrlp)
   else
       grad_full=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_full')
       ! do allgather instead of allred so we can keep grad as per proc

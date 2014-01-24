@@ -338,6 +338,15 @@ module module_types
 
      !> linear scaling: write KS orbitals for cubic restart
      logical :: write_orbitals
+
+     !> linear scaling: explicitely specify localization centers
+     logical :: explicit_locregcenters
+
+     !> linear scaling: calculate Kohn-Sham residue
+     logical :: calculate_KS_residue
+     
+     !> linear scaling: calculate intermediate forces
+     logical :: intermediate_forces
   end type input_variables
 
   !> Contains all energy terms
@@ -599,17 +608,16 @@ module module_types
 !!$  end type sparseMatrix_metadata
 
   type,public :: sparseMatrix
-      integer :: nvctr, nseg, full_dim1, full_dim2
-      integer,dimension(:),pointer :: keyv, nsegline, istsegline
+      integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
+      integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
       integer,dimension(:,:),pointer :: keyg
       !type(sparseMatrix_metadata), pointer :: pattern
-      real(kind=8),dimension(:),pointer :: matrix_compr
-      real(kind=8),dimension(:,:),pointer :: matrix
+      real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
+      real(kind=8),dimension(:,:),pointer :: matrix,matrixp
       !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
-      logical :: store_index
-
+      logical :: store_index, can_use_dense
       !!contains
       !!  procedure,pass :: matrixindex_in_compressed
   end type sparseMatrix
@@ -665,7 +673,7 @@ module module_types
   type,public:: localizedDIISParameters
     integer :: is, isx, mis, DIISHistMax, DIISHistMin
     integer :: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
-    real(kind=8),dimension(:),pointer :: phiHist, hphiHist
+    real(kind=8),dimension(:),pointer :: phiHist, hphiHist, energy_hist
     real(kind=8) :: alpha_coeff !step size for optimization of coefficients
     real(kind=8),dimension(:,:,:),pointer :: mat
     real(kind=8) :: trmin, trold, alphaSD, alphaDIIS
@@ -2614,6 +2622,16 @@ end subroutine bigdft_init_errors
     case (WRITE_ORBITALS)
        ! linear scaling: write KS orbitals for cubic restart
        in%write_orbitals = val
+    case (EXPLICIT_LOCREGCENTERS)
+       ! linear scaling: explicitely specify localization centers
+       in%explicit_locregcenters = val
+    case (CALCULATE_KS_RESIDUE)
+       ! linear scaling: calculate Kohn-Sham residue
+       in%calculate_KS_residue = val
+    case (INTERMEDIATE_FORCES)
+       ! linear scaling: calculate intermediate forces
+       in%intermediate_forces = val
+
        ! the GEOPT variables ----------------------------------------------------
     case (GEOPT_METHOD)
        in%geopt_approach = val !geometry input parameters

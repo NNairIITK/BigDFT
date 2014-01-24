@@ -305,10 +305,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   type(gaussian_basis),dimension(max(atoms%astruct%ntypes,0))::proj_G
   type(rholoc_objects)::rholoc_tmp
 
+  ! testing
+  real(kind=8),dimension(:,:),pointer :: locregcenters
+  integer :: ilr, nlr
+  character(len=20) :: comment
+
   !debug
   !real(kind=8) :: ddot
 
   call f_routine(id=subname)
+
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -388,10 +394,32 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   end if
 
   ! Setup all descriptors and allocate what should be.
+  if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+      in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
+      in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+      if (in%explicit_locregcenters) then
+          locregcenters=f_malloc_ptr((/3,atoms%astruct%nat/),id=' locregcenters')
+          open(unit=123, file='locregcenters.xyz')
+          read(123,*) nlr
+          if (nlr/=atoms%astruct%nat) stop 'ERROR: wrong nlr'
+          read(123,*) comment
+          do ilr=1,nlr
+              read(123,*) comment, locregcenters(1,ilr), locregcenters(2,ilr), locregcenters(3,ilr)
+          end do
+      else
+          locregcenters=f_malloc_ptr((/3,atoms%astruct%nat/),id=' locregcenters')
+          locregcenters = rxyz
+      end if
+  end if
+
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
-         KSwfn%comms,shift,radii_cf,ref_frags,denspot,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
+         KSwfn%comms,shift,radii_cf,ref_frags,denspot,locregcenters,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
+  else if(in%inputPsiId == INPUT_PSI_LINEAR_AO .or. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+    call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,&
+         KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
+         KSwfn%comms,shift,radii_cf,ref_frags,denspot,locregcenters)
   else
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
@@ -544,12 +572,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   end if
 
   norbv=abs(in%norbv)
-
-  call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
-       inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
+  if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+      in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
+      in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
+           inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
+           locregcenters)
+  else
+      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
+           inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
   nvirt=in%nvirt
   if(in%nvirt > norbv) then
      nvirt = norbv
+  end if
+  end if
+
+  if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+      in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
+      in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+      call f_free_ptr(locregcenters)
   end if
 
   !!do i_stat=1,KSwfn%orbs%norb*(KSwfn%lzd%glr%wfd%nvctr_c+7*KSwfn%lzd%glr%wfd%nvctr_f)
@@ -618,7 +659,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call memocc(i_stat,fpulay,'fpulay',subname)
 
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
-          rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft)
+          rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
+          fdisp, fion)
 
      ! maybe not the best place to keep it - think about it!
      if (in%lin%calc_transfer_integrals) then
@@ -637,7 +679,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !call f_free_ptr(in_frag_charge)
            !cdft%charge=-cdft%charge
 
-           !call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
+           !call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, &
            !     KSwfn%orbs, tmb, overlap_calculated)     
            !tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
            !i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
@@ -680,7 +722,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            if (.not. in%lin%fragment_calculation) stop 'Error, fragment calculation needed for transfer integral calculation'
            !if (input%frag%nfrag==2) call calc_transfer_integrals_old(iproc,nproc,input%frag,ref_frags,tmb%orbs,&
            !     tmb%linmat%ham,tmb%linmat%ovrlp)
-           call calc_site_energies_transfer_integrals(iproc,nproc,in%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ovrlp)
+           call calc_site_energies_transfer_integrals(iproc,nproc,tmb%orthpar%methTransformOverlap,&
+                in%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ovrlp)
         end if
      end if
 

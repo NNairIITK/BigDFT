@@ -734,18 +734,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          frag_trans(iorb)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
          frag_trans(iorb)%rot_center(:)=rxyz_old(:,iiat)
          frag_trans(iorb)%rot_center_new(:)=rxyz(:,iiat)
-         allocate(frag_trans(iorb)%discrete_operations(0),stat=i_stat)
-         call memocc(i_stat,frag_trans(iorb)%discrete_operations,'frag_trans(iorb)%discrete_operations',subname)
      end do
 
      call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
           tmb_old%psi,input%dir_output,input%frag,ref_frags)
 
-     do iorb=1,tmb%orbs%norbp
-        i_all = -product(shape(frag_trans(iorb)%discrete_operations)*kind(frag_trans(iorb)%discrete_operations))
-        deallocate(frag_trans(iorb)%discrete_operations,stat=i_stat)
-        call memocc(i_stat,i_all,'frag_trans(iorb)%discrete_operations',subname)
-     end do
      deallocate(frag_trans)
   end if
           !!write(*,*) 'after reformat_supportfunctions, iproc',iproc
@@ -831,7 +824,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !overlap_calculated = .false.
       !nullify(tmb%psit_c)
       !nullify(tmb%psit_f)
-      call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, &
+      call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
       i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
       deallocate(tmb%psit_c,stat=i_stat)
@@ -1506,7 +1499,8 @@ END SUBROUTINE input_wf_diag
 
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpsp,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-     lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
+     lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
+     locregcenters)
   use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf
@@ -1539,6 +1533,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   type(system_fragment), dimension(:), pointer :: ref_frags
   type(cdft_data), intent(out) :: cdft
+  real(kind=8),dimension(3,atoms%astruct%nat),intent(in),optional :: locregcenters
   !local variables
   character(len = *), parameter :: subname = "input_wf"
   integer :: i_stat, nspin, i_all, iat
@@ -1788,8 +1783,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
+     if (.not.present(locregcenters)) stop 'locregcenters not present!'
      call inputguessConfinement(iproc,nproc,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
-          rxyz,nlpsp,GPU,KSwfn%orbs,kswfn,tmb,denspot,denspot0,energs)
+          rxyz,nlpsp,GPU,KSwfn%orbs,kswfn,tmb,denspot,denspot0,energs,locregcenters)
      if(tmb%can_use_transposed) then
          i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
          deallocate(tmb%psit_c, stat=i_stat)
@@ -1916,7 +1912,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
      else
         ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
-        call reconstruct_kernel(iproc, nproc, 0, tmb%orthpar%blocksize_pdsyev, &
+        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
      !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
@@ -1975,7 +1971,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            call calculate_weight_matrix_using_density(cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
-           call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,.false.)
+           call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,.false.,tmb%orthpar%methTransformOverlap)
            ! debug
            !call plot_density(iproc,nproc,'initial_density.cube', &
            !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
@@ -2019,7 +2015,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.false.,&
-             .true.,ham_small,0,0,0,0,in%lin%order_taylor) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             .true.,ham_small,0,0,0,0,in%lin%order_taylor,in%calculate_KS_residue) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then
         !print*,'coeffs after extra diag:'

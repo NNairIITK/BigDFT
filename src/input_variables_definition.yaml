@@ -616,4 +616,13 @@
    write_orbitals:
      COMMENT: linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
      default: No
+   explicit_locregcenters:
+     COMMENT: linear scaling explicitely specify localization centers 
+     default: No
+   calculate_KS_residue:
+     COMMENT: linear scaling calculate Kohn-Sham residue
+     default: Yes
+   intermediate_forces:
+     COMMENT: linear scaling calculate intermediate forces
+     default: No
 

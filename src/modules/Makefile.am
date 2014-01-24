@@ -114,7 +114,7 @@ endif
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-input_keys.o: $(top_builddir)/flib/src/dynamic_memory.o
+input_keys.o: $(top_builddir)/flib/src/dynamic_memory.o base.o
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
 types.o: base.o gaussians.o locregs.o psp_projectors.o
 input.o: base.o types.o input_keys.o

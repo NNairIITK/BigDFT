@@ -34,7 +34,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol
-  real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up
+  real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -131,7 +131,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                                               + 3.d0/8.d0*workmat(jorb,iorb,1)
                   else
                       ovrlp%matrix(jorb,iorb) = -0.5d0*SminusI(jorb,iorb) &
-                                               +3.d0/8.d0*workmat(jorb,iorb,1)
+                                              +3.d0/8.d0*workmat(jorb,iorb,1)
                   end if
               end do
           end do
@@ -212,6 +212,50 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       deallocate(workmat,stat=istat)
       call memocc(istat,iall,'workmat',subname)
   end if
+
+  !!!! TEST: calculate S*S^-1 ##########################################################
+  !!allocate(ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
+  !!call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
+  !!call uncompressMatrix(iproc,ovrlp)
+
+  !!allocate(workmat(orbs%norb,orbs%norb,4), stat=istat)
+  !!call memocc(istat, workmat, 'workmat', subname)
+  !!workmat(:,:,1)=ovrlp%matrix(:,:)
+
+  !!ovrlp%matrix_compr=ovrlpeff_compr
+  !!call uncompressMatrix(iproc,ovrlp)
+  !!workmat(:,:,2)=ovrlp%matrix(:,:)
+
+  !!! workmat(:,:,2) contains S^-1/2, so square to get S^-1
+  !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1,2), orbs%norb, &
+  !!           workmat(1,1,2), orbs%norb, 0.d0, workmat(1,1,3), orbs%norb)
+
+  !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1,1), orbs%norb, &
+  !!           workmat(1,1,3), orbs%norb, 0.d0, workmat(1,1,4), orbs%norb)
+
+  !!tt=0.d0
+  !!do iorb=1,orbs%norb
+  !!    do jorb=1,orbs%norb
+  !!        if (iorb==jorb) then
+  !!            tt=tt+(1.d0-workmat(jorb,iorb,4))**2
+  !!        else
+  !!            tt=tt+(workmat(jorb,iorb,4))**2
+  !!        end if
+  !!    end do
+  !!end do
+  !!tt=sqrt(tt)
+  !!if (iproc==0) write(*,'(a,es11.3)') 'FOE dev from unity:',tt
+
+  !!ovrlp%matrix(:,:)=workmat(:,:,1) ! get back the original
+  !!call compress_matrix_for_allreduce(iproc,ovrlp)
+  !!iall=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
+  !!deallocate(ovrlp%matrix,stat=istat)
+  !!call memocc(istat,iall,'ovrlp%matrix',subname)
+  !!iall=-product(shape(workmat))*kind(workmat)
+  !!deallocate(workmat,stat=istat)
+  !!call memocc(istat,iall,'workmat',subname)
+
+  !!!! END TEST: #######################################################################
 
   
 
@@ -452,6 +496,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               allredarr(1)=bound_low
               allredarr(2)=bound_up
               call mpiallred(allredarr, 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+              allredarr=abs(allredarr) !for some crazy situations this may be negative
               if (allredarr(1)>anoise) then
                   if (iproc==0) then
                       !!write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &

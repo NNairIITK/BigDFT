@@ -946,14 +946,14 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%full_dim1,tmb%linmat%ham%full_dim1), stat=i_stat)
+     allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
 
      call uncompressMatrix(iproc,tmb%linmat%ham)
 
-     do iorb=1,tmb%linmat%ham%full_dim1
+     do iorb=1,tmb%linmat%ham%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%ham%full_dim1
+        do jorb=1,tmb%linmat%ham%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
               write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham%matrix(iorb,jorb),iat,jat
@@ -975,14 +975,14 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%full_dim1,tmb%linmat%ovrlp%full_dim1), stat=i_stat)
+     allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
 
      call uncompressMatrix(iproc,tmb%linmat%ovrlp)
 
-     do iorb=1,tmb%linmat%ovrlp%full_dim1
+     do iorb=1,tmb%linmat%ovrlp%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%ovrlp%full_dim1
+        do jorb=1,tmb%linmat%ovrlp%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
               write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat
@@ -1004,14 +1004,14 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%denskern%matrix(tmb%linmat%denskern%full_dim1,tmb%linmat%denskern%full_dim1), stat=i_stat)
+     allocate(tmb%linmat%denskern%matrix(tmb%linmat%denskern%nfvctr,tmb%linmat%denskern%nfvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
 
      call uncompressMatrix(iproc,tmb%linmat%denskern)
 
-     do iorb=1,tmb%linmat%denskern%full_dim1
+     do iorb=1,tmb%linmat%denskern%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%denskern%full_dim1
+        do jorb=1,tmb%linmat%denskern%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
               write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%denskern%matrix(iorb,jorb),iat,jat
@@ -1031,7 +1031,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 
   ! calculate 'onsite' overlap matrix as well - needs double checking
 
-  allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%full_dim1,tmb%linmat%ovrlp%full_dim1), stat=i_stat)
+  allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
   call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
 
   call tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
@@ -1044,9 +1044,9 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
      end if
 
-     do iorb=1,tmb%linmat%denskern%full_dim1
+     do iorb=1,tmb%linmat%denskern%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%denskern%full_dim1
+        do jorb=1,tmb%linmat%denskern%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
               write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat
@@ -1090,7 +1090,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   real(gp), dimension(3) :: centre_old_box, centre_new_box, da
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
   real(wp), dimension(:), pointer :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
-  integer, dimension(0:7) :: reformat_reason
+  integer, dimension(0:6) :: reformat_reason
   type(collective_comms) :: collcom_tmp
   type(local_zone_descriptors) :: lzd_tmp
   real(gp) :: tol
@@ -1152,9 +1152,6 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
       !centre_new(:)=rxyz(:,iiat_tmp)
       !shift(:)=centre_new(:)-centre_old(:)
 
-      allocate(frag_trans%discrete_operations(0),stat=i_stat)
-      call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
-
       frag_trans%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
       frag_trans%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
       frag_trans%rot_center(:)=rxyz(:,iiat)
@@ -1195,7 +1192,6 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
                tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
                frag_trans,psi_tmp(jstart_tmp:))
 
-
           jstart_tmp=jstart_tmp+tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c+7*tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f
    
           i_all=-product(shape(phigold))*kind(phigold)
@@ -1203,10 +1199,6 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
           call memocc(i_stat,i_all,'phigold',subname)
 
       end if
-
-      i_all = -product(shape(frag_trans%discrete_operations))*kind(frag_trans%discrete_operations)
-      deallocate(frag_trans%discrete_operations,stat=i_stat)
-      call memocc(i_stat,i_all,'frag_trans%discrete_operations',subname)
 
   end do
 
@@ -1295,7 +1287,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   real(gp), dimension(3) :: centre_old_box, centre_new_box, da
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
   real(wp), dimension(:), pointer :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
-  integer, dimension(0:7) :: reformat_reason
+  integer, dimension(0:6) :: reformat_reason
   type(collective_comms) :: collcom_tmp
   type(local_zone_descriptors) :: lzd_tmp
   real(gp) :: tol
@@ -1375,10 +1367,6 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
          nsj(3)=tmb%lzd%Llr(jlr)%ns3
 
          ! find fragment transformation using 3 nearest neighbours
-
-         !allocate(frag_trans%discrete_operations(0),stat=i_stat)
-         !call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
-
          do iat=1,at%astruct%nat
             rxyz_new(:,iat)=rxyz(:,iat)
             rxyz_ref(:,iat)=rxyz(:,iat)
@@ -1456,10 +1444,6 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
             call reformat_one_supportfunction(tmb%lzd%llr(jlr),tmb%lzd%llr(ilr),tmb%lzd%llr(jlr)%geocode,&
                  tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,nj,centre_old_box,centre_new_box,da,&
                  frag_trans,psi_tmp(jstart:))
-
-            i_all = -product(shape(frag_trans%discrete_operations))*kind(frag_trans%discrete_operations)
-            deallocate(frag_trans%discrete_operations,stat=i_stat)
-            call memocc(i_stat,i_all,'frag_trans%discrete_operations',subname)
 
             jstart=jstart+tmb%lzd%llr(jlr)%wfd%nvctr_c+7*tmb%lzd%llr(jlr)%wfd%nvctr_f
    
@@ -1677,7 +1661,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   real(wp), dimension(:), pointer :: psi
   integer, dimension(*), intent(in) :: onwhichatom
   type(locreg_descriptors), intent(in) :: lr, glr
-  integer, dimension(0:7), intent(out) :: reformat_reason
+  integer, dimension(0:6), intent(out) :: reformat_reason
 
   !local variables
   character(len=*), parameter :: subname='readonewave_linear'
@@ -1710,9 +1694,6 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   frag_trans%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
   frag_trans%rot_center(:)=(/7.8d0,11.8d0,11.6d0/)
   frag_trans%rot_center_new(:)=(/7.8d0,11.2d0,11.8d0/)
-
-  allocate(frag_trans%discrete_operations(0),stat=i_stat)
-  call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
 
   call reformat_check(reformat,reformat_reason,tol,at,hgrids,hgrids_old,&
        nvctr_c_old,nvctr_f_old,llr%wfd%nvctr_c,llr%wfd%nvctr_f,&
@@ -1753,10 +1734,6 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      ! NB assuming here geocode is the same in glr and llr
      call reformat_one_supportfunction(llr,llr,at%astruct%geocode,hgrids_old,n_old,psigold,hgrids,n, &
          centre_old_box,centre_new_box,da,frag_trans,psi)
-
-     i_all = -product(shape(frag_trans%discrete_operations))*kind(frag_trans%discrete_operations)
-     deallocate(frag_trans%discrete_operations,stat=i_stat)
-     call memocc(i_stat,i_all,'frag_trans%discrete_operations',subname)
 
      i_all=-product(shape(psigold))*kind(psigold)
      deallocate(psigold,stat=i_stat)
@@ -2232,9 +2209,6 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   if (input_frag%nfrag>1) then
      ! Find fragment transformations for each fragment, then put in frag_trans array for each orb
      allocate(frag_trans_frag(input_frag%nfrag))
-     do ifrag=1,input_frag%nfrag
-        nullify(frag_trans_frag(ifrag)%discrete_operations)
-     end do
 
      isfat=0
      isforb=0
@@ -2298,9 +2272,6 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
      end do
 
      allocate(frag_trans_orb(tmb%orbs%norbp))
-     do iorbp=1,tmb%orbs%norbp
-        nullify(frag_trans_orb(iorbp)%discrete_operations)
-     end do
 
      isforb=0
      isfat=0
@@ -2313,9 +2284,6 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
               iiorb=iorbp+tmb%orbs%isorb
               ! check if this ref frag orbital corresponds to the orbital we want
               if (iiorb/=iforb+isforb) cycle
-
-              allocate(frag_trans_orb(iorbp)%discrete_operations(size(frag_trans_frag(ifrag)%discrete_operations)),stat=i_stat)
-              call memocc(i_stat,frag_trans_orb(iorbp)%discrete_operations,'frag_trans_orb(iorbp)%discrete_operations',subname)
 
               frag_trans_orb(iorbp)%rot_center=frag_trans_frag(ifrag)%rot_center
               frag_trans_orb(iorbp)%rot_center_new=frag_trans_frag(ifrag)%rot_center_new
@@ -2330,8 +2298,6 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
               frag_trans_orb(iorbp)%rot_axis=(frag_trans_frag(ifrag)%rot_axis)
               frag_trans_orb(iorbp)%theta=frag_trans_frag(ifrag)%theta
-              call dcopy(size(frag_trans_frag(ifrag)%discrete_operations),frag_trans_frag(ifrag)%discrete_operations,1,&
-                   frag_trans_orb(iorbp)%discrete_operations,1)
 
               !write(*,'(a,x,2(i2,x),4(f5.2,x),6(f7.3,x))'),'trans2',ifrag,iiorb,frag_trans_orb(iorbp)%theta,&
               !     frag_trans_orb(iorbp)%rot_axis, &
@@ -2340,22 +2306,12 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
         end do
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
         isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
-
-        ! not associated on every proc
-        if (associated(frag_trans_frag(ifrag)%discrete_operations)) then
-           i_all = -product(shape(frag_trans_frag(ifrag)%discrete_operations))*kind(frag_trans_frag(ifrag)%discrete_operations)
-           deallocate(frag_trans_frag(ifrag)%discrete_operations,stat=i_stat)
-           call memocc(i_stat,i_all,'frag_trans_frag(ifrag)%discrete_operations',subname)
-        end if
      end do
 
      deallocate(frag_trans_frag)
   else
      ! only 1 'fragment', calculate rotation/shift atom wise, using nearest neighbours
      allocate(frag_trans_orb(tmb%orbs%norbp))
-     do iorbp=1,tmb%orbs%norbp
-        nullify(frag_trans_orb(iorbp)%discrete_operations)
-     end do
 
      allocate(rxyz4_ref(3,min(4,ref_frags(ifrag_ref)%astruct_frg%nat)), stat=i_stat)
      call memocc(i_stat, rxyz4_ref, 'rxyz4_ref', subname)
@@ -2448,17 +2404,9 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
   end if
 
-
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
        psi_old,trim(dir_output),input_frag,ref_frags,phi_array_old)
 
-  do iorbp=1,tmb%orbs%norbp
-     if (associated(frag_trans_orb(iorbp)%discrete_operations)) then
-        i_all = -product(shape(frag_trans_orb(iorbp)%discrete_operations))*kind(frag_trans_orb(iorbp)%discrete_operations)
-        deallocate(frag_trans_orb(iorbp)%discrete_operations,stat=i_stat)
-        call memocc(i_stat,i_all,'frag_trans_orb(iorbp)%discrete_operations',subname)
-     end if
-  end do
   deallocate(frag_trans_orb)
 
   do iorbp=1,tmb%orbs%norbp
@@ -2912,7 +2860,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   real(gp) :: tt,tol
   real(wp), dimension(:,:,:,:,:,:), pointer :: phigold
   real(wp), dimension(:), allocatable :: phi_old_der
-  integer, dimension(0:7) :: reformat_reason
+  integer, dimension(0:6) :: reformat_reason
   character(len=12) :: orbname, dummy
   real(wp), allocatable, dimension(:,:,:) :: psirold
   logical :: psirold_ok
@@ -3147,7 +3095,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   implicit none
 
   logical, intent(out) :: reformat_needed ! logical telling whether reformat is needed
-  integer, dimension(0:7), intent(inout) :: reformat_reason ! array giving reasons for reformatting
+  integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
   real(gp), intent(in) :: tol ! tolerance for rotations and shifts
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: hgrids, hgrids_old
@@ -3204,7 +3152,7 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
   if (hgrids(1) == hgrids_old(1) .and. hgrids(2) == hgrids_old(2) .and. hgrids(3) == hgrids_old(3) &
         .and. nvctr_c  == nvctr_c_old .and. nvctr_f  == nvctr_f_old &
         .and. n_old(1)==n(1)  .and. n_old(2)==n(2) .and. n_old(3)==n(3) &
-        .and. abs(frag_trans%theta) <= tol .and. abs(displ) <= tol .and. size(frag_trans%discrete_operations)==0) then
+        .and. abs(frag_trans%theta) <= tol .and. abs(displ) <= tol) then
       reformat_reason(0) = reformat_reason(0) + 1
       reformat_needed=.false.
   else
@@ -3227,9 +3175,6 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
       if (abs(frag_trans%theta) > tol)  then  
          reformat_reason(6) = reformat_reason(6) + 1
       end if
-      if (size(frag_trans%discrete_operations) > 0)  then  
-         reformat_reason(7) = reformat_reason(7) + 1
-      end if
   end if
 
 end subroutine reformat_check
@@ -3242,7 +3187,7 @@ subroutine print_reformat_summary(iproc,reformat_reason)
   implicit none
 
   integer, intent(in) :: iproc
-  integer, dimension(0:7), intent(inout) :: reformat_reason ! array giving reasons for reformatting
+  integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
 
   integer :: ierr
 
@@ -3265,7 +3210,6 @@ subroutine print_reformat_summary(iproc,reformat_reason)
         call yaml_map('Box size has changed', reformat_reason(4))
         call yaml_map('Molecule was shifted', reformat_reason(5))
         call yaml_map('Molecule was rotated', reformat_reason(6))
-        call yaml_map('Discrete operations', reformat_reason(7))
         call yaml_close_map()
   end if
 
