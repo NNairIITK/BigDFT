@@ -90,6 +90,7 @@ END SUBROUTINE fillPcProjOnTheFly
 subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   initial_istart_c, geocode, at, iatat) 
   use module_interfaces
   use module_base
+  use ao_inguess, only: atomic_info
   use module_types
   use module_abscalc
   implicit none
@@ -110,10 +111,10 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
 
 
   !!Just for extracting the covalent radius and rprb
-  integer :: nsccode,mxpl,mxchg
-  real(gp) ::amu,rprb,ehomo,rcov, cutoff
-  character(len=2) :: symbol
-  real(kind=8), dimension(6,4) :: neleconf
+!  integer :: nsccode,mxpl,mxchg
+  real(gp) ::rcov, cutoff!amu,rprb,ehomo,
+!  character(len=2) :: symbol
+!  real(kind=8), dimension(6,4) :: neleconf
 
   istart_c=initial_istart_c
 
@@ -146,8 +147,11 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
   jorb=startjorb
 
   !!Just for extracting the covalent radius 
-  call eleconf(at%nzatom( at%astruct%iatype(iatat)), at%nelpsp(at%astruct%iatype(iatat)) ,  &
-       &   symbol, rcov, rprb, ehomo,neleconf, nsccode, mxpl, mxchg, amu)
+  call atomic_info(at%nzatom( at%astruct%iatype(iatat)), at%nelpsp(at%astruct%iatype(iatat)) ,  &
+       rcov=rcov)
+
+  !call eleconf(at%nzatom( at%astruct%iatype(iatat)), at%nelpsp(at%astruct%iatype(iatat)) ,  &
+  !     &   symbol, rcov, rprb, ehomo,neleconf, nsccode, mxpl, mxchg, amu)
 
   cutoff=rcov*1.5_gp
 

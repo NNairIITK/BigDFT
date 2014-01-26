@@ -136,3 +136,87 @@ subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,
 
 END SUBROUTINE inputguess_gaussian_orbitals_withOnWhichAtom
 
+!> Read atomic orbitals
+subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad,&
+           onWhichAtom)
+  use module_base
+  use module_types
+  implicit none
+  !Arguments
+  integer, intent(in) :: nspin,nspinor
+  type(orbitals_data),intent(in):: orbsig
+  integer, intent(out) :: norbe,norbsc
+  type(atoms_data), intent(inout) :: at
+  logical, dimension(4,2,at%natsc), intent(out) :: scorb
+  integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+  real(gp), dimension(at%astruct%nat), intent(out) :: locrad
+  integer,dimension(orbsig%norb),intent(out):: onWhichAtom
+  !local variables
+  !character(len=*), parameter :: subname='readAtomicOrbitals'
+  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+  character(len=2) :: symbol
+  integer :: ity,i,iatsc,iat,lsc
+  integer :: nsccode,mxpl,mxchg
+  integer :: norbat,iorbsc_count,niasc,nlsc
+  real(gp) :: rcov,rprb,ehomo
+  !integer, dimension(nmax,lmax+1) :: neleconf
+  real(kind=8), dimension(nmax,lmax+1) :: neleconf
+  integer, dimension(lmax+1) :: nl
+  real(gp), dimension(noccmax,lmax+1) :: occup
+  integer:: iorb
+
+  ! number of orbitals, total and semicore
+  norbe=0
+  norbsc=0
+  iatsc=0
+  scorb(:,:,:)=.false.
+  do iat=1,at%astruct%nat
+     ity=at%astruct%iatype(iat)
+     call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+!write(*,'(a,i4,2x,10i4)') 'iat, nl', iat, nl
+     norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
+     do iorb=1,norbat
+         onWhichAtom(norbe+iorb)=iat
+     end do
+
+     norbe=norbe+norbat
+     !print *,'iat',iat,l,norbe,norbat,nl(:)
+     !calculate the localisation radius for the input orbitals 
+     call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
+          neleconf,nsccode,mxpl,mxchg,at%amu(ity))
+     locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
+     nsccode=at%iasctype(iat)
+     if (nsccode/=0) then !the atom has some semicore orbitals
+        iatsc=iatsc+1
+        niasc=nsccode
+        !count the semicore orbitals for this atom
+        iorbsc_count=0
+        do lsc=4,1,-1
+           nlsc=niasc/4**(lsc-1)
+           iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
+           if (nlsc > 2) then
+              write(*,*)'ERROR, atom:',iat,&
+                   ': cannot admit more than two semicore shells per channel'
+              stop
+           end if
+           do i=1,nlsc
+              scorb(lsc,i,iatsc)=.true.
+           end do
+           niasc=niasc-nlsc*4**(lsc-1)
+        end do
+        norbsc_arr(iatsc,1)=iorbsc_count
+        norbsc=norbsc+iorbsc_count
+        !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
+     end if
+
+  end do
+
+  !print *,'NL',nl,norbe
+
+  !orbitals which are non semicore
+  norbsc_arr(at%natsc+1,1)=norbe-norbsc
+
+  !duplicate the values in the case of spin-polarization
+  if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
+
+END SUBROUTINE readAtomicOrbitals_withOnWhichAtom

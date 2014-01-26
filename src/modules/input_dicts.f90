@@ -71,6 +71,7 @@ contains
 
   subroutine psp_dict_fill_all(dict, atomname, run_ixc)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
+    use ao_inguess, only: atomic_info
     use dictionaries
     use dynamic_memory
     implicit none
@@ -83,12 +84,12 @@ contains
     logical :: exists
     integer :: nzatom, nelpsp, npspcode
     real(gp) :: psppar(0:4,0:6)
-    integer, parameter :: nmax=6,lmax=4
+!    integer, parameter :: nmax=6,lmax=4
     !integer, parameter :: nelecmax=32
-    character(len=2) :: symbol
-    integer :: i,mxpl,mxchg,nsccode
-    real(gp) :: rcov,rprb,ehomo,radfine,amu,rad
-    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+!    character(len=2) :: symbol
+    integer :: i!,mxpl,mxchg,nsccode
+    real(gp) :: ehomo,radfine,rad!,amu,rcov,rprb
+!    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
     type(dictionary), pointer :: radii
     real(gp), dimension(3) :: radii_cf
     character(len = max_field_length) :: source
@@ -131,8 +132,9 @@ contains
     if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
        !see whether the atom is semicore or not
        !and consider the ground state electronic configuration
-       call eleconf(nzatom, nelpsp,symbol,rcov,rprb,ehomo,&
-            neleconf,nsccode,mxpl,mxchg,amu)
+       call atomic_info(nzatom,nelpsp,ehomo=ehomo)
+       !call eleconf(nzatom, nelpsp,symbol,rcov,rprb,ehomo,&
+       !     neleconf,nsccode,mxpl,mxchg,amu)
 
        !assigning the radii by calculating physical parameters
        radii_cf(1)=1._gp/sqrt(abs(2._gp*ehomo))
@@ -996,6 +998,7 @@ contains
 
   subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
     use module_defs, only: gp
+    use ao_inguess
     use module_types, only: atoms_data
     use dictionaries
     use dynamic_memory
@@ -1036,8 +1039,11 @@ contains
     end select
 
     do ityp = 1, atoms%astruct%ntypes, 1
-       call eleconf(atoms%nzatom(ityp), atoms%nelpsp(ityp), symbol,rcov,rprb,ehomo,&
-            neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
+       call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),elconf=neleconf,&
+            amu=atoms%amu(ityp),rcov=rcov,nsccode=nsccode,&
+            maxpol=mxpl,maxchg=mxchg)
+!       call eleconf(atoms%nzatom(ityp), atoms%nelpsp(ityp), symbol,rcov,rprb,ehomo,&
+!            neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
        !define the localization radius for the Linear input guess
        atoms%rloc(ityp,:) = rcov * 10.0
 
@@ -1071,7 +1077,7 @@ contains
                neleconf,eleconf_,atoms%iasctype(iat))
           !end if
           call at_occnums(ispol,nsp,nspinor,nmax,lmax,nelecmax,&
-               eleconf_,atoms%aocc(1,iat))
+               eleconf_,atoms%aocc(1:,iat))
 
           ! Possible overwrite.
           if (has_key(dict, key)) then

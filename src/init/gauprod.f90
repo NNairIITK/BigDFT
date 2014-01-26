@@ -211,6 +211,7 @@ END SUBROUTINE write_gaussian_information
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes, &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
+  use ao_inguess, only: iguess_generator
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => gaussian_pswf_basis
@@ -222,7 +223,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   type(gaussian_basis), intent(inout) :: G
   real(wp), dimension(:), pointer :: Gocc
 
-  !! the following arguments are used wheb building PPD : the preconditioner for CG spectra
+  !! the following arguments are used when building PPD : the preconditioner for CG spectra
   real(gp), pointer, optional :: gaenes(:)
   integer, pointer, optional :: iorbtolr(:)
   integer, pointer, optional :: iorbto_l(:)
@@ -329,7 +330,6 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
   call memocc(i_stat,G%nam,'G%nam',subname)
 
-
   !the default value for the gaussians is chosen to be 21
   allocate(xpt(ng,ntypesx+ndebug),stat=i_stat)
   call memocc(i_stat,xpt,'xpt',subname)
@@ -368,15 +368,15 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 
 
         if( present(gaenes)) then
-           call iguess_generator_modified(at%nzatom(ityp),at%nelpsp(ityp),&
-                real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
-                at%npspcode(ityp),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
+           call iguess_generator(at%nzatom(ityp),at%nelpsp(ityp),& !_modified
+                real(at%nelpsp(ityp),gp),at%psppar(0:,0:,ityp),&
+                at%npspcode(ityp),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
                 ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
-                psiat(1,1,ityx),enlargerprb, gaenes_aux(1+5*( firstperityx( ityx)   -1))  )
+                psiat(1,1,ityx),enlargerprb, gaenes_aux=gaenes_aux(1+5*( firstperityx( ityx)   -1))  )
         else
            call iguess_generator(at%nzatom(ityp),at%nelpsp(ityp),&
-                real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
-                at%npspcode(ityp),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
+                real(at%nelpsp(ityp),gp),at%psppar(0:,0:,ityp),&
+                at%npspcode(ityp),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
                 ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
                 psiat(1,1,ityx),enlargerprb)
         endif

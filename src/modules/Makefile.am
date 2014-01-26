@@ -43,6 +43,7 @@ libmodules_a_SOURCES = base.f90 \
 	fragments.f90 \
 	constrained_dft.f90 \
 	diis_module.f90 \
+	ao_inguess.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -68,7 +69,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_INPUT_KEYS.@MODULE_EXT@ \
 	MODULE_INPUT_DICTS.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
-	LOCREGS.@MODULE_EXT@
+	LOCREGS.@MODULE_EXT@ \
+	AO_INGUESS.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -88,12 +90,14 @@ modules = module_base.@MODULE_EXT@ \
 	module_input_keys.@MODULE_EXT@ \
 	module_input_dicts.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
-	locregs.@MODULE_EXT@
+	locregs.@MODULE_EXT@ \
+	ao_inguess.@MODULE_EXT@
 
 endif
 
+AO_INCLUDES = eleconf-inc.f90
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py $(AO_INCLUDES)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
@@ -114,7 +118,7 @@ endif
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-input_keys.o: $(top_builddir)/flib/src/dynamic_memory.o base.o
+input_keys.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o base.o
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
 types.o: base.o gaussians.o locregs.o psp_projectors.o
 input.o: base.o types.o input_keys.o
@@ -126,9 +130,10 @@ vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 fragments.o diis_module.o: base.o types.o
 constrained_dft.o: base.o types.o fragments.o
-input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o interfaces.o
+input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o
 psp_projectors.o: locregs.o
 locregs.o: base.o
+ao_inguess.o: $(AO_INCLUDES) base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
