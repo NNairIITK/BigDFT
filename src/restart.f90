@@ -2115,6 +2115,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   unitwf=99
   isforb=0
   isfat=0
+  call timing(iproc,'tmbrestart','ON')
   do ifrag=1,input_frag%nfrag
      ! find reference fragment this corresponds to
      ifrag_ref=input_frag%frag_index(ifrag)
@@ -2150,11 +2151,14 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
               allocate(phi_array_old(iorbp)%psig(0:Lzd_old%Llr(ilr)%d%n1,2,0:Lzd_old%Llr(ilr)%d%n2,2,&
                    0:Lzd_old%Llr(ilr)%d%n3,2), stat=i_stat)
               call memocc(i_stat, phi_array_old(iorbp)%psig, 'phi_array_old(iorb)%psig', subname)
+              call timing(iproc,'tmbrestart','OF')
 
               !read phig directly
+              call timing(iproc,'readtmbfiles','ON')
               call read_psig(unitwf, (iformat == WF_FORMAT_PLAIN), Lzd_old%Llr(ilr)%wfd%nvctr_c, Lzd_old%Llr(ilr)%wfd%nvctr_f, &
                    Lzd_old%Llr(ilr)%d%n1, Lzd_old%Llr(ilr)%d%n2, Lzd_old%Llr(ilr)%d%n3, phi_array_old(iorbp)%psig, lstat, error)
               if (.not. lstat) call io_error(trim(error))
+              call timing(iproc,'readtmbfiles','OF')
 
               ! DEBUG: print*,iproc,iorb,iorb+orbs%isorb,iorb_old,iorb_out
 
@@ -2404,8 +2408,10 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
   end if
 
+  call timing(iproc,'tmbrestart','OF')
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
        psi_old,trim(dir_output),input_frag,ref_frags,phi_array_old)
+  call timing(iproc,'tmbrestart','ON')
 
   deallocate(frag_trans_orb)
 
@@ -2494,6 +2500,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
      call yaml_close_sequence()
   end if
   !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+  call timing(iproc,'tmbrestart','OF')
 
 END SUBROUTINE readmywaves_linear_new
 
@@ -3008,6 +3015,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
 
           ! read in psirold
           if (psirold_ok) then
+             call timing(iproc,'readisffiles','ON')
              open(99,file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',&
                   form="unformatted",status='unknown')
              read(99) dummy
@@ -3022,6 +3030,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
                 end do
              end do
              close(99)
+             call timing(iproc,'readisffiles','OF')
           end if
 
           call timing(iproc,'Reformatting ','ON')
