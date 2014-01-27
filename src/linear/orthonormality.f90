@@ -847,12 +847,14 @@ subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_
 
   integer :: info, iorb, jorb, ierr, iiorb, isorb, norbp, lwork, jjorb
   real(kind=8),dimension(:),allocatable :: eval, work
-  real(kind=8),dimension(:,:),allocatable :: tempArr
+  real(kind=8),dimension(:,:),allocatable :: tempArr, orig_ovrlp
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_halfp
-  !*real(8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
-  !*real(8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
-  !*real(dp) :: temp
-  !*real(dp), allocatable, dimension(:) :: temp_vec
+  real(kind=8),dimension(:,:), allocatable :: vr,vl ! for non-symmetric LAPACK
+  real(kind=8),dimension(:),allocatable:: eval1 ! for non-symmetric LAPACK
+  real(dp) :: temp, error
+  real(dp), allocatable, dimension(:) :: temp_vec
+  logical, parameter :: symmetric=.true.
+  logical, parameter :: check_lapack=.false.
 
   eval=f_malloc(norb,id='eval')
   if(blocksize>0) then
@@ -862,42 +864,84 @@ subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_
         write(*,'(a,i0)') 'ERROR in dsyev_parallel, info=', info
      end if
   else
-     work=f_malloc(1000,id='work')
-     call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, -1, info)
-     lwork = int(work(1))
-     call f_free(work)
-     work=f_malloc(lwork,id='work')
-     call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, lwork, info)
-
-     !*work=f_malloc(1000,id='work')
-     !*call dgeev( 'v','v', norb, inv_ovrlp_half(1,1), norb, eval, eval1, VL, norb, VR,&
-     !*     norb, WORK, -1, info )
-     !*lwork = nint(work(1))
-     !*call f_free(work)
-     !*call f_free(work)
-     !*vl=f_malloc((/norb,norb/),id='vl')
-     !*vr=f_malloc((/norb,norb/),id='vr')
-     !*eval1=f_malloc(norb,id='eval1')
-     !*call DGEEV( 'v','v', norb, inv_ovrlp_half(1,1), norb, eval, eval1, VL, norb, VR,&
-     !*     norb, WORK, LWORK, info )
-     !*call vcopy(norb*norb,vl(1,1),1,inv_ovrlp_half(1,1),1)
-     !*call f_free(eval1)
-     !*f_free(vr)
-     !*f_free(vl)
-     !*temp_vec=f_malloc(norb,id='temp_vec')
-     !*do iorb=1,norb
-     !*   do jorb=iorb+1,norb
-     !*      if (eval(jorb) < eval(iorb)) then
-     !*         temp = eval(iorb)
-     !*         temp_vec = inv_ovrlp_half(:,iorb)
-     !*         eval(iorb) = eval(jorb)
-     !*         eval(jorb) = temp
-     !*         inv_ovrlp_half(:,iorb) = inv_ovrlp_half(:,jorb)
-     !*         inv_ovrlp_half(:,jorb) = temp_vec
-     !*      end if
-     !*   end do
-     !*end do
-     !*call f_free(temp_vec)
+     if (symmetric) then
+        if (check_lapack) then
+           orig_ovrlp=f_malloc((/norb,norb/),id='orig_ovrlp')
+           call vcopy(norb*norb,inv_ovrlp_half(1,1),1,orig_ovrlp(1,1),1)
+        end if
+        work=f_malloc(1000,id='work')
+        call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, -1, info)
+        lwork = int(work(1))
+        call f_free(work)
+        work=f_malloc(lwork,id='work')
+        call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, lwork, info)
+        if (check_lapack) then
+           tempArr=f_malloc((/norbp,norb/), id='tempArr')
+           do iorb=1,norb
+              do jorb=1,norb
+                 tempArr(jorb,iorb)=inv_ovrlp_half(jorb,iorb)*eval(iorb)
+              end do
+           end do
+           inv_ovrlp_halfp=f_malloc_ptr((/norb,norb/), id='inv_ovrlp_halfp')
+           if (norbp>0) call dgemm('n', 't', norb, norb, norb, 1.d0, inv_ovrlp_half, &
+                norb, tempArr, norbp, 0.d0, inv_ovrlp_halfp, norb)
+           call f_free(tempArr)
+           call max_matrix_diff(bigdft_mpi%iproc, norb, inv_ovrlp_halfp, orig_ovrlp, error)
+           if (bigdft_mpi%iproc==0) print*,'LAPACK error',error
+           call f_free_ptr(inv_ovrlp_halfp)
+           call f_free(orig_ovrlp)
+        end if
+     else
+        if (check_lapack) then
+           orig_ovrlp=f_malloc((/norb,norb/),id='orig_ovrlp')
+           call vcopy(norb*norb,inv_ovrlp_half(1,1),1,orig_ovrlp(1,1),1)
+        end if
+        work=f_malloc(1000,id='work')
+        call dgeev( 'v','v', norb, inv_ovrlp_half(1,1), norb, eval, eval1, VL, norb, VR,&
+             norb, WORK, -1, info )
+        lwork = nint(work(1))
+        call f_free(work)
+        call f_free(work)
+        vl=f_malloc((/norb,norb/),id='vl')
+        vr=f_malloc((/norb,norb/),id='vr')
+        eval1=f_malloc(norb,id='eval1')
+        call DGEEV( 'v','v', norb, inv_ovrlp_half(1,1), norb, eval, eval1, VL, norb, VR,&
+             norb, WORK, LWORK, info )
+        call vcopy(norb*norb,vl(1,1),1,inv_ovrlp_half(1,1),1)
+        call f_free(eval1)
+        call f_free(vr)
+        call f_free(vl)
+        temp_vec=f_malloc(norb,id='temp_vec')
+        do iorb=1,norb
+           do jorb=iorb+1,norb
+              if (eval(jorb) < eval(iorb)) then
+                 temp = eval(iorb)
+                 temp_vec = inv_ovrlp_half(:,iorb)
+                 eval(iorb) = eval(jorb)
+                 eval(jorb) = temp
+                 inv_ovrlp_half(:,iorb) = inv_ovrlp_half(:,jorb)
+                 inv_ovrlp_half(:,jorb) = temp_vec
+              end if
+           end do
+        end do
+        call f_free(temp_vec)
+        if (check_lapack) then
+           tempArr=f_malloc((/norbp,norb/), id='tempArr')
+           do iorb=1,norb
+              do jorb=1,norb
+                 tempArr(jorb,iorb)=inv_ovrlp_half(jorb,iorb)*eval(iorb)
+              end do
+           end do
+           inv_ovrlp_halfp=f_malloc_ptr((/norb,norb/), id='inv_ovrlp_halfp')
+           if (norbp>0) call dgemm('n', 't', norb, norb, norb, 1.d0, inv_ovrlp_half, &
+                norb, tempArr, norbp, 0.d0, inv_ovrlp_halfp, norb)
+           call f_free(tempArr)
+           call max_matrix_diff(bigdft_mpi%iproc, norb, inv_ovrlp_halfp, orig_ovrlp, error)
+           if (bigdft_mpi%iproc==0) print*,'LAPACK error',error
+           call f_free_ptr(inv_ovrlp_halfp)
+           call f_free(orig_ovrlp)
+        end if
+     end if
 
      if(info/=0) then
         write(*,'(a,i0,2x,i0)') 'ERROR in dsyev (overlap_plus_minus_one_half_exact), info, norb=', info, norb
@@ -918,7 +962,6 @@ subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_
      isorb=0
   end if
   tempArr=f_malloc((/norbp,norb/), id='tempArr')
-
   !$omp parallel do default(private) shared(tempArr,inv_ovrlp_half,eval,plusminus,norb,norbp,isorb)
   do iorb=1,norb
      do jorb=1,norbp

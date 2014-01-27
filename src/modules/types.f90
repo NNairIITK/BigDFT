@@ -2622,15 +2622,16 @@ end subroutine bigdft_init_errors
     case (WRITE_ORBITALS)
        ! linear scaling: write KS orbitals for cubic restart
        in%write_orbitals = val
-   case (EXPLICIT_LOCREGCENTERS)
+    case (EXPLICIT_LOCREGCENTERS)
        ! linear scaling: explicitely specify localization centers
        in%explicit_locregcenters = val
-   case (CALCULATE_KS_RESIDUE) 
+    case (CALCULATE_KS_RESIDUE)
        ! linear scaling: calculate Kohn-Sham residue
        in%calculate_KS_residue = val
-   case (INTERMEDIATE_FORCES)
-       ! inear scaling: calculate intermediate forces
+    case (INTERMEDIATE_FORCES)
+       ! linear scaling: calculate intermediate forces
        in%intermediate_forces = val
+
        ! the GEOPT variables ----------------------------------------------------
     case (GEOPT_METHOD)
        in%geopt_approach = val !geometry input parameters
