@@ -373,6 +373,7 @@ rotate_read2:
  
 rotate_write:
  EvXC: 1.1e-10
+ EXC: 1.1e-10
  energy: 2.2e-11
  Omega: 2.1e-11
  Patterns to ignore:
@@ -532,7 +533,7 @@ water_foe:
 
 water_dirmin:
  max alpha: 1.1e-04
- mean alpha: 1.1e-04
+ mean alpha: 1.1e-03
  EXC: 1.1e-10
  EvXC: 1.1e-10
  EH: 1.1e-9
@@ -741,6 +742,7 @@ reformatcomplete_read35:
 reformatcomplete_read36:
  energy: 5.4e-11
  Omega: 5.4e-11
+ EvXC: 1.1e-10
 
 reformatcomplete_read45:
  energy: 2.5e-11
@@ -781,6 +783,7 @@ reformat_write:
  Raw forces norm (Ha/Bohr): 3.1e-10
  Clean forces norm (Ha/Bohr): 3.1e-10
  e: 1.3e-11
+ EvXC: 1.1e-10
 
 explicit_locregcenters:
  EvXC: 1.1e-10
@@ -791,21 +794,21 @@ explicit_locregcenters:
 intermediateforces:
  Atomic Forces (Ha/Bohr): 2.8e-7
  Average noise forces: 1.5e-8
- Clean forces norm (Ha/Bohr): 8.7e-9
+ Clean forces norm (Ha/Bohr): 9.1e-9
  Raw forces norm (Ha/Bohr): 1.1e-8
- e: 2.7e-9
+ e: 3.6e-9
  energy: 2.8e-7
- Omega: 9.1e-9
- EXC: 5.7e-8
- EvXC: 5.7e-8
- EH: 5.1e-7
+ Omega: 9.5e-9
+ EXC: 7.7e-8
+ EvXC: 1.1e-7
+ EH: 6.8e-7
  Ekin: 1.9e-9
- Enl: 1.9e-10
- Epot: 6.4e-8
+ Enl: 2.1e-10
+ Epot: 8.6e-8
  multiplicator for the confinement: 1.6e-11
 
 DIIShistory:
- Atomic Forces (Ha/Bohr): 3.7e-10
+ Atomic Forces (Ha/Bohr): 7.1e-10
  Clean forces norm (Ha/Bohr): 1.1e-9
  Raw forces norm (Ha/Bohr): 3.7e-10
  Average noise forces: 1.1e-10
