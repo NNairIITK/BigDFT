@@ -586,6 +586,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      nvirt = norbv
   end if
   end if
+  
+  nvirt=in%nvirt
+  if(in%nvirt > norbv) then
+     nvirt = norbv
+  end if
 
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
       in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
