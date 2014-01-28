@@ -16,6 +16,7 @@ Short term:
 - new input file profiles etc.
 - FOE charged systems - add parameter to converge the kernel less well, occupations?
 - parallelize dgemms in inverse check
+- weight analysis for fragments in input file, and generalize to include tmbs
 
 Long term:
 - parallelize reading TMB files for fragment calculations
@@ -30,4 +31,27 @@ Long term:
 Known problems:
 - problem with check_surmho on Titan
 - communicate potential problem still existing on Vesta?
+- sparsemat%parallel/=0 doesn't work on Vesta
+- purify kernel on Vesta crashes/NaN on Vesta
+
+
+~~~~~~~~~~~~~
+LAPACK on Vesta - check spectral decomposition and dump matrix to file if incorrect (instead of info check)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

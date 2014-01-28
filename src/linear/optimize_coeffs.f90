@@ -332,6 +332,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   integer, dimension(2) :: ifrag_charged
   !real(kind=8), dimension(:,:,:), allocatable :: weight_coeff
   real(kind=8), dimension(:,:), allocatable :: weight_coeff_diag
+  real(kind=8), dimension(:,:), pointer :: ovrlp_half
+  real(kind=8) :: error
   type(sparseMatrix) :: weight_matrix
   character(len=256) :: subname='coeff_weight_analysis'
 
@@ -343,17 +345,24 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   !weight_coeff=f_malloc((/ksorbs%norb,ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
+  ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
+  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
+  call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orthpar%methTransformOverlap, 2, &
+        tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, ovrlp_half, error, tmb%orbs)
+  call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
      call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
-          .false.,tmb%orthpar%methTransformOverlap)
+          .false.,.false.,tmb%orthpar%methTransformOverlap,ovrlp_half)
      weight_matrix%matrix=f_malloc_ptr((/weight_matrix%nfvctr,weight_matrix%nfvctr/), id='weight_matrix%matrix')
      call uncompressmatrix(iproc,weight_matrix)
      !call calculate_coeffMatcoeff(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
      call calculate_coeffMatcoeff_diag(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff_diag(1,ifrag))
      call f_free_ptr(weight_matrix%matrix)
   end do
+  call f_free_ptr(ovrlp_half)
 
   if (iproc==0) call yaml_open_sequence('Weight analysis',flow=.true.)
   if (iproc==0) call yaml_newline()
