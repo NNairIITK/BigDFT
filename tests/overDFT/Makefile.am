@@ -14,7 +14,7 @@ TESTDIRS = \
 	   XabsLanc \
 	   Xabsb2B \
 	   BigDFT2Wannier \
-           testforces \
+       testforces \
 	   IO-wf
 
 EXTRA_DIST = MH_taskgroups
@@ -48,7 +48,7 @@ IO-wf-ETSF_read.out.out: IO-wf-ETSF_write.out.out
 H2-freq.post-in: $(abs_top_builddir)/src/frequencies
 	rm -f frequencies.res
 
-#additional outs
+# Additional outs
 H2-freq.post-out:
 	cp -f log.yaml log-freq.yaml
 
@@ -86,14 +86,17 @@ H2O-slab.test.post-in:
 # Additional reference for geopt.mon test
 global.mon.out : test.minhop.out
 	cp -f data/global.mon $@
-#	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
+
+# Additional reference for H2-freq test
+frequencies.xyz.out: H2-freq.freq.out
+	cp -f frequencies.xyz frequencies.xyz.out
 
 # Additional run rules.
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
 
-#introduce specific targets for export-wavefunctions
+# Introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
 	mv plain-read.perf temp.perf
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
@@ -126,7 +129,6 @@ IO-wf_ETSF.cube:
         case $* in \
           GEOPT-BFGS.out*)  prec="1.e-9" ;; \
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
-          H2-freq*)         prec="1.e-8" ;; \
 	  NEB*)             prec="5e-5" ;; \
 	  SPLSAD*)          prec="2e-8" ;; \
 	  MINHOP*)          prec="5e-9" ;; \

@@ -175,7 +175,7 @@ $(PSPS):
 	@name=`basename $@ .clean` ; dir=$$name.test ; \
     rm -rf $$dir ; \
 	rm -f $$name.* ; \
-    echo "Clean in "$$dir
+    echo "Clean "$$dir
 
 %.post-in: ;
 %.psp: ;

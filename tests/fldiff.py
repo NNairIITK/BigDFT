@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 11/09/2013
+# Date: 28/01/2014
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -300,7 +300,7 @@ compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitli
 t1.close()
 t2.close()
 
-print max_discrepancy
+print max_discrepancy, "file=%s, ref=%s" % (file1,file2)
 try:
     line = compare.next()
     EOF = False
