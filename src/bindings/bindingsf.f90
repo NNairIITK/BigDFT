@@ -14,11 +14,13 @@ subroutine memocc_report()
   call mreport()
 end subroutine memocc_report
 
+
 subroutine memocc_verbose()
   use memory_profiling, only: mstate => memocc_set_state
   implicit none
   call mstate(2)
 end subroutine memocc_verbose
+
 
 subroutine memocc_set_output(file, ln)
   use memory_profiling, only: mstate => memocc_set_filename
@@ -27,6 +29,7 @@ subroutine memocc_set_output(file, ln)
   character(len = ln), intent(in) :: file
   call mstate(file)
 end subroutine memocc_set_output
+
 
 subroutine f90_pointer_1D_init(pt_c, size_c)
   implicit none
@@ -46,6 +49,7 @@ subroutine f90_pointer_1D_init(pt_c, size_c)
   call inquire_pointer1(pt_c, pt_f, size_c)
 end subroutine f90_pointer_1D_init
 
+
 subroutine f90_pointer_2D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -63,6 +67,7 @@ subroutine f90_pointer_2D_init(pt_c, size_c)
   nullify(pt_f)
   call inquire_pointer2(pt_c, pt_f, size_c)
 end subroutine f90_pointer_2D_init
+
 
 subroutine f90_pointer_3D_init(pt_c, size_c)
   implicit none
@@ -82,6 +87,7 @@ subroutine f90_pointer_3D_init(pt_c, size_c)
   call inquire_pointer3(pt_c, pt_f, size_c)
 end subroutine f90_pointer_3D_init
 
+
 subroutine f90_pointer_4D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -100,6 +106,7 @@ subroutine f90_pointer_4D_init(pt_c, size_c)
   call inquire_pointer4(pt_c, pt_f, size_c)
 end subroutine f90_pointer_4D_init
 
+
 subroutine f90_pointer_5D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -117,6 +124,7 @@ subroutine f90_pointer_5D_init(pt_c, size_c)
   nullify(pt_f)
   call inquire_pointer5(pt_c, pt_f, size_c)
 end subroutine f90_pointer_5D_init
+
 
 subroutine open_write_file(unitwf, name, ln, bin)
   implicit none
@@ -137,12 +145,14 @@ subroutine open_write_file(unitwf, name, ln, bin)
   end if
 END SUBROUTINE open_write_file
 
+
 subroutine close_file(unitwf)
   implicit none
   integer, intent(in) :: unitwf
 
   close(unit = unitwf)
 END SUBROUTINE close_file
+
 
 !subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
 !  use Poisson_Solver, only: ck => createKernel
@@ -155,6 +165,7 @@ END SUBROUTINE close_file
 !
 !  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
 !end subroutine createKernel
+
 
 subroutine deallocate_double_1D(array)
   use BigDFT_API
@@ -169,6 +180,7 @@ subroutine deallocate_double_1D(array)
      call memocc(i_stat,i_all,'array',"deallocate_double")
   end if
 end subroutine deallocate_double_1D
+
 
 subroutine deallocate_double_2D(array)
   use BigDFT_API
@@ -191,6 +203,7 @@ subroutine glr_new(glr)
 
   allocate(glr)
 end subroutine glr_new
+
 
 subroutine glr_copy(glr, d, wfd, from)
   use module_types
@@ -459,6 +472,7 @@ subroutine lzd_get_hgrids(Lzd, hgrids)
   hgrids = Lzd%hgrids
 END SUBROUTINE lzd_get_hgrids
 
+
 subroutine lzd_get_llr(Lzd, i, llr)
   use module_base
   use module_types
@@ -470,6 +484,7 @@ subroutine lzd_get_llr(Lzd, i, llr)
   llr => Lzd%Llr(i)
 END SUBROUTINE lzd_get_llr
 
+
 subroutine inputs_new(in)
   use module_types
   use dictionaries
@@ -478,6 +493,8 @@ subroutine inputs_new(in)
   allocate(in)
   call default_input_variables(in)
 end subroutine inputs_new
+
+
 subroutine inputs_free(in)
   use module_types
   implicit none
@@ -486,6 +503,8 @@ subroutine inputs_free(in)
   call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
+
+
 subroutine inputs_set(dict, file, key, val)
   use dictionaries
   use module_types
@@ -496,6 +515,8 @@ subroutine inputs_set(dict, file, key, val)
   ! This is a patch for Intel, to be corrected properly later.
   call set(dict // file(1:len(file)) // key(1:len(key)), val(1:len(val)))
 END SUBROUTINE inputs_set
+
+
 subroutine inputs_set_at(dict, file, key, i, val)
   use dictionaries
   use module_types
@@ -507,6 +528,8 @@ subroutine inputs_set_at(dict, file, key, i, val)
   ! This is a patch for Intel, to be corrected properly later.
   call set(dict // file(1:len(file)) // key(1:len(key)) // i, val(1:len(val)))
 END SUBROUTINE inputs_set_at
+
+
 subroutine inputs_set_at2(dict, file, key, i, j, val)
   use dictionaries
   use module_types
@@ -518,16 +541,6 @@ subroutine inputs_set_at2(dict, file, key, i, j, val)
   call set(dict // file(1:len(file)) // key(1:len(key)) // i // j, val(1:len(val)))
 END SUBROUTINE inputs_set_at2
 
-subroutine inputs_set_at2(dict, file, key, i, j, val)
-  use dictionaries
-  use module_types
-  implicit none
-  type(dictionary), pointer :: dict
-  integer, intent(in) :: i, j
-  character(len = *), intent(in) :: file, key, val
-  ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file // key // i // j, val(1:len(val)))
-END SUBROUTINE inputs_set_at2
 
 subroutine inputs_set_from_file(dict, fname)
   use dictionaries, only: dictionary

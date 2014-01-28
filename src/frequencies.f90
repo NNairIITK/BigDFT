@@ -131,7 +131,7 @@ program frequencies
    freq_step(3) = runObj%inputs%freq_alpha*runObj%inputs%hz
    ! Reference positions.
    call vcopy(3*runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz0(1,1), 1)
-   ! Remove frozen atoms in order to avoid the full atimic forces from call_bigdft
+   ! Remove frozen atoms in order to have the full atomic forces from call_bigdft
    ifrztyp0 = runObj%atoms%astruct%ifrztyp
    runObj%atoms%astruct%ifrztyp = 0
 

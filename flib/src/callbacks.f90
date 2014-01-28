@@ -1,5 +1,5 @@
 !> @file
-!! Contains defintion of callback mechanisms for BigDFT
+!! Contains definition of callback mechanisms for BigDFT
 !! @author Luigi Genovese
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the

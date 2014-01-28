@@ -305,26 +305,6 @@ void bigdft_inputs_set_array(BigDFT_Inputs *in, BigDFT_InputsKeyIds id,
  *
  * 
  **/
-void bigdft_inputs_set_array_at(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, guint at, const gchar **value)
-{
-  const gchar *name, *file;
-  guint i;
-
-  name = _input_keys[id];
-  file = _input_keys[_input_files[id]];
-  for (i = 0; value[i]; i++)
-    FC_FUNC_(inputs_set_at2, INPUTS_SET_AT2)(&in->input_values, file, name, (gint*)&at, (gint*)&i, value[i],
-                                           strlen(file), strlen(name), strlen(value[i]));
-}
-/**
- * bigdft_inputs_set_array_at:
- * @in: 
- * @id: 
- * @at:
- * @value: (array zero-terminated=1):
- *
- * 
- **/
 void bigdft_inputs_set_array_at(BigDFT_Inputs *in, BigDFT_InputsKeyIds id,
                                 guint at, const gchar **value)
 {

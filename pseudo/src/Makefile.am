@@ -94,7 +94,7 @@ CLEANFILES = mpif.h *.@MODULE_EXT@
 atom.o: xcfunction.o driveXC.o
 driveXC.o: xcfunction.o
 penalty.o: $(mpi_include) pseudo.o
-pseudo.o: $(mpi_include)
+pseudo.o: xcfunction.o $(mpi_include)
 amoeba.o: $(mpi_include) pseudo.o
 ekin_gauss_wvlt.cublas.o: $(mpi_include)
 ekin_gauss_wvlt.o: $(mpi_include)

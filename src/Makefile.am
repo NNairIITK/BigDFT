@@ -332,6 +332,8 @@ geometry.o bfgs.o sdcg.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 
+linearScaling.o transferintegrals.o: i-o.o
+
 NEB.o: images.o
 
 
