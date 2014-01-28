@@ -465,19 +465,19 @@ molecule_foe:
 
 hybrid-directmin:
  Epsilon: 1.4e-11
- Enl: 1.6e-10
- eBS: 2.9e-09
- Omega: 2.9e-09
+ Enl: 1.7e-10
+ eBS: 4.5e-09
+ Omega: 4.5e-09
  energy: 4.4e-09
- multiplicator for the confinement: 8.7e-11
- Epot: 3.1e-09
- EH: 3.1e-9
- EXC: 4.1e-10
- EvXC: 6.1e-10
+ multiplicator for the confinement: 8.9e-11
+ Epot: 5.1e-09
+ EH: 5.1e-9
+ EXC: 5.1e-10
+ EvXC: 7.1e-10
  Ekin: 1.1e-09
  Atomic Forces (Ha/Bohr): 4.6e-11
  Clean forces norm (Ha/Bohr): 1.9e-11
- Raw forces norm (Ha/Bohr): 2.3e-11
+ Raw forces norm (Ha/Bohr): 3.1e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10
