@@ -77,7 +77,7 @@ int main(int argc, const char **argv)
 
   /* Test changing a value of input_variables. */
   ins = bigdft_run_get_inputs(run);
-  bigdft_inputs_set(ins, "gnrm_cv", "1.e-5");
+  bigdft_inputs_set(ins, "dft", "gnrm_cv", "1.e-5");
   bigdft_inputs_unref(ins);
 
   if (iproc == 0) bigdft_run_dump(run, "input.yaml", TRUE);

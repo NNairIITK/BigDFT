@@ -71,6 +71,7 @@ typedef void _input_variables;
 typedef void _restart_objects;
 typedef void _run_objects;
 typedef void _DFT_global_output;
+typedef void _DFT_PSP_projectors;
 typedef void _energy_terms;
 typedef void _run_image;
 typedef void _NEB_data;

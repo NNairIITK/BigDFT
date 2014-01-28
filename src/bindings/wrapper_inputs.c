@@ -183,15 +183,6 @@ GType bigdft_inputs_get_type(void)
   return g_define_type_id;
 }
 #endif
-void bigdft_inputs_analyse(BigDFT_Inputs *in, BigDFT_Atoms *atoms, gboolean dump)
-{
-  FC_FUNC_(inputs_from_dict, INPUTS_FROM_DICT)(in->data, atoms->data, &in->input_values, (gint*)&dump);
-  _inputs_sync(in);
-  _inputs_sync_add(in);
-  /* To be removed later, currently, this allocates atoms also. */
-  bigdft_atoms_get_nat_arrays(atoms);
-  bigdft_atoms_get_ntypes_arrays(atoms);
-}
 void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
 {
   FC_FUNC_(create_dir_output, CREATE_DIR_OUTPUT)((int*)&iproc, in->data);
@@ -199,13 +190,14 @@ void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
 }
 
 /* Wrappers on dictionaries, for the input variables. */
-void bigdft_inputs_set(BigDFT_Inputs *in, const gchar *id, const gchar *value)
+void bigdft_inputs_set(BigDFT_Inputs *in, const gchar *level,
+                       const gchar *id, const gchar *value)
 {
   BigDFT_Dict *dict;
 
   dict = bigdft_dict_new(NULL);
   bigdft_dict_set(dict, id, value);  
-  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(in->data, &dict->root);
+  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(in->data, level, &dict->root, strlen(level));
   g_object_unref(G_OBJECT(dict));
 
   _inputs_sync(in);
@@ -218,13 +210,14 @@ void bigdft_inputs_set(BigDFT_Inputs *in, const gchar *id, const gchar *value)
  *
  * 
  **/
-void bigdft_inputs_set_array(BigDFT_Inputs *in, const gchar *id, const gchar **value)
+void bigdft_inputs_set_array(BigDFT_Inputs *in, const gchar *level,
+                             const gchar *id, const gchar **value)
 {
   BigDFT_Dict *dict;
 
   dict = bigdft_dict_new(NULL);
   bigdft_dict_set_array(dict, id, value);  
-  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(in->data, &dict->root);
+  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(in->data, level, &dict->root, strlen(level));
   g_object_unref(G_OBJECT(dict));
 
   _inputs_sync(in);

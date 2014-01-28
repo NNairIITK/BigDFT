@@ -234,14 +234,10 @@ void           bigdft_inputs_unref            (BigDFT_Inputs *in);
 void           bigdft_inputs_free             (BigDFT_Inputs *in);
 BigDFT_Inputs* bigdft_inputs_new              (const gchar *naming);
 BigDFT_Inputs* bigdft_inputs_new_from_files   (const gchar *naming, guint iproc);
-void           bigdft_inputs_set              (BigDFT_Inputs *in,
+void           bigdft_inputs_set              (BigDFT_Inputs *in, const gchar *level,
                                                const gchar *id, const gchar *value);
-void           bigdft_inputs_set_array        (BigDFT_Inputs *in,
+void           bigdft_inputs_set_array        (BigDFT_Inputs *in, const gchar *level,
                                                const gchar *id, const gchar **value);
-void           bigdft_inputs_set_array_at     (BigDFT_Inputs *in, const gchar *id,
-                                               guint at, const gchar **value);
-void           bigdft_inputs_analyse          (BigDFT_Inputs *in, BigDFT_Atoms *atoms,
-                                               gboolean dump);
 void           bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc);
 /*********************************/
 

@@ -461,15 +461,17 @@ subroutine inputs_free(in)
   call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
-subroutine inputs_set_dict(in, val)
+subroutine inputs_set_dict(in, level, val)
   use dictionaries
   use module_types
   use yaml_output
   implicit none
   type(input_variables), intent(inout) :: in
+  character(len = *), intent(in) :: level
   type(dictionary), pointer :: val
 
-  call input_set(in, val%child)
+  ! This is a patch for Intel, to be corrected properly later.
+  call input_set(in, level(1:len(level)), val%child)
 END SUBROUTINE inputs_set_dict
 
 subroutine inputs_set_from_file(dict, fname)
