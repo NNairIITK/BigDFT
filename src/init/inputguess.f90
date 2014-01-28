@@ -472,7 +472,7 @@ END SUBROUTINE readAtomicOrbitals
 subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
    use module_base
-   use ao_inguess, only: iguess_generator
+   use ao_inguess, only: iguess_generator,print_eleconf
    use module_types
    use module_interfaces, except_this_one => AtomicOrbitals
    use yaml_output
@@ -606,8 +606,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
             !   &   'Generation of input wavefunction data for atom ',&
             !   &   trim(at%astruct%atomnames(ity)),&
             !   &   ': '
-            call print_eleconf(nspin,orbse%nspinor,noccmax,nelecmax,lmax,&
-               &   at%aocc(1,iat),at%iasctype(iat))
+            call print_eleconf(nspin,orbse%nspinor,&!noccmax,nelecmax,lmax,&
+                 at%aocc(1:,iat),at%iasctype(iat))
          end if
 
          !positions for the nlcc arrays

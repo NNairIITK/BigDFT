@@ -211,7 +211,7 @@ END SUBROUTINE write_gaussian_information
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes, &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
-  use ao_inguess, only: iguess_generator
+  use ao_inguess, only: iguess_generator,print_eleconf
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => gaussian_pswf_basis
@@ -355,8 +355,8 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
            call yaml_map('Generation of input wavefunction data for atom ', trim(at%astruct%atomnames(ityp)))
            !write(*,'(1x,a,a6,a)') 'Generation of input wavefunction data for atom ',&
            !     & trim(at%astruct%atomnames(ityp)),':'
-           call print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,&
-                at%aocc(1,iat),at%iasctype(iat))
+           call print_eleconf(nspin,nspinor,&!noccmax,nelecmax,lmax,&
+                at%aocc(1:,iat),at%iasctype(iat))
         end if
 
         firstperityx( ityx)=iat

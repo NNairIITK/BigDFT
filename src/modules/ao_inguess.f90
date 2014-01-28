@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
-  use module_base, only: gp,memocc,f_err_raise,ndebug,to_zero
+  use module_base, only: gp,memocc,f_err_raise,ndebug,to_zero,f_err_throw
 
   implicit none
 
@@ -17,8 +17,9 @@ module ao_inguess
   integer, parameter :: nmax_ao=6 !<maximum allowed value of principal quantum number for the electron configuration
   integer, parameter :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
   integer, parameter :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
+  integer, parameter :: noccmax_ao=2 !<maximum number of the occupied input guess orbitals for a given shell
 
-  private:: nmax_ao,lmax_ao,nelecmax_ao
+  private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao
 
 contains
 
@@ -303,9 +304,217 @@ contains
     if (present(ehomo))   ehomo=ehomo_
     if (present(nsccode)) nsccode=nsccode_
     if (present(maxpol))   maxpol=mxpl_
-    if (present(maxchg))   maxpol=mxchg_
+    if (present(maxchg))   maxchg=mxchg_
     
   end subroutine atomic_info
+
+  !> fill the corresponding arrays with atomic information, compressed as indicated in the module
+  subroutine atomic_configuration(zatom,zion,input_pol,nspin,nsccodeIG,occupIG)
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, intent(in) :: zatom       !< Z number of atom
+    integer, intent(in) :: zion        !< Number of valence electrons of the ion (PSP should be in agreement)
+    integer, intent(in) :: input_pol   !< input polarisation of the atom as indicated by charge_and_spol routine
+    integer, intent(in) :: nspin       !< Spin description 1:spin averaged, 2:collinear spin, 4:spinorial
+    integer, intent(out) :: nsccodeIG  !< Code for which states have to be treated as semicore
+    real(gp), dimension(nelecmax_ao), intent(out) :: occupIG !<input guess occupation of the atom from the input polarization
+    !local variables
+    integer :: nsccode,mxpl,mxchg,nsp,nspinor
+    integer :: ichg, ispol
+    double precision :: elec
+    character(len=2) :: symbol
+    real(kind=8), dimension(nmax_ao,0:lmax_ao) :: neleconf
+    real(gp), dimension(nmax_ao,lmax_ao+1) :: eleconf_
+
+    !control the spin
+    select case(nspin)
+    case(1)
+       nsp=1
+       nspinor=1
+    case(2)
+       nsp=2
+       nspinor=1
+    case(4)
+       nsp=1
+       nspinor=4
+    case default
+       call f_err_throw('nspin not valid. Value=' // trim(yaml_toa(nspin)),&
+            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       return
+       !call yaml_warning('nspin not valid. Value=' // trim(yaml_toa(nspin)))
+       !write(*,*)' ERROR: nspin not valid:',nspin
+       !stop
+    end select
+
+    call atomic_info(zatom,zion,elconf=neleconf,nsccode=nsccode,&
+         maxpol=mxpl,maxchg=mxchg)
+
+    ! Some checks from input values.
+    call charge_and_spol(input_pol,ichg,ispol)
+
+    if (f_err_raise(abs(ispol) > mxpl+abs(ichg),&
+         'Input polarisation of '//trim(symbol)//' atom must be <= '//&
+         trim(yaml_toa(mxpl))//', while found '//trim(yaml_toa(ispol)),&
+         err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
+    if (f_err_raise(abs(ichg) > mxchg,&
+         'Input charge of '//trim(symbol)//' atom must be <= '//&
+         trim(yaml_toa(mxchg))//', while found '//trim(yaml_toa(ichg)),&
+         err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
+
+    ! Fill this atom with default values from eleconf.
+    nsccodeIG=nsccode
+    !correct the electronic configuration in case there is a charge
+    call correct_semicore(nmax_ao,lmax_ao,ichg,&
+         neleconf,eleconf_,nsccodeIG)
+    !then compress the information in the occupation numbers
+    call at_occnums(ispol,nsp,nspinor,nmax_ao,lmax_ao+1,nelecmax_ao,&
+         eleconf_,occupIG)
+
+    !check if the atomic charge is consistent with the input polarization
+    !check the total number of electrons
+    elec=ao_ig_charge(nspin,occupIG)
+    if (nint(elec) /= zion - ichg) then
+       call print_eleconf(nsp,nspinor,occupIG,nsccodeIG)
+       call f_err_throw('The total atomic charge '//trim(yaml_toa(elec))//&
+            ' is different from the PSP charge '//trim(yaml_toa(nsccodeIG))//&
+            ' plus the charge '//trim(yaml_toa(-ichg)),&
+            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       return
+    end if
+
+  end subroutine atomic_configuration
+
+  !> Print the electronic configuration, with the semicore orbitals
+  subroutine print_eleconf(nspin,nspinor,aocc,nsccode) !noccmax,nelecmax,lmax,
+    use module_base
+    use yaml_output
+    implicit none
+    integer, intent(in) :: nspinor,nspin,nsccode!,nelecmax,noccmax,lmax
+    real(gp), dimension(nelecmax_ao), intent(in) :: aocc
+    !local variables
+    character(len=10) :: tmp
+    character(len=500) :: string
+    integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
+    logical, dimension(4,2) :: scorb
+
+    !if non-collinear it is like nspin=1 but with the double of orbitals
+    if (nspinor == 4) then
+       noncoll=2
+    else
+       noncoll=1
+    end if
+    scorb=.false.
+    if (nsccode/=0) then !the atom has some semicore orbitals
+       niasc=nsccode
+       do lsc=4,1,-1
+          nlsc=niasc/4**(lsc-1)
+          do i=1,nlsc
+             scorb(lsc,i)=.true.
+          end do
+          niasc=niasc-nlsc*4**(lsc-1)
+       end do
+    end if
+
+    call yaml_open_map('Electronic configuration',flow=.true.)
+
+    !initalise string
+    string=repeat(' ',len(string))
+
+    is=1
+    do i=1,noccmax_ao
+       iocc=0
+       do l=1,lmax_ao+1
+          iocc=iocc+1
+          nl=nint(aocc(iocc))
+          do inl=1,nl
+             !write to the string the angular momentum
+             if (inl == i) then
+                iss=is
+                if (scorb(l,inl)) then
+                   string(is:is)='('
+                   is=is+1
+                end if
+                select case(l)
+                case(1)
+                   string(is:is)='s'
+                case(2)
+                   string(is:is)='p'
+                case(3)
+                   string(is:is)='d'
+                case(4)
+                   string(is:is)='f'
+                case default
+                   stop 'l not admitted'
+                end select
+                is=is+1
+                if (scorb(l,inl)) then
+                   string(is:is)=')'
+                   is=is+1
+                end if
+                call yaml_open_sequence(string(iss:is))
+             end if
+             do ispin=1,nspin
+                do m=1,2*l-1
+                   do icoll=1,noncoll !non-trivial only for nspinor=4
+                      iocc=iocc+1
+                      !write to the string the value of the occupation numbers
+                      if (inl == i) then
+                         call write_fraction_string(l,aocc(iocc),tmp,ntmp)
+                         string(is:is+ntmp-1)=tmp(1:ntmp)
+                         call yaml_sequence(tmp(1:ntmp))
+                         is=is+ntmp
+                      end if
+                   end do
+                end do
+             end do
+             if (inl == i) then
+                string(is:is+2)=' , '
+                is=is+3
+                call yaml_close_sequence()
+             end if
+          end do
+       end do
+    end do
+
+    !write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
+
+    call yaml_close_map()
+
+  END SUBROUTINE print_eleconf
+
+  !>calculate the total charge of a given set of occupation numbers in compressed form 
+  pure function ao_ig_charge(nspin,occupIG) result(elec)
+    integer, intent(in) :: nspin
+    double precision, dimension(nelecmax_ao), intent(in) :: occupIG
+    double precision :: elec
+    !local variables
+    integer :: iocc,l,nl,inl,ispin,nsp,noncoll,icoll,m
+
+    nsp=nspin
+    noncoll=1
+    if (nspin==4) then
+       nsp=1
+       noncoll=2
+    end if
+    !check the total number of electrons
+    elec=0.0_gp
+    iocc=0
+    do l=1,lmax_ao+1
+       iocc=iocc+1
+       nl=nint(occupIG(iocc))!atoms%aocc(iocc,iat))
+       do inl=1,nl
+          do ispin=1,nsp
+             do m=1,2*l-1
+                do icoll=1,noncoll !non-trivial only for nspinor=4
+                   iocc=iocc+1
+                   elec=elec+occupIG(iocc)!,iat)
+                end do
+             end do
+          end do
+       end do
+    end do
+
+  end function ao_ig_charge
 
   !> Correct the electronic configuration for a given atomic charge
   subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)

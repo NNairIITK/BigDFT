@@ -1039,9 +1039,13 @@ contains
     end select
 
     do ityp = 1, atoms%astruct%ntypes, 1
-       call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),elconf=neleconf,&
-            amu=atoms%amu(ityp),rcov=rcov,nsccode=nsccode,&
-            maxpol=mxpl,maxchg=mxchg)
+       !only amu and rcov are needed here
+       call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
+            amu=atoms%amu(ityp),rcov=rcov)
+!!$       call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),elconf=neleconf,&
+!!$            amu=atoms%amu(ityp),rcov=rcov,nsccode=nsccode,&
+!!$            maxpol=mxpl,maxchg=mxchg)
+
 !       call eleconf(atoms%nzatom(ityp), atoms%nelpsp(ityp), symbol,rcov,rprb,ehomo,&
 !            neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
        !define the localization radius for the Linear input guess
@@ -1050,34 +1054,39 @@ contains
        do iat = 1, atoms%astruct%nat, 1
           if (atoms%astruct%iatype(iat) /= ityp) cycle
 
-          ! Some checks from input values.
-          call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
-          if (abs(ispol) > mxpl+abs(ichg)) then
-             !if (iproc ==0) 
-             write(*,'(1x,a,i0,a,a,2(a,i0))')&
-                  'ERROR: Input polarisation of atom No.',iat,&
-                  ' (',trim(atoms%astruct%atomnames(ityp)),') must be <=',mxpl,&
-                  ', while found ',ispol
-             stop 
-          end if
-          if (abs(ichg) > mxchg) then
-             !if (iproc ==0) 
-             write(*,'(1x,a,i0,a,a,2(a,i0))')&
-                  'ERROR: Input charge of atom No.',iat,&
-                  ' (',trim(atoms%astruct%atomnames(ityp)),') must be <=',mxchg,&
-                  ', while found ',ichg
-             stop
-          end if
+          !fill the atomic IG configuration from the input_polarization
+          call atomic_configuration(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
+               atoms%astruct%input_polarization(iat),nspin,&
+               atoms%iasctype(iat),atoms%aocc(1:,iat))
 
-          ! Fill this atom with default values from eleconf.
-          atoms%iasctype(iat)=nsccode
-          !correct the electronic configuration in case there is a charge
-          !if (ichg /=0) then
-          call correct_semicore(nmax,lmax-1,ichg,&
-               neleconf,eleconf_,atoms%iasctype(iat))
-          !end if
-          call at_occnums(ispol,nsp,nspinor,nmax,lmax,nelecmax,&
-               eleconf_,atoms%aocc(1:,iat))
+!!$          ! Some checks from input values.
+!!$          call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
+!!$          if (abs(ispol) > mxpl+abs(ichg)) then
+!!$             !if (iproc ==0) 
+!!$             write(*,'(1x,a,i0,a,a,2(a,i0))')&
+!!$                  'ERROR: Input polarisation of atom No.',iat,&
+!!$                  ' (',trim(atoms%astruct%atomnames(ityp)),') must be <=',mxpl,&
+!!$                  ', while found ',ispol
+!!$             stop 
+!!$          end if
+!!$          if (abs(ichg) > mxchg) then
+!!$             !if (iproc ==0) 
+!!$             write(*,'(1x,a,i0,a,a,2(a,i0))')&
+!!$                  'ERROR: Input charge of atom No.',iat,&
+!!$                  ' (',trim(atoms%astruct%atomnames(ityp)),') must be <=',mxchg,&
+!!$                  ', while found ',ichg
+!!$             stop
+!!$          end if
+!!$
+!!$          ! Fill this atom with default values from eleconf.
+!!$          atoms%iasctype(iat)=nsccode
+!!$          !correct the electronic configuration in case there is a charge
+!!$          !if (ichg /=0) then
+!!$          call correct_semicore(nmax,lmax-1,ichg,&
+!!$               neleconf,eleconf_,atoms%iasctype(iat))
+!!$          !end if
+!!$          call at_occnums(ispol,nsp,nspinor,nmax,lmax,nelecmax,&
+!!$               eleconf_,atoms%aocc(1:,iat))
 
           ! Possible overwrite.
           if (has_key(dict, key)) then
@@ -1096,28 +1105,31 @@ contains
           end if
 
           !check the total number of electrons
-          elec=0.0_gp
-          iocc=0
-          do l=1,lmax
-             iocc=iocc+1
-             nl=nint(atoms%aocc(iocc,iat))
-             do inl=1,nl
-                do ispin=1,nsp
-                   do m=1,2*l-1
-                      do icoll=1,noncoll !non-trivial only for nspinor=4
-                         iocc=iocc+1
-                         elec=elec+atoms%aocc(iocc,iat)
-                      end do
-                   end do
-                end do
-             end do
-          end do
-          if (nint(elec) /= atoms%nelpsp(ityp) - ichg) then
-             call print_eleconf(nsp,nspinor,2,nelecmax,lmax,atoms%aocc(1,iat),atoms%iasctype(iat))
-             write(*,*)'ERROR: the total atomic charge ',elec,&
-                  ' is different from the PSP charge ',atoms%nelpsp(ityp),&
-                  ' plus the charge ',-ichg
-             stop
+          elec=ao_ig_charge(nspin,atoms%aocc(1:,iat))!0.0_gp
+!!$          iocc=0
+!!$          do l=1,lmax
+!!$             iocc=iocc+1
+!!$             nl=nint(atoms%aocc(iocc,iat))
+!!$             do inl=1,nl
+!!$                do ispin=1,nsp
+!!$                   do m=1,2*l-1
+!!$                      do icoll=1,noncoll !non-trivial only for nspinor=4
+!!$                         iocc=iocc+1
+!!$                         elec=elec+atoms%aocc(iocc,iat)
+!!$                      end do
+!!$                   end do
+!!$                end do
+!!$             end do
+!!$          end do
+          if (nint(elec) /= atoms%nelpsp(ityp)) then! - ichg) then
+             call print_eleconf(nsp,nspinor,atoms%aocc(1:,iat),atoms%iasctype(iat))
+             call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
+            ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
+             !write(*,*)'ERROR: the total atomic charge ',elec,&
+             !     ' is different from the PSP charge ',atoms%nelpsp(ityp)
+             !,&
+             !     ' plus the charge ',-ichg
+             !stop
           end if
        end do
     end do
