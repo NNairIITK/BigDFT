@@ -217,7 +217,7 @@ subroutine glr_copy(glr, d, wfd, from)
   call nullify_locreg_descriptors(glr)
   d => glr%d
   wfd => glr%wfd
-  call copy_locreg_descriptors(from, glr, "glr_copy")
+  call copy_locreg_descriptors(from, glr)
 end subroutine glr_copy
 
 subroutine glr_init(glr, d, wfd)
@@ -252,11 +252,11 @@ subroutine glr_free(glr)
 end subroutine glr_free
 
 subroutine glr_empty(glr)
-  use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
 
-  call deallocate_locreg_descriptors(glr, "glr_empty")
+  call deallocate_locreg_descriptors(glr)
 end subroutine glr_empty
 
 subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
@@ -339,7 +339,7 @@ subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   glr%wfd%nseg_f = nseg_f
   glr%wfd%nvctr_c = nvctr_c
   glr%wfd%nvctr_f = nvctr_f
-  call allocate_wfd(glr%wfd, "glr_set_wfd_dims")
+  call allocate_wfd(glr%wfd)
 END SUBROUTINE glr_set_wfd_dims
 
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
@@ -439,7 +439,8 @@ subroutine lzd_empty(lzd)
   call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
 END SUBROUTINE lzd_empty
 subroutine lzd_set_nlr(lzd, nlr, geocode)
-  use module_types
+  use locregs
+  use module_types, only: local_zone_descriptors
   implicit none
   type(local_zone_descriptors), intent(inout) :: lzd
   integer, intent(in) :: nlr
@@ -449,7 +450,7 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
   
   if (lzd%nlr > 0) then
      do i = 1, lzd%nlr, 1
-        call deallocate_locreg_descriptors(lzd%Llr(i), "lzd_set_nlr")
+        call deallocate_locreg_descriptors(lzd%Llr(i))
      end do
      deallocate(lzd%llr)
   end if
@@ -505,41 +506,19 @@ subroutine inputs_free(in)
 end subroutine inputs_free
 
 
-subroutine inputs_set(dict, file, key, val)
+subroutine inputs_set_dict(in, val)
+
   use dictionaries
   use module_types
+  use yaml_output
   implicit none
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: file, key, val
+  type(input_variables), intent(inout) :: in
+  type(dictionary), pointer :: val
 
-  ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file(1:len(file)) // key(1:len(key)), val(1:len(val)))
-END SUBROUTINE inputs_set
-
-
-subroutine inputs_set_at(dict, file, key, i, val)
-  use dictionaries
-  use module_types
-  implicit none
-  type(dictionary), pointer :: dict
-  integer, intent(in) :: i
-  character(len = *), intent(in) :: file, key, val
-
-  ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file(1:len(file)) // key(1:len(key)) // i, val(1:len(val)))
-END SUBROUTINE inputs_set_at
+  call input_set(in, val%child)
+END SUBROUTINE inputs_set_dict
 
 
-subroutine inputs_set_at2(dict, file, key, i, j, val)
-  use dictionaries
-  use module_types
-  implicit none
-  type(dictionary), pointer :: dict
-  integer, intent(in) :: i, j
-  character(len = *), intent(in) :: file, key, val
-  ! This is a patch for Intel, to be corrected properly later.
-  call set(dict // file(1:len(file)) // key(1:len(key)) // i // j, val(1:len(val)))
-END SUBROUTINE inputs_set_at2
 
 
 subroutine inputs_set_from_file(dict, fname)
@@ -925,23 +904,24 @@ subroutine proj_new(nlpspd)
   allocate(nlpspd)
 END SUBROUTINE proj_new
 subroutine proj_free(nlpspd, proj)
+  use psp_projectors
   use module_types
   use memory_profiling
   implicit none
-  type(nonlocal_psp_descriptors), pointer :: nlpspd
+  type(DFT_PSP_projectors), pointer :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
 
   integer :: i_stat, i_all
 
-  call deallocate_proj_descr(nlpspd,"proj_free")
-  i_all=-product(shape(proj))*kind(proj)
-  deallocate(proj,stat=i_stat)
-  call memocc(i_stat,i_all,'proj',"proj_free")
+  call free_DFT_PSP_projectors(nlpspd)
+!!$  i_all=-product(shape(proj))*kind(proj)
+!!$  deallocate(proj,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'proj',"proj_free")
 END SUBROUTINE proj_free
 subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   use module_types
   implicit none
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(in) :: nlpspd
   integer, intent(out) :: nproj, nprojel
   
   nproj = nlpspd%nproj
@@ -1564,17 +1544,15 @@ subroutine run_objects_association(runObj, inputs, atoms, rst)
 
   call run_objects_associate(runObj, inputs, atoms, rst)
 END SUBROUTINE run_objects_association
-subroutine run_objects_dump_to_file(iostat, dict, atoms, fname, userOnly, comment)
+subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
   use dictionaries, only: dictionary
   use module_input_keys, only: input_keys_dump
-  use module_types, only: atoms_data
   use module_defs, only: UNINITIALIZED, gp
   use yaml_output
   implicit none
   integer, intent(out) :: iostat
   type(dictionary), pointer :: dict
-  type(atoms_data), intent(in) :: atoms
-  character(len = *), intent(in) :: fname, comment
+  character(len = *), intent(in) :: fname
   logical, intent(in) :: userOnly
 
   integer, parameter :: iunit = 145214 !< Hopefully being unique...
@@ -1595,10 +1573,6 @@ subroutine run_objects_dump_to_file(iostat, dict, atoms, fname, userOnly, commen
 
   call yaml_new_document(unit = iunit)
   call input_keys_dump(dict, userOnly)
-  call yaml_open_map("Atomic structure")
-  call wtyaml(iunit, UNINITIALIZED(1.d0), atoms%astruct%rxyz, atoms, &
-       & .false., atoms%astruct%rxyz, .false., dummy, dummy)
-  call yaml_close_map()
 
   call yaml_close_stream(iunit, iostat)
   if (iostat /= 0) return
@@ -1606,6 +1580,24 @@ subroutine run_objects_dump_to_file(iostat, dict, atoms, fname, userOnly, commen
 
   call yaml_set_default_stream(iunit_def, iostat)
 END SUBROUTINE run_objects_dump_to_file
+subroutine run_objects_set_dict(runObj, dict)
+  use module_types, only: run_objects
+  use dictionaries, only: dictionary
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  type(dictionary), pointer :: dict
+
+  ! Warning, taking ownership here. Use run_objects_nullify_dict()
+! to release this ownership without freeing dict.
+  runObj%user_inputs => dict
+END SUBROUTINE run_objects_set_dict
+subroutine run_objects_nullify_dict(runObj)
+  use module_types, only: run_objects
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+
+  nullify(runObj%user_inputs)
+END SUBROUTINE run_objects_nullify_dict
 
 subroutine mem_new(mem)
   use module_types, only: memory_estimation
@@ -1647,3 +1639,47 @@ subroutine mem_to_c(mem, submat, ncomponents, norb, norbp, oneorb, allpsi_mpi, &
   ham = mem%ham
   peak = mem%peak
 END SUBROUTINE mem_to_c
+
+subroutine dict_insert(dict, key)
+  use dictionaries, only: dictionary, operator(//)
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: key
+
+  ! This is a patch for Intel, to be corrected properly later.
+  dict => dict // key(1:len(key))
+END SUBROUTINE dict_insert
+subroutine dict_append(dict)
+  use dictionaries, only: dictionary, operator(//), dict_len
+  implicit none
+  type(dictionary), pointer :: dict
+
+  dict => dict // dict_len(dict)
+END SUBROUTINE dict_append
+subroutine dict_put(dict, val)
+  use dictionaries, only: dictionary, set
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: val
+
+  ! This is a patch for Intel, to be corrected properly later.
+  call set(dict, val(1:len(val)))
+END SUBROUTINE dict_put
+subroutine dict_dump(dict)
+  use dictionaries, only: dictionary
+  use yaml_output, only: yaml_dict_dump
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call yaml_dict_dump(dict)
+END SUBROUTINE dict_dump
+subroutine dict_parse(dict, buf)
+  use dictionaries, only: dictionary, operator(//)
+  use yaml_parse, only: yaml_parse_from_string
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: buf
+
+  call yaml_parse_from_string(dict, buf)
+  dict => dict // 0
+END SUBROUTINE dict_parse

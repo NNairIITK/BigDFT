@@ -106,7 +106,7 @@ program MINHOP
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
   call inputs_from_dict(inputs_md, md_atoms, user_inputs, .true.)
   if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(inputs_opt,atoms)
+     call print_general_parameters(inputs_md,md_atoms)
   end if
   call dict_free(user_inputs)
 !   write(*,*) 'nat=',atoms%astruct%nat
@@ -256,7 +256,7 @@ program MINHOP
 
   call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
-  runObj%inputs => inputs_opt
+  call run_objects_associate(runObj, inputs_opt, atoms, rst)
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
@@ -497,7 +497,7 @@ program MINHOP
 
 
   call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
-  runObj%inputs => inputs_opt
+  call run_objects_associate(runObj, inputs_opt, atoms, rst)
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
      count_bfgs=count_bfgs+ncount_bigdft

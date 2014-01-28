@@ -865,7 +865,7 @@ contains
     if (associated(lr%bounds%kb%ibyz_f)) then
        call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, subname)
     end if
-    call deallocate_wfd(lr%wfd, subname)
+    call deallocate_wfd(lr%wfd)
     
     call f_release_routine()
   END SUBROUTINE deallocate_local
@@ -1832,6 +1832,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   case(1) !xn is derived from xo 
      do k=1,ndims_old(3)
         do j=1,ndims_old(2)
+           !$omp parallel default(shared) private(i,dt,k1,ms,me,shf)
+           !$omp do
            do i=1,ndims_new(1)
               call shift_and_start(irp(1),1,2,3,i,j,k,&
                    dt,k1,ms,me)
@@ -1842,11 +1844,15 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
               work(j+ind(2,3,k,i))=convolve(irp(1),k1,j,k,ms,me,&
                    m_isf,shf,ndims_old(1),ndims_old(2),ndims_old(3),f_old)
            end do
+           !$omp end do
+           !$omp end parallel
         end do
      end do
   case(2) !xn is derived from yo
      do k=1,ndims_old(3)
         do j=1,ndims_old(1)
+           !$omp parallel default(shared) private(i,dt,k1,ms,me,shf)
+           !$omp do
            do i=1,ndims_new(1)
               call shift_and_start(irp(1),1,1,3,i,j,k,&
                    dt,k1,ms,me)
@@ -1856,11 +1862,15 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
               work(j+ind(1,3,k,i))=convolve(irp(1),j,k1,k,ms,me,&
                    m_isf,shf,ndims_old(1),ndims_old(2),ndims_old(3),f_old)
            end do
+           !$omp end do
+           !$omp end parallel
         end do
      end do
   case(3) !xn is derived from zo
      do k=1,ndims_old(2)
         do j=1,ndims_old(1)
+           !$omp parallel default(shared) private(i,dt,k1,ms,me,shf)
+           !$omp do
            do i=1,ndims_new(1)
               call shift_and_start(irp(1),1,1,2,i,j,k,&
                    dt,k1,ms,me)
@@ -1870,6 +1880,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
               work(j+ind(1,2,k,i))=convolve(irp(1),j,k,k1,ms,me,&
                    m_isf,shf,ndims_old(1),ndims_old(2),ndims_old(3),f_old)
            end do
+           !$omp end do
+           !$omp end parallel
         end do
      end do
   end select
@@ -1878,6 +1890,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   case(21) !yp is derived from xo (and xp has been derived from y)
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
+           !$omp parallel default(shared) private(j,dt,k1,ms,me,shf)
+           !$omp do
            do j=1,ndims_new(2)
               call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
@@ -1886,11 +1900,15 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
               work2(k+ind2(irp(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(3),ndims_new(1),work)
            end do
+           !$omp end do
+           !$omp end parallel
         end do
      end do
   case(23) !yp is derived from zo (and xp has been derived from y)
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
+           !$omp parallel default(shared) private(j,dt,k1,ms,me,shf)
+           !$omp do
            do j=1,ndims_new(2)
               call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
@@ -1899,11 +1917,15 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
               work2(k+ind2(irp(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(3),ndims_new(1),work)
            end do
+           !$omp end do
+           !$omp end parallel
         end do
      end do
   case(12) !yp is derived from yo (and xp has been derived from x)
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
+           !$omp parallel default(shared) private(j,dt,k1,ms,me,shf)
+           !$omp do
            do j=1,ndims_new(2)
               call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
@@ -1913,11 +1935,15 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
               work2(k+ind2(irp(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
                    ndims_old(2),ndims_old(3),ndims_new(1),work)
            end do
+           !$omp end do
+           !$omp end parallel
         end do
      end do
   case(13) !yp is derived from zo (and xp has been derived from x)
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
+           !$omp parallel default(shared) private(j,dt,k1,ms,me,shf)
+           !$omp do
            do j=1,ndims_new(2)
               call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
@@ -1929,11 +1955,15 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
               work2(k+ind2(irp(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
                    ndims_old(2),ndims_old(3),ndims_new(1),work)
            end do
+           !$omp end do
+           !$omp end parallel
         end do
      end do
   case(32) !yp is derived from yo (and xp has been derived from z)
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
+           !$omp parallel default(shared) private(j,dt,k1,ms,me,shf)
+           !$omp do
            do j=1,ndims_new(2)
               call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
@@ -1943,11 +1973,15 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
               work2(k+ind2(irp(3),i,j))=convolve(2,k,k1,i,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(2),ndims_new(1),work)
            end do
+           !$omp end do
+           !$omp end parallel
         end do
      end do
   case(31) !yp is derived from xo (and xp has been derived from z)
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
+           !$omp parallel default(shared) private(j,dt,k1,ms,me,shf)
+           !$omp do
            do j=1,ndims_new(2)
               call shift_and_start(irp(2),2,2,irp(3),i,j,k,&
                    dt,k1,ms,me)
@@ -1957,6 +1991,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
               work2(k+ind2(irp(3),i,j))=convolve(1,k1,k,i,ms,me,m_isf,shf,&
                    ndims_old(1),ndims_old(2),ndims_new(1),work)
            end do
+           !$omp end do
+           !$omp end parallel
         end do
      end do
   end select
@@ -1964,6 +2000,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   !third step
   do j=1,ndims_new(2)
      do i=1,ndims_new(1)
+        !$omp parallel default(shared) private(k,dt,k1,ms,me,shf)
+        !$omp do
         do k=1,ndims_new(3)
            call shift_and_start(irp(3),3,2,3,i,j,k,&
                 dt,k1,ms,me)
@@ -1973,6 +2011,8 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            f_new(i,j,k)=convolve(1,k1,i,j,ms,me,m_isf,shf,&
                 ndims_old(irp(3)),ndims_new(1),ndims_new(2),work2)
         end do
+        !$omp end do
+        !$omp end parallel
      end do
   end do
 

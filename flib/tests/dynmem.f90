@@ -15,9 +15,10 @@ subroutine test_dynamic_memory()
    use dictionaries
    implicit none
    !logical :: fl
+   integer :: i
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
-   integer, dimension(:), allocatable :: i1_all
+   integer, dimension(:), allocatable :: i1_all,i1_src
    integer, dimension(:), pointer :: i1_ptr,ptr1,ptr2
 
    integer,dimension(:,:,:),allocatable :: weight
@@ -26,6 +27,8 @@ subroutine test_dynamic_memory()
 
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
+
+
 
 !!$   i1_all=f_malloc(0,id='i1_all')
 !!$   call yaml_map('Address of first element',f_loc(i1_all))
@@ -87,9 +90,43 @@ call f_free(weight)
 
    call f_routine(id='Routine D')
     call f_routine(id='SubCase 1')
+    !test of copying data
+    i1_src=f_malloc(63,id='i1_src')
+
+    i1_src=(/(i+24,i=1,size(i1_src))/)
+    call yaml_map('Source vector',i1_src)
+    call yaml_map('Its shape',shape(i1_src))
+    call yaml_map('Its rank',size(shape(i1_src)))
+    i1_all=f_malloc(src=i1_src,id='i1_all')
+
+    call yaml_map('Vector difference',i1_all-i1_src)
+
+!!$    call yaml_map('Vector allocation',[allocated(i1_all),allocated(i1_src)])
+!!$    call f_free(i1_src)
+!!$    call yaml_map('Vector allocation',[allocated(i1_all),allocated(i1_src)])
+!!$    call f_free(i1_all)
+!!$    call yaml_map('Vector allocation',[allocated(i1_all),allocated(i1_src)])
+
+    call f_free(i1_src,i1_all)
     call f_release_routine()
     call f_routine(id='Subcase 2')
      call f_routine(id='SubSubcase1')
+     !test of copying data
+     i1_ptr=f_malloc_ptr(34,id='i1_ptr')
+
+     i1_ptr=(/(i+789,i=1,size(i1_ptr))/)
+     call yaml_map('Source pointer',i1_ptr)
+     call yaml_map('Its shape',shape(i1_ptr))
+     call yaml_map('Its rank',size(shape(i1_ptr)))
+     ptr1=f_malloc_ptr(src=i1_ptr,id='ptr1')
+
+     call yaml_map('Pointer difference',i1_ptr-ptr1)
+!!$     call yaml_map('Pointer association',[associated(i1_ptr),associated(ptr1)])
+!!$     call f_free_ptr(i1_ptr)
+!!$     call yaml_map('Pointer association',[associated(i1_ptr),associated(ptr1)])
+!!$     call f_free_ptr(ptr1)
+!!$     call yaml_map('Pointer association',[associated(i1_ptr),associated(ptr1)])
+     call f_free_ptr(i1_ptr,ptr1)
      call f_release_routine()
     call f_release_routine()
     call f_routine(id='SubCase 3')

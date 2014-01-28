@@ -840,7 +840,7 @@ program WaCo
  
      ! Should construct a proper Lzd for each Wannier, then use global -> local transformation
        call nullify_local_zone_descriptors(Lzd)
-       call copy_locreg_descriptors(Glr, Lzd%Glr, subname)
+       call copy_locreg_descriptors(Glr, Lzd%Glr)
        lzd%hgrids(1)=input%hx
        lzd%hgrids(2)=input%hy
        lzd%hgrids(3)=input%hz

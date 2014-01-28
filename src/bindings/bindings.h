@@ -99,6 +99,10 @@ BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects *obj);
 BigDFT_Run*     bigdft_run_new_from_fortran    (_run_objects *obj, gboolean create_wrappers);
 BigDFT_Goutput* bigdft_goutput_new_from_fortran(_DFT_global_output *obj);
 
+/* Additional private methods. */
+void _inputs_sync(BigDFT_Inputs *in);
+void _inputs_sync_add(BigDFT_Inputs *in);
+
 /*  Generic tools. */
 gchar* _get_c_string(const gchar *fstr, guint len);
 

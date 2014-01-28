@@ -31,19 +31,20 @@ endif
 AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/PSolver/src
 if BUILD_LIB_BIGDFT
+psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a
 LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@ -lrt
 else
 if BUILD_DYNAMIC_LIBS
+psolver_libraries = -lPSolver-1
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/PSolver/src
 else
+psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a
 LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@ -lrt
 endif
 endif
 
-psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a  @LINALG_LIBS@
-
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = $(psolver_libraries)
+PS_Check_LDADD = $(psolver_libraries) @LINALG_LIBS@
 #PS_Check_LDADD = -lPSolver-1 @LINALG_LIBS@ $(top_builddir)/flib/src/libflib.a
 
 PS_Program_SOURCES = PS_Program.f90

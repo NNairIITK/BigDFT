@@ -127,7 +127,7 @@ module module_input
          nlines_total=nlines
 
          !broadcast all the lines
-         if (lmpinit) call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+         if (lmpinit) call MPI_BCAST(lines,max_length*nlines,MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
          if (ierr /=0) stop 'input_file BCAST (2) '
 
          !!$    write(0,*) "Setup input file '", trim(filename), "' with ", i - 1, "lines."
@@ -1836,6 +1836,15 @@ contains
 
     call input_var("write_orbitals", .false., "linear scaling: write KS orbitals for cubic restart", dummy_bool)
     call set(dict // WRITE_ORBITALS, dummy_bool)
+
+    call input_var("explicit_locregcenters", .false., "linear scaling: explicitely specify localization centers", dummy_bool)
+    call set(dict // EXPLICIT_LOCREGCENTERS, dummy_bool)
+
+    call input_var("calculate_KS_residue", .true., "linear scaling: calculate Kohn-Sham residue", dummy_bool)
+    call set(dict // CALCULATE_KS_RESIDUE, dummy_bool)
+
+    call input_var("intermediate_forces", .false., "linear scaling: calculate intermediate forces", dummy_bool)
+    call set(dict // INTERMEDIATE_FORCES, dummy_bool)
 
     call input_free(.false.)
 

@@ -33,6 +33,12 @@ void FC_FUNC_(call_external_c, CALL_EXTERNAL_C)(void *callback(),void *address()
   return;
 }
 
+void FC_FUNC_(c_memcopy, C_MEMCOPY)(void *to, long long int * fromadd, int *ln)
+{
+  char *from = (char*)*fromadd;
+  memcpy(to, from, sizeof(char) * *ln);
+}
+
 void FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(long long int * add)
 {
   void * ext;
@@ -52,6 +58,7 @@ void FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(long long int * 
   //  printf("\n test NEW address3 = %p , %lld; \n", (void*)callback,*address);
   return;
 }
+
 
 //Symbol duplications for fortran interfaces
 

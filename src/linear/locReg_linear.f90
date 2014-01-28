@@ -109,7 +109,7 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
    Llr(ilr)%wfd%nvctr_f= nvctr_f
 
    !allocate the wavefunction descriptors following the needs
-   call allocate_wfd(Llr(ilr)%wfd,subname)
+   call allocate_wfd(Llr(ilr)%wfd)
 
    !Now, fill the descriptors:
    !coarse part
@@ -588,7 +588,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
 
    !allocate the wavefunction descriptors following the needs
-   call allocate_wfd(Llr(ilr)%wfd,subname)
+   call allocate_wfd(Llr(ilr)%wfd)
 
    !Now, fill the descriptors:
    !coarse part
@@ -855,6 +855,10 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   integer :: i_stat, i_all
   integer :: ngridp,ngridlob,loc
   integer, allocatable :: keyg_loc(:,:)
+
+  !should be initialized
+  ngridp=-1000
+  ngridlob=-1000
 
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions

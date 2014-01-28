@@ -3,17 +3,39 @@
 int main(int argc, const char **argv)
 {
   guint iproc, nproc, igroup, ngroup;
-  int ierr;
+  int ierr, i;
 
-  const gchar *types[] = {"C", "O", NULL};
-  double alat[3] = {10., 0., 10.};
-  BigDFT_Atoms *atoms;
-
-  BigDFT_Inputs *ins;
-  const gchar *hgrids[] = {"2/5", "0.55", "0.55", NULL};
+/* #define NAT 2 */
+/*   const gchar *types[] = {"C", "O", NULL}; */
+/*   guint iatype[NAT] = {0, 1}; */
+/*   const gchar *xyz[] = {"0.", "0.", "0.", NULL, "1.23", "0.", "0.", NULL}; */
+/*   const gchar *frz[NAT] = {NULL, "fy"}; */
+/*   const gchar *sp[NAT] = {"-1", "1"}; */
+/*   const gchar *alat[] = {"10.", ".inf", "10.", NULL}; */
+/*   const gchar *hgrids[] = {"2/5", "0.55", "0.55", NULL}; */
   /* const gchar *ngkpt[] = {"2", "3", "4", NULL}; */
   /* const gchar *shiftk1[] = {"0.", "0.", "0.", NULL}; */
   /* const gchar *shiftk2[] = {"0.1", "-0.2", "0.2", NULL}; */
+  const gchar yaml[] =
+" posinp:\n"
+"   Cell: [10., .inf, 10.]\n"
+"   Positions:\n"
+"   - C: [0., 0., 0.]\n"
+"     IGSpin                            : -1\n"
+"   - O: [1.23, 0., 0.]\n"
+"     Frozen                            : fy\n"
+"     IGSpin                            : 1\n"
+" dft:\n"
+"   ixc                                 : 11\n"
+"   hgrids: [2/5, 0.55, 0.55]\n"
+"   nspin                               : 2\n"
+"   itermax                             : 4";
+
+  BigDFT_Dict *dict;
+  /* BigDFT_DictIter root, coords; */
+
+  BigDFT_Atoms *atoms;
+  BigDFT_Inputs *ins;
 
   BigDFT_Run *run;
 
@@ -21,36 +43,44 @@ int main(int argc, const char **argv)
 
   ierr = bigdft_init(&iproc, &nproc, &igroup, &ngroup, 0);
 
-  atoms = bigdft_atoms_new();
-  bigdft_atoms_set_types(atoms, types);
-  bigdft_atoms_set_n_atoms(atoms, 2);
-  atoms->iatype[0] = 1;
-  atoms->iatype[1] = 2;
-  atoms->rxyz[3] = 1.23;
-  atoms->ifrztyp[1] = 2;
-  atoms->natpol[0] = 99;
-  atoms->natpol[1] = 101;
-  bigdft_atoms_set_geometry(atoms, 'S', alat, "bohr");
+  /* dict = bigdft_dict_new(&root); */
+
+  /* bigdft_dict_insert(dict, "posinp", NULL); */
+  /* bigdft_dict_set_array(dict, "Cell", alat); */
+  /* bigdft_dict_insert(dict, "Positions", &coords); */
+  /* for (i = 0; i < NAT; i++) */
+  /*   { */
+  /*     bigdft_dict_append(dict, NULL); */
+  /*     bigdft_dict_set_array(dict, types[iatype[i]], xyz + (4 * i)); */
+  /*     if (frz[i]) bigdft_dict_set(dict, "Frozen", frz[i]); */
+  /*     if (sp[i]) bigdft_dict_set(dict, "IGSpin", sp[i]); */
+  /*     bigdft_dict_move_to(dict, &coords); */
+  /*   } */
+  /* bigdft_dict_move_to(dict, &root); */
+
+  /* bigdft_dict_insert(dict, "dft", NULL); */
+  /* bigdft_dict_set(dict, "ixc", "PBE (ABINIT)"); */
+  /* bigdft_dict_set_array(dict, "hgrids", hgrids); */
+  /* bigdft_dict_set(dict, "nspin", "2"); */
+  /* bigdft_dict_set(dict, "itermax", "4"); */
+
+  dict = bigdft_dict_new_from_yaml(yaml);
+
+  /* bigdft_dict_dump(dict); */
+
+  run = bigdft_run_new_from_dict(dict, TRUE);
+  bigdft_dict_unref(dict);
+
+  atoms = bigdft_run_get_atoms(run);
   if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml");
-
-  ins = bigdft_inputs_new("");
-  bigdft_inputs_set(ins, INPUTS_IXC, "PBE (ABINIT)");
-  bigdft_inputs_set_array(ins, INPUTS_HGRIDS, hgrids);
-  bigdft_inputs_set(ins, INPUTS_NSPIN, "2");
-  bigdft_inputs_set(ins, INPUTS_ITERMAX, "4");
-  /* bigdft_inputs_set(ins, INPUTS_DEBUG, "Yes"); */
-  /* bigdft_inputs_set(ins, INPUTS_INPUTPSIID, "-500"); */
-  /* bigdft_inputs_set(ins, INPUTS_GEOPT_METHOD, "DIIS"); */
-  /* bigdft_inputs_set(ins, INPUTS_BETAX, "1."); */
-  /* bigdft_inputs_set(ins, INPUTS_KPT_METHOD, "MPGrid"); */
-  /* bigdft_inputs_set_array(ins, INPUTS_NGKPT, ngkpt); */
-  /* bigdft_inputs_set_array_at(ins, INPUTS_SHIFTK, 0, shiftk1); */
-  /* bigdft_inputs_set_array_at(ins, INPUTS_SHIFTK, 1, shiftk2); */
-
-  run = bigdft_run_new_from_objects(atoms, ins, NULL, iproc, TRUE);
-  bigdft_inputs_dump(ins, "input.yaml", TRUE);
-  bigdft_inputs_unref(ins);
   bigdft_atoms_unref(atoms);
+
+  /* Test changing a value of input_variables. */
+  ins = bigdft_run_get_inputs(run);
+  bigdft_inputs_set(ins, "gnrm_cv", "1.e-5");
+  bigdft_inputs_unref(ins);
+
+  if (iproc == 0) bigdft_run_dump(run, "input.yaml", TRUE);
 
   /* bigdft_run_memoryEstimation(run, iproc, nproc); */
   /* print_memory_estimation_(run->mem.data); */

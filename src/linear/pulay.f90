@@ -13,7 +13,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
 
   ! Local variables
-  integer :: iat, isize, iorb, jorb, korb, idir, iiorb, ierr
+  integer :: iat, isize, iorb, jorb, korb, idir, iiorb, ierr, num_points, num_points_tot
   real(kind=8),dimension(:,:),allocatable :: phi_delta, energykernel, tempmat, phi_delta_large
   real(kind=8),dimension(:),allocatable :: hphit_c, hphit_f, denskern_tmp, delta_phit_c, delta_phit_f
   real(kind=8) :: tt
@@ -24,7 +24,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
 
   phi_delta=f_malloc0((/tmb%npsidim_orbs,3/),id='phi_delta')
   ! Get the values of the support functions on the boundary of the localization region
-  call extract_boundary(tmb, phi_delta)
+  call extract_boundary(tmb, phi_delta, num_points, num_points_tot)
 
 
   ! calculate the "energy kernel"
@@ -168,7 +168,7 @@ end subroutine pulay_correction_new
 
 
 
-subroutine extract_boundary(tmb, phi_delta)
+subroutine extract_boundary(tmb, phi_delta, numpoints, numpoints_tot)
   use module_base
   use module_types
   use module_interfaces
@@ -178,6 +178,7 @@ subroutine extract_boundary(tmb, phi_delta)
   ! Calling arguments
   type(DFT_wavefunction),intent(in) :: tmb
   real(kind=8),dimension(tmb%npsidim_orbs,3),intent(out) :: phi_delta
+  integer, intent(out) :: numpoints, numpoints_tot
 
   ! Local variables
   integer :: ishift, iorb, iiorb, ilr, iseg, jj_prev, j0_prev, j1_prev, ii_prev, i3_prev, i2_prev, i1_prev, i0_prev
@@ -186,7 +187,7 @@ subroutine extract_boundary(tmb, phi_delta)
   real(kind=8) :: dist, crit, xsign, ysign, zsign
 
   call f_routine(id='extract_boundary')
-
+  numpoints=0
   ! First copy the boundary elements of the first array to a temporary array,
   ! filling the remaining part with zeros.
   call to_zero(3*tmb%npsidim_orbs,phi_delta(1,1))
@@ -254,7 +255,9 @@ subroutine extract_boundary(tmb, phi_delta)
                       phi_delta(ishift+jj-1,2)=ysign*tmb%psi(ishift+jj-1)
                       phi_delta(ishift+jj-1,3)=zsign*tmb%psi(ishift+jj-1)
                       boundaryarray(i1_prev,i2_prev,i3_prev)=.true.
+                      numpoints=numpoints+1
                   end if
+                  numpoints_tot=numpoints_tot+1
               end if
               dist= sqrt(((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
                         +((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
@@ -269,7 +272,9 @@ subroutine extract_boundary(tmb, phi_delta)
                   phi_delta(ishift+jj,2)=ysign*tmb%psi(ishift+jj)
                   phi_delta(ishift+jj,3)=zsign*tmb%psi(ishift+jj)
                   boundaryarray(i1,i2,i3)=.true.
+                  numpoints=numpoints+1
               end if
+              numpoints_tot=numpoints_tot+1
           end if
       end do
 
@@ -340,7 +345,9 @@ subroutine extract_boundary(tmb, phi_delta)
                   zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6)
               phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7,3) = &
                   zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7)
+              numpoints=numpoints+7
           end if
+          numpoints_tot=numpoints_tot+1
           ! Check the end of the segment. If it was a boundary element of
           ! the coarse grid, copy its content also for the fine part.
           if (boundaryarray(i1,i2,i3)) then
@@ -396,7 +403,9 @@ subroutine extract_boundary(tmb, phi_delta)
                   zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6)
               phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7,3) = &
                   zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7)
+              numpoints=numpoints+7
           end if
+          numpoints_tot=numpoints_tot+1
       end do
       
       ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
@@ -413,7 +422,7 @@ end subroutine extract_boundary
 
 
 
-subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, denspot, GPU, tmb, fpulay)
+subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
   use module_base
   use module_types
   use module_interfaces, except_this_one => pulay_correction
@@ -425,8 +434,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data),intent(in) :: at
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
-  type(nonlocal_psp_descriptors),intent(in) :: nlpspd
-  real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+  type(DFT_PSP_projectors),intent(inout) :: nlpsp
   type(SIC_data),intent(in) :: SIC
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
@@ -462,7 +470,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpspd, proj, SIC, den
 
 
   call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-       proj,tmb%ham_descr%lzd,nlpspd,tmb%ham_descr%psi,lhphilarge,energs%eproj)
+       tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,lhphilarge,energs%eproj)
 
   ! only kinetic because waiting for communications
   call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&

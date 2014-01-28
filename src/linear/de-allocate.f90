@@ -491,45 +491,45 @@ subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   end if
   
   
-  call to_zero(lupfil-lowfil+7, work%aeff0(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%aeff1(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%aeff2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%aeff3(-3+lowfil))
-  
-  call to_zero(lupfil-lowfil+7, work%beff0(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%beff1(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%beff2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%beff3(-3+lowfil))
-  
-  call to_zero(lupfil-lowfil+7, work%ceff0(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%ceff1(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%ceff2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%ceff3(-3+lowfil))
-  
-  call to_zero(lupfil-lowfil+1, work%eeff0(lowfil))
-  call to_zero(lupfil-lowfil+1, work%eeff1(lowfil))
-  call to_zero(lupfil-lowfil+1, work%eeff2(lowfil))
-  call to_zero(lupfil-lowfil+1, work%eeff3(lowfil))
-  
-  
-  call to_zero(lupfil-lowfil+7, work%aeff0_2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%aeff1_2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%aeff2_2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%aeff3_2(-3+lowfil))
-  
-  call to_zero(lupfil-lowfil+7, work%beff0_2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%beff1_2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%beff2_2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%beff3_2(-3+lowfil))
-  
-  call to_zero(lupfil-lowfil+7, work%ceff0_2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%ceff1_2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%ceff2_2(-3+lowfil))
-  call to_zero(lupfil-lowfil+7, work%ceff3_2(-3+lowfil))
-  
-  call to_zero(lupfil-lowfil+1, work%eeff0_2(lowfil))
-  call to_zero(lupfil-lowfil+1, work%eeff1_2(lowfil))
-  call to_zero(lupfil-lowfil+1, work%eeff2_2(lowfil))
-  call to_zero(lupfil-lowfil+1, work%eeff3_2(lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%aeff0(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%aeff1(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%aeff2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%aeff3(-3+lowfil))
+!!$  
+!!$  call to_zero(lupfil-lowfil+7, work%beff0(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%beff1(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%beff2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%beff3(-3+lowfil))
+!!$  
+!!$  call to_zero(lupfil-lowfil+7, work%ceff0(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%ceff1(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%ceff2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%ceff3(-3+lowfil))
+!!$  
+!!$  call to_zero(lupfil-lowfil+1, work%eeff0(lowfil))
+!!$  call to_zero(lupfil-lowfil+1, work%eeff1(lowfil))
+!!$  call to_zero(lupfil-lowfil+1, work%eeff2(lowfil))
+!!$  call to_zero(lupfil-lowfil+1, work%eeff3(lowfil))
+!!$  
+!!$  
+!!$  call to_zero(lupfil-lowfil+7, work%aeff0_2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%aeff1_2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%aeff2_2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%aeff3_2(-3+lowfil))
+!!$  
+!!$  call to_zero(lupfil-lowfil+7, work%beff0_2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%beff1_2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%beff2_2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%beff3_2(-3+lowfil))
+!!$  
+!!$  call to_zero(lupfil-lowfil+7, work%ceff0_2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%ceff1_2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%ceff2_2(-3+lowfil))
+!!$  call to_zero(lupfil-lowfil+7, work%ceff3_2(-3+lowfil))
+!!$  
+!!$  call to_zero(lupfil-lowfil+1, work%eeff0_2(lowfil))
+!!$  call to_zero(lupfil-lowfil+1, work%eeff1_2(lowfil))
+!!$  call to_zero(lupfil-lowfil+1, work%eeff2_2(lowfil))
+!!$  call to_zero(lupfil-lowfil+1, work%eeff3_2(lowfil))
 
 END SUBROUTINE init_local_work_arrays

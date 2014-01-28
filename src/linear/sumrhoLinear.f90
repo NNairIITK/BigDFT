@@ -1894,7 +1894,7 @@ subroutine check_communication_potential(denspot,tmb)
       call yaml_map('Tolerance for the following test',tol_calculation_max,fmt='(1es25.18)')
       if (sumdiff>tol_calculation_max) then
          call yaml_warning('CALCULATION ERROR: max difference of '//trim(yaml_toa(maxdiff,fmt='(1es25.18)')))
-	      call f_err_throw('The communication of the potential is not correct for this setup, check communication routines',&
+         call f_err_throw('The communication of the potential is not correct for this setup, check communication routines',&
                  err_name='BIGDFT_MPI_ERROR')
       else
          call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')

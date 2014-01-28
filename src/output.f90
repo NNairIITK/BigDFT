@@ -1813,27 +1813,27 @@ subroutine print_wfd(wfd)
   
 END SUBROUTINE print_wfd
 
-subroutine print_nlpspd(nlpspd)
-  use module_defs, only: DistProjApply, gp
-  use module_types, only: nonlocal_psp_descriptors
+subroutine print_nlpsp(nlpsp)
+  use module_defs, only: gp
+  use module_types, only: DFT_PSP_projectors
   use yaml_output
   implicit none
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(DFT_PSP_projectors), intent(in) :: nlpsp
 
   call yaml_open_map('NonLocal PSP Projectors Descriptors')
-  if (DistProjApply) then
+  if (nlpsp%on_the_fly) then
      call yaml_map('Creation strategy','On-the-fly')
      !write(*,'(44x,a)') '------  On-the-fly projectors application'
   else
      call yaml_map('Creation strategy','Once-and-for-all')
      !write(*,'(44x,a)') '------'
   end if
-  call yaml_map('Total number of projectors',nlpspd%nproj)
-  call yaml_map('Total number of components',nlpspd%nprojel)
-  call yaml_map('Percent of zero components',nint(100.0_gp*nlpspd%zerovol))
+  call yaml_map('Total number of projectors',nlpsp%nproj)
+  call yaml_map('Total number of components',nlpsp%nprojel)
+  call yaml_map('Percent of zero components',nint(100.0_gp*nlpsp%zerovol))
 
 !!$     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
 !!$     write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
 !!$     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
   call yaml_close_map()
-END SUBROUTINE print_nlpspd
+END SUBROUTINE print_nlpsp

@@ -33,7 +33,7 @@ EXTRA_DIST = \
 
 # Build targets, binaries and libraries.
 # -------------
-noinst_LIBRARIES = libmain.a
+noinst_LIBRARIES = libmain.a libabscalc.a
 # put all subs
 subs_static_library = \
 	modules/libmodules.a \
@@ -62,15 +62,17 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies MDanalysis global bart abscalc BigDFT2Wannier WaCo NEB_images
+binaries_sources = bigdft memguess splsad NEB frequencies $(minima_hopping_sources) abscalc
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
+check_PROGRAMS = MDanalysis bart BigDFT2Wannier WaCo NEB_images
 else
 binaries_sources =
 local_binaries =
 scripts_sources =
 sub_dirs_bin =
+check_PROGRAMS =
 endif
 
 # Additional sources.
@@ -114,11 +116,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	lanczos_interface.f90 \
-	lanczos_base.f90 \
-	lanczos.f90 \
 	scfloop_API.f90 \
-	esatto.f90 \
 	tddft.f90 \
 	output.f90 \
 	external.f90 \
@@ -137,7 +135,6 @@ low_level = \
 	init/logrid_per.f90 \
 	init/inputguess.f90 \
 	init/gautowav.f90 \
-	init/eleconf.f90 \
 	init/pspconf.f90 \
 	init/locreg_init.f90 \
 	init/sysprop.f90 \
@@ -211,6 +208,14 @@ libmain_a_SOURCES = \
 	$(low_level) \
 	$(high_level)
 
+libabscalc_a_SOURCES = \
+	lanczos_base.f90 \
+	abscalc_module.f90 \
+	lanczos_interface.f90 \
+	lanczos.f90 \
+	abscalc_init.f90 \
+	esatto.f90
+
 libbigdft_1_a_SOURCES =
 
 input_variables_description.o: input_variables_definition-inc.h
@@ -251,13 +256,11 @@ install-data-hook:
 
 #obsolete dependency $(bin_PROGRAMS) $(noinst_PROGRAMS): libbigdft-1.a libdft_common.a
 
+#sources for abscalc exeutable, to be removed from libbigdft.a
+#abscalc_additional= 
+
 bigdft_SOURCES = BigDFT.f90
 bigdft_LDADD = $(bigdft_library)
-
-global_SOURCES = global.f90
-global_LDADD = $(bigdft_library) @LINALG_LIBS@
-global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
-	$(LDFLAGS) -o $@
 
 NEB_images_SOURCES = BigDFT.f90
 NEB_images_LDADD = $(bigdft_library)
@@ -283,12 +286,12 @@ WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
 MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
-abscalc_SOURCES = abscalc.f90
+abscalc_SOURCES = abscalc.f90 
 abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver/src \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
-abscalc_LDADD = $(bigdft_library) @LINALG_LIBS@
+abscalc_LDADD = libabscalc.a $(bigdft_library) @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDADD = $(bigdft_library)
@@ -320,13 +323,15 @@ check:
 #dependencies
 convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o
 
-cluster.o geometry.o xabsorber.o: esatto.o scfloop_API.o
+cluster.o geometry.o xabsorber.o: scfloop_API.o
 
-abscalc.o : esatto.o
+lanczos_interface.o: abscalc_module.o lanczos_base.o
 
-lanczos.o : lanczos_base.o lanczos_interface.o
+abscalc_init.o abscalc-abscalc.o: esatto.o lanczos_interface.o
 
-xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
+lanczos.o : lanczos_interface.o
+
+xabsorber.o init/xabsorber.o : init/xabsorber.f90
 
 geometry.o bfgs.o sdcg.o: lbfgs.o
 
@@ -335,7 +340,6 @@ initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 linearScaling.o transferintegrals.o: i-o.o
 
 NEB.o: images.o
-
 
 # Introspection for Python bindings
 # ---------------------------------

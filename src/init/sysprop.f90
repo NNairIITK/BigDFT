@@ -11,8 +11,8 @@
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,&
      & in,atoms,rxyz,&
-     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpspd,comms,shift,proj,radii_cf,&
-     ref_frags, denspot, inwhichlocreg_old, onwhichatom_old,output_grid)
+     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,radii_cf,&
+     ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old,output_grid)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -30,12 +30,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   type(orbitals_data), intent(inout) :: orbs, lorbs
   type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
-  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+  type(DFT_PSP_projectors), intent(out) :: nlpsp
   type(communications_arrays), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
-  real(wp), dimension(:), pointer :: proj
   type(system_fragment), dimension(:), pointer :: ref_frags
+  real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
   type(DFT_local_fields), intent(out), optional :: denspot
   logical, intent(in), optional :: output_grid
@@ -49,7 +49,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(kind=8), dimension(:), allocatable :: locrad
   !Note proj_G should be filled for PAW:
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
-
+  call f_routine(id=subname)
   !nullify dummy variables only used for PAW:
   do iatyp=1,atoms%astruct%ntypes
     call nullify_gaussian_basis(proj_G(iatyp))
@@ -74,6 +74,17 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (iproc == 0 .and. dump) &
        & call print_atoms_and_grid(Lzd%Glr, atoms, rxyz, shift, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
+  if (present(locregcenters)) then
+      do iat=1,atoms%astruct%nat
+          locregcenters(1:3,iat)=locregcenters(1:3,iat)-shift(1:3)
+          if (locregcenters(1,iat)<dble(0)*lzd%hgrids(1) .or. locregcenters(1,iat)>dble(lzd%glr%d%n1)*lzd%hgrids(1) .or. &
+              locregcenters(2,iat)<dble(0)*lzd%hgrids(2) .or. locregcenters(2,iat)>dble(lzd%glr%d%n2)*lzd%hgrids(2) .or. &
+              locregcenters(3,iat)<dble(0)*lzd%hgrids(3) .or. locregcenters(3,iat)>dble(lzd%glr%d%n3)*lzd%hgrids(3)) then
+              stop 'locregcenter outside of global box!'
+          end if
+      end do
+  end if
+
 
   if (present(denspot)) then
      call initialize_DFT_local_fields(denspot)
@@ -96,7 +107,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   ! Create linear orbs data structure.
   if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
       .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
-     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, rxyz, lorbs)
+     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs)
 
      ! There are needed for the restart (at least if the atoms have moved...)
      present_inwhichlocreg_old = present(inwhichlocreg_old)
@@ -236,10 +247,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr, subname)
+     call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
      call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-        call lzd_init_llr(iproc, nproc, in, atoms%astruct, rxyz, lorbs, lzd_lin)
+         !!write(*,*) 'rxyz',rxyz
+         !!write(*,*) 'locregcenters',locregcenters
+        call lzd_init_llr(iproc, nproc, in, atoms%astruct, locregcenters, lorbs, lzd_lin)
      else
         call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&
              input_wf_format,in%dir_output,'minBasis',ref_frags)
@@ -251,14 +264,18 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
-  call createProjectorsArrays(iproc,Lzd%Glr,rxyz,atoms,orbs,&
+  call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-       Lzd%hgrids(3),dry_run,nlpspd,proj_G,proj)
-  if (iproc == 0 .and. dump) call print_nlpspd(nlpspd)
+       Lzd%hgrids(3),dry_run,nlpsp,proj_G)
+  if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !calculate the partitioning of the orbitals between the different processors
 
-  if (dry_run) return
-  
+  if (dry_run) then
+     call f_release_routine()
+     return
+  end if
+
+
   if (present(denspot)) then
      !here dpbox can be put as input
      call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
@@ -283,7 +300,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
-
+  call f_release_routine()
   !---end of system definition routine
 END SUBROUTINE system_initialization
 
@@ -776,6 +793,7 @@ END SUBROUTINE nlcc_dim_from_file
 !> Update radii_cf and occupation for each type of atoms (related to pseudopotential)
 subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   use module_base
+  use ao_inguess, only: atomic_info
   use module_types
   implicit none
   !Arguments
@@ -783,18 +801,20 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   real(gp), intent(in) :: crmult, frmult, projrad
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   !Local Variables
-  integer, parameter :: nmax=6,lmax=4
+  !integer, parameter :: nmax=6,lmax=4
   !integer, parameter :: nelecmax=32
-  character(len=2) :: symbol
-  integer :: i,ityp,mxpl,mxchg,nsccode
-  real(gp) :: rcov,rprb,ehomo,radfine,amu,maxrad
-  real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+  !character(len=2) :: symbol
+  integer :: i,ityp!,mxpl,mxchg,nsccode
+  real(gp) :: ehomo,maxrad,radfine!,rcov,rprb,amu
+  !real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
 
   do ityp=1,atoms%astruct%ntypes
      !see whether the atom is semicore or not
      !and consider the ground state electronic configuration
-     call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-          neleconf,nsccode,mxpl,mxchg,amu)
+     !call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
+     !     neleconf,nsccode,mxpl,mxchg,amu)
+     call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
+          
      if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
         !assigning the radii by calculating physical parameters
         radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
