@@ -29,6 +29,7 @@ Keys to ignore:
  - Wavefunction written No.
  - accel
  - Max No. of dictionaries used
+ - Occupation numbers coming from
 Patterns to ignore:
  - Timestamp
  - memory
