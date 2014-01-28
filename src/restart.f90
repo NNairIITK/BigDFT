@@ -2875,7 +2875,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   logical, dimension(3) :: per
   character(len=100) :: fragdir
   integer :: ifrag, ifrag_ref, iforb, isforb
-  
+  real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp 
 
 !  real(gp) :: dnrm2
 !  integer :: iat
@@ -3008,30 +3008,47 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
              fragdir=trim(input_frag%dirname(1))
           end if
 
-          ! first check if file exists
-          inquire(file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',exist=psirold_ok)
-          if (.not. psirold_ok) print*,"psirold doesn't exist for reformatting",iiorb,&
-               trim(input_dir)//'tmbisf'//trim(adjustl(orbname))//'.dat'
+          !! first check if file exists
+          !inquire(file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',exist=psirold_ok)
+          !if (.not. psirold_ok) print*,"psirold doesn't exist for reformatting",iiorb,&
+          !     trim(input_dir)//'tmbisf'//trim(adjustl(orbname))//'.dat'
 
-          ! read in psirold
-          if (psirold_ok) then
-             call timing(iproc,'readisffiles','ON')
-             open(99,file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',&
-                  form="unformatted",status='unknown')
-             read(99) dummy
-             read(99) lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i
-             read(99) lzd_old%llr(ilr_old)%nsi1,lzd_old%llr(ilr_old)%nsi2,lzd_old%llr(ilr_old)%nsi3
-             psirold=f_malloc((/lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i/),id='psirold')
-             do k=1,lzd_old%llr(ilr_old)%d%n3i
-                do j=1,lzd_old%llr(ilr_old)%d%n2i
-                   do i=1,lzd_old%llr(ilr_old)%d%n1i
-                      read(99) psirold(i,j,k)
-                   end do
-                end do
-             end do
-             close(99)
-             call timing(iproc,'readisffiles','OF')
-          end if
+          !! read in psirold
+          !if (psirold_ok) then
+          !   call timing(iproc,'readisffiles','ON')
+          !   open(99,file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',&
+          !        form="unformatted",status='unknown')
+          !   read(99) dummy
+          !   read(99) lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i
+          !   read(99) lzd_old%llr(ilr_old)%nsi1,lzd_old%llr(ilr_old)%nsi2,lzd_old%llr(ilr_old)%nsi3
+          !   psirold=f_malloc((/lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i/),id='psirold')
+          !   do k=1,lzd_old%llr(ilr_old)%d%n3i
+          !      do j=1,lzd_old%llr(ilr_old)%d%n2i
+          !         do i=1,lzd_old%llr(ilr_old)%d%n1i
+          !            read(99) psirold(i,j,k)
+          !         end do
+          !      end do
+          !   end do
+          !   close(99)
+          !   call timing(iproc,'readisffiles','OF')
+          !end if
+
+          lzd_old%llr(ilr_old)%nsi1=2*lzd_old%llr(ilr_old)%ns1
+          lzd_old%llr(ilr_old)%nsi2=2*lzd_old%llr(ilr_old)%ns2
+          lzd_old%llr(ilr_old)%nsi3=2*lzd_old%llr(ilr_old)%ns3
+
+          lzd_old%llr(ilr_old)%d%n1i=2*n_old(1)+31
+          lzd_old%llr(ilr_old)%d%n2i=2*n_old(2)+31
+          lzd_old%llr(ilr_old)%d%n3i=2*n_old(3)+31
+
+          psirold_ok=.true.
+          workarraytmp=f_malloc((2*n_old+31),id='workarraytmp')
+          psirold=f_malloc((2*n_old+31),id='psirold')
+
+          call to_zero((2*n_old(1)+31)*(2*n_old(2)+31)*(2*n_old(3)+31),psirold(1,1,1))
+          call vcopy((2*n_old(1)+2)*(2*n_old(2)+2)*(2*n_old(3)+2),phigold(0,1,0,1,0,1),1,psirold(1,1,1),1)
+          call psig_to_psir_free(n_old(1),n_old(2),n_old(3),workarraytmp,psirold)
+          call f_free(workarraytmp)
 
           call timing(iproc,'Reformatting ','ON')
           if (psirold_ok) then

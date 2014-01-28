@@ -1159,6 +1159,17 @@ subroutine deallocate_work_arrays_sumrho(w)
   
 END SUBROUTINE deallocate_work_arrays_sumrho
 
+subroutine psig_to_psir_free(n1,n2,n3,work,psig_psir)
+ implicit none
+ integer, intent(in) :: n1,n2,n3 !< dimensions in the daubechies grid
+ real(kind=8),dimension((2*n1+31)*(2*n2+31)*(2*n3+31)), intent(inout):: work !< enlarged buffer 
+ real(kind=8),dimension((2*n1+31)*(2*n2+31)*(2*n3+31)), intent(inout):: psig_psir  !< final result, containing psig data but big enough to contain psir (used as work array)
+
+ call synthese_free_self(n1,n2,n3,psig_psir,work)
+ call convolut_magic_n_free_self(2*n1+15,2*n2+15,2*n3+15,work,psig_psir)
+	
+end subroutine psig_to_psir_free
+
 !transform a daubechies function in compressed form to a function in real space via
 !the Magic Filter operation
 !do this for a single component (spinorial and/or complex)
