@@ -2197,6 +2197,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
            rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
 
   use module_defs
+  use ao_inguess, only: atomic_info
   use module_types
   use module_interfaces, except_this_one => input_wf_memory_new
   implicit none
@@ -2231,9 +2232,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   integer :: istart,irange,iend,rest,ierr, gridx,gridy,gridz,xbox,ybox,zbox,iy,iz
 
   !Atom description (needed for call to eleconf)
-  integer ::nzatom,nvalelec,nsccode,mxpl,mxchg
-  real(wp) :: rcov,rprb,ehomo,amu,neleconf(6,0:3)
-  character(len=2) :: symbol
+  integer ::nzatom,nvalelec!,nsccode,mxpl,mxchg
+  real(wp) :: rcov!,rprb,ehomo,amu,neleconf(6,0:3)
+  !character(len=2) :: symbol
 
   if (lzd_old%Glr%geocode .ne. 'F') then
      write(*,*) 'Not implemented for boundary conditions other than free'
@@ -2300,7 +2301,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
      !determine sigma of gaussian (sigma is taken as the covalent radius of the atom,rcov)
      nzatom = atoms%nzatom(atoms%astruct%iatype(k))
      nvalelec =  atoms%nelpsp(atoms%astruct%iatype(k))
-     call eleconf(nzatom, nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+     call atomic_info(nzatom, nvalelec,rcov=rcov)
+     !call eleconf(nzatom, nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
      
      radius = 1.0/((rcov)**2)
      cutoff = 3*rcov
