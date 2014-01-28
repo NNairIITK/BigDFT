@@ -89,7 +89,7 @@ global.mon.out : test.minhop.out
 
 # Additional reference for H2-freq test
 frequencies.xyz.out: H2-freq.freq.out
-	cp -f frequencies.xyz frequencies.xyz.out
+	cp -f frequencies.xyz $@
 
 # Additional run rules.
 InputGenPot.xabs.post-out:

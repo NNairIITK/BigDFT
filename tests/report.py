@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 11/09/2012
+# Date: 28/01/2014
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -65,7 +65,7 @@ for file in files:
     dirfic = ("%-35s %-30s" % (dirc.replace('.test',''),fic.replace('.report',''))).strip()
     #Max value
     try:
-        max_discrepancy = float(open(file).readline())
+        max_discrepancy = float(open(file).readline().strip()[0])
         line = open(file).read()
         discrepancy = re_discrepancy.findall(line)
     except:
