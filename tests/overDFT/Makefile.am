@@ -87,9 +87,6 @@ H2O-slab.test.post-in:
 global.mon.out : test.minhop.out
 	cp -f data/global.mon $@
 
-# Additional reference for H2-freq test
-frequencies.xyz.out: H2-freq.freq.out
-	cp -f frequencies.xyz $@
 
 # Additional run rules.
 InputGenPot.xabs.post-out:

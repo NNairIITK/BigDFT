@@ -2281,6 +2281,7 @@ pure subroutine nullify_local_zone_descriptors(lzd)
   nullify(lzd%llr) 
 end subroutine nullify_local_zone_descriptors
 
+!> Define the BigDFT errors
 subroutine bigdft_init_errors()
   use dictionaries
   implicit none
@@ -2295,7 +2296,7 @@ subroutine bigdft_init_errors()
   call f_err_define('BIGDFT_MPI_ERROR',&
        'An error of MPI library occurred',&
        BIGDFT_MPI_ERROR,&
-       err_action='Check if the error is related to MPI library or runtime condtions')
+       err_action='Check if the error is related to MPI library or runtime conditions')
 
     call f_err_define('BIGDFT_LINALG_ERROR',&
        'An error of linear algebra occurred',&

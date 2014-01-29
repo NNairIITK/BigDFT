@@ -846,7 +846,7 @@ contains
     type(fragment_transformation), intent(inout) :: frag_trans
     !local variables
     integer, parameter :: lwork=7*3
-    integer :: info,iat,i_stat!,i
+    integer :: info,iat!,i_stat,i
     real(gp) :: dets,J
     real(gp), dimension(3) :: SM_arr !< array of SVD and M array
     real(gp), dimension(lwork) :: work !< array of SVD and M array

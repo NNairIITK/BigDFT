@@ -162,6 +162,7 @@ module module_input_keys
 
 contains
 
+  !> Callback routine when an error occurs
   subroutine abort_excl()
     use yaml_output
     use dictionaries

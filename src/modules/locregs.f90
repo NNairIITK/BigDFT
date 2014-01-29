@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Datatypes for localization regions descriptors
 module locregs
   use module_base
@@ -447,7 +449,7 @@ contains
     type(wavefunctions_descriptors), intent(out) :: wfdout
 
     ! Local variables
-    integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
+    !integer:: istat,iis1, iie1, iis2, iie2,i1, i2, iall
 
     !nullify all pointers first
     call nullify_wfd(wfdout)

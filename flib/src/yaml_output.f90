@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module defining the routines used to write yaml
+!> Module defining the routines used to write the yaml output
 module yaml_output
   use yaml_strings
   use dictionaries
@@ -76,8 +76,7 @@ module yaml_output
   integer :: YAML_UNIT_INCONSISTENCY     !< Internal error, unit inconsistency
   integer :: YAML_INVALID                !< Invalid action, unit inconsistency
 
-  !> Generic routine to create a yaml map as foo: 1
-  !! as call yaml_map('foo',1)
+  !> Generic routine to create a yaml map as 'foo: 1\\n' is call yaml_map('foo',1)
   !! @ingroup FLIB_YAML
   !! @param mapname  @copydoc doc::mapname
   !! @param mapvalue @copydoc doc::mapvalue
@@ -642,7 +641,7 @@ contains
   end subroutine yaml_warning
 
 
-  !> Write a yaml comment (#......)
+  !> Write a yaml comment (#......).
   !! Split the comment if too long
   subroutine yaml_comment(message,advance,unit,hfill,tabbing)
     implicit none

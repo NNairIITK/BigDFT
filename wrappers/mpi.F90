@@ -250,7 +250,7 @@ subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,gr
   integer, intent(out) :: group_comm
   !local variables
   character(len=*), parameter :: subname='create_group_comm'
-  integer :: grp,ierr,i,j,base_grp,temp_comm,i_stat,i_all
+  integer :: grp,ierr,i,j,base_grp,temp_comm!,i_stat,i_all
   integer, dimension(:), allocatable :: group_list
 
 ! allocate(group_list(group_size+ndebug),stat=i_stat)
@@ -295,7 +295,7 @@ end subroutine create_group_comm1
     !local variables
     character(len=*), parameter :: subname='create_group_master'
     integer :: iproc_group, nproc, nproc_group, ngroups
-    integer :: ierr, i_stat, i_all, i, j
+    integer :: ierr, i, j!, i_stat, i_all
     integer, dimension(:), allocatable :: lrank, ids
 
     call mpi_comm_rank(group_comm, iproc_group, ierr)
@@ -347,7 +347,7 @@ end subroutine create_group_comm1
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
-    integer :: i_all,i_stat
+    !integer :: i_all,i_stat
     integer, dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
@@ -380,7 +380,7 @@ end subroutine create_group_comm1
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
-    integer :: i_all,i_stat
+    !integer :: i_all,i_stat
     real(kind=4), dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
@@ -412,7 +412,7 @@ end subroutine create_group_comm1
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
-    integer :: i_all,i_stat
+    !integer :: i_all,i_stat
     real(kind=8), dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
@@ -443,7 +443,7 @@ end subroutine create_group_comm1
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
-    integer :: i_all,i_stat
+    !integer :: i_all,i_stat
     real(kind=8), dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
@@ -474,7 +474,7 @@ end subroutine create_group_comm1
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
-    integer :: i_all,i_stat
+    !integer :: i_all,i_stat
     real(kind=8), dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place
@@ -505,7 +505,7 @@ end subroutine create_group_comm1
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
-    integer :: i_all,i_stat
+    !integer :: i_all,i_stat
     logical, dimension(:), allocatable :: copybuf
 
     !case without mpi_in_place

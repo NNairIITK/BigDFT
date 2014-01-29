@@ -300,7 +300,7 @@ compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitli
 t1.close()
 t2.close()
 
-print max_discrepancy, "file=%s, ref=%s" % (file1,file2)
+print "max_discrepancy=%8.2e   file=%s   ref=%s" % (max_discrepancy,file1,file2)
 try:
     line = compare.next()
     EOF = False

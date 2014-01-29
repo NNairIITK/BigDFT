@@ -1,5 +1,5 @@
 !> @file
-!>  Modules which contains all interfaces to parse input dictionary.
+!>  Modules which contains all the interfaces to parse input dictionary.
 !! @author
 !!    Copyright (C) 2013-2014 BigDFT group
 !!    This file is distributed under the terms of the
@@ -43,10 +43,11 @@ contains
     use module_defs, only: mpi_environment
     use module_interfaces, only: read_input_dict_from_files
     implicit none
+    !Arguments
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: radical, posinp
     type(mpi_environment), intent(in) :: mpi_env
-
+    !Local variables
     character(len = max_field_length) :: str
 
     nullify(dict)
@@ -1022,8 +1023,8 @@ contains
     integer :: iat, ityp, nsccode, mxpl, mxchg, nsp, nspinor
     integer :: ichg, ispol, icoll, iocc, ispin, l, inl, m, nl, noncoll
     integer, parameter :: nelecmax=32,nmax=6,lmax=4
-    character(len=2) :: symbol
-    real(gp) :: rcov,rprb,ehomo,elec
+    !character(len=2) :: symbol
+    real(gp) :: rcov,elec!,ehomo,rprb
     real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
     character(len = max_field_length) :: at
     real(gp), dimension(nmax,lmax) :: eleconf_

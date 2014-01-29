@@ -16,10 +16,10 @@ module exception_callbacks
   implicit none
   private
 
-  !address of the generic callback functions, valid for errors with non-specific callbacks
+  !> Address of the generic callback functions, valid for errors with non-specific callbacks
   integer(kind=8) :: callback_add=0
   integer(kind=8) :: callback_data_add=0
-  !address of the overrided severe error
+  !> Address of the overrided severe error
   integer(kind=8) :: severe_callback_add=0
 
   integer(kind=8), external :: f_loc
@@ -29,15 +29,22 @@ module exception_callbacks
   end interface
 
 
-  public :: f_err_set_callback,f_err_unset_callback
-  public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
+  public :: f_err_set_callback
+  public :: f_err_unset_callback
+  public :: f_err_severe, f_err_severe_override, f_err_severe_restore
+  public :: f_err_ignore
   
-  !internal variables for f_lib usage
-  public :: callback_add,callback_data_add,severe_callback_add,err_abort
+  !> Internal variables for f_lib usage
+  public :: callback_add
+  public :: callback_data_add
+  public :: severe_callback_add
+  public :: err_abort
+
 
 contains
 
-  !subroutine which defines the way the system stops
+
+  !> Subroutine which defines the way the system stops
   subroutine err_abort(callback,callback_data)
     !use metadata_interfaces
     implicit none
@@ -52,15 +59,17 @@ contains
     end if
   end subroutine err_abort
 
+
   !> Defines the error routine which have to be used
   subroutine err_set_callback_simple(callback)
     implicit none
-    external :: callback
+    external :: callback !< Error routine which will be called
 
     callback_add=f_loc(callback)
     callback_data_add=0
 
   end subroutine err_set_callback_simple
+
 
   subroutine err_set_callback_advanced(callback,callback_data_address)
     implicit none
@@ -72,12 +81,14 @@ contains
 
   end subroutine err_set_callback_advanced
 
+
   subroutine f_err_unset_callback()
     implicit none
 
     callback_add=0
     callback_data_add=0
   end subroutine f_err_unset_callback
+
 
   subroutine f_err_severe_override(callback)
     implicit none
@@ -86,17 +97,20 @@ contains
     severe_callback_add=f_loc(callback)
   end subroutine f_err_severe_override
 
+
   subroutine f_err_severe_restore()
     implicit none
     severe_callback_add=0
   end subroutine f_err_severe_restore
 
-  !>wrapper to ignore errors, do not dump
+
+  !> Wrapper to ignore errors, do not dump
   subroutine f_err_ignore()
     implicit none
   end subroutine f_err_ignore
 
-  !>wrapper for severe errors, the can be desactivated
+
+  !> Wrapper for severe errors, the can be desactivated
   subroutine f_err_severe()
     implicit none
     if (severe_callback_add == 0) then
@@ -105,6 +119,7 @@ contains
        call call_external_c_fromadd(severe_callback_add)
     end if
   end subroutine f_err_severe
+
 
   !> Callback routine for severe errors
   subroutine f_err_severe_internal()

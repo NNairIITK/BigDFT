@@ -65,7 +65,7 @@ for file in files:
     dirfic = ("%-35s %-30s" % (dirc.replace('.test',''),fic.replace('.report',''))).strip()
     #Max value
     try:
-        max_discrepancy = float(open(file).readline().strip()[0])
+        max_discrepancy = float(open(file).readline()[16:24])
         line = open(file).read()
         discrepancy = re_discrepancy.findall(line)
     except:

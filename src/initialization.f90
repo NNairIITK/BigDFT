@@ -78,6 +78,7 @@ subroutine run_objects_free_container(runObj)
   call run_objects_nullify(runObj)
 END SUBROUTINE run_objects_free_container
 
+
 subroutine run_objects_init_from_files(runObj, radical, posinp)
   use module_types
   use module_input_dicts, only: user_dict_from_files
@@ -91,6 +92,7 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
 
   call run_objects_parse(runObj, .true.)
 END SUBROUTINE run_objects_init_from_files
+
 
 subroutine run_objects_parse(runObj, dump)
   use module_types

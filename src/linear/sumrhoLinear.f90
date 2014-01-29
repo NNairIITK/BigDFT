@@ -1795,7 +1795,7 @@ subroutine check_communication_potential(denspot,tmb)
   use module_types
   use module_interfaces
   use yaml_output
-  use dictionaries, only:f_err_throw
+  use dictionaries, only: f_err_throw
   implicit none
   type(DFT_wavefunction), intent(inout) :: tmb
   type(DFT_local_fields), intent(inout) :: denspot
