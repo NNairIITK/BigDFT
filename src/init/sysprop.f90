@@ -592,10 +592,10 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   if (ierror1 /= 0 ) then
      read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
      radii_cf(3)=radii_cf(2)
+     ! Open64 behaviour, if line is PAWPATCH, then radii_cf(1) = 0.
+     if (ierror /= 0) radii_cf = UNINITIALIZED(1._gp)
   end if
-  ! Open64 behaviour, if line is PAWPATCH, then radii_cf(1) = 0.
   pawpatch = (trim(line) == "PAWPATCH")
-  if (pawpatch) radii_cf = UNINITIALIZED(1._gp)
   do
      read(11,'(a100)',iostat=ierror) line
      if (ierror /= 0 .or. pawpatch) exit
