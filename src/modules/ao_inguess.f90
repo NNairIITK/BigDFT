@@ -303,7 +303,7 @@ contains
     if (present(ehomo))   ehomo=ehomo_
     if (present(nsccode)) nsccode=nsccode_
     if (present(maxpol))   maxpol=mxpl_
-    if (present(maxchg))   maxpol=mxchg_
+    if (present(maxchg))   maxchg=mxchg_
     
   end subroutine atomic_info
 

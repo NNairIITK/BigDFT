@@ -475,7 +475,7 @@ hybrid-directmin:
  EXC: 5.1e-10
  EvXC: 7.1e-10
  Ekin: 1.1e-09
- Atomic Forces (Ha/Bohr): 4.6e-11
+ Atomic Forces (Ha/Bohr): 6.4e-11
  Clean forces norm (Ha/Bohr): 1.9e-11
  Raw forces norm (Ha/Bohr): 3.1e-11
 
