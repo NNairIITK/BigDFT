@@ -854,7 +854,7 @@ subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_
   real(dp) :: temp, error
   real(dp), allocatable, dimension(:) :: temp_vec
   logical, parameter :: symmetric=.true.
-  logical, parameter :: check_lapack=.false.
+  logical, parameter :: check_lapack=.true.
 
   eval=f_malloc(norb,id='eval')
   if(blocksize>0) then
@@ -876,18 +876,36 @@ subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_
         work=f_malloc(lwork,id='work')
         call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, lwork, info)
         if (check_lapack) then
-           tempArr=f_malloc((/norbp,norb/), id='tempArr')
+           tempArr=f_malloc((/norb,norb/), id='tempArr')
            do iorb=1,norb
               do jorb=1,norb
                  tempArr(jorb,iorb)=inv_ovrlp_half(jorb,iorb)*eval(iorb)
               end do
            end do
            inv_ovrlp_halfp=f_malloc_ptr((/norb,norb/), id='inv_ovrlp_halfp')
-           if (norbp>0) call dgemm('n', 't', norb, norb, norb, 1.d0, inv_ovrlp_half, &
-                norb, tempArr, norbp, 0.d0, inv_ovrlp_halfp, norb)
+           call dgemm('n', 't', norb, norb, norb, 1.d0, inv_ovrlp_half, &
+                norb, tempArr, norb, 0.d0, inv_ovrlp_halfp, norb)
            call f_free(tempArr)
            call max_matrix_diff(bigdft_mpi%iproc, norb, inv_ovrlp_halfp, orig_ovrlp, error)
-           if (bigdft_mpi%iproc==0) print*,'LAPACK error',error
+           if (bigdft_mpi%iproc==0.and.abs(error)>1.0d-8) then
+              print*,'LAPACK error for dsyev in overlap_plus_minus_one_half_exact',error
+              open(99,file='dsyev_input.txt')
+              do iorb=1,norb
+                 do jorb=1,norb
+                   write(99,*) iorb,jorb,orig_ovrlp(iorb,jorb)
+                 end do
+              end do
+              close(99)
+              open(99,file='dsyev_output.txt')
+              do iorb=1,norb
+                 do jorb=1,norb
+                   write(99,*) iorb,jorb,inv_ovrlp_halfp(iorb,jorb)
+                 end do
+              end do
+              close(99)
+              call mpi_finalize(bigdft_mpi%mpi_comm)
+              stop
+           end if
            call f_free_ptr(inv_ovrlp_halfp)
            call f_free(orig_ovrlp)
         end if
@@ -926,18 +944,36 @@ subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_
         end do
         call f_free(temp_vec)
         if (check_lapack) then
-           tempArr=f_malloc((/norbp,norb/), id='tempArr')
+           tempArr=f_malloc((/norb,norb/), id='tempArr')
            do iorb=1,norb
               do jorb=1,norb
                  tempArr(jorb,iorb)=inv_ovrlp_half(jorb,iorb)*eval(iorb)
               end do
            end do
            inv_ovrlp_halfp=f_malloc_ptr((/norb,norb/), id='inv_ovrlp_halfp')
-           if (norbp>0) call dgemm('n', 't', norb, norb, norb, 1.d0, inv_ovrlp_half, &
-                norb, tempArr, norbp, 0.d0, inv_ovrlp_halfp, norb)
+           call dgemm('n', 't', norb, norb, norb, 1.d0, inv_ovrlp_half, &
+                norb, tempArr, norb, 0.d0, inv_ovrlp_halfp, norb)
            call f_free(tempArr)
            call max_matrix_diff(bigdft_mpi%iproc, norb, inv_ovrlp_halfp, orig_ovrlp, error)
-           if (bigdft_mpi%iproc==0) print*,'LAPACK error',error
+           if (bigdft_mpi%iproc==0.and.abs(error)>1.0d-8) then
+              print*,'LAPACK error for dgeev in overlap_plus_minus_one_half_exact',error
+              open(99,file='dgeev_input.txt')
+              do iorb=1,norb
+                 do jorb=1,norb
+                   write(99,*) iorb,jorb,orig_ovrlp(iorb,jorb)
+                 end do
+              end do
+              close(99)
+              open(99,file='dgeev_output.txt')
+              do iorb=1,norb
+                 do jorb=1,norb
+                   write(99,*) iorb,jorb,inv_ovrlp_halfp(iorb,jorb)
+                 end do
+              end do
+              close(99)
+              call mpi_finalize(bigdft_mpi%mpi_comm)
+              stop
+           end if
            call f_free_ptr(inv_ovrlp_halfp)
            call f_free(orig_ovrlp)
         end if
