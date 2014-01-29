@@ -1957,6 +1957,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   character(len=*),parameter :: subname='purify_kernel'
   real(kind=8) :: dnrm2, diff
 
+
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
      if(.not.tmb%can_use_transposed) then
@@ -2001,7 +2002,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   allocate(ksksk(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
   call memocc(istat, ksksk, 'ksksk', subname) 
 
-  tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
+
+  call timing(iproc,'purify_kernel ','ON') 
+
+  !tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
+  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern%matrix, 1)
 
 
   !!do iorb=1,tmb%orbs%norb
@@ -2015,6 +2020,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   !!end do
 
   if (iproc==0) call yaml_open_sequence('purification process')
+
 
   do it=1,20
 
@@ -2089,8 +2095,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   end do
 
+
   if (iproc==0) call yaml_close_sequence
-  tmb%linmat%denskern%matrix=2.0d0*tmb%linmat%denskern%matrix
+  !tmb%linmat%denskern%matrix=2.0d0*tmb%linmat%denskern%matrix
+  call dscal(tmb%orbs%norb**2, 2.0d0, tmb%linmat%denskern%matrix, 1)
+
+  call timing(iproc,'purify_kernel ','OF') 
 
   iall = -product(shape(ks))*kind(ks)
   deallocate(ks,stat=istat)
