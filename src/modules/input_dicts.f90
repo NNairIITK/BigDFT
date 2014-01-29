@@ -463,8 +463,8 @@ contains
     if (any(radii_cf /= UNINITIALIZED(1._gp))) then
        call dict_init(radii)
        if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse", radii_cf(1))
-       if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Fine", radii_cf(2))
-       if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse PSP", radii_cf(3))
+       if (radii_cf(2) /= UNINITIALIZED(1._gp)) call set(radii // "Fine", radii_cf(2))
+       if (radii_cf(3) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse PSP", radii_cf(3))
        call set(dict // "Radii of active regions (AU)", radii)
     end if
   end subroutine psp_data_merge_to_dict
@@ -1294,14 +1294,14 @@ contains
       if (nspin == 2) then
          if (.not. has_key(occ, "up") .or. &
               & .not. has_key(occ, "down")) stop "missing up or down"
-         call count(norbu, occ // "up")
-         call count(norbd, occ // "down")
+         call count_orbs(norbu, occ // "up")
+         call count_orbs(norbd, occ // "down")
       else
-         call count(norbu, occ)
+         call count_orbs(norbu, occ)
       end if
     end subroutine count_for_kpt
 
-    subroutine count(n, occ)
+    subroutine count_orbs(n, occ)
       implicit none
       type(dictionary), pointer :: occ
       integer, intent(inout) :: n
@@ -1317,7 +1317,7 @@ contains
          n = max(n, iorb)
          it => dict_next(it)
       end do
-    end subroutine count
+    end subroutine count_orbs
 
     subroutine fill_default(isorb, nfill, nelec, norb)
       implicit none
