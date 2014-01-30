@@ -11,7 +11,6 @@
 !!  - Add higher order for finite difference
 !!  - Maybe possibility to use Lanczos to determine lowest frequencies
 !!  - Indicate correct formulae for entropy
-!!  - Use random vectors orthogonal to translation and rotations
 !!  - Use the directory data (creat_dir_output) for the files hessian.dat and dynamical.dat
 
 
@@ -43,7 +42,7 @@ program frequencies
    type(DFT_global_output) :: outs
    !Atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: rxyz0      !< Atomic position of the reference configuration
-   real(gp), dimension(:,:), allocatable :: fpos
+   real(gp), dimension(:,:), allocatable :: fpos       !< Atomic forces used for the calculation of the Hessian
    real(gp), dimension(:,:), allocatable :: hessian    !< Hessian matrix
    real(gp), dimension(:,:), allocatable :: dynamical  !< Dynamical matrix
    real(gp), dimension(:,:), allocatable :: vectors    !< Eigenvectors
@@ -52,8 +51,8 @@ program frequencies
    integer, dimension(:), allocatable :: iperm         !< Array to sort eigenvalues
    integer, dimension(:), allocatable :: kmoves        !< Array which indicates moves to calculate for a given direction
    logical, dimension(:,:), allocatable :: moves       !< logical: .true. if already calculated
-   real(gp), dimension(:,:), allocatable :: energies
-   real(gp), dimension(:,:,:), allocatable :: forces
+   real(gp), dimension(:,:), allocatable :: energies   !< Total energies for all moves
+   real(gp), dimension(:,:,:), allocatable :: forces   !< Atomic forces for all moves
 
    character(len=len(runObj%inputs%run_name)) :: prefix
    integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for call_bigdft
@@ -185,14 +184,22 @@ program frequencies
    if (bigdft_mpi%iproc == 0) then
       call yaml_map('(F) Exit signal for Wavefunction Optimization Finished',infocode)
       call yaml_comment('(F) Start Frequencies calculation',hfill='=')
+
       !This file contains the Hessian for post-processing: it is regenerated each time.
-      open(unit=u_hessian,file='hessian.dat',status="unknown")
-      write(u_hessian,'(a,3(1pe20.10))') '#step=',freq_step(:)
-      write(u_hessian,'(a,100(1pe20.10))') '#--',outs%energy,outs%fxyz
+      call yaml_set_stream(unit=u_hessian,filename=trim(runObj%inputs%writing_directory)//'/hessian.yaml',&
+             position='rewind',record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
+      call yaml_map('Step',freq_step,unit=u_hessian)
+      call yaml_map('nat',runObj%atoms%astruct%nat,unit=u_hessian)
+      call yaml_map('Energy',outs%energy,unit=u_hessian)
+      call yaml_map('Forces',outs%fxyz,unit=u_hessian)
+
       !This file contains the dynamical matrix for post-processing: it is regenerated each time.
-      open(unit=u_dynamical,file='dynamical.dat',status="unknown")
-      write(u_dynamical,'(a,3(1pe20.10))') '#step=',freq_step(:)
-      write(u_dynamical,'(a,100(1pe20.10))') '#--',outs%energy,outs%fxyz
+      call yaml_set_stream(unit=u_dynamical,filename=trim(runObj%inputs%writing_directory)//'/dynamical.yaml',&
+             position='rewind',record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
+      call yaml_map('Step',freq_step,unit=u_dynamical)
+      call yaml_map('nat',runObj%atoms%astruct%nat,unit=u_dynamical)
+      call yaml_map('Energy',outs%energy,unit=u_dynamical)
+      call yaml_map('Forces',outs%fxyz,unit=u_dynamical)
    end if
 
    !Number of considered degrees of freedom
@@ -281,16 +288,18 @@ program frequencies
          end do
 
          if (bigdft_mpi%iproc == 0) then
-            write(u_hessian,'(i0,1x,i0,1x,100(1pe20.10))') i,iat,hessian(:,ii)
-            write(u_dynamical,'(i0,1x,i0,1x,100(1pe20.10))') i,iat,dynamical(:,ii)
+            call yaml_map('Atom'//trim(yaml_toa(iat))//' Coord.'//trim(yaml_toa(i)),hessian(:,ii),unit=u_hessian)
+            call yaml_map('Atom'//trim(yaml_toa(iat))//' Coord.'//trim(yaml_toa(i)),dynamical(:,ii),unit=u_dynamical)
          end if
 
       end do
    end do
 
-   ! Close the files
-   close(unit=u_hessian)
-   close(unit=u_dynamical)
+   if (bigdft_mpi%iproc == 0) then
+      ! Close the files
+      call yaml_close_stream(unit=u_hessian)
+      call yaml_close_stream(unit=u_dynamical)
+   end if
 
    !Deallocations
    call f_free(fpos)
@@ -355,7 +364,7 @@ program frequencies
                &   trim(runobj%atoms%astruct%atomnames(ity)),rxyz0(:,iat),(vectors(3*(iat-1)+j,iperm(i)),j=1,3)
          end do
       end do
-      close(unit=15)
+      close(unit=u_freq)
       !Vibrational entropy of the molecule
       ! See : http://www.codessa-pro.com/descriptors/thermodynamic/entropy.htm)
       !       http://www.ncsu.edu/chemistry/franzen/public_html/CH795N/lecture/XIV/XIV.html
@@ -419,6 +428,7 @@ program frequencies
 
 
 contains
+
 
    !> Solve the dynamical matrix
    subroutine solve(dynamical,n,eigens,vectors)

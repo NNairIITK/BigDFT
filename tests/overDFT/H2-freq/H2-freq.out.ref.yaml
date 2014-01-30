@@ -1901,19 +1901,20 @@
    CPU time (s)                        :  16.43
    Elapsed time (s)                    :  16.46
   #==================================================================== (F) Frequencies results
- (F) Eigenvalues (real part): [ 3.6667157112E-04,  7.2429663548E-07,  7.2424942023E-07, 
-                                1.2910590589E-22, -1.9149790109E-22, -5.4210108624E-20]
- (F) Eigenvalues (imag part): [ 0.0000000000E+00,  0.0000000000E+00,  0.0000000000E+00, 
-                                0.0000000000E+00,  0.0000000000E+00,  0.0000000000E+00]
- (F) Frequencies (Hartree): [ 1.9148670218E-02,  8.5105618820E-04,  8.5102844854E-04, 
-                              1.1362477982E-11, -1.3838276666E-11, -2.3283064365E-10]
- (F) Frequencies (cm-1)                :  [  4202.65,  186.79,  186.78,  0.00, -0.00, -0.00 ]
- (F) Frequencies (THz)                 :  [  125.99,  5.60,  5.60,  0.00, -0.00, -0.00 ]
- (F) zero-point energy (cm-1 and hartree):  [  2.1013236687E+03,  9.5743351090E-03 ]
- (F) considered temperature (kelvin)   :  300.0
- (F) vibrational entropy =             :  4.5058946475E-02
- (F) vibrational energy (cm-1 and hartree):  [  2.1013236761E+03,  9.5743351428E-03 ]
- (F) total energy (hartree)            :  9.5743351428E-03
+ (F) Full Dynamical Matrix Calculation :  Yes
+ (F) Number of calculated degrees of freedom:  6
+ (F) Dynamical matrix symmetrization   :  3.07106450106872729E-015
+ (F) Eigenvalues: [ 3.6667157322E-04,  7.2429665316E-07,  7.242475953E-07, -1.0833316645E-16, 
+                   -1.4622355919E-14, -2.754695302E-13]
+ (F) Frequencies (Hartree): [ 1.9148670273E-02,  8.5105619859E-04,  8.5102737635E-04, 
+                             -1.0408321981E-08, -1.209229338E-07, -5.2485191264E-07]
+ (F) Frequencies (cm-1)                :  [  4202.65,  186.79,  186.78, -0.0, -0.03, -0.12 ]
+ (F) Frequencies (THz)                 :  [  125.99,  5.6,  5.6, -0.0, -0.0, -0.0 ]
+ (F) Zero-point energy (cm-1 and Hartree):  [  2.1013236747E+03,  9.5743351364E-03 ]
+ (F) Considered Temperature (Kelvin)   :  300.0
+ (F) Vibrational entropy =             :  4.5058945178E-02
+ (F) Vibrational Energy (cm-1 and Hartree):  [  2.1013236821E+03,  9.5743351702E-03 ]
+ (F) Total Energy (Hartree)            :  9.5743351702E-03
  Status of the memory at finalization:
    Timestamp of Profile initialization:
      2013-10-14 17:09:36.915
@@ -2084,26 +2085,27 @@
  #|1              Method used (only possible value=1)                                        
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|#Best effort: 4173 cm-1, E=-1.1370708233960054 Hartree, d=0.76558 angstroem               
- (F) file "frequencies.res" present    :  Yes
- (F) reference state calculated in the "frequencies.res" file:  Yes
+ (F) File "frequencies.res" present    :  Yes
+ (F) Reference state calculated in the "frequencies.res" file:  Yes
  (F) Frequency moves already calculated:  12
  (F) Total Frequency moves             :  12
  (F) Exit signal for Wavefunction Optimization Finished:  0
   #======================================================= (F) Start Frequencies calculation
   #================================================================= (F) Frequencies results
- (F) Eigenvalues (real part): [ 3.6667157112E-04,  7.2429663548E-07,  7.2424942023E-07, 
-                                1.2910590589E-22, -1.9149790109E-22, -5.4210108624E-20]
- (F) Eigenvalues (imag part): [ 0.0000000000E+00,  0.0000000000E+00,  0.0000000000E+00, 
-                                0.0000000000E+00,  0.0000000000E+00,  0.0000000000E+00]
- (F) Frequencies (Hartree): [ 1.9148670218E-02,  8.5105618820E-04,  8.5102844854E-04, 
-                              1.1362477982E-11, -1.3838276666E-11, -2.3283064365E-10]
- (F) Frequencies (cm-1): [ 4202.65,  186.79,  186.78,  0.00, -0.00, -0.00]
- (F) Frequencies (THz)                 :  [  125.99,  5.60,  5.60,  0.00, -0.00, -0.00 ]
- (F) zero-point energy (cm-1 and hartree):  [  2.1013236687E+03,  9.5743351090E-03 ]
- (F) considered temperature (kelvin)   :  300.0
- (F) vibrational entropy =             :  4.5058946475E-02
- (F) vibrational energy (cm-1 and hartree):  [  2.1013236761E+03,  9.5743351428E-03 ]
- (F) total energy (hartree)            : -1.1273429753E+00
+ (F) Full Dynamical Matrix Calculation :  Yes
+ (F) Number of calculated degrees of freedom:  6
+ (F) Dynamical matrix symmetrization   :  3.07106450106872729E-015
+ (F) Eigenvalues: [ 3.6667157322E-04,  7.2429665316E-07,  7.242475953E-07, 
+                   -1.0833316645E-16, -1.4622355919E-14, -2.754695302E-13]
+ (F) Frequencies (Hartree): [ 1.9148670273E-02,  8.5105619859E-04,  8.5102737635E-04, 
+                             -1.0408321981E-08, -1.209229338E-07, -5.2485191264E-07]
+ (F) Frequencies (cm-1): [ 4202.65,  186.79,  186.78, -0.0, -0.03, -0.12]
+ (F) Frequencies (THz)                 :  [  125.99,  5.6,  5.6, -0.0, -0.0, -0.0 ]
+ (F) Zero-point energy (cm-1 and Hartree):  [  2.1013236747E+03,  9.5743351364E-03 ]
+ (F) Considered Temperature (Kelvin)   :  300.0
+ (F) Vibrational entropy =             :  4.5058945178E-02
+ (F) Vibrational Energy (cm-1 and Hartree):  [  2.1013236821E+03,  9.5743351702E-03 ]
+ (F) Total Energy (Hartree)            : -1.1273429753
  Status of the memory at finalization:
    Timestamp of Profile initialization:
      2013-10-14 17:13:03.830
