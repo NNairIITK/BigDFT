@@ -42,16 +42,16 @@ program frequencies
    type(run_objects) :: runObj
    type(DFT_global_output) :: outs
    !Atomic coordinates, forces
-   real(gp), dimension(:,:), allocatable :: rxyz0             !< Atomic position of the reference configuration
+   real(gp), dimension(:,:), allocatable :: rxyz0      !< Atomic position of the reference configuration
    real(gp), dimension(:,:), allocatable :: fpos
-   real(gp), dimension(:,:), allocatable :: hessian           !< Hessian matrix
-   real(gp), dimension(:,:), allocatable :: dynamical         !< Dynamical matrix
-   real(gp), dimension(:,:), allocatable :: vector_l,vector_r !< left and right eignevectors
-   real(gp), dimension(:), allocatable :: eigen_r,eigen_i     !< Real and Imaginary part of the eigenvalues
-   real(gp), dimension(:), allocatable :: sort_work           !< To sort the eigenvalues in ascending order
-   integer, dimension(:), allocatable :: iperm   !< Array to sort eigenvalues
-   integer, dimension(:), allocatable :: kmoves  !< Array which indicates moves to calculate for a given direction
-   logical, dimension(:,:), allocatable :: moves !< logical: .true. if already calculated
+   real(gp), dimension(:,:), allocatable :: hessian    !< Hessian matrix
+   real(gp), dimension(:,:), allocatable :: dynamical  !< Dynamical matrix
+   real(gp), dimension(:,:), allocatable :: vectors    !< Eigenvectors
+   real(gp), dimension(:), allocatable :: eigens       !< Real eigenvalues
+   real(gp), dimension(:), allocatable :: sort_work    !< To sort the eigenvalues in ascending order
+   integer, dimension(:), allocatable :: iperm         !< Array to sort eigenvalues
+   integer, dimension(:), allocatable :: kmoves        !< Array which indicates moves to calculate for a given direction
+   logical, dimension(:,:), allocatable :: moves       !< logical: .true. if already calculated
    real(gp), dimension(:,:), allocatable :: energies
    real(gp), dimension(:,:,:), allocatable :: forces
 
@@ -312,17 +312,15 @@ program frequencies
    end do
 
    !Allocations
-   eigen_r   = f_malloc(3*runObj%atoms%astruct%nat,id='eigen_r')
-   eigen_i   = f_malloc(3*runObj%atoms%astruct%nat,id='eigen_i')
-   vector_r  = f_malloc((/ 3*runObj%atoms%astruct%nat, 3*runObj%atoms%astruct%nat /),id='vector_r')
-   vector_l  = f_malloc((/ 3*runObj%atoms%astruct%nat, 3*runObj%atoms%astruct%nat /),id='vector_l')
+   eigens    = f_malloc(3*runObj%atoms%astruct%nat,id='eigens')
+   vectors   = f_malloc((/ 3*runObj%atoms%astruct%nat, 3*runObj%atoms%astruct%nat /),id='vectors')
    sort_work = f_malloc(3*runObj%atoms%astruct%nat,id='sort_work')
    iperm     = f_malloc(3*runObj%atoms%astruct%nat,id='iperm')
 
    !Diagonalise the dynamical matrix
-   call solve(dynamical,3*runObj%atoms%astruct%nat,eigen_r,eigen_i,vector_l,vector_r)
+   call solve(dynamical,3*runObj%atoms%astruct%nat,eigens,vectors)
    !Sort eigenvalues in descending order (use abinit routine sort_dp)
-   sort_work=eigen_r
+   sort_work=eigens
    do i=1,3*runObj%atoms%astruct%nat
       iperm(i)=i
    end do
@@ -333,29 +331,28 @@ program frequencies
       call yaml_map('(F) Full Dynamical Matrix Calculation',nfree == 3*runObj%atoms%astruct%nat)
       call yaml_map('(F) Number of calculated degrees of freedom',nfree)
       if (nfree == 3*runObj%atoms%astruct%nat) call yaml_map('(F) Dynamical matrix symmetrization',dsym)
-      call yaml_map('(F) Eigenvalues (real part)',eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
-      call yaml_map('(F) Eigenvalues (imag part)',eigen_i(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Eigenvalues',eigens(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
       do i=1,3*runObj%atoms%astruct%nat
-         if (eigen_r(i)<0.0_dp) then
-            eigen_r(i)=-sqrt(-eigen_r(i))
+         if (eigens(i)<0.0_dp) then
+            eigens(i)=-sqrt(-eigens(i))
          else
-            eigen_r(i)= sqrt( eigen_r(i))
+            eigens(i)= sqrt( eigens(i))
          end if
       end do
-      call yaml_map('(F) Frequencies (Hartree)', eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
-      call yaml_map('(F) Frequencies (cm-1)',    eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
-      call yaml_map('(F) Frequencies (THz)',     eigen_r(iperm(3*runObj%atoms%astruct%nat:1:-1))*Ha_THz,fmt='(f13.2)')
+      call yaml_map('(F) Frequencies (Hartree)', eigens(iperm(3*runObj%atoms%astruct%nat:1:-1)),fmt='(1pe20.10)')
+      call yaml_map('(F) Frequencies (cm-1)',    eigens(iperm(3*runObj%atoms%astruct%nat:1:-1))*Ha_cmm1,fmt='(f13.2)')
+      call yaml_map('(F) Frequencies (THz)',     eigens(iperm(3*runObj%atoms%astruct%nat:1:-1))*Ha_THz,fmt='(f13.2)')
       ! Build frequencies.xyz in descending order. Use the v_sim format
       open(unit=u_freq,file='frequencies.xyz',status="unknown")
       do i=3*runObj%atoms%astruct%nat,1,-1
          write(u_freq,'(1x,i0,1x,1pe20.10,a)') runobj%atoms%astruct%nat
          write(u_freq,'(1x,a,i0,a,1pe20.10,a,0pf13.2,a,f13.2,a)') 'Mode ',i,': freq=', &
-            & eigen_r(iperm(i)),' Ha,',eigen_r(iperm(i))*Ha_cmm1,' cm-1,',eigen_r(iperm(i))*Ha_THz,' Thz'
+            & eigens(iperm(i)),' Ha,',eigens(iperm(i))*Ha_cmm1,' cm-1,',eigens(iperm(i))*Ha_THz,' Thz'
          ! Build the vector of the associated phonon
          do iat=1,runobj%atoms%astruct%nat
             ity=runobj%atoms%astruct%iatype(iat)
             write(u_freq,'(1x,a,1x,100(1pe20.10))') &
-               &   trim(runobj%atoms%astruct%atomnames(ity)),rxyz0(:,iat),(vector_l(3*(iat-1)+j,iperm(i)),j=1,3)
+               &   trim(runobj%atoms%astruct%atomnames(ity)),rxyz0(:,iat),(vectors(3*(iat-1)+j,iperm(i)),j=1,3)
          end do
       end do
       close(unit=15)
@@ -378,11 +375,11 @@ program frequencies
          istart=3*runObj%atoms%astruct%nat-nfree+1
       end if
       do i=istart,3*runObj%atoms%astruct%nat
-         freq_exp=exp(eigen_r(iperm(i))*ha_k/temperature)
-         freq2_exp=exp(-eigen_r(iperm(i))*ha_k/(2.0_gp*temperature))
-         zpenergy=zpenergy+0.5_gp*eigen_r(iperm(i))
-         vibrational_energy=vibrational_entropy+eigen_r(iperm(i))*(0.5_gp+1.0_gp/(freq_exp-1.0_gp))
-         vibrational_entropy=vibrational_entropy + eigen_r(iperm(i))*freq2_exp/(1.0_gp-freq2_exp) - log(1.0_gp-freq2_exp)
+         freq_exp=exp(eigens(iperm(i))*Ha_K/Temperature)
+         freq2_exp=exp(-eigens(iperm(i))*Ha_K/(2.0_gp*Temperature))
+         zpenergy=zpenergy+0.5_gp*eigens(iperm(i))
+         vibrational_energy=vibrational_entropy+eigens(iperm(i))*(0.5_gp+1.0_gp/(freq_exp-1.0_gp))
+         vibrational_entropy=vibrational_entropy + eigens(iperm(i))*freq2_exp/(1.0_gp-freq2_exp) - log(1.0_gp-freq2_exp)
       end do
       !Multiply by 1/kT
       vibrational_entropy=vibrational_entropy*Ha_K/Temperature
@@ -402,10 +399,8 @@ program frequencies
    call deallocate_global_output(outs)
 
    call f_free(dynamical)
-   call f_free(eigen_r)
-   call f_free(eigen_i)
-   call f_free(vector_l)
-   call f_free(vector_r)
+   call f_free(eigens)
+   call f_free(vectors)
 
    call f_free(iperm)
    call f_free(sort_work)
@@ -426,21 +421,22 @@ program frequencies
 contains
 
    !> Solve the dynamical matrix
-   subroutine solve(dynamical,n,eigen_r,eigen_i,vector_l,vector_r)
+   subroutine solve(dynamical,n,eigens,vectors)
       implicit none
       integer, intent(in) :: n
       real(gp), intent(inout) :: dynamical(n,n)
-      real(gp), intent(out) :: eigen_r(n),eigen_i(n),vector_l(n,n),vector_r(n,n)
+      real(gp), intent(out) :: eigens(n),vectors(n,n)
       !Local variables
       character(len=*), parameter :: subname = "solve"
       integer :: info,lwork
       real(gp), dimension(:), allocatable :: work
 
       call f_routine(id=subname)
-      lwork=6*n
+      lwork=3*n
       work=f_malloc(lwork+ndebug,id='work')
 
-      call dgeev('v','v',n,dynamical,n,eigen_r,eigen_i,vector_l,n,vector_r,n,work,lwork,info)
+      call dsyev('V','U',n,dynamical,n,eigens,work,lwork,info)
+      vectors = dynamical
 
       if (info /= 0) then
          call yaml_warning('(F) Error from the routine dgeev: info=' // trim(yaml_toa(info)))
@@ -449,12 +445,7 @@ contains
       !Put to zero if < 1.d-16
       do i=1,n
          do j=1,n
-            if (abs(vector_l(j,i)) < 1.d-16) vector_l(j,i)=0.d0
-         end do
-      end do
-      do i=1,n
-         do j=1,n
-            if (abs(vector_r(j,i)) < 1.d-16) vector_r(j,i)=0.d0
+            if (abs(vectors(j,i)) < 1.d-16) vectors(j,i)=0.d0
          end do
       end do
       !de-allocation
