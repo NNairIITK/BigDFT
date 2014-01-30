@@ -397,7 +397,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
-    ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
+    ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
+    ham_small, order_taylor)
   !
   ! Purpose:
   ! ========
@@ -435,6 +436,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer,intent(in) :: itout
   real(kind=8),intent(in) :: conv_crit, early_stop
   logical,intent(in) :: experimental_mode
+  type(sparseMatrix), intent(inout), optional :: ham_small ! for foe only
+  integer,intent(in), optional :: order_taylor
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
@@ -458,8 +461,135 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: psi_tmp, kernel_best
   integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
   logical :: stop_optimization, energy_increased_previous, complete_reset, even
+  integer :: iismall, iseglarge, isegsmall, is, ie, iilarge
+  type(confpot_data),dimension(:),allocatable :: confdatarrtmp
+  real(8) :: tmprtr, ebs
 
   call f_routine(id='getLocalizedBasis')
+
+
+
+  !!if (itout>0) then
+  !!    call evaltoocc(iproc,nproc,.false.,1.d-2,orbs,SMEARING_DIST_ERF)
+  !!    if (iproc==0) then
+  !!        do iorb=1,orbs%norb
+  !!            write(*,'(a,i4,es12.4,f9.3)') 'iorb, eval, occup', iorb, orbs%eval(iorb), orbs%occup(iorb)
+  !!        end do
+  !!    end if
+  !!end if
+  
+ ! ###################################################################################
+ if (itout>0) then
+
+      call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+      call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
+           tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+
+      if (iproc==0) then
+          call yaml_map('Hamiltonian application required',.true.)
+      end if
+
+      allocate(confdatarrtmp(tmb%orbs%norbp))
+      call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
+
+      call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+
+      if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+
+      call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
+           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
+      ! only kinetic as waiting for communications
+      call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
+           energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
+           tmb%ham_descr%comgp)
+      !call wait_p2p_communication(iproc, nproc, tmb%ham_descr%comgp)
+      ! only potential
+      call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
+           energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      call timing(iproc,'glsynchham1','ON')
+      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+      call timing(iproc,'glsynchham1','OF')
+      deallocate(confdatarrtmp)
+
+
+      iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+      deallocate(denspot%pot_work, stat=istat)
+      call memocc(istat, iall, 'denspot%pot_work', subname)
+
+      !!if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
+
+      ! Calculate the matrix elements <phi|H|phi>.
+      if(.not.tmb%ham_descr%can_use_transposed) then
+          if(associated(tmb%ham_descr%psit_c)) then
+              iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
+              deallocate(tmb%ham_descr%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+          end if
+          if(associated(tmb%ham_descr%psit_f)) then
+              iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
+              deallocate(tmb%ham_descr%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+          end if
+
+          allocate(tmb%ham_descr%psit_c(tmb%ham_descr%collcom%ndimind_c), stat=istat)
+          call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
+          allocate(tmb%ham_descr%psit_f(7*tmb%ham_descr%collcom%ndimind_f), stat=istat)
+          call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+          tmb%ham_descr%can_use_transposed=.true.
+      end if
+
+      allocate(hpsit_c(tmb%ham_descr%collcom%ndimind_c))
+      call memocc(istat, hpsit_c, 'hpsit_c', subname)
+      allocate(hpsit_f(7*tmb%ham_descr%collcom%ndimind_f))
+      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+
+
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+           tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
+      !call memocc(istat, iall, 'tmb%linmat%ham%matrix', subname)
+
+
+         ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
+         call timing(iproc,'FOE_init','ON') !lr408t
+         iismall=0
+         iseglarge=1
+         do isegsmall=1,tmb%linmat%ovrlp%nseg
+            do
+               is=max(tmb%linmat%ovrlp%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
+               ie=min(tmb%linmat%ovrlp%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
+               iilarge=tmb%linmat%ham%keyv(iseglarge)-tmb%linmat%ham%keyg(1,iseglarge)
+               do i=is,ie
+                  iismall=iismall+1
+                  ham_small%matrix_compr(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
+               end do
+               if (ie>=is) exit
+               iseglarge=iseglarge+1
+            end do
+         end do
+         call timing(iproc,'FOE_init','OF') !lr408t
+
+
+      if (iproc==0) call yaml_map('method','FOE')
+      tmprtr=1.d-2
+      call foe2(iproc, nproc, tmb%orbs, tmb%foe_obj, &
+           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, ebs, &
+           itout,-1, order_taylor)
+      ! Eigenvalues not available, therefore take -.5d0
+      tmb%orbs%eval=-.5d0
+
+  end if
+
+
+  ! #######################################################################
 
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
   kernel_best=f_malloc(tmb%linmat%denskern%nvctr,id='kernel_best')
