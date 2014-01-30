@@ -1683,7 +1683,7 @@ module module_interfaces
           fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
-          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop, ham_small, order_taylor)
+          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
         use module_base
         use module_types
         implicit none
@@ -1711,8 +1711,6 @@ module module_interfaces
         integer,intent(in) :: itout
         real(kind=8),intent(in) :: conv_crit, early_stop
         logical,intent(in) :: experimental_mode
-        type(sparseMatrix), intent(inout), optional :: ham_small ! for foe only
-        integer,intent(in), optional :: order_taylor
       end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -4017,21 +4015,6 @@ module module_interfaces
           type(sparseMatrix),intent(inout) :: fermi
           real(kind=8),intent(out) :: ebs
         end subroutine foe
-
-        subroutine foe2(iproc, nproc, orbs, foe_obj, &
-                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout, it_scc, order_taylor)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
-          type(orbitals_data),intent(in) :: orbs
-          type(foe_data),intent(inout) :: foe_obj
-          real(kind=8),intent(inout) :: tmprtr
-          integer,intent(in) :: mode
-          type(sparseMatrix),intent(inout) :: ovrlp, ham
-          type(sparseMatrix),intent(inout) :: fermi
-          real(kind=8),intent(out) :: ebs
-        end subroutine foe2
 
         subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
           use module_types

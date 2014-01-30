@@ -2197,10 +2197,9 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    melec=nint(charge)
    !if (iproc == 0) write(*,*) 'charge',charge,melec
 
-   write(*,*) 'WARNING: COMMENTED HERE'
-   !!! Send all eigenvalues to all procs (presumably not necessary)
-   !!call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
-   !!   &   orbs%eval, orbs%ikptproc)
+   ! Send all eigenvalues to all procs (presumably not necessary)
+   call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
+      &   orbs%eval, orbs%ikptproc)
    
    if (wf > 0.0_gp) then
       ii=0

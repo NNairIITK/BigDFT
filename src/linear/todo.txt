@@ -50,7 +50,8 @@ LAPACK on Vesta - check spectral decomposition and dump matrix to file if incorr
 
 
 
-
+final goal:
+* "ready-for-production" version for as many applications as possible
 
 
 
