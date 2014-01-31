@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.1.10
- Timestamp of this run                 : 2014-01-24 10:14:47.177
+ Timestamp of this run                 : 2014-01-31 16:22:25.003
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -466,7 +466,7 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  4.903E+01,  2.855E+01 ]}
+   -  {Process:  0, Timing:  [  4.699E+01,  2.534E+01 ]}
    nstates_max                         :  16
    ksorbs%norb                         :  16
    tmb%orbs%norb                       :  24
@@ -549,18 +549,16 @@
      Coefficients available            :  Yes
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
-   -  {Initial kernel purification:  Yes, purification process: [
- {iter:  1, diff from idempotency:  8.59E-16}]}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.75195809356E+01, Epot: -4.81117048297E+01, Enl:  2.75316624258}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873748795557474E+01, D: -6.87E+01, D best: -6.87E+01, 
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873748795557437E+01, D: -6.87E+01, D best: -6.87E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  3.75195809356E+01, Epot: -4.81117048297E+01, Enl:  2.75316624258}, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873748795557474E+01, D: -6.87E+01, D best: -6.87E+01}
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873748795557437E+01, D: -6.87E+01, D best: -6.87E+01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -573,7 +571,7 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.44E-02, eBS: -1.62668022247263515E+01, D: -1.744E-03, alpha:  2.0E-01}
+ iter:  1, fnrm:  2.44E-02, eBS: -1.62668022247248274E+01, D: -1.744E-03, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  3.75195809356E+01, Epot: -4.81117048297E+01, Enl:  2.75316624258, 
@@ -599,15 +597,15 @@
  {e: -2.698798569525E-01, f:  2.0},  # 00015
  {e: -2.698798569525E-01, f:  2.0}] # 00016
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.85E-08, energy: -6.87392322198295318E+01, D: -6.874E+01}]
+ iter:  1, delta:  1.85E-08, energy: -6.87392322198291623E+01, D: -6.874E+01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.85E-08, energy: -6.87392322198295318E+01, D: -6.874E+01}]}
+ iter:  2, delta:  1.85E-08, energy: -6.87392322198291623E+01, D: -6.874E+01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  1.851E-08, energy: -6.87392322198295318E+01, D: -6.874E+01}
+ iter high:  1, delta out:  1.851E-08, energy: -6.87392322198291623E+01, D: -6.874E+01}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -9.212807585703E-01, f:  1.0},  # 00001
@@ -675,7 +673,7 @@
  Energies: {Ekin:  3.75195809356E+01, Epot: -4.81117048297E+01, Enl:  2.75316624258, 
               EH:  1.42319256222E+02,  EXC: -1.64945288531E+01, EvXC: -2.16222985218E+01}, 
        iter high:  1,            delta out:  1.851E-08, 
-          energy: -6.87392322198295318E+01,                       D:  0.0,  #FINAL
+          energy: -6.87392322198291623E+01,                       D:  0.0,  #FINAL
  }
  Total charge                          :  3.199999979249E+01
   #---------------------------------------------------------------------- Forces Calculation
@@ -687,26 +685,26 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  9.34178313E-03, y: -5.92654087E-02, z:  3.8099154E-02, 
                     total:  7.10718166E-02}
- Clean forces norm (Ha/Bohr): {maxval:  7.938469061381E-02, fnrm2:  1.198632046969E-02}
- Raw forces norm (Ha/Bohr): {maxval:  1.13896651089E-01, fnrm2:  2.107172967261E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  7.938469061029E-02, fnrm2:  1.198632046823E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  1.138966510848E-01, fnrm2:  2.107172967089E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.230207171704E-02, -7.076907663208E-02,  2.821851331345E-02]} # 0001
- -  {H: [-3.792318271575E-03,  1.098826462355E-02, -1.301986088095E-02]} # 0002
- -  {H: [-2.538476559927E-03,  8.323231805993E-03, -6.715438618734E-03]} # 0003
- -  {O: [ 2.378561352888E-03, -3.840729846594E-02,  2.600678768575E-02]} # 0004
- -  {H: [-2.204616934928E-02,  7.81349389427E-03, -1.324777036954E-02]} # 0005
- -  {H: [-9.976158584391E-03,  5.618279346405E-03, -9.541765570402E-03]} # 0006
- -  {O: [-1.54348985514E-02,  7.809878985247E-03, -2.455092212893E-03]} # 0007
- -  {H: [ 8.836123203026E-03,  2.359637800242E-02, -6.596732560258E-03]} # 0008
- -  {H: [ 4.519420331392E-03,  2.574660922886E-02, -1.146765884075E-02]} # 0009
- -  {O: [ 1.147748571904E-02,  9.782733447987E-03,  2.896474863981E-03]} # 0010
- -  {H: [ 4.325249564269E-04,  2.063497039958E-03,  6.884801942064E-03]} # 0011
- -  {H: [ 3.841834036771E-03,  7.434008723343E-03, -9.622587517219E-04]} # 0012
+ -  {O: [ 2.23020717216E-02, -7.076907662785E-02,  2.821851331056E-02]} # 0001
+ -  {H: [-3.792318271709E-03,  1.098826462383E-02, -1.301986087917E-02]} # 0002
+ -  {H: [-2.538476561398E-03,  8.323231806146E-03, -6.715438617304E-03]} # 0003
+ -  {O: [ 2.37856135684E-03, -3.840729846074E-02,  2.600678768351E-02]} # 0004
+ -  {H: [-2.20461693503E-02,  7.813493893414E-03, -1.324777036926E-02]} # 0005
+ -  {H: [-9.976158586524E-03,  5.618279345468E-03, -9.541765570454E-03]} # 0006
+ -  {O: [-1.543489854902E-02,  7.809878977458E-03, -2.455092211459E-03]} # 0007
+ -  {H: [ 8.836123203378E-03,  2.359637800227E-02, -6.596732558993E-03]} # 0008
+ -  {H: [ 4.519420330836E-03,  2.574660922927E-02, -1.146765883887E-02]} # 0009
+ -  {O: [ 1.147748571186E-02,  9.782733450076E-03,  2.896474861338E-03]} # 0010
+ -  {H: [ 4.325249576759E-04,  2.063497038521E-03,  6.884801941842E-03]} # 0011
+ -  {H: [ 3.841834036767E-03,  7.434008722126E-03, -9.622587517335E-04]} # 0012
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  108.66
-   Elapsed time (s)                    :  60.47
+   CPU time (s)                        :  105.87
+   Elapsed time (s)                    :  56.93
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -717,24 +715,24 @@
      Array Id                          : wfd%keyvloc
      Size (Bytes)                      : 24476
      Allocating Routine Id             : system_initialization
-     Address of first element          : 0x2876110
-     Address of metadata               : 42475192
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
+     Address of first element          : 0x2324110
+     Address of metadata               : 36896440
+   wfd%keygloc:
+     Array Id                          : wfd%keygloc
      Size (Bytes)                      : 48952
      Allocating Routine Id             : system_initialization
-     Address of first element          : 0x2d259d0
-     Address of metadata               : 42475000
+     Address of first element          : 0x27df910
+     Address of metadata               : 36896344
    Timestamp of Profile initialization:
-     2014-01-24 10:14:46.120
+     2014-01-31 16:22:23.957
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3598
-   Tot. No. of Deallocations           :  3598
+   Tot. No. of Allocations             :  3574
+   Tot. No. of Deallocations           :  3574
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  1271
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
- Max No. of dictionaries used          :  2267 #(  138 still in use)
+ Max No. of dictionaries used          :  2266 #(  138 still in use)

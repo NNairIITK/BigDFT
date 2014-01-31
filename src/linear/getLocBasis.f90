@@ -522,7 +522,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   even=(mod(ncharge,2)==0)
 
   ! Purify the initial kernel (only when necessary and if there is an even number of electrons)
-  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even) then
+  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even .and. scf_mode==LINEAR_FOE) then
       if (iproc==0) then
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
