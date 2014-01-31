@@ -772,12 +772,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   ii=mod(nkappa_history-1,3)+1
                   kappa_history(ii)=ratio_deltas
               end if
-              if (nkappa_history>=3) then
-                  kappa_mean=sum(kappa_history)/3.d0
-                  if (iproc==0) call yaml_map('mean kappa',kappa_mean,fmt='(es10.3)')
-                  dynamic_convcrit=conv_crit/kappa_mean
-                  if (iproc==0) call yaml_map('dynamic conv crit',dynamic_convcrit,fmt='(es9.2)')
-              end if
+              !!if (nkappa_history>=3) then
+              !!    kappa_mean=sum(kappa_history)/3.d0
+              !!    if (iproc==0) call yaml_map('mean kappa',kappa_mean,fmt='(es10.3)')
+              !!    dynamic_convcrit=conv_crit/kappa_mean
+              !!    if (iproc==0) call yaml_map('dynamic conv crit',dynamic_convcrit,fmt='(es9.2)')
+              !!end if
+          end if
+      end if
+      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          if (nkappa_history>=3) then
+              kappa_mean=sum(kappa_history)/3.d0
+              if (iproc==0) call yaml_map('mean kappa',kappa_mean,fmt='(es10.3)')
+              dynamic_convcrit=conv_crit/kappa_mean
+              if (iproc==0) call yaml_map('dynamic conv crit',dynamic_convcrit,fmt='(es9.2)')
           end if
       end if
 
