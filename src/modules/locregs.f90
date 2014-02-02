@@ -228,7 +228,7 @@ contains
     !pointers have not been associated by the f_associate routine (to be implemented to date)
     if (associated(wfd%keyglob, target = wfd%keygloc)) then
        !assuming that globals has been created afterwards
-       call f_free_ptr(wfd%keygloc)
+       call f_free_ptr(wfd%keyglob)
        nullify(wfd%keygloc)
 !!$       i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
 !!$       deallocate(wfd%keyglob,stat=i_stat)

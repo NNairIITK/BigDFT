@@ -355,7 +355,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
            call yaml_map('Generation of input wavefunction data for atom ', trim(at%astruct%atomnames(ityp)))
            !write(*,'(1x,a,a6,a)') 'Generation of input wavefunction data for atom ',&
            !     & trim(at%astruct%atomnames(ityp)),':'
-           call print_eleconf(nspin,nspinor,&!noccmax,nelecmax,lmax,&
+           call print_eleconf(nspin,&!nspinor,&!noccmax,nelecmax,lmax,&
                 at%aocc(1:,iat),at%iasctype(iat))
         end if
 
@@ -380,7 +380,6 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                 ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
                 psiat(1,1,ityx),enlargerprb)
         endif
-
 
         ntypesx=ntypesx+1
         !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'

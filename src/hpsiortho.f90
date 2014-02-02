@@ -709,6 +709,11 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
 
+  !quick return if no orbitals on this processor
+  if (orbs%norbp == 0) then
+     return
+  end if
+
   call f_routine(id=subname)
 
   !array of the scalar products
@@ -716,10 +721,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
   eproj_sum=0.0_gp
 
-  !quick return if no orbitals on this processor
-  if (orbs%norbp == 0) then
-     return
-  end if
 
   ! apply all PSP projectors for all orbitals belonging to iproc
   call timing(iproc,'ApplyProj     ','ON')
@@ -800,10 +801,11 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                  hp=at%psppar(1,1,iatype) !it is supposed that the only projector is the i=1 case
                  ispsi=ispsi_k
                  istart_c=1
+                 
                  call apply_oneproj_operator(nl%pspd(iat)%plr%wfd,nl%proj(istart_c),hp,&
                       (ieorb-isorb+1)*nspinor,Lzd%Llr(ilr)%wfd,psi(ispsi),hpsi(ispsi),scpr)
                  istart_c=istart_c+nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f
-
+!                 call f_malloc_dump_status()
                  ispsi=ispsi+&
                       (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor*(ieorb-isorb+1)
                  do iorb=isorb,ieorb

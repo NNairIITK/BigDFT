@@ -65,10 +65,28 @@ weight(1,1,2)=5
 call f_free(weight)
    call f_release_routine()
 
-!!$   call yaml_open_map('Temporary')
+!!$   call yaml_open_map('TemporaryA')
+!!$    call f_malloc_dump_status()
+!!$    call yaml_close_map()
+!!$
+!!$
+!!$   call f_routine(id='Routine A')
+!!$weight=f_malloc((/1.to.8,1.to.8,2.to.4/),id='weight')
+!!$weight(1,1,2)=5
+!!$call f_free(weight)
+!!$   call f_release_routine()
+!!$
+!!$   call yaml_open_map('TemporaryB')
 !!$    call f_malloc_dump_status()
 !!$    call yaml_close_map()
 
+
+!!$   call f_release_routine()
+!!$
+!!$   call yaml_open_map('Temporary')
+!!$    call f_malloc_dump_status()
+!!$    call yaml_close_map()
+!!$stop
 !!$
 !!$!   call f_malloc_dump_status()
 !!$   call f_routine(id=subname)

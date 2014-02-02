@@ -32,7 +32,9 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   logical :: output_denspot_
   logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
 
+  call f_routine(id=subname)
   call timing(iproc,'CrtDescriptors','ON')
+  
 
   !assign the dimensions to improve (a little) readability
   n1=Glr%d%n1
@@ -99,6 +101,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   call memocc(i_stat,i_all,'logrid_f',subname)
 
   call timing(iproc,'CrtDescriptors','OF')
+  call f_release_routine()
 END SUBROUTINE createWavefunctionsDescriptors
 
 
@@ -173,13 +176,19 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
       call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f, &
            & Glr%wfd%keyglob(1,Glr%wfd%nseg_c+1), Glr%wfd%keyvglob(Glr%wfd%nseg_c+1))
    end if
-   i_all = -product(shape(Glr%wfd%keygloc))*kind(Glr%wfd%keygloc)
-   deallocate(Glr%wfd%keygloc,stat=i_stat)
-   call memocc(i_stat,i_all,'Glr%wfd%keygloc',subname)
+   !that is the point where the association is given
+   !one should consider the possiblity of associating the 
+   !arrays with f_associate
+!!$   i_all = -product(shape(Glr%wfd%keygloc))*kind(Glr%wfd%keygloc)
+!!$   deallocate(Glr%wfd%keygloc,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'Glr%wfd%keygloc',subname)
+   call f_free_ptr(Glr%wfd%keygloc)
    Glr%wfd%keygloc => Glr%wfd%keyglob
-   i_all = -product(shape(Glr%wfd%keyvloc))*kind(Glr%wfd%keyvloc)
-   deallocate(Glr%wfd%keyvloc,stat=i_stat)
-   call memocc(i_stat,i_all,'Glr%wfd%keyvloc',subname)
+
+!!$   i_all = -product(shape(Glr%wfd%keyvloc))*kind(Glr%wfd%keyvloc)
+!!$   deallocate(Glr%wfd%keyvloc,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'Glr%wfd%keyvloc',subname)
+   call f_free_ptr(Glr%wfd%keyvloc)
    Glr%wfd%keyvloc => Glr%wfd%keyvglob
  
    ! Copy the information of keyglob to keygloc for Glr (just pointing leads to problem during the deallocation of wfd)

@@ -198,15 +198,6 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
       END SUBROUTINE write_atomic_file
 
-      subroutine merge_input_file_to_dict(dict, fname, mpi_env)
-        use dictionaries
-        use wrapper_MPI, only: mpi_environment
-        implicit none
-        type(dictionary), pointer :: dict
-        character(len = *), intent(in) :: fname
-        type(mpi_environment), intent(in) :: mpi_env
-      end subroutine merge_input_file_to_dict
-
       subroutine read_input_dict_from_files(radical, mpi_env,dict)
         use dictionaries, only: dictionary
         use wrapper_MPI, only: mpi_environment

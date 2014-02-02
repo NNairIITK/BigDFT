@@ -496,7 +496,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    logical :: orbpol_nc,occeq
    integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
-   integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng
+   integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng,nspin_print
    real(gp) :: ek,mx,my,mz,ma,mb,mc,md
    real(gp) :: mnorm,fac
    logical, dimension(lmax,noccmax) :: semicore
@@ -526,8 +526,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !if non-collinear it is like nspin=1 but with the double of orbitals
    if (orbse%nspinor == 4) then
       noncoll=2
+      nspin_print=4
    else
       noncoll=1
+      nspin_print=nspin
    end if
 
    !calculate the number of atom types by taking into account the occupation
@@ -606,7 +608,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
             !   &   'Generation of input wavefunction data for atom ',&
             !   &   trim(at%astruct%atomnames(ity)),&
             !   &   ': '
-            call print_eleconf(nspin,orbse%nspinor,&!noccmax,nelecmax,lmax,&
+            call print_eleconf(nspin_print,&!noccmax,nelecmax,lmax,&
                  at%aocc(1:,iat),at%iasctype(iat))
          end if
 
