@@ -12,6 +12,7 @@ program MINHOP
   use module_base
   use module_types
   use module_interfaces
+  use module_input_dicts
   use m_ab6_symmetry
   use yaml_output
   implicit real(kind=8) (a-h,o-z)
@@ -46,6 +47,7 @@ program MINHOP
   integer, dimension(4) :: mpi_info
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
+  type(dictionary), pointer :: user_inputs
 
   call f_lib_initialize()
   call bigdft_init(mpi_info,nconfig,run_id,ierr)
@@ -92,11 +94,21 @@ program MINHOP
 
   !for each of the configuration set the input files
   !optimized input parameters
-  call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'poscur'//trim(bigdft_run_id_toa()),&
-       inputs_opt,atoms)
+  call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
+       & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
+  call inputs_from_dict(inputs_opt, atoms, user_inputs, .true.)
+  if (bigdft_mpi%iproc == 0) then
+     call print_general_parameters(inputs_opt,atoms)
+  end if
+  call dict_free(user_inputs)
   !unoptimized input parameters
-  call bigdft_set_input('md'//trim(run_id)//trim(bigdft_run_id_toa()),'poscur'//trim(bigdft_run_id_toa()),&
-       inputs_md,md_atoms)
+  call user_dict_from_files(user_inputs, 'md'//trim(run_id)//trim(bigdft_run_id_toa()), &
+       & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
+  call inputs_from_dict(inputs_md, md_atoms, user_inputs, .true.)
+  if (bigdft_mpi%iproc == 0) then
+     call print_general_parameters(inputs_md,md_atoms)
+  end if
+  call dict_free(user_inputs)
 !   write(*,*) 'nat=',atoms%astruct%nat
   ! Create the DFT_global_output container.
   call init_global_output(outs, atoms%astruct%nat)
@@ -189,6 +201,7 @@ program MINHOP
   inputs_opt%inputPsiId=0
 
   call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst,subname)
+  call run_objects_nullify(runObj)
   call run_objects_associate(runObj, inputs_md, atoms, rst)
   call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
@@ -243,7 +256,7 @@ program MINHOP
 
   call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
-  runObj%inputs => inputs_opt
+  call run_objects_associate(runObj, inputs_opt, atoms, rst)
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
@@ -484,7 +497,7 @@ program MINHOP
 
 
   call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
-  runObj%inputs => inputs_opt
+  call run_objects_associate(runObj, inputs_opt, atoms, rst)
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
      count_bfgs=count_bfgs+ncount_bigdft

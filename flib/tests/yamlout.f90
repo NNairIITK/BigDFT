@@ -33,6 +33,34 @@ subroutine test_yaml_output1()
   !      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d)
   !      print *,'iflowlevel',i,'ilevel',l,'ilast',j,'indent',d
   call yaml_close_map()
+
+  !verify also other properties
+  call yaml_map('Is 1.0 a real string',is_atof('1.0'))
+  call yaml_map('Is 1.0 a integer string',is_atoi('1.0'))
+  call yaml_map('Is 1.0 a logical string',is_atol('1.0'))
+
+  call yaml_map('Is 1 a real string',is_atof('1'))
+  call yaml_map('Is 1 a integer string',is_atoi('1'))
+  call yaml_map('Is 1 a logical string',is_atol('1'))
+
+  call yaml_map('Is Yes a real string',is_atof('Yes'))
+  call yaml_map('Is Yes a integer string',is_atoi('Yes'))
+  call yaml_map('Is Yes a logical string',is_atol('Yes'))
+
+  call yaml_map('Is No a real string',is_atof('No'))
+  call yaml_map('Is No a integer string',is_atoi('No'))
+  call yaml_map('Is No a logical string',is_atol('No'))
+
+  call yaml_map('Is ./ a real string',is_atof('./'))
+  call yaml_map('Is ./ a integer string',is_atoi('./'))
+  call yaml_map('Is ./ a logical string',is_atol('./'))
+
+  call yaml_map('Is 0. a real string',is_atof(' 0.'))
+  call yaml_map('Is 0. a integer string',is_atoi(' 0.'))
+
+  call yaml_map('Is 0.000000000E+00 a real string',is_atof(' 0.0000000000000000'))
+  call yaml_map('Is 0.000000000E+00 a integer string',is_atoi(' 0.0000000000000000'))
+
 end subroutine test_yaml_output1
 
 

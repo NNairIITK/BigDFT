@@ -225,19 +225,14 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !   is located.
   allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
   call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
-  allocate(orbs%onWhichMPI(sum(orbs%norb_par(:,0))), stat=i_stat)
-  call memocc(i_stat, orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
   iiorb=0
   orbs%isorb_par=0
   do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc,0)
-          iiorb=iiorb+1
-          orbs%onWhichMPI(iiorb)=jproc
-      end do
       if(iproc==jproc) then
           orbs%isorb_par(jproc)=orbs%isorb
       end if
   end do
+
   !this mpiflag is added to make memguess working
   call MPI_Initialized(mpiflag,ierr)
   if(nproc >1 .and. mpiflag /= 0) &

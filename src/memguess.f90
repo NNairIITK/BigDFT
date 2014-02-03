@@ -30,35 +30,30 @@ program memguess
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.
    integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
-   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
-   integer :: norbgpu,nspin_ig,ng
+   integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
+   integer :: norbgpu,ng
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: peakmem,hx,hy,hz,energy
-   type(input_variables) :: in
-   type(atoms_data) :: atoms
-   type(orbitals_data) :: orbs,orbstst
-   type(communications_arrays) :: comms
-   type(local_zone_descriptors) :: Lzd
-   type(nonlocal_psp_descriptors) :: nlpspd
+   real(gp) :: hx,hy,hz,energy
+   type(memory_estimation) :: mem
+   type(run_objects) :: runObj
+   type(orbitals_data) :: orbstst
+   type(DFT_PSP_projectors) :: nlpsp
    type(gaussian_basis) :: G !basis for davidson IG
+   type(atoms_data) :: at
    type(denspot_distribution) :: dpbox
    real(gp), dimension(3) :: shift
-   logical, dimension(:,:,:), allocatable :: logrid
-   integer, dimension(:,:), allocatable :: norbsc_arr
    real(gp), dimension(:,:), pointer :: fxyz
-   real(wp), dimension(:), allocatable :: rhoexpo,psi
+   real(wp), dimension(:), allocatable :: rhoexpo
    real(wp), dimension(:,:,:,:), pointer :: rhocoeff
-   real(kind=8), dimension(:,:), allocatable :: radii_cf
-   logical, dimension(:,:,:), allocatable :: scorb
-   real(kind=8), dimension(:), allocatable :: locrad
    real(gp), dimension(:), pointer :: gbd_occ
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
-   integer :: i
+   integer :: i, inputpsi, input_wf_format
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror
+
    call f_lib_initialize()
 
    ! Get arguments
@@ -267,189 +262,109 @@ program memguess
    !call print_logo()
 
    if (convert) then
-      atoms%astruct%geocode = "P"
+      at%astruct%geocode = "P"
       write(*,*) "Read density file..."
-      call read_density(trim(fileFrom), atoms%astruct%geocode, Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i, &
-         &   nspin, hx, hy, hz, rhocoeff, atoms%astruct%nat, atoms%astruct%rxyz, atoms%astruct%iatype, atoms%nzatom)
-      atoms%astruct%ntypes = size(atoms%nzatom) - ndebug
+      call read_density(trim(fileFrom), at%astruct%geocode, &
+           & dpbox%ndims(1), dpbox%ndims(2), dpbox%ndims(3), &
+           & nspin, dpbox%hgrids(1), dpbox%hgrids(2), dpbox%hgrids(3), &
+           & rhocoeff, at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
+      at%astruct%ntypes = size(at%nzatom) - ndebug
       write(*,*) "Write new density file..."
-      dpbox%ndims(1)=Lzd%Glr%d%n1i
-      dpbox%ndims(2)=Lzd%Glr%d%n2i
-      dpbox%ndims(3)=Lzd%Glr%d%n3i
-      dpbox%hgrids(1)=hx
-      dpbox%hgrids(2)=hy
-      dpbox%hgrids(3)=hz
       allocate(dpbox%ngatherarr(0:0,2+ndebug),stat=i_stat)
       call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
 
-      call plot_density(0,1,trim(fileTo),atoms,atoms%astruct%rxyz,dpbox,nspin,rhocoeff)
+      call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
       write(*,*) "Done"
       stop
    end if
    if (convertpos) then
-      call read_atomic_file(trim(fileFrom),0,atoms%astruct,i_stat,fcomment,energy,fxyz)
+      call read_atomic_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
       if (i_stat /=0) stop 'error on input file parsing' 
       !find the format of the output file
       if (index(fileTo,'.xyz') > 0) then
          irad=index(fileTo,'.xyz')
-         atoms%astruct%inputfile_format='xyz  '
+         at%astruct%inputfile_format='xyz  '
       else if (index(fileTo,'.ascii') > 0) then
          irad=index(fileTo,'.ascii')
-         atoms%astruct%inputfile_format='ascii'
+         at%astruct%inputfile_format='ascii'
       else if (index(fileTo,'.yaml') > 0) then
          irad=index(fileTo,'.yaml')
-         atoms%astruct%inputfile_format='yaml '
+         at%astruct%inputfile_format='yaml '
       else
          irad = len(trim(fileTo)) + 1
       end if
       
       if (associated(fxyz)) then
-         call write_atomic_file(fileTo(1:irad-1),energy,atoms%astruct%rxyz,atoms,&
+         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")", fxyz)
 
          i_all=-product(shape(fxyz))*kind(fxyz)
          deallocate(fxyz,stat=i_stat)
          call memocc(i_stat,i_all,'fxyz',subname)
       else
-         call write_atomic_file(fileTo(1:irad-1),energy,atoms%astruct%rxyz,atoms,&
+         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
       end if
       stop
    end if
+
+
 
    if (trim(radical) == "") then
       posinp='posinp'
    else
       posinp=trim(radical)
    end if
-   call bigdft_set_input(radical,posinp,in,atoms)
-   !initialize memory counting
-   !call memocc(0,0,'count','start')
 
-   if (in%ixc < 0) then
-      call xc_init(in%ixc, XC_MIXED, nspin)
-   else
-      call xc_init(in%ixc, XC_ABINIT, nspin)
+   call run_objects_init_from_files(runObj, radical, posinp)
+
+   if (optimise) then
+      if (runObj%atoms%astruct%geocode =='F') then
+         call optimise_volume(runObj%atoms,&
+              & runObj%inputs%crmult,runObj%inputs%frmult,&
+              & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,&
+              & runObj%atoms%astruct%rxyz,runObj%radii_cf)
+      else
+         call shift_periodic_directions(runObj%atoms,runObj%atoms%astruct%rxyz,runObj%radii_cf)
+      end if
+      write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
+      write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
+      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment))
+      !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 
-   call print_general_parameters(in,atoms)
-   call print_dft_parameters(in,atoms)
-   call xc_dump()
+   call print_dft_parameters(runObj%inputs,runObj%atoms)
 
    !Time initialization
    !call cpu_time(tcpu0)
    !call system_clock(ncount0,ncount_rate,ncount_max)
 
-   ! store PSP parameters
-   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-   call memocc(i_stat,radii_cf,'radii_cf',subname)
-
-   call system_properties(0,nproc,in,atoms,orbs,radii_cf)
-
-   if (optimise) then
-      if (atoms%astruct%geocode =='F') then
-         call optimise_volume(atoms,in%crmult,in%frmult,in%hx,in%hy,in%hz,atoms%astruct%rxyz,radii_cf)
-      else
-         call shift_periodic_directions(atoms,atoms%astruct%rxyz,radii_cf)
-      end if
-      write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
-      write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-      call write_atomic_file('posopt',0.d0,atoms%astruct%rxyz,atoms,trim(comment))
-      !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
-   end if
-
-   !In the case in which the number of orbitals is not "trivial" check whether they are too many
-   !Always True! (TD)
-   !if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
-      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
-      allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
-      call memocc(i_stat,scorb,'scorb',subname)
-      allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
-      call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-      allocate(locrad(atoms%astruct%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,locrad,'locrad',subname)
-
-      !calculate the inputguess orbitals
-      !spin for inputguess orbitals
-      if (in%nspin==4) then
-         nspin_ig=1
-      else
-         nspin_ig=in%nspin
-      end if
-
-      ! Read the inguess.dat file or generate the input guess via the inguess_generator
-      call readAtomicOrbitals(atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
-         &   scorb,norbsc_arr,locrad)
-
-      if (in%nspin==4) then
-         !in that case the number of orbitals doubles
-         norbe=2*norbe
-      end if
-
-      ! De-allocations
-      i_all=-product(shape(locrad))*kind(locrad)
-      deallocate(locrad,stat=i_stat)
-      call memocc(i_stat,i_all,'locrad',subname)
-      i_all=-product(shape(scorb))*kind(scorb)
-      deallocate(scorb,stat=i_stat)
-      call memocc(i_stat,i_all,'scorb',subname)
-      i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-      deallocate(norbsc_arr,stat=i_stat)
-      call memocc(i_stat,i_all,'norbsc_arr',subname)
-
-      if (in%inputpsiId /= INPUT_PSI_RANDOM) then
-         ! Check the maximum number of orbitals
-         if (in%nspin==1 .or. in%nspin==4) then
-            if (orbs%norb>norbe) then
-               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
-                  &   ') must not be greater than the number of orbitals (',norbe,&
-                  &   ') generated from the input guess.'
-               stop
-            end if
-         else if (in%nspin == 2) then
-            if (orbs%norbu > norbe) then
-               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
-                  &   ') must not be greater than the number of orbitals (',norbe,&
-                  &   ') generated from the input guess.'
-               stop
-            end if
-            if (orbs%norbd > norbe) then
-               write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
-                  &   ') must not be greater than the number of orbitals (',norbe,&
-                  &   ') generated from the input guess.'
-               stop
-            end if
-         end if
-      end if
-
-   !end if
-
-   ! Determine size alat of overall simulation cell and shift atom positions
-   ! then calculate the size in units of the grid space
-   hx=in%hx
-   hy=in%hy
-   hz=in%hz
-
-   call system_size(0,atoms,atoms%astruct%rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Lzd%Glr,shift)
-
-   ! Build and print the communicator scheme.
-   call createWavefunctionsDescriptors(0,hx,hy,hz,&
-      &   atoms,atoms%astruct%rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr, output_denspot = (output_grid > 0))
-   call orbitals_communicators(0,nproc,Lzd%Glr,orbs,comms)  
-
-   if (exportwf) then
-
-      allocate(psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor+ndebug),stat=i_stat)
-      call memocc(i_stat,psi,'psi',subname)
+   call system_initialization(0, nproc, .true.,inputpsi, input_wf_format, .true., &
+        & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, &
+        & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
+        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, nlpsp, runObj%rst%KSwfn%comms, &
+        & shift,runObj%radii_cf, ref_frags, output_grid = (output_grid > 0))
+   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
+        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
+        & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
+        runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
+   
+   if (.not. exportwf) then
+      call print_memory_estimation(mem)
+   else
+      allocate(runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor+ndebug),stat=i_stat)
+      call memocc(i_stat,runObj%rst%KSwfn%psi,'psi',subname)
 
       ! Optionally compute iorbp from arguments in case of ETSF.
-      if (export_wf_ikpt < 1 .or. export_wf_ikpt > orbs%nkpts) stop "Wrong k-point"
-      if (export_wf_ispin < 1 .or. export_wf_ispin > orbs%nspin) stop "Wrong spin"
+      if (export_wf_ikpt < 1 .or. export_wf_ikpt > runObj%rst%KSwfn%orbs%nkpts) stop "Wrong k-point"
+      if (export_wf_ispin < 1 .or. export_wf_ispin > runObj%rst%KSwfn%orbs%nspin) stop "Wrong spin"
       if ((export_wf_ispin == 1 .and. &
-           & (export_wf_iband < 1 .or. export_wf_iband > orbs%norbu)) .or. &
+           & (export_wf_iband < 1 .or. export_wf_iband > runObj%rst%KSwfn%orbs%norbu)) .or. &
            & (export_wf_ispin == 0 .and. &
-           & (export_wf_iband < 1 .or. export_wf_iband > orbs%norbd))) stop "Wrong orbital"
-      iorbp = (export_wf_ikpt - 1) * orbs%norb + (export_wf_ispin - 1) * orbs%norbu + export_wf_iband
+           & (export_wf_iband < 1 .or. export_wf_iband > runObj%rst%KSwfn%orbs%norbd))) stop "Wrong orbital"
+      iorbp = (export_wf_ikpt - 1) * runObj%rst%KSwfn%orbs%norb + &
+           & (export_wf_ispin - 1) * runObj%rst%KSwfn%orbs%norbu + export_wf_iband
 
       ! ref_frags to be allocated here
       i = index(filename_wfn, "/",back=.true.)+1
@@ -459,18 +374,19 @@ program memguess
       end if
 
       call yaml_map("Export wavefunction from file", trim(filename_wfn))
-      call take_psi_from_file(filename_wfn,in%frag,hx,hy,hz,Lzd%Glr, &
-           & atoms,atoms%astruct%rxyz,orbs,psi,iorbp,export_wf_ispinor,ref_frags)
-      call filename_of_iorb(.false.,"wavefunction",orbs,iorbp, &
+      ! @todo Very ugly patch for ref_frags that is nullified by system_initialization
+      ! but used as an allocated array by take_psi_from_file().
+      ! TO BE CORRECTED !!!!!
+      if (.not.associated(ref_frags)) allocate(ref_frags(runObj%inputs%frag%nfrag_ref))
+      call take_psi_from_file(filename_wfn,runObj%inputs%frag,hx,hy,hz,runObj%rst%KSwfn%Lzd%Glr, &
+           & runObj%atoms,runObj%atoms%astruct%rxyz,runObj%rst%KSwfn%orbs,runObj%rst%KSwfn%psi,&
+           & iorbp,export_wf_ispinor,ref_frags)
+      call filename_of_iorb(.false.,"wavefunction",runObj%rst%KSwfn%orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
 
-      call plot_wf(filename_wfn,1,atoms,1.0_wp,Lzd%Glr,hx,hy,hz,atoms%astruct%rxyz, &
-           & psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
-
-      i_all=-product(shape(psi))*kind(psi)
-      deallocate(psi,stat=i_stat)
-      call memocc(i_stat,i_all,'psi',subname)
-
+      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr,hx,hy,hz,runObj%atoms%astruct%rxyz, &
+           & runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
    end if
 
    if (GPUtest) then
@@ -479,7 +395,7 @@ program memguess
       !test orbitals
       nspin=1
       if (norbgpu == 0) then
-         norb=orbs%norb
+         norb=runObj%rst%KSwfn%orbs%norb
       else
          norb=norbgpu
       end if
@@ -487,8 +403,8 @@ program memguess
       norbd=0
       nspinor=1
 
-      call orbitals_descriptors(0,nproc,norb,norbu,norbd,in%nspin,nspinor, &
-           in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbstst,.false.)
+      call orbitals_descriptors(0,nproc,norb,norbu,norbd,runObj%inputs%nspin,nspinor, &
+           runObj%inputs%gen_nkpt,runObj%inputs%gen_kpt,runObj%inputs%gen_wkpt,orbstst,.false.)
       allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
       call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
       do iorb=1,orbstst%norbp
@@ -500,16 +416,18 @@ program memguess
          orbstst%spinsgn(iorb)=1.0_gp
       end do
 
-      call check_linear_and_create_Lzd(0,1,in%linear,Lzd,atoms,orbstst,in%nspin,atoms%astruct%rxyz)
+      call check_linear_and_create_Lzd(0,1,runObj%inputs%linear,runObj%rst%KSwfn%Lzd,&
+           & runObj%atoms,orbstst,runObj%inputs%nspin,runObj%atoms%astruct%rxyz)
 
       !for the given processor (this is only the cubic strategy)
-      orbstst%npsidim_orbs=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
+      orbstst%npsidim_orbs=(runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*orbstst%norbp*orbstst%nspinor
       orbstst%npsidim_comp=1
 
 
-      call compare_cpu_gpu_hamiltonian(0,1,in%matacc,atoms,&
-           orbstst,nspin,in%ncong,in%ixc,&
-           Lzd,hx,hy,hz,atoms%astruct%rxyz,ntimes)
+      call compare_cpu_gpu_hamiltonian(0,1,runObj%inputs%matacc,runObj%atoms,&
+           orbstst,nspin,runObj%inputs%ncong,runObj%inputs%ixc,&
+           runObj%rst%KSwfn%Lzd,hx,hy,hz,runObj%atoms%astruct%rxyz,ntimes)
 
       call deallocate_orbs(orbstst,subname)
 
@@ -520,39 +438,13 @@ program memguess
 
    end if
 
-   call deallocate_comms(comms,subname)
-
-   ! determine localization region for all projectors, but do not yet fill the descriptor arrays
-   allocate(nlpspd%plr(atoms%astruct%nat))
-!!$   allocate(nlpspd%nseg_p(0:2*atoms%astruct%nat+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%nseg_p,'nseg_p',subname)
-!!$   allocate(nlpspd%nvctr_p(0:2*atoms%astruct%nat+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%nvctr_p,'nvctr_p',subname)
-!!$   allocate(nlpspd%nboxp_c(2,3,atoms%astruct%nat+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
-!!$   allocate(nlpspd%nboxp_f(2,3,atoms%astruct%nat+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
-
-   allocate(logrid(0:Lzd%Glr%d%n1,0:Lzd%Glr%d%n2,0:Lzd%Glr%d%n3+ndebug),stat=i_stat)
-   call memocc(i_stat,logrid,'logrid',subname)
-
-   call localize_projectors(0,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,hx,hy,hz,&
-      &   in%frmult,in%frmult,atoms%astruct%rxyz,radii_cf,logrid,atoms,orbs,nlpspd)
-   deallocate(nlpspd%plr)
-   !allocations for arrays holding the data descriptors
-!!$   !just for modularity
-!!$   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*atoms%astruct%nat)+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
-!!$   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%astruct%nat)+ndebug),stat=i_stat)
-!!$   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
-
    if (atwf) then
       !here the treatment of the AE Core charge density
       !number of gaussians defined in the input of memguess
       !ng=31
       !plot the wavefunctions for the pseudo atom
       nullify(G%rxyz)
-      call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,atoms%astruct%rxyz,G,gbd_occ)
+      call gaussian_pswf_basis(ng,.false.,0,runObj%inputs%nspin,runObj%atoms,runObj%atoms%astruct%rxyz,G,gbd_occ)
       !for the moment multiply the number of coefficients for each channel
       allocate(rhocoeff((ng*(ng+1))/2,4,1,1+ndebug),stat=i_stat)
       call memocc(i_stat,rhocoeff,'rhocoeff',subname)
@@ -572,10 +464,10 @@ program memguess
 
       !!$  !plot the wavefunctions for the AE atom
       !!$  !not possible, the code should recognize the AE eleconf
-      !!$  call razero(35,atoms%psppar(0,0,atoms%astruct%iatype(1)))
-      !!$  atoms%psppar(0,0,atoms%astruct%iatype(1))=0.01_gp
+      !!$  call razero(35,runObj%atoms%psppar(0,0,runObj%atoms%astruct%iatype(1)))
+      !!$  runObj%atoms%psppar(0,0,runObj%atoms%astruct%iatype(1))=0.01_gp
       !!$  nullify(G%rxyz)
-      !!$  call gaussian_pswf_basis(ng,.false.,0,in%nspin,atoms,atoms%astruct%rxyz,G,gbd_occ)
+      !!$  call gaussian_pswf_basis(ng,.false.,0,runObj%inputs%nspin,atoms,runObj%atoms%astruct%rxyz,G,gbd_occ)
       !!$  !for the moment multiply the number of coefficients for each channel
       !!$  allocate(rhocoeff((ng*(ng+1))/2,4+ndebug),stat=i_stat)
       !!$  call memocc(i_stat,rhocoeff,'rhocoeff',subname)
@@ -602,37 +494,18 @@ program memguess
 
    end if
 
-   i_all=-product(shape(logrid))*kind(logrid)
-   deallocate(logrid,stat=i_stat)
-   call memocc(i_stat,i_all,'logrid',subname)
-
-   !call deallocate_proj_descr(nlpspd,subname)
-
-   if (.not. exportwf) then
-      call MemoryEstimator(nproc,in%idsx,Lzd%Glr,&
-           atoms%astruct%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
-           in%nspin,in%itrpmax,in%iscf,peakmem)
-   end if
-
    ! Add the comparison between cuda hamiltonian and normal one if it is the case
 
-   call deallocate_atoms(atoms,subname)
-
-   call deallocate_lr(Lzd%Glr,subname)
-
-   call xc_end()
-
-   i_all=-product(shape(radii_cf))*kind(radii_cf)
-   deallocate(radii_cf,stat=i_stat)
-   call memocc(i_stat,i_all,'radii_cf',subname)
-
    ! De-allocations
-   call deallocate_orbs(orbs,subname)
+   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
+   call deallocate_comms(runObj%rst%KSwfn%comms,subname)
+   call deallocate_orbs(runObj%rst%KSwfn%orbs,subname)
+   call free_DFT_PSP_projectors(nlpsp)
 
    !remove the directory which has been created if it is possible
-   call deldir(in%dir_output,len(trim(in%dir_output)),ierror)
-   call free_input_variables(in)  
+   call deldir(runObj%inputs%dir_output,len(trim(runObj%inputs%dir_output)),ierror)
 
+   call run_objects_free(runObj, subname)
 !   !finalize memory counting
 !   call memocc(0,0,'count','stop')
 
@@ -672,7 +545,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
 
    allocate(txyz(3,atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,txyz,'txyz',subname)
-   call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
    !call volume(nat,rxyz,vol)
    vol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
    write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -723,7 +596,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
          txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
       enddo
 
-      call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+      call system_size(atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
       tvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
       !call volume(nat,txyz,tvol)
       if (tvol < vol) then

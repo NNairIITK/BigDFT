@@ -35,7 +35,7 @@ module yaml_strings
 
   !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
-  public :: yaml_date_and_time_toa,yaml_time_toa
+  public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol
 
 contains
 
@@ -110,6 +110,14 @@ contains
     if (lgt_add+string_pos > string_lgt) then
        !try to eliminate trailing spaces
        lgt_add=len_trim(buffer)
+    end if
+
+    if (lgt_add+string_pos > string_lgt) then
+       !ic corrections August 23rd 2013
+       !If the string is too long, truncate the length to the length of String: string_lgt-string_pos
+       !write in stderr that a problem is produced (not compatible with pure procedures
+       !write(0,*)'WARNING: Length of Buffer is too long: ',lgt_add
+       !write(0,*)'WARNING: Missing string: ',buffer(string_lgt-string_pos:lgt_add)
        if (present(istat)) then
           istat=-1
           return
@@ -311,7 +319,6 @@ contains
     include 'yaml_toa-arr-inc.f90'
   end function yaml_rvtoa
 
-
   !> Yaml Spaced format for Date and Time
   function yaml_date_and_time_toa(values,zone)
     implicit none
@@ -371,7 +378,7 @@ contains
 
     write(yaml_date_toa,'(i4.4,"-",i2.2,"-",i2.2)')vals(1:3)
 
-    yaml_date_toa=yaml_adjust(yaml_date_toa)
+    yaml_date_toa=yaml_adjust(yaml_date_toa,clean=.false.)
 
   end function yaml_date_toa
 
@@ -390,16 +397,24 @@ contains
 
     write(yaml_time_toa,'(i2.2,":",i2.2,":",i2.2,".",i3.3)')vals(5:8)
 
-    yaml_time_toa=yaml_adjust(yaml_time_toa)
+    yaml_time_toa=yaml_adjust(yaml_time_toa,clean=.false.)
 
   end function yaml_time_toa
 
-  pure function yaml_adjust(str)
+  pure function yaml_adjust(str,clean)
     implicit none
     character(len=*), intent(in) :: str
+    logical, intent(in), optional :: clean
     character(len=max_value_length) :: yaml_adjust
+    !local variables
+    logical :: clean0
+
+    clean0=.true.
+    if (present(clean)) clean0=clean
 
     yaml_adjust=adjustl(str)
+
+    if (clean0) yaml_adjust=clean_zero(yaml_adjust)
 
     !put a space if there is no sign
     if (yaml_adjust(1:1)/='-') then
@@ -409,6 +424,101 @@ contains
     end if
 
   end function yaml_adjust
+
+  pure function clean_zero(str)
+    implicit none
+    character(len=*), intent(in) :: str
+    character(len=max_value_length) :: clean_zero
+    !local variables
+    integer :: idot,iexpo,i,iend
+
+    !first fill with all the values up to the dot if it exist
+    idot=scan(str,'.')
+    if (idot==0) then
+       !no dot, nothing to clean
+       clean_zero(1:max_value_length)=str
+    else
+       !first find the position of the end of the string
+!       iend=len_trim(str)
+       !then search for the position of the exponent or of the space if present
+       iexpo=scan(str(idot+2:),'eE ')+idot+1
+       !print *,'there',iexpo,'str',str(idot+2:)
+       if (iexpo==idot+1) iexpo=len(str)+1
+       i=iexpo
+       find_last_zero: do while(i > idot+1) !first digit after comma always stays
+          i=i-1
+          if (str(i:i) /= '0') exit find_last_zero
+       end do find_last_zero
+       clean_zero(1:i)=str(1:i)
+       !print *,'here',i,clean_zero(1:i),'iexpo',iexpo,str(iexpo:)
+       !then copy the exponent
+       if (str(iexpo:) /= 'E+00' .and. str(iexpo:) /= 'e+00' .and. str(iexpo:) /= 'E+000' .and. &
+            str(iexpo:) /= 'e+000') then
+          clean_zero(i+1:max_value_length)=str(iexpo:)
+       else
+          clean_zero(i+1:max_value_length)=' '
+       end if
+       !try to put at the old position a termination character
+!       clean_zero(iend:iend)=char(0)
+    end if
+  end function clean_zero
+
+
+  !>find if a string is an integer
+  !! use the portable mode described in 
+  !! http://flibs.sourceforge.net/fortran_aspects.html#check_integers
+  pure function is_atoi(str) result(yes)
+    implicit none
+    character(len=*), intent(in) :: str
+    logical :: yes
+    !local variables
+    integer :: ierr,ival
+    character(len=20) :: form
+    
+    !fill the string describing the format to be used for reading
+    !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
+    read(str,trim(form),iostat=ierr)ival
+    yes=ierr==0
+  end function is_atoi
+
+  !>check if str contains a floating point number. 
+  !!note that in principle this function gives positive answer also 
+  !!if the number in str is an integer. Therefore is_atoi should be used to check before
+  pure function is_atof(str) result(yes)
+    implicit none
+    character(len=*), intent(in) :: str
+    logical :: yes
+    !local variables
+    integer :: ierr,is,ie
+    double precision :: rval
+
+    ie=len_trim(str)
+    is=scan(trim(str),' ')+1
+    yes=scan(str(is:ie),' ') ==0 !there is no other space in the string
+    if (yes) then
+       read(str(is:ie),*,iostat=ierr)rval
+       yes=ierr==0 .and. str(max(ie,1):ie)/='/' !the slash terminator is not allowed
+    end if
+
+  end function is_atof
+
+  !> check if str contains a logical in yaml specification (Yes=.true. and No=.false.)
+  pure function is_atol(str) result(yes)
+    implicit none
+    character(len=*), intent(in) :: str
+    logical :: yes
+    !local variables
+    integer :: is,ie
+    !fill the string describing the format to be used for reading
+    !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
+    ie=len(trim(str))
+    is=max(scan(trim(str),' '),1)
+    yes=scan(str(is:ie),' ') ==0 !there is no other space in the string
+    if (yes) yes= (ie-is+1==3 .and. str(is:ie)=='Yes') .or. (ie-is+1==2 .and. str(is:ie)=='No')
+  end function is_atol
+
+
 
   !> Shifts characters in in the string 'str' n positions (positive values
   !! denote a right shift and negative values denote a left shift). Characters

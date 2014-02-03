@@ -41,171 +41,9 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
 
 end subroutine copy_tmbs
 
-subroutine copy_locreg_descriptors(glrin, glrout, subname)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => copy_locreg_descriptors
-  implicit none
-  
-  ! Calling arguments
-  type(locreg_descriptors),intent(in):: glrin
-  type(locreg_descriptors),intent(inout):: glrout
-  character(len=*),intent(in):: subname
-  
-  ! Local variables
-  
-  glrout%geocode = glrin%geocode
-  glrout%hybrid_on = glrin%hybrid_on
-  glrout%ns1 = glrin%ns1
-  glrout%ns2 = glrin%ns2
-  glrout%ns3 = glrin%ns3
-  glrout%nsi1 = glrin%nsi1
-  glrout%nsi2 = glrin%nsi2
-  glrout%nsi3 = glrin%nsi3
-  glrout%Localnorb = glrin%Localnorb
-  glrout%locrad=glrin%locrad
-  glrout%locregCenter(1)=glrin%locregCenter(1)
-  glrout%locregCenter(2)=glrin%locregCenter(2)
-  glrout%locregCenter(3)=glrin%locregCenter(3)
-  
-  glrout%outofzone(1) = glrin%outofzone(1)
-  glrout%outofzone(2) = glrin%outofzone(2)
-  glrout%outofzone(3) = glrin%outofzone(3)
-  
-  call copy_grid_dimensions(glrin%d, glrout%d)
-  call copy_wavefunctions_descriptors(glrin%wfd, glrout%wfd, subname)
-  if(glrin%geocode == 'F' .or. (glrin%geocode == 'P' .and. glrin%hybrid_on)) then
-     call copy_convolutions_bounds(glrin%geocode, glrin%bounds, glrout%bounds, subname)
-  end if
-
-end subroutine copy_locreg_descriptors
-
-
-
-subroutine copy_grid_dimensions(din, dout)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(grid_dimensions),intent(in):: din
-  type(grid_dimensions),intent(out):: dout
-  
-  dout%n1 = din%n1
-  dout%n2 = din%n2
-  dout%n3 = din%n3
-  dout%nfl1 = din%nfl1
-  dout%nfu1 = din%nfu1
-  dout%nfl2 = din%nfl2
-  dout%nfu2 = din%nfu2
-  dout%nfl3 = din%nfl3
-  dout%nfu3 = din%nfu3
-  dout%n1i = din%n1i
-  dout%n2i = din%n2i
-  dout%n3i = din%n3i
-
-end subroutine copy_grid_dimensions
-
-
-
-subroutine copy_wavefunctions_descriptors(wfdin, wfdout, subname)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(wavefunctions_descriptors),intent(in):: wfdin
-  type(wavefunctions_descriptors),intent(inout):: wfdout
-  character(len=*),intent(in):: subname
-  
-  ! Local variables
-  integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
-  
-  
-  wfdout%nvctr_c = wfdin%nvctr_c
-  wfdout%nvctr_f = wfdin%nvctr_f
-  wfdout%nseg_c = wfdin%nseg_c
-  wfdout%nseg_f = wfdin%nseg_f
-  
-  if(associated(wfdout%keygloc)) then
-      iall=-product(shape(wfdout%keygloc))*kind(wfdout%keygloc)
-      deallocate(wfdout%keygloc, stat=istat)
-      call memocc(istat, iall, 'wfdout%keygloc', subname)
-  end if
-  if(associated(wfdin%keygloc)) then
-      iis1=lbound(wfdin%keygloc,1)
-      iie1=ubound(wfdin%keygloc,1)
-      iis2=lbound(wfdin%keygloc,2)
-      iie2=ubound(wfdin%keygloc,2)
-      
-      allocate(wfdout%keygloc(iis1:iie1,iis2:iie2), stat=istat)
-      call memocc(istat, wfdout%keygloc, 'wfdout%keygloc', subname)
-      do i2=iis2,iie2
-          do i1=iis1,iie1
-              wfdout%keygloc(i1,i2) = wfdin%keygloc(i1,i2)
-          end do
-      end do
-  end if
-      
-  if(associated(wfdout%keyglob)) then
-      iall=-product(shape(wfdout%keyglob))*kind(wfdout%keygloc)
-      deallocate(wfdout%keyglob, stat=istat)
-      call memocc(istat, iall, 'wfdout%keyglob', subname)
-  end if
-  if(associated(wfdin%keyglob)) then
-      iis1=lbound(wfdin%keyglob,1)
-      iie1=ubound(wfdin%keyglob,1)
-      iis2=lbound(wfdin%keyglob,2)
-      iie2=ubound(wfdin%keyglob,2)
-      allocate(wfdout%keyglob(iis1:iie1,iis2:iie2), stat=istat)
-      call memocc(istat, wfdout%keyglob, 'wfdout%keyglob', subname)
-      do i2=iis2,iie2
-          do i1=iis1,iie1
-              wfdout%keyglob(i1,i2) = wfdin%keyglob(i1,i2)
-          end do
-      end do
-  end if
-  
-  if(associated(wfdout%keyvloc)) then
-      iall=-product(shape(wfdout%keyvloc))*kind(wfdout%keyvloc)
-      deallocate(wfdout%keyvloc, stat=istat)
-      call memocc(istat, iall, 'wfdout%keyvloc', subname)
-  end if
-  if(associated(wfdin%keyvloc)) then
-      iis1=lbound(wfdin%keyvloc,1)
-      iie1=ubound(wfdin%keyvloc,1)
-      allocate(wfdout%keyvloc(iis1:iie1), stat=istat)
-      call memocc(istat, wfdout%keyvloc, 'wfdout%keyvloc', subname)
-      do i1=iis1,iie1
-          wfdout%keyvloc(i1) = wfdin%keyvloc(i1)
-      end do
-  end if
-  
-  if(associated(wfdout%keyvglob)) then
-      iall=-product(shape(wfdout%keyvglob))*kind(wfdout%keyvglob)
-      deallocate(wfdout%keyvglob, stat=istat)
-      call memocc(istat, iall, 'wfdout%keyvglob', subname)
-  end if
-  if(associated(wfdin%keyvglob)) then
-      iis1=lbound(wfdin%keyvglob,1)
-      iie1=ubound(wfdin%keyvglob,1)
-      allocate(wfdout%keyvglob(iis1:iie1), stat=istat)
-      call memocc(istat, wfdout%keyvglob, 'wfdout%keyvglob', subname)
-      do i1=iis1,iie1
-          wfdout%keyvglob(i1) = wfdin%keyvglob(i1)
-      end do
-  end if
-
-end subroutine copy_wavefunctions_descriptors
-
-
-
-
-
 subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   use module_base
   use module_types
-  use module_interfaces, expectThisOne => copy_convolutions_bounds
   implicit none
   
   ! Calling arguments
@@ -247,8 +85,6 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
      end if
   end if
 end subroutine copy_convolutions_bounds
-
-
 
 subroutine copy_kinetic_bounds(geocode,kbin, kbout, subname)
 use module_base
@@ -691,83 +527,6 @@ end if
 
 end subroutine copy_grow_bounds
 
-
-
-
-subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(nonlocal_psp_descriptors),intent(in):: nlpspin
-  type(nonlocal_psp_descriptors),intent(out):: nlpspout
-  character(len=*),intent(in):: subname
-
-  ! Local variables
-  integer:: istat,iat
-
-
-  nlpspout%nproj = nlpspin%nproj
-  nlpspout%nprojel = nlpspin%nprojel
-
-  nlpspout%natoms=nlpspin%natoms
-  
-  !allocate the array and copy wavefunction descriptors
-  allocate(nlpspout%plr(nlpspout%natoms),stat=istat)
-  if (istat /= 0) stop 'allocation error, nlpspout' 
-
-  do iat=1,nlpspout%natoms
-
-     !copy dimensions which are relevant for the moment
-     nlpspout%plr(iat)%ns1=nlpspin%plr(iat)%ns1
-     nlpspout%plr(iat)%ns2=nlpspin%plr(iat)%ns2
-     nlpspout%plr(iat)%ns3=nlpspin%plr(iat)%ns3
-
-     nlpspout%plr(iat)%d%n1=nlpspin%plr(iat)%d%n1
-     nlpspout%plr(iat)%d%n2=nlpspin%plr(iat)%d%n2
-     nlpspout%plr(iat)%d%n3=nlpspin%plr(iat)%d%n3
-
-     nlpspout%plr(iat)%d%nfl1=nlpspin%plr(iat)%d%nfl1
-     nlpspout%plr(iat)%d%nfl2=nlpspin%plr(iat)%d%nfl2
-     nlpspout%plr(iat)%d%nfl3=nlpspin%plr(iat)%d%nfl3
-     nlpspout%plr(iat)%d%nfu1=nlpspin%plr(iat)%d%nfu1
-     nlpspout%plr(iat)%d%nfu2=nlpspin%plr(iat)%d%nfu2
-     nlpspout%plr(iat)%d%nfu3=nlpspin%plr(iat)%d%nfu3
-
-     nlpspout%plr(iat)%wfd%nseg_c =nlpspin%plr(iat)%wfd%nseg_c 
-     nlpspout%plr(iat)%wfd%nseg_f =nlpspin%plr(iat)%wfd%nseg_f 
-     nlpspout%plr(iat)%wfd%nvctr_c=nlpspin%plr(iat)%wfd%nvctr_c
-     nlpspout%plr(iat)%wfd%nvctr_f=nlpspin%plr(iat)%wfd%nvctr_f
-
-     call allocate_wfd(nlpspout%plr(iat)%wfd,subname)
- 
-     if (nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f > 0) then
-        call vcopy(nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f,&
-             nlpspin%plr(iat)%wfd%keyvloc(1),1,&
-             nlpspout%plr(iat)%wfd%keyvloc(1),1)
-        call vcopy(nlpspout%plr(iat)%wfd%nseg_c+nlpspout%plr(iat)%wfd%nseg_f,&
-             nlpspin%plr(iat)%wfd%keyvglob(1),1,&
-             nlpspout%plr(iat)%wfd%keyvglob(1),1)
-        call vcopy(2*(nlpspout%plr(iat)%wfd%nseg_c+&
-             nlpspout%plr(iat)%wfd%nseg_f),&
-             nlpspin%plr(iat)%wfd%keygloc(1,1),1,&
-             nlpspout%plr(iat)%wfd%keygloc(1,1),1)
-        call vcopy(2*(nlpspout%plr(iat)%wfd%nseg_c+&
-             nlpspout%plr(iat)%wfd%nseg_f),&
-             nlpspin%plr(iat)%wfd%keyglob(1,1),1,&
-             nlpspout%plr(iat)%wfd%keyglob(1,1),1)
-     end if
-  end do
-  
-
-
-
-
-end subroutine copy_nonlocal_psp_descriptors
-
-
-
 subroutine copy_orbitals_data(orbsin, orbsout, subname)
 use module_base
 use module_types
@@ -871,21 +630,6 @@ if(associated(orbsin%onwhichatom)) then
     call memocc(istat, orbsout%onwhichatom, 'orbsout%onwhichatom', subname)
     do i1=iis1,iie1
         orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
-    end do
-end if
-
-if(associated(orbsout%onWhichMPI)) then
-    iall=-product(shape(orbsout%onWhichMPI))*kind(orbsout%onWhichMPI)
-    deallocate(orbsout%onWhichMPI, stat=istat)
-    call memocc(istat, iall, 'orbsout%onWhichMPI', subname)
-end if
-if(associated(orbsin%onWhichMPI)) then
-    iis1=lbound(orbsin%onWhichMPI,1)
-    iie1=ubound(orbsin%onWhichMPI,1)
-    allocate(orbsout%onWhichMPI(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%onWhichMPI, 'orbsout%onWhichMPI', subname)
-    do i1=iis1,iie1
-        orbsout%onWhichMPI(i1) = orbsin%onWhichMPI(i1)
     end do
 end if
 
@@ -1033,9 +777,8 @@ end subroutine copy_orthon_data
 
 
 subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => copy_local_zone_descriptors
+  use locregs
+  use module_types, only: local_zone_descriptors
   implicit none
 
   ! Calling arguments
@@ -1050,10 +793,10 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
   lzd_out%nlr=lzd_in%nlr
   lzd_out%lintyp=lzd_in%lintyp
   lzd_out%ndimpotisf=lzd_in%ndimpotisf
-  lzd_out%hgrids(:)=lzd_in%hgrids(:)
+  lzd_out%hgrids=lzd_in%hgrids
 
   call nullify_locreg_descriptors(lzd_out%glr)
-  call copy_locreg_descriptors(lzd_in%glr, lzd_out%glr, subname)
+  call copy_locreg_descriptors(lzd_in%glr, lzd_out%glr)
 
   if(associated(lzd_out%llr)) then
       deallocate(lzd_out%llr, stat=istat)
@@ -1064,85 +807,19 @@ subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
       allocate(lzd_out%llr(iis1:iie1), stat=istat)
       do i1=iis1,iie1
           call nullify_locreg_descriptors(lzd_out%llr(i1))
-          call copy_locreg_descriptors(lzd_in%llr(i1), lzd_out%llr(i1), subname)
+          call copy_locreg_descriptors(lzd_in%llr(i1), lzd_out%llr(i1))
       end do
   end if
 
 end subroutine copy_local_zone_descriptors
 
 
-!only copying sparsity pattern here, not copying whole matrix
-subroutine sparse_copy_pattern_new(sparseMat_in, sparseMat_out, iproc, subname)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => sparse_copy_pattern
-  implicit none
 
-  ! Calling arguments
-  type(sparseMatrix),intent(in):: sparseMat_in
-  type(sparseMatrix),intent(out):: sparseMat_out
-  integer, intent(in) :: iproc
-  character(len=*),intent(in):: subname
 
-  ! Local variables
-  integer :: i1
-  !integer:: iis1, iie1, iis2, iie2, i2, istat, iall
-
-  call timing(iproc,'sparse_copy','ON')
-
-  !assume sparsemat_out is nullified, take advantage of pointers
-
-sparsemat_out=sparsemat_in
-
-  nullify(sparsemat_out%matrix)
-  nullify(sparsemat_out%matrix_compr)
-
-return
-
-  sparsemat_out%nvctr = sparsemat_in%nvctr
-  sparsemat_out%nseg = sparsemat_in%nseg
-  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
-  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
-
-  nullify(sparsemat_out%matrix)
-  nullify(sparsemat_out%matrix_compr)
-
-  if(associated(sparsemat_in%keyv)) then
-     sparsemat_out%keyv = sparsemat_in%keyv
-  end if
-
-  if(associated(sparsemat_in%nsegline)) then
-     sparsemat_out%nsegline(i1) = sparsemat_in%nsegline(i1)
-  end if
-
-  if(associated(sparsemat_in%istsegline)) then
-     sparsemat_out%istsegline = sparsemat_in%istsegline
-  end if
-
-  if(associated(sparsemat_in%keyg)) then
-     sparsemat_out%keyg = sparsemat_in%keyg
-  end if
-
-  !!if(associated(sparsemat_in%matrixindex_in_compressed)) then
-  !!   sparsemat_out%matrixindex_in_compressed = sparsemat_in%matrixindex_in_compressed
-  !!end if
-  if(associated(sparsemat_in%matrixindex_in_compressed_arr)) then
-     sparsemat_out%matrixindex_in_compressed_arr = sparsemat_in%matrixindex_in_compressed_arr
-  end if
-
-  if(associated(sparsemat_in%orb_from_index)) then
-     sparsemat_out%orb_from_index = sparsemat_in%orb_from_index
-  end if
-
-  call timing(iproc,'sparse_copy','OF')
-
-end subroutine sparse_copy_pattern_new
-
-!only copying sparsity pattern here, not copying whole matrix
+!only copying sparsity pattern here, not copying whole matrix (assuming matrices not allocated)
 subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => sparse_copy_pattern
   implicit none
 
   ! Calling arguments
@@ -1156,15 +833,65 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
 
   call timing(iproc,'sparse_copy','ON')
 
-  sparsemat_out%nvctr = sparsemat_in%nvctr
   sparsemat_out%nseg = sparsemat_in%nseg
-  sparsemat_out%full_dim1 = sparsemat_in%full_dim1
-  sparsemat_out%full_dim2 = sparsemat_in%full_dim2
   sparsemat_out%store_index = sparsemat_in%store_index
+  sparsemat_out%nvctr = sparsemat_in%nvctr
+  sparsemat_out%nvctrp = sparsemat_in%nvctrp
+  sparsemat_out%isvctr = sparsemat_in%isvctr
+  sparsemat_out%nfvctr = sparsemat_in%nfvctr
+  sparsemat_out%nfvctrp = sparsemat_in%nfvctrp
+  sparsemat_out%isfvctr = sparsemat_in%isfvctr
+  sparsemat_out%parallel_compression = sparsemat_in%parallel_compression
 
+  if(associated(sparsemat_out%nvctr_par)) then
+     call f_free_ptr(sparsemat_out%nvctr_par)
+  end if
+  if(associated(sparsemat_in%nvctr_par)) then
+     iis1=lbound(sparsemat_in%nvctr_par,1)
+     iie1=ubound(sparsemat_in%nvctr_par,1)
+     sparsemat_out%nvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%nvctr_par')
+     do i1=iis1,iie1
+        sparsemat_out%nvctr_par(i1) = sparsemat_in%nvctr_par(i1)
+     end do
+  end if
+  if(associated(sparsemat_out%isvctr_par)) then
+     call f_free_ptr(sparsemat_out%isvctr_par)
+  end if
+  if(associated(sparsemat_in%isvctr_par)) then
+     iis1=lbound(sparsemat_in%isvctr_par,1)
+     iie1=ubound(sparsemat_in%isvctr_par,1)
+     sparsemat_out%isvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%isvctr_par')
+     do i1=iis1,iie1
+        sparsemat_out%isvctr_par(i1) = sparsemat_in%isvctr_par(i1)
+     end do
+  end if
+  if(associated(sparsemat_out%nfvctr_par)) then
+     call f_free_ptr(sparsemat_out%nfvctr_par)
+  end if
+  if(associated(sparsemat_in%nfvctr_par)) then
+     iis1=lbound(sparsemat_in%nfvctr_par,1)
+     iie1=ubound(sparsemat_in%nfvctr_par,1)
+     sparsemat_out%nfvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%nfvctr_par')
+     do i1=iis1,iie1
+        sparsemat_out%nfvctr_par(i1) = sparsemat_in%nfvctr_par(i1)
+     end do
+  end if
+  if(associated(sparsemat_out%isfvctr_par)) then
+     call f_free_ptr(sparsemat_out%isfvctr_par)
+  end if
+  if(associated(sparsemat_in%isfvctr_par)) then
+     iis1=lbound(sparsemat_in%isfvctr_par,1)
+     iie1=ubound(sparsemat_in%isfvctr_par,1)
+     sparsemat_out%isfvctr_par=f_malloc_ptr((/iis1.to.iie1/),id='sparsemat_out%isfvctr_par')
+     do i1=iis1,iie1
+        sparsemat_out%isfvctr_par(i1) = sparsemat_in%isfvctr_par(i1)
+     end do
+  end if
 
   nullify(sparsemat_out%matrix)
   nullify(sparsemat_out%matrix_compr)
+  nullify(sparsemat_out%matrixp)
+  nullify(sparsemat_out%matrix_comprp)
 
   if(associated(sparsemat_out%keyv)) then
      iall=-product(shape(sparsemat_out%keyv))*kind(sparsemat_out%keyv)

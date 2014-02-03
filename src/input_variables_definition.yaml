@@ -30,8 +30,14 @@
    ixc:
      COMMENT: exchange-correlation parameter (LDA=1,PBE=11)
      default: 1
-     PBE: 11
-     Hybrid: -406
+#here follow a number of possibilities for the different XC functionals
+     LDA (ABINIT): 1
+     PBE (ABINIT): 11
+     LDA: -20
+     PBE: -101130
+     PBE0: -406
+     B97-D: -170 #to be verified
+     B3LYP: -402
    ncharge:
      COMMENT: charge of the system
      RANGE: [-500., 500.]
@@ -163,7 +169,7 @@
        MASTER_KEY: method
        WHEN:
        - MPGrid
-     default: [0., 0., 0.]
+     default: [[0., 0., 0.]]
    kpt:
      COMMENT: Kpt coordinates
      CONDITION:
@@ -459,12 +465,12 @@
    accel:
      COMMENT: acceleration
      EXCLUSIVE:
-       no: no material acceleration
+       NO: no material acceleration
        CUDAGPU: CUDA
        OCLGPU: OpenCL on GPU
        OCLCPU: OpenCL on CPU
        OCLACC: ???
-     default: No
+     default: NO
    ocl_platform:
      COMMENT: Chosen OCL platform
      default: ~
@@ -609,5 +615,14 @@
      default: No
    write_orbitals:
      COMMENT: linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+     default: No
+   explicit_locregcenters:
+     COMMENT: linear scaling explicitely specify localization centers 
+     default: No
+   calculate_KS_residue:
+     COMMENT: linear scaling calculate Kohn-Sham residue
+     default: Yes
+   intermediate_forces:
+     COMMENT: linear scaling calculate intermediate forces
      default: No
 

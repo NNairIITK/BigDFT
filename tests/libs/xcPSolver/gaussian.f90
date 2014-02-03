@@ -12,7 +12,7 @@ program MP_gaussian
   use gaussians
   use yaml_output
   implicit none
-  integer, parameter :: nmoms=16,nstep=100,nsigma=300
+  integer, parameter :: nmoms=16,nstep=10,nsigma=1
   integer :: npts,j,imoms,pow,istep,isigma
   real(gp) :: hgrid,pgauss,x0,reference,max1
   real(gp), dimension(0:nmoms,2) :: moments
@@ -35,9 +35,9 @@ program MP_gaussian
   call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
   do isigma=1,nsigma
-     pgauss=0.5_gp/((0.01_gp+0.01_gp*(isigma-1)*hgrid)**2)
+     pgauss=0.5_gp/((0.7_gp+0.01_gp*(isigma-1)*hgrid)**2)
      call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
-     !plot function
+     !plot raw function
      do j=-npts,npts
         if (pow /= 0) then
            write(16,*)j,exp(-pgauss*(j*hgrid-x0)**2)*((j*hgrid-x0)**pow)
@@ -89,8 +89,6 @@ program MP_gaussian
   end do
   call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
 
-
-
   call finalize_real_space_conversion('Main program')
   
   call f_free(fj_phi,fj_coll)
@@ -100,7 +98,7 @@ end program MP_gaussian
 !> classify the quality of a multipole extraction in both cases
 subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
   use module_base, only: gp
-  use gaussians, only: scfdotf
+  use gaussians, only: mp_exp
   implicit none
   integer, intent(in) :: npts,pow,nmoms
   real(gp), intent(in) :: hgrid,pgauss,x0
@@ -109,16 +107,18 @@ subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moment
   !local variables
   integer :: j
 
-  !use the elemental property of the scfdotf function
-  fj_phi=scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
+  !use the elemental property of the mp_exp function
+  fj_phi=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)
+  !scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
   call moments_1d(2*npts+1,fj_phi,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,1))
 
   !collocation array
-  if (pow /=0) then
-     fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2)*(j*hgrid-x0)**pow,j=-npts,npts)/)
-  else
-     fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2),j=-npts,npts)/)
-  end if
+  fj_coll=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.false.)
+  !if (pow /=0) then
+  !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2)*(j*hgrid-x0)**pow,j=-npts,npts)/)
+  !else
+  !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2),j=-npts,npts)/)
+  !end if
   call moments_1d(2*npts+1,fj_coll,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,2))
 
 end subroutine evaluate_moments

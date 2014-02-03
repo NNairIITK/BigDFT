@@ -379,7 +379,7 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   end do
   !check
   if (nvctr_check /= wfd%nvctr_c) then
-     write(*,'(1x,a,2(i6))')&
+     write(*,'(1x,a,3(i6))')&
           'ERROR: problem in wfd_to_logrid(coarse)',nvctr_check,wfd%nvctr_c,wfd%nseg_c
      stop
   end if

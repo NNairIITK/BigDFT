@@ -15,6 +15,7 @@ program BigDFT2Wannier
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_interfaces
    use yaml_output
+   use module_input_dicts
    implicit none
    character :: filetype*4
    !etsf
@@ -68,6 +69,7 @@ program BigDFT2Wannier
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
    integer, dimension(4) :: mpi_info
+   type(dictionary), pointer :: user_inputs
 
    call f_lib_initialize()
    !-finds the number of taskgroup size
@@ -91,9 +93,13 @@ program BigDFT2Wannier
 
    if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
 
-  call bigdft_set_input(trim(run_id)//trim(bigdft_run_id_toa()),'posinp'//trim(bigdft_run_id_toa()),&
-       input,atoms)
-
+   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
+        & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
+   call inputs_from_dict(input, atoms, user_inputs, .true.)
+   if (iproc == 0) then
+      call print_general_parameters(input,atoms)
+   end if
+   call dict_free(user_inputs)
 
    if (input%verbosity > 2) then
       nproctiming=-nproc !timing in debug mode                                                                                                                                                                  
@@ -162,12 +168,15 @@ program BigDFT2Wannier
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(iproc,atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
       &   Glr,shift)
+   if (iproc == 0) &
+        & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-      &   atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
+      & atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
+   if (iproc == 0) call print_wfd(Glr%wfd)
 
    ! don't need radii_cf anymore
    i_all = -product(shape(radii_cf))*kind(radii_cf)

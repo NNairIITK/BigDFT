@@ -108,7 +108,6 @@ module module_fragments
      real(gp), dimension(3) :: rot_center !< center of rotation in original coordinates (might be fragment center or not)
      real(gp), dimension(3) :: rot_axis !< unit rotation axis (should have modulus one)
      real(gp) :: theta !< angle of rotation 
-     character(len=2), dimension(:), pointer :: discrete_operations
   end type fragment_transformation
 
   !public operator(*)
@@ -910,280 +909,16 @@ contains
        J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
     end do
 
-    if (J>1.0e-4) then
-       print*,"Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+    if (J>1.0e-3) then
+       write(*,'(a,2es18.8)') "Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
     end if
 
     !check the pertinence of the suggested rotation
     !if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) print*,'frag_trans%theta=',frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-	 !if  (f_err_raise(abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle frag_trans%theta not optimal (frag_trans%theta= '//&
-	 !      yaml_toa(frag_trans%theta)//' )')) return
-
-    ! reduce the angle if frag_trans%theta > 60 degrees
-    !if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) then
-    !   write(*,*) 'before',frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-    !   call find_discrete_operations(frag_trans,R_mat)
-    !   write(*,*) 'after',frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-    !else
-       allocate(frag_trans%discrete_operations(0),stat=i_stat)
-       call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
-    !end if
+    !if  (f_err_raise(abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle frag_trans%theta not optimal (frag_trans%theta= '//&
+    !      yaml_toa(frag_trans%theta)//' )')) return
 
   end subroutine find_frag_trans
-
-  subroutine find_discrete_operations(frag_trans,R_mat)
-    use module_base
-    use yaml_output
-    use dictionaries
-    implicit none
-    type(fragment_transformation), intent(inout) :: frag_trans
-    real(gp), dimension(3,3), intent(inout) :: R_mat
-    !local variables
-    character(len=*), parameter :: subname='find_discrete_operations'
-    integer :: ival, nval, i_stat, ix, iy, iz, list_len_max
-    real(gp) :: min_theta, theta_orig, new_theta
-    type(dictionary), pointer :: list, list_tmp
-    integer, dimension(3,2) :: axis_type
-
-    call dict_init(list)
-
-    theta_orig=frag_trans%theta
-    min_theta=theta_orig
-    list_len_max=4
-
-    do ix=3,0,-1
-       do iy=0,3
-          do iz=0,3
-
-             axis_type(1,1)=ix  !type of operation
-             axis_type(2,1)=iy  !type of operation
-             axis_type(3,1)=iz  !type of operation
-             axis_type(1,2)=1  !axis of operation
-             axis_type(2,2)=2  !axis of operation
-             axis_type(3,2)=3  !axis of operation
-
-             call apply_discrete_operations_to_matrix(frag_trans%rot_axis,frag_trans%theta,new_theta,&
-                  R_mat,axis_type,list,.false.)
-!print*,'ix,iy,iz',ix,iy,iz,new_theta/(4.0_gp*atan(1.d0)/180.0_gp),min_theta/(4.0_gp*atan(1.d0)/180.0_gp)
-             !write(*,'(F8.4,1x,L2,1x)',advance='no') new_theta/(4.0_gp*atan(1.d0)/180.0_gp)
-             if (new_theta<min_theta) min_theta=new_theta
-             if (new_theta/(4.0_gp*atan(1.d0)/180.0_gp)<=60.0_gp) then
-                call dict_init(list_tmp)
-                call apply_discrete_operations_to_matrix(frag_trans%rot_axis,frag_trans%theta,new_theta,&
-                     R_mat,axis_type,list,.true.)
-                exit
-                !nval=dict_len(list_tmp)
-!print*,'dict',nval,list_len_max
-                !if (nval<list_len_max) then
-                !    call dict_free(list) 
-                !    call dict_init(list)
-                !    list_len_max=nval
-                !    do ival=0,nval-1
-                !       call add(list,list_tmp//ival)
-                !    end do
-                !end if
-                !call dict_free(list_tmp) 
-                !if (list_len_max==1) exit
-             end if
-
-          end do
-          if (min_theta/(4.0_gp*atan(1.d0)/180.0_gp)<=60.0_gp) exit
-       end do
-       if (min_theta/(4.0_gp*atan(1.d0)/180.0_gp)<=60.0_gp) exit
-    end do
-
-    ! copy from dict to frag_trans structure
-    nval=dict_len(list)
-    allocate(frag_trans%discrete_operations(nval),stat=i_stat)
-    call memocc(i_stat,frag_trans%discrete_operations,'frag_trans%discrete_operations',subname)
-
-    do ival=0,nval-1
-       frag_trans%discrete_operations(ival+1)=list//ival
-       print*,'filling discrete_ops',ival+1,frag_trans%discrete_operations(ival+1)
-    end do
-
-   call dict_free(list) 
-
-   write(*,*) 'Old theta, new theta',theta_orig/(4.0_gp*atan(1.d0)/180.0_gp), min_theta/(4.0_gp*atan(1.d0)/180.0_gp),nval
-
-   frag_trans%theta=min_theta
-   frag_trans%rot_axis=axis_from_r(R_mat)
-
-  end subroutine find_discrete_operations
-
-
-  subroutine apply_discrete_operations_to_matrix(rot_axis,theta,new_theta,R_mat,axis_type,list,make_list)
-    use module_base
-    use dictionaries
-    implicit none
-
-    real(gp), intent(in) :: theta
-    real(gp), dimension(3), intent(in) :: rot_axis
-    real(gp), intent(out) :: new_theta
-    real(gp), dimension(3,3), intent(inout) :: R_mat
-    integer, dimension(3,2), intent(in) :: axis_type
-    type(dictionary), pointer :: list ! list of operations performed
-    logical, intent(in) :: make_list ! adds operations to a list
-    !local variables
-    real(gp), dimension(3,3) :: R_mat_new, R_mat2
-    integer :: i
-
-    R_mat2=R_mat
-
-    do i=1,3,2
-       if (axis_type(i,1)==0) then
-          ! identity operation, no need to add to list
-          R_mat_new=R_mat2
-       else if (axis_type(i,1)==1) then
-          call subtract_90_rotation(R_mat2,R_mat_new,axis_type(i,2))
-          if (axis_type(i,2)==1.and.make_list) call add(list,'x1')
-          if (axis_type(i,2)==2.and.make_list) call add(list,'y1')
-          if (axis_type(i,2)==3.and.make_list) call add(list,'z1')
-       else if (axis_type(i,1)==2) then
-          call subtract_180_rotation(R_mat2,R_mat_new,axis_type(i,2))
-          if (axis_type(i,2)==1.and.make_list) call add(list,'x2')
-          if (axis_type(i,2)==2.and.make_list) call add(list,'y2')
-          if (axis_type(i,2)==3.and.make_list) call add(list,'z2')
-       else if (axis_type(i,1)==3) then
-          call add_90_rotation(R_mat2,R_mat_new,axis_type(i,2))
-          if (axis_type(i,2)==1.and.make_list) call add(list,'x3')
-          if (axis_type(i,2)==2.and.make_list) call add(list,'y3')
-          if (axis_type(i,2)==3.and.make_list) call add(list,'z3')
-       end if
-
-       new_theta=theta_from_r(R_mat_new)
-       !newz_new=axis_from_r(R_mat_new)
-        !if (make_list) print*,'discrete op',i,axis_type(i,2),new_theta!,axis_from_r(R_mat_new)
-
-       if (i==3) exit
-
-       if (axis_type(i+1,1)==0) then
-          ! identity operation, no need to add to list
-          R_mat2=R_mat_new
-       else if (axis_type(i+1,1)==1) then
-          call subtract_90_rotation(R_mat_new,R_mat2,axis_type(i+1,2))
-          if (axis_type(i+1,2)==1.and.make_list) call add(list,'x1')
-          if (axis_type(i+1,2)==2.and.make_list) call add(list,'y1')
-          if (axis_type(i+1,2)==3.and.make_list) call add(list,'z1')
-       else if (axis_type(i+1,1)==2) then
-          call subtract_180_rotation(R_mat_new,R_mat2,axis_type(i+1,2))
-          if (axis_type(i+1,2)==1.and.make_list) call add(list,'x2')
-          if (axis_type(i+1,2)==2.and.make_list) call add(list,'y2')
-          if (axis_type(i+1,2)==3.and.make_list) call add(list,'z2')
-       else if (axis_type(i+1,1)==3) then
-          call add_90_rotation(R_mat_new,R_mat2,axis_type(i+1,2))
-          if (axis_type(i+1,2)==1.and.make_list) call add(list,'x3')
-          if (axis_type(i+1,2)==2.and.make_list) call add(list,'y3')
-          if (axis_type(i+1,2)==3.and.make_list) call add(list,'z3')
-       end if
-
-       new_theta=theta_from_r(R_mat2)
-       !newz_new=axis_from_r(R_mat2)
-       !if (make_list) print*,'discrete op',i+1,axis_type(i+1,2),new_theta!,axis_from_r(R_mat2)
-    end do
-
-    if (make_list) R_mat=R_mat_new
-
-  end subroutine apply_discrete_operations_to_matrix
-
-
-  subroutine subtract_180_rotation(R_mat,R_mat_new,xyz)
-    implicit none
-
-    real(gp), dimension(3,3), intent(in) :: R_mat
-    real(gp), dimension(3,3), intent(out) :: R_mat_new
-    integer, intent(in) :: xyz ! subtract 180 degree rotation around this axis
-
-    real(gp), dimension(3,3) :: R_mat_180_xyz_inv
-
-    R_mat_180_xyz_inv=0.0_gp
-
-    if (xyz==1) then
-       R_mat_180_xyz_inv(1,1)=1
-       R_mat_180_xyz_inv(2,2)=-1
-       R_mat_180_xyz_inv(3,3)=-1   
-    else if (xyz==2) then
-       R_mat_180_xyz_inv(1,1)=-1
-       R_mat_180_xyz_inv(2,2)=1
-       R_mat_180_xyz_inv(3,3)=-1   
-    else if (xyz==3) then
-       R_mat_180_xyz_inv(1,1)=-1
-       R_mat_180_xyz_inv(2,2)=-1
-       R_mat_180_xyz_inv(3,3)=1   
-    else
-       print*,'Error'
-       stop
-    end if
-
-    call dgemm('N','N',3,3,3,1.0_gp,R_mat_180_xyz_inv,3,R_mat,3,0.0_gp,R_mat_new,3)
-
-  end subroutine subtract_180_rotation
-
-
-  subroutine subtract_90_rotation(R_mat,R_mat_new,xyz)
-    implicit none
-
-    real(gp), dimension(3,3), intent(in) :: R_mat
-    real(gp), dimension(3,3), intent(out) :: R_mat_new
-    integer, intent(in) :: xyz ! subtract 180 degree rotation around this axis
-
-    real(gp), dimension(3,3) :: R_mat_90_xyz_inv
-
-    R_mat_90_xyz_inv=0.0_gp
-
-    if (xyz==1) then
-       R_mat_90_xyz_inv(1,1)=1
-       R_mat_90_xyz_inv(2,3)=1
-       R_mat_90_xyz_inv(3,2)=-1   
-    else if (xyz==2) then
-       R_mat_90_xyz_inv(1,3)=-1
-       R_mat_90_xyz_inv(2,2)=1
-       R_mat_90_xyz_inv(3,1)=1   
-    else if (xyz==3) then
-       R_mat_90_xyz_inv(1,2)=1
-       R_mat_90_xyz_inv(2,1)=-1
-       R_mat_90_xyz_inv(3,3)=1   
-    else
-       print*,'Error'
-       stop
-    end if
-
-    call dgemm('N','N',3,3,3,1.0_gp,R_mat_90_xyz_inv,3,R_mat,3,0.0_gp,R_mat_new,3)
-
-  end subroutine subtract_90_rotation
-
-
-  subroutine add_90_rotation(R_mat,R_mat_new,xyz)
-    implicit none
-
-    real(gp), dimension(3,3), intent(in) :: R_mat
-    real(gp), dimension(3,3), intent(out) :: R_mat_new
-    integer, intent(in) :: xyz ! subtract 180 degree rotation around this axis
-
-    real(gp), dimension(3,3) :: R_mat_90_xyz_inv
-
-    R_mat_90_xyz_inv=0.0_gp
-
-    if (xyz==1) then
-       R_mat_90_xyz_inv(1,1)=1
-       R_mat_90_xyz_inv(2,3)=-1
-       R_mat_90_xyz_inv(3,2)=1   
-    else if (xyz==2) then
-       R_mat_90_xyz_inv(1,3)=1
-       R_mat_90_xyz_inv(2,2)=1
-       R_mat_90_xyz_inv(3,1)=-1   
-    else if (xyz==3) then
-       R_mat_90_xyz_inv(1,2)=-1
-       R_mat_90_xyz_inv(2,1)=1
-       R_mat_90_xyz_inv(3,3)=1   
-    else
-       print*,'Error'
-       stop
-    end if
-
-    call dgemm('N','N',3,3,3,1.0_gp,R_mat_90_xyz_inv,3,R_mat,3,0.0_gp,R_mat_new,3)
-
-  end subroutine add_90_rotation
 
   pure function theta_from_r(R_mat) result(theta)
     implicit none
@@ -1284,6 +1019,7 @@ contains
   subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
     nstates_max,cdft)
     use yaml_output
+    use module_base
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
     type(input_variables), intent(in) :: input
@@ -1296,9 +1032,11 @@ contains
     logical, intent(in) :: cdft
 
     integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, iall, istat, num_extra_per_frag, ierr
+    integer, allocatable, dimension(:) :: ipiv
     real(gp), dimension(:,:), allocatable :: coeff_final, ks, ksk
     !*real(gp), dimension(:), allocatable :: kernel_final
     real(gp) :: nonidem, nelecorbs, nelecfrag_tot, jstate_max, homo_diff, lag_mult
+    real(gp), dimension(:), allocatable :: eval_tmp, eval_tmp2
     character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
 
     integer :: rand_size
@@ -1314,7 +1052,10 @@ contains
 
     ! need to do this properly/rearrange routines
     if (cdft) then
-       homo_diff=(ref_frags(1)%eval(ceiling(ref_frags(1)%nelec/2.0_gp))-ref_frags(2)%eval(ceiling(ref_frags(2)%nelec/2.0_gp)))/2.0d0
+       ! otherwise doesn't make sense
+       if (input%frag%nfrag==2) homo_diff=(ref_frags(1)%eval(ceiling(ref_frags(1)%nelec/2.0_gp))&
+            -ref_frags(2)%eval(ceiling(ref_frags(2)%nelec/2.0_gp)))/2.0d0
+       !if (cdft%charge<0) lag_mult=-0.5, otherwise +0.5
        lag_mult=-0.05d0
     else
        homo_diff=0.0d0
@@ -1327,11 +1068,14 @@ contains
 
     rmax=0.2d0
     random_noise=0.0d0
+    rtime=0.0d0
     if (random .or. completely_random) then
        call random_seed(size=rand_size)
        allocate(rand_seed(1:rand_size))
        call date_and_time(time=sys_time)
-       read(sys_time,*) rtime
+       ! coeffs need to be the same across processors
+       if (iproc==0) read(sys_time,*) rtime
+       if (bigdft_mpi%nproc>1) call mpiallred(rtime, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
        rand_seed=int(rtime*1000.0_dp)
        call random_seed(put=rand_seed)
        deallocate(rand_seed) 
@@ -1370,7 +1114,7 @@ contains
     end if
 
 
-
+    eval_tmp=f_malloc(tmb%orbs%norb,id='eval_tmp')
     coeff_final=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_final')
     !*kernel_final=f_malloc(tmb%linmat%denskern%nvctr,id='kernel_final')
     !ref_frags(ifrag_ref)%kernel=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ref_frags(ifrag_ref)%kernel')
@@ -1417,14 +1161,14 @@ contains
        ifrag_ref=input%frag%frag_index(ifrag)
        call razero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
-       !jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp
-       jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
+       jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp+num_extra_per_frag
+       !jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
        do jtmb=1,ceiling(jstate_max)
 
           if (random .or. completely_random) then ! want random mixing across fragments in both cases
-             call random_number(random_noise)
-             random_noise=((random_noise-0.5d0)*2.0d0)*rmax
              do itmb=1,isforb
+                call random_number(random_noise)
+                random_noise=((random_noise-0.5d0)*2.0d0)*rmax
                 tmb%coeff(itmb,jtmb)=random_noise
              end do
           end if
@@ -1443,17 +1187,20 @@ contains
           end do
 
           if (random .or. completely_random) then ! want random mixing across fragments in both cases
-             call random_number(random_noise)
-             random_noise=((random_noise-0.5d0)*2.0d0)*rmax
              do itmb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb+1,tmb%orbs%norb
+                 call random_number(random_noise)
+                 random_noise=((random_noise-0.5d0)*2.0d0)*rmax
                 tmb%coeff(itmb,jtmb)=random_noise
              end do
           end if
 
-          if (ceiling(jstate_max)/=jstate_max.and.jtmb==jstate_max) then
+          if (ceiling(jstate_max)/=jstate_max.and.jtmb==ceiling(jstate_max)) then
              tmb%orbs%occup(jtmb+jsforb)=(jstate_max*2.0d0)-2*(ceiling(jstate_max)-1)
+             ! want partly occupied states to be last of unoccupied
+             eval_tmp(jsforb+jtmb)=tmb%orbs%eval(jsforb+jtmb)+10.0d0
           else
              tmb%orbs%occup(jtmb+jsforb)=2.0d0
+             eval_tmp(jsforb+jtmb)=tmb%orbs%eval(jsforb+jtmb)
           end if
           !if (bigdft_mpi%iproc==0) print*,'ifrag,jtmb,occ,iorb',ifrag,jtmb,tmb%orbs%occup(jtmb+jsforb),jtmb+jsforb
        end do
@@ -1475,8 +1222,8 @@ contains
        ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
-            tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, 0, tmb%orbs, &
-            tmb%linmat%ovrlp, tmb%coeff)
+            tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap,&
+            tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
 
        !! debug
        !!output final kernel
@@ -1559,14 +1306,14 @@ contains
     do ifrag=1,input%frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
-       !jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp
-       jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
+       jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp+num_extra_per_frag
+       !jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
        do jtmb=ceiling(jstate_max)+1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           if (random .or. completely_random) then ! want random mixing across fragments in both cases
-             call random_number(random_noise)
-             random_noise=((random_noise-0.5d0)*2.0d0)*rmax
              do itmb=1,isforb
-                tmb%coeff(itmb,jtmb)=random_noise
+                call random_number(random_noise)
+                random_noise=((random_noise-0.5d0)*2.0d0)*rmax
+                tmb%coeff(itmb,jsforb+jtmb-ceiling(jstate_max))=random_noise
              end do
           end if
 
@@ -1581,13 +1328,14 @@ contains
                 tmb%coeff(isforb+itmb,jsforb+jtmb-ceiling(jstate_max))=random_noise
              end if
              tmb%orbs%eval(jsforb+jtmb-ceiling(jstate_max))=ref_frags(ifrag_ref)%eval(jtmb)-((-1)**(ifrag))*lag_mult-homo_diff
+             eval_tmp(jsforb+jtmb-ceiling(jstate_max))=tmb%orbs%eval(jsforb+jtmb-ceiling(jstate_max))+20.0d0
           end do
 
           if (random .or. completely_random) then ! want random mixing across fragments in both cases
-             call random_number(random_noise)
-             random_noise=((random_noise-0.5d0)*2.0d0)*rmax
              do itmb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb+1,tmb%orbs%norb
-                tmb%coeff(itmb,jtmb)=random_noise
+                call random_number(random_noise)
+                random_noise=((random_noise-0.5d0)*2.0d0)*rmax
+                tmb%coeff(itmb,jsforb+jtmb-ceiling(jstate_max))=random_noise
              end do
           end if
 
@@ -1608,10 +1356,40 @@ contains
 
        ! reorder unoccupied states so that extra states functions correctly
        ! still needed just in case number of empty bands doesn't divide by number of fragments
+       ipiv=f_malloc(tmb%orbs%norb,id='ipiv')
        call order_coeffs_by_energy(tmb%orbs%norb-nstates_max,tmb%orbs%norb,tmb%coeff(1,nstates_max+1),&
-            tmb%orbs%eval(nstates_max+1))
+            eval_tmp(nstates_max+1),ipiv(1))!,tmb%orbs%eval(nstates_max+1))
+       eval_tmp2=f_malloc(tmb%orbs%norb-nstates_max,id='eval_tmp2')
+       call dcopy(tmb%orbs%norb-nstates_max,tmb%orbs%eval(nstates_max+1),1,eval_tmp2(1),1)
+       do itmb=nstates_max+1,tmb%orbs%norb
+          tmb%orbs%eval(itmb)=eval_tmp2(ipiv(itmb-nstates_max))
+       end do
+       call dcopy(tmb%orbs%norb-nstates_max,tmb%orbs%occup(nstates_max+1),1,eval_tmp2(1),1)
+       do itmb=nstates_max+1,tmb%orbs%norb
+          tmb%orbs%occup(itmb)=eval_tmp2(ipiv(itmb-nstates_max))
+       end do
+       call f_free(eval_tmp2)
        ! reorder ksorbs%norb states by energy - no longer taking charge as input
-       call order_coeffs_by_energy(ksorbs%norb,tmb%orbs%norb,tmb%coeff(1,1),tmb%orbs%eval(1))    
+       call order_coeffs_by_energy(ksorbs%norb,tmb%orbs%norb,tmb%coeff(1,1),eval_tmp(1),ipiv(1))!,tmb%orbs%eval(1))
+               !eval_tmp2=f_malloc(tmb%orbs%norb,id='eval_tmp2')
+               !call dcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,eval_tmp2(1),1)
+               !do itmb=1,ksorbs%norb
+               !   tmb%orbs%occup(itmb)=eval_tmp2(ipiv(itmb))
+               !end do
+               !call dcopy(tmb%orbs%norb,tmb%orbs%eval(1),1,eval_tmp2(1),1)
+               !call dcopy(tmb%orbs%norb,eval_tmp(1),1,tmb%orbs%eval(1),1)
+               !nullify(mom_vec_fake)
+               !if (bigdft_mpi%iproc==0) then 
+               !   call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
+               !end if
+               !call dcopy(tmb%orbs%norb,eval_tmp2(1),1,tmb%orbs%eval(1),1)
+               !call f_free(eval_tmp2)
+       call dcopy(ksorbs%norb,tmb%orbs%eval(1),1,eval_tmp(1),1)
+       do itmb=1,ksorbs%norb
+          tmb%orbs%eval(itmb)=eval_tmp(ipiv(itmb))
+       end do
+       call f_free(eval_tmp)
+       call f_free(ipiv)
        ! debug
        !do itmb=1,tmb%orbs%norb
        !   do jtmb=1,tmb%orbs%norb
@@ -1679,159 +1457,6 @@ contains
     call timing(iproc,'kernel_init','OF')
 
   end subroutine fragment_coeffs_to_kernel
-
-
-  subroutine find_discrete_operations_random(rot_axis,theta,R_mat,discrete_ops)
-    use module_base
-    use yaml_output
-    use dictionaries
-    implicit none
-    real(gp), dimension(3), intent(inout) :: rot_axis !< unit rotation axis (should have modulus one)
-    real(gp), intent(inout) :: theta !< angle of rotation (ref becomes new)
-    real(gp), dimension(3,3), intent(inout) :: R_mat
-    character(len=2), dimension(:), pointer :: discrete_ops
-    !local variables
-    character(len=*), parameter :: subname='find_discrete_operations_random'
-    integer :: j, ival, nval, i_stat
-    real(gp) :: min_theta, theta_orig
-    integer :: rand_size
-    integer, allocatable, dimension(:) :: rand_seed
-    real(kind=gp) :: rtime, rn
-    character(len=10) :: sys_time 
-    logical, dimension(3,3) :: stag
-    type(dictionary), pointer :: list
-
-    call dict_init(list)
-
-    call random_seed(size=rand_size)
-    allocate(rand_seed(1:rand_size))
-    call date_and_time(time=sys_time)
-    read(sys_time,*) rtime
-    rand_seed=int(rtime*1000.0_dp)
-    call random_seed(put=rand_seed)
-    deallocate(rand_seed) 
-
-    theta_orig=theta
-    write(*,'(F8.4,2x)',advance='no') theta_orig/(4.0_gp*atan(1.d0)/180.0_gp)
-
-    write(16,*) ''
-    write(16,*) 'begin'
-    write(16,*) theta_orig/(4.0_gp*atan(1.d0)/180.0_gp),rot_axis
-
-    min_theta=theta_orig
-
-    do j=1,100000
-       stag=.false.
-       call random_number(rn) 
-       if (rn < min(j,10)*0.01_dp) then
-          stag(1,1)=.true.
-       else if (rn < min(j,10)*0.02_dp) then
-          stag(1,2)=.true.
-       else if (rn < min(j,10)*0.03_dp) then
-          stag(1,3)=.true.
-       else if (rn < min(j,10)*0.04_dp) then
-          stag(2,1)=.true.
-       else if (rn < min(j,10)*0.05_dp) then
-          stag(2,2)=.true.
-       else if (rn < min(j,10)*0.06_dp) then
-          stag(2,3)=.true.
-       else if (rn < min(j,10)*0.07_dp) then
-          stag(3,1)=.true.
-       else if (rn < min(j,10)*0.08_dp) then
-          stag(3,2)=.true.
-       else if (rn < min(j,10)*0.09_dp) then
-          stag(3,3)=.true.
-       end if
-       call apply_discrete_operations_random(rot_axis,theta,min_theta,R_mat,stag,list)
-       !write(*,'(F8.4,1x,L2,1x)',advance='no') theta/(4.0_gp*atan(1.d0)/180.0_gp),rn < min(j,10)*0.09_dp
-       if (min_theta/(4.0_gp*atan(1.d0)/180.0_gp)<=45.0_gp) exit
-    end do
-    write(16,*) 'end'
-    write(16,*) ''
-
-    ! copy from dict to frag_trans structure
-    nval=dict_len(list)
-    allocate(discrete_ops(nval),stat=i_stat)
-    call memocc(i_stat,discrete_ops,'discrete_ops',subname)
-
-    do ival=0,nval-1
-       discrete_ops(ival+1)=list//ival
-    end do
-
-   call dict_free(list) 
-
-   write(*,*) 'Old theta, new theta',theta_orig/(4.0_gp*atan(1.d0)/180.0_gp), min_theta/(4.0_gp*atan(1.d0)/180.0_gp),nval
-
-  end subroutine find_discrete_operations_random
-
-
-  subroutine apply_discrete_operations_random(rot_axis,theta,mintheta,R_mat,stag,list)
-    use module_base
-    use dictionaries
-    implicit none
-
-    real(gp), intent(inout) :: theta
-    real(gp), dimension(3), intent(inout) :: rot_axis
-    real(gp), intent(inout) :: mintheta
-    real(gp), dimension(3,3), intent(inout) :: R_mat
-    logical, dimension(3,3), intent(in) :: stag
-    type(dictionary), pointer :: list
-    !local variables
-    real(gp), dimension(3,3) :: R_mat_new
-    integer :: i
-    logical :: stag1,stag2,stag3
-
-    do i=1,3
-       call subtract_180_rotation(R_mat,R_mat_new,i)
-       if (i==1) stag1=stag(1,1)
-       if (i==2) stag1=stag(1,2)
-       if (i==3) stag1=stag(1,3)
-       if (theta_from_r(R_mat_new)<mintheta .or. stag1) then
-          if (theta_from_r(R_mat_new)<mintheta) mintheta=theta_from_r(R_mat_new)
-          theta=theta_from_r(R_mat_new)
-          rot_axis=axis_from_r(R_mat_new)
-          R_mat=R_mat_new
-          if (i==1) call add(list,'x1')
-          if (i==2) call add(list,'y1')
-          if (i==3) call add(list,'z1')
-          write(16,*) 'trans 180',i,stag1,theta/(4.0_gp*atan(1.d0)/180.0_gp),mintheta/(4.0_gp*atan(1.d0)/180.0_gp),rot_axis
-          return
-       end if
-
-       call subtract_90_rotation(R_mat,R_mat_new,i)
-       if (i==1) stag2=stag(2,1)
-       if (i==2) stag2=stag(2,2)
-       if (i==3) stag2=stag(2,3)
-       if (theta_from_r(R_mat_new)<mintheta .or. stag2) then
-          if (theta_from_r(R_mat_new)<mintheta) mintheta=theta_from_r(R_mat_new)
-          theta=theta_from_r(R_mat_new)
-          rot_axis=axis_from_r(R_mat_new)
-          R_mat=R_mat_new
-          if (i==1) call add(list,'x2')
-          if (i==2) call add(list,'y2')
-          if (i==3) call add(list,'z2')
-          write(16,*) 'trans 90',i,stag2,theta/(4.0_gp*atan(1.d0)/180.0_gp),mintheta/(4.0_gp*atan(1.d0)/180.0_gp),rot_axis
-          return
-       end if
-
-       call add_90_rotation(R_mat,R_mat_new,i)
-       if (i==1) stag3=stag(3,1)
-       if (i==2) stag3=stag(3,2)
-       if (i==3) stag3=stag(3,3)
-       if (theta_from_r(R_mat_new)<mintheta .or. stag3) then
-          if (theta_from_r(R_mat_new)<mintheta) mintheta=theta_from_r(R_mat_new)
-          theta=theta_from_r(R_mat_new)
-          rot_axis=axis_from_r(R_mat_new)
-          R_mat=R_mat_new
-          if (i==1) call add(list,'x3')
-          if (i==2) call add(list,'y3')
-          if (i==3) call add(list,'z3')
-          write(16,*) 'trans -90',i,stag3,theta/(4.0_gp*atan(1.d0)/180.0_gp),mintheta/(4.0_gp*atan(1.d0)/180.0_gp),rot_axis
-          return
-       end if
-    end do
-
-  end subroutine apply_discrete_operations_random
 
 
 end module module_fragments
