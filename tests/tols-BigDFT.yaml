@@ -330,7 +330,7 @@ experimentalmode:
  Epsilon: 8.e-10
  Ekin: 9.4e-07
  Enl: 1.1e-07
- Omega: 4.1e-06
+ Omega: 9.5e-06
  EH: 4.2e-05
  Epot: 3.7e-05
  EXC: 7.9e-06
@@ -478,6 +478,7 @@ hybrid-directmin:
  Atomic Forces (Ha/Bohr): 6.4e-11
  Clean forces norm (Ha/Bohr): 1.9e-11
  Raw forces norm (Ha/Bohr): 3.1e-11
+ Average noise forces: 1.1e-10
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -798,15 +799,15 @@ intermediateforces:
  Average noise forces: 1.5e-8
  Clean forces norm (Ha/Bohr): 9.1e-9
  Raw forces norm (Ha/Bohr): 1.1e-8
- e: 3.6e-9
+ e: 3.7e-9
  energy: 2.8e-7
- Omega: 9.5e-9
- EXC: 7.7e-8
+ Omega: 9.8e-9
+ EXC: 7.8e-8
  EvXC: 1.1e-7
- EH: 6.8e-7
- Ekin: 1.9e-9
+ EH: 6.9e-7
+ Ekin: 2.1e-9
  Enl: 2.1e-10
- Epot: 8.6e-8
+ Epot: 8.9e-8
  multiplicator for the confinement: 1.6e-11
 
 DIIShistory:
@@ -814,13 +815,13 @@ DIIShistory:
  Clean forces norm (Ha/Bohr): 1.1e-9
  Raw forces norm (Ha/Bohr): 4.2e-10
  Average noise forces: 2.1e-10
- e: 9.2e-10
- EH: 4.6e-8
- EXC: 6.9e-9
- Ekin: 1.5e-8
+ e: 5.1e-9
+ EH: 2.4e-7
+ EXC: 4.7e-8
+ Ekin: 1.7e-8
  Enl: 1.9e-9
- Epot: 5.0e-8
- EvXC: 9.0e-9
- energy: 1.1e-9
+ Epot: 2.8e-7
+ EvXC: 6.2e-8
+ energy: 3.7e-9
  multiplicator for the confinement: 6.9e-11
- Omega: 1.2e-8
+ Omega: 1.3e-8
