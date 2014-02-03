@@ -850,6 +850,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   use module_base
   use module_types
   use module_interfaces
+  use ao_inguess, only : count_atomic_shells
   use yaml_output
   implicit none
   type(input_variables), intent(in) :: in
@@ -1052,7 +1053,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
 
      do iat=1,atoms%astruct%nat
         ityp=atoms%astruct%iatype(iat)
-        call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,iat),occup,nl)
+        call count_atomic_shells(in%nspin,atoms%aocc(1:,iat),occup,nl)
         norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
         norbe=norbe+norbat
      end do

@@ -211,7 +211,7 @@ END SUBROUTINE write_gaussian_information
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes, &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
-  use ao_inguess, only: iguess_generator,print_eleconf
+  use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,count_atomic_shells
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => gaussian_pswf_basis
@@ -303,7 +303,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   G%nshltot=0
   count_shells: do iat=1,at%astruct%nat
      ityp=at%astruct%iatype(iat)
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),at%aocc(1:,iat),occup,nl)
      G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
      G%nshltot=G%nshltot+G%nshell(iat)
      !check the occupation numbers and the atoms type
@@ -349,13 +349,13 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      ityp=at%astruct%iatype(iat)
      ityx=iatypex(iat)
      ishltmp=0
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),at%aocc(1:,iat),occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
            call yaml_map('Generation of input wavefunction data for atom ', trim(at%astruct%atomnames(ityp)))
            !write(*,'(1x,a,a6,a)') 'Generation of input wavefunction data for atom ',&
            !     & trim(at%astruct%atomnames(ityp)),':'
-           call print_eleconf(nspin,&!nspinor,&!noccmax,nelecmax,lmax,&
+           call print_eleconf(ao_nspin_ig(nspin,nspinor=nspinor),&
                 at%aocc(1:,iat),at%iasctype(iat))
         end if
 
@@ -452,7 +452,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      !print *, 'debug',iat,present(gaenes),nspin,noncoll
      ityp=at%astruct%iatype(iat)
      ityx=iatypex(iat)
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),at%aocc(1:,iat),occup,nl)
      ictotpsi=0
      iocc=0
      do l=1,4

@@ -13,15 +13,60 @@ module ao_inguess
 
   implicit none
 
-  
   integer, parameter :: nmax_ao=6 !<maximum allowed value of principal quantum number for the electron configuration
   integer, parameter :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
   integer, parameter :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
   integer, parameter :: noccmax_ao=2 !<maximum number of the occupied input guess orbitals for a given shell
 
-  private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao
+  private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 
 contains
+
+  !>control the variables associated to the spin
+  subroutine spin_variables(nspin_in,nspin,nspinor,noncoll)
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, intent(in) :: nspin_in !<value of nspin: 1=averaged, 2=collinear, 4=spinorial
+    integer, intent(out), optional :: nspin !< value of the spin, 2 for collinear, default 1
+    integer, intent(out), optional :: nspinor !< 4 if spinorial, default 1
+    integer, intent(out), optional :: noncoll !< 2 if spinorial, default 1
+
+    select case(nspin_in)
+    case(1)
+       if (present(nspin))   nspin=1
+       if (present(nspinor)) nspinor=1
+       if (present(noncoll)) noncoll=1
+    case(2)
+       if (present(nspin))   nspin=2
+       if (present(nspinor)) nspinor=1
+       if (present(noncoll)) noncoll=1
+    case(4)
+       if (present(nspin))   nspin=1
+       if (present(nspinor)) nspinor=4
+       if (present(noncoll)) noncoll=2
+    case default
+       call f_err_throw('Spin Variables: nspin not valid. Value=' // trim(yaml_toa(nspin)),&
+            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       return
+    end select
+
+  end subroutine spin_variables
+
+  !> inverse of the spin_variables routine, used for building and simplifying module routines. To be eventually removed
+  function ao_nspin_ig(nspin,nspinor,noncoll)
+    implicit none
+    integer, intent(in) :: nspin !<the only compulsory
+    integer, intent(in), optional :: nspinor,noncoll
+    integer :: ao_nspin_ig
+    
+    ao_nspin_ig=nspin
+    if (present(nspinor)) then
+       if (nspinor==4) ao_nspin_ig=4
+    end if
+    if (present(noncoll)) then
+       if (noncoll==2) ao_nspin_ig=4
+    end if
+  end function ao_nspin_ig
 
   subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
        &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb,quartic_prefactor,gaenes_aux)
@@ -308,6 +353,45 @@ contains
     
   end subroutine atomic_info
 
+  !> Count the number of atomic shells
+  subroutine count_atomic_shells(nspin_in,elecorbs,occup,nl)
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, intent(in) :: nspin_in
+    real(gp), dimension(nelecmax_ao), intent(in) :: elecorbs
+    integer, dimension(lmax_ao+1), intent(out) :: nl
+    real(gp), dimension(noccmax_ao,lmax_ao+1), intent(out) :: occup
+    !local variables
+    integer :: l,iocc,noncoll,inl,ispin,icoll,m,nspin,nspinor
+
+    call spin_variables(nspin_in,nspin,nspinor,noncoll)
+
+    occup=0.0_gp
+    nl=0
+
+    !calculate nl and the number of occupation numbers per orbital
+    iocc=0
+    do l=1,lmax_ao+1
+       iocc=iocc+1
+       nl(l)=nint(elecorbs(iocc))!ceiling(elecorbs(iocc))!
+       if (nl(l) > noccmax_ao) stop 'noccmax too little'
+       do inl=1,nl(l)!this lose the value of the principal quantum number n
+          occup(inl,l)=0.0_gp
+          do ispin=1,nspin
+             do m=1,2*l-1
+                do icoll=1,noncoll !non-trivial only for nspinor=4
+                   iocc=iocc+1
+                   occup(inl,l)=occup(inl,l)+elecorbs(iocc)
+                end do
+             end do
+          end do
+       end do
+    end do
+    if (f_err_raise(iocc>nelecmax_ao,'The occupation number is incoherent with the size, iocc='//&
+         trim(yaml_toa(iocc)),err_name='BIGDFT_RUNTIME_ERROR')) return
+
+  END SUBROUTINE count_atomic_shells
+
   !> fill the corresponding arrays with atomic information, compressed as indicated in the module
   subroutine atomic_configuration(zatom,zion,input_pol,nspin,nsccodeIG,occupIG)
     use yaml_output, only: yaml_toa
@@ -327,24 +411,7 @@ contains
     real(gp), dimension(nmax_ao,lmax_ao+1) :: eleconf_
 
     !control the spin
-    select case(nspin)
-    case(1)
-       nsp=1
-       nspinor=1
-    case(2)
-       nsp=2
-       nspinor=1
-    case(4)
-       nsp=1
-       nspinor=4
-    case default
-       call f_err_throw('nspin not valid. Value=' // trim(yaml_toa(nspin)),&
-            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-       return
-       !call yaml_warning('nspin not valid. Value=' // trim(yaml_toa(nspin)))
-       !write(*,*)' ERROR: nspin not valid:',nspin
-       !stop
-    end select
+    call spin_variables(nspin,nsp,nspinor)
 
     call atomic_info(zatom,zion,elconf=neleconf,nsccode=nsccode,&
          maxpol=mxpl,maxchg=mxchg)
@@ -396,39 +463,19 @@ contains
     !local variables
     character(len = max_field_length) :: key
     !character(max_field_length), dimension(:), allocatable :: keys
-    integer :: i, ln
-    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc,nspinor,nspin
+    integer :: ln
+    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc,nspin
     real(gp) :: tt,sh_chg
     integer, dimension(lmax_ao+1) :: nl,nlsc
     real(gp), dimension(2*(2*lmax_ao-1),nmax_ao,lmax_ao+1) :: allocc
     type(dictionary), pointer :: dict_tmp!,dict_it
 
     !control the spin
-    select case(nspin_in)
-    case(1)
-       nspin=1
-       nspinor=1
-       noncoll=1
-    case(2)
-       nspin=2
-       nspinor=1
-       noncoll=1
-    case(4)
-       nspin=1
-       nspinor=4
-       noncoll=2
-    end select
+    call spin_variables(nspin_in,nspin=nspin,noncoll=noncoll)
 
     nl(:)=0
     nlsc(:)=0
     allocc(:,:,:) = UNINITIALIZED(1._gp)
-
-    !if non-collinear it is like nspin=1 but with the double of orbitals
-    if (nspinor == 4) then
-       noncoll=2
-    else
-       noncoll=1
-    end if
 
     !allocate(keys(dict_size(dict)))
 !!    keys=f_malloc_str(max_field_length,dict_size(dict),id='keys')
@@ -663,25 +710,11 @@ contains
     !local variables
     character(len=10) :: tmp
     character(len=500) :: string
-    integer :: i,m,iocc,icoll,inl,nspin,nspinor,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
+    integer :: i,m,iocc,icoll,inl,nspin,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
     logical, dimension(4,2) :: scorb
 
     !control the spin
-    select case(nspin_in)
-    case(1)
-       nspin=1
-       nspinor=1
-       noncoll=1
-    case(2)
-       nspin=2
-       nspinor=1
-       noncoll=1
-    case(4)
-       nspin=1
-       nspinor=4
-       noncoll=2
-    end select
-
+    call spin_variables(nspin_in,nspin=nspin,noncoll=noncoll)
 
     scorb=.false.
     if (nsccode/=0) then !the atom has some semicore orbitals
@@ -763,19 +796,16 @@ contains
   END SUBROUTINE print_eleconf
 
   !>calculate the total charge of a given set of occupation numbers in compressed form 
-  pure function ao_ig_charge(nspin,occupIG) result(elec)
+  function ao_ig_charge(nspin,occupIG) result(elec)
     integer, intent(in) :: nspin
     double precision, dimension(nelecmax_ao), intent(in) :: occupIG
     double precision :: elec
     !local variables
     integer :: iocc,l,nl,inl,ispin,nsp,noncoll,icoll,m
 
-    nsp=nspin
-    noncoll=1
-    if (nspin==4) then
-       nsp=1
-       noncoll=2
-    end if
+    !control the spin
+    call spin_variables(nspin,nspin=nsp,noncoll=noncoll)
+
     !check the total number of electrons
     elec=0.0_gp
     iocc=0
@@ -964,13 +994,15 @@ contains
        do i=1,nmax
           if (eleconf(i,l) > 0.0_gp) then  
              shelloccup=eleconf(i,l)
+             ipolorb=0
              !decide the polarisation of the orbital by changing the population
              if (nint(shelloccup) /=  2*(2*l-1) ) then
                 !this is a polarisable orbital
                 polarised=.true.
                 !assuming that the control of the allowed polarisation is already done
 
-                ipolorb=ipolsign*min(abs(ipolres),  ((2*l-1) - abs( (2*l-1)- int(shelloccup) ) )  )
+                ipolorb=ipolsign*&
+                     min(abs(ipolres),((2*l-1)-abs((2*l-1)-int(shelloccup))))
                 ipolres=ipolres-ipolorb
              else
                 !check for odd values of the occupation number

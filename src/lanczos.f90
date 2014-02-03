@@ -60,7 +60,7 @@ END SUBROUTINE dirac_hara
 function GetBottom(atoms,nspin)
 
    use module_base
-   use ao_inguess, only: iguess_generator
+   use ao_inguess, only: iguess_generator,ao_nspin_ig,count_atomic_shells
    use module_types
    use module_interfaces
 
@@ -106,7 +106,7 @@ function GetBottom(atoms,nspin)
       do iat=1, atoms%astruct%nat
          if (ity.eq.atoms%astruct%iatype(iat)) exit
       end do
-      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,iat),occup,nl)
+      call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),atoms%aocc(1:,iat),occup,nl)
 
       call iguess_generator(atoms%nzatom(ity),atoms%nelpsp(ity),& !_modified
          &   real(atoms%nelpsp(ity),gp),atoms%psppar(0:,0:,ity),&
