@@ -414,7 +414,7 @@ contains
     call spin_variables(nspin,nsp,nspinor)
 
     call atomic_info(zatom,zion,elconf=neleconf,nsccode=nsccode,&
-         maxpol=mxpl,maxchg=mxchg)
+         maxpol=mxpl,maxchg=mxchg,symbol=symbol)
 
     ! Some checks from input values.
     call charge_and_spol(input_pol,ichg,ispol)
