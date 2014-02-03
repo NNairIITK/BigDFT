@@ -709,7 +709,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
 
-  !quick return if no orbitals on this processor
+  !quick return if no orbitals on this processo
+  eproj_sum=0.0_gp
   if (orbs%norbp == 0) then
      return
   end if
@@ -718,8 +719,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
   !array of the scalar products
   scpr=f_malloc(orbs%norbp*orbs%nspinor,id='scpr')
-
-  eproj_sum=0.0_gp
 
 
   ! apply all PSP projectors for all orbitals belonging to iproc
