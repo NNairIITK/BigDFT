@@ -397,7 +397,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
-    ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
+    ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
+    gnrm_dynamic, can_use_ham)
   !
   ! Purpose:
   ! ========
@@ -433,8 +434,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical, intent(inout) :: ortho_on
   integer, intent(in) :: extra_states
   integer,intent(in) :: itout
-  real(kind=8),intent(in) :: conv_crit, early_stop
+  real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic
   logical,intent(in) :: experimental_mode
+  logical,intent(out) :: can_use_ham
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
@@ -457,15 +459,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:,:),allocatable :: psi_old
   real(kind=8),dimension(:),allocatable :: psi_tmp, kernel_best
   integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
-  logical :: stop_optimization, energy_increased_previous, complete_reset, even
+  logical :: energy_diff, energy_increased_previous, complete_reset, even
   real(kind=8),dimension(3),save :: kappa_history
   integer,save :: nkappa_history
+  logical,dimension(6) :: exit_loop
 
   call f_routine(id='getLocalizedBasis')
 
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
   kernel_best=f_malloc(tmb%linmat%denskern%nvctr,id='kernel_best')
-  stop_optimization=.false.
+  energy_diff=.false.
 
 
   ! Allocate all local arrays.
@@ -728,7 +731,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!                                      trH, energy_first, (trH-energy_first)/energy_first
           if (iproc==0) call yaml_map('rel D',(trH-energy_first)/energy_first,fmt='(es9.2)')
           if ((trH-energy_first)/energy_first>early_stop .and. itout>0) then
-              stop_optimization=.true.
+              energy_diff=.true.
               !!if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
               !!                                      trH, energy_first, (trH-energy_first)/energy_first
           end if
@@ -784,7 +787,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (nkappa_history>=3) then
               kappa_mean=sum(kappa_history)/3.d0
               if (iproc==0) call yaml_map('mean kappa',kappa_mean,fmt='(es10.3)')
-              dynamic_convcrit=conv_crit/kappa_mean
+              !dynamic_convcrit=conv_crit/kappa_mean
+              dynamic_convcrit=gnrm_dynamic/kappa_mean
               if (iproc==0) call yaml_map('dynamic conv crit',dynamic_convcrit,fmt='(es9.2)')
           end if
       end if
@@ -813,6 +817,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
           tmb%ham_descr%can_use_transposed=.false.
           call dcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
+          can_use_ham=.false.
           !!if (scf_mode/=LINEAR_FOE) then
           !!    ! Recalculate the kernel with the old coefficients
           !!    call dcopy(tmb%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%coeff(1,1), 1)
@@ -848,6 +853,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
              ortho_on=.false.
              alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
           end if
+      else
+          can_use_ham=.true.
       end if 
 
 
@@ -864,29 +871,40 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Add some extra iterations if DIIS failed (max 6 failures are allowed before switching to SD)
       nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
 
-      if(it>=nit_exit .or. it_tot>=3*nit_basis .or. stop_optimization .or. (fnrm<conv_crit .and. experimental_mode) .or. &
-          (itout==0 .and. it>1 .and. ratio_deltas<0.1d0 .and. ratio_deltas>0.d0) .or. &
-          (experimental_mode .and. fnrm<dynamic_convcrit)) then
-          if(it>=nit_exit) then
-              infoBasisFunctions=0
-              if(iproc==0) call yaml_map('exit criterion','net number of iterations')
-          else if(it_tot>=3*nit_basis) then
+      ! Determine whether the loop should be exited
+      exit_loop(1) = (it>=nit_exit)
+      exit_loop(2) = (it_tot>=3*nit_basis)
+      exit_loop(3) = energy_diff
+      exit_loop(4) = (fnrm<conv_crit .and. experimental_mode)
+      exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit)
+      exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<0.1d0 .and.  ratio_deltas>0.d0)
+
+      if(any(exit_loop)) then
+          if(exit_loop(1)) then
               infoBasisFunctions=-1
+              if(iproc==0) call yaml_map('exit criterion','net number of iterations')
+          end if
+          if (exit_loop(2)) then
+              infoBasisFunctions=-2
               if (iproc==0) call yaml_map('exit criterion','total number of iterations')
-          else if (stop_optimization) then
-              infoBasisFunctions=0
+          end if
+          if (exit_loop(3)) then
+              infoBasisFunctions=it
               if (iproc==0) call yaml_map('exit criterion','energy difference')
-          else if (fnrm<conv_crit .and. experimental_mode) then
+          end if
+          if (exit_loop(4)) then
               if (iproc==0) call yaml_map('exit criterion','gradient')
-              infoBasisFunctions=0
-          else if (fnrm<dynamic_convcrit .and. experimental_mode) then
+              infoBasisFunctions=it
+          end if
+          if (exit_loop(5)) then
               if (iproc==0) call yaml_map('exit criterion','dynamic gradient')
-              infoBasisFunctions=0
-          else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0 .and. ratio_deltas>0.d0) then
-              infoBasisFunctions=0
+              infoBasisFunctions=it
+          end if
+          if (exit_loop(6)) then
+              infoBasisFunctions=it
               if (iproc==0) call yaml_map('exit criterion','extended input guess')
           end if
-          if (infoBasisFunctions>=0) then
+          if (can_use_ham) then
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &

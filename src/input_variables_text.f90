@@ -88,6 +88,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   character(len=*), parameter :: GNRM_CV         ='gnrm_cv'
   character(len=*), parameter :: GNRM_CV_COEFF   ='gnrm_cv_coeff'
   character(len=*), parameter :: DELTAE_CV       ='deltae_cv'
+  character(len=*), parameter :: GNRM_DYN        ='gnrm_dyn'
   character(len=*), parameter :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter :: OUTPUT_WF       ='output_wf'
@@ -169,11 +170,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
   call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'basis convergence (low, high) ; early stop TMB optimization (experimental mode only)'
+  comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm (experimental mode only)'
   call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
   call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
 
-  call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
+  call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/),comment=comments)
 
   !these variables seems deprecated, put them to their default value
 
@@ -292,6 +294,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   in%lin%convCrit_lowaccuracy =dummy_darr(1)
   in%lin%convCrit_highaccuracy=dummy_darr(2)
   in%lin%early_stop=dict//LIN_BASIS//DELTAE_CV
+  in%lin%gnrm_dynamic=dict//LIN_BASIS//GNRM_DYN
   in%lin%alphaDIIS=dict//LIN_BASIS//ALPHA_DIIS
   in%lin%alphaSD=dict//LIN_BASIS//ALPHA_SD
   in%lin%nItPrecond=dict//LIN_BASIS//NSTEP_PREC

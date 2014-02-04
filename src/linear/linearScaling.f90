@@ -541,7 +541,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                    nit_basis,&
                    ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
-                   input%lin%early_stop)
+                   input%lin%early_stop, input%lin%gnrm_dynamic, can_use_ham)
                reduce_conf=.true.
            !!else
            !!    cut=cut-0.5d0
@@ -595,7 +595,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
            if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff !reset to default value
 
-           if (input%inputPsiId==101 .and. info_basis_functions<0 .and. itout==1) then
+           if (input%inputPsiId==101 .and. info_basis_functions<=-2 .and. itout==1) then
                ! There seem to be some convergence problems after a restart. Better to quit
                ! and start with a new AO input guess.
                if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
@@ -617,7 +617,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        ! Check whether we can use the Hamiltonian matrix from the TMB optimization
        ! for the first step of the coefficient optimization
-       can_use_ham=.true.
+       !can_use_ham=.true.
+       ! can_use_ham was set in getLocalizedBasis
        if(target_function==TARGET_FUNCTION_IS_TRACE) then
            do itype=1,at%astruct%ntypes
                if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
@@ -632,6 +633,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    exit
                end if
            end do
+       !!else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+       !!    do itype=1,at%astruct%ntypes
+       !!        if(input%lin%potentialPrefac_lowaccuracy(itype)/=0.d0) then
+       !!            can_use_ham=.false.
+       !!            exit
+       !!        end if
+       !!    end do
        end if
 
       if (can_use_ham .and. input%lin%scf_mode==LINEAR_FOE) then ! copy ham to ham_small here already as it won't be changing
@@ -713,7 +721,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call yaml_open_map(flow=.false.)
                 call yaml_comment('kernel iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
-             if(update_phi .and. can_use_ham .and. info_basis_functions>=0) then
+             if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then
                 !!! TEST ###############################################################
                 !!phi_delta=f_malloc0((/tmb%npsidim_orbs,3/),id='phi_delta')
                 !!! Get the values of the support functions on the boundary of the localization region

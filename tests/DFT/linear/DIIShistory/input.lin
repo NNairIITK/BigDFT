@@ -8,7 +8,7 @@
 5        5                       DIIS history for density mixing (low, high)
 .1d0     .1d0                    density mixing parameter (low, high)
 1.d-10   1.d-10                  outer loop convergence (low, high)
-2.5d-2   1.0d-3    1.d-2         basis convergence (low, high) ; early stop TMB optimization (experimental mode only)
+2.5d-2   1.0d-3   1.d-2   1.d-2  basis convergence (low, high) ; early stop TMB optimization (experimental mode only)
 -0.5d0                           factor to reduce the confinement. Only used for hybrid mode.
 1.d-5    1.d-5                   Kernel convergence (low, high) - directmin only
 1.d-8    1.d-8                   density convergence (low, high)
