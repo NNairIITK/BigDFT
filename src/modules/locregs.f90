@@ -65,6 +65,7 @@ module locregs
      integer, dimension(3) :: outofzone         !< Vector of points outside of the zone outside Glr for periodic systems
      real(gp), dimension(3) :: locregCenter !< Center of the locreg 
      real(gp) :: locrad                     !< Cutoff radius of the localization region
+     real(gp) :: locrad_kernel              !< Cutoff radius of the localization region (kernel)
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds

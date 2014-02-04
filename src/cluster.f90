@@ -307,7 +307,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
-  integer :: ilr, nlr
+  integer :: ilr, nlr, iorb, jorb
   character(len=20) :: comment
 
   !debug
@@ -469,6 +469,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
      call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
 
+
      !!! This is nasty.. matrixindex_in_compressed_fortransposed should rather be
      !!! in comms instead of spareMatrix
      !!i_all=-product(shape(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed))*&
@@ -498,6 +499,64 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !call memocc(i_stat, tmb%linmat%inv_ovrlp%matrix_compr, 'tmb%linmat%inv_ovrlp%matrix_compr', subname)
      allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
+
+
+     ! initialize new density kernel with larger cutoff
+     tmb%lzd%llr(:)%locrad_kernel=12.d0
+
+     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ovrlp_large)
+     allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%ovrlp_large%matrix_compr, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
+     !tmb%linmat%ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%ovrlp_large%nvctr,id='tmb%linmat%ovrlp_large%matrix_compr')
+
+     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ham_large)
+     allocate(tmb%linmat%ham_large%matrix_compr(tmb%linmat%ham_large%nvctr), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%ham_large%matrix_compr, 'tmb%linmat%ham_large%matrix_compr', subname)
+     !tmb%linmat%ham_large%matrix_compr=f_malloc_ptr(tmb%linmat%ham_large%nvctr,id='tmb%linmat%ham_large%matrix_compr')
+
+     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%denskern_large)
+     allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
+     !tmb%linmat%denskern_large%matrix_compr=f_malloc_ptr(tmb%linmat%denskern_large%nvctr,id='tmb%linmat%denskern_large%matrix_compr')
+
+
+     !allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
+     !call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
+
+     !!write(*,*) '-----------------------------------'
+     !!call random_number(tmb%linmat%denskern%matrix_compr)
+     !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
+     !!call uncompressMatrix(iproc,tmb%linmat%denskern)
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!write(*,*) '-----------------------------------'
+     !!call sparse_matrix_small_to_large(tmb%linmat%denskern, tmb%linmat%denskern_large, 'small_to_large')
+     !!allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
+     !!call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern_large%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!write(*,*) '-----------------------------------'
+     !!call random_number(tmb%linmat%denskern_large%matrix)
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern_large%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+     !!call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+     !!write(*,*) '-----------------------------------'
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern_large%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!write(*,*) '-----------------------------------'
+     !!call sparse_matrix_small_to_large(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+     !!call uncompressMatrix(iproc,tmb%linmat%denskern)
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!write(*,*) '-----------------------------------'
+
+
 
      if (in%check_sumrho>0) then
          call check_communication_potential(denspot,tmb)

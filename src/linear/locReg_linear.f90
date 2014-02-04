@@ -2297,7 +2297,8 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
         end if
         if(Gmin > lmax) exit global_loop_c
 
-        if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_c
+        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_c
+        if(lmin > Gmax)  cycle global_loop_c
 
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -2355,7 +2356,8 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
             isegstart=isegG
         end if
         if(Gmin > lmax)  exit global_loop_f
-        if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
+        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
+        if(lmin > Gmax)  cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0

@@ -362,7 +362,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
-           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, energs%ebs, &
+           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, &
+           tmb%linmat%ovrlp_large, tmb%linmat%ham_large, &
+           tmb%linmat%denskern_large, energs%ebs, &
            itout,it_scc, order_taylor)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0

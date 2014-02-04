@@ -938,16 +938,33 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
   type(sparsematrix),intent(out) :: sparsemat
 
   ! Local variables
-  integer :: iorb, jorb, isegline, iseg, ivctr, ijorb
-  logical :: segment_started, overlap
+  integer :: iorb, jorb, isegline, iseg, ivctr, ijorb, istat
+  logical :: segment_started, overlap, newline
+  character(len=*),parameter :: subname='init_sparsity_from_distance'
+
+
+  call nullify_sparsematrix(sparsemat)
 
   sparsemat%nfvctr=orbs%norb
   sparsemat%nfvctrp=orbs%norbp
   sparsemat%isfvctr=orbs%isorb
+
+  !allocate(sparsemat%nfvctr_par(0:nproc-1),stat=istat)
+  !call memocc(istat, sparsemat%nfvctr_par, 'sparsemat%nfvctr_par', subname)
   sparsemat%nfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
+  !allocate(sparsemat%isfvctr_par(0:nproc-1),stat=istat)
+  !call memocc(istat, sparsemat%isfvctr_par, 'sparsemat%isfvctr_par', subname)
   sparsemat%isfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
+
   call vcopy(nproc,orbs%isorb_par(0),1,sparsemat%isfvctr_par(0),1)
   call vcopy(nproc,orbs%norb_par(0,0),1,sparsemat%nfvctr_par(0),1)
+
+  allocate(sparsemat%nsegline(orbs%norb),stat=istat)
+  call memocc(istat, sparsemat%nsegline, 'sparsemat%nsegline', subname)
+  !sparsemat%nsegline=f_malloc_ptr(orbs%norb,id='sparsemat%nsegline')
+  allocate(sparsemat%istsegline(orbs%norb),stat=istat)
+  call memocc(istat, sparsemat%istsegline, 'sparsemat%istsegline', subname)
+  !sparsemat%istsegline=f_malloc_ptr(orbs%norb,id='sparsemat%istsegline')
 
   sparsemat%nseg=0
   sparsemat%nvctr=0
@@ -956,6 +973,7 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
       ! Always start a new segment for each line
       segment_started=.false.
       isegline=0
+      newline=.true.
       do jorb=1,orbs%norb
           overlap=check_overlap(iorb,jorb)
           if (overlap) then
@@ -967,13 +985,15 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
                   sparsemat%nseg=sparsemat%nseg+1
                   isegline=isegline+1
                   sparsemat%nvctr=sparsemat%nvctr+1
+                  if (newline) sparsemat%istsegline(iorb)=sparsemat%nseg
+                  newline=.false.
               end if
               segment_started=.true.
           else
               segment_started=.false.
           end if
-          sparsemat%nsegline(iorb)=isegline
       end do
+      sparsemat%nsegline(iorb)=isegline
   end do
 
   if (iproc==0) then
@@ -983,8 +1003,12 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
   end if
 
 
-  sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
-  sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
+  allocate(sparsemat%keyv(sparsemat%nseg),stat=istat)
+  call memocc(istat, sparsemat%keyv, 'sparsemat%keyv', subname)
+  !sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
+  allocate(sparsemat%keyg(2,sparsemat%nseg),stat=istat)
+  call memocc(istat, sparsemat%keyg, 'sparsemat%keyg', subname)
+  !sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
 
 
   iseg=0
@@ -998,7 +1022,6 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
           if (overlap) then
               if (segment_started) then
                   ! there is no "hole" in between, i.e. we are in the same segment
-                  sparsemat%nvctr=sparsemat%nvctr+1
                   ivctr=ivctr+1
               else
                   ! there was a "hole" in between, i.e. we are in a new segment.
@@ -1018,19 +1041,19 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
               segment_started=.false.
           end if
       end do
+      ! close the last segment on the line if necessary
+      if (segment_started) then
+          sparsemat%keyg(2,iseg)=iorb*orbs%norb
+      end if
   end do
-  ! close the last segment if necessary
-  if (segment_started) then
-      sparsemat%keyg(2,iseg)=orbs%norb**2
-  end if
 
   ! check whether the number of segments and elements agrees
   if (iseg/=sparsemat%nseg) then
-      write(*,*) 'ERROR: iseg/=sparsemat%nseg'
+      write(*,'(a,2i8)') 'ERROR: iseg/=sparsemat%nseg', iseg, sparsemat%nseg
       stop
   end if
   if (ivctr/=sparsemat%nvctr) then
-      write(*,*) 'ERROR: ivctr/=sparsemat%nvctr'
+      write(*,'(a,2i8)') 'ERROR: ivctr/=sparsemat%nvctr', ivctr, sparsemat%nvctr
       stop
   end if
 
@@ -1055,10 +1078,10 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
       
       ilr=orbs%inwhichlocreg(iiorb)
       jlr=orbs%inwhichlocreg(jjorb)
-      maxdist = (lzd%llr(ilr)%locrad+lzd%llr(jlr)%locrad)**2
+      maxdist = (lzd%llr(ilr)%locrad_kernel+lzd%llr(jlr)%locrad_kernel)**2
       dist = (lzd%llr(ilr)%locregcenter(1) - lzd%llr(jlr)%locregcenter(1))**2 &
-            +(lzd%llr(ilr)%locregcenter(1) - lzd%llr(jlr)%locregcenter(1))**2 &
-            +(lzd%llr(ilr)%locregcenter(1) - lzd%llr(jlr)%locregcenter(1))**2
+            +(lzd%llr(ilr)%locregcenter(2) - lzd%llr(jlr)%locregcenter(2))**2 &
+            +(lzd%llr(ilr)%locregcenter(3) - lzd%llr(jlr)%locregcenter(3))**2
       if (dist<=maxdist) then
           check_overlap=.true.
       else
@@ -1081,14 +1104,17 @@ subroutine init_indices_in_compressed(store_index, norb, sparsemat)
   type(sparseMatrix),intent(inout) :: sparsemat
 
   ! Local variables
-  integer :: iorb, jorb, compressed_index
+  integer :: iorb, jorb, compressed_index, istat
+  character(len=*),parameter :: subname='init_indices_in_compressed'
 
   if (store_index) then
       ! store the indices of the matrices in the sparse format
       sparsemat%store_index=.true.
 
       ! initialize sparsemat%matrixindex_in_compressed
-      sparsemat%matrixindex_in_compressed_arr=f_malloc_ptr((/norb,norb/),id='sparsemat%matrixindex_in_compressed_arr')
+      allocate(sparsemat%matrixindex_in_compressed_arr(norb,norb),stat=istat)
+      call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
+      !sparsemat%matrixindex_in_compressed_arr=f_malloc_ptr((/norb,norb/),id='sparsemat%matrixindex_in_compressed_arr')
 
       do iorb=1,norb
          do jorb=1,norb
@@ -1115,9 +1141,12 @@ subroutine init_orbs_from_index(sparsemat)
   type(sparseMatrix),intent(inout) :: sparsemat
 
   ! local variables
-  integer :: ind, iseg, segn, iorb, jorb
+  integer :: ind, iseg, segn, iorb, jorb, istat
+  character(len=*),parameter :: subname='init_orbs_from_index'
 
-  sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
+  allocate(sparsemat%orb_from_index(2,sparsemat%nvctr),stat=istat)
+  call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
+  !sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
 
   ind = 0
   do iseg = 1, sparsemat%nseg
@@ -1143,10 +1172,15 @@ subroutine init_matrix_parallelization(iproc, nproc, sparsemat)
   type(sparseMatrix),intent(inout) :: sparsemat
 
   ! Local variables
-  integer :: jproc, jorbs, jorbold, ii, jorb
+  integer :: jproc, jorbs, jorbold, ii, jorb, istat
+  character(len=*),parameter :: subname='init_matrix_parallelization'
 
   ! parallelization of matrices, following same idea as norb/norbp/isorb
+  !allocate(sparsemat%nvctr_par(0:nproc-1),stat=istat)
+  !call memocc(istat, sparsemat%nvctr_par, 'sparsemat%nvctr_par', subname)
   sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
+  !allocate(sparsemat%isvctr_par(0:nproc-1),stat=istat)
+  !call memocc(istat, sparsemat%isvctr_par, 'sparsemat%isvctr_par', subname)
   sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
 
   !most equal distribution, but want corresponding to norbp for second column
@@ -1193,3 +1227,96 @@ subroutine init_matrix_parallelization(iproc, nproc, sparsemat)
   sparsemat%can_use_dense=.false.
 
 end subroutine init_matrix_parallelization
+
+
+
+
+subroutine transform_sparse_matrix(smat, lmat, cmode)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(sparseMatrix),intent(inout) :: smat, lmat
+  character(len=14),intent(in) :: cmode
+
+  ! Local variables
+  integer :: imode, icheck, isseg, isstart, isend, ilseg, ilstart, ilend
+  integer :: iostart, ioend, ilength, isoffset, iloffset, iscostart, ilcostart, i
+  integer,parameter :: SMALL_TO_LARGE=1
+  integer,parameter :: LARGE_TO_SMALL=2
+
+
+  ! determine the case:
+  ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
+  ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
+  if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
+      imode=SMALL_TO_LARGE
+  else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
+      imode=LARGE_TO_SMALL
+  else
+      stop 'wrong cmode'
+  end if
+
+  select case (imode)
+  case (SMALL_TO_LARGE)
+      call to_zero(lmat%nvctr,lmat%matrix_compr(1))
+  case (LARGE_TO_SMALL)
+      call to_zero(smat%nvctr,smat%matrix_compr(1))
+  case default
+      stop 'wrong imode'
+  end select
+
+
+  icheck=0
+  sloop: do isseg=1,smat%nseg
+      isstart=smat%keyg(1,isseg)
+      isend=smat%keyg(2,isseg)
+      lloop: do ilseg=1,lmat%nseg
+          ilstart=lmat%keyg(1,ilseg)
+          ilend=lmat%keyg(2,ilseg)
+
+          !write(*,*) 'isstart, isend, ilstart, ilend', isstart, isend, ilstart, ilend
+          ! check whether there is an overlap:
+          ! if not, increase loop counters
+          if (ilstart>isend) exit lloop
+          if (isstart>ilend) cycle lloop
+          ! if yes, determine start end end of overlapping segment (in uncompressed form)
+          iostart=max(isstart,ilstart)
+          ioend=min(isend,ilend)
+          !write(*,*) 'iostart, ioend', iostart, ioend
+          ilength=ioend-iostart+1
+
+          ! offset with respect to the starting point of the segment
+          isoffset=iostart-smat%keyg(1,isseg)
+          iloffset=iostart-lmat%keyg(1,ilseg)
+
+          ! determine start end and of the overlapping segment in compressed form
+          iscostart=smat%keyv(isseg)+isoffset
+          ilcostart=lmat%keyv(ilseg)+iloffset
+
+          ! copy the elements
+          select case (imode)
+          case (SMALL_TO_LARGE) 
+              do i=0,ilength-1
+                  lmat%matrix_compr(ilcostart+i)=smat%matrix_compr(iscostart+i)
+              end do
+          case (LARGE_TO_SMALL) 
+              do i=0,ilength-1
+                  smat%matrix_compr(iscostart+i)=lmat%matrix_compr(ilcostart+i)
+              end do
+          case default
+              stop 'wrong imode'
+          end select
+          icheck=icheck+ilength
+      end do lloop
+  end do sloop
+
+  ! all elements of the small matrix must have been processed, no matter in
+  ! which direction the transformation has been executed
+  if (icheck/=smat%nvctr) then
+      write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr', icheck, smat%nvctr
+      stop
+  end if
+
+end subroutine transform_sparse_matrix

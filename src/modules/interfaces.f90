@@ -4004,7 +4004,8 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, orbs, foe_obj, &
-                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout, it_scc, order_taylor)
+                   tmprtr, mode, ham_input, ovrlp_input, fermi_input, ovrlp_large, ham_large, denskern_large, &
+                   ebs, itout, it_scc, order_taylor)
           use module_base
           use module_types
           implicit none
@@ -4013,8 +4014,10 @@ module module_interfaces
           type(foe_data),intent(inout) :: foe_obj
           real(kind=8),intent(inout) :: tmprtr
           integer,intent(in) :: mode
-          type(sparseMatrix),intent(inout) :: ovrlp, ham
-          type(sparseMatrix),intent(inout) :: fermi
+          type(sparseMatrix),intent(inout),target :: ovrlp_input, ham_input
+          type(sparseMatrix),intent(inout),target :: fermi_input
+          type(sparseMatrix),intent(inout),target :: ovrlp_large, ham_large
+          type(sparseMatrix),intent(inout),target :: denskern_large
           real(kind=8),intent(out) :: ebs
         end subroutine foe
 
