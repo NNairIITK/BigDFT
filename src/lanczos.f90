@@ -71,56 +71,38 @@ function GetBottom(atoms,nspin)
    integer, intent(in) :: nspin
    !Local variables
    character(len=*), parameter :: subname='GetBottom'
-   integer, parameter :: noccmax=2,lmax=4,nelecmax=32, ng=21
+   integer, parameter :: ng=21
    !integer, parameter :: nmax=6
 
    integer :: ity,  i_all
-   real(gp) , pointer :: expo(:),  occup(:,:)
-   real(gp)   psi(ng,5)
+   real(gp) , pointer :: expo(:)
+   real(gp)   psi(ng,10)
 
    integer :: i_stat
-   real(gp) :: gaenes_aux(5)
-   integer, dimension(lmax) :: nl
-   integer nspinor, iat, noncoll
+   real(gp) :: gaenes_aux(10)
+   integer nspinor, iat, noncoll,nspin_ig
 
    ! if (in_iat_absorber.ne.0) then
 
    allocate(expo(ng +ndebug  ), stat=i_stat)
    call memocc(i_stat,expo,'expo',subname)
 
-   allocate(occup ( noccmax  ,lmax+1+ndebug ), stat=i_stat)
-   call memocc(i_stat,occup,'occup',subname)
-
    GetBottom=1.0e4_gp
 
-   !for the moment, only collinear
-   nspinor=1
-   !if non-collinear it is like nspin=1 but with the double of orbitals
-   if (nspinor == 4) then
-      noncoll=2
-   else
-      noncoll=1
-   end if
+   nspin_ig=ao_nspin_ig(nspin,nspinor=nspinor)
 
    do ity=1, atoms%astruct%ntypes
       do iat=1, atoms%astruct%nat
          if (ity.eq.atoms%astruct%iatype(iat)) exit
       end do
-      call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),atoms%aocc(1:,iat),occup,nl)
-
-      call iguess_generator(atoms%nzatom(ity),atoms%nelpsp(ity),& !_modified
-         &   real(atoms%nelpsp(ity),gp),atoms%psppar(0:,0:,ity),&
+      call iguess_generator(atoms%nzatom(ity),atoms%nelpsp(ity),&
+         &   real(atoms%nelpsp(ity),gp),nspin_ig,atoms%aocc(1:,iat),atoms%psppar(0:,0:,ity),&
          &   atoms%npspcode(ity),  &
          &   atoms%nlcc_ngv(ity),atoms%nlcc_ngc(ity),atoms%nlccpar(0:,ity),&
-         &   ng-1,nl,5,noccmax,lmax,occup,expo,&
-         &   psi,.false., gaenes_aux=gaenes_aux  )
+         &   ng-1,expo,psi,.false., gaenes_aux=gaenes_aux  )
 
       if( minval(gaenes_aux ) < GetBottom) GetBottom=minval(gaenes_aux )
    enddo
-
-   i_all=-product(shape(occup))*kind(occup)
-   deallocate(occup,stat=i_stat)
-   call memocc(i_stat,i_all,'occup',subname)
 
    i_all=-product(shape(expo))*kind(expo)
    deallocate(expo,stat=i_stat)

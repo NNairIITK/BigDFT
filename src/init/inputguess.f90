@@ -385,12 +385,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
             call yaml_sequence(advance='no')
             call yaml_open_map(flow=.true.)
             call yaml_map('Atom Type',trim(at%astruct%atomnames(ity)))
-            !write(*,'(1x,a,a6,a)')&
-            !   &   'Generation of input wavefunction data for atom ',&
-            !   &   trim(at%astruct%atomnames(ity)),&
-            !   &   ': '
-            call print_eleconf(nspin_print,&!noccmax,nelecmax,lmax,&
-                 at%aocc(1:,iat),at%iasctype(iat))
+            call print_eleconf(nspin_print,at%aocc(1:,iat),at%iasctype(iat))
          end if
 
          !positions for the nlcc arrays
@@ -401,16 +396,15 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          ngc=0
          if(present(quartic_prefactor)) then
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
-                &   real(at%nelpsp(ity),gp),at%psppar(0:,0:,ity),&
-                &   at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
-                &   ng-1,nl,nmax_occ,noccmax,lmax,occup,xp(1,ityx),&
-                &   psiat(1:,1:,ityx),.false.,quartic_prefactor=quartic_prefactor(ity))
+                  real(at%nelpsp(ity),gp),nspin_print,at%aocc(1:,iat),at%psppar(0:,0:,ity),&
+                  at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
+                  ng-1,xp(1,ityx),psiat(1:,1:,ityx),.false.,&
+                  quartic_prefactor=quartic_prefactor(ity))
         else
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
-                &   real(at%nelpsp(ity),gp),at%psppar(0:,0:,ity),&
-                &   at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
-                &   ng-1,nl,nmax_occ,noccmax,lmax,occup,xp(1,ityx),&
-                &   psiat(1:,1:,ityx),.false.)
+                  real(at%nelpsp(ity),gp),nspin_print,at%aocc(1:,iat),at%psppar(0:,0:,ity),&
+                  at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
+                  ng-1,xp(1,ityx),psiat(1:,1:,ityx),.false.)
          end if
          ntypesx=ntypesx+1
          if (iproc == 0 .and. verbose > 1) then
@@ -480,7 +474,6 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          atmoments(3,iat)=mz
       end do
    end if
-
 
    eks=0.0_gp
    iorb=0

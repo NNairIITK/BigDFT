@@ -17,6 +17,7 @@ module ao_inguess
   integer, parameter :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
   integer, parameter :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
   integer, parameter :: noccmax_ao=2 !<maximum number of the occupied input guess orbitals for a given shell
+  integer, parameter :: nmax_occ_ao=10 !<maximum number of total occupied orbitals for generating the ig functions
 
   private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 
@@ -68,20 +69,20 @@ contains
     end if
   end function ao_nspin_ig
 
-  subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
-       &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb,quartic_prefactor,gaenes_aux)
+  subroutine iguess_generator(izatom,ielpsp,zion,nspin,occupIG,&
+       psppar,npspcode,ngv,ngc,nlccpar,ng,&
+       expo,psiat,enlargerprb,quartic_prefactor,gaenes_aux)
     implicit none
     logical, intent(in) :: enlargerprb
-    integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
+    integer, intent(in) :: ng,npspcode,ielpsp,izatom,ngv,ngc,nspin
     real(gp), intent(in) :: zion
-    integer, dimension(lmax+1), intent(in) :: nl
+    real(gp), dimension(nelecmax_ao), intent(in) :: occupIG
     real(gp), dimension(0:4,0:6), intent(in) :: psppar
     real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
-    real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
     real(gp), dimension(ng+1), intent(out) :: expo
-    real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
+    real(gp), dimension(ng+1,nmax_occ_ao), intent(out) :: psiat
     real(gp),intent(in),optional:: quartic_prefactor
-    real(gp), dimension(nmax_occ),intent(out), optional :: gaenes_aux
+    real(gp), dimension(nmax_occ_ao),intent(out), optional :: gaenes_aux
     !local variables
     character(len=*), parameter :: subname='iguess_generator'
     integer, parameter :: n_int=100
@@ -93,15 +94,16 @@ contains
     !integer, dimension(6,4) :: neleconf
     !real(kind=8), dimension(6,4) :: neleconf
     real(gp), dimension(4) :: gpot
-    real(gp), dimension(noccmax,lmax+1) :: aeval,chrg,res
+    integer, dimension(lmax_ao+1) :: nl
+    real(gp), dimension(noccmax_ao,lmax_ao+1) :: aeval,chrg,res
+    real(gp), dimension(noccmax_ao,lmax_ao+1) :: occup
     real(gp), dimension(:), allocatable :: xp,alps
     real(gp), dimension(:,:), allocatable :: vh,hsep,ofdcoef
     real(gp), dimension(:,:,:), allocatable :: psi
     real(gp), dimension(:,:,:,:), allocatable :: rmt
 
     !filename = 'psppar.'//trim(atomname)
-    if (present(gaenes_aux)) call to_zero(nmax_occ,gaenes_aux(1))
-
+    if (present(gaenes_aux)) call to_zero(nmax_occ_ao,gaenes_aux(1))
 
     lpx=0
     lpx_determination: do i=1,4
@@ -123,6 +125,7 @@ contains
     alps(1:lpx+1)=psppar(1:lpx+1,0)
     gpot(1:4)=psppar(0,1:4)
 
+    !this section can be replaced by the creation of the hij matrix in the psp_projectors module
     !assignation of the coefficents for the nondiagonal terms
     if (npspcode == 2) then !GTH case
        do l=1,lpx+1
@@ -183,7 +186,6 @@ contains
     !!write(*,*) 'WARNING: multiply rprb with 5!!'
     !!rprb=rprb*5.d0
 
-
     if(present(quartic_prefactor)) then
        tt=rprb
        if(quartic_prefactor>0.d0) then
@@ -203,28 +205,17 @@ contains
        rprb=100.0_gp
     end if
 
-    !  occup(:,:)=0.0_gp
-    !   do l=0,lmax-1
-    !     iocc=0
-    !     do i=1,6
-    !        if (elecorbs(i,l+1) > 0.0_gp) then
-    !           iocc=iocc+1
-    !           !print *,'elecorbs',i,l,elecorbs(i,l+1),noccmax
-    !            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
-    !           occup(iocc,l+1)=elecorbs(i,l+1)
-    !        endif
-    !     end do
-    !     nl(l+1)=iocc
-    !  end do
+    !create the occupation number for this atom
+    call count_atomic_shells(nspin,occupIG,occup,nl)
 
     !allocate arrays for the gatom routine
     allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
     call memocc(i_stat,vh,'vh',subname)
-    allocate(psi(0:ng,noccmax,lmax+ndebug),stat=i_stat)
+    allocate(psi(0:ng,noccmax_ao,lmax_ao+1+ndebug),stat=i_stat)
     call memocc(i_stat,psi,'psi',subname)
     allocate(xp(0:ng+ndebug),stat=i_stat)
     call memocc(i_stat,xp,'xp',subname)
-    allocate(rmt(n_int,0:ng,0:ng,lmax+ndebug),stat=i_stat)
+    allocate(rmt(n_int,0:ng,0:ng,lmax_ao+1+ndebug),stat=i_stat)
     call memocc(i_stat,rmt,'rmt',subname)
 
     !can be switched on for debugging
@@ -244,21 +235,21 @@ contains
     end do
 
     ! initial guess
-    do l=0,lmax-1
-       do iocc=1,noccmax
+    do l=0,lmax_ao
+       do iocc=1,noccmax_ao
           do i=0,ng
              psi(i,iocc,l+1)=0.0_gp
           end do
        end do
     end do
 
-    call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
+    call crtvh(ng,lmax_ao,xp,vh,rprb,fact,n_int,rmt)
     if(present(quartic_prefactor)) then
        iorder=4
     else
        iorder=2
     end if
-    call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
+    call gatom(rcov,rprb,lmax_ao,lpx,noccmax_ao,occup,&
          zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
          aeval,ng,psi,res,chrg,iorder)
     
@@ -268,7 +259,7 @@ contains
     end do
 
     i=0
-    do l=1,4
+    do l=1,lmax_ao+1
        do iocc=1,nl(l)
           i=i+1
           !occupat(i)=occup(iocc,l)

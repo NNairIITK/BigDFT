@@ -16,6 +16,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   use module_base
   use module_types
   use yaml_output
+  use module_interfaces, except_this_one => createWavefunctionsDescriptors
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
@@ -376,7 +377,7 @@ END SUBROUTINE createProjectorsArrays
               & band_structure_filename, input_spin, atoms, d, denspot)
           use module_defs
           use module_types
-  use yaml_output
+          use yaml_output
           use module_interfaces, except_this_one => input_wf_empty
           implicit none
           integer, intent(in) :: iproc, nproc
