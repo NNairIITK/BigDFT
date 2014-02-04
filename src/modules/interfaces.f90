@@ -3458,7 +3458,7 @@ module module_interfaces
           type(communications_arrays), intent(in) :: comms
         end subroutine check_communications
 
-        subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
+        subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
              orbs,nlpsp,wfd,psi,fsep,refill,strten)
           use module_base
           use module_types
@@ -3468,7 +3468,6 @@ module module_interfaces
           type(wavefunctions_descriptors), intent(in) :: wfd
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           logical, intent(in) :: refill
-          integer, intent(in) :: iproc
           real(gp), intent(in) :: hx,hy,hz
           type(locreg_descriptors) :: lr
           type(orbitals_data), intent(in) :: orbs

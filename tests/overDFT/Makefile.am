@@ -1,5 +1,6 @@
 # Give here the list of existing tests
 TESTDIRS = \
+	   C6H6-freq \
 	   GEOPT-all \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
@@ -46,6 +47,8 @@ IO-wf-ETSF_read.out.out: IO-wf-ETSF_write.out.out
 
 # Additional freq in.
 H2-freq.post-in: $(abs_top_builddir)/src/frequencies
+	rm -f frequencies.res
+C6H6-freq.post-in: $(abs_top_builddir)/src/frequencies
 	rm -f frequencies.res
 
 # Additional outs

@@ -92,6 +92,7 @@ contains
     
   end subroutine string_assignment
 
+
   !> Add a buffer to a string and increase its length
   pure subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
     implicit none
@@ -150,6 +151,7 @@ contains
     string_pos=string_pos+lgt_add
 
   end subroutine buffer_string
+
 
   !> Add the spaces necessary to align the first occurrence of a given anchor
   !! into a tabular value. Can be done either by moving rigidly the message or 
@@ -221,6 +223,7 @@ contains
     end if
 
   end function yaml_ctoa
+
 
   !> Convert double complex to character
   !! use python notation for yaml complex

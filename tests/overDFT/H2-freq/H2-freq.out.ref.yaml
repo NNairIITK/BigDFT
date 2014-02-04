@@ -130,6 +130,31 @@
    sic_alpha                           : 0. #     SIC downscaling parameter
  tddft:
    tddft_approach                      : none #   TDDFT method
+ posinp:
+   Units                               : angstroem
+   Positions:
+   - H: [5.0659887200779217, 0.0, 0.0]
+     IGSpin                            : 1
+   - H: [4.3004479110820801, 0.0, 0.0]
+     IGSpin                            : -1
+   Properties:
+     Format                            : xyz
+     Source                            : posinp
+ psppar.H:
+   Pseudopotential type                : GTH
+   Atomic number                       : 1
+   No. of Electrons                    : 1
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.20000000000000001
+     Coefficients (c1 .. c4): [-4.0663326, 0.6778322, 0.0, 0.0]
+   Radii of active regions (AU):
+     Coarse                            : 1.3600000000000001
+     Fine                              : 0.14999999999999999
+     Coarse PSP                        : 0.14999999999999999
+     Source                            : User-defined
+   PAW patch                           : No
+   Source                              : psppar.H
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
@@ -144,10 +169,10 @@
  Geometry Optimization Parameters:
    Maximum steps                       :  1
    Algorithm                           : none
-   Random atomic displacement          :  0.0E+00
-   Fluctuation in forces               :  1.0E+00
-   Maximum in forces                   :  0.0E+00
-   Steepest descent step               :  4.0E+00
+   Random atomic displacement          :  0.0
+   Fluctuation in forces               :  1.0
+   Maximum in forces                   :  0.0
+   Steepest descent step               :  4.0
  Material acceleration                 :  No #iproc=0
  #... (file:input.freq)...............................................Frequencies Parameters
  #|1/64           Step size factor (alpha*hgrid)                                             
@@ -155,7 +180,7 @@
  #|1              Method used (only possible value=1)                                        
  # ==== WARNING: the following lines have not been processed by the parser ====
  #|#Best effort: 4173 cm-1, E=-1.1370708233960054 Hartree, d=0.76558 angstroem               
- (F) file "frequencies.res" present    :  No
+ (F) File "frequencies.res" present    :  No
  (F) Frequency moves already calculated:  0
  (F) Total Frequency moves             :  12
   #========================================================= (F) Reference state calculation
@@ -194,26 +219,34 @@
    No. of Electrons                    :  1
    No. of Atoms                        :  2
    Radii of active regions (AU):
-     Coarse                            :  1.36000
-     Fine                              :  0.15000
-     Coarse PSP                        :  0.00000
+     Coarse                            :  1.36
+     Fine                              :  0.15
+     Coarse PSP                        :  0.0
      Source                            : PSP File
-   Grid Spacing threshold (AU)         :  0.50
+   Grid Spacing threshold (AU)         :  0.5
    Pseudopotential type                : GTH
    Local Pseudo Potential (HGH convention):
-     Rloc                              :  0.20000
-     Coefficients (c1 .. c4)           :  [ -4.06633,  0.67783,  0.00000,  0.00000 ]
+     Rloc                              :  0.2
+     Coefficients (c1 .. c4)           :  [ -4.06633,  0.67783,  0.0,  0.0 ]
    No. of projectors                   :  0
    PSP XC                              : "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - H: {AU:  [  8.1483,  6.7500,  6.7500 ], GU:  [  18.107,  15.000,  15.000 ]} # 0001
- - H: {AU:  [  6.7017,  6.7500,  6.7500 ], GU:  [  14.893,  15.000,  15.000 ]} # 0002
- Rigid Shift Applied (AU)              :  [ -1.4250,  6.7500,  6.7500 ]
+ - H: {AU:  [  8.1483,  6.75,  6.75 ], GU:  [  18.107,  15.0,  15.0 ]} # 0001
+ - H: {AU:  [  6.7017,  6.75,  6.75 ], GU:  [  14.893,  15.0,  15.0 ]} # 0002
+ Rigid Shift Applied (AU)              :  [ -1.425,  6.75,  6.75 ]
+ Atomic structure:
+   Units                               : angstroem
+   Positions:
+   -  {H: [ 8.148331233,  6.75,  6.75],  # [  18.11,  15.0,  15.0 ] 0001
+ IGSpin:  1}
+   -  {H: [ 6.701668767,  6.75,  6.75],  # [  14.89,  15.0,  15.0 ] 0002
+ IGSpin: -1}
+   Rigid Shift Applied (AU)            :  [ -1.425,  6.75,  6.75 ]
   #------------------------------------------------------------------------- Grid properties
- Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
+ Box Grid spacings                     :  [  0.45,  0.45,  0.45 ]
  Sizes of the simulation domain:
-   AU                                  :  [  14.850,  13.500,  13.500 ]
+   AU                                  :  [  14.85,  13.5,  13.5 ]
    Angstroem                           :  [  7.8583,  7.1439,  7.1439 ]
    Grid Spacing Units                  :  [  33,  30,  30 ]
    High resolution region boundaries (GU):
@@ -236,7 +269,7 @@
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
- - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
+ - Occupation Numbers: {Orbitals No. 1-2:  1.0}
  Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -337,9 +370,9 @@
    No. of Electrons                    :  1
    No. of Atoms                        :  2
    Radii of active regions (AU):
-     Coarse                            :  1.36000
-     Fine                              :  0.15000
-     Coarse PSP                        :  0.00000
+     Coarse                            :  1.36
+     Fine                              :  0.15
+     Coarse PSP                        :  0.0
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : GTH
@@ -397,7 +430,7 @@
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
    Reformatting for:
-     Molecule was shifted: [ 2.471923828125E-05,  0.000000000000E+00,  0.000000000000E+00]
+     Molecule was shifted              :  [  2.471923828125E-05,  0.0,  0.0 ]
   #---------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
@@ -736,15 +769,15 @@
    No. of Electrons                    :  1
    No. of Atoms                        :  2
    Radii of active regions (AU):
-     Coarse                            :  1.36000
-     Fine                              :  0.15000
-     Coarse PSP                        :  0.00000
+     Coarse                            :  1.36
+     Fine                              :  0.15
+     Coarse PSP                        :  0.0
      Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : GTH
    Local Pseudo Potential (HGH convention):
-     Rloc                              :  0.20000
-     Coefficients (c1 .. c4)           :  [ -4.06633,  0.67783,  0.00000,  0.00000 ]
+     Rloc                              :  0.2
+     Coefficients (c1 .. c4)           :  [ -4.06633,  0.67783,  0.0,  0.0 ]
    No. of projectors                   :  0
    PSP XC                              : "XC: Teter 93"
   #----------------------------------------------------------------------------- Atom Positions
@@ -1445,7 +1478,7 @@
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
- - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
+ - Occupation Numbers: {Orbitals No. 1-2:  1.0}
  Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -1578,7 +1611,7 @@
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
- - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
+ - Occupation Numbers: {Orbitals No. 1-2:  1.0}
  Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -1596,7 +1629,7 @@
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
    Reformatting for:
-     Molecule was shifted: [ 0.000000000000E+00,  9.887695312500E-05,  0.000000000000E+00]
+     Molecule was shifted              :  [  0.0,  9.8876953125E-05,  0.0 ]
   #---------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
@@ -1627,8 +1660,8 @@
  Raw forces norm (Ha/Bohr): {maxval:  1.102943819281E-03, fnrm2:  1.992514876615E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.622288624300E-04,  4.676745160390E-06, -1.185846126156E-20]} # 0001
- -  {H: [ 9.622288624300E-04, -4.676745160390E-06, -1.524659305058E-20]} # 0002
+ -  {H: [-9.6222886243E-04,  4.67674516039E-06, -1.185846126156E-20]} # 0001
+ -  {H: [ 9.6222886243E-04, -4.67674516039E-06, -1.524659305058E-20]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  16.97
@@ -1845,7 +1878,7 @@
  Total Number of Orbitals              :  2
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
- - Occupation Numbers: {Orbitals No. 1-2:  1.0000}
+ - Occupation Numbers: {Orbitals No. 1-2:  1.0}
  Wavefunctions memory occupation for root MPI process:  0 MB 277 KB 672 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -1863,7 +1896,7 @@
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
    Reformatting for:
-     Molecule was shifted: [ 0.000000000000E+00,  0.000000000000E+00,  9.887695312500E-05]
+     Molecule was shifted              :  [  0.0,  0.0,  9.8876953125E-05 ]
   #---------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
@@ -2060,6 +2093,31 @@
    sic_alpha                           : 0. #     SIC downscaling parameter
  tddft:
    tddft_approach                      : none #   TDDFT method
+ posinp:
+   Units                               : angstroem
+   Positions:
+   - H: [5.0659887200779217, 0.0, 0.0]
+     IGSpin                            : 1
+   - H: [4.3004479110820801, 0.0, 0.0]
+     IGSpin                            : -1
+   Properties:
+     Format                            : xyz
+     Source                            : posinp
+ psppar.H:
+   Pseudopotential type                : GTH
+   Atomic number                       : 1
+   No. of Electrons                    : 1
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.20000000000000001
+     Coefficients (c1 .. c4): [-4.0663326, 0.6778322, 0.0, 0.0]
+   Radii of active regions (AU):
+     Coarse                            : 1.3600000000000001
+     Fine                              : 0.14999999999999999
+     Coarse PSP                        : 0.14999999999999999
+     Source                            : User-defined
+   PAW patch                           : No
+   Source                              : psppar.H
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
@@ -2074,10 +2132,10 @@
  Geometry Optimization Parameters:
    Maximum steps                       :  1
    Algorithm                           : none
-   Random atomic displacement          :  0.0E+00
-   Fluctuation in forces               :  1.0E+00
-   Maximum in forces                   :  0.0E+00
-   Steepest descent step               :  4.0E+00
+   Random atomic displacement          :  0.0
+   Fluctuation in forces               :  1.0
+   Maximum in forces                   :  0.0
+   Steepest descent step               :  4.0
  Material acceleration                 :  No #iproc=0
  #... (file:input.freq)...............................................Frequencies Parameters
  #|1/64           Step size factor (alpha*hgrid)                                             

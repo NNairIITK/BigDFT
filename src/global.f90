@@ -778,7 +778,7 @@ end do hopping_loop
 contains
 
 
-  !> Does a MD run with the atomic positiosn rxyz
+  !> Does a MD run with the atomic positions rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
        runObj,outs,nproc,iproc)!  &
     use module_base

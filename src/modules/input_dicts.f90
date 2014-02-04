@@ -694,6 +694,7 @@ contains
          & call set(dict // "Properties" // "Format", astruct%inputfile_format)
   end subroutine astruct_merge_to_dict
 
+
   subroutine astruct_set_from_dict(dict, astruct, comment, energy, fxyz)
     use module_types, only: atomic_structure
     use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
@@ -710,7 +711,7 @@ contains
     character(len=*), parameter :: subname='read_dict_positions'
     type(dictionary), pointer :: pos, at
     character(len = max_field_length) :: str
-    integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
+    integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp,ierr
     character(len=20), dimension(100) :: atomnames
 
     call astruct_nullify(astruct)
@@ -772,7 +773,7 @@ contains
           str = dict_key(at)
           if (trim(str) == "Frozen") then
              str = dict_value(at)
-             call frozen_ftoi(str(1:4), astruct%ifrztyp(iat))
+             call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
           else if (trim(str) == "IGSpin") then
              igspin = at
           else if (trim(str) == "IGChg") then
@@ -848,6 +849,7 @@ contains
     end if
 
   end subroutine astruct_set_from_dict
+
 
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi

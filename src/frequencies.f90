@@ -54,6 +54,9 @@ program frequencies
    real(gp), dimension(:,:), allocatable :: energies   !< Total energies for all moves
    real(gp), dimension(:,:,:), allocatable :: forces   !< Atomic forces for all moves
 
+   !Function used to determine if the coordinate of the given atom is frozen
+   logical :: move_this_coordinate
+
    character(len=len(runObj%inputs%run_name)) :: prefix
    integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for call_bigdft
    real(gp), dimension(3) :: freq_step
@@ -207,13 +210,14 @@ program frequencies
    ! Loop over the atoms for the degrees of freedom
    do iat=1,runObj%atoms%astruct%nat
 
-      if (ifrztyp0(iat) == 1) then
-         if (bigdft_mpi%iproc == 0) call yaml_comment('(F) The atom ' // trim(yaml_toa(iat)) // ' is frozen.')
-         cycle
-      end if
-
       ! Loop over x, y and z
       do i=1,3
+         if (.not.move_this_coordinate(ifrztyp0(iat),i)) then
+            if (bigdft_mpi%iproc == 0) call yaml_comment( &
+               '(F) The direction '// trim(yaml_toa(i)) // ' of the atom ' // trim(yaml_toa(iat)) // ' is frozen.')
+            cycle
+         end if
+
          ii = i+3*(iat-1)
          !One more degree of freedom
          nfree = nfree + 1

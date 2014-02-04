@@ -67,7 +67,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   !already symmetrized
 
   if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
-       call symm_stress((dpbox%mpi_env%iproc+dpbox%mpi_env%igroup==0),hstrten,symObj%symObj)
+       call symm_stress(hstrten,symObj%symObj)
 
 END SUBROUTINE density_and_hpot
 

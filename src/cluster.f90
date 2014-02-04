@@ -1923,7 +1923,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !xc stress, diagonal for the moment
   if (atoms%astruct%geocode=='P') then
-     if (atoms%astruct%sym%symObj >= 0) call symm_stress((iproc==0),xcstr,atoms%astruct%sym%symObj)
+     if (atoms%astruct%sym%symObj >= 0) call symm_stress(xcstr,atoms%astruct%sym%symObj)
   end if
 
   if (calculate_dipole) then
@@ -2002,7 +2002,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      !!do i_stat=1,KSwfn%orbs%norb
      !!    tmb%wfnmd%density_kernel(i_stat,i_stat)=1.d0
      !!end do
-     !!call  nonlocal_forces(iproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+     !!call  nonlocal_forces(tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
      !! atoms,rxyz,&
      !! KSwfn%orbs,nlpsp,proj,tmb%lzd%glr%wfd,KSwfn%psi,fxyz,refill_proj,strten)
      !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&

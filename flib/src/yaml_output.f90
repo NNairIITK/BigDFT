@@ -1879,6 +1879,7 @@ contains
       
     end function switch_flow
 
+
     recursive subroutine yaml_dict_dump_(dict)
       implicit none
       type(dictionary), pointer, intent(in) :: dict
@@ -1915,6 +1916,7 @@ contains
       call yaml_dict_dump_(dict_next(dict))
 
     end subroutine yaml_dict_dump_
+
 
     subroutine scalar(val)
       implicit none
@@ -2039,9 +2041,10 @@ contains
 
   end subroutine yaml_dict_dump
 
-  !> dump all the documents in the dictionary
-  ! works with a list of documents
-  ! supposes that each element of the list is a separate document
+
+  !> Dump all the documents in the dictionary
+  !! Works with a list of documents
+  !! Suppose that each element of the list is a separate document
   subroutine yaml_dict_dump_all(dict,unit,flow,verbatim)
     implicit none
     type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
