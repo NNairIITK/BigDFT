@@ -61,14 +61,14 @@ struct _BigDFT_Dict
   gboolean dispose_has_run;
 
   /* Private. */
-  _dictionary *current;
-  _dictionary *root;
+  _dictionary_pointer current;
+  _dictionary_pointer root;
 };
 typedef struct _BigDFT_DictIter BigDFT_DictIter;
 struct _BigDFT_DictIter
 {
   BigDFT_Dict *dict;
-  _dictionary *pointer;
+  _dictionary_pointer pointer;
 };
 BigDFT_Dict *bigdft_dict_new  (BigDFT_DictIter *root);
 BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf);
@@ -135,9 +135,9 @@ struct _BigDFT_Atoms
   double energy;
 
   /* Private. */
-  _atomic_structure *astruct;
-  _atoms_data *data;
-  _symmetry_data *sym;
+  _atomic_structure_pointer astruct;
+  _atoms_data_pointer data;
+  _symmetry_data_pointer sym;
 };
 /********************************/
 BigDFT_Atoms* bigdft_atoms_new();
@@ -222,8 +222,8 @@ struct _BigDFT_Inputs
 
   /* Private. */
   guint refCount;
-  _input_variables *data;
-  _dictionary *input_values;
+  _input_variables_pointer data;
+  _dictionary_pointer input_values;
 };
 /*********************************/
 #ifdef GLIB_MAJOR_VERSION
@@ -280,8 +280,8 @@ struct _BigDFT_Goutput
   double strten[6];
 
   /* Private. */
-  _DFT_global_output *data;
-  _energy_terms *energs;
+  _DFT_global_output_pointer data;
+  _energy_terms_pointer energs;
 };
 /********************************/
 BigDFT_Goutput* bigdft_goutput_new        (guint nat);
@@ -323,7 +323,7 @@ struct _BigDFT_Restart
 
   /* Private. */
   BigDFT_Inputs *in;
-  _restart_objects *data;
+  _restart_objects_pointer data;
 };
 /*********************************/
 BigDFT_Restart* bigdft_restart_new     (BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
@@ -352,7 +352,7 @@ struct _BigDFT_Memory
 
   /* Private. */
   guint ref;
-  _memory_estimation *data;
+  _memory_estimation_pointer data;
 };
 #ifdef GLIB_MAJOR_VERSION
 GType bigdft_memory_get_type(void);
@@ -388,7 +388,7 @@ struct _BigDFT_Run
 
   /* Private. */
   BigDFT_Dict  *dict; /* Not null if built from a dict. */
-  _run_objects *data;
+  _run_objects_pointer data;
 };
 /*********************************/
 BigDFT_Run*     bigdft_run_new();
@@ -444,7 +444,7 @@ struct _BigDFT_Image
   guint id;
 
   /* Private. */
-  _run_image *data;
+  _run_image_pointer data;
 };
 /*********************************/
 BigDFT_Image* bigdft_image_new       (BigDFT_Atoms *atoms, BigDFT_Inputs *ins,
