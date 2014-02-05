@@ -502,7 +502,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
 
      ! initialize new density kernel with larger cutoff
-     tmb%lzd%llr(:)%locrad_kernel=12.d0
+     tmb%lzd%llr(:)%locrad_kernel=100.d0
 
      call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ovrlp_large)
      allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr), stat=i_stat)

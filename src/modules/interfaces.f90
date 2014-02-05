@@ -4005,7 +4005,8 @@ module module_interfaces
 
         subroutine foe(iproc, nproc, orbs, foe_obj, &
                    tmprtr, mode, ham_input, ovrlp_input, fermi_input, ovrlp_large, ham_large, denskern_large, &
-                   ebs, itout, it_scc, order_taylor)
+                   ebs, itout, it_scc, order_taylor, &
+                   tmb)
           use module_base
           use module_types
           implicit none
@@ -4019,6 +4020,7 @@ module module_interfaces
           type(sparseMatrix),intent(inout),target :: ovrlp_large, ham_large
           type(sparseMatrix),intent(inout),target :: denskern_large
           real(kind=8),intent(out) :: ebs
+          type(DFT_wavefunction),intent(inout) :: tmb
         end subroutine foe
 
         subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)

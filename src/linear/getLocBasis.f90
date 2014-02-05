@@ -58,8 +58,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
-  real(kind=8) :: deviation, KSres
-  integer :: iat, iiorb, jjorb, lwork,jorb
+  real(kind=8) :: deviation, KSres, sumn
+  integer :: iat, iiorb, jjorb, lwork,jorb, ii, irow, icol
 
   ! Option to only calculate the energy without updating the kernel
   if (present(updatekernel)) then
@@ -87,6 +87,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
+      write(*,*) 'calculate overlap'
       if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
               allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
@@ -96,6 +97,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
               call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
           end if
+          write(*,*) 'transpose'
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
@@ -365,11 +367,52 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, &
            tmb%linmat%ovrlp_large, tmb%linmat%ham_large, &
            tmb%linmat%denskern_large, energs%ebs, &
-           itout,it_scc, order_taylor)
+           itout,it_scc, order_taylor, &
+           tmb)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
   end if
+
+
+
+
+      allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
+      call uncompressMatrix(iproc,tmb%linmat%denskern)
+      if (iproc==0) then
+          do istat=1,tmb%orbs%norb
+              do iall=1,tmb%orbs%norb
+                  write(310,*) 0.5d0*tmb%linmat%denskern%matrix(iall,istat)
+              end do
+          end do
+      end if
+      deallocate(tmb%linmat%denskern%matrix)
+
+
+  !!! #######################################
+  !!if (iproc==0) then
+  !!    call yaml_sequence(advance='no')
+  !!    call yaml_open_map(flow=.true.)
+  !!    call yaml_map('Initial kernel purification',.true.)
+  !!end if
+  !!overlap_calculated=.false.
+  !!tmb%can_use_transposed=.false.
+  !!call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+  !!if (iproc==0) call yaml_close_map()
+
+  !!  sumn=0.d0
+  !!   do ii=1,tmb%linmat%denskern%nvctr
+  !!      irow = tmb%linmat%denskern%orb_from_index(1,ii)
+  !!      icol = tmb%linmat%denskern%orb_from_index(2,ii)
+  !!      !if (irow==icol) then
+  !!          sumn=sumn+tmb%linmat%denskern%matrix_compr(ii)*tmb%linmat%ovrlp%matrix_compr(ii)
+  !!      !end if
+  !!   end do
+  !!   if (iproc==0) write(*,*) 'sumn final',sumn
+
+  !!! #######################################
+
+
 
 
 
@@ -1264,6 +1307,7 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   !
   use module_base
   use module_types
+  use module_interfaces
   implicit none
 
   ! Calling arguments
@@ -1276,6 +1320,74 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   integer :: lwork, info, istat, iall
   real(kind=8),dimension(:),allocatable :: work
   character(len=*),parameter :: subname='diagonalizeHamiltonian'
+  real(8),dimension(:,:),pointer :: hamtmp, ovrlptmp, invovrlp, tmpmat, tmpmat2
+  real(8) :: tt, tt2
+  integer :: nproc
+  real(8),dimension(norb,norb) :: kernel
+
+  allocate(hamtmp(norb,norb))
+  allocate(ovrlptmp(norb,norb))
+  allocate(invovrlp(norb,norb))
+  allocate(tmpmat(norb,norb))
+  allocate(tmpmat2(norb,norb))
+
+  call mpi_comm_size(mpi_comm_world,nproc,istat)
+
+  hamtmp=HamSmall
+  ovrlptmp=ovrlp
+  call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
+
+  call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, hamtmp, norb, 0.d0, tmpmat, norb)
+  call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, tmpmat2, norb)
+
+  lwork=10000
+  allocate(work(lwork))
+  call dsyev('v', 'l', norb, tmpmat2, norb, eval, work, lwork, info)
+  deallocate(work)
+
+  ovrlptmp=ovrlp
+  tmpmat=tmpmat2
+  call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
+  !call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, tmpmat, norb, 0.d0, tmpmat2, norb)
+  !if (iproc==0) then
+  !    do istat=1,norb
+  !        do iall=1,norb
+  !            write(200,*) tmpmat2(iall,istat)
+  !        end do
+  !    end do
+  !end if
+
+  call dgemm('n', 't', norb, norb, 28, 1.d0, tmpmat2, norb, tmpmat2, norb, 0.d0, kernel, norb)
+  if (iproc==0) then
+      tt=0.d0
+      tt2=0.d0
+      do istat=1,norb
+          do iall=1,norb
+              write(300,*) kernel(iall,istat)
+              if (istat==iall) tt=tt+kernel(iall,istat)
+              tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
+          end do
+      end do
+      write(*,*) 'Before: trace(K)',tt
+      write(*,*) 'Before: trace(KS)',tt2
+  end if
+
+  call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, kernel, norb, 0.d0, tmpmat, norb)
+  call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, kernel, norb)
+  if (iproc==0) then
+      tt=0.d0
+      tt2=0.d0
+      do istat=1,norb
+          do iall=1,norb
+              write(305,*) kernel(iall,istat)
+              if (istat==iall) tt=tt+kernel(iall,istat)
+              tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
+          end do
+      end do
+      write(*,*) 'After: trace(K)',tt
+      write(*,*) 'After: trace(KS)',tt2
+  end if
+
 
   call timing(iproc,'diagonal_seq  ','ON')
 
@@ -1314,6 +1426,13 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
   if(info/=0)then
     write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',norb
+  end if
+  if (iproc==0) then
+      do istat=1,norb
+          do iall=1,norb
+              write(201,*) hamsmall(iall,istat)
+          end do
+      end do
   end if
 
   iall=-product(shape(work))*kind(work)
@@ -2040,6 +2159,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
      !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
   end if
+
+
+  call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
+  call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'small_to_large')
 
   !allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   !call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)

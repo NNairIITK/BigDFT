@@ -40,7 +40,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,matrixindex_in_compressed
-  real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0
+  real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0,tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
@@ -495,6 +495,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
 
+  write(*,*) 'warning: commented ortho'
 
   if (.not. input%lin%iterative_orthogonalization) then
       ! Standard orthonomalization
@@ -570,6 +571,16 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      call memocc(istat, iall,'type_covered',subname)
 
  end if
+
+ !!! adding some noise
+ Write(*,*) 'warning: add some noise!'
+ do istat=1,size(tmb%psi)
+     call random_number(tt)
+     tt=tt-0.5d0
+     tt=tt*0.6d0
+     tmb%psi(istat)=tmb%psi(istat)*(1.d0+tt)
+ end do
+ tmb%can_use_transposed=.false.
 
 
  iall=-product(shape(aocc))*kind(aocc)
