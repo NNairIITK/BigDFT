@@ -2162,7 +2162,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
 
   call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
-  call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'small_to_large')
+  !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'small_to_large')
 
   !allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   !call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
