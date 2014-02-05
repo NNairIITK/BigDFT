@@ -224,7 +224,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   comments='number of iterations in the preconditioner, order of Taylor approximations'
   call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
-  call input_var(in%lin%order_taylor,'1',ranges=(/1,4/),comment=comments)
+  call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
   
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
