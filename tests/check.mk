@@ -150,7 +150,11 @@ report:
 	rm -f neb.it*
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(abs_top_builddir)/src/NEB | tee $@
-	cat neb.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml 
+	cat neb.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml
+	echo "---" >> log.yaml
+	grep ":" NEB.NEB.out | grep -v "<BigDFT>" >> log.yaml
+	grep -v ":" NEB.NEB.out > tmp-neb.out
+	mv tmp-neb.out NEB.NEB.out
 	rm -rf neb.NEB.0*
 	rm -f gen_output_file velocities_file
 	name=`basename $@ .out` ; \
