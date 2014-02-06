@@ -1218,11 +1218,14 @@ subroutine global_output_new(self, outs, energs, fxyz, nat)
   real(gp), dimension(:,:), pointer :: fxyz
   integer, intent(in) :: nat
 
-  allocate(outs)
-  call init_global_output(outs, nat)
-  energs => outs%energs
-  fxyz => outs%fxyz
-  outs%energs%c_obj = self
+  type(DFT_global_output), pointer :: intern
+
+  allocate(intern)
+  call init_global_output(intern, nat)
+  energs => intern%energs
+  fxyz => intern%fxyz
+  intern%energs%c_obj = self
+  outs => intern
 END SUBROUTINE global_output_new
 subroutine global_output_free(outs)
   use module_types
@@ -1458,8 +1461,11 @@ subroutine run_objects_new(runObj)
   implicit none
   type(run_objects), pointer :: runObj
 
-  allocate(runObj)
-  call run_objects_nullify(runObj)
+  type(run_objects), pointer :: intern
+
+  allocate(intern)
+  call run_objects_nullify(intern)
+  runObj => intern
 END SUBROUTINE run_objects_new
 subroutine run_objects_destroy(runObj)
   use module_types

@@ -708,7 +708,7 @@ contains
     character(len = 1024), intent(out), optional :: comment
 
     !local variables
-    character(len=*), parameter :: subname='read_dict_positions'
+    character(len=*), parameter :: subname='astruct_set_from_dict'
     type(dictionary), pointer :: pos, at
     character(len = max_field_length) :: str
     integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
