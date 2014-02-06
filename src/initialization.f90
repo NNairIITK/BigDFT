@@ -79,6 +79,7 @@ subroutine run_objects_free_container(runObj)
 END SUBROUTINE run_objects_free_container
 
 
+!> read all input files and create the object to run BigDFT
 subroutine run_objects_init_from_files(runObj, radical, posinp)
   use module_types
   use module_input_dicts, only: user_dict_from_files
