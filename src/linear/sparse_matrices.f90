@@ -1320,3 +1320,82 @@ subroutine transform_sparse_matrix(smat, lmat, cmode)
   end if
 
 end subroutine transform_sparse_matrix
+
+
+subroutine check_kernel_cutoff(iproc, orbs, atoms, lzd)
+  use module_base
+  use module_types
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc
+  type(orbitals_data),intent(in) :: orbs
+  type(atoms_data),intent(in) :: atoms
+  type(local_zone_descriptors),intent(inout) :: lzd
+
+  ! Local variables
+  integer :: iorb, ilr, iat, iatype
+  real(kind=8) :: cutoff_sf, cutoff_kernel
+  character(len=20) :: atomname
+  logical :: write_data
+  logical,dimension(atoms%astruct%ntypes) :: write_atomtype
+
+  write_atomtype=.true.
+
+  if (iproc==0) then
+      call yaml_open_sequence('check of kernel cutoff radius')
+  end if
+
+  do iorb=1,orbs%norb
+      ilr=orbs%inwhichlocreg(iorb)
+
+      ! cutoff radius of the support function, including shamop region
+      cutoff_sf=lzd%llr(ilr)%locrad+8.d0*lzd%hgrids(1)
+
+      ! cutoff of the density kernel
+      cutoff_kernel=lzd%llr(ilr)%locrad_kernel
+
+      ! check whether the date for this atomtype has already shoudl been written
+      iat=orbs%onwhichatom(iorb)
+      iatype=atoms%astruct%iatype(iat)
+      if (write_atomtype(iatype)) then
+          if (iproc==0) then
+              write_data=.true.
+          else
+              write_data=.false.
+          end if
+          write_atomtype(iatype)=.false.
+      else
+          write_data=.false.
+      end if
+
+      ! Adjust if necessary
+      if (write_data) then
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
+          call yaml_map('atom type',atomname)
+      end if
+      if (cutoff_sf>cutoff_kernel) then
+          if (write_data) then
+              call yaml_map('adjustment required',.true.)
+              call yaml_map('new value',cutoff_sf,fmt='(f6.2)')
+          end if
+          lzd%llr(ilr)%locrad_kernel=cutoff_sf
+      else
+          if (write_data) then
+              call yaml_map('adjustment required',.false.)
+          end if
+      end if
+      if (write_data) then
+          call yaml_close_map()
+      end if
+  end do
+
+  if (iproc==0) then
+      call yaml_close_sequence
+  end if
+
+
+end subroutine check_kernel_cutoff

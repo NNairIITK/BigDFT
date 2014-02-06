@@ -501,8 +501,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
 
 
-     ! initialize new density kernel with larger cutoff
-     tmb%lzd%llr(:)%locrad_kernel=100.d0
+     ! check the extent of the kernel cutoff (must be at least shamop radius)
+     call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
+     !!! initialize new density kernel with larger cutoff
+     !!tmb%lzd%llr(:)%locrad_kernel=100.d0
 
      call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ovrlp_large)
      allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr), stat=i_stat)
