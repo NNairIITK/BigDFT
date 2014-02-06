@@ -2925,7 +2925,7 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
          logical, intent(in) :: ortho, experimental_mode
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmb%linmat%denskern%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmb%linmat%denskern_large%nvctr),intent(out) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine hpsitopsi_linear
        
@@ -2940,7 +2940,7 @@ module module_interfaces
          real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmbopt%linmat%denskern%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmbopt%linmat%denskern_large%nvctr),intent(out) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine DIISorSD
  

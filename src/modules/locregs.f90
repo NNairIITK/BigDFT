@@ -406,6 +406,7 @@ contains
     glrout%nsi3 = glrin%nsi3
     glrout%Localnorb = glrin%Localnorb
     glrout%locrad=glrin%locrad
+    glrout%locrad_kernel=glrin%locrad_kernel
     glrout%locregCenter=glrin%locregCenter
     glrout%outofzone= glrin%outofzone
 

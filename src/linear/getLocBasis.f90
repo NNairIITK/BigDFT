@@ -344,11 +344,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
          !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.true.)
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs, &
+         !!call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs, &
+         !!     update_kernel)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs, &
               update_kernel)
+         call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.false.)
+         !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.false.)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.false.)
+         call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
       iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
       deallocate(tmb%linmat%ham%matrix, stat=istat)
@@ -371,45 +376,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmb%orbs%eval=-.5d0
 
   end if
-
-
-
-
-      !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
-      !!call uncompressMatrix(iproc,tmb%linmat%denskern)
-      !!if (iproc==0) then
-      !!    do istat=1,tmb%orbs%norb
-      !!        do iall=1,tmb%orbs%norb
-      !!            write(310,*) 0.5d0*tmb%linmat%denskern%matrix(iall,istat)
-      !!        end do
-      !!    end do
-      !!end if
-      !!deallocate(tmb%linmat%denskern%matrix)
-
-
-  !!! #######################################
-  !!if (iproc==0) then
-  !!    call yaml_sequence(advance='no')
-  !!    call yaml_open_map(flow=.true.)
-  !!    call yaml_map('Initial kernel purification',.true.)
-  !!end if
-  !!overlap_calculated=.false.
-  !!tmb%can_use_transposed=.false.
-  !!call purify_kernel(iproc, nproc, tmb, overlap_calculated)
-  !!if (iproc==0) call yaml_close_map()
-
-  !!  sumn=0.d0
-  !!   do ii=1,tmb%linmat%denskern%nvctr
-  !!      irow = tmb%linmat%denskern%orb_from_index(1,ii)
-  !!      icol = tmb%linmat%denskern%orb_from_index(2,ii)
-  !!      !if (irow==icol) then
-  !!          sumn=sumn+tmb%linmat%denskern%matrix_compr(ii)*tmb%linmat%ovrlp%matrix_compr(ii)
-  !!      !end if
-  !!   end do
-  !!   if (iproc==0) write(*,*) 'sumn final',sumn
-
-  !!! #######################################
-
 
 
 
@@ -510,7 +476,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call f_routine(id='getLocalizedBasis')
 
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
-  kernel_best=f_malloc(tmb%linmat%denskern%nvctr,id='kernel_best')
+  kernel_best=f_malloc(tmb%linmat%denskern_large%nvctr,id='kernel_best')
   energy_diff=.false.
 
 
@@ -681,9 +647,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! optimize the tmbs for a few extra states
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
-          allocate(kernel_compr_tmp(tmb%linmat%denskern%nvctr), stat=istat)
+          allocate(kernel_compr_tmp(tmb%linmat%denskern_large%nvctr), stat=istat)
           call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
-          call vcopy(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          call vcopy(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
           !call memocc(istat, occup_tmp, 'occup_tmp', subname)
           !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
@@ -700,7 +666,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !      exit
           !   end if
           !end do
-          call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
+          call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern_large)
+          call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
 
       correction_orthoconstraint_local=correction_orthoconstraint
@@ -782,7 +749,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
-          call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
+          !call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%denskern_large%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
@@ -868,7 +836,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!    call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
           !!         tmb%coeff, tmb%linmat%denskern)
           !!else
-          call vcopy(tmb%linmat%denskern%nvctr, kernel_best(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
+          !call vcopy(tmb%linmat%denskern%nvctr, kernel_best(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%denskern_large%nvctr, kernel_best(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
           !!end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
@@ -1634,7 +1603,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
   real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
   real(kind=8),intent(out) :: trH_ref
-  real(kind=8),dimension(tmbopt%linmat%denskern%nvctr),intent(out) :: kernel_best
+  real(kind=8),dimension(tmbopt%linmat%denskern_large%nvctr),intent(out) :: kernel_best
   logical,intent(out) :: complete_reset
   
   ! Local variables
@@ -1680,7 +1649,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
       trH_ref=trH
-      call vcopy(tmbopt%linmat%denskern%nvctr, tmbopt%linmat%denskern%matrix_compr(1), 1, kernel_best(1), 1)
+      call vcopy(tmbopt%linmat%denskern_large%nvctr, tmbopt%linmat%denskern_large%matrix_compr(1), 1, kernel_best(1), 1)
       !if(iproc==0) write(*,*) 'everything ok, copy last psi...'
       call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
@@ -1780,7 +1749,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
               end do
               trH_ref=ldiis%energy_hist(ii)
               !!if (iproc==0) write(*,*) 'take energy from entry',ii
-              call vcopy(tmbopt%linmat%denskern%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern%matrix_compr(1), 1)
+              call vcopy(tmbopt%linmat%denskern_large%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern_large%matrix_compr(1), 1)
               complete_reset=.true.
           else
               !if(iproc==0) write(*,*) 'copy last psi...'
@@ -1856,7 +1825,8 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
 
   ! Recalculate the kernel
-  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
+  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern_large)
+  call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
 end subroutine reconstruct_kernel
 
@@ -2356,10 +2326,10 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
 
   gradmat%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='gradmat%matrix')
   tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
-  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
   call uncompressMatrix(iproc,gradmat)
   call uncompressMatrix(iproc,tmb%linmat%ham)
-  call uncompressMatrix(iproc,tmb%linmat%denskern)
+  call uncompressMatrix(iproc,tmb%linmat%denskern_large)
   KH=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='KH')
   KHKH=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='KHKH')
   Kgrad=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='Kgrad')
@@ -2384,7 +2354,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call timing(iproc,'ks_residue','ON')
   ! Parallelized version
   if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern_large%matrix, &
            tmb%orbs%norb, tmb%linmat%ham%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
@@ -2396,7 +2366,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   end if
   call mpiallred(KHKH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern%matrix, &
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern_large%matrix, &
            tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, Kgrad(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
@@ -2440,7 +2410,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
 
   call f_free_ptr(gradmat%matrix)
   call f_free_ptr(tmb%linmat%ham%matrix)
-  call f_free_ptr(tmb%linmat%denskern%matrix)
+  call f_free_ptr(tmb%linmat%denskern_large%matrix)
   call f_free_ptr(gradmat%matrix_compr)
   call deallocate_sparsematrix(gradmat, subname)
 
