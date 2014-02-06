@@ -250,12 +250,10 @@ module module_input
          end if
       end if
 
-      write(*,*) 'at end of input_free'
 
       if (allocated(inout_lines)) deallocate(inout_lines)
       deallocate(parsed_lines)
       if (lmpinit) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-      write(*,*) 'at end of input_free 2'
    END SUBROUTINE input_free
 
 

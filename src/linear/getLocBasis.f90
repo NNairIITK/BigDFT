@@ -375,16 +375,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
 
 
-      allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
-      call uncompressMatrix(iproc,tmb%linmat%denskern)
-      if (iproc==0) then
-          do istat=1,tmb%orbs%norb
-              do iall=1,tmb%orbs%norb
-                  write(310,*) 0.5d0*tmb%linmat%denskern%matrix(iall,istat)
-              end do
-          end do
-      end if
-      deallocate(tmb%linmat%denskern%matrix)
+      !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
+      !!call uncompressMatrix(iproc,tmb%linmat%denskern)
+      !!if (iproc==0) then
+      !!    do istat=1,tmb%orbs%norb
+      !!        do iall=1,tmb%orbs%norb
+      !!            write(310,*) 0.5d0*tmb%linmat%denskern%matrix(iall,istat)
+      !!        end do
+      !!    end do
+      !!end if
+      !!deallocate(tmb%linmat%denskern%matrix)
 
 
   !!! #######################################
@@ -546,6 +546,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   delta_energy_prev=1.d0
   delta_energy_arr=1.d0
   trH_ref=trH_old
+  dynamic_convcrit=1.d-100
 
   !!! normalize
   !!ist=1
@@ -1318,73 +1319,73 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   integer :: lwork, info, istat, iall
   real(kind=8),dimension(:),allocatable :: work
   character(len=*),parameter :: subname='diagonalizeHamiltonian'
-  real(8),dimension(:,:),pointer :: hamtmp, ovrlptmp, invovrlp, tmpmat, tmpmat2
-  real(8) :: tt, tt2
-  integer :: nproc
-  real(8),dimension(norb,norb) :: kernel
+  !!real(8),dimension(:,:),pointer :: hamtmp, ovrlptmp, invovrlp, tmpmat, tmpmat2
+  !!real(8) :: tt, tt2
+  !!integer :: nproc
+  !!real(8),dimension(norb,norb) :: kernel
 
-  allocate(hamtmp(norb,norb))
-  allocate(ovrlptmp(norb,norb))
-  allocate(invovrlp(norb,norb))
-  allocate(tmpmat(norb,norb))
-  allocate(tmpmat2(norb,norb))
+  !!allocate(hamtmp(norb,norb))
+  !!allocate(ovrlptmp(norb,norb))
+  !!allocate(invovrlp(norb,norb))
+  !!allocate(tmpmat(norb,norb))
+  !!allocate(tmpmat2(norb,norb))
 
-  call mpi_comm_size(mpi_comm_world,nproc,istat)
+  !!call mpi_comm_size(mpi_comm_world,nproc,istat)
 
-  hamtmp=HamSmall
-  ovrlptmp=ovrlp
-  call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
+  !!hamtmp=HamSmall
+  !!ovrlptmp=ovrlp
+  !!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
 
-  call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, hamtmp, norb, 0.d0, tmpmat, norb)
-  call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, tmpmat2, norb)
+  !!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, hamtmp, norb, 0.d0, tmpmat, norb)
+  !!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, tmpmat2, norb)
 
-  lwork=10000
-  allocate(work(lwork))
-  call dsyev('v', 'l', norb, tmpmat2, norb, eval, work, lwork, info)
-  deallocate(work)
+  !!lwork=10000
+  !!allocate(work(lwork))
+  !!call dsyev('v', 'l', norb, tmpmat2, norb, eval, work, lwork, info)
+  !!deallocate(work)
 
-  ovrlptmp=ovrlp
-  tmpmat=tmpmat2
-  call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
-  !call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, tmpmat, norb, 0.d0, tmpmat2, norb)
-  !if (iproc==0) then
-  !    do istat=1,norb
-  !        do iall=1,norb
-  !            write(200,*) tmpmat2(iall,istat)
-  !        end do
-  !    end do
-  !end if
+  !!ovrlptmp=ovrlp
+  !!tmpmat=tmpmat2
+  !!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
+  !!!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, tmpmat, norb, 0.d0, tmpmat2, norb)
+  !!!if (iproc==0) then
+  !!!    do istat=1,norb
+  !!!        do iall=1,norb
+  !!!            write(200,*) tmpmat2(iall,istat)
+  !!!        end do
+  !!!    end do
+  !!!end if
 
-  call dgemm('n', 't', norb, norb, 28, 1.d0, tmpmat2, norb, tmpmat2, norb, 0.d0, kernel, norb)
-  if (iproc==0) then
-      tt=0.d0
-      tt2=0.d0
-      do istat=1,norb
-          do iall=1,norb
-              write(300,*) kernel(iall,istat)
-              if (istat==iall) tt=tt+kernel(iall,istat)
-              tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
-          end do
-      end do
-      write(*,*) 'Before: trace(K)',tt
-      write(*,*) 'Before: trace(KS)',tt2
-  end if
+  !!call dgemm('n', 't', norb, norb, 28, 1.d0, tmpmat2, norb, tmpmat2, norb, 0.d0, kernel, norb)
+  !!if (iproc==0) then
+  !!    tt=0.d0
+  !!    tt2=0.d0
+  !!    do istat=1,norb
+  !!        do iall=1,norb
+  !!            write(300,*) kernel(iall,istat)
+  !!            if (istat==iall) tt=tt+kernel(iall,istat)
+  !!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
+  !!        end do
+  !!    end do
+  !!    write(*,*) 'Before: trace(K)',tt
+  !!    write(*,*) 'Before: trace(KS)',tt2
+  !!end if
 
-  call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, kernel, norb, 0.d0, tmpmat, norb)
-  call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, kernel, norb)
-  if (iproc==0) then
-      tt=0.d0
-      tt2=0.d0
-      do istat=1,norb
-          do iall=1,norb
-              write(305,*) kernel(iall,istat)
-              if (istat==iall) tt=tt+kernel(iall,istat)
-              tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
-          end do
-      end do
-      write(*,*) 'After: trace(K)',tt
-      write(*,*) 'After: trace(KS)',tt2
-  end if
+  !!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, kernel, norb, 0.d0, tmpmat, norb)
+  !!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, kernel, norb)
+  !!if (iproc==0) then
+  !!    tt=0.d0
+  !!    tt2=0.d0
+  !!    do istat=1,norb
+  !!        do iall=1,norb
+  !!            write(305,*) kernel(iall,istat)
+  !!            if (istat==iall) tt=tt+kernel(iall,istat)
+  !!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
+  !!        end do
+  !!    end do
+  !!    write(*,*) 'After: trace(K)',tt
+  !!    write(*,*) 'After: trace(KS)',tt2
+  !!end if
 
 
   call timing(iproc,'diagonal_seq  ','ON')

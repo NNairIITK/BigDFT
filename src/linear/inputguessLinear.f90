@@ -571,15 +571,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
  end if
 
- !!! adding some noise
- Write(*,*) 'warning: add some noise!'
- do istat=1,size(tmb%psi)
-     call random_number(tt)
-     tt=tt-0.5d0
-     tt=tt*0.6d0
-     tmb%psi(istat)=tmb%psi(istat)*(1.d0+tt)
- end do
- tmb%can_use_transposed=.false.
+ !!!!! adding some noise
+ !!Write(*,*) 'warning: add some noise!'
+ !!do istat=1,size(tmb%psi)
+ !!    call random_number(tt)
+ !!    tt=tt-0.5d0
+ !!    tt=tt*0.6d0
+ !!    tmb%psi(istat)=tmb%psi(istat)*(1.d0+tt)
+ !!end do
+ !!tmb%can_use_transposed=.false.
 
 
  iall=-product(shape(aocc))*kind(aocc)

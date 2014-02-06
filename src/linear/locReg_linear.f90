@@ -2391,6 +2391,7 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
     write(*,*)'There is an error in Lpsi_to_global: sum of fine and coarse points used',icheck
     write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
+    stop
   end if
 
   i_all=-product(shape(keymask))*kind(keymask)
