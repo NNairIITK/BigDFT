@@ -18,13 +18,13 @@ G_BEGIN_DECLS
 /*****************************************************/
 /* Basics definitions with possibly no GLib support. */
 /*****************************************************/
-int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
+int bigdft_lib_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
                 guint mpi_groupsize);
 int bigdft_mpi_set_distribution(guint *mpi_iproc, guint *mpi_nproc,
                                 guint *mpi_igroup, guint *mpi_ngroup,
                                 guint mpi_groupsize);
 void bigdft_mpi_force_group(guint igroup, guint ngroup);
-int bigdft_finalize();
+int bigdft_lib_finalize();
 guint bigdft_get_count(GObject *obj);
 
 /******************************/

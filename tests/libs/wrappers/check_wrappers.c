@@ -41,7 +41,7 @@ int main(int argc, const char **argv)
 
   BigDFT_Goutput *outs;
 
-  ierr = bigdft_init(&iproc, &nproc, &igroup, &ngroup, 0);
+  ierr = bigdft_lib_init(&iproc, &nproc, &igroup, &ngroup, 0);
 
   /* dict = bigdft_dict_new(&root); */
 
@@ -90,7 +90,7 @@ int main(int argc, const char **argv)
   bigdft_run_unref(run);
   bigdft_goutput_unref(outs);
 
-  ierr = bigdft_finalize();
+  ierr = bigdft_lib_finalize();
 
   return 0;
 }

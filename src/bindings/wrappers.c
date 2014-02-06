@@ -42,7 +42,7 @@ void FC_FUNC_(inquire_address2, INQUIRE_ADDRESS2)(double *add, void *pt)
 }
 
 /**
- * bigdft_init:
+ * bigdft_lib_init:
  * @mpi_iproc: (out):
  * @mpi_nproc: (out):
  * @mpi_igroup: (out):
@@ -53,7 +53,7 @@ void FC_FUNC_(inquire_address2, INQUIRE_ADDRESS2)(double *add, void *pt)
  *
  * Returns: 
  **/
-int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
+int bigdft_lib_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
                 guint mpi_groupsize)
 {
   int ierr;
@@ -103,7 +103,7 @@ void bigdft_mpi_force_group(guint igroup, guint ngroup)
 {
   FC_FUNC_(bigdft_init_mpi_force, BIGDFT_INIT_MPI_FORCE)((int*)&igroup, (int*)&ngroup);
 }
-int bigdft_finalize()
+int bigdft_lib_finalize()
 {
   int ierr;
 
