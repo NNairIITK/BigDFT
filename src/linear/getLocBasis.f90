@@ -87,7 +87,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
-      write(*,*) 'calculate overlap'
       if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
               allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
@@ -97,7 +96,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
               call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
           end if
-          write(*,*) 'transpose'
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
@@ -2171,9 +2169,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   !call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   !call uncompressMatrix(iproc,tmb%linmat%denskern)
   allocate(tmb%linmat%ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+  call memocc(istat, tmb%linmat%ovrlp_large%matrix, 'tmb%linmat%ovrlp_large%matrix', subname)
   allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
+  call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
   call uncompressMatrix(iproc,tmb%linmat%ovrlp_large)
   call uncompressMatrix(iproc,tmb%linmat%denskern_large)
 

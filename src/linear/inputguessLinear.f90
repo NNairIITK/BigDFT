@@ -495,7 +495,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
 
-  write(*,*) 'warning: commented ortho'
 
   if (.not. input%lin%iterative_orthogonalization) then
       ! Standard orthonomalization

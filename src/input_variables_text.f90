@@ -113,7 +113,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   integer :: dummy_int
   integer, dimension(2) :: dummy_iarr
   real(gp), dimension(2) :: dummy_darr
-  real(gp):: ppao, ppl, pph, lrl, lrh, kco,dummy_real
+  real(gp):: ppao, ppl, pph, lrl, lrh, kco_FOE, kco, dummy_real
   real(gp),dimension(atoms%astruct%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
   type(dictionary), pointer :: dict
   character(len=dictionary_value_lgt) :: dummy_char,dummy_char2
@@ -356,7 +356,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
-             'localization radius, kernel cutoff'
+             'localization radius, kernel cutoff, kernel cutoff FOE'
   parametersSpecified=.false.
   itype = 1
   do
@@ -375,7 +375,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-     call input_var(kco,'20.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+     call input_var(kco,'12.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     call input_var(kco_FOE,'20.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
      ! The reading was successful. Check whether this atom type is actually present.
      found=.false.
      do jtype=1,atoms%astruct%ntypes
@@ -392,6 +393,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
            locradType_highaccur(jtype)=lrh
            atoms%rloc(jtype,:)=locradType(jtype)
            in%lin%kernel_cutoff(jtype)=kco
+           in%lin%kernel_cutoff_FOE(jtype)=kco_FOE
         end if
      end do
      if(.not.found) then
@@ -423,6 +425,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   end do
   allocate(in%lin%locrad(nlr),stat=istat)
   call memocc(istat,in%lin%locrad,'in%lin%locrad',subname)
+  allocate(in%lin%locrad_kernel(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_kernel,'in%lin%locrad_kernel',subname)
   allocate(in%lin%locrad_lowaccuracy(nlr),stat=istat)
   call memocc(istat,in%lin%locrad_lowaccuracy,'in%lin%locrad_lowaccuracy',subname)
   allocate(in%lin%locrad_highaccuracy(nlr),stat=istat)
@@ -436,11 +440,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
       do iorb=1,in%lin%norbsPerType(itype)
           iiorb=iiorb+1
           in%lin%locrad(iiorb)=locradType(itype)
+          in%lin%locrad_kernel(iiorb)=in%lin%kernel_cutoff(itype)
           in%lin%locrad_lowaccuracy(iiorb)=locradType_lowaccur(itype)
           in%lin%locrad_highaccuracy(iiorb)=locradType_highaccur(itype)
       end do
   end do
-  
+
 
   call dict_free(dict)
 

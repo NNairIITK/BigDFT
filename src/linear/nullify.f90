@@ -11,6 +11,10 @@ subroutine nullifyInputLinparameters(lin)
   nullify(lin%potentialPrefac_lowaccuracy)
   nullify(lin%potentialPrefac_highaccuracy)
   nullify(lin%norbsPerType)
+  nullify(lin%potentialPrefac_ao)
+  nullify(lin%locrad_type)
+  nullify(lin%kernel_cutoff_FOE)
+  nullify(lin%kernel_cutoff)
 
 end subroutine nullifyInputLinparameters
 

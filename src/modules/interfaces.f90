@@ -2794,7 +2794,7 @@ module module_interfaces
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
-       subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
+       subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
                   orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
@@ -2807,7 +2807,7 @@ module module_interfaces
          real(8),intent(in):: hx, hy, hz
          type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
-         real(8),dimension(nlr),intent(in):: locrad
+         real(8),dimension(nlr),intent(in):: locrad, locrad_kernel
          type(orbitals_data),intent(in):: orbs_KS, orbs
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
