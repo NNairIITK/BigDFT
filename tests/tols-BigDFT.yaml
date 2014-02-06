@@ -94,7 +94,7 @@ SiBulk:
  EvXC: 1.1e-10
  Atomic Forces (Ha/Bohr): 1.5e-11
  Clean forces norm (Ha/Bohr): 1.2e-11
- Average noise forces: 1.65e-11
+ Average noise forces: 1.75e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -145,11 +145,11 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Average CG stepsize in terms of betax: 3.501e-4
+ Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
- Average noise forces: 5.33e-8
+ Average noise forces: 6.2e-8
  Clean forces norm (Ha/Bohr): 3.6e-7
- Raw forces norm (Ha/Bohr): 4.0e-7
+ Raw forces norm (Ha/Bohr): 4.1e-7
  Ion-Ion interaction energy: 3.1e-6
  FORCES norm(Ha/Bohr): 1.1e-6
  Forces: 1.1e-7
