@@ -191,22 +191,29 @@ subroutine print_general_parameters(in,atoms)
      end if
      !Boundary Conditions
      !call yaml_map('Geometry Code',trim(atoms%astruct%geocode))
-     if (atoms%astruct%geocode == 'P') then
+     select case(atoms%astruct%geocode)
+     case('P')
         call yaml_map('Boundary Conditions','Periodic',advance='no')
         call yaml_comment('Code: '//atoms%astruct%geocode)
         call yaml_map('Box Sizes (AU)',(/atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
              atoms%astruct%cell_dim(3)/),fmt='(1pe12.5)')
-     else if (atoms%astruct%geocode ==  'S') then
+     case('S')
         call yaml_map('Boundary Conditions','Surface',advance='no')
         call yaml_comment('Code: '//atoms%astruct%geocode)
         call yaml_map('Box Sizes (AU)',(/atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
              atoms%astruct%cell_dim(3)/),fmt='(1pe12.5)')
-     else if (atoms%astruct%geocode == 'F') then
+     case('W')
+        call yaml_map('Boundary Conditions','Wire',advance='no')
+        call yaml_comment('Code: '//atoms%astruct%geocode)
+        call yaml_map('Box Sizes (AU)',(/atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+             atoms%astruct%cell_dim(3)/),fmt='(1pe12.5)')
+     case('F')
         call yaml_map('Boundary Conditions','Free',advance='no')
         call yaml_comment('Code: '//atoms%astruct%geocode)
-     end if
+     end select
      !Symmetries
-     if (atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) then
+     !if (atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) then
+     if (.not. in%disableSym) then
         call symmetry_get_matrices(atoms%astruct%sym%symObj, nSym, sym, transNon, symAfm, ierr)
         call symmetry_get_group(atoms%astruct%sym%symObj, spaceGroup, &
              & spaceGroupId, pointGroupMagn, genAfm, ierr)
@@ -652,12 +659,15 @@ subroutine write_input_parameters(in)!,atoms)
 end subroutine write_input_parameters
 
 
+!> Write the energies for a given iteration
 subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: iter,iscf
+  !Arguments
+  integer, intent(in) :: iter !< Iteration Id
+  integer, intent(in) :: iscf
   type(energy_terms), intent(in) :: energs
   real(gp), intent(in) :: gnrm,gnrm_zero
   character(len=*), intent(in) :: comment

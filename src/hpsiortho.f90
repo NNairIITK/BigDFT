@@ -381,6 +381,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
 end subroutine psitohpsi
 
 
+!> Application of the Full Hamiltonian
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
      Lzd,nlpsp,confdatarr,ngatherarr,pot,psi,hpsi,&
      energs,SIC,GPU,pkernel,orbsocc,psirocc,proj_G,paw)
@@ -705,7 +706,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
   logical :: dosome, overlap
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
-  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ncplx,ispinor
+  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
 
@@ -924,7 +925,7 @@ contains
     real(gp), dimension(0:4,0:6), intent(in) :: psppar
     integer :: nproj
     !local variables
-    integer :: i,l,m
+    integer :: i,l
     nproj = 0
     !count over all the channels
     do l=1,4
@@ -1740,7 +1741,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !
    !DEBUG hpsi
    !if(paw%usepaw==1 .and. nproc==1) then
-   !   call debug_hpsi(wfn,at,proj_G,paw,nlpspd) 
+   !   call debug_hpsi(wfn,at) 
 
    !   !
    !   !Recalculate  hpsi,spsi and cprj with new psi
@@ -2771,16 +2772,16 @@ subroutine wrong_components(psival,ikpt,iorb,icomp)
 end subroutine wrong_components
 
 
-subroutine debug_hpsi(wfn,at,proj_G,paw,nlpspd)
+subroutine debug_hpsi(wfn,at)!,proj_G,paw,nlpspd)
    use module_base
    use module_types
    implicit none
    !Arguments
-   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+   !type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    type(DFT_wavefunction), intent(in) :: wfn
-   type(paw_objects),intent(in) :: paw
+   !type(paw_objects),intent(in) :: paw
    type(atoms_data), intent(in) :: at
-   type(gaussian_basis),dimension(at%astruct%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+   !type(gaussian_basis),dimension(at%astruct%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
    !Local variables   
    integer :: ispsi_a,ispsi_b,ia,ib,iatype,ispinor
    integer :: nvctr_c,nvctr_f,nvctr_tot

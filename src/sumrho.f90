@@ -707,13 +707,15 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 END SUBROUTINE partial_density_free
 
 
+!> Symmetrise the density using the symmetry operation
 subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) nscatterarr (arg:6)
      sym)
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
   use m_ab6_symmetry
-
+  use yaml_output, only: yaml_warning
   implicit none
+  !Arguments
   integer, intent(in) :: iproc,nproc,nspin, n1i, n2i, n3i
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   !n(c) integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -734,6 +736,10 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
 
   call symmetry_get_matrices_p(sym%symObj, nSym, symRel, transNon, symAfm, errno)
   if (nSym == 1) return
+  if (geocode == 'F') then
+     !call yaml_warning('The symmetrization of the density is not implemented for the isolated systems')
+     return
+  end if
 
 !!$  ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
 !!$  ! and the same for n2,n3. Not needed for the moment

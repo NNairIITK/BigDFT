@@ -18,6 +18,8 @@ subroutine atoms_new(atoms)
   allocate(atoms)
   call atoms_nullify(atoms)
 END SUBROUTINE atoms_new
+
+
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)
   use module_types
@@ -29,6 +31,7 @@ subroutine atoms_free(atoms)
 END SUBROUTINE atoms_free
 
 
+!> Nullify the atomic_structure type
 subroutine astruct_nullify(astruct)
   use module_types
   implicit none
@@ -365,62 +368,90 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   !local variables
   character(len=*), parameter :: subname='astruct_set_symmetries'
   integer :: i_stat, ierr, i_all
-  real(gp) :: rprimd(3, 3)
+  real(gp), dimension(3,3) :: rprimd
   real(gp), dimension(:,:), allocatable :: xRed
+  real(gp) :: rfree
 
   ! Calculate the symmetries, if needed
-  if (astruct%geocode /= 'F') then
-     if (astruct%sym%symObj < 0) then
-        call symmetry_new(astruct%sym%symObj)
-     end if
-     ! Adjust tolerance
-     if (tol > 0._gp) call symmetry_set_tolerance(astruct%sym%symObj, tol, ierr)
-     ! New values
-     rprimd(:,:) = 0
+! if (astruct%geocode /= 'F') then
+  if (astruct%sym%symObj < 0) then
+     call symmetry_new(astruct%sym%symObj)
+  end if
+  ! Adjust tolerance
+  if (tol > 0._gp) call symmetry_set_tolerance(astruct%sym%symObj, tol, ierr)
+  ! New values
+  rprimd(:,:) = 0
+  rfree = max(1000.0_gp,10.0_gp*maxval(astruct%rxyz))
+  select case(astruct%geocode)
+  case('F')
+     rprimd(1,1) = rfree
+     rprimd(2,2) = rfree
+     rprimd(3,3) = rfree
+  case('W')
+     rprimd(1,1) = rfree
+     rprimd(2,2) = rfree
+     rprimd(3,3) = astruct%cell_dim(3)
+  case('S')
+     rprimd(1,1) = astruct%cell_dim(1)
+     rprimd(2,2) = rfree
+     rprimd(3,3) = astruct%cell_dim(3)
+  case('P')
      rprimd(1,1) = astruct%cell_dim(1)
      rprimd(2,2) = astruct%cell_dim(2)
      rprimd(3,3) = astruct%cell_dim(3)
-     call symmetry_set_lattice(astruct%sym%symObj, rprimd, ierr)
-     allocate(xRed(3, astruct%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,xRed,'xRed',subname)
+  end select
+  call symmetry_set_lattice(astruct%sym%symObj, rprimd, ierr)
+
+  !Set the structure for symmetry
+  allocate(xRed(3, astruct%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,xRed,'xRed',subname)
+  if (astruct%geocode == 'F') then
+     xRed = astruct%rxyz
+  else
      xRed(1,:) = modulo(astruct%rxyz(1, :) / rprimd(1,1), 1._gp)
      xRed(2,:) = modulo(astruct%rxyz(2, :) / rprimd(2,2), 1._gp)
      xRed(3,:) = modulo(astruct%rxyz(3, :) / rprimd(3,3), 1._gp)
-     call symmetry_set_structure(astruct%sym%symObj, astruct%nat, astruct%iatype, xRed, ierr)
-     i_all=-product(shape(xRed))*kind(xRed)
-     deallocate(xRed,stat=i_stat)
-     call memocc(i_stat,i_all,'xRed',subname)
-     if (astruct%geocode == 'S') then
-        call symmetry_set_periodicity(astruct%sym%symObj, &
-             & (/ .true., .false., .true. /), ierr)
-     else if (astruct%geocode == 'F') then
-        call symmetry_set_periodicity(astruct%sym%symObj, &
-             & (/ .false., .false., .false. /), ierr)
-     end if
-     !if (all(in%elecfield(:) /= 0)) then
-     !     ! I'm not sure what this subroutine does!
-     !   call symmetry_set_field(astruct%sym%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
-     !elseif (in%elecfield(2) /= 0) then
-     !   call symmetry_set_field(astruct%sym%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
-     if (elecfield(2) /= 0) then
-        call symmetry_set_field(astruct%sym%symObj, (/ 0._gp, elecfield(2), 0._gp /), ierr)
-     end if
-     if (nspin == 2) then
-        call symmetry_set_collinear_spin(astruct%sym%symObj, astruct%nat, &
-             & astruct%input_polarization, ierr)
-!!$     else if (in%nspin == 4) then
-!!$        call symmetry_set_spin(atoms%astruct%sym%symObj, atoms%astruct%nat, &
-!!$             & atoms%astruct%input_polarization, ierror)
-     end if
-     if (disableSym) then
-        call symmetry_set_n_sym(astruct%sym%symObj, 1, &
-             & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
-             & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
-     end if
-  else
-     call deallocate_symmetry(astruct%sym, subname)
-     astruct%sym%symObj = -1
   end if
+  call symmetry_set_structure(astruct%sym%symObj, astruct%nat, astruct%iatype, xRed, ierr)
+  i_all=-product(shape(xRed))*kind(xRed)
+  deallocate(xRed,stat=i_stat)
+  call memocc(i_stat,i_all,'xRed',subname)
+
+  select case(astruct%geocode)
+  case('F')
+     call symmetry_set_periodicity(astruct%sym%symObj, &
+          & (/ .false., .false., .false. /), ierr)
+  case('W')
+     call symmetry_set_periodicity(astruct%sym%symObj, &
+          & (/ .false., .false., .true. /), ierr)
+  case('S')
+     call symmetry_set_periodicity(astruct%sym%symObj, &
+          & (/ .true., .false., .true. /), ierr)
+  end select
+  !if (all(in%elecfield(:) /= 0)) then
+  !     ! I'm not sure what this subroutine does!
+  !   call symmetry_set_field(astruct%sym%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
+  !elseif (in%elecfield(2) /= 0) then
+  !   call symmetry_set_field(astruct%sym%symObj, (/ 0._gp, in%elecfield(2), 0._gp /), ierr)
+  if (elecfield(2) /= 0) then
+     call symmetry_set_field(astruct%sym%symObj, (/ 0._gp, elecfield(2), 0._gp /), ierr)
+  end if
+  if (nspin == 2) then
+     call symmetry_set_collinear_spin(astruct%sym%symObj, astruct%nat, &
+          & astruct%input_polarization, ierr)
+!!$   else if (in%nspin == 4) then
+!!$      call symmetry_set_spin(atoms%astruct%sym%symObj, atoms%astruct%nat, &
+!!$           & atoms%astruct%input_polarization, ierror)
+  end if
+  if (disableSym) then
+     call symmetry_set_n_sym(astruct%sym%symObj, 1, &
+          & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
+          & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
+  end if
+!  else
+!     call deallocate_symmetry(astruct%sym, subname)
+!     astruct%sym%symObj = -1
+!  end if
 END SUBROUTINE astruct_set_symmetries
 
 
@@ -449,16 +480,23 @@ subroutine astruct_set_displacement(astruct, randdis)
   end if
 
   !atoms inside the box.
-  do iat=1,astruct%nat
-     if (astruct%geocode == 'P') then
+  select case(astruct%geocode)
+  case('P')
+     do iat=1,astruct%nat
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
         astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     else if (astruct%geocode == 'S') then
+     end do
+  case('S')
+     do iat=1,astruct%nat
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     end if
-  end do
+     end do
+  case('W')
+     do iat=1,astruct%nat
+        astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+     end do
+  end select
 END SUBROUTINE astruct_set_displacement
 
 
@@ -643,6 +681,8 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
      else if (astruct%geocode == 'S') then
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),alat1d0)
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),alat3d0)
+     else if (astruct%geocode == 'W') then
+        astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),alat3d0)
      end if
  
      do ityp=1,ntyp
@@ -791,6 +831,7 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
         if (index(line, 'reduced') > 0)     reduced = .true.
         if (index(line, 'periodic') > 0) astruct%geocode = 'P'
         if (index(line, 'surface') > 0)  astruct%geocode = 'S'
+        if (index(line, 'wire') > 0)     astruct%geocode = 'W'
         if (index(line, 'freeBC') > 0)   astruct%geocode = 'F'
      else if (line(1:9) == "#metaData" .or. line(1:9) == "!metaData") then
         if (index(line, 'totalEnergy') > 0) then
@@ -897,6 +938,8 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
         else if (astruct%geocode == 'S') then
            astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
            astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+        else if (astruct%geocode == 'W') then
+           astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
         end if
 
         do ityp=1,ntyp
@@ -920,6 +963,9 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   enddo
 
   if (astruct%geocode == 'S') then
+     astruct%cell_dim(2) = 0.0_gp
+  else if (astruct%geocode == 'W') then
+     astruct%cell_dim(1) = 0.0_gp
      astruct%cell_dim(2) = 0.0_gp
   else if (astruct%geocode == 'F') then
      astruct%cell_dim(1) = 0.0_gp
@@ -1323,15 +1369,20 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
      write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(comment)
   end if
 
-  if (atoms%astruct%geocode == 'P') then
+  select case(atoms%astruct%geocode)
+  case('P')
      write(iunit,'(a,3(1x,1pe24.17))')'periodic',&
           atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
-  else if (atoms%astruct%geocode == 'S') then
+  case('S')
      write(iunit,'(a,3(1x,1pe24.17))')'surface',&
           atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
-  else
+  case('W')
+     write(iunit,'(a,3(1x,1pe24.17))')'wire',&
+          atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
+  case('F')
      write(iunit,*)'free'
-  end if
+  end select
+
   do iat=1,atoms%astruct%nat
      name=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
      if (name(3:3)=='_') then
@@ -1413,21 +1464,37 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
 
   write(iunit, "(A,A)") "# BigDFT file - ", trim(comment)
   write(iunit, "(3e24.17)") atoms%astruct%cell_dim(1)*factor(1), 0.d0, atoms%astruct%cell_dim(2)*factor(2)
-  write(iunit, "(3e24.17)") 0.d0,                  0.d0, atoms%astruct%cell_dim(3)*factor(3)
+  write(iunit, "(3e24.17)") 0.d0,                                0.d0, atoms%astruct%cell_dim(3)*factor(3)
 
   write(iunit, "(A,A)") "#keyword: ", trim(atoms%astruct%units)
   if (trim(atoms%astruct%units) == "reduced") write(iunit, "(A,A)") "#keyword: bohr"
-  if (atoms%astruct%geocode == 'P') write(iunit, "(A)") "#keyword: periodic"
-  if (atoms%astruct%geocode == 'S') write(iunit, "(A)") "#keyword: surface"
-  if (atoms%astruct%geocode == 'F') write(iunit, "(A)") "#keyword: freeBC"
+  select case(atoms%astruct%geocode)
+  case('P')
+     write(iunit, "(A)") "#keyword: periodic"
+  case('S')
+     write(iunit, "(A)") "#keyword: surface"
+  case('W')
+     write(iunit, "(A)") "#keyword: wire"
+  case('F')
+     write(iunit, "(A)") "#keyword: freeBC"
+  end select
+
   if (energy /= 0.d0 .and. energy /= UNINITIALIZED(energy)) then
      write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy= ", energy, " Ht"
   end if
 
   if (trim(atoms%astruct%units) == "reduced") then
-     if (atoms%astruct%geocode == 'P' .or. atoms%astruct%geocode == 'S') factor(1) = 1._gp / atoms%astruct%cell_dim(1)
-     if (atoms%astruct%geocode == 'P') factor(2) = 1._gp / atoms%astruct%cell_dim(2)
-     if (atoms%astruct%geocode == 'P' .or. atoms%astruct%geocode == 'S') factor(3) = 1._gp / atoms%astruct%cell_dim(3)
+     select case(atoms%astruct%geocode)
+     case('P')
+        factor(1) = 1._gp / atoms%astruct%cell_dim(1)
+        factor(2) = 1._gp / atoms%astruct%cell_dim(2)
+        factor(3) = 1._gp / atoms%astruct%cell_dim(3)
+     case('S')
+        factor(1) = 1._gp / atoms%astruct%cell_dim(1)
+        factor(3) = 1._gp / atoms%astruct%cell_dim(3)
+     case('W')
+        factor(3) = 1._gp / atoms%astruct%cell_dim(3)
+     end select
   end if
 
   do iat=1,atoms%astruct%nat
@@ -2056,10 +2123,11 @@ subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
   use m_ab6_kpoints
   use m_ab6_symmetry
   implicit none
+  !Arguments
   type(symmetry_data), intent(inout) :: sym
   integer, intent(in) :: n1i, n2i, n3i, nspin
   character, intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-
+  !Local variables
   character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
   integer :: i_stat, nsym, i_all, i_third
   integer, dimension(:,:,:), allocatable :: irrzon
@@ -2122,6 +2190,7 @@ subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
      call memocc(i_stat,sym%phnons,'phnons',subname)
   end if
 END SUBROUTINE symmetry_set_irreductible_zone
+
 
 !> Module used for the input positions lines variables
 module position_files

@@ -84,21 +84,32 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   end if
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
-  do iat=1,runObj%atoms%astruct%nat
-     if (runObj%atoms%astruct%geocode == 'P') then
+  select case(runObj%atoms%astruct%geocode)
+  case('P')
+     do iat=1,runObj%atoms%astruct%nat
         runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
         runObj%rst%rxyz_new(2,iat)=modulo(runObj%atoms%astruct%rxyz(2,iat),runObj%atoms%astruct%cell_dim(2))
         runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     else if (runObj%atoms%astruct%geocode == 'S') then
+     end do
+  case('S')
+     do iat=1,runObj%atoms%astruct%nat
         runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
         runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
         runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     else if (runObj%atoms%astruct%geocode == 'F') then
+     end do
+  case('W')
+     do iat=1,runObj%atoms%astruct%nat
+        runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
+        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+     end do
+  case('F')
+     do iat=1,runObj%atoms%astruct%nat
         runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
         runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
         runObj%rst%rxyz_new(3,iat)=runObj%atoms%astruct%rxyz(3,iat)
-     end if
-  end do
+     end do
+  end select
 
   !assign the verbosity of the output
   !the verbose variables is defined in module_base
