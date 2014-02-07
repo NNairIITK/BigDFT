@@ -801,12 +801,10 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   real(gp), intent(in) :: crmult, frmult, projrad
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   !Local Variables
-  !integer, parameter :: nmax=6,lmax=4
   !integer, parameter :: nelecmax=32
   !character(len=2) :: symbol
   integer :: i,ityp!,mxpl,mxchg,nsccode
   real(gp) :: ehomo,maxrad,radfine!,rcov,rprb,amu
-  !real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
 
   do ityp=1,atoms%astruct%ntypes
      !see whether the atom is semicore or not
@@ -861,7 +859,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   !local variables
   !character(len=*), parameter :: subname='read_orbital_variables'
   integer, parameter :: nelecmax=32,lmax=4,noccmax=2
-  !integer, parameter :: nmax=6
+  !integer, parameter :: nmax=7
   logical :: exists
   integer :: iat,iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty,nelec

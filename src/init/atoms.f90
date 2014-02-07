@@ -1877,25 +1877,23 @@ subroutine atoms_get_psppar(atoms, psppar)
   psppar => atoms%psppar
 END SUBROUTINE atoms_get_psppar
 
+!subroutine atoms_get_nlccpar(atoms, nlccpar)
+!  use module_types
+!  implicit none
+!  type(atoms_data), intent(in) :: atoms
+!  real(gp), dimension(:,:), pointer :: nlccpar
+!
+!  nlccpar => atoms%nlccpar
+!END SUBROUTINE atoms_get_nlccpar
 
-subroutine atoms_get_nlccpar(atoms, nlccpar)
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(:,:), pointer :: nlccpar
-
-  nlccpar => atoms%nlccpar
-END SUBROUTINE atoms_get_nlccpar
-
-
-subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(:,:), pointer :: ig_nlccpar
-
-  ig_nlccpar => atoms%ig_nlccpar
-END SUBROUTINE atoms_get_ig_nlccpar
+!subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
+!  use module_types
+!  implicit none
+!  type(atoms_data), intent(in) :: atoms
+!  real(gp), dimension(:,:), pointer :: ig_nlccpar
+!
+!  ig_nlccpar => atoms%ig_nlccpar
+!END SUBROUTINE atoms_get_ig_nlccpar
 
 
 subroutine astruct_copy_geometry_data(astruct, geocode, format, units)

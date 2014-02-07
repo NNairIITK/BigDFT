@@ -1108,15 +1108,6 @@ module module_interfaces
          type(coulomb_operator), intent(in) :: pkernel_ref,pkernel
       END SUBROUTINE correct_hartree_potential
 
-!!$      subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-!!$         implicit none
-!!$         integer, intent(in) :: nzatom,nvalelec
-!!$         character(len=2), intent(out) :: symbol
-!!$         real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
-!!$         integer, parameter :: nmax=6,lmax=3
-!!$         real(kind=8), intent(out) :: neleconf(nmax,0:lmax)
-!!$         integer, intent(out) :: nsccode,mxpl,mxchg
-!!$      END SUBROUTINE eleconf
 
       !     subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
       !          hpsit,psidst,hpsidst_sp,psit)

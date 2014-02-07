@@ -361,6 +361,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   call f_release_routine()
 END SUBROUTINE createProjectorsArrays
 
+
         !!$subroutine initRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, atoms, rxyz, crmult, frmult, radii, nspin, ixc, rho_commun, rhodsc, nscatterarr, ngatherarr, pot_ion)
         !!$  use module_base
         !!$  use module_types
@@ -2233,6 +2234,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: s1d1,s1d2,s1d3,s2d1,s2d2,s2d3,s3d1,s3d2,s3d3,norm_1,norm_2,norm_3,norm,radius,jacdet
   real(wp), dimension(-1:1) :: coeff,ipv,ipv2
 
+
   !To reduce the size, use real(kind=4)
   real(kind=4), dimension(:,:), allocatable :: shift
   real(wp) :: s1_new, s2_new, s3_new,xz,yz,zz,recnormsqr,exp_val, exp_cutoff
@@ -2242,7 +2244,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   !Atom description (needed for call to eleconf)
   integer ::nzatom,nvalelec!,nsccode,mxpl,mxchg
-  real(wp) :: rcov!,rprb,ehomo,amu,neleconf(6,0:3)
+  real(wp) :: rcov
   !character(len=2) :: symbol
 
   if (lzd_old%Glr%geocode .ne. 'F') then

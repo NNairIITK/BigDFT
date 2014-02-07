@@ -449,7 +449,7 @@ module module_types
      logical :: donlcc                                     !< activate non-linear core correction treatment
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
+!     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -1148,7 +1148,7 @@ contains
      nullify(at%nlcc_ngv)
      nullify(at%nlcc_ngc)
      nullify(at%nlccpar)
-     nullify(at%ig_nlccpar)
+     !nullify(at%ig_nlccpar)
      nullify(at%paw_NofL)
      nullify(at%paw_l)
      nullify(at%paw_nofchannels)
@@ -1963,7 +1963,7 @@ subroutine nullify_atoms_data(at)
   nullify(at%nlcc_ngv)
   nullify(at%nlcc_ngc)
   nullify(at%nlccpar)
-  nullify(at%ig_nlccpar)
+  !nullify(at%ig_nlccpar)
   nullify(at%paw_NofL)
   nullify(at%paw_l)
   nullify(at%paw_nofchannels)
