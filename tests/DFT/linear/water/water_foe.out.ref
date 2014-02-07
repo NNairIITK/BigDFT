@@ -1,1 +1,280 @@
  <BigDFT> log of the run will be written in logfile: ./log-foe.yaml
+ calculate overlap
+ before: tr(KS)   95.9031311586783     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9909595179729     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9915353662983     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9915445464990     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9902320897883     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9901753047649     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9901730756528     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9901738082238     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9918417925631     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9923177807221     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9923760902334     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9923851219570     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9923863347640     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9955755528021     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9955035308489     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954936393196     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954913465518     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954914530556     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9957101972461     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957109574646     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957115095144     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957109223734     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957109682721     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9954806191497     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954810051121     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954807998180     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954798000813     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954807671469     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9950070338575     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9950078334859     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9950083402584     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9950082791209     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9950088853137     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ before: tr(KS)   95.9031311586783     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9909595179729     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9915353662984     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9915445464989     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9902320897876     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9901753047649     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9901730756528     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9901738082238     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9918417925631     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9923177807221     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9923760902336     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9923851219570     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9923863347641     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9955755528022     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9955035308489     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954936393196     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954913465519     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954914530557     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9957101972463     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957109574645     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957115095144     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957109223734     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957109682721     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9954806191496     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954810051122     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954807998180     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954798000808     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954807671463     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9950070338575     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9950078334858     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9950083402584     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9950082791208     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9950088853137     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ before: tr(KS)   95.9073118466211     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9912120599184     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9917482215691     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9917737434300     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9904052145260     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9903478404099     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9903450193030     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9903438803159     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9920659126915     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9925190389143     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9925848221455     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9925957711085     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9925979826937     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9955631964268     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954921777717     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954803009505     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954791206032     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9954784525924     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9957179516107     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957169230582     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957178232901     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957176065034     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9957187521640     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9955272916693     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9955265238941     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9955257487119     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9955263438287     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9955265910267     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   96.0000000000000     
+ after: tr(KS)   96.0000000000000     
+ calculate overlap
+ transpose
+ before: tr(KS)   95.9950996403659     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9951012915125     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9951013280731     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9951012945274     
+ after: tr(KS)   96.0000000000000     
+ before: tr(KS)   95.9951012526302     
+ after: tr(KS)   96.0000000000000     
