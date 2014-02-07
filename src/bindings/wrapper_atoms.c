@@ -106,7 +106,7 @@ void bigdft_atoms_get_ntypes_arrays(BigDFT_Atoms *atoms)
   GET_ATTR_DBL_2D(atoms, ATOMS, radii_cf,   RADII_CF);
   GET_ATTR_DBL_3D(atoms, ATOMS, psppar,     PSPPAR);
   GET_ATTR_DBL_2D(atoms, ATOMS, nlccpar,    NLCCPAR);
-  GET_ATTR_DBL_2D(atoms, ATOMS, ig_nlccpar, IG_NLCCPAR);
+  // GET_ATTR_DBL_2D(atoms, ATOMS, ig_nlccpar, IG_NLCCPAR);
 }
 
 BigDFT_Atoms* bigdft_atoms_new()

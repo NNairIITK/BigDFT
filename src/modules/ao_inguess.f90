@@ -10,8 +10,10 @@
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
   use module_base, only: gp,memocc,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
-  private
+
   implicit none
+
+  private
 
   integer, parameter :: nmax_ao=7 !<maximum allowed value of principal quantum number for the electron configuration
   integer, parameter :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
@@ -21,13 +23,16 @@ module ao_inguess
 
   private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 
-  !>parameters of the input guess atomic orbitals
+  !>parameters of the input guess atomic orbitals, to be continued
   type, public :: aoig
      integer, dimension(0:lmax_ao) :: nl !< number of orbitals in each of the shells
      real(gp), dimension(nelecmax_ao) :: aocc !< compressed information of the occupation numbers. 
                                               !! adapted at each run to meet the nspin and nspinor conditions
      
   end type aoig
+
+  public :: atomic_info,ao_nspin_ig,iguess_generator,count_atomic_shells,print_eleconf,aocc_from_dict
+  public :: ao_ig_charge,atomic_configuration
 
 contains
 
