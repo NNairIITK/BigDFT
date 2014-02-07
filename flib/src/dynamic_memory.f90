@@ -560,7 +560,7 @@ contains
     call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
          err_action='Control the order of the allocation of if the memory limit has been reached',&
          callback=f_malloc_callback)
-    call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Dellocation error',err_id=ERR_DEALLOCATE,&
+    call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Deallocation error',err_id=ERR_DEALLOCATE,&
          err_action='Control the order of the allocation of if the memory limit has been reached',&
          callback=f_malloc_callback)
     call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&

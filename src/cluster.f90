@@ -506,22 +506,27 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!! initialize new density kernel with larger cutoff
      !!tmb%lzd%llr(:)%locrad_kernel=100.d0
 
-     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ovrlp_large)
-     allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%ovrlp_large%matrix_compr, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
-     !tmb%linmat%ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%ovrlp_large%nvctr,id='tmb%linmat%ovrlp_large%matrix_compr')
-
-     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ham_large)
-     allocate(tmb%linmat%ham_large%matrix_compr(tmb%linmat%ham_large%nvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%ham_large%matrix_compr, 'tmb%linmat%ham_large%matrix_compr', subname)
-     !tmb%linmat%ham_large%matrix_compr=f_malloc_ptr(tmb%linmat%ham_large%nvctr,id='tmb%linmat%ham_large%matrix_compr')
-
      call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%denskern_large)
      allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
-     !tmb%linmat%denskern_large%matrix_compr=f_malloc_ptr(tmb%linmat%denskern_large%nvctr,id='tmb%linmat%denskern_large%matrix_compr')
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
+     call nullify_sparsematrix(tmb%linmat%ovrlp_large)
+     call nullify_sparsematrix(tmb%linmat%ham_large)
+     call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ovrlp_large, iproc, subname)
+     call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ham_large, iproc, subname)
+
+     !!call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ovrlp_large)
+     !!allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ovrlp_large%matrix_compr, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
+     !!!tmb%linmat%ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%ovrlp_large%nvctr,id='tmb%linmat%ovrlp_large%matrix_compr')
+
+     !!call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ham_large)
+     !!allocate(tmb%linmat%ham_large%matrix_compr(tmb%linmat%ham_large%nvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ham_large%matrix_compr, 'tmb%linmat%ham_large%matrix_compr', subname)
+     !!!tmb%linmat%ham_large%matrix_compr=f_malloc_ptr(tmb%linmat%ham_large%nvctr,id='tmb%linmat%ham_large%matrix_compr')
+
+     !tmb%linmat%denskern_large%matrix_compr=f_malloc_ptr(tmb%linmat%denskern_large%nvctr,id='tmb%linmat%denskern_large%matrix_compr')
 
 
      !allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)

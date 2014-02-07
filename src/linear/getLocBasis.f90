@@ -87,6 +87,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
+      if (iproc==0) write(*,*) 'calculate overlap'
       if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
               allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
@@ -96,6 +97,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
               call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
           end if
+          if (iproc==0) write(*,*) 'transpose'
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
@@ -346,13 +348,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.true.)
          !!call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs, &
          !!     update_kernel)
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs, &
-              update_kernel)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,&
+              tmb%coeff,orbs,tmb%orbs,update_kernel)
          call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
          !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.false.)
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.false.)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,&
+              tmb%coeff,orbs,tmb%orbs,.false.)
          call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
       iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
@@ -2092,11 +2095,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   logical,intent(inout):: overlap_calculated
 
   ! Local variables
-  integer :: istat, iall, it, lwork, info, iorb, jorb, ierr
+  integer :: istat, iall, it, lwork, info, iorb, jorb, ierr, jsegstart, jsegend, jseg, jjorb
   real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel, overlap
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
-  real(kind=8) :: dnrm2, diff
+  real(kind=8) :: dnrm2, diff, ddot
 
 
   ! Calculate the overlap matrix between the TMBs.
@@ -2130,7 +2133,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   end if
 
 
-  call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
+  !call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
   !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'small_to_large')
 
   !allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
@@ -2139,11 +2142,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   !call memocc(istat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
   !call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   !call uncompressMatrix(iproc,tmb%linmat%denskern)
-  allocate(tmb%linmat%ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, tmb%linmat%ovrlp_large%matrix, 'tmb%linmat%ovrlp_large%matrix', subname)
+  allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
   allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
-  call uncompressMatrix(iproc,tmb%linmat%ovrlp_large)
+  call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   call uncompressMatrix(iproc,tmb%linmat%denskern_large)
 
   allocate(ks(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
@@ -2171,6 +2174,17 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   !!    end do
   !!end do
 
+  allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr))
+  call memocc(istat,tmb%linmat%ovrlp_large%matrix_compr,'tmb%linmat%ovrlp_large%matrix_compr',subname)
+  call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
+  if (iproc==0) then
+      write(*,*) 'before: tr(KS)',ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%ovrlp_large%matrix_compr, &
+                                       1, tmb%linmat%denskern_large%matrix_compr, 1)
+  end if
+  iall = -product(shape(tmb%linmat%ovrlp_large%matrix_compr))*kind(tmb%linmat%ovrlp_large%matrix_compr)
+  deallocate(tmb%linmat%ovrlp_large%matrix_compr,stat=istat)
+  call memocc(istat, iall, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
+
   if (iproc==0) call yaml_open_sequence('purification process')
 
 
@@ -2191,19 +2205,26 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       !!    write(*,*) 'ERROR in dsygv'
       !!end if
 
+      ksksk=0.d0
+      ksk=0.d0
+
       call to_zero(tmb%orbs%norb**2, ks(1,1))
       if (tmb%orbs%norbp>0) then
           !call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
           !           tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
-                     tmb%linmat%ovrlp_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
+          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+                     1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
+                     tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                     0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
       end if
       call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       if (tmb%orbs%norbp>0) then
           !call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
           !           tmb%linmat%denskern%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, ksk(1,tmb%orbs%isorb+1), tmb%orbs%norb)
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
-                     tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, ksk(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+                     1.d0, ks(1,1), tmb%orbs%norb, &
+                     tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                     0.d0, ksk(1,tmb%orbs%isorb+1), tmb%orbs%norb)
       end if
       if (tmb%orbs%norbp>0) then
           call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
@@ -2220,6 +2241,34 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       !!        end do
       !!    end do
       !!end if
+
+      !!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !!! bring back to sparsity pattern
+      !!call mpiallred(ksksk(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!ks=tmb%linmat%denskern_large%matrix
+      !!tmb%linmat%denskern_large%matrix=ksksk
+      !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+      !!call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+      !!ksksk=tmb%linmat%denskern_large%matrix
+      !!tmb%linmat%denskern_large%matrix=ks
+      !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+
+      !!call mpiallred(ksk(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!ks=tmb%linmat%denskern_large%matrix
+      !!tmb%linmat%denskern_large%matrix=ksk
+      !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+      !!call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+      !!ksk=tmb%linmat%denskern_large%matrix
+      !!tmb%linmat%denskern_large%matrix=ks
+      !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+      !!!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
+      ks=0.d0
+      ks=ksk
+      call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+
       diff=0.d0
       do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
           do jorb=1,tmb%orbs%norb
@@ -2228,6 +2277,26 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
               !if (iproc==0) write(*,*) 'iorb,jorb,diff',iorb,jorb,(ksk(jorb,iorb)-tmb%linmat%denskern%matrix(jorb,iorb))**2
           end do
       end do
+
+
+      diff=0.d0
+      do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+          jsegstart=tmb%linmat%denskern_large%istsegline(iorb)
+          if (iorb<tmb%orbs%norb) then
+              jsegend=tmb%linmat%denskern_large%istsegline(iorb+1)-1
+          else
+              jsegend=tmb%linmat%denskern_large%nseg
+          end if
+          do jseg=jsegstart,jsegend
+              do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
+                  jjorb=jorb-(iorb-1)*tmb%orbs%norb
+                  !diff = diff + (ksk(jorb,iorb)-tmb%linmat%denskern%matrix(jorb,iorb))**2
+                  diff = diff + (ksk(jjorb,iorb)-tmb%linmat%denskern_large%matrix(jjorb,iorb))**2
+                  !if (iproc==0) write(*,*) 'iorb,jorb,diff',iorb,jorb,(ksk(jorb,iorb)-tmb%linmat%denskern%matrix(jorb,iorb))**2
+              end do
+          end do
+      end do
+
       call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       diff=sqrt(diff)
       if (iproc==0) then
@@ -2277,15 +2346,28 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
   call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
-  !iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-  !deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
-  !call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
-  !iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
-  !deallocate(tmb%linmat%denskern%matrix, stat=istat)
-  !call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
-  iall=-product(shape(tmb%linmat%ovrlp_large%matrix))*kind(tmb%linmat%ovrlp_large%matrix)
-  deallocate(tmb%linmat%ovrlp_large%matrix, stat=istat)
-  call memocc(istat, iall, 'tmb%linmat%ovrlp_large%matrix', subname)
+  allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr))
+  call memocc(istat,tmb%linmat%ovrlp_large%matrix_compr,'tmb%linmat%ovrlp_large%matrix_compr',subname)
+  call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
+  if (iproc==0) then
+      write(*,*) 'after: tr(KS)',ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%ovrlp_large%matrix_compr, &
+                                       1, tmb%linmat%denskern_large%matrix_compr, 1)
+  end if
+  iall = -product(shape(tmb%linmat%ovrlp_large%matrix_compr))*kind(tmb%linmat%ovrlp_large%matrix_compr)
+  deallocate(tmb%linmat%ovrlp_large%matrix_compr,stat=istat)
+  call memocc(istat, iall, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
+
+  !!iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+  !!deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
+  !!call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
+  !!iall=-product(shape(tmb%linmat%denskern%matrix))*kind(tmb%linmat%denskern%matrix)
+  !!deallocate(tmb%linmat%denskern%matrix, stat=istat)
+  !!call memocc(istat, iall, 'tmb%linmat%denskern%matrix', subname)
+
+
+  iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+  deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
+  call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
   iall=-product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
   deallocate(tmb%linmat%denskern_large%matrix, stat=istat)
   call memocc(istat, iall, 'tmb%linmat%denskern_large%matrix', subname)

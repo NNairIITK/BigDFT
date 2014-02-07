@@ -70,9 +70,15 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       ham => ham_input
       fermi => fermi_input
   else if (imode==LARGE) then
+      allocate(ovrlp_large%matrix_compr(ovrlp_large%nvctr), stat=istat)
+      call memocc(istat, ovrlp_large%matrix_compr, 'penalty_ev', subname)
+      allocate(ham_large%matrix_compr(ham_large%nvctr), stat=istat)
+      call memocc(istat, ham_large%matrix_compr, 'penalty_ev', subname)
+
       call transform_sparse_matrix(ovrlp_input, ovrlp_large, 'small_to_large')
       call transform_sparse_matrix(ham_input, ham_large, 'small_to_large')
       call transform_sparse_matrix(fermi_input, denskern_large, 'small_to_large')
+
       ovrlp => ovrlp_large
       ham => ham_large
       fermi => denskern_large
@@ -910,9 +916,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       !!    write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
       !!end if
 
-      if (iproc==0) then
-          call yaml_close_sequence()
-      end if
 
 
 
@@ -986,17 +989,17 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1,4), orbs%norb, &
              workmat(1,1,2), orbs%norb, 0.d0, fermi%matrix(1,1), orbs%norb)
 
-  if (iproc==0) then
-      tt=ddot(fermi%nvctr, fermi%matrix_compr, 1, ovrlp%matrix_compr, 1)
-      write(*,*) 'before transformation: tr(KS)', tt
-  end if
+  !!if (iproc==0) then
+  !!    tt=ddot(fermi%nvctr, fermi%matrix_compr, 1, ovrlp%matrix_compr, 1)
+  !!    write(*,*) 'before transformation: tr(KS)', tt
+  !!end if
   call compress_matrix_for_allreduce(iproc,fermi)
   ovrlp%matrix(:,:)=workmat(:,:,1) ! get back the original
   call compress_matrix_for_allreduce(iproc,ovrlp)
-  if (iproc==0) then
-      tt=ddot(fermi%nvctr, fermi%matrix_compr, 1, ovrlp%matrix_compr, 1)
-      write(*,*) 'after transformation: tr(KS)', tt
-  end if
+  !!if (iproc==0) then
+  !!    tt=ddot(fermi%nvctr, fermi%matrix_compr, 1, ovrlp%matrix_compr, 1)
+  !!    write(*,*) 'after transformation: tr(KS)', tt
+  !!end if
 
   !!tt=0.d0
   !!do iorb=1,orbs%norb
@@ -1018,6 +1021,20 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   deallocate(workmat,stat=istat)
   call memocc(istat,iall,'workmat',subname)
 
+  ! go back to small region
+  if (imode==LARGE) then
+      call transform_sparse_matrix(fermi_input, denskern_large, 'large_to_small')
+
+      iall=-product(shape(ovrlp_large%matrix_compr))*kind(ovrlp_large%matrix_compr)
+      deallocate(ovrlp_large%matrix_compr,stat=istat)
+      call memocc(istat,iall,'ovrlp_large%matrix_compr',subname)
+
+      iall=-product(shape(ham_large%matrix_compr))*kind(ham_large%matrix_compr)
+      deallocate(ham_large%matrix_compr,stat=istat)
+      call memocc(istat,iall,'ham_large%matrix_compr',subname)
+
+  end if
+
   !! END TEST: #######################################################################
   ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -1025,7 +1042,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   if (iproc==0) then
       call yaml_sequence(advance='no')
       call yaml_open_map(flow=.true.)
-      call yaml_map('Initial kernel purification',.true.)
+      call yaml_map('Final kernel purification',.true.)
   end if
   overlap_calculated=.false.
   tmb%can_use_transposed=.false.
@@ -1036,15 +1053,19 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   call purify_kernel(iproc, nproc, tmb, overlap_calculated)
   if (iproc==0) call yaml_close_map()
 
-    sumn=0.d0
-     do ii=1,fermi%nvctr
-        irow = fermi%orb_from_index(1,ii)
-        icol = fermi%orb_from_index(2,ii)
-        !if (irow==icol) then
-            sumn=sumn+fermi%matrix_compr(ii)*ovrlp%matrix_compr(ii)
-        !end if
-     end do
-     if (iproc==0) write(*,*) 'sumn final',sumn
+  if (iproc==0) then
+      call yaml_close_sequence()
+  end if
+
+    !!sumn=0.d0
+    !! do ii=1,fermi%nvctr
+    !!    irow = fermi%orb_from_index(1,ii)
+    !!    icol = fermi%orb_from_index(2,ii)
+    !!    !if (irow==icol) then
+    !!        sumn=sumn+fermi%matrix_compr(ii)*ovrlp%matrix_compr(ii)
+    !!    !end if
+    !! end do
+    !! if (iproc==0) write(*,*) 'sumn final',sumn
 
   ! #######################################
 
@@ -1071,10 +1092,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   ebs=ebs*scale_factor-shift_value*sumn
 
 
-  ! go back to small region
-  if (imode==LARGE) then
-      call transform_sparse_matrix(fermi_input, denskern_large, 'large_to_small')
-  end if
 
 
 

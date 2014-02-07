@@ -461,7 +461,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
            isorb=0
            inv_ovrlpp => inv_ovrlp
         end if
-        if (.not.present(inv_ovrlp_smat)) call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+        if (.not.present(inv_ovrlp_smat)) then
+            call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+        end if
      end if
 
      ! add sparse here once we have sparse matrix multiply
