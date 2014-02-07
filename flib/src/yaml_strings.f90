@@ -328,7 +328,6 @@ contains
     include 'yaml_toa-arr-inc.f90'
   end function yaml_rvtoa
 
-
   !> Yaml Spaced format for Date and Time
   function yaml_date_and_time_toa(values,zone)
     implicit none
@@ -426,7 +425,6 @@ contains
 
     if (clean0) yaml_adjust=clean_zero(yaml_adjust)
 
-
     !put a space if there is no sign
     if (yaml_adjust(1:1)/='-') then
        call shiftstr(yaml_adjust,1)
@@ -441,7 +439,7 @@ contains
     character(len=*), intent(in) :: str
     character(len=max_value_length) :: clean_zero
     !local variables
-    integer :: idot,iexpo,i
+    integer :: idot,iexpo,i,iend
 
     !first fill with all the values up to the dot if it exist
     idot=scan(str,'.')
@@ -449,6 +447,8 @@ contains
        !no dot, nothing to clean
        clean_zero(1:max_value_length)=str
     else
+       !first find the position of the end of the string
+!       iend=len_trim(str)
        !then search for the position of the exponent or of the space if present
        iexpo=scan(str(idot+2:),'eE ')+idot+1
        !print *,'there',iexpo,'str',str(idot+2:)
@@ -467,6 +467,8 @@ contains
        else
           clean_zero(i+1:max_value_length)=' '
        end if
+       !try to put at the old position a termination character
+!       clean_zero(iend:iend)=char(0)
     end if
   end function clean_zero
 

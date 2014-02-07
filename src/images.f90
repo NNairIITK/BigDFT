@@ -215,7 +215,7 @@ module module_images
   private
 
   CHARACTER (LEN=*), PARAMETER ::                                              &
-  fmt1 = "(3(2X,F12.8),3(2X,I1),3(2X,F12.8))",                                 &
+  fmt1 = "(3(2X,F12.8),3(2X,I3),3(2X,F12.8))",                                 &
   fmt2 = "(3(2X,F12.8))",                                                      &
   fmt3 = "(2X,F16.8)"
 

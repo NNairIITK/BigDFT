@@ -379,7 +379,6 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      rprimd(:,:) = 0
      rprimd(1,1) = astruct%cell_dim(1)
      rprimd(2,2) = astruct%cell_dim(2)
-     if (astruct%geocode == 'S') rprimd(2,2) = 1000._gp
      rprimd(3,3) = astruct%cell_dim(3)
      call symmetry_set_lattice(astruct%sym%symObj, rprimd, ierr)
      allocate(xRed(3, astruct%nat+ndebug),stat=i_stat)
@@ -1171,23 +1170,23 @@ subroutine frozen_itof(ifrztyp,frzchain)
   case(0)
      frzchain = '    '
   case(111)
-     frzchain ='fxyz '
+     frzchain = 'fxyz'
   case(100)
-     frzchain ='fx   '
+     frzchain = 'fx  '
   case(010)
-     frzchain ='fy   '
+     frzchain = 'fy  '
   case(001)
-     frzchain ='fz   '
+     frzchain = 'fz  '
   case(101)
-     frzchain ='fxz  '
+     frzchain = 'fxz '
   case(110)
-     frzchain ='fxy  '
+     frzchain = 'fxy '
   case(011)
-     frzchain ='fyz  '
+     frzchain = 'fyz '
   case(1001)
-     frzchain ='fb1  '
+     frzchain = 'fb1 '
   case(1002)
-     frzchain ='fb2  '
+     frzchain = 'fb2 '
   case(9000:9999)
      frzchain ='f'//adjustl(yaml_toa(ifrztyp))
   case default

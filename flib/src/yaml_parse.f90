@@ -93,6 +93,7 @@ contains
     character(max_field_length) :: val
 
     ! Get event values from C.
+    call yaml_parser_c_get_stream_start(STREAM_START)
     call yaml_parser_c_get_stream_end(STREAM_END)
     call yaml_parser_c_get_document_start(DOCUMENT_START)
     call yaml_parser_c_get_document_end(DOCUMENT_END)
@@ -122,9 +123,10 @@ contains
     call dict_init(dict)
     event = 0
     nullify(doc)
+    val=repeat(' ',len(val))
     do while (event /= STREAM_END)
        call yaml_parser_c_next(parser, event, val, max_field_length)
-
+       !print *,'event',event_toa(event),event,trim(val),'end'
        if (event == ERROR) then
           call f_err_throw(err_id = YAML_PARSE_ERROR, err_msg = trim(val))
           exit
@@ -157,6 +159,38 @@ contains
     output => dict
 
     if (errid /= 0) call f_err_throw(err_id = errid, err_msg = val)
+  contains
+    !>determine which is the event that has been recognized, to be used mostly for debugging purposes
+    function event_toa(event) result(toa)
+      implicit none
+      integer, intent(in) :: event
+      character(len=32) :: toa
+      if(event==STREAM_START) then
+         toa(1:len(toa))='STREAM_START'
+      else if(event==STREAM_END) then
+         toa(1:len(toa))='STREAM_END'
+      else if(event==DOCUMENT_START) then
+         toa(1:len(toa))='DOCUMENT_START'
+      else if(event==DOCUMENT_END) then
+         toa(1:len(toa))='DOCUMENT_END'
+      else if(event==SEQUENCE_START) then
+         toa(1:len(toa))='SEQUENCE_START'
+      else if(event==SEQUENCE_END) then
+         toa(1:len(toa))='SEQUENCE_END'
+      else if(event==MAPPING_START) then
+         toa(1:len(toa))='MAPPING_START'
+      else if(event==MAPPING_END) then
+         toa(1:len(toa))='MAPPING_END'
+      else if(event==ALIAS) then
+         toa(1:len(toa))='ALIAS'
+      else if(event==SCALAR) then
+         toa(1:len(toa))='SCALAR'
+      else if(event==ERROR) then
+         toa(1:len(toa))='ERROR'
+      else
+         toa(1:len(toa))='UNKNOWN'
+      end if
+    end function event_toa
   end function yaml_parse_
 
   recursive function build_map(parser) result(map)

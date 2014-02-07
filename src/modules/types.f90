@@ -35,7 +35,7 @@ module module_types
   integer :: BIGDFT_RUNTIME_ERROR                   !< error during runtime
   integer :: BIGDFT_MPI_ERROR                       !< see error definitions below
   integer :: BIGDFT_LINALG_ERROR                    !< to be moved to linalg wrappers
-  integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< problems in parsing input variables
+  integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< problems in parsing or in consistency of input variables
 
   !> Input wf parameters.
   integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
@@ -2306,7 +2306,7 @@ subroutine bigdft_init_errors()
     call f_err_define('BIGDFT_INPUT_VARIABLES_ERROR',&
        'An error while parsing the input variables occured',&
        BIGDFT_INPUT_VARIABLES_ERROR,&
-       err_action='Check above which input variable has been not correctly parsed')
+       err_action='Check above which input variable has been not correctly parsed, or check their values')
 
   !define the severe operation via MPI_ABORT
   call f_err_severe_override(bigdft_severe_abort)
