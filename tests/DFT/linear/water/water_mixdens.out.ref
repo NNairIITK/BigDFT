@@ -1,13 +1,73 @@
  <BigDFT> log of the run will be written in logfile: ./log-mixdens.yaml
-  #WARNING: support function, value: 17 9.955161902E-01
-  #WARNING: support function, value: 18 9.989701313E-01
-  #WARNING: support function, value: 40 9.987704693E-01
-  #WARNING: support function, value: 41 9.975022669E-01
-  #WARNING: support function, value: 43 9.986283365E-01
-  #WARNING: support function, value: 70 9.988571003E-01
-  #WARNING: support function, value: 71 9.988703707E-01
-  #WARNING: support function, value: 49 9.987698414E-01
-  #WARNING: support function, value: 25 9.984753237E-01
-  #WARNING: support function, value: 50 9.977066752E-01
-  #WARNING: support function, value: 30 9.975321332E-01
-  #WARNING: support function, value: 60 9.986866064E-01
+ psirold doesn't exist for reformatting           1 ./data-mixdens/tmbisf1.dat
+ psirold doesn't exist for reformatting          61 ./data-mixdens/tmbisf61.dat
+ psirold doesn't exist for reformatting          49 ./data-mixdens/tmbisf49.dat
+ psirold doesn't exist for reformatting          13 ./data-mixdens/tmbisf13.dat
+ psirold doesn't exist for reformatting          37 ./data-mixdens/tmbisf37.dat
+ psirold doesn't exist for reformatting          25 ./data-mixdens/tmbisf25.dat
+ psirold doesn't exist for reformatting          14 ./data-mixdens/tmbisf14.dat
+ psirold doesn't exist for reformatting          38 ./data-mixdens/tmbisf38.dat
+ psirold doesn't exist for reformatting           2 ./data-mixdens/tmbisf2.dat
+ psirold doesn't exist for reformatting          62 ./data-mixdens/tmbisf62.dat
+ psirold doesn't exist for reformatting          26 ./data-mixdens/tmbisf26.dat
+ psirold doesn't exist for reformatting          50 ./data-mixdens/tmbisf50.dat
+ psirold doesn't exist for reformatting          39 ./data-mixdens/tmbisf39.dat
+ psirold doesn't exist for reformatting           3 ./data-mixdens/tmbisf3.dat
+ psirold doesn't exist for reformatting          63 ./data-mixdens/tmbisf63.dat
+ psirold doesn't exist for reformatting          15 ./data-mixdens/tmbisf15.dat
+ psirold doesn't exist for reformatting          51 ./data-mixdens/tmbisf51.dat
+ psirold doesn't exist for reformatting          27 ./data-mixdens/tmbisf27.dat
+ psirold doesn't exist for reformatting          40 ./data-mixdens/tmbisf40.dat
+ psirold doesn't exist for reformatting           4 ./data-mixdens/tmbisf4.dat
+ psirold doesn't exist for reformatting          64 ./data-mixdens/tmbisf64.dat
+ psirold doesn't exist for reformatting          52 ./data-mixdens/tmbisf52.dat
+ psirold doesn't exist for reformatting          16 ./data-mixdens/tmbisf16.dat
+ psirold doesn't exist for reformatting           5 ./data-mixdens/tmbisf5.dat
+ psirold doesn't exist for reformatting          41 ./data-mixdens/tmbisf41.dat
+ psirold doesn't exist for reformatting          65 ./data-mixdens/tmbisf65.dat
+ psirold doesn't exist for reformatting          28 ./data-mixdens/tmbisf28.dat
+ psirold doesn't exist for reformatting          53 ./data-mixdens/tmbisf53.dat
+ psirold doesn't exist for reformatting          42 ./data-mixdens/tmbisf42.dat
+ psirold doesn't exist for reformatting           6 ./data-mixdens/tmbisf6.dat
+ psirold doesn't exist for reformatting          66 ./data-mixdens/tmbisf66.dat
+ psirold doesn't exist for reformatting          54 ./data-mixdens/tmbisf54.dat
+ psirold doesn't exist for reformatting          17 ./data-mixdens/tmbisf17.dat
+ psirold doesn't exist for reformatting          29 ./data-mixdens/tmbisf29.dat
+ psirold doesn't exist for reformatting          43 ./data-mixdens/tmbisf43.dat
+ psirold doesn't exist for reformatting           7 ./data-mixdens/tmbisf7.dat
+ psirold doesn't exist for reformatting          67 ./data-mixdens/tmbisf67.dat
+ psirold doesn't exist for reformatting          55 ./data-mixdens/tmbisf55.dat
+ psirold doesn't exist for reformatting          44 ./data-mixdens/tmbisf44.dat
+ psirold doesn't exist for reformatting           8 ./data-mixdens/tmbisf8.dat
+ psirold doesn't exist for reformatting          18 ./data-mixdens/tmbisf18.dat
+ psirold doesn't exist for reformatting          30 ./data-mixdens/tmbisf30.dat
+ psirold doesn't exist for reformatting          68 ./data-mixdens/tmbisf68.dat
+ psirold doesn't exist for reformatting          56 ./data-mixdens/tmbisf56.dat
+ psirold doesn't exist for reformatting          45 ./data-mixdens/tmbisf45.dat
+ psirold doesn't exist for reformatting           9 ./data-mixdens/tmbisf9.dat
+ psirold doesn't exist for reformatting          69 ./data-mixdens/tmbisf69.dat
+ psirold doesn't exist for reformatting          57 ./data-mixdens/tmbisf57.dat
+ psirold doesn't exist for reformatting          19 ./data-mixdens/tmbisf19.dat
+ psirold doesn't exist for reformatting          46 ./data-mixdens/tmbisf46.dat
+ psirold doesn't exist for reformatting          10 ./data-mixdens/tmbisf10.dat
+ psirold doesn't exist for reformatting          31 ./data-mixdens/tmbisf31.dat
+ psirold doesn't exist for reformatting          70 ./data-mixdens/tmbisf70.dat
+ psirold doesn't exist for reformatting          58 ./data-mixdens/tmbisf58.dat
+ psirold doesn't exist for reformatting          47 ./data-mixdens/tmbisf47.dat
+ psirold doesn't exist for reformatting          11 ./data-mixdens/tmbisf11.dat
+ psirold doesn't exist for reformatting          20 ./data-mixdens/tmbisf20.dat
+ psirold doesn't exist for reformatting          71 ./data-mixdens/tmbisf71.dat
+ psirold doesn't exist for reformatting          32 ./data-mixdens/tmbisf32.dat
+ psirold doesn't exist for reformatting          48 ./data-mixdens/tmbisf48.dat
+ psirold doesn't exist for reformatting          59 ./data-mixdens/tmbisf59.dat
+ psirold doesn't exist for reformatting          12 ./data-mixdens/tmbisf12.dat
+ psirold doesn't exist for reformatting          72 ./data-mixdens/tmbisf72.dat
+ psirold doesn't exist for reformatting          21 ./data-mixdens/tmbisf21.dat
+ psirold doesn't exist for reformatting          33 ./data-mixdens/tmbisf33.dat
+ psirold doesn't exist for reformatting          60 ./data-mixdens/tmbisf60.dat
+ psirold doesn't exist for reformatting          22 ./data-mixdens/tmbisf22.dat
+ psirold doesn't exist for reformatting          34 ./data-mixdens/tmbisf34.dat
+ psirold doesn't exist for reformatting          35 ./data-mixdens/tmbisf35.dat
+ psirold doesn't exist for reformatting          23 ./data-mixdens/tmbisf23.dat
+ psirold doesn't exist for reformatting          36 ./data-mixdens/tmbisf36.dat
+ psirold doesn't exist for reformatting          24 ./data-mixdens/tmbisf24.dat

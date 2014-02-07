@@ -193,7 +193,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          call memocc(i_stat,i_all,'eval',subname)
          nullify(rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
       end if
 
       if(.not. in%c_absorbtion) then 
@@ -240,7 +240,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          call memocc(i_stat,i_all,'eval',subname)
          nullify(rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd,subname)
+        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
          !finalize memory counting (there are still the positions and the forces allocated)
          call memocc(0,0,'count','stop')
 
@@ -271,9 +271,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_interfaces
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_xc
-   use esatto
+   use module_abscalc
    use m_ab6_symmetry
    use m_ab6_kpoints
+   use lanczos_interface, only: xabs_lanczos,xabs_cg,xabs_chebychev
+   use esatto, only: binary_search
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -306,11 +308,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real :: tcpu0,tcpu1
    real(gp), dimension(3) :: shift
    real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
-   real(kind=8) :: peakmem
+   type(memory_estimation) :: mem
 !   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum
    real(kind=8) :: tel,psoffset
    !real(gp) :: edisp ! Dispersion energy
-   type(nonlocal_psp_descriptors) :: nlpspd
+   type(DFT_PSP_projectors) :: nlpsp
    type(communications_arrays) :: comms
    type(gaussian_basis) :: Gvirt
    type(rho_descriptors)  :: rhodsc
@@ -337,7 +339,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(dp), dimension(:,:,:,:), pointer :: rhocore
    !real(kind=8), dimension(:), pointer :: psidst,hpsidst
    ! PSP projectors 
-   real(kind=8), dimension(:), pointer :: proj
    ! arrays for DIIS convergence accelerator
    !real(kind=8), dimension(:,:,:), pointer :: ads
    ! Arrays for the symmetrisation, not used here...
@@ -468,7 +469,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,KSwfn%Lzd%Glr,shift)
+   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,KSwfn%Lzd%Glr,shift)
+   if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, shift, hx, hy, hz)
 
    if ( KSwfn%orbs%nspinor.gt.1) then
       !!  hybrid_on is not compatible with kpoints
@@ -478,6 +480,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,KSwfn%Lzd%Glr)
+   if (iproc == 0) call print_wfd(KSwfn%Lzd%Glr%wfd)
 
    KSwfn%Lzd%hgrids(1)=hx
    KSwfn%Lzd%hgrids(2)=hy
@@ -505,24 +508,24 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
 
-   !nullify dummy variables only used for PAW:
+   !nullify dummy variables only used for PAW. This can be used also for pcProjectors
    do iatyp=1,atoms%astruct%ntypes
      call nullify_gaussian_basis(proj_tmp(iatyp))
    end do
 
 
-   call createProjectorsArrays(iproc,KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj_tmp,proj)
+   call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
+        radii_cf,cpmult,fpmult,hx,hy,hz,.false.,nlpsp,proj_tmp)
+   if (iproc == 0) call print_nlpsp(nlpsp)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)
 
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
-   if (iproc==0 .and. verbose > 0) then
-     call MemoryEstimator(nproc,idsx,KSwfn%Lzd%Glr,&
-         &   atoms%astruct%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
-         &   in%nspin,in%itrpmax,in%iscf,peakmem)
-   end if
+   call MemoryEstimator(nproc,idsx,KSwfn%Lzd%Glr,&
+        &   orbs%norb,orbs%nspinor,orbs%nkpts,nlpsp%nprojel,&
+        &   in%nspin,in%itrpmax,in%iscf,mem)
+   if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
    !complete dpbox initialization
    call dpbox_set(dpcom,KSwfn%Lzd,iproc,nproc,MPI_COMM_WORLD,in,atoms%astruct%geocode)
@@ -593,8 +596,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$      call memocc(i_stat,atoms%astruct%sym%phnons,'phnons',subname)
 !!$   end if
 
-
-   if(sum(atoms%paw_NofL).gt.0) then
+   if(sum(atoms%paw_NofL) > 0) then
       ! Calculate all paw_projectors, or allocate array for on-the-fly calculation
       call timing(iproc,'CrtPawProjects ','ON')
       PAWD%DistProjApply =  .false. !! .true.
@@ -607,6 +609,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    endif
 
    if (in%iabscalc_type==3) then
+      stop 'should not enter here'
       ! Calculate all pc_projectors, or allocate array for on-the-fly calculation
       call timing(iproc,'CrtPcProjects ','ON')
       PPD%DistProjApply  =  DistProjApply
@@ -725,7 +728,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call extract_potential_for_spectra(iproc,nproc,atoms_clone,rhodsc,dpcom,&
           KSwfn%orbs,nvirt,comms,KSwfn%Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
+          nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
           nspin, in%potshortcut, symObj, GPU,in)
       
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
@@ -793,7 +796,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
       call extract_potential_for_spectra(iproc,nproc,atoms,rhodsc,dpcom,&
           KSwfn%orbs,nvirt,comms,KSwfn%Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
+          nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
           nspin, in%potshortcut, symObj, GPU, in)
 
       i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
@@ -1221,18 +1224,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,KSwfn%Lzd,dpcom,&
+             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
              rhopot(1,1,1,1),energs,in%nspin,GPU,&
              in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,KSwfn%Lzd,dpcom,&
+             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
             &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
             &   , in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpspd,proj,KSwfn%Lzd,dpcom,&
+             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
             &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
             &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
@@ -1360,11 +1363,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call deallocate_orbs(orbs,subname)
       call deallocate_orbs(KSwfn%orbs,subname)
 
-      call deallocate_proj_descr(nlpspd,subname)
+      call free_DFT_PSP_projectors(nlpsp)
+      !call deallocate_proj_descr(nlpspd,subname)
 
-      i_all=-product(shape(proj))*kind(proj)
-      deallocate(proj,stat=i_stat)
-      call memocc(i_stat,i_all,'proj',subname)
 
       i_all=-product(shape(radii_cf))*kind(radii_cf)
       deallocate(radii_cf,stat=i_stat)
@@ -1504,45 +1505,45 @@ subroutine zero4b2B(n,x)
 END SUBROUTINE zero4b2B
 
 
-!> Backward wavelet transform
-subroutine back_trans_14_4b2B(nd,nt,x,y)
-   implicit none
-   !Arguments
-   integer, intent(in) :: nd                !< length of data set                          
-   integer, intent(in) :: nt                !< length of data in data set to be transformed
-   real(kind=8), intent(in) :: x(0:nd-1)    !< input data,
-   real(kind=8), intent(out) :: y(0:nd-1)   !< output data
-   !Local variables
-   integer :: i,j,ind
-
-   include 'lazy_16.inc'
-
-   do i=0,nt/2-1
-      y(2*i+0)=0.d0
-      y(2*i+1)=0.d0
-
-      do j=-m/2,m/2-1
-
-         ! periodically wrap index if necessary
-         ind=i-j
-         loop99: do
-            if (ind.lt.0) then 
-               ind=ind+nt/2
-               cycle loop99
-            end if
-            if (ind.ge.nt/2) then 
-               ind=ind-nt/2
-               cycle loop99
-            end if
-            exit loop99
-         end do loop99
-
-         y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
-         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
-      end do
-   end do
-
-END SUBROUTINE back_trans_14_4b2B
+!!$!> Backward wavelet transform
+!!$subroutine back_trans_14_4b2B(nd,nt,x,y)
+!!$   implicit none
+!!$   !Arguments
+!!$   integer, intent(in) :: nd                !< length of data set                          
+!!$   integer, intent(in) :: nt                !< length of data in data set to be transformed
+!!$   real(kind=8), intent(in) :: x(0:nd-1)    !< input data,
+!!$   real(kind=8), intent(out) :: y(0:nd-1)   !< output data
+!!$   !Local variables
+!!$   integer :: i,j,ind
+!!$
+!!$   include 'lazy_16.inc'
+!!$
+!!$   do i=0,nt/2-1
+!!$      y(2*i+0)=0.d0
+!!$      y(2*i+1)=0.d0
+!!$
+!!$      do j=-m/2,m/2-1
+!!$
+!!$         ! periodically wrap index if necessary
+!!$         ind=i-j
+!!$         loop99: do
+!!$            if (ind.lt.0) then 
+!!$               ind=ind+nt/2
+!!$               cycle loop99
+!!$            end if
+!!$            if (ind.ge.nt/2) then 
+!!$               ind=ind-nt/2
+!!$               cycle loop99
+!!$            end if
+!!$            exit loop99
+!!$         end do loop99
+!!$
+!!$         y(2*i+0)=y(2*i+0) + ch(2*j-0)*x(ind)+cg(2*j-0)*x(ind+nt/2)
+!!$         y(2*i+1)=y(2*i+1) + ch(2*j+1)*x(ind)+cg(2*j+1)*x(ind+nt/2)
+!!$      end do
+!!$   end do
+!!$
+!!$END SUBROUTINE back_trans_14_4b2B
 
 
 subroutine scaling_function4b2B(itype,nd,nrange,a,x)
@@ -1592,7 +1593,8 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
       case(14)
          stop
       case(16)
-         call back_trans_14_4b2B(nd,nt,x,y)
+         call back_trans_16(nd,nt,x,y)
+         !call back_trans_14_4b2B(nd,nt,x,y)
       case(20)
          stop
       case(24)
@@ -1679,7 +1681,7 @@ END SUBROUTINE read_potfile4b2B
 
 subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-     nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
+     nlpsp,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
      nspin,potshortcut,symObj,GPU,input)
    use module_base
    use module_interfaces, except_this_one => extract_potential_for_spectra
@@ -1694,7 +1696,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(rho_descriptors),intent(in) :: rhod
    type(denspot_distribution), intent(in) :: dpcom
    type(orbitals_data), intent(inout) :: orbs
-   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+   type(DFT_PSP_projectors), intent(in) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
    type(communications_arrays), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
@@ -1703,7 +1705,6 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    !integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
    !integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
    real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
    real(wp), dimension(:), pointer :: psi,hpsi,psit

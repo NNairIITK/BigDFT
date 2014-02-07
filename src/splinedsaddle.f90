@@ -273,6 +273,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     use module_input_keys, only:DFT_VARIABLES, KPT_VARIABLES
     use minimization_sp, only:parameterminimization_sp  !Reza
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use module_input_dicts
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -291,6 +292,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     type(parametersplinedsaddle)::pnow
     type(dictionary), pointer :: dict
     type(input_variables), target :: ll_inputs
+    type(atoms_data) :: ll_atoms
     type(run_objects) :: ll_runObj, runObj
     type(DFT_global_output), dimension(2) :: outends
     !character(50)::ssm
@@ -322,14 +324,20 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         write(*,*) 'degree of freedom: n,nr ',n,nr
     endif
     !-----------------------------------------------------------
+    ! We read the input variable files.
     if(trim(pnow%hybrid)=='yes') then
        call read_input_dict_from_files("ll_input", bigdft_mpi,dict)
     else
        call read_input_dict_from_files("input", bigdft_mpi,dict)
     endif
-    call standard_inputfile_names(ll_inputs,'input')
-    call inputs_from_dict(ll_inputs, atoms, dict, .true.)
+    ! We add the atomic data.
+    call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rxyz)
+    call atoms_file_merge_to_dict(dict)
+    call atomic_data_file_merge_to_dict(dict, "Atomic occupation", "input.occup")
+    ! We parse the dictionary.
+    call inputs_from_dict(ll_inputs, ll_atoms, dict, .true.)
     call dict_free(dict)
+    call deallocate_atoms(ll_atoms, "givemesaddle")
     
     !-----------------------------------------------------------
     allocate(rxyz_2(3,atoms%astruct%nat+ndeb1))
@@ -395,6 +403,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     pnow%exends_b(1)=epot_sp
     call atomic_dot(atoms,outends(1)%fxyz(1,1),outends(1)%fxyz(1,1),fnrm1)
     fnrm1=sqrt(fnrm1)
+    call run_objects_nullify(runObj)
     call run_objects_associate(runObj, inputs, atoms, rst, x(1,np))
     !if(iproc==0) write(*,*) 'ALIREZA-03'
     call cpu_time(time1)
@@ -416,6 +425,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     endif
     !---------------------------------------------------------------------------
     if(trim(pnow%hybrid)=='yes') then
+       call run_objects_nullify(ll_runObj)
        call run_objects_associate(ll_runObj, ll_inputs, atoms, rst, x(1,0))
        call cpu_time(time1)
        call call_bigdft(ll_runObj,outends(1),nproc,iproc,infocode)
@@ -620,6 +630,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
             x(i,1:np-1)=x(i,0)
         endif
     enddo
+    call run_objects_nullify(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     lp=mp+1
     do iter=1,10
@@ -1393,6 +1404,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
 
     allocate(tang(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
+    call run_objects_nullify(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     call dmemocc(3*atoms%astruct%nat,3*(atoms%astruct%nat+ndeb1),runObj%atoms%astruct%rxyz,'runObj%atoms%astruct%rxyz')
     do ip=1,np-1
@@ -2111,6 +2123,7 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
 
     allocate(tang(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
+    call run_objects_nullify(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     mp=-1
     fnrmmax=0.d0
@@ -2189,6 +2202,7 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
     call caltmax2(istep,n,np,x,xold,outends,etmax,xtmax,ftmax,pnow,pold,nproc,iproc,&
         atoms,rst,ll_inputs,ncount_bigdft)
     if(trim(pnow%hybrid)=='yes') then
+       call run_objects_nullify(runObj)
        call run_objects_associate(runObj, inputs, atoms, rst, xtmax(1))
        call init_global_output(outs, atoms%astruct%nat)
        inputs%inputPsiId=0
@@ -2847,6 +2861,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
 
     allocate(tang(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
     call dmemocc(n,n+ndeb1,tang,'tang')
+    call run_objects_nullify(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     call init_global_output(outs, atoms%astruct%nat)
     pnow%ex(0)=pnow%exends(1)
@@ -3938,6 +3953,7 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     !    tang(i)=0.d0
     !enddo
     !call calenergyforces(n,xt,epot,ft)
+    call run_objects_nullify(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst, xt(1))
     call init_global_output(outs, atoms%astruct%nat)
     call cpu_time(time1)

@@ -1338,14 +1338,14 @@ contains
   !! @author
   ! Written by Quintin Hill on 13/02/2009.
   ! Quintin Hill added functional check on 23/02/2009.
-  subroutine vdwcorrection_warnings(atoms,in)
+  subroutine vdwcorrection_warnings(atoms,dispersion,ixc)
 
     use module_types, only: input_variables, atoms_data
 
     implicit none
 
     type(atoms_data),        intent(in) :: atoms
-    type(input_variables),   intent(in) :: in
+    integer,                 intent(in) :: dispersion, ixc
 
     integer            :: itype ! Type counter
     ! qoh: Atomic numbers of elements with unoptimised dispersion parameters:
@@ -1360,13 +1360,13 @@ contains
 !   integer, parameter :: xcfoptimised(4) = (/11,14,15,200/)
 
 !   if (in%dispersion /= 0) then 
-    if (0 < in%dispersion .and. in%dispersion < 4) then 
+    if (0 < dispersion .and. dispersion < 4) then 
 !   ic corrections November 12th 2013
 
        ! qoh: Loop over types to check we have parameters
        do itype=1,atoms%astruct%ntypes
           if (any(unoptimised == atoms%nzatom(itype)) .and. &
-               any(xcfoptimised == in%ixc)) then 
+               any(xcfoptimised == ixc)) then 
 !   ic corrections November 12th 2013
              write(*,'(a,a7)') 'WARNING: Unoptimised dispersion &
               &parameters used for ', atoms%astruct%atomnames(itype)
@@ -1382,18 +1382,18 @@ contains
           end if
        end do
 
-       if (.not. any(xcfoptimised == in%ixc)) &
+       if (.not. any(xcfoptimised == ixc)) &
 !           ic corrections August 26th 2013
             write(*,'(a,i7)') 'WARNING: No optimised Hill-Skylaris dispersion parameters &
+            &available for ixc=', ixc
 !           write(*,'(a,i2)') 'WARNING: No optimised dispersion parameters &
 !           ic corrections August 26th 2013
-            &available for ixc=', in%ixc
     end if
 !   ic corrections November 12th 2013
-    if (in%dispersion == 4) then 
-       if (.not. any(xcfoptimisedgrimme == in%ixc)) &
+    if (dispersion == 4) then 
+       if (.not. any(xcfoptimisedgrimme == ixc)) &
             write(*,'(a,i7)') 'WARNING: No optimised Grimme dispersion parameters &
-            &available for ixc=', in%ixc
+            &available for ixc=', ixc
     end if
 !   ic corrections November 12th 2013
   END SUBROUTINE vdwcorrection_warnings

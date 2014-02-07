@@ -77,9 +77,10 @@ module dynamic_memory
      integer, dimension(max_rank) :: shape   !< shape of the structure 
      integer, dimension(max_rank) :: lbounds !< lower bounds
      integer, dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: metadata_add         !< physical address of the fortran metadata
+     integer(kind=8) :: srcdata_add          !< physical address of source data
      character(len=namelen) :: array_id      !< label the array
      character(len=namelen) :: routine_id    !< label the routine
+     
   end type malloc_information_all
 
   !> Structure needed to allocate an allocatable array of string of implicit length (for non-2003 compilers)
@@ -92,7 +93,7 @@ module dynamic_memory
      integer, dimension(max_rank) :: shape   !< shape of the structure 
      integer, dimension(max_rank) :: lbounds !< lower bounds
      integer, dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: metadata_add         !< physical address of the fortran metadata
+     integer(kind=8) :: srcdata_add          !< physical address of source data
      character(len=namelen) :: array_id      !< label the array
      character(len=namelen) :: routine_id    !< label the routine
   end type malloc_information_str_all
@@ -107,7 +108,7 @@ module dynamic_memory
      integer, dimension(max_rank) :: shape   !< shape of the structure 
      integer, dimension(max_rank) :: lbounds !< lower bounds
      integer, dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: metadata_add         !< physical address of the fortran metadata
+     integer(kind=8) :: srcdata_add          !< physical address of source data
      character(len=namelen) :: array_id      !< label the array
      character(len=namelen) :: routine_id    !< label the routine
   end type malloc_information_ptr
@@ -123,7 +124,7 @@ module dynamic_memory
      integer, dimension(max_rank) :: shape   !< shape of the structure 
      integer, dimension(max_rank) :: lbounds !< lower bounds
      integer, dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: metadata_add         !< physical address of the fortran metadata
+     integer(kind=8) :: srcdata_add          !< physical address of source data
      character(len=namelen) :: array_id      !< label the array
      character(len=namelen) :: routine_id    !< label the routine
   end type malloc_information_str_ptr
@@ -158,6 +159,7 @@ module dynamic_memory
 
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
+     module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free
@@ -165,6 +167,7 @@ module dynamic_memory
 
   interface f_free_ptr
      module procedure i1_ptr_free,i2_ptr_free
+     module procedure i1_ptr_free_multi
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
   end interface
 
@@ -180,6 +183,8 @@ module dynamic_memory
   interface f_malloc
      module procedure f_malloc,f_malloc_simple
      module procedure f_malloc_bounds,f_malloc_bound
+     !here also the procedures for the copying of arrays have to be defined
+     module procedure f_malloc_i2
   end interface
 
   interface f_malloc0
@@ -190,6 +195,7 @@ module dynamic_memory
   interface f_malloc_ptr
      module procedure f_malloc_ptr,f_malloc_ptr_simple
      module procedure f_malloc_ptr_bounds,f_malloc_ptr_bound
+     module procedure f_malloc_ptr_i2
   end interface
 
   interface f_malloc0_ptr
@@ -613,7 +619,6 @@ contains
          'ERROR (f_malloc_set_status): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
 
-!!$
 !!$    if (.not. mems(ictrl)%profile_initialized) then
 !!$       profile_initialized=.true.
 !!$       !call malloc_errors()
@@ -721,9 +726,10 @@ contains
            call yaml_map(metadatadd,trim(dict_key(dict_ptr)))
            call yaml_close_map()
         else
-           call yaml_open_map(trim(dict_key(dict_ptr)))
-           call yaml_dict_dump(dict_ptr)
-           call yaml_close_map()
+           call yaml_map(trim(dict_key(dict_ptr)),dict_ptr)
+
+!!$           call yaml_dict_dump(dict_ptr)
+!!$           call yaml_close_map()
         end if
         dict_ptr=>dict_next(dict_ptr)
      end do
@@ -938,33 +944,65 @@ contains
   end function f_malloc0_str_ptr_bounds
 
   !> Define the allocation information for  arrays of different rank
-  function f_malloc(shape,id,routine_id,lbounds,ubounds,profile) result(m)
+  function f_malloc(sizes,id,routine_id,lbounds,ubounds,profile,src) result(m)
     implicit none
+    !the integer array src is here added to avoid problems in resolving the ambiguity with f_malloc_src
+    integer, dimension(:), intent(in), optional :: src
     type(malloc_information_all) :: m
-    include 'f_malloc-total-inc.f90'
+    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+    !local variables
+    integer :: i
+    include 'f_malloc-base-inc.f90'
+    if (present(src)) then
+       include 'f_malloc-inc.f90'
+       !when src is given there is no need anymore to continue the routine
+       if (present(lbounds) .or. present(ubounds) .or. present(sizes)) then
+          call f_err_throw(&
+               'The presence of lbounds, ubounds or sizes is forbidden whe src is present',&
+               ERR_INVALID_MALLOC)
+       end if
+       return
+    end if
+    include 'f_malloc-extra-inc.f90'
   end function f_malloc
   !> define the allocation information for  arrays of different rank
-  function f_malloc0(shape,id,routine_id,lbounds,ubounds,profile) result(m)
+  function f_malloc0(sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_all) :: m
     include 'f_malloc-total-inc.f90'
     m%put_to_zero=.true.
   end function f_malloc0
   !> Define the allocation information for  arrays of different rank
-  function f_malloc_ptr(shape,id,routine_id,lbounds,ubounds,profile) result(m)
+  function f_malloc_ptr(sizes,id,routine_id,lbounds,ubounds,profile,src) result(m)
     implicit none
+    !the integer array src is here added to avoid problems in resolving the ambiguity
+    integer, dimension(:), intent(in), optional :: src
     type(malloc_information_ptr) :: m
-    include 'f_malloc-total-inc.f90'
+    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+    !local variables
+    integer :: i
+    include 'f_malloc-base-inc.f90'
+    if (present(src)) then
+       include 'f_malloc-inc.f90'
+       !when src is given there is no need anymore to continue the routine
+       if (present(lbounds) .or. present(ubounds) .or. present(sizes)) then
+          call f_err_throw(&
+               'The presence of lbounds, ubounds or sizes is forbidden whe src is present',&
+               ERR_INVALID_MALLOC)
+       end if
+       return
+    end if
+    include 'f_malloc-extra-inc.f90'
   end function f_malloc_ptr
   !> Define the allocation information for  arrays of different rank
-  function f_malloc0_ptr(shape,id,routine_id,lbounds,ubounds,profile) result(m)
+  function f_malloc0_ptr(sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_ptr) :: m
     include 'f_malloc-total-inc.f90'
     m%put_to_zero=.true.
   end function f_malloc0_ptr
   !> Define the allocation information for  arrays of different rank
-  function f_malloc_str(length,shape,id,routine_id,lbounds,ubounds,profile) result(m)
+  function f_malloc_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
     integer, intent(in) :: length
@@ -972,7 +1010,7 @@ contains
     m%len=length
   end function f_malloc_str
   !> define the allocation information for  arrays of different rank
-  function f_malloc0_str(length,shape,id,routine_id,lbounds,ubounds,profile) result(m)
+  function f_malloc0_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
     integer, intent(in) :: length
@@ -981,7 +1019,7 @@ contains
     m%put_to_zero=.true.
   end function f_malloc0_str
   !> Define the allocation information for  arrays of different rank
-  function f_malloc_str_ptr(length,shape,id,routine_id,lbounds,ubounds,profile) result(m)
+  function f_malloc_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
     integer, intent(in) :: length
@@ -989,7 +1027,7 @@ contains
     m%len=length
   end function f_malloc_str_ptr
   !> Define the allocation information for  arrays of different rank
-  function f_malloc0_str_ptr(length,shape,id,routine_id,lbounds,ubounds,profile) result(m)
+  function f_malloc0_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
     integer, intent(in) :: length
@@ -998,6 +1036,23 @@ contains
     m%put_to_zero=.true.
   end function f_malloc0_str_ptr
 
+  !> Define the allocation information for  arrays of different rank
+  function f_malloc_i2(src,id,routine_id,profile) result(m)
+    implicit none
+    integer, dimension(:,:), intent(in) :: src
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_i2
+
+  !> Define the allocation information for  arrays of different rank
+  function f_malloc_ptr_i2(src,id,routine_id,profile) result(m)
+    implicit none
+    integer, dimension(:,:), intent(in) :: src
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_ptr_i2
 
   !---Templates start here
   include 'malloc_templates-inc.f90'

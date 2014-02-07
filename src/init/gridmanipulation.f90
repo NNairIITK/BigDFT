@@ -11,13 +11,11 @@
 !> Calculates the overall size of the simulation cell 
 !! and shifts the atoms such that their position is the most symmetric possible.
 !! Assign these values to the global localisation region descriptor.
-subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
    use module_base
    use module_types
-   use yaml_output
    implicit none
    type(atoms_data), intent(inout) :: atoms
-   integer, intent(in) :: iproc
    real(gp), intent(in) :: crmult,frmult
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
    real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
@@ -33,7 +31,8 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
 
    !check the geometry code with the grid spacings
    if (atoms%astruct%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
-      write(*,'(1x,a)')'ERROR: The values of the grid spacings must be equal in the Free BC case'
+      write(*,'(1x,a,3(1x,F6.4))') 'ERROR: The values of the grid spacings must be equal' // &
+           & ' in the Free BC case, while hgrids = ', hx, hy, hz
       stop
    end if
 
@@ -217,48 +216,6 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
       nfu3=n3/2
    end if
 
-   if (iproc == 0) then
-      if (atoms%astruct%ntypes > 0) then
-         call yaml_comment('Atom Positions',hfill='-')
-         call yaml_open_sequence('Atomic positions within the cell (Atomic and Grid Units)')
-         do iat=1,atoms%astruct%nat
-            call yaml_sequence(advance='no')
-            call yaml_open_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),flow=.true.)
-              call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
-              call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
-            call yaml_close_map(advance='no')
-            call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-         enddo
-         call yaml_close_sequence()
-         call yaml_map('Rigid Shift Applied (AU)',(/-cxmin,-cymin,-czmin/),fmt='(1pg12.5)')
-      end if
-      call yaml_comment('Grid properties',hfill='-')
-      call yaml_map('Box Grid spacings',(/hx,hy,hz/),fmt='(f7.4)')
-      call yaml_open_map('Sizes of the simulation domain')
-        call yaml_map('AU',(/atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3)/),fmt='(1pg12.5)')
-        call yaml_map('Angstroem',(/atoms%astruct%cell_dim(1)*Bohr_Ang,&
-             atoms%astruct%cell_dim(2)*Bohr_Ang,atoms%astruct%cell_dim(3)*Bohr_Ang/),fmt='(1pg12.5)')
-        call yaml_map('Grid Spacing Units',(/n1,n2,n3/),fmt='(i4)')
-        call yaml_open_map('High resolution region boundaries (GU)',flow=.false.)
-          call yaml_map('From',(/nfl1,nfl2,nfl3/),fmt='(i4)')
-          call yaml_map('To',(/nfu1,nfu2,nfu3/),fmt='(i4)')
-        call yaml_close_map()
-      call yaml_close_map()
-!!$      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
-!!$      do iat=1,atoms%astruct%nat
-!!$         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
-!!$            &   iat,trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
-!!$            &   (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
-!!$      enddo
-!!$      write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf7.4))') &
-!!$         &   '   Shift of=',-cxmin,-cymin,-czmin,' H grids=',hx,hy,hz
-!!$      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
-!!$         &   '  Box Sizes=',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3),n1,n2,n3
-!!$      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
-!!$         &   '      Extremes for the high resolution grid points:',&
-!!$         &   nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
-   endif
-
    !assign the values
    Glr%geocode=atoms%astruct%geocode
    Glr%d%n1  =n1  
@@ -294,13 +251,6 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    
    !OCL convolutions not compatible with hybrid boundary conditions
    if (OCLConv) Glr%hybrid_on = .false.
-
-!!$   if (Glr%hybrid_on) then
-!!$      if (iproc == 0) write(*,*)'wavelet localization is ON'
-!!$   else
-!!$      if (iproc == 0) write(*,*)'wavelet localization is OFF'
-!!$   endif
-   if (iproc==0) call yaml_map('High Res. box is treated separately',Glr%hybrid_on)
 END SUBROUTINE system_size
 
 
@@ -450,6 +400,74 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
    !mseg=nend
 END SUBROUTINE segkeys
 
+subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
+  use module_types
+  implicit none
+  character(len = *), intent(in) :: fname
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), intent(in) :: hx, hy, hz
+  integer, intent(in) :: n1, n2, n3
+  logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid_c
+  logical, dimension(0:n1,0:n2,0:n3), intent(in), optional :: logrid_f
+
+  integer :: nvctr, iat, i3, i2, i1
+
+  nvctr = 0
+  do i3=0,n3  
+     do i2=0,n2  
+        do i1=0,n1
+           if (logrid_c(i1,i2,i3)) nvctr = nvctr + 1
+        enddo
+     enddo
+  end do
+  if (present(logrid_f)) then
+     do i3=0,n3  
+        do i2=0,n2  
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3)) nvctr = nvctr + 1
+           enddo
+        enddo
+     end do
+  end if
+
+  ! Create the file grid.xyz to visualize the grid of functions
+  open(unit=22,file=fname,status='unknown')
+  write(22,*) nvctr+atoms%astruct%nat,' atomic'
+  if (atoms%astruct%geocode=='F') then
+     write(22,*)'complete simulation grid with low and high resolution points'
+  else if (atoms%astruct%geocode =='S') then
+     write(22,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3)
+  else if (atoms%astruct%geocode =='P') then
+     write(22,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+          atoms%astruct%cell_dim(3)
+  end if
+  do iat=1,atoms%astruct%nat
+     write(22,'(a6,2x,3(1x,e12.5),3x)') &
+          &   trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+  enddo
+  do i3=0,n3  
+     do i2=0,n2  
+        do i1=0,n1
+           if (logrid_c(i1,i2,i3))&
+                &   write(22,'(a4,2x,3(1x,e10.3))') &
+                &   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+        enddo
+     enddo
+  end do
+  if (present(logrid_f)) then
+     do i3=0,n3 
+        do i2=0,n2 
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3))&
+                   &   write(22,'(a4,2x,3(1x,e10.3))') &
+                   &   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+           enddo
+        enddo
+     enddo
+  end if
+  close(22)
+END SUBROUTINE export_grids
 
 !> Set up an array logrid(i1,i2,i3) that specifies whether the grid point
 !! i1,i2,i3 is the center of a scaling function/wavelet
