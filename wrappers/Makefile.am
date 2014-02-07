@@ -1,4 +1,6 @@
-# To be installed:
+AUTOMAKE_OPTIONS = subdir-objects
+
+# To be installed
 noinst_LIBRARIES = libwrappers.a
 module_DATA = $(modules)
 
