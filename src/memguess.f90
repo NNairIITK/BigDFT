@@ -60,7 +60,7 @@ program memguess
    !call getarg(1,tatonam)
    call get_command_argument(1, value = tatonam, status = istat)
 
-   write(radical, "(A)") ""
+   write(radical, "(A)") "input"
    optimise=.false.
    GPUtest=.false.
    atwf=.false.
@@ -217,17 +217,6 @@ program memguess
             disable_deprecation = .true.
          else
             ! Use value as radical for input files.
-            if (trim(radical) /= "") then
-               write(*,'(1x,a)')&
-                  &   'Usage: ./memguess <nproc> [y]'
-               write(*,'(1x,a)')&
-                  &   'Indicate the number of processes after the executable'
-               write(*,'(1x,a)')&
-                  &   'ERROR: The only second argument which is accepted is "y", "o","convert", "GPUtest" or "atwf" ' 
-               write(*,'(1x,a)')&
-                  &   '       (type "memguess" without arguments to have an help)'
-               stop
-            end if
             write(radical, "(A)") trim(tatonam)
          end if
          i_arg = i_arg + 1
@@ -310,7 +299,7 @@ program memguess
 
 
 
-   if (trim(radical) == "") then
+   if (trim(radical) == "input") then
       posinp='posinp'
    else
       posinp=trim(radical)

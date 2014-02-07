@@ -21,6 +21,7 @@ module module_input_dicts
   public :: psp_set_from_dict, nlcc_set_from_dict
   public :: astruct_set_from_dict
   public :: atomic_data_set_from_dict
+  public :: occupation_set_from_dict
 
   ! Types to dictionaries
   public :: psp_data_merge_to_dict
@@ -31,6 +32,7 @@ module module_input_dicts
   public :: atoms_file_merge_to_dict
   public :: astruct_file_merge_to_dict
   public :: atomic_data_file_merge_to_dict
+  public :: occupation_data_file_merge_to_dict
 
 contains
 
@@ -150,6 +152,17 @@ contains
           !call atomic_data_file_merge_to_dict(dict, ATOMIC_OCC, trim(str))
           if (file_exists(trim(str))) &
                call merge_input_file_to_dict(dict//ATOMIC_OCC,trim(str),mpi_env)
+       end if
+    end if
+
+    if (.not. has_key(dict, "occupation")) then
+       ! Add old input.occ
+       call occupation_data_file_merge_to_dict(dict, "occupation", &
+            & trim(radical) // ".occ")
+    else
+       str = dict_value(dict // "occupation")
+       if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+          call occupation_data_file_merge_to_dict(dict, "occupation", trim(str))
        end if
     end if
   end subroutine user_dict_from_files
@@ -537,8 +550,8 @@ contains
     if (any(radii_cf /= UNINITIALIZED(1._gp))) then
        call dict_init(radii)
        if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse", radii_cf(1))
-       if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Fine", radii_cf(2))
-       if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse PSP", radii_cf(3))
+       if (radii_cf(2) /= UNINITIALIZED(1._gp)) call set(radii // "Fine", radii_cf(2))
+       if (radii_cf(3) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse PSP", radii_cf(3))
        call set(dict // "Radii of active regions (AU)", radii)
     end if
   end subroutine psp_data_merge_to_dict
@@ -782,7 +795,7 @@ contains
     character(len = 1024), intent(out), optional :: comment
 
     !local variables
-    character(len=*), parameter :: subname='read_dict_positions'
+    character(len=*), parameter :: subname='astruct_set_from_dict'
     type(dictionary), pointer :: pos, at
     character(len = max_field_length) :: str
     integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
@@ -1184,5 +1197,273 @@ contains
     close(unit = 91)
 
   end subroutine atomic_data_file_merge_to_dict
+
+  subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
+       & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
+    use module_defs, only: gp
+    use dictionaries
+    use dynamic_memory
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(in) :: key
+    real(gp), dimension(:), pointer :: occup
+    integer, intent(in) :: nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max
+    integer, intent(out) :: norbu, norbd
+
+    integer :: norb
+    integer :: ikpt
+    type(dictionary), pointer :: occup_src
+    character(len = 12) :: kpt_key
+
+    ! Default case.
+    if (nspin == 1) then
+       norb  = min((nelec_up + 1) / 2, norb_max)
+       norbu = norb
+    else
+       norb = min(nelec_up + nelec_down, 2 * norb_max)
+       if (nspin == 2) then
+          norbu = min(nelec_up, norb_max)
+       else
+          norbu = min(nelec_up, 2 * norb_max)
+       end if
+    end if
+    norbd = norb - norbu
+!!$    write(*,*) nelec_up, nelec_down, norbsempty, norb_max
+!!$    write(*,*) norbu, norbd, norb
+!!$    stop
+    ! Modify the default with occupation
+    nullify(occup_src)
+    if (has_key(dict, key)) then
+       occup_src => dict //key
+       ! Occupation is provided.
+       if (has_key(occup_src, "K point 1")) then
+          call count_for_kpt(occup_src // "K point 1")
+       else if (nkpts == 1) then
+          call count_for_kpt(occup_src)
+       end if
+       do ikpt = 2, nkpts, 1
+          write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
+          if (has_key(occup_src, kpt_key)) call count_for_kpt(occup_src // kpt_key)
+       end do
+    else if (norbsempty > 0) then
+       !value of empty orbitals up and down, needed to fill occupation numbers
+       if (nspin == 4 .or. nspin == 1) then
+          norbu = norbu + min(norbsempty, norb_max - norbu)
+       else if (nspin == 2) then
+          norbu = norbu + min(norbsempty, norb_max - norbu)
+          norbd = norbd + min(norbsempty, norb_max - norbd)
+       end if
+    end if
+
+    ! Summarize and check.
+    norb = norbu + norbd
+    if (((nspin == 1 .or. nspin == 2) .and. (norbu > norb_max .or. norbd > norb_max)) &
+         & .or. (nspin == 4 .and. (norbu > 2 * norb_max .or. norbd > 0))) then
+       call yaml_warning('Total number of orbitals (found ' // trim(yaml_toa(norb)) &
+            & // ') exceeds the available input guess orbitals (being ' &
+            & // trim(yaml_toa(norb_max)) // ').')
+       stop
+    end if
+
+    ! Allocate occupation accordingly.
+    occup = f_malloc_ptr(norb * nkpts, id = "occup", routine_id = "occupation_set_from_dict")
+    ! Setup occupation
+    if (nspin==1) then
+       do ikpt = 1, nkpts, 1
+          call fill_default((ikpt - 1) * norb, 2, nelec_up, norb)
+          if (associated(occup_src)) then
+             write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
+             if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
+                call fill_for_kpt((ikpt - 1) * norb, occup_src)
+             else
+                call fill_for_kpt((ikpt - 1) * norb, occup_src // kpt_key)
+             end if
+          end if
+       end do
+    else
+       do ikpt = 0, nkpts - 1, 1
+          call fill_default(ikpt * norb, 1, nelec_up, norbu)
+          call fill_default(ikpt * norb + norbu, 1, nelec_down, norbd)
+          if (associated(occup_src)) then
+             write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
+             if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
+                call fill_for_kpt((ikpt - 1) * norb, occup_src // "up")
+                call fill_for_kpt((ikpt - 1) * norb + norbu, occup_src // "down")
+             else
+                call fill_for_kpt((ikpt - 1) * norb, occup_src // kpt_key // "up")
+                call fill_for_kpt((ikpt - 1) * norb + norbu, occup_src // kpt_key // "down")
+             end if
+          end if
+       end do
+    end if
+
+    !Check if sum(occup)=nelec
+    if (abs(sum(occup) / nkpts - real(nelec_up + nelec_down,gp))>1.e-6_gp) then
+       call yaml_warning('the total number of electrons ' &
+            & // trim(yaml_toa(sum(occup) / nkpts,fmt='(f13.6)')) &
+            & // ' is not equal to' // trim(yaml_toa(nelec_up + nelec_down)))
+       stop
+    end if
+
+  contains
+
+    subroutine count_for_kpt(occ)
+      implicit none
+      type(dictionary), pointer :: occ
+      
+      if (nspin == 2) then
+         if (.not. has_key(occ, "up") .or. &
+              & .not. has_key(occ, "down")) stop "missing up or down"
+         call count_orbs(norbu, occ // "up")
+         call count_orbs(norbd, occ // "down")
+      else
+         call count_orbs(norbu, occ)
+      end if
+    end subroutine count_for_kpt
+
+    subroutine count_orbs(n, occ)
+      implicit none
+      type(dictionary), pointer :: occ
+      integer, intent(inout) :: n
+      
+      type(dictionary), pointer :: it
+      character(len = max_field_length) :: key
+      integer :: iorb
+
+      it => dict_iter(occ)
+      do while(associated(it))
+         key = dict_key(it)
+         read(key(index(key, " ") + 1:), *) iorb
+         n = max(n, iorb)
+         it => dict_next(it)
+      end do
+    end subroutine count_orbs
+
+    subroutine fill_default(isorb, nfill, nelec, norb)
+      implicit none
+      integer, intent(in) :: isorb, nfill, nelec, norb
+
+      integer :: nt, it, iorb, ne
+
+      nt=0
+      ne = (nelec + 1) / nfill
+      do iorb=isorb + 1, isorb + min(ne, norb)
+         it=min(nfill,nelec-nt)
+         occup(iorb)=real(it,gp)
+         nt=nt+it
+      enddo
+      do iorb=isorb+min(ne, norb)+1,isorb+norb
+         occup(iorb)=0._gp
+      end do
+    end subroutine fill_default
+
+    subroutine fill_for_kpt(isorb, occ)
+      implicit none
+      integer, intent(in) :: isorb
+      type(dictionary), pointer :: occ
+
+      type(dictionary), pointer :: it
+      character(len = max_field_length) :: key
+      integer :: iorb
+
+      it => dict_iter(occ)
+      do while(associated(it))
+         key = dict_key(it)
+         read(key(index(key, " ") + 1:), *) iorb
+         occup(isorb + iorb) = it
+         it => dict_next(it)
+      end do
+    end subroutine fill_for_kpt
+  end subroutine occupation_set_from_dict
+
+  subroutine occupation_data_file_merge_to_dict(dict, key, filename)
+    use module_defs, only: gp, UNINITIALIZED
+    use dictionaries
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(in) :: filename, key
+
+    logical :: exists
+    integer :: ierror, ntu, ntd, nt, i, iorb
+    character(len = 100) :: line, string
+    type(dictionary), pointer :: valu, vald
+    
+    inquire(file = filename, exist = exists)
+    if (.not. exists) return
+
+    open(unit=91,file=filename,status='old',iostat=ierror)
+    !Check the open statement
+    if (ierror /= 0) then
+       call yaml_warning('Failed to open the existing file '// trim(filename))
+       stop
+    end if
+
+    !The first line gives the number of orbitals
+    read(unit=91,fmt='(a100)') line
+
+    read(line,fmt=*,iostat=ierror) ntu, ntd
+    if (ierror /= 0) then
+       !The first line gives the number of orbitals
+       ntd = 0
+       read(line,fmt=*,iostat=ierror) ntu
+       if (ierror /=0) stop 'ERROR: reading the number of orbitals.'
+    end if
+
+    call dict_init(valu)
+    if (ntd > 0) call dict_init(vald)
+
+    nt = 1
+    do
+       read(unit=91,fmt='(a100)',iostat=ierror) line
+       if (ierror /= 0) then
+          exit
+       end if
+       !Transform the line in case there are slashes (to ease the parsing)
+       do i=1,len(line)
+          if (line(i:i) == '/') then
+             line(i:i) = ':'
+          end if
+       end do
+       read(line,*,iostat=ierror) iorb,string
+       if (ierror /= 0) then
+          exit
+       end if
+       !Transform back the ':' into '/'
+       do i=1,len(string)
+          if (string(i:i) == ':') then
+             string(i:i) = '/'
+          end if
+       end do
+       nt=nt+1
+
+       if (iorb<0 .or. iorb>ntu + ntd) then
+          !if (iproc==0) then
+          write(*,'(1x,a,i0,a)') 'ERROR in line ',nt,' of the file "[name].occ"'
+          write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
+          !end if
+          stop
+       else
+          if (iorb <= ntu) then
+             call set(valu // ("Orbital" // trim(yaml_toa(iorb, fmt = "(I0)"))), string)
+          else
+             call set(vald // ("Orbital" // trim(yaml_toa(iorb, fmt = "(I0)"))), string)
+          end if
+       end if
+    end do
+
+    close(unit = 91)
+
+    if (ntd > 0) then
+       call set(dict // key // "K point 1" // "up", valu)
+       call set(dict // key // "K point 1" // "down", vald)
+    else
+       call set(dict // key // "K point 1", valu)
+    end if
+
+    call set(dict // key // "Source", filename)
+
+  end subroutine occupation_data_file_merge_to_dict
 
 end module module_input_dicts

@@ -14,9 +14,12 @@ subroutine atoms_new(atoms)
   use module_types
   implicit none
   type(atoms_data), pointer :: atoms
+
+  type(atoms_data), pointer :: intern
   
-  allocate(atoms)
-  call atoms_nullify(atoms)
+  allocate(intern)
+  call atoms_nullify(intern)
+  atoms => intern
 END SUBROUTINE atoms_new
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)
