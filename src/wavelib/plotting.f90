@@ -640,7 +640,8 @@ END SUBROUTINE read_density
 
 subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   use module_base
-  use module_types
+  use locregs, only: locreg_descriptors
+  use module_types, only: atoms_data,workarr_sumrho
   implicit none
   !Arguments
   character(len=*) :: orbname

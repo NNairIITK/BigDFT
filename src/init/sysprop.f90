@@ -793,6 +793,7 @@ END SUBROUTINE nlcc_dim_from_file
 !> Update radii_cf and occupation for each type of atoms (related to pseudopotential)
 subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   use module_base
+  use ao_inguess, only: atomic_info
   use module_types
   implicit none
   !Arguments
@@ -800,18 +801,18 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   real(gp), intent(in) :: crmult, frmult, projrad
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   !Local Variables
-  integer, parameter :: nmax=7,lmax=4
   !integer, parameter :: nelecmax=32
-  character(len=2) :: symbol
-  integer :: i,ityp,mxpl,mxchg,nsccode
-  real(gp) :: rcov,rprb,ehomo,radfine,amu,maxrad
-  real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+  !character(len=2) :: symbol
+  integer :: i,ityp!,mxpl,mxchg,nsccode
+  real(gp) :: ehomo,maxrad,radfine!,rcov,rprb,amu
 
   do ityp=1,atoms%astruct%ntypes
      !see whether the atom is semicore or not
      !and consider the ground state electronic configuration
-     call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-          neleconf,nsccode,mxpl,mxchg,amu)
+     !call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
+     !     neleconf,nsccode,mxpl,mxchg,amu)
+     call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
+          
      if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
         !assigning the radii by calculating physical parameters
         radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
@@ -847,6 +848,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
   use module_base
   use module_types
   use module_interfaces
+  use ao_inguess, only : count_atomic_shells
   use yaml_output
   implicit none
   type(input_variables), intent(in) :: in
@@ -1049,7 +1051,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
 
      do iat=1,atoms%astruct%nat
         ityp=atoms%astruct%iatype(iat)
-        call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,iat),occup,nl)
+        call count_atomic_shells(in%nspin,atoms%aocc(1:,iat),occup,nl)
         norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
         norbe=norbe+norbat
      end do

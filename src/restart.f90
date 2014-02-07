@@ -400,9 +400,9 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
                 psi(1,ispinor,iorb),orbs%eval(orbs%isorb+iorb),psifscf)
            close(99)
         end do
-        do i_all=1,wfd%nvctr_c+7*wfd%nvctr_f
-            write(700+iorb,*) i_all, psi(i_all,1,iorb)
-        end do
+!!$        do i_all=1,wfd%nvctr_c+7*wfd%nvctr_f
+!!$            write(700+iorb,*) i_all, psi(i_all,1,iorb)
+!!$        end do
 
      end do
 
@@ -2115,6 +2115,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   unitwf=99
   isforb=0
   isfat=0
+  call timing(iproc,'tmbrestart','ON')
   do ifrag=1,input_frag%nfrag
      ! find reference fragment this corresponds to
      ifrag_ref=input_frag%frag_index(ifrag)
@@ -2150,11 +2151,14 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
               allocate(phi_array_old(iorbp)%psig(0:Lzd_old%Llr(ilr)%d%n1,2,0:Lzd_old%Llr(ilr)%d%n2,2,&
                    0:Lzd_old%Llr(ilr)%d%n3,2), stat=i_stat)
               call memocc(i_stat, phi_array_old(iorbp)%psig, 'phi_array_old(iorb)%psig', subname)
+              call timing(iproc,'tmbrestart','OF')
 
               !read phig directly
+              call timing(iproc,'readtmbfiles','ON')
               call read_psig(unitwf, (iformat == WF_FORMAT_PLAIN), Lzd_old%Llr(ilr)%wfd%nvctr_c, Lzd_old%Llr(ilr)%wfd%nvctr_f, &
                    Lzd_old%Llr(ilr)%d%n1, Lzd_old%Llr(ilr)%d%n2, Lzd_old%Llr(ilr)%d%n3, phi_array_old(iorbp)%psig, lstat, error)
               if (.not. lstat) call io_error(trim(error))
+              call timing(iproc,'readtmbfiles','OF')
 
               ! DEBUG: print*,iproc,iorb,iorb+orbs%isorb,iorb_old,iorb_out
 
@@ -2404,8 +2408,10 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 
   end if
 
+  call timing(iproc,'tmbrestart','OF')
   call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
        psi_old,trim(dir_output),input_frag,ref_frags,phi_array_old)
+  call timing(iproc,'tmbrestart','ON')
 
   deallocate(frag_trans_orb)
 
@@ -2494,6 +2500,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
      call yaml_close_sequence()
   end if
   !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+  call timing(iproc,'tmbrestart','OF')
 
 END SUBROUTINE readmywaves_linear_new
 
@@ -2868,7 +2875,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   logical, dimension(3) :: per
   character(len=100) :: fragdir
   integer :: ifrag, ifrag_ref, iforb, isforb
-  
+  real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp 
 
 !  real(gp) :: dnrm2
 !  integer :: iat
@@ -3001,28 +3008,47 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
              fragdir=trim(input_frag%dirname(1))
           end if
 
-          ! first check if file exists
-          inquire(file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',exist=psirold_ok)
-          if (.not. psirold_ok) print*,"psirold doesn't exist for reformatting",iiorb,&
-               trim(input_dir)//'tmbisf'//trim(adjustl(orbname))//'.dat'
+          !! first check if file exists
+          !inquire(file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',exist=psirold_ok)
+          !if (.not. psirold_ok) print*,"psirold doesn't exist for reformatting",iiorb,&
+          !     trim(input_dir)//'tmbisf'//trim(adjustl(orbname))//'.dat'
 
-          ! read in psirold
-          if (psirold_ok) then
-             open(99,file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',&
-                  form="unformatted",status='unknown')
-             read(99) dummy
-             read(99) lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i
-             read(99) lzd_old%llr(ilr_old)%nsi1,lzd_old%llr(ilr_old)%nsi2,lzd_old%llr(ilr_old)%nsi3
-             psirold=f_malloc((/lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i/),id='psirold')
-             do k=1,lzd_old%llr(ilr_old)%d%n3i
-                do j=1,lzd_old%llr(ilr_old)%d%n2i
-                   do i=1,lzd_old%llr(ilr_old)%d%n1i
-                      read(99) psirold(i,j,k)
-                   end do
-                end do
-             end do
-             close(99)
-          end if
+          !! read in psirold
+          !if (psirold_ok) then
+          !   call timing(iproc,'readisffiles','ON')
+          !   open(99,file=trim(input_dir)//trim(fragdir)//'tmbisf'//trim(adjustl(orbname))//'.dat',&
+          !        form="unformatted",status='unknown')
+          !   read(99) dummy
+          !   read(99) lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i
+          !   read(99) lzd_old%llr(ilr_old)%nsi1,lzd_old%llr(ilr_old)%nsi2,lzd_old%llr(ilr_old)%nsi3
+          !   psirold=f_malloc((/lzd_old%llr(ilr_old)%d%n1i,lzd_old%llr(ilr_old)%d%n2i,lzd_old%llr(ilr_old)%d%n3i/),id='psirold')
+          !   do k=1,lzd_old%llr(ilr_old)%d%n3i
+          !      do j=1,lzd_old%llr(ilr_old)%d%n2i
+          !         do i=1,lzd_old%llr(ilr_old)%d%n1i
+          !            read(99) psirold(i,j,k)
+          !         end do
+          !      end do
+          !   end do
+          !   close(99)
+          !   call timing(iproc,'readisffiles','OF')
+          !end if
+
+          lzd_old%llr(ilr_old)%nsi1=2*lzd_old%llr(ilr_old)%ns1
+          lzd_old%llr(ilr_old)%nsi2=2*lzd_old%llr(ilr_old)%ns2
+          lzd_old%llr(ilr_old)%nsi3=2*lzd_old%llr(ilr_old)%ns3
+
+          lzd_old%llr(ilr_old)%d%n1i=2*n_old(1)+31
+          lzd_old%llr(ilr_old)%d%n2i=2*n_old(2)+31
+          lzd_old%llr(ilr_old)%d%n3i=2*n_old(3)+31
+
+          psirold_ok=.true.
+          workarraytmp=f_malloc((2*n_old+31),id='workarraytmp')
+          psirold=f_malloc((2*n_old+31),id='psirold')
+
+          call to_zero((2*n_old(1)+31)*(2*n_old(2)+31)*(2*n_old(3)+31),psirold(1,1,1))
+          call vcopy((2*n_old(1)+2)*(2*n_old(2)+2)*(2*n_old(3)+2),phigold(0,1,0,1,0,1),1,psirold(1,1,1),1)
+          call psig_to_psir_free(n_old(1),n_old(2),n_old(3),workarraytmp,psirold)
+          call f_free(workarraytmp)
 
           call timing(iproc,'Reformatting ','ON')
           if (psirold_ok) then

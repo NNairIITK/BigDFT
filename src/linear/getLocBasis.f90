@@ -437,7 +437,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(in) :: experimental_mode
  
   ! Local variables
-  real(kind=8) :: fnrmMax, meanAlpha, ediff, alpha_max, delta_energy, delta_energy_prev
+  real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
   integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, lwork, ncharge
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: psit_c_tmp, psit_f_tmp, work, eval, delta_energy_arr
@@ -448,7 +448,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(8),dimension(2):: reducearr
-  real(gp) :: econf
+  real(gp) :: econf, dynamic_convcrit, kappa_mean
   real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(3) :: interpol_vector, interpol_solution
   integer :: i, ist, iiorb, ilr, ii, info
@@ -458,6 +458,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: psi_tmp, kernel_best
   integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
   logical :: stop_optimization, energy_increased_previous, complete_reset, even
+  real(kind=8),dimension(3),save :: kappa_history
+  integer,save :: nkappa_history
 
   call f_routine(id='getLocalizedBasis')
 
@@ -493,6 +495,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   energy_increased_previous=.false.
   ratio_deltas=1.d0
+  ediff_best=1.d0
   ediff=1.d0
   delta_energy_prev=1.d0
   delta_energy_arr=1.d0
@@ -519,7 +522,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   even=(mod(ncharge,2)==0)
 
   ! Purify the initial kernel (only when necessary and if there is an even number of electrons)
-  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even) then
+  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even .and. scf_mode==LINEAR_FOE) then
       if (iproc==0) then
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
@@ -529,6 +532,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       tmb%can_use_transposed=.false.
       call purify_kernel(iproc, nproc, tmb, overlap_calculated)
       if (iproc==0) call yaml_close_map()
+  end if
+
+  if (itout==0) then
+      nkappa_history=0
+      kappa_history=0.d0
   end if
 
   iterLoop: do
@@ -677,7 +685,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!! END PLOT #######################################################################
 
 
-      !!if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
+      !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
@@ -733,16 +741,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
       end if
 
-      !ediff=trH-trH_old
-      ediff=trH-trH_ref
+      ediff=trH-trH_old
+      ediff_best=trH-trH_ref
       !!if (iproc==0) write(*,*) 'trH, trH_ref', trH, trH_ref
 
       if (it>1 .and. (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode)) then
           if (.not.energy_increased .and. .not.energy_increased_previous) then
               if (.not.ldiis%switchSD) then
-                  ratio_deltas=ediff/delta_energy_prev
+                  ratio_deltas=ediff_best/delta_energy_prev
               else
-                  ratio_deltas=ediff/delta_energy_arr(ldiis%itBest)
+                  ratio_deltas=ediff_best/delta_energy_arr(ldiis%itBest)
               end if
           else
               ! use a default value
@@ -757,6 +765,28 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               !!if (iproc==0) write(*,*) 'WARNING: TEMPORARY FIX for ratio_deltas!'
           end if
           if (iproc==0) call yaml_map('kappa',ratio_deltas,fmt='(es10.3)')
+          if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+              if (ratio_deltas>0.d0) then
+                  if (iproc==0) call yaml_map('kappa to history',.true.)
+                  nkappa_history=nkappa_history+1
+                  ii=mod(nkappa_history-1,3)+1
+                  kappa_history(ii)=ratio_deltas
+              end if
+              !!if (nkappa_history>=3) then
+              !!    kappa_mean=sum(kappa_history)/3.d0
+              !!    if (iproc==0) call yaml_map('mean kappa',kappa_mean,fmt='(es10.3)')
+              !!    dynamic_convcrit=conv_crit/kappa_mean
+              !!    if (iproc==0) call yaml_map('dynamic conv crit',dynamic_convcrit,fmt='(es9.2)')
+              !!end if
+          end if
+      end if
+      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          if (nkappa_history>=3) then
+              kappa_mean=sum(kappa_history)/3.d0
+              if (iproc==0) call yaml_map('mean kappa',kappa_mean,fmt='(es10.3)')
+              dynamic_convcrit=conv_crit/kappa_mean
+              if (iproc==0) call yaml_map('dynamic conv crit',dynamic_convcrit,fmt='(es9.2)')
+          end if
       end if
 
       if (energy_increased) then
@@ -775,10 +805,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
           if (iproc==0) then
               call yaml_newline()
-              call yaml_map('iter',it,fmt='(i6)')
+              call yaml_map('iter',it,fmt='(i5)')
               call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-              call yaml_map('Omega',trH,fmt='(es24.17)')
-              call yaml_map('D',ediff,fmt='(es10.3)')
+              call yaml_map('Omega',trH,fmt='(es22.15)')
+              call yaml_map('D',ediff,fmt='(es9.2)')
+              call yaml_map('D best',ediff_best,fmt='(es9.2)')
           end if
           tmb%ham_descr%can_use_transposed=.false.
           call dcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
@@ -823,17 +854,19 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! information on the progress of the optimization
       if (iproc==0) then
           call yaml_newline()
-          call yaml_map('iter',it,fmt='(i6)')
+          call yaml_map('iter',it,fmt='(i5)')
           call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-          call yaml_map('Omega',trH,fmt='(es24.17)')
-          call yaml_map('D',ediff,fmt='(es10.3)')
+          call yaml_map('Omega',trH,fmt='(es22.15)')
+          call yaml_map('D',ediff,fmt='(es9.2)')
+          call yaml_map('D best',ediff_best,fmt='(es9.2)')
       end if
 
       ! Add some extra iterations if DIIS failed (max 6 failures are allowed before switching to SD)
       nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
 
       if(it>=nit_exit .or. it_tot>=3*nit_basis .or. stop_optimization .or. (fnrm<conv_crit .and. experimental_mode) .or. &
-          (itout==0 .and. it>1 .and. ratio_deltas<0.1d0)) then
+          (itout==0 .and. it>1 .and. ratio_deltas<0.1d0 .and. ratio_deltas>0.d0) .or. &
+          (experimental_mode .and. fnrm<dynamic_convcrit)) then
           if(it>=nit_exit) then
               infoBasisFunctions=0
               if(iproc==0) call yaml_map('exit criterion','net number of iterations')
@@ -846,7 +879,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           else if (fnrm<conv_crit .and. experimental_mode) then
               if (iproc==0) call yaml_map('exit criterion','gradient')
               infoBasisFunctions=0
-          else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0) then
+          else if (fnrm<dynamic_convcrit .and. experimental_mode) then
+              if (iproc==0) call yaml_map('exit criterion','dynamic gradient')
+              infoBasisFunctions=0
+          else if (itout==0 .and. it>1 .and. ratio_deltas<0.1d0 .and. ratio_deltas>0.d0) then
               infoBasisFunctions=0
               if (iproc==0) call yaml_map('exit criterion','extended input guess')
           end if
@@ -873,8 +909,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
            experimental_mode, trH_ref, kernel_best, complete_reset)
-      !!if (iproc==0) write(*,*) 'kernel_best(1)',kernel_best(1)
-      !!if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
+      !if (iproc==0) write(*,*) 'kernel_best(1)',kernel_best(1)
+      !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
 
 
       overlap_calculated=.false.
@@ -910,7 +946,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       ! Only need to reconstruct the kernel if it is actually used.
-      if (target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
+           .and. .not.complete_reset ) then
           if(scf_mode/=LINEAR_FOE) then
               call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
                    tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
@@ -947,10 +984,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
       call yaml_newline()
-      call yaml_map('iter',it,fmt='(i6)')
+      call yaml_map('iter',it,fmt='(i5)')
       call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-      call yaml_map('Omega',trH,fmt='(es24.17)')
-      call yaml_map('D',ediff,fmt='(es10.3)')
+      call yaml_map('Omega',trH,fmt='(es22.15)')
+      call yaml_map('D',ediff,fmt='(es9.2)')
+      call yaml_map('D best',ediff_best,fmt='(es9.2)')
       call yaml_close_map() !iteration
       call bigdft_utils_flush(unit=6)
   end if
@@ -1579,40 +1617,40 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
           ! Try to get back the orbitals of the best iteration. This is possible if
           ! these orbitals are still present in the DIIS history.
           if(it-ldiis%itBest<ldiis%isx) then
-             if(iproc==0) then
-                 !!if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
-                 !!    ldiis%itBest, ' which are the best so far.'
-                 if (iproc==0) then
-                     call yaml_map('Take best TMBs from history',ldiis%itBest)
-                 end if
-             end if
-             ii=modulo(ldiis%mis-(it-ldiis%itBest),ldiis%isx)
-             !!if (iproc==0) write(*,*) 'ii',ii
-             offset=0
-             istdest=1
-             !if(iproc==0) write(*,*) 'copy DIIS history psi...'
-             do iorb=1,tmbopt%orbs%norbp
-                 iiorb=tmbopt%orbs%isorb+iorb
-                 ilr=tmbopt%orbs%inWhichLocreg(iiorb)
-                 ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
-                 istsource=offset+(ii-1)*ncount+1
-                 call dcopy(ncount, ldiis%phiHist(istsource), 1, tmbopt%psi(istdest), 1)
-                 call dcopy(ncount, ldiis%phiHist(istsource), 1, lphioldopt(istdest), 1)
-                 !!if (iproc==0 .and. iorb==1) write(*,*) 'istsource, istdest, val', istsource, istdest, tmbopt%psi(istdest)
-                 offset=offset+ldiis%isx*ncount
-                 istdest=istdest+ncount
-             end do
-             trH_ref=ldiis%energy_hist(ii)
-             !!if (iproc==0) write(*,*) 'take energy from entry',ii
-             call vcopy(tmbopt%linmat%denskern%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern%matrix_compr(1), 1)
-             complete_reset=.true.
-         else
-             !if(iproc==0) write(*,*) 'copy last psi...'
-             call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
-             trH_ref=trH
-         end if
-         ldiis%isx=0
-         ldiis%switchSD=.true.
+              if(iproc==0) then
+                  !!if(iproc==0) write(*,'(1x,a,i0,a)')  'Recover the orbitals from iteration ', &
+                  !!    ldiis%itBest, ' which are the best so far.'
+                  if (iproc==0) then
+                      call yaml_map('Take best TMBs from history',ldiis%itBest)
+                  end if
+              end if
+              ii=modulo(ldiis%mis-(it-ldiis%itBest)-1,ldiis%isx)+1
+              !if (iproc==0) write(*,*) 'ii',ii
+              offset=0
+              istdest=1
+              !if(iproc==0) write(*,*) 'copy DIIS history psi...'
+              do iorb=1,tmbopt%orbs%norbp
+                  iiorb=tmbopt%orbs%isorb+iorb
+                  ilr=tmbopt%orbs%inWhichLocreg(iiorb)
+                  ncount=tmbopt%lzd%llr(ilr)%wfd%nvctr_c+7*tmbopt%lzd%llr(ilr)%wfd%nvctr_f
+                  istsource=offset+(ii-1)*ncount+1
+                  call dcopy(ncount, ldiis%phiHist(istsource), 1, tmbopt%psi(istdest), 1)
+                  call dcopy(ncount, ldiis%phiHist(istsource), 1, lphioldopt(istdest), 1)
+                  !if (iproc==0 .and. iorb==1) write(*,*) 'istsource, istdest, val', istsource, istdest, tmbopt%psi(istdest)
+                  offset=offset+ldiis%isx*ncount
+                  istdest=istdest+ncount
+              end do
+              trH_ref=ldiis%energy_hist(ii)
+              !!if (iproc==0) write(*,*) 'take energy from entry',ii
+              call vcopy(tmbopt%linmat%denskern%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern%matrix_compr(1), 1)
+              complete_reset=.true.
+          else
+              !if(iproc==0) write(*,*) 'copy last psi...'
+              call dcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
+              trH_ref=trH
+          end if
+          ldiis%isx=0
+          ldiis%switchSD=.true.
       end if
       ! to indicate that no orthonormalization is required... (CHECK THIS!)
       if(ldiis%isx==0) ldiis%switchSD=.true. 
@@ -1952,6 +1990,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   character(len=*),parameter :: subname='purify_kernel'
   real(kind=8) :: dnrm2, diff
 
+
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
      if(.not.tmb%can_use_transposed) then
@@ -1996,7 +2035,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   allocate(ksksk(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
   call memocc(istat, ksksk, 'ksksk', subname) 
 
-  tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
+
+  call timing(iproc,'purify_kernel ','ON') 
+
+  !tmb%linmat%denskern%matrix=0.5d0*tmb%linmat%denskern%matrix
+  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern%matrix, 1)
 
 
   !!do iorb=1,tmb%orbs%norb
@@ -2010,6 +2053,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   !!end do
 
   if (iproc==0) call yaml_open_sequence('purification process')
+
 
   do it=1,20
 
@@ -2084,8 +2128,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   end do
 
+
   if (iproc==0) call yaml_close_sequence
-  tmb%linmat%denskern%matrix=2.0d0*tmb%linmat%denskern%matrix
+  !tmb%linmat%denskern%matrix=2.0d0*tmb%linmat%denskern%matrix
+  call dscal(tmb%orbs%norb**2, 2.0d0, tmb%linmat%denskern%matrix, 1)
+
+  call timing(iproc,'purify_kernel ','OF') 
 
   iall = -product(shape(ks))*kind(ks)
   deallocate(ks,stat=istat)
