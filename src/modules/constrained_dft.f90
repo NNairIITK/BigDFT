@@ -51,7 +51,7 @@ module constrained_dft
        end subroutine LocalHamiltonianApplication
 
        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, &
-            orbs, ovrlp_smat, inv_ovrlp_smat)
+            orbs, ovrlp_smat, inv_ovrlp_smat, check_accur)
          use module_base
          use module_types
          implicit none
@@ -63,6 +63,7 @@ module constrained_dft
          real(kind=8),intent(out) :: error
          type(orbitals_data), optional, intent(in) :: orbs
          type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+         logical,intent(in),optional :: check_accur
        end subroutine overlapPowerGeneral
   end interface
 
@@ -122,7 +123,6 @@ contains
 
   subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
        calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
-    use module_interfaces
     use module_fragments
     implicit none
     type(sparseMatrix), intent(inout) :: weight_matrix
