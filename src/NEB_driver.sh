@@ -53,7 +53,7 @@ if [ -f $job_name.NEB.tar ] ; then
 else
     i=0
 fi
-neb_iter=`printf "%03d" $i`
+neb_iter=`printf "%04d" $i`
 if test x"$DEBUG" != x ; then
     echo "Current iter is "${neb_iter}"."
 fi
@@ -61,7 +61,7 @@ fi
 # Save and remove the possible output from previous run.
 cd $datadir
 if [ -f gen_output_file ] ; then
-    j=`printf "%03d" $((${i}-1))`
+    j=`printf "%04d" $((${i}-1))`
     cp -f -p gen_output_file $job_name.NEB.it${j}.forces
     tar -rf $job_name.NEB.tar --remove-files $job_name.NEB.it${j}.forces
 fi

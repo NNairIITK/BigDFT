@@ -285,6 +285,8 @@ subroutine test_dictionaries1()
    call set(dictA//'Stack'//3,dictA2)
 
    call set(dictA//'Stack2',(/'1','2','3'/))
+   call set(dictA//'Stack3',(/'4 ','AQ','3g'/))
+   call set(dictA//'Stack4',12)
 
    call yaml_dict_dump(dictA)
 

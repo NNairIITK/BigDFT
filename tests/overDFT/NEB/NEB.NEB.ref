@@ -1,12 +1,6 @@
- <BigDFT> log of the run will be written in logfile: log-input1.yaml
- <BigDFT> log of the run will be written in logfile: log-input2.yaml
- <BigDFT> log of the run will be written in logfile: log-input3.yaml
- <BigDFT> log of the run will be written in logfile: log-input4.yaml
- <BigDFT> log of the run will be written in logfile: log-input5.yaml
- NEB minimization loop:
 External computation of forces for replicas.
  type     = all
- job_name = triH
+ job_name = neb
  n_images = 5
  n_nodes  = 4
  datadir  = /home/caliste/local/bigdft-trunk/tmp-nobindings/tests/overDFT/NEB
@@ -24,7 +18,7 @@ Start job 5.
 Job 5 finished (5/5).
 External computation of forces for replicas.
  type     = free_only
- job_name = triH
+ job_name = neb
  n_images = 5
  n_nodes  = 4
  datadir  = /home/caliste/local/bigdft-trunk/tmp-nobindings/tests/overDFT/NEB
@@ -36,10 +30,9 @@ Start job 3.
 Job 3 finished (2/3).
 Start job 4.
 Job 4 finished (3/3).
- -  {E activation (eV):  0.252790, max error (eV / ang):  11.648517} # 001
 External computation of forces for replicas.
  type     = free_only
- job_name = triH
+ job_name = neb
  n_images = 5
  n_nodes  = 4
  datadir  = /home/caliste/local/bigdft-trunk/tmp-nobindings/tests/overDFT/NEB
@@ -51,11 +44,4 @@ Start job 3.
 Job 3 finished (2/3).
 Start job 4.
 Job 4 finished (3/3).
- -  {E activation (eV): -0.650422, max error (eV / ang):  3.029205} # 002
   #------------------------------------------------------------------------------ Final results
- Energy and error per image:
- -  {Energy (eV): -54.74433737, error (eV / ang):  0.00000} # 01
- -  {Energy (eV): -56.01094780, error (eV / ang):  0.41427} # 02
- -  {Energy (eV): -55.39475904, error (eV / ang):  3.02921} # 03
- -  {Energy (eV): -56.00290541, error (eV / ang):  0.95781} # 04
- -  {Energy (eV): -55.25796539, error (eV / ang):  0.00000} # 05

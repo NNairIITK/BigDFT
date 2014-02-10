@@ -33,7 +33,9 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   logical :: output_denspot_
   logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
 
+  call f_routine(id=subname)
   call timing(iproc,'CrtDescriptors','ON')
+  
 
   !assign the dimensions to improve (a little) readability
   n1=Glr%d%n1
@@ -100,6 +102,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   call memocc(i_stat,i_all,'logrid_f',subname)
 
   call timing(iproc,'CrtDescriptors','OF')
+  call f_release_routine()
 END SUBROUTINE createWavefunctionsDescriptors
 
 
@@ -174,13 +177,19 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
       call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f, &
            & Glr%wfd%keyglob(1,Glr%wfd%nseg_c+1), Glr%wfd%keyvglob(Glr%wfd%nseg_c+1))
    end if
-   i_all = -product(shape(Glr%wfd%keygloc))*kind(Glr%wfd%keygloc)
-   deallocate(Glr%wfd%keygloc,stat=i_stat)
-   call memocc(i_stat,i_all,'Glr%wfd%keygloc',subname)
+   !that is the point where the association is given
+   !one should consider the possiblity of associating the 
+   !arrays with f_associate
+!!$   i_all = -product(shape(Glr%wfd%keygloc))*kind(Glr%wfd%keygloc)
+!!$   deallocate(Glr%wfd%keygloc,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'Glr%wfd%keygloc',subname)
+   call f_free_ptr(Glr%wfd%keygloc)
    Glr%wfd%keygloc => Glr%wfd%keyglob
-   i_all = -product(shape(Glr%wfd%keyvloc))*kind(Glr%wfd%keyvloc)
-   deallocate(Glr%wfd%keyvloc,stat=i_stat)
-   call memocc(i_stat,i_all,'Glr%wfd%keyvloc',subname)
+
+!!$   i_all = -product(shape(Glr%wfd%keyvloc))*kind(Glr%wfd%keyvloc)
+!!$   deallocate(Glr%wfd%keyvloc,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'Glr%wfd%keyvloc',subname)
+   call f_free_ptr(Glr%wfd%keyvloc)
    Glr%wfd%keyvloc => Glr%wfd%keyvglob
  
    ! Copy the information of keyglob to keygloc for Glr (just pointing leads to problem during the deallocation of wfd)
@@ -351,6 +360,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
 
   call f_release_routine()
 END SUBROUTINE createProjectorsArrays
+
 
         !!$subroutine initRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, atoms, rxyz, crmult, frmult, radii, nspin, ixc, rho_commun, rhodsc, nscatterarr, ngatherarr, pot_ion)
         !!$  use module_base
@@ -2229,6 +2239,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: s1d1,s1d2,s1d3,s2d1,s2d2,s2d3,s3d1,s3d2,s3d3,norm_1,norm_2,norm_3,norm,radius,jacdet
   real(wp), dimension(-1:1) :: coeff,ipv,ipv2
 
+
   !To reduce the size, use real(kind=4)
   real(kind=4), dimension(:,:), allocatable :: shift
   real(wp) :: s1_new, s2_new, s3_new,xz,yz,zz,recnormsqr,exp_val, exp_cutoff
@@ -2238,7 +2249,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   !Atom description (needed for call to eleconf)
   integer ::nzatom,nvalelec!,nsccode,mxpl,mxchg
-  real(wp) :: rcov!,rprb,ehomo,amu,neleconf(6,0:3)
+  real(wp) :: rcov
   !character(len=2) :: symbol
 
   if (lzd_old%Glr%geocode .ne. 'F') then

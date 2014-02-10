@@ -198,15 +198,6 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
       END SUBROUTINE write_atomic_file
 
-      subroutine merge_input_file_to_dict(dict, fname, mpi_env)
-        use dictionaries
-        use wrapper_MPI, only: mpi_environment
-        implicit none
-        type(dictionary), pointer :: dict
-        character(len = *), intent(in) :: fname
-        type(mpi_environment), intent(in) :: mpi_env
-      end subroutine merge_input_file_to_dict
-
       subroutine read_input_dict_from_files(radical, mpi_env,dict)
         use dictionaries, only: dictionary
         use wrapper_MPI, only: mpi_environment
@@ -1117,15 +1108,6 @@ module module_interfaces
          type(coulomb_operator), intent(in) :: pkernel_ref,pkernel
       END SUBROUTINE correct_hartree_potential
 
-!!$      subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-!!$         implicit none
-!!$         integer, intent(in) :: nzatom,nvalelec
-!!$         character(len=2), intent(out) :: symbol
-!!$         real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
-!!$         integer, parameter :: nmax=6,lmax=3
-!!$         real(kind=8), intent(out) :: neleconf(nmax,0:lmax)
-!!$         integer, intent(out) :: nsccode,mxpl,mxchg
-!!$      END SUBROUTINE eleconf
 
       !     subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
       !          hpsit,psidst,hpsidst_sp,psit)

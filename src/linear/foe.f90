@@ -432,41 +432,17 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   allredarr=abs(allredarr) !for some crazy situations this may be negative
                   anoise=10.d0*anoise
                   if (allredarr(1)>anoise) then
-                      if (iproc==0) then
-                          !!write(*,'(1x,a,2es12.3)') 'WARNING: lowest eigenvalue to high; penalty function, noise: ', &
-                          !!                          allredarr(1), anoise
-                          !!write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
-                          !call yaml_map('lowest eigenvalue within bounds','No; increase magnitude by 20% and cycle')
-                          !call yaml_map('lower eval bound ok',.false.)
-                      end if
                       eval_bounds_ok(1)=.false.
                       foe_obj%evlow=foe_obj%evlow*1.2d0
                       restart=.true.
                   else
-                      if (iproc==0) then
-                          !!write(*,'(1x,a)') 'Lowest eigenvalue within interval, can continue.'
-                          !call yaml_map('lowest eigenvalue within bounds','Yes; can continue')
-                          !call yaml_map('lower eval bound ok',.true.)
-                      end if
                       eval_bounds_ok(1)=.true.
                   end if
                   if (allredarr(2)>anoise) then
-                      if (iproc==0) then
-                          !!write(*,'(1x,a,2es12.3)') 'WARNING: highest eigenvalue to low; penalty function, noise: ', &
-                          !!                          allredarr(2), anoise
-                          !!write(*,'(1x,a)') 'Increase magnitude by 20% and cycle.'
-                          !call yaml_map('highest eigenvalue within bounds','No; increase magnitude by 20% and cycle')
-                          !call yaml_map('upper eval bound ok',.false.)
-                      end if
                       eval_bounds_ok(2)=.false.
                       foe_obj%evhigh=foe_obj%evhigh*1.2d0
                       restart=.true.
                   else
-                      if (iproc==0) then
-                          !!write(*,'(1x,a)') 'Highest eigenvalue within interval, can continue.'
-                          !call yaml_map('highest eigenvalue within bounds','Yes; can continue')
-                          !call yaml_map('upper eval bound ok',.true.)
-                      end if
                       eval_bounds_ok(2)=.true.
                   end if
               end if
@@ -487,7 +463,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   
             
     
-              !write(*,*) 'WARNING: changed calculation of sumn'
               sumn=0.d0
               sumnder=0.d0
               if (orbs%norbp>0) then
@@ -522,153 +497,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               if (nproc>1) then
                   call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
               end if
-    
-    !!!! #############################################################
-    !!!  call to_zero(fermi%nvctr, fermi%matrix_compr(1))
-    !!!
-    !!!  if (orbs%norbp>0) then
-    !!!      isegstart=fermi%istsegline(orbs%isorb_par(iproc)+1)
-    !!!      if (orbs%isorb+orbs%norbp<orbs%norb) then
-    !!!          isegend=fermi%istsegline(orbs%isorb_par(iproc+1)+1)-1
-    !!!      else
-    !!!          isegend=fermi%nseg
-    !!!      end if
-    !!!      !$omp parallel default(private) shared(isegstart, isegend, orbs, fermip, fermi)
-    !!!      !$omp do
-    !!!      do iseg=isegstart,isegend
-    !!!          ii=fermi%keyv(iseg)-1
-    !!!          do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
-    !!!              ii=ii+1
-    !!!              iiorb = (jorb-1)/orbs%norb + 1
-    !!!              jjorb = jorb - (iiorb-1)*orbs%norb
-    !!!              fermi%matrix_compr(ii)=fermip(jjorb,iiorb-orbs%isorb)
-    !!!          end do
-    !!!      end do
-    !!!      !$omp end do
-    !!!      !$omp end parallel
-    !!!  end if
-    !!!
-    !!!  call mpiallred(fermi%matrix_compr(1), fermi%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-    !!!
-    !!!
-    !!!
-    !!!  !!!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    !!!  !!!!! TEST: calculate S*S^-1 ##########################################################
-    !!!  !!!    ! Taylor approximation of S^-1/2 up to higher order
-    !!!  !!!    allocate(ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
-    !!!  !!!    call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
-    !!!  !!!    call uncompressMatrix(iproc,ovrlp)
-    !!!  !!!    allocate(ovrlpinv1(orbs%norb,orbs%norb),stat=istat)
-    !!!  !!!    call memocc(istat, ovrlpinv1,'ovrlpinv1',subname)
-    !!!  !!!    allocate(ovrlpinv2(orbs%norb,orbs%norb),stat=istat)
-    !!!  !!!    call memocc(istat, ovrlpinv2,'ovrlpinv2',subname)
-    !!!
-    !!!  !!!    ovrlpinv1(:,:)=ovrlp%matrix(:,:)
-    !!!  !!!    call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, orbs%norb, ovrlpinv1, ovrlpinv2, tt, orbs)
-    !!!  !!!    !call overlapPowerGeneral(iproc, nproc, order_taylor, 1, -1, orbs%norb, ovrlpinv1, ovrlpinv2, tt, orbs)
-    !!!
-    !!!  !!!    ovrlpinv1(:,:)=ovrlp%matrix(:,:)
-    !!!  !!!    ovrlp%matrix(:,:)=ovrlpinv2(:,:)
-    !!!  !!!    call compress_matrix_for_allreduce(iproc,ovrlp)
-    !!!  !!!    ovrlpeff_compr=ovrlp%matrix_compr
-    !!!
-    !!!  !!!    ovrlp%matrix(:,:)=ovrlpinv1(:,:)
-    !!!  !!!    call compress_matrix_for_allreduce(iproc,ovrlp)
-    !!!
-    !!!  !!!    iall=-product(shape(ovrlpinv1))*kind(ovrlpinv1)
-    !!!  !!!    deallocate(ovrlpinv1,stat=istat)
-    !!!  !!!    call memocc(istat,iall,'ovrlpinv1',subname)
-    !!!  !!!    iall=-product(shape(ovrlpinv2))*kind(ovrlpinv2)
-    !!!  !!!    deallocate(ovrlpinv2,stat=istat)
-    !!!  !!!    call memocc(istat,iall,'ovrlpinv2',subname)
-    !!!
-    !!!
-    !!!  !!!allocate(ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
-    !!!  !!!call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
-    !!!  !!!call uncompressMatrix(iproc,ovrlp)
-    !!!
-    !!!  !!!allocate(workmat(orbs%norb,orbs%norb,4), stat=istat)
-    !!!  !!!call memocc(istat, workmat, 'workmat', subname)
-    !!!  !!!workmat(:,:,1)=ovrlp%matrix(:,:)
-    !!!
-    !!!  !!!ovrlp%matrix_compr=ovrlpeff_compr
-    !!!  !!!call uncompressMatrix(iproc,ovrlp)
-    !!!  !!!workmat(:,:,2)=ovrlp%matrix(:,:)
-    !!!  !!!!call uncompressMatrix(iproc,ovrlp)
-    !!!
-    !!!  !!!allocate(fermi%matrix(orbs%norb,orbs%norb))
-    !!!  !!!call uncompressMatrix(iproc,fermi)
-    !!!
-    !!!  !!!call dcopy(orbs%norb**2, fermi%matrix(1,1), 1,  workmat(1,1,3), 1)
-    !!!
-    !!!  !!!! workmat(:,:,2) contains S^-1/2
-    !!!  !!!!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp%matrix(1,1), orbs%norb, &
-    !!!  !!!!           workmat(1,1,3), orbs%norb, 0.d0, fermi%matrix(1,1), orbs%norb)
-    !!!  !!!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1,2), orbs%norb, &
-    !!!  !!!           workmat(1,1,3), orbs%norb, 0.d0, workmat(1,1,4), orbs%norb)
-    !!!  !!!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1,4), orbs%norb, &
-    !!!  !!!           workmat(1,1,2), orbs%norb, 0.d0, fermi%matrix(1,1), orbs%norb)
-    !!!  !!!call compress_matrix_for_allreduce(iproc,fermi)
-    !!!
-    !!!  !!!!!tt=0.d0
-    !!!  !!!!!do iorb=1,orbs%norb
-    !!!  !!!!!    do jorb=1,orbs%norb
-    !!!  !!!!!        if (iorb==jorb) then
-    !!!  !!!!!            tt=tt+(1.d0-workmat(jorb,iorb,4))**2
-    !!!  !!!!!        else
-    !!!  !!!!!            tt=tt+(workmat(jorb,iorb,4))**2
-    !!!  !!!!!        end if
-    !!!  !!!!!    end do
-    !!!  !!!!!end do
-    !!!  !!!!!tt=sqrt(tt)
-    !!!  !!!!!if (iproc==0) write(*,'(a,es11.3)') 'FOE dev from unity:',tt
-    !!!
-    !!!  !!!ovrlp%matrix(:,:)=workmat(:,:,1) ! get back the original
-    !!!  !!!call compress_matrix_for_allreduce(iproc,ovrlp)
-    !!!  !!!iall=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
-    !!!  !!!deallocate(ovrlp%matrix,stat=istat)
-    !!!  !!!call memocc(istat,iall,'ovrlp%matrix',subname)
-    !!!  !!!iall=-product(shape(workmat))*kind(workmat)
-    !!!  !!!deallocate(workmat,stat=istat)
-    !!!  !!!call memocc(istat,iall,'workmat',subname)
-    !!!
-    !!!  !!!!! END TEST: #######################################################################
-    !!!  !!!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    !!!
-    !!!
-    !!!
-    !!!
-    !!!
-    !!!
-    !!!  call timing(iproc, 'chebyshev_comm', 'OF')
-    !!!  call timing(iproc, 'FOE_auxiliary ', 'ON')
-    !!!
-    !!!  if (iproc==0) then
-    !!!      call yaml_sequence(advance='no')
-    !!!      call yaml_open_map(flow=.true.)
-    !!!      call yaml_map('Initial kernel purification',.true.)
-    !!!  end if
-    !!!  overlap_calculated=.false.
-    !!!  tmb%can_use_transposed=.false.
-    !!!  call purify_kernel(iproc, nproc, tmb, overlap_calculated)
-    !!!  if (iproc==0) call yaml_close_map()
-    !!!
-    !!!    sumn=0.d0
-    !!!     do ii=1,fermi%nvctr
-    !!!        irow = fermi%orb_from_index(1,ii)
-    !!!        icol = fermi%orb_from_index(2,ii)
-    !!!        !if (irow==icol) then
-    !!!            sumn=sumn+fermi%matrix_compr(ii)*ovrlp%matrix_compr(ii)
-    !!!        !end if
-    !!!     end do
-    !!!     if (iproc==0) write(*,*) 'sumn2',sumn
-    !!!
-    !!!
-    !!!
-    !!!! #############################################################
-    
-    
-    
     
     
               ! Make sure that the bounds for the bisection are negative and positive
@@ -762,8 +590,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   cycle
               end if
     
-              !!! Cycle if one of the two bounds is not okay
-              !!if (adjust_lower_bound .or. adjust_upper_bound) cycle
     
               it_solver=it_solver+1
     
@@ -775,19 +601,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   if (iproc==0) call yaml_map('D eF',foe_obj%ef-ef_old,fmt='(es13.6)')
                   if (iproc==0) call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
                   if (foe_obj%ef>ef_old .and. sumn<sumn_old) then
-                      !!if (iproc==0) then
-                      !!    !!write(*,'(1x,a,2es13.5)') 'WARNING: Fermi energy was raised, but the trace still decreased: Deltas=',&
-                      !!    !!                  foe_obj%ef-ef_old,sumn-sumn_old
-                      !!    !!write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
-                      !!end if
                       interpolation_possible=.false.
                   end if
                   if (foe_obj%ef<ef_old .and. sumn>sumn_old) then
-                      !!if (iproc==0) then
-                      !!    !!write(*,'(1x,a,2es13.5)') 'WARNING: Fermi energy was lowered, but the trace still increased: Deltas=',&
-                      !!    !!                  foe_obj%ef-ef_old,sumn-sumn_old
-                      !!    !!write(*,'(1x,a)') 'Cubic interpolation not possible under this circumstances.'
-                      !!end if
                       interpolation_possible=.false.
                   end if
                   if (foe_obj%ef>ef_old .and. sumn<sumn_old .or. foe_obj%ef<ef_old .and. sumn>sumn_old) then
@@ -835,17 +651,11 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                       tmp_matrix(i,3)=interpol_matrix(i,3)
                       tmp_matrix(i,4)=interpol_matrix(i,4)
                   end do
-                  !!if (iproc==0) then
-                  !!    do i=1,ii
-                  !!        write(*,'(4es14.6,5x,es14.6)') tmp_matrix(i,1:4), interpol_solution(i)
-                  !!    end do
-                  !!end if
     
                   call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
                   if (info/=0) then
                      if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
                   end if
-                  !!if (iproc==0) write(*,'(a,4es14.7)') 'interpol_solution(1:4)',interpol_solution(1:4)
     
     
                   call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
@@ -864,23 +674,17 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
     
     
               ! Calculate the new Fermi energy.
-              !!if (iproc==0) write(*,'(a,i6,2es16.6)') 'it_solver, abs(sumn-charge), foe_obj%ef_interpol_chargediff', it_solver, abs(sumn-foe_obj%charge), foe_obj%ef_interpol_chargediff
-              !!if (iproc==0) write(*,'(a,5es16.6)') 'efarr(1), efarr(2), sumnarr(1), sumnarr(2), charge', efarr(1), efarr(2), sumnarr(1), sumnarr(2), foe_obj%charge
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_open_map('Search new eF',flow=.true.)
               if (it_solver>=4 .and.  abs(sumn-foe_obj%charge)<foe_obj%ef_interpol_chargediff) then
                   det=determinant(iproc,4,interpol_matrix)
-                  !!if (iproc==0) write(*,'(1x,a,2es10.2)') 'determinant of interpolation matrix, limit:', &
-                  !!                                       det, foe_obj%ef_interpol_det
                   if (iproc==0) call yaml_map('det',det,fmt='(es10.3)')
                   if (iproc==0) call yaml_map('limit',foe_obj%ef_interpol_det,fmt='(es10.3)')
                   if(abs(det)>foe_obj%ef_interpol_det) then
                       foe_obj%ef=ef_interpol
-                      !!if (iproc==0) write(*,'(1x,a)') 'new fermi energy from cubic interpolation'
                       if (iproc==0) call yaml_map('method','cubic interpolation')
                   else
                       ! linear interpolation
-                      !!if (iproc==0) write(*,'(1x,a)') 'new fermi energy from linear interpolation'
                       if (iproc==0) call yaml_map('method','linear interpolation')
                       m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
                       b = interpol_vector(4)-m*interpol_matrix(4,3)
@@ -905,9 +709,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
     
     
               if (iproc==0) then
-                  !write(*,'(1x,a,2es21.13)') 'trace of the Fermi matrix, derivative matrix:', sumn, sumnder
-                  !write(*,'(1x,a,2es13.4)') 'charge difference, exit criterion:', sumn-foe_obj%charge, charge_tolerance
-                  !write(*,'(1x,a,es21.13)') 'suggested Fermi energy for next iteration:', foe_obj%ef
                   call yaml_newline()
                   call yaml_map('iter',it)
                   call yaml_map('Tr(K)',sumn,fmt='(es16.9)')
@@ -926,15 +727,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
     
           end do main_loop
     
-          !!if (iproc==0) then
-          !!    write( *,'(1x,a,i0)') repeat('-',84 - int(log(real(it))/log(10.)))
-          !!end if
-    
-    
-    
-    
-    
-      !end if
     
     
       call timing(iproc, 'FOE_auxiliary ', 'OF')

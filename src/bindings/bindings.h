@@ -11,43 +11,43 @@
 #define GET_ATTR_UINT(obj,OBJ,name,NAME) {       \
   f90_pointer_int tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_int)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (guint*)tmp.data; \
   }
 #define GET_ATTR_UINT_2D(obj,OBJ,name,NAME) {       \
   f90_pointer_int tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_int_2D)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (guint*)tmp.data; \
   }
 #define GET_ATTR_INT(obj,OBJ,name,NAME) {       \
   f90_pointer_int tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_int)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (int*)tmp.data; \
   }
 #define GET_ATTR_DBL(obj,OBJ,name,NAME) {       \
   f90_pointer_double tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_double)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (double*)tmp.data; \
   }
 #define GET_ATTR_DBL_2D(obj,OBJ,name,NAME) {       \
   f90_pointer_double_2D tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_double_2D)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (double*)tmp.data; \
   }
 #define GET_ATTR_DBL_3D(obj,OBJ,name,NAME) {       \
   f90_pointer_double_3D tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_double_3D)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (double*)tmp.data; \
   }
 #define GET_ATTR_DBL_4D(obj,OBJ,name,NAME) {       \
   f90_pointer_double_4D tmp; \
   memset(&tmp, 0, sizeof(f90_pointer_double_4D)); \
-  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(obj->data, &tmp); \
+  FC_FUNC_(obj ## _get_ ## name, OBJ ## _GET_ ## NAME)(F_TYPE(obj->data), &tmp); \
   obj->name = (double*)tmp.data; \
   }
 
@@ -78,15 +78,13 @@ void FC_FUNC_(f90_pointer_5d_init, F90_POINTER_5D_INIT)(f90_pointer_double_5D *p
   FC_FUNC_(f90_pointer_5d_init, F90_POINTER_5D_INIT)(pt, &size_);       \
   }
 
-void FC_FUNC_(deallocate_double_1d, DEALLOCATE_DOUBLE_1D)(f90_pointer_double *array);
-void FC_FUNC_(deallocate_double_2d, DEALLOCATE_DOUBLE_2D)(f90_pointer_double_2D *array);
-
 /* Constructors of C wrappers around already built Fortran objects. */
-BigDFT_Atoms*   bigdft_atoms_new_from_fortran  (_atoms_data *at);
-BigDFT_Inputs*  bigdft_inputs_new_from_fortran (_input_variables *inputs);
-BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects *obj);
-BigDFT_Run*     bigdft_run_new_from_fortran    (_run_objects *obj, gboolean create_wrappers);
-BigDFT_Goutput* bigdft_goutput_new_from_fortran(_DFT_global_output *obj);
+BigDFT_Atoms*   bigdft_atoms_new_from_fortran  (_atoms_data_pointer at);
+BigDFT_Inputs*  bigdft_inputs_new_from_fortran (_input_variables_pointer inputs);
+BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects_pointer obj);
+BigDFT_Run*     bigdft_run_new_from_fortran    (_run_objects_pointer obj,
+                                                gboolean create_wrappers);
+BigDFT_Goutput* bigdft_goutput_new_from_fortran(_DFT_global_output_pointer obj);
 
 /* Additional private methods. */
 void _inputs_sync(BigDFT_Inputs *in);

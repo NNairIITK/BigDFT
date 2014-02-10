@@ -1329,106 +1329,6 @@ subroutine write_forces(atoms,fxyz)
    !$$        end if
 END SUBROUTINE write_forces
 
-
-!> Print the electronic configuration, with the semicore orbitals
-subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
-   use module_base
-   use yaml_output
-   implicit none
-   integer, intent(in) :: nelecmax,nsccode,noccmax,lmax,nspinor,nspin
-   real(gp), dimension(nelecmax), intent(in) :: aocc
-   !local variables
-   character(len=10) :: tmp
-   character(len=500) :: string
-   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
-   logical, dimension(4,2) :: scorb
-
-   !if non-collinear it is like nspin=1 but with the double of orbitals
-   if (nspinor == 4) then
-      noncoll=2
-   else
-      noncoll=1
-   end if
-   scorb=.false.
-   if (nsccode/=0) then !the atom has some semicore orbitals
-      niasc=nsccode
-      do lsc=4,1,-1
-         nlsc=niasc/4**(lsc-1)
-         do i=1,nlsc
-            scorb(lsc,i)=.true.
-         end do
-         niasc=niasc-nlsc*4**(lsc-1)
-      end do
-   end if
-
-   call yaml_open_map('Electronic configuration',flow=.true.)
-
-   !initalise string
-   string=repeat(' ',len(string))
-
-   is=1
-   do i=1,noccmax
-      iocc=0
-      do l=1,lmax
-         iocc=iocc+1
-         nl=nint(aocc(iocc))
-         do inl=1,nl
-            !write to the string the angular momentum
-            if (inl == i) then
-               iss=is
-               if (scorb(l,inl)) then
-                  string(is:is)='('
-                  is=is+1
-               end if
-               select case(l)
-               case(1)
-                  string(is:is)='s'
-               case(2)
-                  string(is:is)='p'
-               case(3)
-                  string(is:is)='d'
-               case(4)
-                  string(is:is)='f'
-               case default
-                  stop 'l not admitted'
-               end select
-               is=is+1
-               if (scorb(l,inl)) then
-                  string(is:is)=')'
-                  is=is+1
-               end if
-               call yaml_open_sequence(string(iss:is))
-            end if
-            do ispin=1,nspin
-               do m=1,2*l-1
-                  do icoll=1,noncoll !non-trivial only for nspinor=4
-                     iocc=iocc+1
-                     !write to the string the value of the occupation numbers
-                     if (inl == i) then
-                        call write_fraction_string(l,aocc(iocc),tmp,ntmp)
-                        string(is:is+ntmp-1)=tmp(1:ntmp)
-                        call yaml_sequence(tmp(1:ntmp))
-                        is=is+ntmp
-                     end if
-                  end do
-               end do
-            end do
-            if (inl == i) then
-               string(is:is+2)=' , '
-               is=is+3
-               call yaml_close_sequence()
-            end if
-         end do
-      end do
-   end do
-
-   !write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
-
-   call yaml_close_map()
-
-END SUBROUTINE print_eleconf
-
-
 !> Write stress tensor matrix
 subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   use module_base
@@ -1846,3 +1746,99 @@ subroutine print_nlpsp(nlpsp)
 !!$     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
   call yaml_close_map()
 END SUBROUTINE print_nlpsp
+
+subroutine print_orbitals(orbs, geocode)
+  use module_types, only: orbitals_data
+  use module_defs, only: gp
+  use yaml_output
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  character(len = 1), intent(in) :: geocode
+  
+  integer :: jproc, nproc, jpst, norbme, norbyou, nelec
+  integer :: ikpts, iorb1, iorb
+  real(gp) :: rocc
+
+  nelec = int(sum(orbs%occup) + 1d-12) / orbs%nkpts
+
+  call yaml_comment('Occupation Numbers',hfill='-')
+  call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')
+
+  ! Number of orbitals
+  if (orbs%nspin==1) then
+     call yaml_map('Spin treatment','Averaged')
+     if (mod(nelec,2).ne.0) then
+        call yaml_warning('Odd number of electrons, no closed shell system')
+        !write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
+     end if
+  else if(orbs%nspin==4) then
+     call yaml_map('Spin treatment','Spinorial (non-collinearity possible)')
+  else 
+     call yaml_map('Spin treatment','Collinear')
+  end if
+
+  !distribution of wavefunction arrays between processors
+  !tuned for the moment only on the cubic distribution
+  call yaml_open_map('Orbitals Repartition')
+  jpst=0
+  nproc = size(orbs%norb_par, 1)
+  do jproc=0,nproc-1
+     norbme=orbs%norb_par(jproc,0)
+     norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
+     if (norbme /= norbyou .or. jproc == nproc-1) then
+        call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
+        !write(*,'(3(a,i0),a)')&
+        !     ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
+        jpst=jproc+1
+     end if
+  end do
+  !write(*,'(3(a,i0),a)')&
+  !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
+  call yaml_close_map()
+  
+  call yaml_map('Total Number of Orbitals',orbs%norb,fmt='(i8)')
+!!$     if (verb) then
+!!$        if (iunit /= 0) then
+!!$           call yaml_map('Occupation numbers coming from', trim(radical) // '.occ')
+!!$        else
+!!$           call yaml_map('Occupation numbers coming from','System properties')
+!!$        end if
+!!$     end if
+
+  call yaml_open_sequence('Input Occupation Numbers')
+  do ikpts=1,orbs%nkpts
+     if (geocode /= 'F') then
+        call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+        & trim(yaml_toa(orbs%kpts(:, ikpts),fmt='(f12.6)')))
+     end if
+     call yaml_sequence(advance='no')
+     call yaml_open_map('Occupation Numbers',flow=.true.)
+     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
+     iorb1=1
+     rocc=orbs%occup(1+(ikpts-1)*orbs%norb)
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpts-1)*orbs%norb) /= rocc) then
+           if (iorb1 == iorb-1) then
+              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
+              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+           else
+           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+                adjustl(trim(yaml_toa(iorb-1))),rocc,fmt='(f6.4)')
+           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           end if
+           rocc=orbs%occup(iorb+(ikpts-1)*orbs%norb)
+           iorb1=iorb
+        end if
+     enddo
+     if (iorb1 == orbs%norb) then
+        call yaml_map('Orbital No.'//trim(yaml_toa(orbs%norb)),orbs%occup(ikpts*orbs%norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+     else
+        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+             adjustl(trim(yaml_toa(orbs%norb))),orbs%occup(ikpts*orbs%norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+     end if
+     call yaml_close_map()
+  end do
+  call yaml_close_sequence()
+END SUBROUTINE print_orbitals

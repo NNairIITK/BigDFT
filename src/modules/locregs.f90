@@ -449,7 +449,7 @@ contains
     type(wavefunctions_descriptors), intent(out) :: wfdout
 
     ! Local variables
-    integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
+!    integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
 
     !nullify all pointers first
     call nullify_wfd(wfdout)
