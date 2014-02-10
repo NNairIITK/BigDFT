@@ -515,8 +515,8 @@ fructose:
   - found warnings
 
 geopt_foe:
- D eF: 1.1e-10
- eF: 2.4e-10
+ D eF: 1.1e-8
+ eF: 2.2e-9
  Epot: 1.1e-10
  EH: 1.1e-10
 
