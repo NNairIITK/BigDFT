@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.1.10
- Timestamp of this run                 : 2014-01-31 15:45:18.407
+ Timestamp of this run                 : 2014-02-10 10:12:31.493
  Root process Hostname                 : girofle
  Number of MPI tasks                   :  3
  OpenMP parallelization                :  Yes
@@ -196,12 +196,12 @@
  #|0              DIIS history for density mixing (low, high)                                
  #|.5d0     .     density mixing parameter (low, high)                                       
  #|1.d-11   1.d-1 outer loop convergence (low, high)                                         
- #|5.d-3    1.d-3    1basis convergence (low, high) ; early stop TMB optimization (experiment
+ #|5.d-3    1.d-3    1.d-4  basis convergence (low, high) ; early stop TMB optimization, dyna
  #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
  #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
  #|1.d-13   1.d-1 density convergence (low, high)                                            
  #|1.d-11         convergence criterion on density to fix TMBS                               
- #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
+ #|103            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
  #|1.d0     1.    initial step size for basis optimization (DIIS, SD)                        
  #|0.2d0          initial step size for kernel update (SD), curve fitting for alpha update - 
  #|-0.5d0   0.5d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
@@ -210,10 +210,8 @@
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0 T T F F      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
  #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
- #|O 4 1.0d-4 1.0d-4 0.0d0 5.0 5.0 20.d0  Atom name, number of basis functions per atom, pref
- #|H 1 1.0d-4 1.0d-4 0.0d0 5.0 5.0 20.d0  Atom name, number of basis functions per atom, pref
- # ==== WARNING: the following lines have not been processed by the parser ====
- #|                                                                                          
+ #|O 4 1.0d-4 1.0d-4 0.0d0 5.0 5.0 5.0 20.d0  Atom name, number of basis functions per atom, 
+ #|H 1 1.0d-4 1.0d-4 0.0d0 5.0 5.0 5.0 20.d0  Atom name, number of basis functions per atom, 
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
@@ -399,6 +397,12 @@
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.0
    Maxdiff for uncompress              :  0.0
+ check of kernel cutoff radius:
+ -  {atom type: H, adjustment required:  Yes, new value:  9.0}
+ -  {atom type: O, adjustment required:  Yes, new value:  9.0}
+ total elements                        :  36
+ non-zero elements                     :  36
+ sparsity in %                         :  0.0
  Checking operations for potential communication:
    Tolerance for the following test    :  9.999999999999999799E-13
    calculation check, error sum        :  0.0
@@ -438,21 +442,60 @@
    Kernel update:
      max dev from unity                :  2.63E-02
      Hamiltonian application required  :  Yes
-     method                            : diagonalization
-     mode                              : sequential
-     communication strategy kernel     : ALLREDUCE
-     Kohn-Sham residue                 :  6.163E-01
-     Coefficients available            :  Yes
-    #Eigenvalues and New Occupation Numbers
-   Orbitals: [
- {e: -1.032466469956, f:  2.0},  # 00001
- {e: -5.564406913933E-01, f:  2.0},  # 00002
- {e: -4.569418432467E-01, f:  2.0},  # 00003
- {e: -3.757602345837E-01, f:  2.0}] # 00004
+     method                            : FOE
+     decay length of error function    :  5.00000000000000028E-002
+     FOE to determine density kernel: &it_foe000-000-01
+     -  { #---------------------------------------------------------------------- it FOE: 1
+ bisec/eval bounds:  [ -0.1,  0.1, -0.5,  0.5 ], pol deg:  60, eF: -1.0E-01, 
+       polynomials: recalculated, eval/bisection bounds ok:  [  No,  No,  No,  No ]}
+     -  { #---------------------------------------------------------------------- it FOE: 2
+ bisec/eval bounds:  [ -0.1,  0.1, -0.6,  0.6 ], pol deg:  72, eF: -1.0E-01, 
+       polynomials: recalculated, eval/bisection bounds ok:  [  No,  No,  No,  No ]}
+     -  { #---------------------------------------------------------------------- it FOE: 3
+ bisec/eval bounds:  [ -0.1,  0.1, -0.72,  0.72 ], pol deg:  86, eF: -1.0E-01, 
+       polynomials: recalculated, eval/bisection bounds ok:  [  No,  No,  No,  No ]}
+     -  { #---------------------------------------------------------------------- it FOE: 4
+ bisec/eval bounds:  [ -0.1,  0.1, -0.86,  0.86 ], pol deg:  104, eF: -1.0E-01, 
+       polynomials: recalculated, eval/bisection bounds ok:  [  No,  No,  No,  No ]}
+     -  { #---------------------------------------------------------------------- it FOE: 5
+ bisec/eval bounds:  [ -0.1,  0.1, -1.04,  1.04 ], pol deg:  124, eF: -1.0E-01, 
+       polynomials: recalculated, eval/bisection bounds ok:  [  No,  Yes,  No,  No ]}
+     -  { #---------------------------------------------------------------------- it FOE: 6
+ bisec/eval bounds:  [ -0.1,  0.1, -1.24,  1.04 ], pol deg:  137, eF: -1.0E-01, 
+       polynomials: recalculated, eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+     -  { #---------------------------------------------------------------------- it FOE: 7
+ bisec/eval bounds:  [ -0.1,  0.1, -1.24,  1.04 ], pol deg:  137, eF:  1.0E-01, 
+       polynomials: from memory,  eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  7, Tr(K):  9.12090617, charge diff:  1.12090617}
+     -  { #---------------------------------------------------------------------- it FOE: 8
+ bisec/eval bounds:  [ -0.1,  0.1, -1.24,  1.04 ], pol deg:  137, eF: -4.99994641E-02, 
+       polynomials: from memory,  eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.499995E-01, D Tr: -1.120873, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  8, Tr(K):  8.000033301, charge diff:  3.330087493E-05}
+     -  { #---------------------------------------------------------------------- it FOE: 9
+ bisec/eval bounds:  [ -0.1, -0.05, -1.24,  1.04 ], pol deg:  137, eF: -8.367936036E-02, 
+       polynomials: from memory,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -3.36799E-02, D Tr: -3.411107E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  9, Tr(K):  7.99999919, charge diff: -8.101941411E-07}
+     -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.9993855364695143, 
+ purification process: [
+ {iter:  1, diff from idempotency:  2.724E-04}, 
+ {iter:  2, diff from idempotency:  2.222E-07}, 
+ {iter:  3, diff from idempotency:  1.5E-13}], 
+ tr(KS) after purification:  7.9999999999999982}
+     trace(KS)                         :  7.9999999999999982
+     need to repeat with sharper decay :  No
+      #-------------------------------------------------- FOE calculation of kernel finished
+     Kohn-Sham residue                 :  6.164E-01
+     Coefficients available            :  No
    Hamiltonian update: {
  Energies: {Ekin:  1.57946564123E+01, Epot: -2.06079737482E+01, Enl:  1.4673264243, 
               EH:  2.00693076881E+01,  EXC: -3.90682443687, EvXC: -5.11982502079}, 
-    Total charge:  7.999965710124, 
+    Total charge:  7.999965706012, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
     #================================================================= Input guess generated
  Checking Communications of Minimal Basis:
@@ -471,396 +514,864 @@
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  1.15586915836E+01, Epot: -1.32945519574E+01, Enl:  7.35368168013E-01}, 
+ Energies: {Ekin:  1.15586915836E+01, Epot: -1.32936053E+01, Enl:  7.35368168013E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  7.55E-01, Omega: -1.577049455570163E+01, D: -1.58E+01, D best: -1.58E+01, 
+ iter:  1, fnrm:  7.55E-01, Omega: -1.577007449147332E+01, D: -1.58E+01, D best: -1.58E+01, 
  Optimization: {algorithm: DIIS, history length:  3, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.87638201928, Epot: -1.19586040032E+01, Enl:  7.3222188034E-01}, 
+ Energies: {Ekin:  9.99858471741, Epot: -1.20694722732E+01, Enl:  7.30275753589E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  2.18E-01, Omega: -1.646951035109328E+01, D: -6.99E-01, D best: -6.99E-01, 
+ iter:  2, fnrm:  2.2E-01, Omega: -1.645220699905772E+01, D: -6.82E-01, D best: -6.82E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: TRACE, 
- Energies: {Ekin:  9.87638201928, Epot: -1.19586040032E+01, Enl:  7.3222188034E-01}, 
- iter:  2, fnrm:  2.18E-01, Omega: -1.646951035109328E+01, D: -6.99E-01, D best: -6.99E-01}
+ Energies: {Ekin:  9.99858471741, Epot: -1.20694722732E+01, Enl:  7.30275753589E-01}, 
+ iter:  2, fnrm:  2.2E-01, Omega: -1.645220699905772E+01, D: -6.82E-01, D best: -6.82E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #-------------------------------------------------------------------- kernel iter: 1
        Kernel update:
-         max dev from unity            :  1.57E-03
+         max dev from unity            :  1.81E-03
          Hamiltonian application required:  Yes
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Kohn-Sham residue             :  2.258E-01
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe001-001-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.16,  0.01, -1.24,  1.04 ], pol deg:  137, eF: -1.558594098E-01, 
+       polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.16,  0.01, -1.24,  1.04 ], pol deg:  137, eF:  6.14059024E-03, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.047606835, charge diff:  4.760683474E-02}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.16,  0.01, -1.24,  1.04 ], pol deg:  137, eF: -3.658379775E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -4.272439E-02, D Tr: -5.510403E-02, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  7.992502803, charge diff: -7.49719716E-03}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.04,  0.01, -1.24,  1.04 ], pol deg:  137, eF: -2.299626043E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  1.358754E-02, D Tr:  9.833634E-03, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  8.002336437, charge diff:  2.336437042E-03}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.04, -0.02, -1.24,  1.04 ], pol deg:  137, eF: -2.80073204E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -5.01106E-03, D Tr: -3.388602E-03, interpol possible:  Yes}, 
+ Search new eF: {det:  2.482E-11, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  7.998947835, charge diff: -1.052165453E-03}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ bisec/eval bounds:  [ -0.03, -0.02, -1.24,  1.04 ], pol deg:  137, eF: -2.643635307E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  1.570967E-03, D Tr:  1.055381E-03, interpol possible:  Yes}, 
+ Search new eF: {det:  3.202E-14, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  8.000003215, charge diff:  3.21519272E-06}
+         -  { #------------------------------------------------------------------ it FOE: 7
+ bisec/eval bounds:  [ -0.03, -0.03, -1.24,  1.04 ], pol deg:  137, eF: -2.644115052E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -4.797449E-06, D Tr: -3.215371E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  7.01E-19, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  7, Tr(K):  8.0, charge diff: -1.782574088E-10}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.9999917338337836, 
+ purification process: [
+ {iter:  1, diff from idempotency:  2.618E-03}, 
+ {iter:  2, diff from idempotency:  1.459E-05}, 
+ {iter:  3, diff from idempotency:  4.521E-10}, 
+ {iter:  4, diff from idempotency:  2.297E-16}], 
+ tr(KS) after purification:  7.9999999999999991}
+         trace(KS)                     :  7.9999999999999991
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Kohn-Sham residue             :  2.257E-01
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87638201928, Epot: -1.1968354713E+01, Enl:  7.3222188034E-01, 
-              EH:  2.19664842501E+01, EXC: -4.21697438878, EvXC: -5.52947853076}, 
-    Total charge:  7.999982384609, 
+ Energies: {Ekin:  9.99858471741, Epot: -1.20790327486E+01, Enl:  7.30275753589E-01, 
+              EH:  2.19680409883E+01, EXC: -4.21723435989, EvXC: -5.52982198936}, 
+    Total charge:  7.999981907769, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -8.630076793937E-01, f:  2.0},  # 00001
- {e: -4.447127155983E-01, f:  2.0},  # 00002
- {e: -2.107059512461E-01, f:  2.0},  # 00003
- {e: -1.329499080147E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.11E-05, energy: -1.70722626524845325E+01, D: -1.707E+01}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  1, delta:  1.07E-05, energy: -1.706390207111167E+01, D: -1.706E+01}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
-         max dev from unity            :  1.57E-03
+         max dev from unity            :  1.81E-03
          Hamiltonian application required:  Yes
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Kohn-Sham residue             :  2.126E-01
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe001-002-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.09,  0.04, -1.24,  1.04 ], pol deg:  137, eF: -9.205115026E-02, 
+       polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  No,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.16,  0.04, -1.24,  1.04 ], pol deg:  137, eF: -1.576611503E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.16,  0.04, -1.24,  1.04 ], pol deg:  137, eF:  3.916884974E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  9.354963309, charge diff:  1.354963309}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.16,  0.04, -1.24,  1.04 ], pol deg:  137, eF: -1.084344055E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.476033E-01, D Tr: -1.354772, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  8.000191144, charge diff:  1.911440594E-04}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.16, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.310548976E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -2.262049E-02, D Tr: -1.875784E-04, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  5, Tr(K):  8.000003566, charge diff:  3.565632737E-06}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ bisec/eval bounds:  [ -0.16, -0.13, -1.24,  1.04 ], pol deg:  137, eF: -1.378830732E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -6.828176E-03, D Tr: -1.915123E-05, interpol possible:  Yes}, 
+ Search new eF: {det:  2.023E-08, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  7.999984414, charge diff: -1.558559497E-05}
+         -  { #------------------------------------------------------------------ it FOE: 7
+ bisec/eval bounds:  [ -0.14, -0.13, -1.24,  1.04 ], pol deg:  137, eF: -1.37622012E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  2.610612E-04, D Tr:  9.325653E-07, interpol possible:  Yes}, 
+ Search new eF: {det: -2.276E-13, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  7, Tr(K):  7.999985347, charge diff: -1.465302964E-05}
+         -  { #------------------------------------------------------------------ it FOE: 8
+ bisec/eval bounds:  [ -0.14, -0.13, -1.24,  1.04 ], pol deg:  137, eF: -1.325031101E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  5.118902E-03, D Tr:  1.470713E-05, interpol possible:  Yes}, 
+ Search new eF: {det: -4.669E-16, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  8, Tr(K):  8.000000054, charge diff:  5.409587089E-08}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.9999933966209484, 
+ purification process: [
+ {iter:  1, diff from idempotency:  8.47E-06}, 
+ {iter:  2, diff from idempotency:  1.503E-10}, 
+ {iter:  3, diff from idempotency:  2.556E-16}], 
+ tr(KS) after purification:  8.0}
+         trace(KS)                     :  8.0000000000000018
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Kohn-Sham residue             :  2.099E-01
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87638201928, Epot: -1.26589017797E+01, Enl:  7.3222188034E-01, 
-              EH:  2.06814249484E+01, EXC: -4.00336581739, EvXC: -5.24711123552}, 
-    Total charge:  7.999979933319, 
+ Energies: {Ekin:  9.99858471741, Epot: -1.27478898568E+01, Enl:  7.30275753589E-01, 
+              EH:  2.0733558543E+01, EXC: -4.0131279958, EvXC: -5.26001698634}, 
+    Total charge:  7.999979480761, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.947440560549E-01, f:  2.0},  # 00001
- {e: -5.366841126529E-01, f:  2.0},  # 00002
- {e: -3.750838331004E-01, f:  2.0},  # 00003
- {e: -2.935567011562E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.84E-06, energy: -1.69533469719586165E+01, D:  1.189E-01}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  2, delta:  2.61E-06, energy: -1.69552378381000821E+01, D:  1.087E-01}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
-         max dev from unity            :  1.57E-03
+         max dev from unity            :  1.81E-03
          Hamiltonian application required:  Yes
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Kohn-Sham residue             :  2.101E-01
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe001-003-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.19, -0.07, -1.24,  1.04 ], pol deg:  137, eF: -1.909836333E-01, 
+       polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.19, -0.07, -1.24,  1.04 ], pol deg:  137, eF: -7.406661328E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.002173761, charge diff:  2.173761377E-03}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.19, -0.07, -1.24,  1.04 ], pol deg:  137, eF: -1.111462636E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -3.707965E-02, D Tr: -2.141354E-03, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000032408, charge diff:  3.240785252E-05}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.19, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.311977109E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -2.005145E-02, D Tr: -5.388864E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999978519, charge diff: -2.148079212E-05}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.221884508E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  9.00926E-03, D Tr:  2.871257E-05, interpol possible:  Yes}, 
+ Search new eF: {det: -2.033E-10, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000007232, charge diff:  7.231779982E-06}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ bisec/eval bounds:  [ -0.13, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.268380634E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -4.649613E-03, D Tr: -1.126505E-05, interpol possible:  Yes}, 
+ Search new eF: {det:  6.345E-13, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  7.999995967, charge diff: -4.033266537E-06}
+         -  { #------------------------------------------------------------------ it FOE: 7
+ bisec/eval bounds:  [ -0.13, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.254147409E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  1.423322E-03, D Tr:  4.04898E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  4.85E-15, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  7, Tr(K):  8.000000016, charge diff:  1.571324049E-08}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.9999933310897724, 
+ purification process: [
+ {iter:  1, diff from idempotency:  9.802E-06}, 
+ {iter:  2, diff from idempotency:  1.893E-10}, 
+ {iter:  3, diff from idempotency:  2.904E-16}], 
+ tr(KS) after purification:  8.0}
+         trace(KS)                     :  8.0
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Kohn-Sham residue             :  2.071E-01
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87638201928, Epot: -1.259965887E+01, Enl:  7.3222188034E-01, 
-              EH:  2.07618504068E+01, EXC: -4.01076627631, EvXC: -5.25676692182}, 
-    Total charge:  7.999979979014, 
+ Energies: {Ekin:  9.99858471741, Epot: -1.26807671495E+01, Enl:  7.30275753589E-01, 
+              EH:  2.08278340449E+01, EXC: -4.02337973356, EvXC: -5.27344229637}, 
+    Total charge:  7.999979550919, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.779108098975E-01, f:  2.0},  # 00001
- {e: -5.229639815854E-01, f:  2.0},  # 00002
- {e: -3.714962292066E-01, f:  2.0},  # 00003
- {e: -2.866085103511E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.4E-06, energy: -1.69493388591493996E+01, D:  4.008E-03}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  3, delta:  1.28E-06, energy: -1.69516392399107865E+01, D:  3.599E-03}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 4
- summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.4E-06, energy: -1.69493388591493996E+01, D:  4.008E-03}]}
+ summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  4, delta:  1.28E-06, energy: -1.69516392399107865E+01, D:  3.599E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: TRACE,  #WARNING: support function optimization not converged
- kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  1, delta out:  3.317E-06, energy: -1.69493388591493996E+01, D: -1.695E+01}
+ kernel optimization: FOE,  #WARNING: density optimization not converged
+ iter low:  1, delta out:  3.133E-06, energy: -1.69516392399107865E+01, D: -1.695E+01}
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
    Kernel update:
-     max dev from unity                :  1.57E-03
+     max dev from unity                :  1.81E-03
      Hamiltonian application required  :  Yes
-     method                            : diagonalization
-     mode                              : sequential
-     communication strategy kernel     : ALLREDUCE
-     Kohn-Sham residue                 :  2.092E-01
-     Coefficients available            :  Yes
+     method                            : FOE
+     decay length of error function    :  5.00000000000000028E-002
+     FOE to determine density kernel: &it_foe002-000-01
+     -  { #---------------------------------------------------------------------- it FOE: 1
+ bisec/eval bounds:  [ -0.17, -0.08, -1.24,  1.04 ], pol deg:  137, eF: -1.727721221E-01, 
+       polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+     -  { #---------------------------------------------------------------------- it FOE: 2
+ bisec/eval bounds:  [ -0.17, -0.08, -1.24,  1.04 ], pol deg:  137, eF: -7.806933586E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.00094896, charge diff:  9.489602998E-04}
+     -  { #---------------------------------------------------------------------- it FOE: 3
+ bisec/eval bounds:  [ -0.17, -0.08, -1.24,  1.04 ], pol deg:  137, eF: -1.119654852E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -3.389615E-02, D Tr: -9.333948E-04, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000015566, charge diff:  1.556553138E-05}
+     -  { #---------------------------------------------------------------------- it FOE: 4
+ bisec/eval bounds:  [ -0.17, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.27303796E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.533831E-02, D Tr: -2.716449E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999988401, charge diff: -1.159895949E-05}
+     -  { #---------------------------------------------------------------------- it FOE: 5
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.201945675E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  7.109229E-03, D Tr:  1.738244E-05, interpol possible:  Yes}, 
+ Search new eF: {det: -6.308E-11, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000005783, charge diff:  5.783479637E-06}
+     -  { #---------------------------------------------------------------------- it FOE: 6
+ bisec/eval bounds:  [ -0.13, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.238653632E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -3.670796E-03, D Tr: -6.806613E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  1.348E-13, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  7.999998977, charge diff: -1.02313362E-06}
+     -  { #---------------------------------------------------------------------- it FOE: 7
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.234232813E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  4.420819E-04, D Tr:  1.02563E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  4.97E-16, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  7, Tr(K):  8.000000002, charge diff:  2.496085116E-09}
+     -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.9999933248596866, 
+ purification process: [
+ {iter:  1, diff from idempotency:  9.858E-06}, 
+ {iter:  2, diff from idempotency:  1.973E-10}, 
+ {iter:  3, diff from idempotency:  2.536E-16}], 
+ tr(KS) after purification:  7.9999999999999991}
+     trace(KS)                         :  8.0
+     need to repeat with sharper decay :  No
+      #-------------------------------------------------- FOE calculation of kernel finished
+     Kohn-Sham residue                 :  2.061E-01
+     Coefficients available            :  No
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
+   -  {Initial kernel purification:  Yes, tr(KS) before purification:  7.9999999999999991, 
+ purification process: [
+ {iter:  1, diff from idempotency:  2.605E-16}], 
+ tr(KS) after purification:  8.0}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.87638201928, Epot: -1.25782627618E+01, Enl:  7.3222188034E-01}, 
+ Energies: {Ekin:  9.99858471741, Epot: -1.26592462441E+01, Enl:  7.30275753589E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  2.52E-01, Omega: -1.694841980635313E+01, D: -1.18, D best: -1.18, 
+ iter:  1, fnrm:  2.49E-01, Omega: -1.695082857528406E+01, D: -1.18, D best: -1.18, 
  Optimization: {algorithm: SD, mean alpha:  1.0E-04, max alpha:  1.0E-04, 
     consecutive successes:  1}, 
- Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
- reconstruct kernel:  Yes}
+ Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.87442694685, Epot: -1.25779550069E+01, Enl:  7.3206861936E-01}, 
+ Energies: {Ekin:  9.99685934564, Epot: -1.26589877757E+01, Enl:  7.30124649997E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  2.51E-01, Omega: -1.694850498566343E+01, D: -8.52E-05, D best: -8.52E-05, 
+ iter:  2, fnrm:  2.49E-01, Omega: -1.695394421940499E+01, D: -3.12E-03, D best: -3.12E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
- Energies: {Ekin:  9.87442694685, Epot: -1.25779550069E+01, Enl:  7.3206861936E-01}, 
- iter:  2, fnrm:  2.51E-01, Omega: -1.694850498566343E+01, D: -8.52E-05, D best: -8.52E-05}
+ Energies: {Ekin:  9.99685934564, Epot: -1.26589877757E+01, Enl:  7.30124649997E-01}, 
+ iter:  2, fnrm:  2.49E-01, Omega: -1.695394421940499E+01, D: -3.12E-03, D best: -3.12E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #-------------------------------------------------------------------- kernel iter: 1
        Kernel update:
-         max dev from unity            :  1.61E-04
+         max dev from unity            :  1.82E-04
          Hamiltonian application required:  No
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe002-001-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.16, -0.09, -1.24,  1.04 ], pol deg:  137, eF: -1.617790209E-01, 
+       polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.16, -0.09, -1.24,  1.04 ], pol deg:  137, eF: -8.506976409E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.000457836, charge diff:  4.578356671E-04}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.16, -0.09, -1.24,  1.04 ], pol deg:  137, eF: -1.147056099E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -2.963585E-02, D Tr: -4.457788E-04, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000012057, charge diff:  1.205682569E-05}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.16, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.267040695E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.199846E-02, D Tr: -2.142943E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999990627, charge diff: -9.372604447E-06}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.210805674E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  5.623502E-03, D Tr:  1.384528E-05, interpol possible:  Yes}, 
+ Search new eF: {det: -1.911E-11, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000004473, charge diff:  4.47267826E-06}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ bisec/eval bounds:  [ -0.13, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.235637744E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -2.483207E-03, D Tr: -4.776276E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  2.971E-14, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  7.999999696, charge diff: -3.03597659E-07}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.9999996737132957, 
+ purification process: [
+ {iter:  1, diff from idempotency:  9.584E-06}, 
+ {iter:  2, diff from idempotency:  1.999E-10}, 
+ {iter:  3, diff from idempotency:  2.633E-16}], 
+ tr(KS) after purification:  8.0}
+         trace(KS)                     :  8.0000000000000018
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87638201928, Epot: -1.25782627618E+01, Enl:  7.3222188034E-01, 
-              EH:  2.07889300173E+01, EXC: -4.01291454557, EvXC: -5.25954252588}, 
-    Total charge:  7.999979975165, 
+ Energies: {Ekin:  9.99858471741, Epot: -1.26592462441E+01, Enl:  7.30275753589E-01, 
+              EH:  2.08554052232E+01, EXC: -4.02584496378, EvXC: -5.27663869565}, 
+    Total charge:  7.999979547546, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.716753311286E-01, f:  2.0},  # 00001
- {e: -5.174935419542E-01, f:  2.0},  # 00002
- {e: -3.711617593854E-01, f:  2.0},  # 00003
- {e: -2.850060195984E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  7.0E-07, energy: -1.69485053769758949E+01, D:  8.335E-04}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  1, delta:  6.37E-07, energy: -1.69509032990349056E+01, D:  7.359E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
-         max dev from unity            :  1.61E-04
+         max dev from unity            :  1.82E-04
          Hamiltonian application required:  Yes
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Kohn-Sham residue             :  2.087E-01
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe002-002-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.15, -0.09, -1.24,  1.04 ], pol deg:  137, eF: -1.544972529E-01, 
+       polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.15, -0.09, -1.24,  1.04 ], pol deg:  137, eF: -9.236275492E-02, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.000151958, charge diff:  1.519577854E-04}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.15, -0.09, -1.24,  1.04 ], pol deg:  137, eF: -1.138351635E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -2.147241E-02, D Tr: -1.430472E-04, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000008911, charge diff:  8.910603031E-06}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.15, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.242785919E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.044343E-02, D Tr: -1.421684E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999994694, charge diff: -5.306233991E-06}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.12, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.197188036E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  4.559788E-03, D Tr:  8.738808E-06, interpol possible:  Yes}, 
+ Search new eF: {det: -5.253E-12, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000003433, charge diff:  3.432574129E-06}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.219759518E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -2.257148E-03, D Tr: -3.525976E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  1.185E-14, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  7.999999907, charge diff: -9.340214646E-08}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.999999883911638, 
+ purification process: [
+ {iter:  1, diff from idempotency:  9.296E-06}, 
+ {iter:  2, diff from idempotency:  1.895E-10}, 
+ {iter:  3, diff from idempotency:  2.861E-16}], 
+ tr(KS) after purification:  7.9999999999999991}
+         trace(KS)                     :  7.9999999999999991
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Kohn-Sham residue             :  2.055E-01
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87442694685, Epot: -1.25672003803E+01, Enl:  7.3206861936E-01, 
-              EH:  2.08027923437E+01, EXC: -4.01416411065, EvXC: -5.26116123627}, 
-    Total charge:  7.999979973041, 
+ Energies: {Ekin:  9.99685934564, Epot: -1.26482220815E+01, Enl:  7.30124649997E-01, 
+              EH:  2.08694378012E+01, EXC: -4.0272125038, EvXC: -5.27841443279}, 
+    Total charge:  7.999979545657, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.686568929503E-01, f:  2.0},  # 00001
- {e: -5.147278585492E-01, f:  2.0},  # 00002
- {e: -3.708841121123E-01, f:  2.0},  # 00003
- {e: -2.842127007711E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  3.5E-07, energy: -1.69482883827030619E+01, D:  2.17E-04}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  2, delta:  3.19E-07, energy: -1.6950711865481999E+01, D:  1.914E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
-         max dev from unity            :  1.61E-04
+         max dev from unity            :  1.82E-04
          Hamiltonian application required:  Yes
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Kohn-Sham residue             :  2.085E-01
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe002-003-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.15, -0.1, -1.24,  1.04 ], pol deg:  137, eF: -1.470903099E-01, 
+       polynomials: recalculated,  eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.15, -0.1, -1.24,  1.04 ], pol deg:  137, eF: -9.67613665E-02, 
+       polynomials: from memory,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.000073765, charge diff:  7.376456059E-05}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.15, -0.1, -1.24,  1.04 ], pol deg:  137, eF: -1.141915426E-01, 
+       polynomials: from memory,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.743018E-02, D Tr: -6.698392E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000006781, charge diff:  6.780642648E-06}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.15, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.227693015E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -8.577759E-03, D Tr: -1.018908E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999996592, charge diff: -3.408439339E-06}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.12, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.19190151E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  3.579151E-03, D Tr:  5.876095E-06, interpol possible:  Yes}, 
+ Search new eF: {det: -1.56E-12, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000002468, charge diff:  2.467655262E-06}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.209843049E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.794154E-03, D Tr: -2.497422E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  3.338E-15, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  7.99999997, charge diff: -2.976659985E-08}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.9999999475487202, 
+ purification process: [
+ {iter:  1, diff from idempotency:  9.046E-06}, 
+ {iter:  2, diff from idempotency:  1.803E-10}, 
+ {iter:  3, diff from idempotency:  2.723E-16}], 
+ tr(KS) after purification:  7.9999999999999991}
+         trace(KS)                     :  7.9999999999999991
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Kohn-Sham residue             :  2.053E-01
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87442694685, Epot: -1.25618567659E+01, Enl:  7.3206861936E-01, 
-              EH:  2.08097477912E+01, EXC: -4.01482108075, EvXC: -5.26201289548}, 
-    Total charge:  7.999979972017, 
+ Energies: {Ekin:  9.99685934564, Epot: -1.26428970949E+01, Enl:  7.30124649997E-01, 
+              EH:  2.08764426146E+01, EXC: -4.02791495481, EvXC: -5.27932679929}, 
+    Total charge:  7.999979544733, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.671977238165E-01, f:  2.0},  # 00001
- {e: -5.133455025482E-01, f:  2.0},  # 00002
- {e: -3.707071795393E-01, f:  2.0},  # 00003
- {e: -2.838249713512E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.76E-07, energy: -1.69482367667640048E+01, D:  5.162E-05}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  3, delta:  1.6E-07, energy: -1.69506663588081423E+01, D:  4.551E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
-         max dev from unity            :  1.61E-04
+         max dev from unity            :  1.82E-04
          Hamiltonian application required:  Yes
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Kohn-Sham residue             :  2.085E-01
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe002-004-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.14, -0.1, -1.24,  1.04 ], pol deg:  137, eF: -1.413491219E-01, 
+       polynomials: recalculated,  eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.14, -0.1, -1.24,  1.04 ], pol deg:  137, eF: -1.005826777E-01, 
+       polynomials: from memory,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.000038989, charge diff:  3.898934793E-05}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.14, -0.1, -1.24,  1.04 ], pol deg:  137, eF: -1.146645618E-01, 
+       polynomials: from memory,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.408188E-02, D Tr: -3.340049E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000005589, charge diff:  5.588853728E-06}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.14, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.217720643E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -7.107503E-03, D Tr: -7.85199E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999997737, charge diff: -2.263136222E-06}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.12, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.189709104E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  2.801154E-03, D Tr:  4.170126E-06, interpol possible:  Yes}, 
+ Search new eF: {det: -4.704E-13, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000001907, charge diff:  1.906989285E-06}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.204305891E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.459679E-03, D Tr: -1.917393E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  9.68E-16, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  7.99999999, charge diff: -1.040415043E-08}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.9999999669117825, 
+ purification process: [
+ {iter:  1, diff from idempotency:  8.898E-06}, 
+ {iter:  2, diff from idempotency:  1.748E-10}, 
+ {iter:  3, diff from idempotency:  3.741E-16}], 
+ tr(KS) after purification:  8.0}
+         trace(KS)                     :  8.0
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Kohn-Sham residue             :  2.052E-01
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87442694685, Epot: -1.25592011582E+01, Enl:  7.3206861936E-01, 
-              EH:  2.08132288544E+01, EXC: -4.01515602444, EvXC: -5.26244718699}, 
-    Total charge:  7.999979971573, 
+ Energies: {Ekin:  9.99685934564, Epot: -1.2640259299E+01, Enl:  7.30124649997E-01, 
+              EH:  2.08799356645E+01, EXC: -4.02826839711, EvXC: -5.27978585017}, 
+    Total charge:  7.999979544329, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.664879918434E-01, f:  2.0},  # 00001
- {e: -5.126541883267E-01, f:  2.0},  # 00002
- {e: -3.70602229941E-01, f:  2.0},  # 00003
- {e: -2.836339116305E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  8.82E-08, energy: -1.69482243711015208E+01, D:  1.24E-05}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  4, delta:  8.02E-08, energy: -1.69506554389340387E+01, D:  1.092E-05}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 5
- summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  8.82E-08, energy: -1.69482243711015208E+01, D:  1.24E-05}]}
+ summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  5, delta:  8.02E-08, energy: -1.69506554389340387E+01, D:  1.092E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, target function: ENERGY,  #WARNING: support function optimization not converged
- kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  2, delta out:  3.282E-07, energy: -1.69482243711015208E+01, D:  1.114E-03}
+ kernel optimization: FOE,  #WARNING: density optimization not converged
+ iter high:  2, delta out:  2.988E-07, energy: -1.69506554389340387E+01, D:  9.838E-04}
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
+   -  {Initial kernel purification:  Yes, tr(KS) before purification:  8.0, 
+ purification process: [
+ {iter:  1, diff from idempotency:  3.567E-16}], 
+ tr(KS) after purification:  7.9999999999999991}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.87442694685, Epot: -1.25578862809E+01, Enl:  7.3206861936E-01}, 
+ Energies: {Ekin:  9.99685934564, Epot: -1.26389558626E+01, Enl:  7.30124649997E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  2.5E-01, Omega: -1.694822135743768E+01, D:  1.98E-04, D best:  1.98E-04, 
+ iter:  1, fnrm:  2.47E-01, Omega: -1.695065278562421E+01, D:  1.76E-04, D best:  1.76E-04, 
  Optimization: {algorithm: SD, mean alpha:  1.1E-04, max alpha:  1.1E-04, 
     consecutive successes:  1}, 
- Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
- reconstruct kernel:  Yes}
+ Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.87451157787, Epot: -1.25579946533E+01, Enl:  7.32075977182E-01}, 
+ Energies: {Ekin:  9.99692843193, Epot: -1.26390440424E+01, Enl:  7.30131479235E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  2.5E-01, Omega: -1.694823662546096E+01, D: -1.53E-05, D best: -1.53E-05, 
+ iter:  2, fnrm:  2.47E-01, Omega: -1.695070478432246E+01, D: -5.2E-05, D best: -5.2E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
- Energies: {Ekin:  9.87451157787, Epot: -1.25579946533E+01, Enl:  7.32075977182E-01}, 
- iter:  2, fnrm:  2.5E-01, Omega: -1.694823662546096E+01, D: -1.53E-05, D best: -1.53E-05}
+ Energies: {Ekin:  9.99692843193, Epot: -1.26390440424E+01, Enl:  7.30131479235E-01}, 
+ iter:  2, fnrm:  2.47E-01, Omega: -1.695070478432246E+01, D: -5.2E-05, D best: -5.2E-05}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #-------------------------------------------------------------------- kernel iter: 1
        Kernel update:
-         max dev from unity            :  1.52E-05
+         max dev from unity            :  1.71E-05
          Hamiltonian application required:  No
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe003-001-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.14, -0.1, -1.24,  1.04 ], pol deg:  137, eF: -1.369340125E-01, 
+       polynomials: recalculated,  eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.14, -0.1, -1.24,  1.04 ], pol deg:  137, eF: -1.039131927E-01, 
+       polynomials: from memory,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.00002221, charge diff:  2.221034762E-05}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.14, -0.1, -1.24,  1.04 ], pol deg:  137, eF: -1.152625202E-01, 
+       polynomials: from memory,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.134933E-02, D Tr: -1.744199E-05, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000004768, charge diff:  4.76836259E-06}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.14, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.211915924E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -5.929072E-03, D Tr: -6.416653E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999998352, charge diff: -1.648290302E-06}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.189478033E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  2.243789E-03, D Tr:  3.179328E-06, interpol possible:  Yes}, 
+ Search new eF: {det: -1.445E-13, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000001531, charge diff:  1.531038091E-06}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.201422912E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -1.194488E-03, D Tr: -1.535013E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  2.999E-16, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  7.999999996, charge diff: -3.975120677E-09}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.9999999958307786, 
+ purification process: [
+ {iter:  1, diff from idempotency:  8.821E-06}, 
+ {iter:  2, diff from idempotency:  1.719E-10}, 
+ {iter:  3, diff from idempotency:  3.603E-16}], 
+ tr(KS) after purification:  8.0}
+         trace(KS)                     :  7.9999999999999991
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87442694685, Epot: -1.25592011582E+01, Enl:  7.3206861936E-01, 
-              EH:  2.08149602782E+01, EXC: -4.01532294536, EvXC: -5.26266358138}, 
-    Total charge:  7.999979971623, 
+ Energies: {Ekin:  9.99685934564, Epot: -1.2640259299E+01, Enl:  7.30124649997E-01, 
+              EH:  2.08816692963E+01, EXC: -4.02844330978, EvXC: -5.28001296519}, 
+    Total charge:  7.999979544491, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.661446965169E-01, f:  2.0},  # 00001
- {e: -5.123128702088E-01, f:  2.0},  # 00002
- {e: -3.705446872074E-01, f:  2.0},  # 00003
- {e: -2.835412330329E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  4.43E-08, energy: -1.69482366518888199E+01, D: -1.228E-05}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  1, delta:  4.04E-08, energy: -1.69506653869060422E+01, D: -9.948E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
-         max dev from unity            :  1.52E-05
+         max dev from unity            :  1.71E-05
          Hamiltonian application required:  Yes
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Kohn-Sham residue             :  2.084E-01
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe003-002-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.335129354E-01, 
+       polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.067660714E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.000013907, charge diff:  1.390731115E-05}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.159727772E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -9.206706E-03, D Tr: -9.851372E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000004056, charge diff:  4.055938884E-06}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.13, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.209140129E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -4.941236E-03, D Tr: -5.458735E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999998597, charge diff: -1.40279624E-06}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.190437999E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  1.870213E-03, D Tr:  2.61456E-06, interpol possible:  Yes}, 
+ Search new eF: {det: -4.539E-14, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000001212, charge diff:  1.21176415E-06}
+         -  { #------------------------------------------------------------------ it FOE: 6
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.199893429E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -9.45543E-04, D Tr: -1.213409E-06, interpol possible:  Yes}, 
+ Search new eF: {det:  9.966E-17, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  6, Tr(K):  7.999999998, charge diff: -1.645232395E-09}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  7.999999998160666, 
+ purification process: [
+ {iter:  1, diff from idempotency:  8.781E-06}, 
+ {iter:  2, diff from idempotency:  1.705E-10}, 
+ {iter:  3, diff from idempotency:  5.077E-16}], 
+ tr(KS) after purification:  8.0}
+         trace(KS)                     :  7.9999999999999991
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Kohn-Sham residue             :  2.051E-01
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87451157787, Epot: -1.25573038105E+01, Enl:  7.32075977182E-01, 
-              EH:  2.08158831953E+01, EXC: -4.01541725155, EvXC: -5.26278607674}, 
-    Total charge:  7.9999799716, 
+ Energies: {Ekin:  9.99692843193, Epot: -1.26383703434E+01, Enl:  7.30131479235E-01, 
+              EH:  2.08825743004E+01, EXC: -4.02853798476, EvXC: -5.28013603139}, 
+    Total charge:  7.999979544451, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.659675146625E-01, f:  2.0},  # 00001
- {e: -5.121336940994E-01, f:  2.0},  # 00002
- {e: -3.705062198493E-01, f:  2.0},  # 00003
- {e: -2.83488326342E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.23E-08, energy: -1.69482359158069258E+01, D:  7.361E-07}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  2, delta:  2.03E-08, energy: -1.69506647370012651E+01, D:  6.499E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
-         max dev from unity            :  1.52E-05
+         max dev from unity            :  1.71E-05
          Hamiltonian application required:  Yes
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Kohn-Sham residue             :  2.084E-01
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe003-003-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.308206428E-01, 
+       polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.091556829E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.000009725, charge diff:  9.725079838E-06}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.167320603E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -7.576377E-03, D Tr: -6.352662E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000003372, charge diff:  3.372418121E-06}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.13, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.208142863E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -4.082226E-03, D Tr: -4.716718E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999998656, charge diff: -1.344300115E-06}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.192119972E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  1.602289E-03, D Tr:  2.255861E-06, interpol possible:  Yes}, 
+ Search new eF: {det: -1.441E-14, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000000912, charge diff:  9.115606687E-07}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  8.0000009113665644, 
+ purification process: [
+ {iter:  1, diff from idempotency:  8.566E-06}, 
+ {iter:  2, diff from idempotency:  1.588E-10}, 
+ {iter:  3, diff from idempotency:  2.721E-16}], 
+ tr(KS) after purification:  8.0}
+         trace(KS)                     :  7.9999999999999982
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Kohn-Sham residue             :  2.051E-01
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87451157787, Epot: -1.25569723668E+01, Enl:  7.32075977182E-01, 
-              EH:  2.08163234245E+01, EXC: -4.01546085694, EvXC: -5.26284263522}, 
-    Total charge:  7.999979971563, 
+ Energies: {Ekin:  9.99692843193, Epot: -1.26380440414E+01, Enl:  7.30131479235E-01, 
+              EH:  2.08830114967E+01, EXC: -4.0285826607, EvXC: -5.28019404572}, 
+    Total charge:  7.999979544415, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.658832167478E-01, f:  2.0},  # 00001
- {e: -5.120461285462E-01, f:  2.0},  # 00002
- {e: -3.704880051004E-01, f:  2.0},  # 00003
- {e: -2.83464676472E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.12E-08, energy: -1.69482357357614788E+01, D:  1.8E-07}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  3, delta:  1.02E-08, energy: -1.6950664578106899E+01, D:  1.589E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
-         max dev from unity            :  1.52E-05
+         max dev from unity            :  1.71E-05
          Hamiltonian application required:  Yes
-         method                        : diagonalization
-         mode                          : sequential
-         communication strategy kernel : ALLREDUCE
-         Kohn-Sham residue             :  2.084E-01
-         Coefficients available        :  Yes
+         method                        : FOE
+         decay length of error function:  5.00000000000000028E-002
+         FOE to determine density kernel: &it_foe003-004-01
+         -  { #------------------------------------------------------------------ it FOE: 1
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.286901042E-01, 
+       polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
+         -  { #------------------------------------------------------------------ it FOE: 2
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.111414867E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  2, Tr(K):  8.000007477, charge diff:  7.476860532E-06}
+         -  { #------------------------------------------------------------------ it FOE: 3
+ bisec/eval bounds:  [ -0.13, -0.11, -1.24,  1.04 ], pol deg:  137, eF: -1.174615653E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -6.320079E-03, D Tr: -4.775233E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  3, Tr(K):  8.000002702, charge diff:  2.701627906E-06}
+         -  { #------------------------------------------------------------------ it FOE: 4
+ bisec/eval bounds:  [ -0.13, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.207887605E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF: -3.327195E-03, D Tr: -4.055222E-06, interpol possible:  Yes}, 
+ Search new eF: {method: bisection / secant method}, 
+ iter:  4, Tr(K):  7.999998646, charge diff: -1.353594079E-06}
+         -  { #------------------------------------------------------------------ it FOE: 5
+ bisec/eval bounds:  [ -0.12, -0.12, -1.24,  1.04 ], pol deg:  137, eF: -1.194016689E-01, 
+       polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
+ interpol check: {D eF:  1.387092E-03, D Tr:  1.982165E-06, interpol possible:  Yes}, 
+ Search new eF: {det: -4.509E-15, limit:  1.0E-20, method: cubic interpolation}, 
+ iter:  5, Tr(K):  8.000000629, charge diff:  6.285710583E-07}
+         -  {Final kernel purification:  Yes, 
+ tr(KS) before purification:  8.0000006283769576, 
+ purification process: [
+ {iter:  1, diff from idempotency:  8.616E-06}, 
+ {iter:  2, diff from idempotency:  1.618E-10}, 
+ {iter:  3, diff from idempotency:  3.026E-16}], 
+ tr(KS) after purification:  8.0000000000000018}
+         trace(KS)                     :  8.0
+         need to repeat with sharper decay:  No
+          #---------------------------------------------- FOE calculation of kernel finished
+         Kohn-Sham residue             :  2.051E-01
+         Coefficients available        :  No
        Hamiltonian update: {
- Energies: {Ekin:  9.87451157787, Epot: -1.25568088454E+01, Enl:  7.32075977182E-01, 
-              EH:  2.08165409438E+01, EXC: -4.01548214629, EvXC: -5.26287023497}, 
-    Total charge:  7.999979971546, 
+ Energies: {Ekin:  9.99692843193, Epot: -1.26378829468E+01, Enl:  7.30131479235E-01, 
+              EH:  2.08832277506E+01, EXC: -4.02860450165, EvXC: -5.28022239494}, 
+    Total charge:  7.999979544399, 
  Poisson Solver: {BC: Free, Box:  [  85,  83,  83 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -9.658420901656E-01, f:  2.0},  # 00001
- {e: -5.120025708921E-01, f:  2.0},  # 00002
- {e: -3.704785182387E-01, f:  2.0},  # 00003
- {e: -2.834532209835E-01, f:  2.0}] # 00004
-       summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  5.62E-09, energy: -1.69482356915338173E+01, D:  4.423E-08}]
+       summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  4, delta:  5.12E-09, energy: -1.69506645390886916E+01, D:  3.902E-08}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 5
- summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  5.62E-09, energy: -1.69482356915338173E+01, D:  4.423E-08}]}
+ summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  0, 
+ iter:  5, delta:  5.12E-09, energy: -1.69506645390886916E+01, D:  3.902E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, target function: ENERGY,  #WARNING: support function optimization not converged
- kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  3, delta out:  2.083E-08, energy: -1.69482356915338173E+01, D: -1.132E-05}
+ kernel optimization: FOE,  #WARNING: density optimization not converged
+ iter high:  3, delta out:  1.898E-08, energy: -1.69506645390886916E+01, D: -9.1E-06}
+   Kernel update:
+     max dev from unity                :  1.71E-05
+     Hamiltonian application required  :  Yes
+     method                            : diagonalization
+     mode                              : sequential
+     communication strategy kernel     : ALLREDUCE
+     Kohn-Sham residue                 :  2.051E-01
+     Coefficients available            :  Yes
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -9.658420901656E-01, f:  1.0},  # 00001
- {e: -5.120025708921E-01, f:  1.0},  # 00002
- {e: -3.704785182387E-01, f:  1.0},  # 00003
- {e: -2.834532209835E-01, f:  1.0},  # 00004
- {e:  4.013022058842E-02, f:  1.0},  # 00005
- {e:  1.414255763046E-01, f:  1.0}] # 00006
+ {e: -9.589607707749E-01, f:  1.0},  # 00001
+ {e: -5.066293887732E-01, f:  1.0},  # 00002
+ {e: -3.616031104928E-01, f:  1.0},  # 00003
+ {e: -2.745170918181E-01, f:  1.0},  # 00004
+ {e:  4.319150792052E-02, f:  1.0},  # 00005
+ {e:  1.477762537077E-01, f:  1.0}] # 00006
     #========================================================================= final results
    self consistency summary:
    -  {iter:  3, 
- Energies: {Ekin:  9.87451157787, Epot: -1.25568088454E+01, Enl:  7.32075977182E-01, 
-              EH:  2.08166486691E+01, EXC: -4.01549257366, EvXC: -5.26288374719}, 
-       iter high:  3,        delta out:  2.083E-08,      energy: -1.69482356915338173E+01, 
+ Energies: {Ekin:  9.99692843193, Epot: -1.26378033089E+01, Enl:  7.30131479235E-01, 
+              EH:  2.08833348441E+01, EXC: -4.02861519584, EvXC: -5.28023627004}, 
+       iter high:  3,        delta out:  1.898E-08,      energy: -1.69506645390886916E+01, 
                D:  0.0,  #FINAL
  }
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
  Pulay Forces (Ha/Bohr):
- -  {O: [-1.574613433426E-01,  7.366116315561E-02,  8.119914171767E-02]} # 0001
- -  {H: [ 1.116513453551E-02,  2.862951629016E-03,  1.800985951885E-03]} # 0002
- -  {H: [ 3.994655946026E-03, -1.682926873167E-02, -1.92667718307E-02]} # 0003
- Total charge                          :  7.999979971546
+ -  {O: [-1.532374312109E-01,  1.007369106902E-01,  1.076523030691E-01]} # 0001
+ -  {H: [ 1.674624930441E-02,  2.451906793441E-03,  6.423144283928E-04]} # 0002
+ -  {H: [ 1.078829990432E-03, -1.848062082073E-02, -1.717601118487E-02]} # 0003
+ Total charge                          :  7.999979544392
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
    MPI tasks                           :  3
  Electric Dipole Moment (AU):
-   P vector                            :  [ -6.1697E-01,  3.4884E-01,  3.8168E-01 ]
-   norm(P)                             :  8.049974E-01
+   P vector                            :  [ -6.0513E-01,  3.6439E-01,  3.717E-01 ]
+   norm(P)                             :  7.981951E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.5682,  8.8668E-01,  9.7013E-01 ]
-   norm(P)                             :  2.046099
+   P vector                            :  [ -1.5381,  9.2618E-01,  9.4477E-01 ]
+   norm(P)                             :  2.028809
  Calculate local forces: {Leaked force:  0.0}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  1.81627853E-01, y:  2.49290265E-02, z:  1.3915712E-02, 
-                    total:  1.83858044E-01}
- Clean forces norm (Ha/Bohr): {maxval:  2.104908259108E-01, fnrm2:  7.423338709864E-02}
- Raw forces norm (Ha/Bohr): {maxval:  3.317449326452E-01, fnrm2:  1.132394119519E-01}
+ Average noise forces: {x:  1.75301653E-01, y:  7.72970483E-03, z: -5.52225746E-03, 
+                    total:  1.75558859E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  2.082352881377E-01, fnrm2:  7.13347791282E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  3.203456442077E-01, fnrm2:  1.059934036826E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.100634594113E-01, -4.045120879343E-03, -1.278154176172E-02]} # 0001
- -  {H: [-1.669767462736E-01,  5.602723947997E-03,  1.246531255257E-02]} # 0002
- -  {H: [-4.30867131377E-02, -1.557603068654E-03,  3.162292091543E-04]} # 0003
+ -  {O: [ 2.043666201597E-01, -2.407537437391E-02, -3.188410480201E-02]} # 0001
+ -  {H: [-1.582431663028E-01,  1.044226182902E-02,  1.676987059283E-02]} # 0002
+ -  {H: [-4.612345385686E-02,  1.363311254489E-02,  1.511423420917E-02]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.64
-   Elapsed time (s)                    :  3.35
+   CPU time (s)                        :  6.73
+   Elapsed time (s)                    :  3.44
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -876,24 +1387,24 @@
      Array Id                          : wfd%keyvloc
      Size (Bytes)                      : 2228
      Allocating Routine Id             : system_initialization
-     Address of first element          : 0x2cc8d00
-     Address of metadata               : 46912280
+     Address of first element          : 0x2c5e920
+     Address of metadata               : 46548496
    wfd%keygloc:
      Array Id                          : wfd%keygloc
      Size (Bytes)                      : 4456
      Allocating Routine Id             : system_initialization
-     Address of first element          : 0x2cffb60
-     Address of metadata               : 46912184
+     Address of first element          : 0x2c9aa90
+     Address of metadata               : 46548400
    Timestamp of Profile initialization:
-     2014-01-31 15:45:17.371
+     2014-02-10 10:12:30.442
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  4392
-   Tot. No. of Deallocations           :  4392
+   Tot. No. of Allocations             :  5209
+   Tot. No. of Deallocations           :  5209
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  86
      for the array                     : wz
      in the routine                    : gaussians_to_wavelets_orb
- Max No. of dictionaries used          :  1330 #(  138 still in use)
+ Max No. of dictionaries used          :  1386 #(  138 still in use)
