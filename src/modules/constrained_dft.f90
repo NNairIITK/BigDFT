@@ -122,6 +122,7 @@ contains
 
   subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
        calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
+    use module_interfaces
     use module_fragments
     implicit none
     type(sparseMatrix), intent(inout) :: weight_matrix
