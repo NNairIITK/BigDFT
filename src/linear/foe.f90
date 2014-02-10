@@ -40,7 +40,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol, ddot
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
-  real(kind=8) :: fscale
+  real(kind=8) :: fscale, error
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -92,12 +92,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
   ! initialization
   interpol_solution = 0.d0
-
-
-  !!hamtmp(1:orbs%norb**2)=ham%matrix_compr
-  !!ovrlptmp(1:orbs%norb**2)=ovrlp%matrix_compr
-  !!call dsygv(1, 'v', 'l', orbs%norb, hamtmp, orbs%norb, ovrlptmp, orbs%norb, eval, work, 1000, ii)
-  !!if (iproc==0) write(*,*) 'evals',eval(1), eval(orbs%norb)
 
 
   allocate(penalty_ev(orbs%norb,orbs%norbp,2), stat=istat)
@@ -720,6 +714,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               end if
     
               if (abs(charge_diff)<charge_tolerance) then
+                  if (iproc==0) call yaml_close_sequence()
                   exit
               end if
     
@@ -809,9 +804,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   
       ! Purify the kernel
       if (iproc==0) then
-          call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
-          call yaml_map('Final kernel purification',.true.)
+          !call yaml_sequence(advance='no')
+          !call yaml_open_map(flow=.true.)
+          call yaml_open_sequence('Final kernel purification')
           call yaml_newline()
       end if
       overlap_calculated=.false.
@@ -821,11 +816,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           call transform_sparse_matrix(fermi_input, denskern_large, 'large_to_small')
       end if
       call purify_kernel(iproc, nproc, tmb, overlap_calculated)
-      if (iproc==0) call yaml_close_map()
-    
       if (iproc==0) then
           call yaml_close_sequence()
       end if
+    
+      !!if (iproc==0) then
+      !!    call yaml_close_sequence()
+      !!end if
 
     
       ! Calculate trace(KS)
@@ -948,7 +945,11 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           call memocc(istat, ovrlpinv2,'ovrlpinv2',subname)
 
           ovrlpinv1(:,:)=ovrlp%matrix(:,:)
-          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, orbs%norb, ovrlpinv1, ovrlpinv2, tt, orbs)
+          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, orbs%norb, ovrlpinv1, ovrlpinv2, error, orbs, &
+               check_accur=.true.)
+          if (iproc==0) then
+              call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
+          end if
           !call overlapPowerGeneral(iproc, nproc, order_taylor, 1, -1, orbs%norb, ovrlpinv1, ovrlpinv2, tt, orbs)
 
           ovrlpinv1(:,:)=ovrlp%matrix(:,:)
