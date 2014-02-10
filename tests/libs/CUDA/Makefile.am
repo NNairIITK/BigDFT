@@ -1,4 +1,3 @@
-AUTOMAKE_OPTIONS = subdir-objects
 
 if USE_CUDA_GPU
 check_PROGRAMS = conv_check

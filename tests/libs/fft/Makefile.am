@@ -1,5 +1,4 @@
 ## Process this file with automake to produce Makefile.in
-AUTOMAKE_OPTIONS = subdir-objects
 
 OTHERS = fft_check.f90 fft_cache.f90
 

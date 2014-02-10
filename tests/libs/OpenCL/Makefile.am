@@ -1,5 +1,3 @@
-AUTOMAKE_OPTIONS = subdir-objects
-
 if USE_OCL
 check_PROGRAMS = conv_check
 my_tests = OpenCL.report.yaml
