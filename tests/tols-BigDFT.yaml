@@ -498,14 +498,17 @@ fructose:
  EXC: 1.1e-10
  Epsilon: 1.1e-11
  D: 1.1e-10
- D eF: 1.1e-9
- eF: 2.3e-10
+ D eF: 1.9e-7
+ D Tr: 2.1e-07
+ eF: 2.1e-7
  EH: 1.0e-9
  EvXC: 1.1e-10
  energy: 1.1e-10
  Omega: 1.3e-10
+ Tr(K): 1.9e-07
+ tr(KS) before purification: 6.3e-11
  Total charge: 2.1e-10
- charge diff: 1.1e-10
+ charge diff: 1.8e-7
  multiplicator for the confinement: 1.4e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -513,9 +516,8 @@ fructose:
 
 geopt_foe:
  D eF: 1.1e-10
- eF: 6.0e-11
+ eF: 2.4e-10
  Epot: 1.1e-10
- eF: 1.1e-10
  EH: 1.1e-10
 
 geopt_diag:
@@ -614,11 +616,12 @@ foe:
  EXC: 1.0e-10
  Total charge: 2.1e-11
  EvXC: 1.1e-10
- eF: 1.01e-10
+ eF: 4.4e-10
  Pulay Forces (Ha/Bohr): 1.2e-11
  Atomic Forces (Ha/Bohr): 4.0e-11
  mean alpha: 1.1e-4
  max alpha: 1.1e-4
+ D eF: 1.1e-8
 
 onlyhigh:
  EH: 1.1e-10

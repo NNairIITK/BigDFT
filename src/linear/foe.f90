@@ -698,7 +698,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                   foe_obj%ef = foe_obj%ef + .5d0*(efarr(1)+efarr(2))
                   ! Take the mean value
                   foe_obj%ef=.5d0*foe_obj%ef
-                  !!if (iproc==0) write(*,'(1x,a)') 'new fermi energy from bisection / secant method'
                   if (iproc==0) call yaml_map('method','bisection / secant method')
               end if
               if (iproc==0) then
@@ -797,18 +796,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
     
     
     
-      !!if (iproc==0) then
-      !!    tt=ddot(fermi%nvctr, fermi%matrix_compr, 1, ovrlp%matrix_compr, 1)
-      !!    write(*,*) 'before transformation: tr(KS)', tt
-      !!end if
       call compress_matrix_for_allreduce(iproc,fermi)
       ovrlp%matrix(:,:)=workmat(:,:,1) ! get back the original
       call compress_matrix_for_allreduce(iproc,ovrlp)
-      !!if (iproc==0) then
-      !!    tt=ddot(fermi%nvctr, fermi%matrix_compr, 1, ovrlp%matrix_compr, 1)
-      !!    write(*,*) 'after transformation: tr(KS)', tt
-      !!end if
-      !!write(*,*) 'associated(ovrlp%matrix_compr)',associated(ovrlp%matrix_compr)
 
       deallocate(fermi%matrix)
 
@@ -816,66 +806,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
      deallocate(workmat,stat=istat)
      call memocc(istat,iall,'workmat',subname)
     
-      !!tt=0.d0
-      !!do iorb=1,orbs%norb
-      !!    do jorb=1,orbs%norb
-      !!        if (iorb==jorb) then
-      !!            tt=tt+(1.d0-workmat(jorb,iorb,4))**2
-      !!        else
-      !!            tt=tt+(workmat(jorb,iorb,4))**2
-      !!        end if
-      !!    end do
-      !!end do
-      !!tt=sqrt(tt)
-      !!if (iproc==0) write(*,'(a,es11.3)') 'FOE dev from unity:',tt
-    
- !!!     allocate(ks(tmb%orbs%norb,tmb%orbs%norb))
- !!!     allocate(ksk(tmb%orbs%norb,tmb%orbs%norb))
- !!!     allocate(ksksk(tmb%orbs%norb,tmb%orbs%norb))
- !!!   
- !!!     call uncompressMatrix(iproc,ovrlp)
- !!!     call uncompressMatrix(iproc,fermi)
- !!!     if (iproc==0) then
- !!!         tt=0.d0
- !!!         do iorb=1,tmb%orbs%norb
- !!!              do jorb=1,tmb%orbs%norb
- !!!                  tt=tt+fermi%matrix(iorb,jorb)*ovrlp%matrix(jorb,iorb)
- !!!              end do
- !!!         end do
- !!!         write(*,*) 'tr(KS) uncompressed', tt
- !!!     end if
- !!!   
- !!!         ks=0.5d0*fermi%matrix
- !!!         ksk=ovrlp%matrix
- !!!         call dsygv(1, 'n', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksk, tmb%orbs%norb, &
- !!!             ksksk(1,1), ksksk(1,2), (tmb%orbs%norb-1)*tmb%orbs%norb, istat)
- !!!         if (istat==0) then
- !!!             if (iproc==0) write(*,*) 'eval min, max',ksksk(1,1), ksksk(tmb%orbs%norb,1)
- !!!             if (iproc==0) then
- !!!                 do iorb=1,tmb%orbs%norb
- !!!                     write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
- !!!                 end do
- !!!                 write(*,*) 'sum eval', sum(ksksk(:,1))
- !!!             end if
- !!!         else
- !!!             write(*,*) 'ERROR in dsygv'
- !!!         end if
- !!!         deallocate(ks)
- !!!         deallocate(ksk)
- !!!         deallocate(ksksk)
- !!!   
- !!!   
- !!!   
- !!!   
- !!!   
- !!!   
- !!!   
- !!!   
- !!!   
- !!!     !! END TEST: #######################################################################
-      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    
-      ! #######################################
+  
+      ! Purify the kernel
       if (iproc==0) then
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
@@ -895,33 +827,30 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           call yaml_close_sequence()
       end if
 
-      !write(*,*) 'associated(fermi%matrix_compr)',associated(fermi%matrix_compr)
-      !write(*,*) 'associated(ovrlp%matrix_compr)',associated(ovrlp%matrix_compr)
     
-        sumn=0.d0
-         do ii=1,fermi%nvctr
-            irow = fermi%orb_from_index(1,ii)
-            icol = fermi%orb_from_index(2,ii)
-            !if (irow==icol) then
-                sumn=sumn+fermi%matrix_compr(ii)*ovrlp%matrix_compr(ii)
-            !end if
-         end do
+      ! Calculate trace(KS)
+      sumn=0.d0
+      do ii=1,fermi%nvctr
+         irow = fermi%orb_from_index(1,ii)
+         icol = fermi%orb_from_index(2,ii)
+          sumn=sumn+fermi%matrix_compr(ii)*ovrlp%matrix_compr(ii)
+      end do
 
-
-
-         if (abs(sumn-foe_obj%charge)>1.d-6) then
-             cycle_FOE=.true.
-         else
-             cycle_FOE=.false.
-         end if
-         if (iproc==0) then
-             call yaml_map('trace(KS)',sumn)
-             call yaml_map('need to repeat with sharper decay',cycle_FOE)
-         end if
-         if (.not.cycle_FOE) exit temp_loop
+      ! Check whether this agrees with the number of electrons. If not,
+      ! calculate a new kernel with a sharper decay of the error function
+      ! (correponds to a lower temperature)
+      if (abs(sumn-foe_obj%charge)>1.d-6) then
+          cycle_FOE=.true.
+      else
+          cycle_FOE=.false.
+      end if
+      if (iproc==0) then
+          call yaml_map('trace(KS)',sumn)
+          call yaml_map('need to repeat with sharper decay',cycle_FOE)
+      end if
+      if (.not.cycle_FOE) exit temp_loop
 
     
-      ! #######################################
 
   end do temp_loop
 
