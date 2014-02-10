@@ -102,7 +102,7 @@
    norbv                               : 0 #      Davidson subspace dim.
    nvirt                               : 0 #      # of opt. orbs
    nplot                               : 0 #      # of plottec orbs
-   disablesym                          : No #     disable the symmetry detection
+   disablesym                          : Yes #     disable the symmetry detection
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -2065,7 +2065,7 @@
    norbv                               : 0 #      Davidson subspace dim.
    nvirt                               : 0 #      # of opt. orbs
    nplot                               : 0 #      # of plottec orbs
-   disablesym                          : No #     disable the symmetry detection
+   disablesym                          : Yes #     disable the symmetry detection
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
