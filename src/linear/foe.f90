@@ -759,7 +759,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       !! TEST: calculate S*S^-1 ##########################################################
     
-            call overlap_minus_onehalf()
+      call overlap_minus_onehalf()
     
     
     
