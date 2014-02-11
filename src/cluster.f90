@@ -513,8 +513,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call nullify_sparsematrix(tmb%linmat%ovrlp_large)
      call nullify_sparsematrix(tmb%linmat%ham_large)
+     call nullify_sparsematrix(tmb%linmat%inv_ovrlp_large)
      call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ovrlp_large, iproc, subname)
      call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ham_large, iproc, subname)
+     call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
      !!call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ovrlp_large)
      !!allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr), stat=i_stat)

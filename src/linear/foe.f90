@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
-           ham_input, ovrlp_input, fermi_input, ovrlp_large, ham_large, denskern_large, &
+           ham_input, ovrlp_input, fermi_input, ovrlp_large, ham_large, denskern_large, inv_ovrlp_large, &
            ebs, itout, it_scc, order_taylor, &
            tmb)
   use module_base
@@ -27,7 +27,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   integer,intent(in) :: mode
   type(sparseMatrix),intent(inout),target :: ovrlp_input, ham_input !to be able to deallocate
   type(sparseMatrix),intent(inout),target :: fermi_input
-  type(sparseMatrix),intent(inout),target :: ovrlp_large, ham_large !to be able to deallocate
+  type(sparseMatrix),intent(inout),target :: ovrlp_large, ham_large, inv_ovrlp_large
   type(sparseMatrix),intent(inout),target :: denskern_large
   real(kind=8),intent(out) :: ebs
   type(DFT_wavefunction),intent(inout) :: tmb
@@ -44,7 +44,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
-  real(kind=8),dimension(:),allocatable :: hamscal_compr, ovrlpeff_compr, SHS
+  real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS
   real(kind=8),dimension(4,4) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
@@ -52,30 +52,39 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   integer :: jproc, iorder
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: SminusI
-  real(kind=8),dimension(:,:,:),allocatable :: workmat
+  real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8),dimension(:,:),pointer :: ovrlpinv1
   real(kind=8),dimension(:,:),pointer :: ovrlpinv2
   type(sparseMatrix) :: invovrlp
 
   type(sparseMatrix),pointer :: ovrlp, ham !to be able to deallocate
-  type(sparseMatrix),pointer :: fermi
+  type(sparseMatrix),pointer :: fermi, inv_ovrlp
   integer,parameter :: SMALL=1
   integer,parameter :: LARGE=2
   integer :: imode, irow, icol, itemp
   logical :: overlap_calculated, cycle_FOE
   real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
 
+
+  if (mode==1) then
+      stop 'not guaranteed to work anymore'
+  end if
+   
   imode=LARGE
 
   if (imode==SMALL) then
-      ovrlp => ovrlp_input
-      ham => ham_input
-      fermi => fermi_input
+      stop 'imode small is deprecated'
+     !!ovrlp => ovrlp_input
+     !!ham => ham_input
+     !!fermi => fermi_input
+     !!inv_ovrlp => tmb%linmat%inv_ovrlp
   else if (imode==LARGE) then
       allocate(ovrlp_large%matrix_compr(ovrlp_large%nvctr), stat=istat)
-      call memocc(istat, ovrlp_large%matrix_compr, 'penalty_ev', subname)
+      call memocc(istat, ovrlp_large%matrix_compr, 'ovrlp_large%matrix_compr', subname)
       allocate(ham_large%matrix_compr(ham_large%nvctr), stat=istat)
-      call memocc(istat, ham_large%matrix_compr, 'penalty_ev', subname)
+      call memocc(istat, ham_large%matrix_compr, 'ham_large%matrix_compr', subname)
+      allocate(inv_ovrlp_large%matrix_compr(inv_ovrlp_large%nvctr), stat=istat)
+      call memocc(istat, inv_ovrlp_large%matrix_compr, 'inv_ovrlp_large%matrix_compr', subname)
 
       call transform_sparse_matrix(ovrlp_input, ovrlp_large, 'small_to_large')
       call transform_sparse_matrix(ham_input, ham_large, 'small_to_large')
@@ -84,6 +93,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       ovrlp => ovrlp_large
       ham => ham_large
       fermi => denskern_large
+      inv_ovrlp => inv_ovrlp_large
   end if
 
 
@@ -96,9 +106,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
   allocate(penalty_ev(orbs%norb,orbs%norbp,2), stat=istat)
   call memocc(istat, penalty_ev, 'penalty_ev', subname)
-
-  allocate(ovrlpeff_compr(ovrlp%nvctr), stat=istat)
-  call memocc(istat, ovrlpeff_compr, 'ovrlpeff_compr', subname)
 
   allocate(fermip(orbs%norb,orbs%norbp), stat=istat)
   call memocc(istat, fermip, 'fermip', subname)
@@ -114,78 +121,24 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               jjorb = jorb - (iiorb-1)*orbs%norb
               ii=ii+1
               if (iiorb==jjorb) then
-                  ovrlpeff_compr(ii)=1.5d0-.5d0*ovrlp%matrix_compr(ii)
+                  inv_ovrlp%matrix_compr(ii)=1.5d0-.5d0*ovrlp%matrix_compr(ii)
               else
-                  ovrlpeff_compr(ii)=-.5d0*ovrlp%matrix_compr(ii)
+                  inv_ovrlp%matrix_compr(ii)=-.5d0*ovrlp%matrix_compr(ii)
               end if
           end do  
       end do
   else
 
-        call overlap_minus_onehalf()
+        call timing(iproc, 'FOE_auxiliary ', 'OF')
+        call overlap_minus_onehalf() ! has internal timer
+        call timing(iproc, 'FOE_auxiliary ', 'ON')
 
   end if
-
-
-  !!!! TEST: calculate S*S^-1 ##########################################################
-  !!allocate(ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
-  !!call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
-  !!call uncompressMatrix(iproc,ovrlp)
-
-  !!allocate(workmat(orbs%norb,orbs%norb,4), stat=istat)
-  !!call memocc(istat, workmat, 'workmat', subname)
-  !!workmat(:,:,1)=ovrlp%matrix(:,:)
-
-  !!ovrlp%matrix_compr=ovrlpeff_compr
-  !!call uncompressMatrix(iproc,ovrlp)
-  !!workmat(:,:,2)=ovrlp%matrix(:,:)
-
-  !!!! workmat(:,:,2) contains S^-1/2, so square to get S^-1
-  !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1,2), orbs%norb, &
-  !!           workmat(1,1,2), orbs%norb, 0.d0, workmat(1,1,3), orbs%norb)
-  !!!call dcopy(orbs%norb**2, workmat(1,1,2), 1,  workmat(1,1,3), 1)
-
-  !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1,1), orbs%norb, &
-  !!           workmat(1,1,3), orbs%norb, 0.d0, workmat(1,1,4), orbs%norb)
-
-  !!tt=0.d0
-  !!do iorb=1,orbs%norb
-  !!    do jorb=1,orbs%norb
-  !!        if (iorb==jorb) then
-  !!            tt=tt+(1.d0-workmat(jorb,iorb,4))**2
-  !!        else
-  !!            tt=tt+(workmat(jorb,iorb,4))**2
-  !!        end if
-  !!    end do
-  !!end do
-  !!tt=sqrt(tt)
-  !!if (iproc==0) write(*,'(a,es11.3)') 'FOE dev from unity:',tt
-
-  !!ovrlp%matrix(:,:)=workmat(:,:,1) ! get back the original
-  !!call compress_matrix_for_allreduce(iproc,ovrlp)
-  !!iall=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
-  !!deallocate(ovrlp%matrix,stat=istat)
-  !!call memocc(istat,iall,'ovrlp%matrix',subname)
-  !!iall=-product(shape(workmat))*kind(workmat)
-  !!deallocate(workmat,stat=istat)
-  !!call memocc(istat,iall,'workmat',subname)
-
-  !!!! END TEST: #######################################################################
-
-  
 
 
   allocate(hamscal_compr(ham%nvctr), stat=istat)
   call memocc(istat, hamscal_compr, 'hamscal_compr', subname)
 
-
-
-    
-   !!   if (mode==1) then
-   !!       
-   !!       stop 'not guaranteed to work anymore'
-   !! 
-   !!   else if (mode==2) then
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
   nsize_polynomial=0
@@ -223,7 +176,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       evlow_old=1.d100
       evhigh_old=-1.d100
       
-      if (iproc==0) call yaml_map('decay length of error function',fscale)
+      if (iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
     
           ! Don't let this value become too small.
           foe_obj%bisection_shift = max(foe_obj%bisection_shift,1.d-4)
@@ -278,13 +231,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               if (foe_obj%evlow/=evlow_old .or. foe_obj%evhigh/=evhigh_old) then
                   scale_factor=2.d0/(foe_obj%evhigh-foe_obj%evlow)
                   shift_value=.5d0*(foe_obj%evhigh+foe_obj%evlow)
-                  ii=0
-                  do iseg=1,ovrlp%nseg
-                      do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
-                          ii=ii+1
-                          hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*ovrlp%matrix_compr(ii))
-                      end do  
+                  !$omp parallel default(none) private(ii) shared(ovrlp,hamscal_compr,scale_factor,ham,shift_value)
+                  !$omp do
+                  do ii=1,ovrlp%nvctr
+                      hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*ovrlp%matrix_compr(ii))
                   end do
+                  !$omp end do
+                  !$omp end parallel
                   calculate_SHS=.true.
               else
                   calculate_SHS=.false.
@@ -310,10 +263,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               end if
     
               if (iproc==0) then
-                  !!write( *,'(1x,a,i0)') repeat('-',75 - int(log(real(it))/log(10.))) // ' FOE it=', it
-                  !!write(*,'(1x,a,2x,i0,2es12.3,es18.9,3x,i0)') 'FOE: it, evlow, evhigh, efermi, npl', &
-                  !!                                              it, foe_obj%evlow, foe_obj%evhigh, foe_obj%ef, npl
-                  !!write(*,'(1x,a,2x,2es13.5)') 'Bisection bounds: ', efarr(1), efarr(2)
                   call yaml_map('bisec/eval bounds',&
                        (/efarr(1),efarr(2),foe_obj%evlow,foe_obj%evhigh/),fmt='(f5.2)')
                   !call yaml_map('lower bisection bound',efarr(1),fmt='(es10.3)')
@@ -367,23 +316,14 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
     
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
-                  !!if (iproc==0) write(*,*) 'Need to recalculate the Chebyshev polynomials.'
                   if (iproc==0) call yaml_map('polynomials','recalculated')
-                  !!do jproc=0,nproc-1
-                  !!    if (iproc==jproc) then
-                  !!        write(*,'(a,i5,2es17.8)') 'iproc, sums',iproc, sum(hamscal_compr), sum(ovrlpeff_compr)
-                  !!    end if
-                  !!    call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-                  !!end do
                   call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, fermi, hamscal_compr, &
-                       ovrlpeff_compr, calculate_SHS, nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
+                       inv_ovrlp%matrix_compr, calculate_SHS, nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
               else
                   ! The Chebyshev polynomials are already available
-                  !!if (iproc==0) write(*,*) 'Can use the Chebyshev polynomials from memory.'
                   if (iproc==0) call yaml_map('polynomials','from memory')
                   call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, fermip)
               end if 
-              !write(*,*) 'iproc, sum(fermip)', iproc, sum(fermip)
     
     
               call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -503,37 +443,15 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                       adjust_lower_bound=.false.
                       foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
                       sumnarr(1)=sumn
-                      !!it_solver=it_solver+1
-                      !!ii=min(it_solver,4)
-                      !!do i=1,4
-                      !!    interpol_matrix(ii,1)=foe_obj%ef**3
-                      !!    interpol_matrix(ii,2)=foe_obj%ef**2
-                      !!    interpol_matrix(ii,3)=foe_obj%ef
-                      !!    interpol_matrix(ii,4)=1
-                      !!end do
-                      !!interpol_vector(ii)=(sumn-foe_obj%charge)
-                      !!if (iproc==0) write(*,'(1x,a)') 'lower bisection bound is okay.'
                       if (iproc==0) then
-                          !call yaml_map('lower bound okay',.true.)
-                          !call yaml_close_map()
-                          !call bigdft_utils_flush(unit=6)
                       end if
                       restart=.true.
                       bisection_bounds_ok(1)=.true.
-                      !cycle !now check the upper bound
                   else
                       efarr(1)=efarr(1)-foe_obj%bisection_shift
                       foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
-                      !!if (iproc==0) write(*,'(1x,a,es12.5)') &
-                      !!    'lower bisection bound does not give negative charge difference: diff=',charge_diff
-                      if (iproc==0) then
-                          !call yaml_map('lower bound okay',.false.)
-                          !call yaml_close_map()
-                          !call bigdft_utils_flush(unit=6)
-                      end if
                       restart=.true.
                       bisection_bounds_ok(1)=.false.
-                      !cycle !move the bisection bound
                   end if
               end if
               if (restart) then
@@ -541,41 +459,28 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                       call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                       call yaml_close_map()
-                      !call bigdft_utils_flush(unit=6)
                   end if
                   cycle
               end if
               if (adjust_upper_bound) then
-                  !if (iproc==0) call yaml_map('checking upper bisection bound, charge diff',charge_diff,fmt='(es9.2)')
                   if (charge_diff>=0.d0) then
                       ! Upper bound okay
                       adjust_upper_bound=.false.
                       foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
                       sumnarr(2)=sumn
-                      !!if (iproc==0) write(*,'(1x,a)') 'upper bisection bound is okay.'
-                      !if (iproc==0) call yaml_map('upper bound okay',.true.)
                       restart=.false.
                       bisection_bounds_ok(2)=.true.
                   else
                       efarr(2)=efarr(2)+foe_obj%bisection_shift
                       foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
-                      !!if (iproc==0) write(*,'(1x,a,es12.5)') &
-                      !!    'upper bisection bound does not give positive charge difference: diff=',charge_diff
-                      if (iproc==0) then
-                          !call yaml_map('upper bound okay',.false.)
-                          !call yaml_close_map()
-                          !!call bigdft_utils_flush(unit=6)
-                      end if
                       restart=.true.
                       bisection_bounds_ok(2)=.false.
-                      !cycle !move the bisection bound
                   end if
               end if
     
               if (iproc==0) then
                   call yaml_map('eval/bisection bounds ok',&
                        (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                  !call bigdft_utils_flush(unit=6)
               end if
               if (restart) then
                   if (iproc==0) then
@@ -759,53 +664,48 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       !! TEST: calculate S*S^-1 ##########################################################
     
-      call overlap_minus_onehalf()
+      call timing(iproc, 'FOE_auxiliary ', 'OF')
+      call overlap_minus_onehalf() !has internal timer
+      call timing(iproc, 'FOE_auxiliary ', 'ON')
     
     
     
-      allocate(ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
-      call uncompressMatrix(iproc,ovrlp)
+      allocate(inv_ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, inv_ovrlp%matrix, 'inv_ovrlp%matrix', subname)
     
-      allocate(workmat(orbs%norb,orbs%norb,4), stat=istat)
+      allocate(workmat(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, workmat, 'workmat', subname)
-      workmat(:,:,1)=ovrlp%matrix(:,:)
     
-      ovrlp%matrix_compr=ovrlpeff_compr
-      call uncompressMatrix(iproc,ovrlp)
-      workmat(:,:,2)=ovrlp%matrix(:,:)
-      !call uncompressMatrix(iproc,ovrlp)
+      call uncompressMatrix(iproc,inv_ovrlp)
     
       allocate(fermi%matrix(orbs%norb,orbs%norb))
+      call memocc(istat, fermi%matrix, 'fermi%matrix', subname)
       call uncompressMatrix(iproc,fermi)
     
-      call dcopy(orbs%norb**2, fermi%matrix(1,1), 1,  workmat(1,1,3), 1)
-    
-      ! workmat(:,:,2) contains S^-1/2
-      !call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp%matrix(1,1), orbs%norb, &
-      !           workmat(1,1,3), orbs%norb, 0.d0, fermi%matrix(1,1), orbs%norb)
-      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1,2), orbs%norb, &
-                 workmat(1,1,3), orbs%norb, 0.d0, workmat(1,1,4), orbs%norb)
-      call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1,4), orbs%norb, &
-                 workmat(1,1,2), orbs%norb, 0.d0, fermi%matrix(1,1), orbs%norb)
+      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, inv_ovrlp%matrix, orbs%norb, &
+                 fermi%matrix, orbs%norb, 0.d0, workmat(1,1), orbs%norb)
+      call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1), orbs%norb, &
+                 inv_ovrlp%matrix, orbs%norb, 0.d0, fermi%matrix(1,1), orbs%norb)
     
     
     
       call compress_matrix_for_allreduce(iproc,fermi)
-      ovrlp%matrix(:,:)=workmat(:,:,1) ! get back the original
-      call compress_matrix_for_allreduce(iproc,ovrlp)
 
-      deallocate(fermi%matrix)
+     iall=-product(shape(fermi%matrix))*kind(fermi%matrix)
+     deallocate(fermi%matrix,stat=istat)
+     call memocc(istat,iall,'fermi%matrix',subname)
 
      iall=-product(shape(workmat))*kind(workmat)
      deallocate(workmat,stat=istat)
      call memocc(istat,iall,'workmat',subname)
+
+     iall=-product(shape(inv_ovrlp%matrix))*kind(inv_ovrlp%matrix)
+     deallocate(inv_ovrlp%matrix,stat=istat)
+     call memocc(istat,iall,'inv_ovrlp%matrix',subname)
     
   
       ! Purify the kernel
       if (iproc==0) then
-          !call yaml_sequence(advance='no')
-          !call yaml_open_map(flow=.true.)
           call yaml_open_sequence('Final kernel purification')
           call yaml_newline()
       end if
@@ -820,18 +720,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           call yaml_close_sequence()
       end if
     
-      !!if (iproc==0) then
-      !!    call yaml_close_sequence()
-      !!end if
-
     
-      ! Calculate trace(KS)
-      sumn=0.d0
-      do ii=1,fermi%nvctr
-         irow = fermi%orb_from_index(1,ii)
-         icol = fermi%orb_from_index(2,ii)
-          sumn=sumn+fermi%matrix_compr(ii)*ovrlp%matrix_compr(ii)
-      end do
+      ! Calculate trace(KS). Since they have the same sparsity pattern and S is
+      ! symmetric, this is a simple ddot.
+      sumn=ddot(fermi%nvctr, fermi%matrix_compr, 1, ovrlp%matrix_compr, 1)
 
       ! Check whether this agrees with the number of electrons. If not,
       ! calculate a new kernel with a sharper decay of the error function
@@ -862,6 +754,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       iall=-product(shape(ham_large%matrix_compr))*kind(ham_large%matrix_compr)
       deallocate(ham_large%matrix_compr,stat=istat)
       call memocc(istat,iall,'ham_large%matrix_compr',subname)
+
+      iall=-product(shape(inv_ovrlp%matrix_compr))*kind(inv_ovrlp%matrix_compr)
+      deallocate(inv_ovrlp%matrix_compr,stat=istat)
+      call memocc(istat,iall,'inv_ovrlp%matrix_compr',subname)
   
   end if
 
@@ -869,22 +765,26 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   scale_factor=1.d0/scale_factor
   shift_value=-shift_value
 
-  ebs=0.d0
-  iismall=0
-  iseglarge=1
-  do isegsmall=1,ham%nseg
-      do
-          is=max(ham%keyg(1,isegsmall),fermi%keyg(1,iseglarge))
-          ie=min(ham%keyg(2,isegsmall),fermi%keyg(2,iseglarge))
-          iilarge=fermi%keyv(iseglarge)-fermi%keyg(1,iseglarge)
-          do i=is,ie
-              iismall=iismall+1
-              ebs = ebs + fermi%matrix_compr(iilarge+i)*hamscal_compr(iismall)
-          end do
-          if (ie>=is) exit
-          iseglarge=iseglarge+1
-      end do
-  end do
+  !!ebs=0.d0
+  !!iismall=0
+  !!iseglarge=1
+  !!do isegsmall=1,ham%nseg
+  !!    do
+  !!        is=max(ham%keyg(1,isegsmall),fermi%keyg(1,iseglarge))
+  !!        ie=min(ham%keyg(2,isegsmall),fermi%keyg(2,iseglarge))
+  !!        iilarge=fermi%keyv(iseglarge)-fermi%keyg(1,iseglarge)
+  !!        do i=is,ie
+  !!            iismall=iismall+1
+  !!            ebs = ebs + fermi%matrix_compr(iilarge+i)*hamscal_compr(iismall)
+  !!        end do
+  !!        if (ie>=is) exit
+  !!        iseglarge=iseglarge+1
+  !!    end do
+  !!end do
+
+  ! Calculate trace(KH). Since they have the same sparsity pattern and K is
+  ! symmetric, this is a simple ddot.
+  ebs=ddot(fermi%nvctr, fermi%matrix_compr,1 , hamscal_compr, 1)
   ebs=ebs*scale_factor-shift_value*sumn
 
 
@@ -894,12 +794,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='-')
 
 
-
-  iall=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
-  deallocate(ovrlp%matrix,stat=istat)
-  call memocc(istat,iall,'ovrlp%matrix',subname)
-
-
   iall=-product(shape(chebyshev_polynomials))*kind(chebyshev_polynomials)
   deallocate(chebyshev_polynomials,stat=istat)
   call memocc(istat,iall,'chebyshev_polynomials',subname)
@@ -907,10 +801,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   iall=-product(shape(penalty_ev))*kind(penalty_ev)
   deallocate(penalty_ev, stat=istat)
   call memocc(istat, iall, 'penalty_ev', subname)
-
-  iall=-product(shape(ovrlpeff_compr))*kind(ovrlpeff_compr)
-  deallocate(ovrlpeff_compr, stat=istat)
-  call memocc(istat, iall, 'ovrlpeff_compr', subname)
 
   iall=-product(shape(hamscal_compr))*kind(hamscal_compr)
   deallocate(hamscal_compr, stat=istat)
@@ -939,33 +829,21 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
           allocate(ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
           call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
           call uncompressMatrix(iproc,ovrlp)
-          allocate(ovrlpinv1(orbs%norb,orbs%norb),stat=istat)
-          call memocc(istat, ovrlpinv1,'ovrlpinv1',subname)
-          allocate(ovrlpinv2(orbs%norb,orbs%norb),stat=istat)
-          call memocc(istat, ovrlpinv2,'ovrlpinv2',subname)
 
-          ovrlpinv1(:,:)=ovrlp%matrix(:,:)
-          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, orbs%norb, ovrlpinv1, ovrlpinv2, error, orbs, &
-               check_accur=.true.)
+          allocate(inv_ovrlp%matrix(orbs%norb,orbs%norb),stat=istat)
+          call memocc(istat, inv_ovrlp%matrix,'inv_ovrlp%matrix',subname)
+
+          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, orbs%norb, &
+               ovrlp%matrix, inv_ovrlp%matrix, error, orbs, check_accur=.true.)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
-          !call overlapPowerGeneral(iproc, nproc, order_taylor, 1, -1, orbs%norb, ovrlpinv1, ovrlpinv2, tt, orbs)
+          call compress_matrix_for_allreduce(iproc,inv_ovrlp)
 
-          ovrlpinv1(:,:)=ovrlp%matrix(:,:)
-          ovrlp%matrix(:,:)=ovrlpinv2(:,:)
-          call compress_matrix_for_allreduce(iproc,ovrlp)
-          ovrlpeff_compr=ovrlp%matrix_compr
+          iall=-product(shape(inv_ovrlp%matrix))*kind(inv_ovrlp%matrix)
+          deallocate(inv_ovrlp%matrix,stat=istat)
+          call memocc(istat,iall,'inv_ovrlp%matrix',subname)
 
-          ovrlp%matrix(:,:)=ovrlpinv1(:,:)
-          call compress_matrix_for_allreduce(iproc,ovrlp)
-
-          iall=-product(shape(ovrlpinv1))*kind(ovrlpinv1)
-          deallocate(ovrlpinv1,stat=istat)
-          call memocc(istat,iall,'ovrlpinv1',subname)
-          iall=-product(shape(ovrlpinv2))*kind(ovrlpinv2)
-          deallocate(ovrlpinv2,stat=istat)
-          call memocc(istat,iall,'ovrlpinv2',subname)
           iall=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
           deallocate(ovrlp%matrix,stat=istat)
           call memocc(istat,iall,'ovrlp%matrix',subname)

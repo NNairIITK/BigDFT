@@ -519,7 +519,7 @@ geopt_foe:
  eF: 8.2e-9
  Epot: 1.1e-10
  EH: 1.1e-10
- charge diff: 1.2e-11
+ charge diff: 1.6e-11
 
 geopt_diag:
  Epot: 1.1e-10
@@ -536,6 +536,9 @@ water_foe:
  etot: 1.6e-10
  D: 1.1e-9
  charge diff: 1.1e-9
+ eF: 1.1e-8
+ D eF: 1.1e-8
+ D Tr: 3.1e-11
 
 water_dirmin:
  max alpha: 1.1e-04
@@ -742,6 +745,7 @@ paracetamol:
  energy: 1.5e-10
  Total charge: 2.1e-11
  charge diff: 1.1e-9
+ D eF: 1.1e-9
 
 reformatcomplete_write:
  Epot: 1.1e-10

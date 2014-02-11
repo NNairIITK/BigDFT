@@ -370,7 +370,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
            tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, &
            tmb%linmat%ovrlp_large, tmb%linmat%ham_large, &
-           tmb%linmat%denskern_large, energs%ebs, &
+           tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, energs%ebs, &
            itout,it_scc, order_taylor, &
            tmb)
       ! Eigenvalues not available, therefore take -.5d0
