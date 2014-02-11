@@ -52,10 +52,10 @@ static void bigdft_image_dispose(GObject *obj)
 static void bigdft_image_finalize(GObject *obj)
 {
   BigDFT_Image *image = BIGDFT_IMAGE(obj);
-  _run_objects *run;
-  _DFT_global_output *outs;
+  _run_objects_pointer run;
+  _DFT_global_output_pointer outs;
 
-  if (image->data)
+  if (F_TYPE(image->data))
     {
       FC_FUNC_(image_free, IMAGE_FREE)(&image->data, &run, &outs);
       image->run->data  = run;
@@ -71,8 +71,8 @@ static void bigdft_image_finalize(GObject *obj)
 BigDFT_Image* bigdft_image_new(BigDFT_Atoms *atoms, BigDFT_Inputs *ins, BigDFT_Restart *rst, BigDFT_ImageAlgo algo)
 {
   BigDFT_Image *image;
-  _run_objects *run;
-  _DFT_global_output *outs;
+  _run_objects_pointer run;
+  _DFT_global_output_pointer outs;
   int algo_;
   /* long self; */
 
@@ -84,7 +84,9 @@ BigDFT_Image* bigdft_image_new(BigDFT_Atoms *atoms, BigDFT_Inputs *ins, BigDFT_R
 #endif
   /* self = *((long*)&image); */
   algo_ = algo + 1;
-  FC_FUNC_(image_new, IMAGE_NEW)(&image->data, &run, &outs, atoms->data, ins->data, rst->data, (int*)&algo_);
+  FC_FUNC_(image_new, IMAGE_NEW)(&image->data, &run, &outs,
+                                 F_TYPE(atoms->data), F_TYPE(ins->data),
+                                 F_TYPE(rst->data), (int*)&algo_);
   image->run = bigdft_run_new_from_fortran(run, FALSE);
   image->run->atoms = atoms;
   g_object_ref(G_OBJECT(atoms));
@@ -93,7 +95,7 @@ BigDFT_Image* bigdft_image_new(BigDFT_Atoms *atoms, BigDFT_Inputs *ins, BigDFT_R
   image->run->restart = rst;
   g_object_ref(G_OBJECT(rst));
   image->outs = bigdft_goutput_new_from_fortran(outs);
-  FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(image->data, &image->error, &image->F,
+  FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(F_TYPE(image->data), &image->error, &image->F,
                                                        (int*)&image->id);
 
   return image;
@@ -156,19 +158,19 @@ void bigdft_image_update_pos(BigDFT_Image *image, guint iteration,
 {
   const BigDFT_Image *m1, *p1;
   gboolean optimization;
-  _NEB_data *neb;
+  _NEB_data_pointer neb;
 
   m1 = (imgm1)?imgm1:image;
   p1 = (imgp1)?imgp1:image;
   optimization = (m1 == image) || (p1 == image);
   FC_FUNC_(neb_new, NEB_NEW)(&neb);
-  FC_FUNC_(image_update_pos, IMAGE_UPDATE_POS)(image->data, (int*)&iteration,
+  FC_FUNC_(image_update_pos, IMAGE_UPDATE_POS)(F_TYPE(image->data), (int*)&iteration,
                                                m1->run->atoms->rxyz, p1->run->atoms->rxyz,
                                                &m1->outs->etot, &p1->outs->etot,
                                                &k_before, &k_after,
-                                               &optimization, &climbing, neb);
+                                               &optimization, &climbing, F_TYPE(neb));
   FC_FUNC_(neb_free, NEB_FREE)(&neb);
-  FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(image->data, &image->error, &image->F,
+  FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(F_TYPE(image->data), &image->error, &image->F,
                                                        (int*)&image->id);
 }
 /**
@@ -189,25 +191,25 @@ gboolean bigdft_image_update_pos_from_file(BigDFT_Image *image, guint iteration,
                                            const gchar *filem1, const gchar *filep1,
                                            double k_before, double k_after, gboolean climbing)
 {
-  _NEB_data *neb;
+  _NEB_data_pointer neb;
   gchar *filem1_, *filep1_;
 
   filem1_ = g_strdup((filem1)?filem1:" ");
   filep1_ = g_strdup((filep1)?filep1:" ");
   FC_FUNC_(neb_new, NEB_NEW)(&neb);
   FC_FUNC_(image_update_pos_from_file, IMAGE_UPDATE_POS_FROM_FILE)
-    (image->data, (int*)&iteration, filem1_, filep1_, &k_before, &k_after, &climbing, neb,
+    (F_TYPE(image->data), (int*)&iteration, filem1_, filep1_, &k_before, &k_after, &climbing, F_TYPE(neb),
      strlen(filem1_), strlen(filep1_));
   FC_FUNC_(neb_free, NEB_FREE)(&neb);
-  FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(image->data, &image->error, &image->F,
+  FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(F_TYPE(image->data), &image->error, &image->F,
                                                        (int*)&image->id);
 
   return (image->error >= 0.);
 }
 void bigdft_image_calculate(BigDFT_Image *image, guint iteration, guint id)
 {
-  FC_FUNC_(image_calculate, IMAGE_CALCULATE)(image->data, (int*)&iteration, (int*)&id);
-  FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(image->data, &image->error, &image->F,
+  FC_FUNC_(image_calculate, IMAGE_CALCULATE)(F_TYPE(image->data), (int*)&iteration, (int*)&id);
+  FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(F_TYPE(image->data), &image->error, &image->F,
                                                        (int*)&image->id);
 }
 

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module handling DIIS (Direct Inversion in the Iterative Subspace) and SD (Steepest Descent) optimisation
+!> Module handling DIIS (Direct Inversion in the Iterative Subspace) and SD (Steepest Descent) optimization
 module diis_sd_optimization
   use module_base
 

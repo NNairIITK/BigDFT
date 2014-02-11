@@ -42,16 +42,7 @@ void FC_FUNC_(inquire_address2, INQUIRE_ADDRESS2)(double *add, void *pt)
 }
 
 /**
- * bigdft_init_f_lib:
- *
- */
-void bigdft_init_f_lib()
-{
-  FC_FUNC_(f_lib_initialize, F_LIB_INITIALIZE)();
-}
-
-/**
- * bigdft_init:
+ * bigdft_lib_init:
  * @mpi_iproc: (out):
  * @mpi_nproc: (out):
  * @mpi_igroup: (out):
@@ -62,7 +53,7 @@ void bigdft_init_f_lib()
  *
  * Returns: 
  **/
-int bigdft_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
+int bigdft_lib_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
                 guint mpi_groupsize)
 {
   int ierr;
@@ -112,7 +103,7 @@ void bigdft_mpi_force_group(guint igroup, guint ngroup)
 {
   FC_FUNC_(bigdft_init_mpi_force, BIGDFT_INIT_MPI_FORCE)((int*)&igroup, (int*)&ngroup);
 }
-int bigdft_finalize()
+int bigdft_lib_finalize()
 {
   int ierr;
 
@@ -194,7 +185,7 @@ static void bigdft_dict_finalize(GObject *obj)
 {
   BigDFT_Dict *dict = BIGDFT_DICT(obj);
 
-  if (dict->root)
+  if (F_TYPE(dict->root))
     FC_FUNC_(dict_free, DICT_FREE)(&dict->root);
 
 #ifdef HAVE_GLIB
@@ -310,7 +301,7 @@ void bigdft_dict_append(BigDFT_Dict *dict, BigDFT_DictIter *iter)
  **/
 void  bigdft_dict_set(BigDFT_Dict *dict, const gchar *id, const gchar *value)
 {
-  _dictionary *root;
+  _dictionary_pointer root;
   
   root = dict->current;
   if (id)
@@ -329,7 +320,7 @@ void  bigdft_dict_set(BigDFT_Dict *dict, const gchar *id, const gchar *value)
 void  bigdft_dict_set_array(BigDFT_Dict *dict, const gchar *id, const gchar **value)
 {
   guint i;
-  _dictionary *root, *key;
+  _dictionary_pointer root, key;
 
   root = dict->current;
   if (id)

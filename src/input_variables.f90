@@ -111,7 +111,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   logical, intent(in) :: dump
 
   !type(dictionary), pointer :: profs
-  integer :: ierr, ityp, iproc_node, nproc_node
+  integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max
   type(dictionary), pointer :: dict_minimal, var
   character(max_field_length) :: radical
 
@@ -140,32 +140,32 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, PERF_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // DFT_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, DFT_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // GEOPT_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, GEOPT_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // MIX_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, MIX_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // SIC_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, SIC_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // TDDFT_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, TDDFT_VARIABLES, var)
      var => dict_next(var)
   end do
 
@@ -227,6 +227,15 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   ! Update atoms with pseudo information.
   call psp_dict_analyse(dict, atoms)
   call atomic_data_set_from_dict(dict, "Atomic occupation", atoms, in%nspin)
+
+  ! Generate orbital occupation
+  call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &
+       & in%ncharge, in%nspin, in%mpol, in%norbsempty)
+  if (norb_max == 0) norb_max = nelec_up + nelec_down ! electron gas case
+  call occupation_set_from_dict(dict, "occupation", &
+       & in%gen_norbu, in%gen_norbd, in%gen_occup, &
+       & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
+  in%gen_norb = in%gen_norbu + in%gen_norbd
   
   if (bigdft_mpi%iproc == 0 .and. dump) then
      call input_keys_dump(dict)
@@ -395,6 +404,10 @@ subroutine default_input_variables(in)
   nullify(in%gen_wkpt)
   nullify(in%kptv)
   nullify(in%nkptsv_group)
+  in%gen_norb = UNINITIALIZED(0)
+  in%gen_norbu = UNINITIALIZED(0)
+  in%gen_norbd = UNINITIALIZED(0)
+  nullify(in%gen_occup)
   ! Default abscalc variables
   call abscalc_input_variables_default(in)
   ! Default frequencies variables
@@ -655,6 +668,7 @@ subroutine free_input_variables(in)
   use module_base
   use module_types
   use module_xc
+  use dynamic_memory, only: f_free_ptr
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
@@ -664,6 +678,7 @@ subroutine free_input_variables(in)
 
   call free_geopt_variables(in)
   call free_kpt_variables(in)
+  if (associated(in%gen_occup)) call f_free_ptr(in%gen_occup)
   call deallocateBasicArraysInput(in%lin)
   call deallocateInputFragArrays(in%frag)
 

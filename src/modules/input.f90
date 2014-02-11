@@ -1373,7 +1373,7 @@ contains
 
   end subroutine read_dft_from_text_format
 
-  !> Read the input variables needed for the geometry optimisation
+  !> Read the input variables needed for the geometry optmization
   !! Every argument should be considered as mandatory
   subroutine read_geopt_from_text_format(iproc,dict,filename)
     use module_base
@@ -1474,7 +1474,7 @@ contains
 
   END SUBROUTINE read_geopt_from_text_format
 
-  !> Read the input variables needed for the geometry optimisation
+  !> Read the input variables needed for the geometry optmization
   !!    Every argument should be considered as mandatory
   subroutine read_mix_from_text_format(iproc,dict,filename)
     use module_base

@@ -47,7 +47,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, dimension(:), allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
   logical, dimension(:), allocatable :: covered, type_covered
   real(kind=8), dimension(:,:), allocatable :: aocc
-  integer, parameter :: nmax=6,lmax=3
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb
   integer :: infoCoeff
@@ -55,7 +54,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
   real(kind=8) :: rcov,rprb,ehomo,amu,pnrm
-  real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
   type(mixrhopotDIISParameters) :: mixdiis
   type(sparseMatrix) :: ham_small ! for FOE

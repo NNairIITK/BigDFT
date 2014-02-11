@@ -133,7 +133,11 @@ report:
 	rm -f neb.it*
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(abs_top_builddir)/src/NEB | tee $@
-	cat neb.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml 
+	cat neb.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml
+	echo "---" >> log.yaml
+	grep ":" NEB.NEB.out | grep -v "<BigDFT>" >> log.yaml
+	grep -v ":" NEB.NEB.out > tmp-neb.out
+	mv tmp-neb.out NEB.NEB.out
 	rm -rf neb.NEB.0*
 	rm -f gen_output_file velocities_file
 	name=`basename $@ .out` ; \
@@ -223,7 +227,7 @@ $(INS): in_message
 	cat $$dir/check.perf >> $$dir/input.perf ; \
     cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
     $(MAKE) -f ../Makefile $$dir".post-in"; \
-    echo "Input prepared in "$$dir" dir. make $$name.run available"
+    echo "Input prepared in \"$$dir\" directory, make $$name.run available"
 	touch $@
 
 
@@ -239,7 +243,7 @@ run_message:
         runs="$(srcdir)/$$name/*.ref" ; \
 	tgts=`for r in $$runs ; do echo $$(basename $$r .ref)".out"; done` ; \
         cd $$dir && $(MAKE) -f ../Makefile $$tgts ; \
-        echo "Tests have run in "$$dir" dir. make $$name.check available"
+        echo "Tests have run in \"$$dir\" directory, make $$name.check available"
 	@touch $@
 
 %.check: %.run %.yaml-check

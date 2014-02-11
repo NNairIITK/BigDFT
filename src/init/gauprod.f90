@@ -463,7 +463,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
            call atomkin(l-1,ng,xpt(1,ityx),psiat(1,ictotpsi,ityx),psiatn,ek)
            do ig=1,G%ndoc(ishell)
               iexpo=iexpo+1
-              G%psiat(1,iexpo)=psiatn(ig)
+              G%psiat(1,iexpo)=psiatn(ig) * sign(1._gp, psiatn(1))
               G%xp(1,iexpo)=xpt(ig,ityp)
            end do
 

@@ -14,9 +14,12 @@ subroutine atoms_new(atoms)
   use module_types
   implicit none
   type(atoms_data), pointer :: atoms
+
+  type(atoms_data), pointer :: intern
   
-  allocate(atoms)
-  call atoms_nullify(atoms)
+  allocate(intern)
+  call atoms_nullify(intern)
+  atoms => intern
 END SUBROUTINE atoms_new
 
 
@@ -2031,7 +2034,6 @@ subroutine atoms_get_psppar(atoms, psppar)
   psppar => atoms%psppar
 END SUBROUTINE atoms_get_psppar
 
-
 subroutine atoms_get_nlccpar(atoms, nlccpar)
   use module_types
   implicit none
@@ -2041,15 +2043,14 @@ subroutine atoms_get_nlccpar(atoms, nlccpar)
   nlccpar => atoms%nlccpar
 END SUBROUTINE atoms_get_nlccpar
 
-
-subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: atoms
-  real(gp), dimension(:,:), pointer :: ig_nlccpar
-
-  ig_nlccpar => atoms%ig_nlccpar
-END SUBROUTINE atoms_get_ig_nlccpar
+!subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
+!  use module_types
+!  implicit none
+!  type(atoms_data), intent(in) :: atoms
+!  real(gp), dimension(:,:), pointer :: ig_nlccpar
+!
+!  ig_nlccpar => atoms%ig_nlccpar
+!END SUBROUTINE atoms_get_ig_nlccpar
 
 
 subroutine astruct_copy_geometry_data(astruct, geocode, format, units)

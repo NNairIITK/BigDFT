@@ -182,7 +182,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    real(gp), dimension(at%astruct%nat), intent(out) :: locrad
    !local variables
    !n(c) character(len=*), parameter :: subname='readAtomicOrbitals'
-   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+   integer, parameter :: lmax=3,noccmax=2,nelecmax=32
    character(len=2) :: symbol
    integer :: ity,i,iatsc,iat,lsc
    integer :: nsccode!,mxpl,mxchg
@@ -273,7 +273,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
    integer, parameter :: noccmax=2,lmax=4,nelecmax=32,nmax_occ=10!actually is 24
-   !integer, parameter :: nterm_max=3,nmax=6
+   !integer, parameter :: nterm_max=3,nmax=7
    logical :: orbpol_nc,occeq
    integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
@@ -1157,7 +1157,8 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
    real(gp), dimension(0:ng,lpx+1) :: pp1,pp2,pp3 !<scalar products with the coefficients
    real(gp), dimension(0:ng,0:ng) :: hh !<hamiltonian matrix in the gaussian basis
    !Functions
-   real(gp) :: ddot,gamma_restricted,spherical_gaussian_value
+   real(kind=8), external :: ddot,gamma_restricted
+   real(gp), external :: spherical_gaussian_value
 
    if(iorder/=2 .and. iorder/=4) then
        stop 'ERROR: can only use qudratic or quartic potential'

@@ -41,7 +41,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   logical, intent(in), optional :: output_grid
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp,i_stat,i_all,nspin_ig,norbe,norbsc,ifrag
+  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp,i_stat,i_all,nspin_ig,norbe,norbsc,ifrag,nspinor
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
   integer, dimension(:,:), allocatable :: norbsc_arr
@@ -103,7 +103,15 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (iproc == 0 .and. dump) call print_wfd(Lzd%Glr%wfd)
 
   ! Create global orbs data structure.
-  call read_orbital_variables(iproc,nproc,(iproc == 0 .and. dump),in,atoms,orbs)
+  if(in%nspin==4) then
+     nspinor=4
+  else
+     nspinor=1
+  end if
+  call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
+       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
+  orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
+  if (dump .and. iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
   ! Create linear orbs data structure.
   if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
       .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
@@ -366,11 +374,20 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf)
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   !local variables
   !n(c) character(len=*), parameter :: subname='system_properties'
+  integer :: nspinor
 
   call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
 !!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
   if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
-  call read_orbital_variables(iproc,nproc,(iproc == 0),in,atoms,orbs)
+  if(in%nspin==4) then
+     nspinor=4
+  else
+     nspinor=1
+  end if
+  call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
+       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
+  orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
+  if (iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
 END SUBROUTINE system_properties
 
 
@@ -589,6 +606,8 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   if (ierror1 /= 0 ) then
      read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
      radii_cf(3)=radii_cf(2)
+     ! Open64 behaviour, if line is PAWPATCH, then radii_cf(1) = 0.
+     if (ierror /= 0) radii_cf = UNINITIALIZED(1._gp)
   end if
   pawpatch = (trim(line) == "PAWPATCH")
   do
@@ -801,12 +820,10 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   real(gp), intent(in) :: crmult, frmult, projrad
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   !Local Variables
-  !integer, parameter :: nmax=6,lmax=4
   !integer, parameter :: nelecmax=32
   !character(len=2) :: symbol
   integer :: i,ityp!,mxpl,mxchg,nsccode
   real(gp) :: ehomo,maxrad,radfine!,rcov,rprb,amu
-  !real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
 
   do ityp=1,atoms%astruct%ntypes
      !see whether the atom is semicore or not
@@ -846,30 +863,21 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   enddo
 END SUBROUTINE read_radii_variables
 
-subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
-  use module_base
-  use module_types
-  use module_interfaces
+subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
+     & atoms, ncharge, nspin, mpol, norbsempty)
+  use module_types, only: atoms_data
+  use module_defs, only: gp
   use ao_inguess, only : count_atomic_shells
   use yaml_output
   implicit none
-  type(input_variables), intent(in) :: in
-  integer, intent(in) :: iproc,nproc
-  logical, intent(in) :: verb
   type(atoms_data), intent(in) :: atoms
-  type(orbitals_data), intent(inout) :: orbs
-  !local variables
-  !character(len=*), parameter :: subname='read_orbital_variables'
+  integer, intent(out) :: nelec_up, nelec_down, norbe
+  integer, intent(in) :: ncharge, nspin, mpol, norbsempty, iproc
+
+  integer :: nelec, iat, ityp, ispinsum, ichgsum, ichg, ispol, nspin_, nspinor
   integer, parameter :: nelecmax=32,lmax=4,noccmax=2
-  !integer, parameter :: nmax=6
-  logical :: exists
-  integer :: iat,iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
-  integer :: norbuempty,norbdempty,nelec
-  integer :: nt,ntu,ntd,ityp,ierror,ispinsum
-  integer :: ispol,ichg,ichgsum,norbe,norbat,nspin
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
-  character(len=100) :: radical
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
@@ -878,7 +886,7 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
      ityp=atoms%astruct%iatype(iat)
      nelec=nelec+atoms%nelpsp(ityp)
   enddo
-  nelec=nelec-in%ncharge
+  nelec=nelec-ncharge
 
   if(nelec < 0.0 ) then
     if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
@@ -887,38 +895,20 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
     stop
   end if
 
-  if (verb) then
-     call yaml_comment('Occupation Numbers',hfill='-')
-     call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')
-     !write(*,'(1x,a,t28,i8)') 'Total Number of Electrons',nelec
-  end if
-
   ! Number of orbitals
-  if (in%nspin==1) then
-     if (verb) call yaml_map('Spin treatment','Averaged')
-     norb=(nelec+1)/2
-     norbu=norb
-     norbd=0
-     if (mod(nelec,2).ne.0 .and. verb) then
-        call yaml_warning('Odd number of electrons, no closed shell system')
-        !write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
-     end if
-  else if(in%nspin==4) then
-     if (verb) call yaml_map('Spin treatment','Spinorial (non-collinearity possible)')
-     !if (verb) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
-     norb=nelec
-     norbu=norb
-     norbd=0
+  if (nspin==1) then
+     nelec_up=nelec
+     nelec_down=0
+  else if(nspin==4) then
+     nelec_up=nelec
+     nelec_down=0
   else 
-     if (verb) call yaml_map('Spin treatment','Collinear')
-     !if (verb) write(*,'(1x,a)') 'Spin-polarized calculation'
-     norb=nelec
-     if (mod(norb+in%mpol,2) /=0) then
+     if (mod(nelec+mpol,2) /=0) then
         write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
         stop
      end if
-     norbu=min((norb+in%mpol)/2,norb)
-     norbd=norb-norbu
+     nelec_up=min((nelec+mpol)/2,nelec)
+     nelec_down=nelec-nelec_up
 
      !test if the spin is compatible with the input guess polarisations
      ispinsum=0
@@ -929,32 +919,22 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
         ichgsum=ichgsum+ichg
      end do
 
-     if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
-        !if (iproc==0) then 
-           call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
-                & // ') must be equal to norbu-norbd.')
-           call yaml_comment('With norb=' // trim(yaml_toa(norb)) // ' and mpol=' // trim(yaml_toa(in%mpol)) // &
-                & ' norbu-norbd=' // trim((yaml_toa(norbu-norbd))))
-           !write(*,'(1x,a,i0,a)')&
-           !     'ERROR: Total input polarisation (found ',ispinsum,&
-           !     ') must be equal to norbu-norbd.'
-           !write(*,'(1x,3(a,i0))')&
-           !     'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
-        !end if
+     if (ispinsum /= nelec_up-nelec_down) then
+        call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
+             & // ') must be equal to nelec_up-nelec_down.')
+        call yaml_comment('With nelec=' // trim(yaml_toa(nelec)) &
+             & // ' and mpol=' // trim(yaml_toa(mpol)) // &
+             & ' nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))))
         stop
      end if
 
-     if (ichgsum /= in%ncharge .and. ichgsum /= 0) then
-        !if (iproc==0) then 
-           write(*,'(1x,a,i0,a)')&
-                'ERROR: Total input charge (found ',ichgsum,&
-                ') cannot be different than charge.'
-           write(*,'(1x,2(a,i0))')&
-                'The charge is=',in%ncharge,' input charge=',ichgsum
-        !end if
+     if (ichgsum /= ncharge .and. ichgsum /= 0) then
+        call yaml_warning('Total input charge (found ' // trim(yaml_toa(ichgsum)) &
+             & // ') cannot be different than charge.')
+        call yaml_comment('With charge =' // trim(yaml_toa(ncharge)) &
+             & // ' and input charge=' // trim(yaml_toa(ichgsum)))
         stop
      end if
-
 
      !now warn if there is no input guess spin polarisation
      ispinsum=0
@@ -962,173 +942,29 @@ subroutine read_orbital_variables(iproc,nproc,verb,in,atoms,orbs)
         call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
         ispinsum=ispinsum+abs(ispol)
      end do
-     if (ispinsum == 0 .and. in%nspin==2) then
-        if (iproc==0 .and. in%norbsempty == 0) &
+     if (ispinsum == 0) then
+        if (iproc==0 .and. norbsempty == 0) &
              call yaml_warning('Found no input polarisation, add it for a correct input guess')
         !write(*,'(1x,a)')&
         !     'WARNING: Found no input polarisation, add it for a correct input guess'
         !stop
      end if
-
   end if
 
-
-  !initialise the values for the empty orbitals
-  norbuempty=0
-  norbdempty=0
-
-  ! Test if the file 'input.occ exists
-  !this access is performed at each call_bigdft run
-  inquire(file=trim(in%file_occnum),exist=exists)
-  iunit=0
-  if (exists) then
-     iunit=25
-     open(unit=iunit,file=trim(in%file_occnum),form='formatted',action='read',status='old')
-     if (in%nspin==1) then
-        !The first line gives the number of orbitals
-        read(unit=iunit,fmt=*,iostat=ierror) nt
-     else
-        !The first line gives the number of orbitals
-        read(unit=iunit,fmt=*,iostat=ierror) ntu,ntd
-     end if
-     if (ierror /=0) then
-        !if (iproc==0) 
-          write(*,'(1x,a)') &
-             'ERROR: reading the number of orbitals in the file "'//trim(in%file_occnum)//'"'
-        stop
-     end if
-     !Check
-     if (in%nspin==1) then
-        if (nt<norb) then
-           !if (iproc==0) 
-               write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
-                ' should be greater or equal than (nelec+1)/2=',norb
-           stop
-        else
-           norb=nt
-           norbu=norb
-           norbd=0
-        end if
-     else
-        nt=ntu+ntd
-        if (nt<norb) then
-           !if (iproc==0) 
-               write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
-                ' should be greater or equal than nelec=',norb
-           stop
-        else
-           norb=nt
-        end if
-        if (ntu<norbu) then
-           !if (iproc==0) 
-                write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals up norbu=',ntu,&
-                ' should be greater or equal than min((nelec+mpol)/2,nelec)=',norbu
-           stop
-        else
-           norbu=ntu
-        end if
-        if (ntd<norbd) then
-           !if (iproc==0) 
-                  write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals down norbd=',ntd,&
-                ' should be greater or equal than min((nelec-mpol/2),0)=',norbd
-           stop
-        else
-           norbd=ntd
-        end if
-     end if
-  else if (in%norbsempty > 0) then
-     !total number of orbitals
-     norbe=0
-     if(in%nspin==4) then
-        nspin=2
-        nspinor=4
-     else
-        nspin=in%nspin
-        nspinor=1
-     end if
-
-     do iat=1,atoms%astruct%nat
-        ityp=atoms%astruct%iatype(iat)
-        call count_atomic_shells(in%nspin,atoms%aocc(1:,iat),occup,nl)
-        norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
-        norbe=norbe+norbat
-     end do
-
-     !value of empty orbitals up and down, needed to fill occupation numbers
-     norbuempty=min(in%norbsempty,norbe-norbu)
-     norbdempty=min(in%norbsempty,norbe-norbd)
-
-     if (in%nspin == 4 .or. in%nspin==1) then
-        norb=norb+norbuempty
-        norbu=norbu+norbuempty
-     else if (in%nspin ==2) then
-        norbu=norbu+norbuempty
-        norbd=norbd+norbdempty
-        norb=norbu+norbd
-     end if
-  end if
-
-  if(in%nspin==4) then
+  norbe = 0
+  if(nspin==4) then
+     nspin_=1
      nspinor=4
   else
+     nspin_=nspin
      nspinor=1
   end if
-
-  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor,&
-       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
-
-  !distribution of wavefunction arrays between processors
-  !tuned for the moment only on the cubic distribution
-  if (verb .and. nproc > 1) then
-     call yaml_open_map('Orbitals Repartition')
-     jpst=0
-     do jproc=0,nproc-1
-        norbme=orbs%norb_par(jproc,0)
-        norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
-        if (norbme /= norbyou .or. jproc == nproc-1) then
-           call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
-           !write(*,'(3(a,i0),a)')&
-           !     ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
-           jpst=jproc+1
-        end if
-     end do
-     !write(*,'(3(a,i0),a)')&
-     !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
-     call yaml_close_map()
-  end if
-  
-  if (iproc == 0) then
-     if (trim(in%run_name) == '') then
-        radical = 'input'
-     else
-        radical = in%run_name
-     end if
-     if (verb) call yaml_map('Total Number of Orbitals',norb,fmt='(i8)')
-     if (verb) then
-        if (iunit /= 0) then
-           call yaml_map('Occupation numbers coming from', trim(radical) // '.occ')
-        else
-           call yaml_map('Occupation numbers coming from','System properties')
-        end if
-     end if
-  end if
-  !assign to each k-point the same occupation number
-  if (verb .and. iproc==0) call yaml_open_sequence('Input Occupation Numbers')
-  do ikpts=1,orbs%nkpts
-     if (verb .and. iproc == 0 .and. atoms%astruct%geocode /= 'F') then
-        call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &
-        & trim(yaml_toa(orbs%kpts(:, ikpts),fmt='(f12.6)')))
-     end if
-     call occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
-          orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
+  do iat=1,atoms%astruct%nat
+     ityp=atoms%astruct%iatype(iat)
+        call count_atomic_shells(nspin,atoms%aocc(1:,iat),occup,nl)
+     norbe=norbe+nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
   end do
-  if (verb .and. iproc == 0) call yaml_close_sequence()
-end subroutine read_orbital_variables
-
+end subroutine read_n_orbitals
 
 !> Find the correct position of the nlcc parameters
 subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)

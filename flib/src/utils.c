@@ -171,6 +171,7 @@ void FC_FUNC(getfilecontent, GETFILECONTENT)(void **pt, long *pt_len, const char
 {
   FILE *f;
   char *buf, *fname_;
+  size_t r;
   long s;
 
   fname_ = strndup(fname, (size_t)*ln);
@@ -182,7 +183,7 @@ void FC_FUNC(getfilecontent, GETFILECONTENT)(void **pt, long *pt_len, const char
   rewind(f);
 
   buf = malloc(sizeof(char) * (s + 1));
-  fread(buf, s, 1, f);
+  r = fread(buf, s, 1, f);
   buf[s] = '\0';
 
   fclose(f);

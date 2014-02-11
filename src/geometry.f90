@@ -1,5 +1,5 @@
 !> @file
-!!  Routines to do geometry optimisation
+!!  Routines to do geometry optmization
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
@@ -83,7 +83,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   !if (iproc ==0 .and. parmin%verbosity > 0) write(* ,'(a)') & 
   !    '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
-  !assign the geometry optimisation method
+  !assign the geometry optmization method
   parmin%approach=runObj%inputs%geopt_approach
 
   outs%strten=0 !not used for the moment

@@ -1023,10 +1023,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
            !free projectors
            call free_DFT_PSP_projectors(nlpsp)
-!!$           call deallocate_proj_descr(nlpspd,subname)  
-!!$           i_all=-product(shape(proj))*kind(proj)
-!!$           deallocate(proj,stat=i_stat)
-!!$           call memocc(i_stat,i_all,'proj',subname)
 
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
@@ -1064,6 +1060,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            call direct_minimization(iproc,nproc,in,atoms,& 
                 nvirt,rxyz,denspot%rhov,nlpsp, &
                 denspot%pkernelseq,denspot%dpbox,GPU,KSwfn,VTwfn)
+
+           if(abs(in%nplot)>KSwfn%orbs%norb+nvirt) then
+              if(iproc==0) call yaml_warning('More plots requested than orbitals calculated')
+           end if
         else if (in%norbv > 0) then
            call davidson(iproc,nproc,in,atoms,& 
                 KSwfn%orbs,VTwfn%orbs,in%nvirt,VTwfn%Lzd,&
@@ -1074,7 +1074,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 !!$                orbs,orbsv,in%nvirt,Lzd%Glr,comms,VTwfn%comms,&
 !!$                hx,hy,hz,rxyz,denspot%rhov,nlpsp, &
 !!$                psi,VTwfn%psi,nscatterarr,ngatherarr,GPU)
-
+           if(abs(in%nplot)>KSwfn%orbs%norb+in%nvirt) then
+              if(iproc==0) call yaml_warning('More plots requested than orbitals calculated')
+           end if
+        end if
+        if(in%output_wf_format == 2 .and. abs(in%norbv)>0 ) then
+           call dump_eigenfunctions(trim(in%dir_output),in%nplot,atoms,VTwfn%Lzd%hgrids,VTwfn%Lzd%Glr,&
+                KSwfn%orbs,VTwfn%orbs,rxyz,KSwfn%psi,VTwfn%psi)
         end if
 
         deallocate(VTwfn%confdatarr)

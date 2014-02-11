@@ -497,7 +497,7 @@ contains
 !!$
 !!$    ! Settings
 !!$    call set(p // GEOPT_METHOD, dict_new( &
-!!$         & COMMENT   .is. 'Geometry optimisation method', &
+!!$         & COMMENT   .is. 'Geometry optmization method', &
 !!$         & EXCLUSIVE .is. dict_new(&
 !!$         & "none"    .is. "no geometry optimization", &
 !!$         & "SDCG"    .is. "a combination of Steepest Descent and Conjugate Gradient", &
@@ -531,7 +531,7 @@ contains
 !!$         & DEFAULT   .is. "0." ))
 !!$
 !!$    call set(p // BETAX, dict_new( &
-!!$         & COMMENT   .is. 'Stepsize for the geometry optimisation', &
+!!$         & COMMENT   .is. 'Stepsize for the geometry optmization', &
 !!$         & COND      .is. dict_new(MASTER_KEY .is. GEOPT_METHOD, &
 !!$         &                         WHEN .is. list_new(.item. "SDCG", &
 !!$         &                .item."VSSD", .item."LBFGS", .item."BFGS", .item."PBFGS", &
@@ -1254,9 +1254,9 @@ contains
                  !exclude keys for definition of the variable
                  var_prof=dict_key(defvar)
 !              call yaml_map('key',var_prof)
-                 if (trim(var_prof)/=COMMENT .and. trim(var_prof)/=COND .and.&
-                      trim(var_prof)/=RANGE .and. trim(var_prof)/=PROF_KEY .and. &
-                      trim(var_prof)/=EXCLUSIVE) then
+                 if (trim(var_prof) /= COMMENT .and. trim(var_prof) /= COND .and.&
+                      trim(var_prof) /= RANGE .and. trim(var_prof) /= PROF_KEY .and. &
+                      trim(var_prof) /= EXCLUSIVE) then
                     !check if some profile meets desired values
 !call yaml_map('defvar',defvar)
 !call yaml_map('input',input//def_var)

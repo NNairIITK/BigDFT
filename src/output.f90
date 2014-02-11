@@ -1757,3 +1757,99 @@ subroutine print_nlpsp(nlpsp)
 !!$     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
   call yaml_close_map()
 END SUBROUTINE print_nlpsp
+
+subroutine print_orbitals(orbs, geocode)
+  use module_types, only: orbitals_data
+  use module_defs, only: gp
+  use yaml_output
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  character(len = 1), intent(in) :: geocode
+  
+  integer :: jproc, nproc, jpst, norbme, norbyou, nelec
+  integer :: ikpts, iorb1, iorb
+  real(gp) :: rocc
+
+  nelec = int(sum(orbs%occup) + 1d-12) / orbs%nkpts
+
+  call yaml_comment('Occupation Numbers',hfill='-')
+  call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')
+
+  ! Number of orbitals
+  if (orbs%nspin==1) then
+     call yaml_map('Spin treatment','Averaged')
+     if (mod(nelec,2).ne.0) then
+        call yaml_warning('Odd number of electrons, no closed shell system')
+        !write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
+     end if
+  else if(orbs%nspin==4) then
+     call yaml_map('Spin treatment','Spinorial (non-collinearity possible)')
+  else 
+     call yaml_map('Spin treatment','Collinear')
+  end if
+
+  !distribution of wavefunction arrays between processors
+  !tuned for the moment only on the cubic distribution
+  call yaml_open_map('Orbitals Repartition')
+  jpst=0
+  nproc = size(orbs%norb_par, 1)
+  do jproc=0,nproc-1
+     norbme=orbs%norb_par(jproc,0)
+     norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
+     if (norbme /= norbyou .or. jproc == nproc-1) then
+        call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
+        !write(*,'(3(a,i0),a)')&
+        !     ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
+        jpst=jproc+1
+     end if
+  end do
+  !write(*,'(3(a,i0),a)')&
+  !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
+  call yaml_close_map()
+  
+  call yaml_map('Total Number of Orbitals',orbs%norb,fmt='(i8)')
+!!$     if (verb) then
+!!$        if (iunit /= 0) then
+!!$           call yaml_map('Occupation numbers coming from', trim(radical) // '.occ')
+!!$        else
+!!$           call yaml_map('Occupation numbers coming from','System properties')
+!!$        end if
+!!$     end if
+
+  call yaml_open_sequence('Input Occupation Numbers')
+  do ikpts=1,orbs%nkpts
+     if (geocode /= 'F') then
+        call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+        & trim(yaml_toa(orbs%kpts(:, ikpts),fmt='(f12.6)')))
+     end if
+     call yaml_sequence(advance='no')
+     call yaml_open_map('Occupation Numbers',flow=.true.)
+     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
+     iorb1=1
+     rocc=orbs%occup(1+(ikpts-1)*orbs%norb)
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpts-1)*orbs%norb) /= rocc) then
+           if (iorb1 == iorb-1) then
+              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
+              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+           else
+           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+                adjustl(trim(yaml_toa(iorb-1))),rocc,fmt='(f6.4)')
+           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           end if
+           rocc=orbs%occup(iorb+(ikpts-1)*orbs%norb)
+           iorb1=iorb
+        end if
+     enddo
+     if (iorb1 == orbs%norb) then
+        call yaml_map('Orbital No.'//trim(yaml_toa(orbs%norb)),orbs%occup(ikpts*orbs%norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+     else
+        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+             adjustl(trim(yaml_toa(orbs%norb))),orbs%occup(ikpts*orbs%norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+     end if
+     call yaml_close_map()
+  end do
+  call yaml_close_sequence()
+END SUBROUTINE print_orbitals

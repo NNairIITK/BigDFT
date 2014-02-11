@@ -65,7 +65,7 @@ static void bigdft_goutput_finalize(GObject *obj)
 {
   BigDFT_Goutput *outs = BIGDFT_GOUTPUT(obj);
 
-  if (outs->data)
+  if (F_TYPE(outs->data))
     FC_FUNC_(global_output_free, GLOBAL_OUTPUT_FREE)(&outs->data);
 
 #ifdef HAVE_GLIB
@@ -95,15 +95,15 @@ BigDFT_Goutput* bigdft_goutput_new(guint nat)
 }
 void FC_FUNC_(energs_new_wrapper, ENERGS_NEW_WRAPPER)(double *self, _DFT_global_output *obj)
 {
-  BigDFT_Goutput *outs;
+  /* BigDFT_Goutput *outs; */
 
-  outs = bigdft_goutput_new_from_fortran(obj);
-  *self = *((double*)&outs);
+  /* outs = bigdft_goutput_new_from_fortran(obj); */
+  /* *self = *((double*)&outs); */
 }
 static void _sync_energs(BigDFT_Goutput *outs)
 {
   FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
-    (outs->energs, &outs->eh, &outs->exc,
+    (F_TYPE(outs->energs), &outs->eh, &outs->exc,
      &outs->evxc, &outs->eion, &outs->edisp,
      &outs->ekin, &outs->epot, &outs->eproj,
      &outs->eexctX, &outs->ebs, &outs->eKS,
@@ -114,14 +114,14 @@ static void _sync_outs(BigDFT_Goutput *outs)
   f90_pointer_double_2D fxyz;
 
   F90_2D_POINTER_INIT(&fxyz);
-  FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(outs->data, &outs->energs, &fxyz,
+  FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(F_TYPE(outs->data), &outs->energs, &fxyz,
                                                  (int*)&outs->fdim,
                                                  &outs->fnoise, &outs->pressure,
                                                  outs->strten, &outs->etot);
   outs->fxyz = fxyz.data;
   _sync_energs(outs);
 }
-BigDFT_Goutput* bigdft_goutput_new_from_fortran(_DFT_global_output *obj)
+BigDFT_Goutput* bigdft_goutput_new_from_fortran(_DFT_global_output_pointer obj)
 {
   BigDFT_Goutput *outs;
 
@@ -140,8 +140,8 @@ void FC_FUNC_(energs_free_wrapper, ENERGS_FREE_WRAPPER)(gpointer *obj)
 {
   BigDFT_Goutput *outs = BIGDFT_GOUTPUT(*obj);
 
-  outs->data = (_DFT_global_output*)0;
-  outs->energs = (_energy_terms*)0;
+  F_TYPE(outs->data) = (_DFT_global_output*)0;
+  F_TYPE(outs->energs) = (_energy_terms*)0;
   bigdft_goutput_unref(outs);
 }
 void bigdft_goutput_unref(BigDFT_Goutput *outs)
@@ -223,7 +223,7 @@ static void bigdft_restart_finalize(GObject *obj)
 {
   BigDFT_Restart *restart = BIGDFT_RESTART(obj);
 
-  if (restart->data)
+  if (F_TYPE(restart->data))
     FC_FUNC_(rst_free, RST_FREE)(&restart->data);
   if (restart->in)
     bigdft_inputs_unref(restart->in);
@@ -245,7 +245,8 @@ BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint
 #endif
   self = *((long*)&restart);
   FC_FUNC_(rst_new, RST_NEW)(&self, &restart->data);
-  FC_FUNC_(rst_init, RST_INIT)(restart->data, (int*)&iproc, atoms->data, in->data);
+  FC_FUNC_(rst_init, RST_INIT)(F_TYPE(restart->data), (int*)&iproc,
+                               F_TYPE(atoms->data), F_TYPE(in->data));
   restart->inputPsiId = BIGDFT_RESTART_LCAO;
   restart->in = in;
   bigdft_inputs_ref(in);
@@ -254,12 +255,12 @@ BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint
 }
 void FC_FUNC_(restart_new_wrapper, RESTART_NEW_WRAPPER)(double *self, void *obj)
 {
-  BigDFT_Restart *restart;
+  /* BigDFT_Restart *restart; */
 
-  restart = bigdft_restart_new_from_fortran(obj);
-  *self = *((double*)&restart);
+  /* restart = bigdft_restart_new_from_fortran(obj); */
+  /* *self = *((double*)&restart); */
 }
-BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects *obj)
+BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects_pointer obj)
 {
   BigDFT_Restart *restart;
 
@@ -277,7 +278,7 @@ void FC_FUNC_(restart_free_wrapper, RESTART_FREE_WRAPPER)(gpointer *obj)
 {
   BigDFT_Restart *restart = BIGDFT_RESTART(*obj);
 
-  restart->data = (gpointer)0;
+  F_TYPE(restart->data) = (_restart_objects*)0;
   bigdft_restart_unref(restart);
 }
 void bigdft_restart_unref(BigDFT_Restart *restart)
@@ -297,7 +298,8 @@ void bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id)
   int inputPsiId[] = {0, 1};
 
   restart->inputPsiId = id;
-  FC_FUNC_(inputs_set_restart, INPUTS_SET_RESTART)(restart->in->data, inputPsiId + id);
+  FC_FUNC_(inputs_set_restart, INPUTS_SET_RESTART)(F_TYPE(restart->in->data),
+                                                   inputPsiId + id);
 }
 
 static BigDFT_Memory* memory_ref(BigDFT_Memory *boxed)
@@ -376,7 +378,7 @@ static void bigdft_run_dispose(GObject *obj)
   if (run->dict)
     {
       /* Release ownership of dict. */
-      FC_FUNC_(run_objects_nullify_dict, RUN_OBJECTS_NULLIFY_DICT)(run->data);
+      FC_FUNC_(run_objects_nullify_dict, RUN_OBJECTS_NULLIFY_DICT)(F_TYPE(run->data));
       bigdft_dict_unref(run->dict);
     }
 
@@ -389,7 +391,7 @@ static void bigdft_run_finalize(GObject *obj)
 {
   BigDFT_Run *run = BIGDFT_RUN(obj);
 
-  if (run->data)
+  if (F_TYPE(run->data))
     FC_FUNC_(run_objects_destroy, RUN_OBJECTS_DESTROY)(&run->data);
 
 #ifdef HAVE_GLIB
@@ -414,12 +416,12 @@ BigDFT_Run* bigdft_run_new()
 }
 static void _attributes_from_fortran(BigDFT_Run *run)
 {
-  _atoms_data *atoms;
-  _input_variables *inputs;
-  _restart_objects *rst;
+  _atoms_data_pointer atoms;
+  _input_variables_pointer inputs;
+  _restart_objects_pointer rst;
 
   /* Create C wrappers for Fortran objects. */
-  FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(run->data, &inputs, &atoms, &rst);
+  FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(F_TYPE(run->data), &inputs, &atoms, &rst);
   run->inputs = bigdft_inputs_new_from_fortran(inputs);
   run->atoms  = bigdft_atoms_new_from_fortran(atoms);
   run->restart = bigdft_restart_new_from_fortran(rst);
@@ -434,7 +436,7 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
 
   /* Call the creation routine of Fortran. */
   FC_FUNC_(run_objects_init_from_files, RUN_OBJECTS_SET_FROM_FILES)
-    (run->data, radical, posinp, strlen(radical), strlen(posinp));
+    (F_TYPE(run->data), radical, posinp, strlen(radical), strlen(posinp));
 
   _attributes_from_fortran(run);
 
@@ -462,8 +464,8 @@ BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict, gboolean dump)
   run->dict = dict;
 
   /* Associate the dictionary and parse it. */
-  FC_FUNC_(run_objects_set_dict, RUN_OBJECTS_SET_DICT)(run->data, &dict->root);
-  FC_FUNC_(run_objects_parse, RUN_OBJECTS_PARSE)(run->data, (gint*)&dump);
+  FC_FUNC_(run_objects_set_dict, RUN_OBJECTS_SET_DICT)(F_TYPE(run->data), &dict->root);
+  FC_FUNC_(run_objects_parse, RUN_OBJECTS_PARSE)(F_TYPE(run->data), (gint*)&dump);
 
   _attributes_from_fortran(run);
 
@@ -477,7 +479,8 @@ BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict, gboolean dump)
 /*   run = bigdft_run_new_from_fortran(obj); */
 /*   *self = *((double*)&run); */
 /* } */
-BigDFT_Run* bigdft_run_new_from_fortran(_run_objects *obj, gboolean create_wrappers)
+BigDFT_Run* bigdft_run_new_from_fortran(_run_objects_pointer obj,
+                                        gboolean create_wrappers)
 {
   BigDFT_Run *run;
 
@@ -555,9 +558,9 @@ BigDFT_Memory* bigdft_run_memoryEstimation(BigDFT_Run *run, guint iproc, guint n
 
   rxyz = g_malloc(sizeof(double) * 3 * run->atoms->nat);
   FC_FUNC_(run_objects_system_setup, RUN_OBJECTS_SYSTEM_SETUP)
-    (run->data, (int*)&iproc, (int*)&nproc, rxyz, shift, mem->data);
+    (F_TYPE(run->data), (int*)&iproc, (int*)&nproc, rxyz, shift, F_TYPE(mem->data));
   g_free(rxyz);
-  FC_FUNC_(mem_to_c, MEM_TO_C)(mem->data, &mem->submat, &mem->ncomponents,
+  FC_FUNC_(mem_to_c, MEM_TO_C)(F_TYPE(mem->data), &mem->submat, &mem->ncomponents,
                                &mem->norb, &mem->norbp, &mem->oneorb,
                                &mem->allpsi_mpi, &mem->psistorage,
                                &mem->projarr, &mem->grid, &mem->workarr,
@@ -581,8 +584,8 @@ BigDFT_Goutput* bigdft_run_calculate(BigDFT_Run *run, guint iproc, guint nproc)
   BigDFT_Goutput *outs;
 
   outs = bigdft_goutput_new(run->atoms->nat);
-  FC_FUNC_(call_bigdft, CALL_BIGDFT)(run->data, outs->data, (int*)&nproc, (int*)&iproc,
-                                     &infocode);
+  FC_FUNC_(call_bigdft, CALL_BIGDFT)(F_TYPE(run->data), F_TYPE(outs->data),
+                                     (int*)&nproc, (int*)&iproc, &infocode);
   _sync_outs(outs);
   
   return outs;

@@ -122,7 +122,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
 !  integer :: nsccode,mxpl,mxchg
   real(gp) ::rcov, cutoff!amu,rprb,ehomo,
 !  character(len=2) :: symbol
-!  real(kind=8), dimension(6,4) :: neleconf
+
 
   istart_c=initial_istart_c
 
