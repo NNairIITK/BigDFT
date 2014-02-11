@@ -491,41 +491,41 @@
 !        multiply with dr*r^2 to speed up calculation of matrix elements
 !        open(11,file='rhogrd')
 ! Find point where th charge density becomes tooo small to calculate a GGA with sufficient accuracy  ! SANTANU START
-         kcut=0
-         do k=nint,1,-1
-         rhothres=0.d0
-         do ispin=1,nspol
-         rhothres=rhothres+rhogrd(k,ispin)**2
-         enddo
-         if (rhothres.gt.2.d-10) then 
-         kcut=k
-         goto 8844
-         endif
-         enddo
-8844 continue
-
-         do k=1,kcut
-!            write(6,'(i4,4(1x,e12.5),a)') k,(rhogrd(k,i),i=1,nspol),(vxcgrd(k,i),i=1,nspol)," XCgrd"
-            vxcgrd(k,:)=vxcgrd(k,:)*rw(k)/fourpi
-         enddo
-         do ispin=1,nspol
-         xclimit(ispin)=abs(vxcgrd(k,ispin))
-         enddo
-! Enforce that the XC potential decreases smoothly in magnitude (eliminates
-! spikes at places where th numerical wavefunctioon has a node in the tail region
-         notyet=.true.
-         do k=kcut+1,nint
-           do ispin=1,nspol
-               xclimit(ispin)=min(abs(vxcgrd(k,ispin)),xclimit(ispin))
-               if ( notyet .and. abs(vxcgrd(k,ispin)) .ne. xclimit(ispin)) then
-               kk=k
-               notyet=.false.
-               endif
-              vxcgrd(k,ispin)=-xclimit(ispin)
-           enddo
-!            write(6,'(i4,4(1x,e12.5),a)') k,(rhogrd(k,i),i=1,nspol),(vxcgrd(k,i),i=1,nspol)," XCgrd"
-            vxcgrd(k,:)=vxcgrd(k,:)*rw(k)/fourpi
-         enddo    ! SANTANU END
+!         kcut=0
+!         do k=nint,1,-1
+!         rhothres=0.d0
+!         do ispin=1,nspol
+!         rhothres=rhothres+rhogrd(k,ispin)**2
+!         enddo
+!         if (rhothres.gt.2.d-10) then 
+!         kcut=k
+!         goto 8844
+!         endif
+!         enddo
+!8844 continue
+!
+!         do k=1,kcut
+!!            write(6,'(i4,4(1x,e12.5),a)') k,(rhogrd(k,i),i=1,nspol),(vxcgrd(k,i),i=1,nspol)," XCgrd"
+!            vxcgrd(k,:)=vxcgrd(k,:)*rw(k)/fourpi
+!         enddo
+!         do ispin=1,nspol
+!         xclimit(ispin)=abs(vxcgrd(k,ispin))
+!         enddo
+!! Enforce that the XC potential decreases smoothly in magnitude (eliminates
+!! spikes at places where th numerical wavefunctioon has a node in the tail region
+!         notyet=.true.
+!         do k=kcut+1,nint
+!           do ispin=1,nspol
+!               xclimit(ispin)=min(abs(vxcgrd(k,ispin)),xclimit(ispin))
+!               if ( notyet .and. abs(vxcgrd(k,ispin)) .ne. xclimit(ispin)) then
+!               kk=k
+!               notyet=.false.
+!               endif
+!              vxcgrd(k,ispin)=-xclimit(ispin)
+!           enddo
+!!            write(6,'(i4,4(1x,e12.5),a)') k,(rhogrd(k,i),i=1,nspol),(vxcgrd(k,i),i=1,nspol)," XCgrd"
+!            vxcgrd(k,:)=vxcgrd(k,:)*rw(k)/fourpi
+!         enddo    ! SANTANU END
 
 !        close(11)
 
@@ -693,20 +693,20 @@
            expxpr)
 !     etot evaluates Ehartree using rhogrd,
       !write(6,*)'calling etot',energ,'verbose=',verbose
-         notyet=.true.                          ! sANTANU START
-         xclimit(1)=1.d300
-         do k=kcut+1,nint
-!            write(6,'(i4,3(1x,e12.5),a)') k,(rhogrd(k,i),i=1,nspol),excgrd(k)," EXCgrd"
-               xclimit(1)=min(abs(excgrd(k)),xclimit(1))
-               if ( notyet .and. abs(excgrd(k)) .ne. xclimit(1)) then
-               kk=k
-               notyet=.false.
-               endif
-              excgrd(k)=-xclimit(1)
-         enddo
-!         write(6,*) 'ETOT: kcut=,kk',kcut,kk
-         if (rr(kk).lt.3.d0*rprb) write(6,*) 'WARNING: Etot: cut very &
-          small',rr(kk),3.d0*rprb !SANTANU END
+!         notyet=.true.                          ! sANTANU START
+!         xclimit(1)=1.d300
+!         do k=kcut+1,nint
+!!            write(6,'(i4,3(1x,e12.5),a)') k,(rhogrd(k,i),i=1,nspol),excgrd(k)," EXCgrd"
+!               xclimit(1)=min(abs(excgrd(k)),xclimit(1))
+!               if ( notyet .and. abs(excgrd(k)) .ne. xclimit(1)) then
+!               kk=k
+!               notyet=.false.
+!               endif
+!              excgrd(k)=-xclimit(1)
+!         enddo
+!!         write(6,*) 'ETOT: kcut=,kk',kcut,kk
+!         if (rr(kk).lt.3.d0*rprb) write(6,*) 'WARNING: Etot: cut very small' & 
+!             ,rr(kk),3.d0*rprb !SANTANU END
 
       if (energ) call etot(verbose,nspol,  &
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &

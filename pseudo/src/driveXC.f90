@@ -149,6 +149,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-0,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -183,6 +184,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-1,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -219,6 +221,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-2,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -256,6 +259,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-3,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -294,6 +298,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-4,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -333,6 +338,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-5,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -373,6 +379,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-6,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -400,7 +407,6 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    grad(1)=grad(1)+c(i)*rho(j+i,1)
    enddo
    grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
-
    !if (grad(1).ge.0.d0) then 
    !sign(1)=rd(j)
    !else
@@ -414,10 +420,55 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-7,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
    !write(6,'(a,i3,(10(1x,e12.5)))') " GGAsimple", j,rhosub,grad,Exc,Vxc,dEdg
+
+
+
+    c(-8)=9.71250971250971d-6
+    c(-7)=-0.1776001776001776d-3
+    c(-6)=0.1554001554001554d-2
+    c(-5)=-0.87024087024087d-2
+    c(-4)=0.3535353535353535d-1
+    c(-3)=-0.1131313131313131d0
+    c(-2)=0.3111111111111111d0
+    c(-1)=-0.888888888888889d0
+    c(0)=0.d0
+    c(1)=0.888888888888889d0
+    c(2)=-0.3111111111111111d0
+    c(3)=0.1131313131313131d0
+    c(4)=-0.3535353535353535d-1
+    c(5)=0.87024087024087d-2
+    c(6)=-0.1554001554001554d-2
+    c(7)=0.1776001776001776d-3
+    c(8)=-9.71250971250971d-6
+   do 100,j=9,nrad-8
+   grad=0.d0
+   do i=-8,8
+   grad(1)=grad(1)+c(i)*rho(j+i,1)
+   enddo
+   grad(1)=rd(j)*grad(1)**2/sqrt(gradcut**2+grad(1)**2)
+!   if (grad(1).ge.0.d0) then
+!   sign(1)=rd(j)
+!   else
+!   sign(1)=-rd(j)
+!   endif
+!   grad(1)=sign(1)*grad(1)
+      do is=1,nspol
+      rhosub(is)=rho(j,is)
+      enddo
+   call xcfunction(nspol,rhosub,grad,Exc,Vxc,dEdg)
+   enexc=enexc+Exc*rw(j)*rho(j,1)
+   eps(j)=eps(j)+Exc
+   pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   write(777,'(a,i8,e12.5,(10(1x,e22.15)))') " GGAsimple", j,r(j),rhosub,grad,sign(1)/rd(j)
+   do i=-8,8
+   pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
+   enddo
 100   continue
 
    j=nrad-7
@@ -440,6 +491,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-8,7
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -465,6 +517,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-8,6
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -490,6 +543,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-8,5
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -515,6 +569,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-8,4
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -540,6 +595,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-8,3
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -565,6 +621,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-8,2
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -590,6 +647,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-8,1
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -615,6 +673,7 @@ subroutine driveGGAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    enexc=enexc+Exc*rw(j)*rho(j,1)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
    do i=-8,0
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    enddo
@@ -686,6 +745,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-0,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -732,6 +793,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-1,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -779,6 +842,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-2,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -827,6 +892,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-3,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -876,6 +943,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-4,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -926,6 +995,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-5,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -977,6 +1048,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-6,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1029,6 +1102,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-7,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1083,6 +1158,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-8,8
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1119,6 +1196,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-8,7
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1154,6 +1233,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-8,6
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1189,6 +1270,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-8,5
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1224,6 +1307,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-8,4
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1259,6 +1344,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-8,3
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1294,6 +1381,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-8,2
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1329,6 +1418,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-8,1
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)
@@ -1364,6 +1455,8 @@ subroutine driveGGApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    eps(j)=eps(j)+Exc
    pot(j,1)=pot(j,1)+Vxc(1)*rw(j)
    pot(j,2)=pot(j,2)+Vxc(2)*rw(j)
+   sign(1)=rd(j)*grad(1)*(grad(1)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(1)**2))**3
+   sign(2)=rd(j)*grad(2)*(grad(2)**2+2.d0*gradcut**2)/(sqrt(gradcut**2+grad(2)**2))**3
    do i=-8,0
    pot(j+i,1)=pot(j+i,1)+(sign(1)*c(i)*dEdg(1))*rw(j)
    pot(j+i,2)=pot(j+i,2)+(sign(2)*c(i)*dEdg(2))*rw(j)

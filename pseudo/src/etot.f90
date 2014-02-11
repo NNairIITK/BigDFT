@@ -153,9 +153,15 @@
                      psigrdold=psigrd
                      psigrd=wave2(ng,ll,psi(0,iocc,ll+1,ispin),expxpr,r,k,nint)
 !     kinetic energy
-                     d2=(psigrd-psigrdold)/(r-rold)
-                     d2old=(psigrdold-psigrdoldold)/(rold-roldold)
-                     if (k.ge.3) der2=der2+exp(-2.d0*rold)*.5d0*((d2-d2old)**2)/(r-roldold)
+                     d1=(psigrd-psigrdold)/(r-rold)
+                     d1old=(psigrdold-psigrdoldold)/(rold-roldold)
+                     d2=(d1-d1old)/(r-roldold)
+                     if (k.ge.3) der2=der2+exp(-2.d0*rold)*.5d0*(r-roldold)*d2**2
+                     !if(ll==0.and.iocc==1)write(69,'(a,6(e12.5,1x))')"r,&
+                     !         psi2", r,psigrd,&
+                     !         d1,d2,&
+                     !         0.5d0*(r-roldold)*d2**2,  & 
+                     !         exp(-3.d0*rold)*.5d0*(r-roldold)*d2**2 
 !     separabel part
                      if (ll.le.lpx-1) then
                         sep = (scpr1(ispin)*hsep(1,ll+1,ispin)   &
@@ -193,7 +199,7 @@
          write(6,*)' Pseudo atom energies'
          write(6,*)' ____________________'
          write(6,*) 
-         write(6,'(a,e26.17)') ' Sec. Dervative Softness   =',dertwo
+         write(6,'(a,e26.17)') ' Sec. Dervative Softness   =',sqrt(dertwo)
          write(6,'(a,f16.10)')' non local energy          =',enl
          write(6,'(a,f16.10)')' hartree energy with XC    =',eh
          write(6,'(a,f16.10)')' exchange + corr energy    =',exc
@@ -209,7 +215,7 @@
          do k=1,nint
             denfull=denfull+rhogrd(k,1)*rw(k)
          enddo
-         write(6,'(a,e11.4)')' atomic+electronic charge ',zion-denfull
+         write(6,'(a,e10.4)')' atomic+electronic charge ',zion-denfull
          write(6,*)
       end if
       !write(*,*)'From etot.f90 ekin=',ekin !Santanu

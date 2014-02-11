@@ -2144,9 +2144,9 @@
             else
               ipspcod=12
             end if
-            write(13,'(i5,i10,i2,a,17x,a)')ipspcod,ixc,lpx-1,  &
+            write(13,'(i5,i10,2x,i2,a,17x,a)')ipspcod,ixc,lpx-1,  &
               ' 0 2002 0','pspcod, ixc, lmax, lloc, mmax, r2well'
-            write( 6,'(i5,i10,i2,a,17x,a)')ipspcod,ixc,lpx-1,  &
+            write( 6,'(i5,i10,2x,i2,a,17x,a)')ipspcod,ixc,lpx-1,  &
               ' 0 2002 0','pspcod, ixc, lmax, lloc, mmax, r2well'
 
 

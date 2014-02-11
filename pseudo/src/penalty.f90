@@ -191,7 +191,7 @@
         write(6,*)'large  hij      ',sqrt(pen_h)
         write(6,*)'large  kij      ',sqrt(pen_k)
         write(6,*)'Vloc(r>rcov)    ',sqrt(pen_loc)
-        write(6,*)'Sec. Der. Smooth',dertwo
+        write(6,*)'Sec. Der. Smooth',sqrt(dertwo)
         write(6,*)'Psi(r=0) high S ',psir0
         write(6,*)
 !       write(6,*)'Verbose=',verbose,'nproc=',nproc!Santanu
@@ -227,7 +227,7 @@
 !        Serial case: One configuration, no excitation energies
          pen_cont(5)=wghtconf**2*penal
          pen_cont(7)=wghtsoft**2*ekin_pen
-         pen_cont(8)=wghtKE**2*dertwo
+         pen_cont(8)=wghtKE**2*sqrt(dertwo)
          penal=sqrt(penal+sum(pen_cont(5:9)))
 !        write(16,*)'DEBUG:ekin_pen,penal',ekin_pen,penal,wghtsoft
       else 
@@ -250,7 +250,7 @@
          pen_cont(1)=wghtconf**2 *penal
          pen_cont(2)=wghtexci**2 *(excit-excitAE)**2
          pen_cont(3)=wghtsoft**2 *ekin_pen
-         pen_cont(4)=wghtKE**2*dertwo !! Penalty for KE Santanu 
+         pen_cont(4)=wghtKE**2*sqrt(dertwo) !! Penalty for KE Santanu 
 
 !        write(6,*)'DEBUG lines for penalty over processes'
 !        write(6,*)'wghtconf,penal',wghtconf ,penal

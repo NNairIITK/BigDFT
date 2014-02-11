@@ -600,15 +600,15 @@ subroutine atom
 !      c.hartwig give energies in hartree; no virial correction
        write(6,50) (etot(i)*.5d0,i=1,5), (etot(i)*.5d0,i=7,10)
  50    format(//,15h total energies,/,1x,14('-'),/,  &
-       /,28h sum of eigenvalues        =,f18.8,  &
-       /,28h kinetic energy from ek    =,f18.8,  &
-       /,28h el-ion interaction energy =,f18.8,  &
-       /,28h el-el  interaction energy =,f18.8,  &
-       /,28h vxc    correction         =,f18.8,  &
-       /,28h exchange + corr energy    =,f18.8,  &
-       /,28h kinetic energy from ev    =,f18.8,  &
-       /,28h potential energy          =,f18.8,/,1x,45('-'),  &
-       /,28h total energy              =,f18.8)
+       /,28h sum of eigenvalues        =,e25.15,  &
+       /,28h kinetic energy from ek    =,e25.15,  &
+       /,28h el-ion interaction energy =,e25.15,  &
+       /,28h el-el  interaction energy =,e25.15,  &
+       /,28h vxc    correction         =,e25.15,  &
+       /,28h exchange + corr energy    =,e25.15,  &
+       /,28h kinetic energy from ev    =,e25.15,  &
+       /,28h potential energy          =,e25.15,/,1x,45('-'),  &
+       /,28h total energy              =,e25.15)
       
        end subroutine etotal
 !
@@ -1099,8 +1099,8 @@ subroutine atom
        znuc=charge(nameat)
 
 
-       a=1.d-5/znuc
-       b=0.0022d0
+       a=1.d-2/znuc
+       b=0.0042d0
 
 !
 !      set up grid
