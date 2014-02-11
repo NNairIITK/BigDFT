@@ -512,7 +512,8 @@ fructose:
 
 geopt_foe:
  D eF: 1.1e-10
- eF: 6.0e-11
+ D: 1.e-10
+ eF: 1.1e-10
  Epot: 1.1e-10
  eF: 1.1e-10
  EH: 1.1e-10
@@ -521,6 +522,8 @@ geopt_diag:
  Epot: 1.1e-10
  EH: 1.1e-10
  D: 1.0e-10
+ D eF: 1.1e-10
+ eF: 1.1e-10
 
 water_foe:
  EvXC: 1.1e-10
