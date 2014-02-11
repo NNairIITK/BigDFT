@@ -1329,106 +1329,6 @@ subroutine write_forces(atoms,fxyz)
    !$$        end if
 END SUBROUTINE write_forces
 
-
-!> Print the electronic configuration, with the semicore orbitals
-subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
-   use module_base
-   use yaml_output
-   implicit none
-   integer, intent(in) :: nelecmax,nsccode,noccmax,lmax,nspinor,nspin
-   real(gp), dimension(nelecmax), intent(in) :: aocc
-   !local variables
-   character(len=10) :: tmp
-   character(len=500) :: string
-   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
-   logical, dimension(4,2) :: scorb
-
-   !if non-collinear it is like nspin=1 but with the double of orbitals
-   if (nspinor == 4) then
-      noncoll=2
-   else
-      noncoll=1
-   end if
-   scorb=.false.
-   if (nsccode/=0) then !the atom has some semicore orbitals
-      niasc=nsccode
-      do lsc=4,1,-1
-         nlsc=niasc/4**(lsc-1)
-         do i=1,nlsc
-            scorb(lsc,i)=.true.
-         end do
-         niasc=niasc-nlsc*4**(lsc-1)
-      end do
-   end if
-
-   call yaml_open_map('Electronic configuration',flow=.true.)
-
-   !initalise string
-   string=repeat(' ',len(string))
-
-   is=1
-   do i=1,noccmax
-      iocc=0
-      do l=1,lmax
-         iocc=iocc+1
-         nl=nint(aocc(iocc))
-         do inl=1,nl
-            !write to the string the angular momentum
-            if (inl == i) then
-               iss=is
-               if (scorb(l,inl)) then
-                  string(is:is)='('
-                  is=is+1
-               end if
-               select case(l)
-               case(1)
-                  string(is:is)='s'
-               case(2)
-                  string(is:is)='p'
-               case(3)
-                  string(is:is)='d'
-               case(4)
-                  string(is:is)='f'
-               case default
-                  stop 'l not admitted'
-               end select
-               is=is+1
-               if (scorb(l,inl)) then
-                  string(is:is)=')'
-                  is=is+1
-               end if
-               call yaml_open_sequence(string(iss:is))
-            end if
-            do ispin=1,nspin
-               do m=1,2*l-1
-                  do icoll=1,noncoll !non-trivial only for nspinor=4
-                     iocc=iocc+1
-                     !write to the string the value of the occupation numbers
-                     if (inl == i) then
-                        call write_fraction_string(l,aocc(iocc),tmp,ntmp)
-                        string(is:is+ntmp-1)=tmp(1:ntmp)
-                        call yaml_sequence(tmp(1:ntmp))
-                        is=is+ntmp
-                     end if
-                  end do
-               end do
-            end do
-            if (inl == i) then
-               string(is:is+2)=' , '
-               is=is+3
-               call yaml_close_sequence()
-            end if
-         end do
-      end do
-   end do
-
-   !write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
-
-   call yaml_close_map()
-
-END SUBROUTINE print_eleconf
-
-
 !> Write stress tensor matrix
 subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   use module_base
@@ -1462,3 +1362,483 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   end if
 
 END SUBROUTINE write_strten_info
+
+!> Assign some of the physical system variables
+!! Performs also some cross-checks with other variables
+!! The pointer in atoms structure have to be associated or nullified.
+subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
+  use module_base
+  use module_types
+  use module_xc
+  use vdwcorrection
+  use yaml_output
+  implicit none
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), intent(in) :: hmax
+  integer, intent(in) :: ixc, dispersion
+  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+  !local variables
+  !character(len=*), parameter :: subname='print_atomic_variables'
+  !integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  logical :: nonloc
+  integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
+  real(gp) :: minrad
+  real(gp), dimension(3,3) :: hij
+  real(gp), dimension(2,2,3) :: offdiagarr
+  character(len=500) :: name_xc1, name_xc2
+
+  !If no atoms...
+  if (atoms%astruct%ntypes == 0) return
+
+  !print the pseudopotential matrices
+  do l=1,3
+     do i=1,2
+        do j=i+1,3
+           offdiagarr(i,j-i,l)=0._gp
+           if (l==1) then
+              if (i==1) then
+                 if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(3._gp/5._gp)
+                 if (j==3)   offdiagarr(i,j-i,l)=0.5_gp*sqrt(5._gp/21._gp)
+              else
+                 offdiagarr(i,j-i,l)=-0.5_gp*sqrt(100._gp/63._gp)
+              end if
+           else if (l==2) then
+              if (i==1) then
+                 if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(5._gp/7._gp)
+                 if (j==3)   offdiagarr(i,j-i,l)=1._gp/6._gp*sqrt(35._gp/11._gp)
+              else
+                 offdiagarr(i,j-i,l)=-7._gp/3._gp*sqrt(1._gp/11._gp)
+              end if
+           else if (l==3) then
+              if (i==1) then
+                 if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(7._gp/9._gp)
+                 if (j==3)   offdiagarr(i,j-i,l)=0.5_gp*sqrt(63._gp/143._gp)
+              else
+                 offdiagarr(i,j-i,l)=-9._gp*sqrt(1._gp/143._gp)
+              end if
+           end if
+        end do
+     end do
+  end do
+
+!  write(*,'(1x,a)')&
+  !       '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
+  inlcc=0
+  call yaml_comment('System Properties',hfill='-')
+  call yaml_open_sequence('Properties of atoms in the system')
+  do ityp=1,atoms%astruct%ntypes
+     call yaml_sequence(advance='no')
+     call yaml_map('Symbol',trim(atoms%astruct%atomnames(ityp)),advance='no')
+     call yaml_comment('Type No. '//trim(yaml_toa(ityp,fmt='(i2.2)')))
+     call yaml_map('No. of Electrons',atoms%nelpsp(ityp))
+     natyp=0
+     do iat=1,atoms%astruct%nat
+        if (atoms%astruct%iatype(iat) == ityp) natyp=natyp+1
+     end do
+     call yaml_map('No. of Atoms',natyp)
+
+     call yaml_open_map('Radii of active regions (AU)')!,flow=.true.)
+       call yaml_map('Coarse',radii_cf(ityp,1),fmt='(f8.5)')
+       call yaml_map('Fine',radii_cf(ityp,2),fmt='(f8.5)')
+       call yaml_map('Coarse PSP',radii_cf(ityp,3),fmt='(f8.5)')
+       if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+          call yaml_map('Source','Hard-Coded')
+       else
+          call yaml_map('Source','PSP File')
+       end if
+     call yaml_close_map()
+
+     minrad=1.e10_gp
+     do i=0,4
+        if (atoms%psppar(i,0,ityp)/=0._gp) then
+           minrad=min(minrad,atoms%psppar(i,0,ityp))
+        end if
+     end do
+     if (radii_cf(ityp,2) /=0.0_gp) then
+        call yaml_map('Grid Spacing threshold (AU)',2.5_gp*minrad,fmt='(f5.2)')
+     else
+        call yaml_map('Grid Spacing threshold (AU)',1.25_gp*minrad,fmt='(f5.2)')
+     end if
+     !control whether the grid spacing is too high
+     if (hmax > 2.5_gp*minrad) then
+        call yaml_warning('Chosen Grid spacings seem too high for this atom. At you own risk!')
+     end if
+
+     select case(atoms%npspcode(ityp))
+     case(2)
+        call yaml_map('Pseudopotential type','GTH')
+     case(3)
+        call yaml_map('Pseudopotential type','HGH')
+     case(10)
+        call yaml_map('Pseudopotential type','HGH-K')
+     case(12)
+        call yaml_map('Pseudopotential type','HGH-K + NLCC')
+     end select
+     if (atoms%psppar(0,0,ityp)/=0) then
+        call yaml_open_map('Local Pseudo Potential (HGH convention)')
+          call yaml_map('Rloc',atoms%psppar(0,0,ityp),fmt='(f9.5)')
+          call yaml_map('Coefficients (c1 .. c4)',atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
+        call yaml_close_map()
+     end if
+     !nlcc term
+     if (atoms%npspcode(ityp) == 12) then
+        inlcc=inlcc+1
+        call yaml_open_map('Non Linear Core Correction term')
+            call yaml_map('Rcore',atoms%nlccpar(0,inlcc),fmt='(f9.5)')
+            call yaml_map('Core charge',atoms%nlccpar(1,inlcc),fmt='(f9.5)')
+        call yaml_close_map()
+     end if
+     !see if nonlocal terms are present
+     nonloc=.false.
+     verify_nl: do l=1,3
+        do i=3,0,-1
+           j=i
+           if (atoms%psppar(l,i,ityp) /= 0._gp) exit
+        end do
+        if (j /=0) then
+           nonloc=.true.
+           exit verify_nl
+        end if
+     end do verify_nl
+     if (nonloc) then
+        call yaml_open_sequence('NonLocal PSP Parameters')
+        do l=1,3
+           do i=3,0,-1
+              j=i
+              if (atoms%psppar(l,i,ityp) /= 0._gp) exit
+           end do
+           if (j /=0) then
+              call yaml_sequence(advance='no')
+              call yaml_map('Channel (l)',l-1)
+              call yaml_map('Rloc',atoms%psppar(l,0,ityp),fmt='(f9.5)')
+              hij=0._gp
+              do i=1,j
+                 hij(i,i)=atoms%psppar(l,i,ityp)
+              end do
+              if (atoms%npspcode(ityp) == 3) then !traditional HGH convention
+                 hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
+                 hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
+                 hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
+              else if (atoms%npspcode(ityp) == 10 &
+                  .or. atoms%npspcode(ityp) == 12) then !HGH-K convention
+                 hij(1,2)=atoms%psppar(l,4,ityp)
+                 hij(1,3)=atoms%psppar(l,5,ityp)
+                 hij(2,3)=atoms%psppar(l,6,ityp)
+              end if
+              call yaml_open_sequence('h_ij matrix')
+                call yaml_sequence(trim(yaml_toa(hij(1,1:3),fmt='(f9.5)')))
+                call yaml_sequence(trim(yaml_toa((/hij(1,2),hij(2,2),hij(2,3)/),fmt='(f9.5)')))
+                call yaml_sequence(trim(yaml_toa((/hij(1,3),hij(2,3),hij(3,3)/),fmt='(f9.5)')))
+              call yaml_close_sequence()
+           end if
+        end do
+        call yaml_close_sequence()
+     end if
+     call numb_proj(ityp,atoms%astruct%ntypes,atoms%psppar,atoms%npspcode,mproj)
+     call yaml_map('No. of projectors',mproj)
+
+     !control if the PSP is calculated with the same XC value
+     if (atoms%ixcpsp(ityp) < 0) then
+        call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_MIXED)
+     else
+        call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_ABINIT)
+     end if
+     if (ixc < 0) then
+        call xc_get_name(name_xc2, ixc, XC_MIXED)
+     else
+        call xc_get_name(name_xc2, ixc, XC_ABINIT)
+     end if
+     call yaml_map('PSP XC','"'//trim(name_xc1)//'"')
+     if (trim(name_xc1) /= trim(name_xc2)) then
+        call yaml_warning('Input XC is "'//trim(name_xc2) // '"')
+     end if
+  end do
+  call yaml_close_sequence()
+!!!  tt=dble(norb)/dble(nproc)
+!!!  norbp=int((1.d0-eps_mach*tt) + tt)
+!!!  !if (verb.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
+
+  call vdwcorrection_warnings(atoms, dispersion, ixc)
+
+  ! if linear scaling applied with more then InputGuess, then go read input.lin for radii
+  !  if (in%linear /= 'OFF' .and. in%linear /= 'LIG') then
+  !     lin%nlr=atoms%astruct%nat
+  !     call allocateBasicArrays(atoms, lin)
+  !     call readLinearParameters(verb, nproc, lin, atoms, atomNames)
+  !  end if
+END SUBROUTINE print_atomic_variables
+
+subroutine print_memory_estimation(mem)
+  use module_types
+  use yaml_output
+  implicit none
+  type(memory_estimation), intent(in) :: mem
+
+  call yaml_comment('Estimation of Memory Consumption',hfill='-')
+  call yaml_open_map('Memory requirements for principal quantities (MiB.KiB)')
+    call yaml_map('Subspace Matrix',trim(MibdotKib(mem%submat)),advance='no')
+      call yaml_comment('(Number of Orbitals:'//trim(yaml_toa(mem%norb))//')',tabbing=50)
+    call yaml_map('Single orbital',trim(MibdotKib(mem%oneorb)),advance='no')
+      call yaml_comment('(Number of Components:'//trim(yaml_toa(mem%ncomponents))//')',tabbing=50)
+    call yaml_map('All (distributed) orbitals',trim(MibdotKib(mem%allpsi_mpi)),advance='no')
+      call yaml_comment('(Number of Orbitals per MPI task:'//trim(yaml_toa(mem%norbp))//')',tabbing=50)
+    call yaml_map('Wavefunction storage size',trim(MibdotKib(mem%psistorage)),advance='no')
+      call yaml_comment('(DIIS/SD workspaces included)',tabbing=50)
+    call yaml_map('Nonlocal Pseudopotential Arrays',trim(MibdotKib(mem%projarr)))
+    call yaml_map('Full Uncompressed (ISF) grid',trim(MibdotKib(mem%grid)))
+    call yaml_map('Workspaces storage size',trim(MibdotKib(mem%workarr)))
+  call yaml_close_map()
+
+  call yaml_open_map('Accumulated memory requirements during principal run stages (MiB.KiB)')
+     call yaml_map('Kernel calculation',trim(MibdotKib(mem%kernel)))
+     call yaml_map('Density Construction',trim(MibdotKib(mem%density)))
+     call yaml_map('Poisson Solver',trim(MibdotKib(mem%psolver)))
+     call yaml_map('Hamiltonian application',trim(MibdotKib(mem%ham)))
+!           call yaml_comment('Wfn, Work, Den, Ker ',tabbing=50)
+  call yaml_close_map()
+  call yaml_map('Estimated Memory Peak (MB)',yaml_toa(mega(mem%peak)))
+
+contains
+
+  function mega(omemory)
+    implicit none
+    real(kind=8), intent(in) :: omemory
+    integer(kind=8) :: mega
+    mega=int(omemory/1048576.d0,kind=8)
+  end function mega
+
+  function kappa(omemory)
+    implicit none
+    real(kind=8), intent(in) :: omemory
+    integer :: kappa
+    kappa=ceiling((omemory-aint(omemory/1048576.d0)*1048576.d0)/1024.d0)
+  end function kappa
+
+  function MiBdotKiB(omemory)
+    implicit none
+    real(kind=8), intent(in) :: omemory
+    character(len=50) MiBdotKiB
+
+    MiBdotKiB=repeat(' ',len(MiBdotKiB))
+
+    MiBdotKiB=trim(adjustl(yaml_toa(int(mega(omemory)))))//'.'//&
+         trim(adjustl(yaml_toa(int(kappa(omemory)))))
+    
+  end function MiBdotKiB
+
+END SUBROUTINE print_memory_estimation
+
+subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
+  use module_defs
+  use module_types
+  use yaml_output
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  type(locreg_descriptors), intent(in) :: Glr
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), dimension(3), intent(in) :: shift
+  real(gp), intent(in) :: hx, hy, hz
+
+  integer :: iat, iunit
+
+  if (atoms%astruct%ntypes > 0) then
+     call yaml_comment('Atom Positions',hfill='-')
+     call yaml_open_sequence('Atomic positions within the cell (Atomic and Grid Units)')
+     do iat=1,atoms%astruct%nat
+        call yaml_sequence(advance='no')
+        call yaml_open_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),flow=.true.)
+        call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
+        call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
+        call yaml_close_map(advance='no')
+        call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+     enddo
+     call yaml_close_sequence()
+     call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
+     ! New version
+     call yaml_open_map('Atomic structure')
+     call yaml_get_default_stream(unit = iunit)
+     call wtyaml(iunit, UNINITIALIZED(1.d0), rxyz, atoms, .false., rxyz, &
+          & .true., shift, (/ hx, hy, hz /))
+     call yaml_close_map()
+  end if
+  call yaml_comment('Grid properties',hfill='-')
+  call yaml_map('Box Grid spacings',(/hx,hy,hz/),fmt='(f7.4)')
+  call yaml_open_map('Sizes of the simulation domain')
+  call yaml_map('AU',(/atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3)/),fmt='(1pg12.5)')
+  call yaml_map('Angstroem',(/atoms%astruct%cell_dim(1)*Bohr_Ang,&
+       atoms%astruct%cell_dim(2)*Bohr_Ang,atoms%astruct%cell_dim(3)*Bohr_Ang/),fmt='(1pg12.5)')
+  call yaml_map('Grid Spacing Units',(/Glr%d%n1,Glr%d%n2,Glr%d%n3/),fmt='(i4)')
+  call yaml_open_map('High resolution region boundaries (GU)',flow=.false.)
+  call yaml_map('From',(/Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3/),fmt='(i4)')
+  call yaml_map('To',(/Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3/),fmt='(i4)')
+  call yaml_close_map()
+  call yaml_close_map()
+!!$      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
+!!$      do iat=1,atoms%astruct%nat
+!!$         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
+!!$            &   iat,trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+!!$            &   (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
+!!$      enddo
+!!$      write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf7.4))') &
+!!$         &   '   Shift of=',-cxmin,-cymin,-czmin,' H grids=',hx,hy,hz
+!!$      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
+!!$         &   '  Box Sizes=',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3),n1,n2,n3
+!!$      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
+!!$         &   '      Extremes for the high resolution grid points:',&
+!!$         &   nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
+
+!!$   if (Glr%hybrid_on) then
+!!$      if (iproc == 0) write(*,*)'wavelet localization is ON'
+!!$   else
+!!$      if (iproc == 0) write(*,*)'wavelet localization is OFF'
+!!$   endif
+  call yaml_map('High Res. box is treated separately',Glr%hybrid_on)
+END SUBROUTINE print_atoms_and_grid
+
+subroutine print_wfd(wfd)
+  use module_types, only: wavefunctions_descriptors
+  use yaml_output
+  implicit none
+  type(wavefunctions_descriptors), intent(in) :: wfd
+
+  call yaml_open_map('Wavefunctions Descriptors, full simulation domain')
+  !write(*,'(1x,a)')&
+  !   &   '------------------------------------------------- Wavefunctions Descriptors Creation'
+
+  !write(*,'(2(1x,a,i10))') &
+  !     &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
+  call yaml_open_map('Coarse resolution grid')!,flow=.true.)
+  call yaml_map('No. of segments',wfd%nseg_c)
+  call yaml_map('No. of points',wfd%nvctr_c)
+  call yaml_close_map()
+
+  !write(*,'(2(1x,a,i10))')
+  !'  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
+  call yaml_open_map('Fine resolution grid')!,flow=.true.)
+  call yaml_map('No. of segments',wfd%nseg_f)
+  call yaml_map('No. of points',wfd%nvctr_f)
+  call yaml_close_map()
+  call yaml_close_map()
+  
+END SUBROUTINE print_wfd
+
+subroutine print_nlpsp(nlpsp)
+  use module_defs, only: gp
+  use module_types, only: DFT_PSP_projectors
+  use yaml_output
+  implicit none
+  type(DFT_PSP_projectors), intent(in) :: nlpsp
+
+  call yaml_open_map('NonLocal PSP Projectors Descriptors')
+  if (nlpsp%on_the_fly) then
+     call yaml_map('Creation strategy','On-the-fly')
+     !write(*,'(44x,a)') '------  On-the-fly projectors application'
+  else
+     call yaml_map('Creation strategy','Once-and-for-all')
+     !write(*,'(44x,a)') '------'
+  end if
+  call yaml_map('Total number of projectors',nlpsp%nproj)
+  call yaml_map('Total number of components',nlpsp%nprojel)
+  call yaml_map('Percent of zero components',nint(100.0_gp*nlpsp%zerovol))
+
+!!$     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
+!!$     write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
+!!$     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
+  call yaml_close_map()
+END SUBROUTINE print_nlpsp
+
+subroutine print_orbitals(orbs, geocode)
+  use module_types, only: orbitals_data
+  use module_defs, only: gp
+  use yaml_output
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  character(len = 1), intent(in) :: geocode
+  
+  integer :: jproc, nproc, jpst, norbme, norbyou, nelec
+  integer :: ikpts, iorb1, iorb
+  real(gp) :: rocc
+
+  nelec = int(sum(orbs%occup) + 1d-12) / orbs%nkpts
+
+  call yaml_comment('Occupation Numbers',hfill='-')
+  call yaml_map('Total Number of Electrons',nelec,fmt='(i8)')
+
+  ! Number of orbitals
+  if (orbs%nspin==1) then
+     call yaml_map('Spin treatment','Averaged')
+     if (mod(nelec,2).ne.0) then
+        call yaml_warning('Odd number of electrons, no closed shell system')
+        !write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
+     end if
+  else if(orbs%nspin==4) then
+     call yaml_map('Spin treatment','Spinorial (non-collinearity possible)')
+  else 
+     call yaml_map('Spin treatment','Collinear')
+  end if
+
+  !distribution of wavefunction arrays between processors
+  !tuned for the moment only on the cubic distribution
+  call yaml_open_map('Orbitals Repartition')
+  jpst=0
+  nproc = size(orbs%norb_par, 1)
+  do jproc=0,nproc-1
+     norbme=orbs%norb_par(jproc,0)
+     norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
+     if (norbme /= norbyou .or. jproc == nproc-1) then
+        call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
+        !write(*,'(3(a,i0),a)')&
+        !     ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
+        jpst=jproc+1
+     end if
+  end do
+  !write(*,'(3(a,i0),a)')&
+  !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
+  call yaml_close_map()
+  
+  call yaml_map('Total Number of Orbitals',orbs%norb,fmt='(i8)')
+!!$     if (verb) then
+!!$        if (iunit /= 0) then
+!!$           call yaml_map('Occupation numbers coming from', trim(radical) // '.occ')
+!!$        else
+!!$           call yaml_map('Occupation numbers coming from','System properties')
+!!$        end if
+!!$     end if
+
+  call yaml_open_sequence('Input Occupation Numbers')
+  do ikpts=1,orbs%nkpts
+     if (geocode /= 'F') then
+        call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &
+        & trim(yaml_toa(orbs%kpts(:, ikpts),fmt='(f12.6)')))
+     end if
+     call yaml_sequence(advance='no')
+     call yaml_open_map('Occupation Numbers',flow=.true.)
+     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
+     iorb1=1
+     rocc=orbs%occup(1+(ikpts-1)*orbs%norb)
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpts-1)*orbs%norb) /= rocc) then
+           if (iorb1 == iorb-1) then
+              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
+              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+           else
+           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+                adjustl(trim(yaml_toa(iorb-1))),rocc,fmt='(f6.4)')
+           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           end if
+           rocc=orbs%occup(iorb+(ikpts-1)*orbs%norb)
+           iorb1=iorb
+        end if
+     enddo
+     if (iorb1 == orbs%norb) then
+        call yaml_map('Orbital No.'//trim(yaml_toa(orbs%norb)),orbs%occup(ikpts*orbs%norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+     else
+        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+             adjustl(trim(yaml_toa(orbs%norb))),orbs%occup(ikpts*orbs%norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+     end if
+     call yaml_close_map()
+  end do
+  call yaml_close_sequence()
+END SUBROUTINE print_orbitals

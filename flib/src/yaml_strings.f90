@@ -319,7 +319,6 @@ contains
     include 'yaml_toa-arr-inc.f90'
   end function yaml_rvtoa
 
-
   !> Yaml Spaced format for Date and Time
   function yaml_date_and_time_toa(values,zone)
     implicit none
@@ -379,7 +378,7 @@ contains
 
     write(yaml_date_toa,'(i4.4,"-",i2.2,"-",i2.2)')vals(1:3)
 
-    yaml_date_toa=yaml_adjust(yaml_date_toa)
+    yaml_date_toa=yaml_adjust(yaml_date_toa,clean=.false.)
 
   end function yaml_date_toa
 
@@ -398,16 +397,24 @@ contains
 
     write(yaml_time_toa,'(i2.2,":",i2.2,":",i2.2,".",i3.3)')vals(5:8)
 
-    yaml_time_toa=yaml_adjust(yaml_time_toa)
+    yaml_time_toa=yaml_adjust(yaml_time_toa,clean=.false.)
 
   end function yaml_time_toa
 
-  pure function yaml_adjust(str)
+  pure function yaml_adjust(str,clean)
     implicit none
     character(len=*), intent(in) :: str
+    logical, intent(in), optional :: clean
     character(len=max_value_length) :: yaml_adjust
+    !local variables
+    logical :: clean0
+
+    clean0=.true.
+    if (present(clean)) clean0=clean
 
     yaml_adjust=adjustl(str)
+
+    if (clean0) yaml_adjust=clean_zero(yaml_adjust)
 
     !put a space if there is no sign
     if (yaml_adjust(1:1)/='-') then
@@ -417,6 +424,45 @@ contains
     end if
 
   end function yaml_adjust
+
+  pure function clean_zero(str)
+    implicit none
+    character(len=*), intent(in) :: str
+    character(len=max_value_length) :: clean_zero
+    !local variables
+    integer :: idot,iexpo,i,iend
+
+    !first fill with all the values up to the dot if it exist
+    idot=scan(str,'.')
+    if (idot==0) then
+       !no dot, nothing to clean
+       clean_zero(1:max_value_length)=str
+    else
+       !first find the position of the end of the string
+!       iend=len_trim(str)
+       !then search for the position of the exponent or of the space if present
+       iexpo=scan(str(idot+2:),'eE ')+idot+1
+       !print *,'there',iexpo,'str',str(idot+2:)
+       if (iexpo==idot+1) iexpo=len(str)+1
+       i=iexpo
+       find_last_zero: do while(i > idot+1) !first digit after comma always stays
+          i=i-1
+          if (str(i:i) /= '0') exit find_last_zero
+       end do find_last_zero
+       clean_zero(1:i)=str(1:i)
+       !print *,'here',i,clean_zero(1:i),'iexpo',iexpo,str(iexpo:)
+       !then copy the exponent
+       if (str(iexpo:) /= 'E+00' .and. str(iexpo:) /= 'e+00' .and. str(iexpo:) /= 'E+000' .and. &
+            str(iexpo:) /= 'e+000') then
+          clean_zero(i+1:max_value_length)=str(iexpo:)
+       else
+          clean_zero(i+1:max_value_length)=' '
+       end if
+       !try to put at the old position a termination character
+!       clean_zero(iend:iend)=char(0)
+    end if
+  end function clean_zero
+
 
   !>find if a string is an integer
   !! use the portable mode described in 

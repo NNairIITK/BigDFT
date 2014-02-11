@@ -50,18 +50,20 @@ module constrained_dft
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-       subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
-                   blocksize_pdgemm, norb, ovrlp, inv_ovrlp_half, plusminus, orbs)
-          use module_base
-          use module_types
-          implicit none
+       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, &
+            orbs, ovrlp_smat, inv_ovrlp_smat)
+         use module_base
+         use module_types
+         implicit none
   
-          integer,intent(in) :: iproc, nproc, norb, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm
-          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp
-          real(kind=8),dimension(norb,norb),intent(inout) :: inv_ovrlp_half
-          logical, intent(in) :: plusminus
-          type(orbitals_data), optional, intent(in) :: orbs
-       end subroutine overlapPowerPlusMinusOneHalf_old
+         ! Calling arguments
+         integer,intent(in) :: iproc, nproc, iorder, power, blocksize, norb
+         real(kind=8),dimension(:,:),pointer :: ovrlp
+         real(kind=8),dimension(:,:),pointer :: inv_ovrlp
+         real(kind=8),intent(out) :: error
+         type(orbitals_data), optional, intent(in) :: orbs
+         type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+       end subroutine overlapPowerGeneral
   end interface
 
   type, public :: cdft_data
@@ -85,9 +87,10 @@ contains
   !! CDFT: and P is a projector matrix onto the tmbs of the desired fragment
   !! CDFT: for standalone CDFT calculations, assuming one charged fragment, for transfer integrals assuming two fragments
   !! CDFT: where we constrain the difference - should later generalize this
-  subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calculate_overlap_matrix)
+  subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calculate_overlap_matrix,meth_overlap)
     use module_fragments
     implicit none
+    integer, intent(in) :: meth_overlap
     type(cdft_data), intent(inout) :: cdft
     type(input_variables),intent(in) :: input
     type(dft_wavefunction), intent(inout) :: tmb
@@ -95,7 +98,7 @@ contains
     type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
 
     integer :: iall, iorb, jorb, istat, ifrag, ifrag_ref, isforb, nfrag_charged
-    real(kind=gp), allocatable, dimension(:,:) :: proj_mat, ovrlp_half, proj_ovrlp_half, inv_ovrlp_half
+    real(kind=gp), dimension(:,:), pointer :: ovrlp_half
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
 
     ! wrapper here so we can modify charge and avoid restructuring the code as much whilst still using the routine elsewhere
@@ -109,26 +112,31 @@ contains
        nfrag_charged=1
     end if
 
+    ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
     call calculate_weight_matrix_lowdin(cdft%weight_matrix,nfrag_charged,cdft%ifrag_charged,tmb,input,&
-         ref_frags,calculate_overlap_matrix)
+         ref_frags,calculate_overlap_matrix,.true.,meth_overlap,ovrlp_half)
+    call f_free_ptr(ovrlp_half)
 
   end subroutine calculate_weight_matrix_lowdin_wrapper
 
 
-  subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,calculate_overlap_matrix)
+  subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
+       calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
     use module_fragments
     implicit none
     type(sparseMatrix), intent(inout) :: weight_matrix
     type(input_variables),intent(in) :: input
     type(dft_wavefunction), intent(inout) :: tmb
-    logical, intent(in) :: calculate_overlap_matrix
+    logical, intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
     type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
-    integer, intent(in) :: nfrag_charged
+    integer, intent(in) :: nfrag_charged, meth_overlap
     integer, dimension(2), intent(in) :: ifrag_charged
+    real(kind=gp), dimension(:,:), pointer :: ovrlp_half
     !local variables
-    integer :: ifrag,iorb,ifrag_ref,isforb,istat
-    real(kind=gp), allocatable, dimension(:,:) :: proj_mat, ovrlp_half, proj_ovrlp_half, inv_ovrlp_half
+    integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr
+    real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
+    real(kind=gp) :: error
 
     ! needs parallelizing/converting to sparse
     ! re-use overlap matrix if possible either before or after
@@ -154,40 +162,13 @@ contains
             tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
     end if   
 
-    ! change this to calculate S^1/2 directly rather than S*S^-1/2
-    tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
-    call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
-
-    inv_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='inv_ovrlp_half')
-
-    ! ideally need interface here... but should change to newer version anyway (and more approximate?!)
-    call overlapPowerPlusMinusOneHalf_old(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, 0,  &
-         tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, &
-         inv_ovrlp_half, .false., tmb%orbs)
-
-    ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
-
-    call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, &
-           tmb%orbs%norb, 1.d0, &
-           tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, &
-           inv_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
-           ovrlp_half(1,1), tmb%orbs%norb)
-
-!call overlapPowerPlusMinusOneHalf_old(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, 0, tmb%orthpar%blocksize_pdsyev, &
-!     tmb%orthpar%blocksize_pdgemm, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp_half, .true., tmb%orbs)
-
-!!write correct but extra work cf new way
-!do iorb=1,tmb%orbs%norb
-!do jorb=1,tmb%orbs%norb
-!write(900,*) iorb,jorb,ovrlp_half(iorb,jorb),inv_ovrlp_half(iorb,jorb),ovrlp_half(iorb,jorb)-inv_ovrlp_half(iorb,jorb),&
-!ovrlp_half(iorb,jorb)/inv_ovrlp_half(iorb,jorb)
-!end do
-!end do
-!stop
-
-    call f_free(inv_ovrlp_half)
-    call f_free_ptr(tmb%linmat%ovrlp%matrix)
-
+    if (calculate_ovrlp_half) then
+       tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
+       call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+       call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
+             tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, ovrlp_half, error, tmb%orbs)
+       call f_free_ptr(tmb%linmat%ovrlp%matrix)
+    end if
 
     ! optimize this to just change the matrix multiplication?
     proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
@@ -211,38 +192,35 @@ contains
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
     end do
 
-    proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_ovrlp_half')
-
-    call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, &
-           tmb%orbs%norb, 1.d0, &
-           proj_mat(1,1), tmb%orbs%norb, &
-           ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
-           proj_ovrlp_half(1,1), tmb%orbs%norb)
-
+    proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='proj_ovrlp_half')
+    if (tmb%orbs%norbp>0) then
+       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
+              tmb%orbs%norb, 1.d0, &
+              proj_mat(1,1), tmb%orbs%norb, &
+              ovrlp_half(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
+              proj_ovrlp_half(1,1), tmb%orbs%norb)
+    end if
     call f_free(proj_mat)
-    weight_matrix%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix%matrix')
-
-    call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, & 
-         tmb%orbs%norb, 1.d0, &
-         ovrlp_half(1,1), tmb%orbs%norb, &
-         proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
-         weight_matrix%matrix(1,1), tmb%orbs%norb)
-
-    call f_free(ovrlp_half)
+    weight_matrixp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='weight_matrixp')
+    if (tmb%orbs%norbp>0) then
+       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, & 
+            tmb%orbs%norb, 1.d0, &
+            ovrlp_half(1,1), tmb%orbs%norb, &
+            proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
+            weight_matrixp(1,1), tmb%orbs%norb)
+    end if
     call f_free(proj_ovrlp_half)
-
-    ! debug
-    !do iorb=1,tmb%orbs%norb
-    !   do jorb=1,tmb%orbs%norb
-    !      write(86,*) iorb,jorb,weight_matrix%matrix(iorb,jorb)
-    !   end do
-    !end do
-    ! debug
-
+    weight_matrix%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix%matrix')
+    if (bigdft_mpi%nproc>1) then
+       call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix%matrix, &
+            tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
+            mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+    else
+       call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix%matrix(1,1),1)
+    end if
+    call f_free(weight_matrixp)
     call compress_matrix_for_allreduce(bigdft_mpi%iproc,weight_matrix)
-
     call f_free_ptr(weight_matrix%matrix)
-
     call f_release_routine()
 
   end subroutine calculate_weight_matrix_lowdin

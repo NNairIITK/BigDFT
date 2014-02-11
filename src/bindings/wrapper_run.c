@@ -11,6 +11,8 @@
 /*********************************/
 /* BigDFT_Goutput data structure */
 /*********************************/
+static void bigdft_goutput_dispose(GObject *energs);
+static void bigdft_goutput_finalize(GObject *energs);
 #ifdef HAVE_GLIB
 enum {
   EKS_READY_SIGNAL,
@@ -20,9 +22,6 @@ enum {
 G_DEFINE_TYPE(BigDFT_Goutput, bigdft_goutput, G_TYPE_OBJECT)
 
 static guint bigdft_goutput_signals[LAST_SIGNAL] = { 0 };
-
-static void bigdft_goutput_dispose(GObject *energs);
-static void bigdft_goutput_finalize(GObject *energs);
 
 static void bigdft_goutput_class_init(BigDFT_GoutputClass *klass)
 {
@@ -49,7 +48,6 @@ static void bigdft_goutput_init(BigDFT_Goutput *obj)
   G_OBJECT(obj)->ref_count = 1;
 #endif
 }
-#ifdef HAVE_GLIB
 static void bigdft_goutput_dispose(GObject *obj)
 {
   BigDFT_Goutput *energs = BIGDFT_GOUTPUT(obj);
@@ -58,15 +56,16 @@ static void bigdft_goutput_dispose(GObject *obj)
     return;
   energs->dispose_has_run = TRUE;
 
+#ifdef HAVE_GLIB
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_goutput_parent_class)->dispose(obj);
-}
 #endif
+}
 static void bigdft_goutput_finalize(GObject *obj)
 {
   BigDFT_Goutput *outs = BIGDFT_GOUTPUT(obj);
 
-  if (outs->data)
+  if (F_TYPE(outs->data))
     FC_FUNC_(global_output_free, GLOBAL_OUTPUT_FREE)(&outs->data);
 
 #ifdef HAVE_GLIB
@@ -96,15 +95,15 @@ BigDFT_Goutput* bigdft_goutput_new(guint nat)
 }
 void FC_FUNC_(energs_new_wrapper, ENERGS_NEW_WRAPPER)(double *self, _DFT_global_output *obj)
 {
-  BigDFT_Goutput *outs;
+  /* BigDFT_Goutput *outs; */
 
-  outs = bigdft_goutput_new_from_fortran(obj);
-  *self = *((double*)&outs);
+  /* outs = bigdft_goutput_new_from_fortran(obj); */
+  /* *self = *((double*)&outs); */
 }
 static void _sync_energs(BigDFT_Goutput *outs)
 {
   FC_FUNC_(energs_copy_data, ENERGS_COPY_DATA)
-    (outs->energs, &outs->eh, &outs->exc,
+    (F_TYPE(outs->energs), &outs->eh, &outs->exc,
      &outs->evxc, &outs->eion, &outs->edisp,
      &outs->ekin, &outs->epot, &outs->eproj,
      &outs->eexctX, &outs->ebs, &outs->eKS,
@@ -115,14 +114,14 @@ static void _sync_outs(BigDFT_Goutput *outs)
   f90_pointer_double_2D fxyz;
 
   F90_2D_POINTER_INIT(&fxyz);
-  FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(outs->data, &outs->energs, &fxyz,
+  FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(F_TYPE(outs->data), &outs->energs, &fxyz,
                                                  (int*)&outs->fdim,
                                                  &outs->fnoise, &outs->pressure,
                                                  outs->strten, &outs->etot);
   outs->fxyz = fxyz.data;
   _sync_energs(outs);
 }
-BigDFT_Goutput* bigdft_goutput_new_from_fortran(_DFT_global_output *obj)
+BigDFT_Goutput* bigdft_goutput_new_from_fortran(_DFT_global_output_pointer obj)
 {
   BigDFT_Goutput *outs;
 
@@ -141,8 +140,8 @@ void FC_FUNC_(energs_free_wrapper, ENERGS_FREE_WRAPPER)(gpointer *obj)
 {
   BigDFT_Goutput *outs = BIGDFT_GOUTPUT(*obj);
 
-  outs->data = (_DFT_global_output*)0;
-  outs->energs = (_energy_terms*)0;
+  F_TYPE(outs->data) = (_DFT_global_output*)0;
+  F_TYPE(outs->energs) = (_energy_terms*)0;
   bigdft_goutput_unref(outs);
 }
 void bigdft_goutput_unref(BigDFT_Goutput *outs)
@@ -151,6 +150,7 @@ void bigdft_goutput_unref(BigDFT_Goutput *outs)
 #ifndef HAVE_GLIB
   if (G_OBJECT(outs)->ref_count <= 0)
     {
+      bigdft_goutput_dispose(G_OBJECT(outs));
       bigdft_goutput_finalize(G_OBJECT(outs));
       g_free(outs);
     }
@@ -182,11 +182,10 @@ void bigdft_goutput_emit_energs(BigDFT_Goutput *outs, guint istep, BigDFT_Energs
 /*********************************/
 /* BigDFT_Restart data structure */
 /*********************************/
-#ifdef HAVE_GLIB
-G_DEFINE_TYPE(BigDFT_Restart, bigdft_restart, G_TYPE_OBJECT)
-
 static void bigdft_restart_dispose(GObject *restart);
 static void bigdft_restart_finalize(GObject *restart);
+#ifdef HAVE_GLIB
+G_DEFINE_TYPE(BigDFT_Restart, bigdft_restart, G_TYPE_OBJECT)
 
 static void bigdft_restart_class_init(BigDFT_RestartClass *klass)
 {
@@ -209,13 +208,13 @@ static void bigdft_restart_init(BigDFT_Restart *obj)
 }
 static void bigdft_restart_dispose(GObject *obj)
 {
-#ifdef HAVE_GLIB
   BigDFT_Restart *restart = BIGDFT_RESTART(obj);
 
   if (restart->dispose_has_run)
     return;
   restart->dispose_has_run = TRUE;
 
+#ifdef HAVE_GLIB
   /* Chain up to the parent class */
   G_OBJECT_CLASS(bigdft_restart_parent_class)->dispose(obj);
 #endif
@@ -224,7 +223,7 @@ static void bigdft_restart_finalize(GObject *obj)
 {
   BigDFT_Restart *restart = BIGDFT_RESTART(obj);
 
-  if (restart->data)
+  if (F_TYPE(restart->data))
     FC_FUNC_(rst_free, RST_FREE)(&restart->data);
   if (restart->in)
     bigdft_inputs_unref(restart->in);
@@ -246,7 +245,8 @@ BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint
 #endif
   self = *((long*)&restart);
   FC_FUNC_(rst_new, RST_NEW)(&self, &restart->data);
-  FC_FUNC_(rst_init, RST_INIT)(restart->data, (int*)&iproc, atoms->data, in->data);
+  FC_FUNC_(rst_init, RST_INIT)(F_TYPE(restart->data), (int*)&iproc,
+                               F_TYPE(atoms->data), F_TYPE(in->data));
   restart->inputPsiId = BIGDFT_RESTART_LCAO;
   restart->in = in;
   bigdft_inputs_ref(in);
@@ -255,12 +255,12 @@ BigDFT_Restart* bigdft_restart_new(BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint
 }
 void FC_FUNC_(restart_new_wrapper, RESTART_NEW_WRAPPER)(double *self, void *obj)
 {
-  BigDFT_Restart *restart;
+  /* BigDFT_Restart *restart; */
 
-  restart = bigdft_restart_new_from_fortran(obj);
-  *self = *((double*)&restart);
+  /* restart = bigdft_restart_new_from_fortran(obj); */
+  /* *self = *((double*)&restart); */
 }
-BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects *obj)
+BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects_pointer obj)
 {
   BigDFT_Restart *restart;
 
@@ -278,16 +278,16 @@ void FC_FUNC_(restart_free_wrapper, RESTART_FREE_WRAPPER)(gpointer *obj)
 {
   BigDFT_Restart *restart = BIGDFT_RESTART(*obj);
 
-  restart->data = (gpointer)0;
+  F_TYPE(restart->data) = (_restart_objects*)0;
   bigdft_restart_unref(restart);
 }
 void bigdft_restart_unref(BigDFT_Restart *restart)
 {
   g_object_unref(G_OBJECT(restart));
-#ifdef HAVE_GLIB
-#else
+#ifndef HAVE_GLIB
   if (G_OBJECT(restart)->ref_count <= 0)
     {
+      bigdft_restart_dispose(G_OBJECT(restart));
       bigdft_restart_finalize(G_OBJECT(restart));
       g_free(restart);
     }
@@ -298,17 +298,51 @@ void bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id)
   int inputPsiId[] = {0, 1};
 
   restart->inputPsiId = id;
-  FC_FUNC_(inputs_set_restart, INPUTS_SET_RESTART)(restart->in->data, inputPsiId + id);
+  FC_FUNC_(inputs_set_restart, INPUTS_SET_RESTART)(F_TYPE(restart->in->data),
+                                                   inputPsiId + id);
 }
+
+static BigDFT_Memory* memory_ref(BigDFT_Memory *boxed)
+{
+  boxed->ref += 1;
+  return boxed;
+}
+static void memory_unref(BigDFT_Memory *boxed)
+{
+  boxed->ref -= 1;
+  if (!boxed->ref)
+    {
+      FC_FUNC_(mem_destroy, MEM_DESTROY)(&boxed->data);
+      g_free(boxed);
+    }
+}
+#ifdef HAVE_GLIB
+/**
+ * bigdft_memory_get_type:
+ *
+ * Plop.
+ *
+ * Returns: a new type for #BigDFT_Memory structures.
+ */
+GType bigdft_memory_get_type(void)
+{
+  static GType g_define_type_id = 0;
+
+  if (g_define_type_id == 0)
+    g_define_type_id = g_boxed_type_register_static("BigDFT_Memory", 
+                                                    (GBoxedCopyFunc)memory_ref,
+                                                    (GBoxedFreeFunc)memory_unref);
+  return g_define_type_id;
+}
+#endif
 
 /*****************************/
 /* BigDFT_Run data structure */
 /*****************************/
-#ifdef HAVE_GLIB
-G_DEFINE_TYPE(BigDFT_Run, bigdft_run, G_TYPE_OBJECT)
-
 static void bigdft_run_dispose(GObject *run);
 static void bigdft_run_finalize(GObject *run);
+#ifdef HAVE_GLIB
+G_DEFINE_TYPE(BigDFT_Run, bigdft_run, G_TYPE_OBJECT)
 
 static void bigdft_run_class_init(BigDFT_RunClass *klass)
 {
@@ -329,7 +363,6 @@ static void bigdft_run_init(BigDFT_Run *obj)
   G_OBJECT(obj)->ref_count = 1;
 #endif
 }
-#ifdef HAVE_GLIB
 static void bigdft_run_dispose(GObject *obj)
 {
   BigDFT_Run *run = BIGDFT_RUN(obj);
@@ -338,19 +371,27 @@ static void bigdft_run_dispose(GObject *obj)
     return;
   run->dispose_has_run = TRUE;
 
-  /* Chain up to the parent class */
-  G_OBJECT_CLASS(bigdft_run_parent_class)->dispose(obj);
-}
-#endif
-static void bigdft_run_finalize(GObject *obj)
-{
-  BigDFT_Run *run = BIGDFT_RUN(obj);
-
   bigdft_inputs_unref(run->inputs);
   bigdft_atoms_unref(run->atoms);
   bigdft_restart_unref(run->restart);
 
-  if (run->data)
+  if (run->dict)
+    {
+      /* Release ownership of dict. */
+      FC_FUNC_(run_objects_nullify_dict, RUN_OBJECTS_NULLIFY_DICT)(F_TYPE(run->data));
+      bigdft_dict_unref(run->dict);
+    }
+
+#ifdef HAVE_GLIB
+  /* Chain up to the parent class */
+  G_OBJECT_CLASS(bigdft_run_parent_class)->dispose(obj);
+#endif
+}
+static void bigdft_run_finalize(GObject *obj)
+{
+  BigDFT_Run *run = BIGDFT_RUN(obj);
+
+  if (F_TYPE(run->data))
     FC_FUNC_(run_objects_destroy, RUN_OBJECTS_DESTROY)(&run->data);
 
 #ifdef HAVE_GLIB
@@ -375,12 +416,12 @@ BigDFT_Run* bigdft_run_new()
 }
 static void _attributes_from_fortran(BigDFT_Run *run)
 {
-  _atoms_data *atoms;
-  _input_variables *inputs;
-  _restart_objects *rst;
+  _atoms_data_pointer atoms;
+  _input_variables_pointer inputs;
+  _restart_objects_pointer rst;
 
   /* Create C wrappers for Fortran objects. */
-  FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(run->data, &inputs, &atoms, &rst);
+  FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(F_TYPE(run->data), &inputs, &atoms, &rst);
   run->inputs = bigdft_inputs_new_from_fortran(inputs);
   run->atoms  = bigdft_atoms_new_from_fortran(atoms);
   run->restart = bigdft_restart_new_from_fortran(rst);
@@ -391,24 +432,18 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
 {
   BigDFT_Run *run;
 
-#ifdef HAVE_GLIB
-  run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL));
-#else
-  run = g_malloc(sizeof(BigDFT_Run));
-  bigdft_run_init(run);
-#endif
-  FC_FUNC_(run_objects_new, RUN_OBJECTS_NEW)(&run->data);
+  run = bigdft_run_new();
 
-  /* Call the creation routine of Frantran. */
+  /* Call the creation routine of Fortran. */
   FC_FUNC_(run_objects_init_from_files, RUN_OBJECTS_SET_FROM_FILES)
-    (run->data, radical, posinp, strlen(radical), strlen(posinp));
+    (F_TYPE(run->data), radical, posinp, strlen(radical), strlen(posinp));
 
   _attributes_from_fortran(run);
 
   return run;
 }
 /**
- * bigdft_run_new_from_objects:
+ * bigdft_run_new_from_dict:
  * @inputs: 
  * @atoms: 
  * @rst: (allow-none):
@@ -418,42 +453,24 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
  *
  * Returns: (transfer full):
  **/
-BigDFT_Run* bigdft_run_new_from_objects(BigDFT_Atoms *atoms, BigDFT_Inputs *inputs,
-                                        BigDFT_Restart *rst, guint iproc, gboolean dump)
+BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict, gboolean dump)
 {
   BigDFT_Run *run;
 
-#ifdef HAVE_GLIB
-  run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL));
-#else
-  run = g_malloc(sizeof(BigDFT_Run));
-  bigdft_run_init(run);
-#endif
-  FC_FUNC_(run_objects_new, RUN_OBJECTS_NEW)(&run->data);
+  run = bigdft_run_new();
 
-  /* If inputs has not parsed its files, we do it now. */
-  if (inputs->files == BIGDFT_INPUTS_UNPARSED)
-    {
-      bigdft_inputs_analyse(inputs, atoms, dump);      
-      bigdft_atoms_set_psp(atoms, inputs->ixc, inputs->nspin, NULL);
-    }
-  /* If no restart, we create it from atoms and inputs. */
-  if (!rst)
-    rst = bigdft_restart_new(atoms, inputs, iproc);
-  else
-    g_object_ref(G_OBJECT(rst));
-  /* We associate atoms and inputs. */
-  run->inputs = inputs;
-  bigdft_inputs_ref(run->inputs);
-  run->atoms = atoms;
-  g_object_ref(G_OBJECT(run->atoms));
-  run->restart = rst;
-  FC_FUNC_(run_objects_association, RUN_OBJECTS_ASSOCIATION)(run->data, inputs->data, atoms->data, rst->data);
+  /* Taking a pointer on the dictionary. */
+  g_object_ref(G_OBJECT(dict));
+  run->dict = dict;
+
+  /* Associate the dictionary and parse it. */
+  FC_FUNC_(run_objects_set_dict, RUN_OBJECTS_SET_DICT)(F_TYPE(run->data), &dict->root);
+  FC_FUNC_(run_objects_parse, RUN_OBJECTS_PARSE)(F_TYPE(run->data), (gint*)&dump);
+
+  _attributes_from_fortran(run);
 
   return run;
 }
-void bigdft_run_set_atoms(BigDFT_Run *run, BigDFT_Atoms *atoms);
-void bigdft_run_set_restart(BigDFT_Run *run, BigDFT_Restart *rst);
 
 /* void FC_FUNC_(run_new_wrapper, RUN_NEW_WRAPPER)(double *self, void *obj) */
 /* { */
@@ -462,7 +479,8 @@ void bigdft_run_set_restart(BigDFT_Run *run, BigDFT_Restart *rst);
 /*   run = bigdft_run_new_from_fortran(obj); */
 /*   *self = *((double*)&run); */
 /* } */
-BigDFT_Run* bigdft_run_new_from_fortran(_run_objects *obj, gboolean create_wrappers)
+BigDFT_Run* bigdft_run_new_from_fortran(_run_objects_pointer obj,
+                                        gboolean create_wrappers)
 {
   BigDFT_Run *run;
 
@@ -489,14 +507,66 @@ BigDFT_Run* bigdft_run_new_from_fortran(_run_objects *obj, gboolean create_wrapp
 void bigdft_run_unref(BigDFT_Run *run)
 {
   g_object_unref(G_OBJECT(run));
-#ifdef HAVE_GLIB
-#else
+#ifndef HAVE_GLIB
   if (G_OBJECT(run)->ref_count <= 0)
     {
+      bigdft_run_dispose(G_OBJECT(run));
       bigdft_run_finalize(G_OBJECT(run));
       g_free(run);
     }
 #endif
+}
+/**
+ * bigdft_run_dump:
+ * @run: 
+ * @filename: (type filename):
+ * @full: 
+ *
+ * Plop.
+ *
+ * Returns: 
+ **/
+gboolean bigdft_run_dump(BigDFT_Run *run, const gchar *filename, gboolean full)
+{
+  int iostat;
+  int userOnly = !full;
+
+  FC_FUNC_(run_objects_dump_to_file, RUN_OBJECTS_DUMP_TO_FILE)
+    (&iostat, &run->dict->root, filename, &userOnly, strlen(filename));
+
+  return (iostat == 0);
+}
+/**
+ * bigdft_run_memoryEstimation:
+ * @run: 
+ * @iproc: 
+ * @nproc: 
+ *
+ * Pouet here also.
+ *
+ * Returns: (transfer full) (type BigDFT_Memory*):
+ **/
+BigDFT_Memory* bigdft_run_memoryEstimation(BigDFT_Run *run, guint iproc, guint nproc)
+{
+  double shift[3];
+  double *rxyz;
+  BigDFT_Memory *mem;
+
+  mem = g_malloc(sizeof(BigDFT_Memory));
+  mem->ref = 1;
+  FC_FUNC_(mem_new, MEM_NEW)(&mem->data);
+
+  rxyz = g_malloc(sizeof(double) * 3 * run->atoms->nat);
+  FC_FUNC_(run_objects_system_setup, RUN_OBJECTS_SYSTEM_SETUP)
+    (F_TYPE(run->data), (int*)&iproc, (int*)&nproc, rxyz, shift, F_TYPE(mem->data));
+  g_free(rxyz);
+  FC_FUNC_(mem_to_c, MEM_TO_C)(F_TYPE(mem->data), &mem->submat, &mem->ncomponents,
+                               &mem->norb, &mem->norbp, &mem->oneorb,
+                               &mem->allpsi_mpi, &mem->psistorage,
+                               &mem->projarr, &mem->grid, &mem->workarr,
+                               &mem->kernel, &mem->density, &mem->psolver,
+                               &mem->ham, &mem->peak);
+  return mem;
 }
 /**
  * bigdft_run_calculate:
@@ -514,8 +584,8 @@ BigDFT_Goutput* bigdft_run_calculate(BigDFT_Run *run, guint iproc, guint nproc)
   BigDFT_Goutput *outs;
 
   outs = bigdft_goutput_new(run->atoms->nat);
-  FC_FUNC_(call_bigdft, CALL_BIGDFT)(run->data, outs->data, (int*)&nproc, (int*)&iproc,
-                                     &infocode);
+  FC_FUNC_(call_bigdft, CALL_BIGDFT)(F_TYPE(run->data), F_TYPE(outs->data),
+                                     (int*)&nproc, (int*)&iproc, &infocode);
   _sync_outs(outs);
   
   return outs;

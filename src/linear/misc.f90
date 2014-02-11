@@ -40,7 +40,7 @@ character(len=50) :: file1, file2, file3, file4, file5, file6, file7, file8, fil
 logical :: dowrite, plot_axis, plot_diagonals, plot_neighbors
 
 plot_axis=.true.
-plot_diagonals=.true.
+plot_diagonals=.false.!.true.
 plot_neighbors=.false.
 
 allocate(phir(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i), stat=istat)
@@ -50,18 +50,18 @@ rxyzref=-555.55d0
 
 istart=0
 
-unit1 =20*iproc+3
-unit2 =20*iproc+4
-unit3 =20*iproc+5
-unit4 =20*iproc+6
-unit5 =20*iproc+7
-unit6 =20*iproc+8
-unit7 =20*iproc+9
-unit8 =20*iproc+10
-unit9 =20*iproc+11
-unit10=20*iproc+12
-unit11=20*iproc+13
-unit12=20*iproc+14
+unit1 =20*(iproc+1)+3
+unit2 =20*(iproc+1)+4
+unit3 =20*(iproc+1)+5
+unit4 =20*(iproc+1)+6
+unit5 =20*(iproc+1)+7
+unit6 =20*(iproc+1)+8
+unit7 =20*(iproc+1)+9
+unit8 =20*(iproc+1)+10
+unit9 =20*(iproc+1)+11
+unit10=20*(iproc+1)+12
+unit11=20*(iproc+1)+13
+unit12=20*(iproc+1)+14
 
 !write(*,*) 'write, tmb%orbs%nbasisp', tmb%orbs%norbp
     orbLoop: do iorb=1,tmb%orbs%norbp
@@ -535,7 +535,13 @@ contains
 
     ! Angle between the distance vector and vector from A to B.
     ! A cosine of 1 means that they are parallel, -1 means that they are anti-parallel.
-    cosangle = ddot(3,distance_vector,1,ab,1)/(dnrm2(3,distance_vector,1)*dnrm2(3,ab,1))
+    !if (dnrm2(3,distance_vector,1)*dnrm2(3,ab,1)==0.0d0) print*,'Error in plot orbitals',&
+    !     dnrm2(3,distance_vector,1),dnrm2(3,ab,1),ddot(3,distance_vector,1,ab,1)
+    if (ddot(3,distance_vector,1,ab,1)==0.0d0) then
+       cosangle=0.0d0
+    else
+       cosangle = ddot(3,distance_vector,1,ab,1)/(dnrm2(3,distance_vector,1)*dnrm2(3,ab,1))
+    end if
     diffp1=abs(cosangle-1)
     diffm1=abs(cosangle+1)
     if (diffp1<diffm1) then
@@ -839,3 +845,258 @@ call yaml_close_map()
 
 end subroutine print_orbital_distribution
 
+
+
+subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+           energs, nlpsp, input, &
+           energy, energyDiff, energyold)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => build_ks_orbitals
+  implicit none
+  
+  ! Calling arguments
+  integer:: iproc, nproc
+  type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
+  type(atoms_data), intent(inout) :: at
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(GPU_pointers), intent(inout) :: GPU
+  type(energy_terms),intent(inout) :: energs
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
+  type(input_variables),intent(in) :: input
+  real(kind=8),intent(out) :: energy, energyDiff, energyold
+
+  ! Local variables
+  type(orbitals_data) :: orbs
+  type(communications_arrays) :: comms
+  type(sparseMatrix) :: ham_small ! for FOE
+  real(gp) :: fnrm
+  integer :: infoCoeff, nvctrp, npsidim_global
+  real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
+  character(len=*),parameter :: subname='build_ks_orbitals'
+
+  !debug
+  integer :: iorb, jorb, ist, jst, ierr, i, istat, iall
+  real(kind=8) :: ddot, tt
+
+
+  ! Get the expansion coefficients
+  ! Start with a "clean" density, i.e. without legacy from previous mixing steps
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
+       max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
+  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  tmb%can_use_transposed=.false.
+  call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+       energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
+       input%lin%order_taylor,input%calculate_KS_residue)
+
+
+  !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
+  !     max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
+  !call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+  !     tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  !call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  !tmb%can_use_transposed=.false.
+  !call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+  !     energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
+  !energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+  !energyDiff=energy-energyold
+  !energyold=energy
+
+  if(tmb%can_use_transposed) then
+      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+      deallocate(tmb%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_c', subname)
+      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+      deallocate(tmb%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_f', subname)
+  end if
+
+  ! Create communication arrays for support functions in the global box
+  
+  call nullify_orbitals_data(orbs)
+  call copy_orbitals_data(tmb%orbs, orbs, subname)
+  call orbitals_communicators(iproc, nproc, tmb%lzd%glr, orbs, comms)
+
+
+  ! Transform the support functions to the global box
+  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
+  npsidim_global=max(tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), &
+                     tmb%orbs%norb*comms%nvctr_par(iproc,0)*orbs%nspinor)
+  allocate(phi_global(npsidim_global))
+  allocate(phiwork_global(npsidim_global))
+  call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
+       tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
+       KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
+  call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global, work=phiwork_global)
+
+
+  ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
+  nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
+  call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
+             tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
+  
+  call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global, work=phi_global)  
+
+  !!ist=1
+  !!do iorb=1,KSwfn%orbs%norbp
+  !!    do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !!        write(800+iproc,*) iorb, i, phiwork_global(ist)
+  !!        ist=ist+1
+  !!    end do
+  !!end do
+
+
+  !!ierr=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+  !!do i=1,KSwfn%orbs%norb*ierr
+  !!    write(401,*) i, phiwork_global(i)
+  !!end do
+  !!write(*,*) 'GLOBAL DDOT',ddot(KSwfn%orbs%norb*ierr, phi_global, 1, phi_global, 1)
+
+  !!do i=1,KSwfn%orbs%norb*ierr
+  !!     tmb%psi(i)=phi_global(i)
+  !!end do
+  !!call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, tmb%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+  !!     energs, nlpspd, proj, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0)
+
+  !!do i=1,KSwfn%orbs%norb*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
+  !!    write(600,'(i10,es16.7)') i, tmb%psi(i)
+  !!end do
+
+
+  !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
+  call writemywaves(iproc,trim(input%dir_output)//"wavefunction", WF_FORMAT_PLAIN, &
+       KSwfn%orbs, KSwfn%Lzd%Glr%d%n1, KSwfn%Lzd%Glr%d%n2, KSwfn%Lzd%Glr%d%n3, &
+       KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
+
+   call deallocate_orbitals_data(orbs, subname)
+   call deallocate_communications_arrays(comms, subname)
+
+  ! To get consistent values of the energy and the Kohn-Sham residue with those
+  ! which will be calculated by the cubic restart.
+  call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
+       max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
+  call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+       tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  tmb%can_use_transposed=.false.
+  call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
+       energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
+       input%lin%order_taylor, input%calculate_KS_residue, updatekernel=.false.)
+  energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+  energyDiff=energy-energyold
+  energyold=energy
+
+  if(tmb%can_use_transposed) then
+      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+      deallocate(tmb%psit_c, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_c', subname)
+      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+      deallocate(tmb%psit_f, stat=istat)
+      call memocc(istat, iall, 'tmb%psit_f', subname)
+  end if
+
+end subroutine build_ks_orbitals
+
+
+
+subroutine cut_at_boundaries(cut, tmb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  real(kind=8),intent(in)  :: cut
+  type(DFT_wavefunction),intent(inout) :: tmb
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, icount, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, istart, iend
+  real(kind=8) :: dist, cut2
+
+  ! square of the cutoff radius
+  cut2=cut**2
+
+  ishift=0
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+
+      icount=0
+      do iseg=1,tmb%lzd%llr(ilr)%wfd%nseg_c
+         jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+         j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+         j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+         ii=j0-1
+         i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+         ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+         i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+         i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            dist = ((tmb%lzd%llr(ilr)%ns1+i )*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+                 + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+                 + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
+            if (dist>=cut2) then
+                icount=icount+1
+                tmb%psi(ishift+icount)=0.d0
+            else
+                icount=icount+1
+            end if
+         end do
+      end do
+      if (icount/=tmb%lzd%llr(ilr)%wfd%nvctr_c) then
+          write(*,*) 'ERROR: icount /= tmb%lzd%llr(ilr)%wfd%nvctr_c', icount, tmb%lzd%llr(ilr)%wfd%nvctr_c
+          stop
+      end if
+      ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c
+
+      ! fine part
+      istart=tmb%lzd%llr(ilr)%wfd%nseg_c+(min(1,tmb%lzd%llr(ilr)%wfd%nseg_f))
+      iend=tmb%lzd%llr(ilr)%wfd%nseg_c+tmb%lzd%llr(ilr)%wfd%nseg_f
+      icount=0
+      do iseg=istart,iend
+         jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
+         j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
+         j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
+         ii=j0-1
+         i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
+         ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
+         i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
+         i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            dist = ((tmb%lzd%llr(ilr)%ns1+i )*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
+                 + ((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
+                 + ((tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)-tmb%lzd%llr(ilr)%locregcenter(3))**2
+            if (dist>=cut2) then
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+                icount=icount+1 ; tmb%psi(ishift+icount)=0.d0
+            else
+                icount=icount+7
+            end if
+         end do
+      end do
+      if (icount/=7*tmb%lzd%llr(ilr)%wfd%nvctr_f) then
+          write(*,*) 'ERROR: icount /= 7*tmb%lzd%llr(ilr)%wfd%nvctr_f', icount, 7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          stop
+      end if
+      ishift=ishift+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+
+  end do
+
+  if (ishift/=tmb%npsidim_orbs) then
+      write(*,*) 'ERROR: ishift /= tmb%npsidim_orbs', ishift, tmb%npsidim_orbs
+      stop
+  end if
+
+end subroutine cut_at_boundaries

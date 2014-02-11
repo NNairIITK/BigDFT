@@ -33,6 +33,7 @@ program fft_cache
    character (len=100) :: tatonam
    integer :: ip,jp,n3,ndat,ntime
    real(kind=8) :: time,tela
+   logical :: success
 
    ! Get arguments
    call getarg(1,tatonam)
@@ -57,8 +58,10 @@ program fft_cache
       ndat = nsize_dat/8/n3
       ntime=1!3
       do jp=1,ntime
-         call do_fft(ndat, n3, time, tela)
+         call do_fft(ndat, n3, time, tela, success)
+         if (.not. success) exit
       end do
+      if (.not. success) exit
       write(unit=6,fmt="(a,i0,a)",advance="no") "[",n3,"]"
       write(unit=iunit,fmt=*) ncache,n3,ndat,time,tela
    end do
@@ -68,13 +71,14 @@ program fft_cache
 
 contains
 
-   subroutine do_fft(ndat,n3,time,tela)
+   subroutine do_fft(ndat,n3,time,tela,success)
 
       implicit none
 
       ! dimension parameters
       integer, intent(in) :: ndat, n3
       real(kind=8), intent(out) :: time,tela
+      logical, intent(out) :: success
       ! Local variables
       integer :: count1,count2,count_rate,count_max,i,inzee,i_sign
       real(kind=8) :: t1,t2
@@ -105,7 +109,7 @@ contains
       inzee=1
       call cpu_time(t1)
       call system_clock(count1,count_rate,count_max)      
-      call fft1(ndat,n3,nddat,nd3,z,i_sign,inzee)
+      call fft1(ndat,n3,nddat,nd3,z,i_sign,inzee,success)
       call system_clock(count2,count_rate,count_max)      
       call cpu_time(t2)
       time=(t2-t1)
@@ -135,7 +139,7 @@ contains
    end subroutine init
 
    !> Do one basic FFT (transform along Z)
-   subroutine fft1(ndat,n3,nddat,nd3,z,i_sign,inzee)
+   subroutine fft1(ndat,n3,nddat,nd3,z,i_sign,inzee, success)
 
       use module_fft_sg
       implicit real(kind=8) (a-h,o-z), integer (i-n)
@@ -152,6 +156,7 @@ contains
       !Arguments
       integer, intent(in) :: ndat,n3,nddat,nd3,i_sign
       integer, intent(inout) :: inzee
+      logical, intent(out) :: success
       real(kind=8), intent(inout) :: z(2,nddat*nd3,2)
       !Local variables
       real(kind=8), dimension(:,:), allocatable :: trig
@@ -162,6 +167,8 @@ contains
          write(*,*) 'Dimension bigger than ', nfft_max
          stop
       end if
+
+      success = .true.
 
       ntrig=n3
       allocate(trig(2,ntrig))
@@ -213,7 +220,9 @@ contains
          nn=lot
          n=n3
          if (2*n*lot*2.gt.ncache) then
-            stop 'ncache1'
+            write(*,"(A)",advance="no") 'STOP ncache1'
+            success = .false.
+            return
          end if
 
          call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)

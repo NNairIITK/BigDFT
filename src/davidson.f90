@@ -10,7 +10,7 @@
 
 !>  Naive subroutine which performs a direct minimization of the energy 
 !!  for a given hamiltonian
-subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, &
+subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
      pkernel,dpcom,GPU,KSwfn,VTwfn)
    use module_base
    use module_types
@@ -21,11 +21,10 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
    integer, intent(in) :: iproc,nproc,nvirt
    type(input_variables), intent(in) :: in
    type(atoms_data), intent(in) :: at
-   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+   type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
@@ -253,7 +252,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !endloop=endloop .or. ndiis_sd_sw > 2
 
       call FullHamiltonianApplication(iproc,nproc,at,VTwfn%orbs,rxyz,&
-           proj,VTwfn%Lzd,nlpspd,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
+           VTwfn%Lzd,nlpsp,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
            energs,in%SIC,GPU,&
            pkernel,KSwfn%orbs,psirocc)
 
@@ -296,8 +295,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
       !control the previous value of idsx_actual
       idsx_actual_before=VTwfn%diis%idsx
 
-      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,at,nlpspd)
-
+      call hpsitopsi(iproc,nproc,iter,in%idsx,VTwfn,at,nlpsp)
 
       if (occorbs) then
          !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -407,7 +405,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpspd,proj, 
 !!   (retranspose v and psi)\n
 subroutine davidson(iproc,nproc,in,at,&
      & orbs,orbsv,nvirt,Lzd,comms,commsv,&
-     & rxyz,rhopot,nlpspd,proj,pkernel,psi,v,dpcom,GPU)
+     & rxyz,rhopot,nlpsp,pkernel,psi,v,dpcom,GPU)
    use module_base
    use module_types
    use module_interfaces, except_this_one => davidson
@@ -418,13 +416,12 @@ subroutine davidson(iproc,nproc,in,at,&
    integer, intent(in) :: nvirt
    type(input_variables), intent(in) :: in
    type(atoms_data), intent(in) :: at
-   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+   type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
    type(orbitals_data), intent(inout) :: orbs !<could be modify in calculate_HOMO_LUMO_gap
    type(communications_arrays), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
@@ -626,7 +623,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !call add_parabolic_potential(at%astruct%geocode,at%astruct%nat,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
-        proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+        Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,&
         energs,in%SIC,GPU,&
         pkernel,orbs,psirocc)
 
@@ -942,7 +939,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call memocc(i_stat,hg,'hg',subname)
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
-           proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,g,hg,&
+           Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,g,hg,&
            energs,in%SIC,GPU,&
            pkernel,orbs,psirocc)
 
@@ -1215,7 +1212,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
-           proj,Lzd,nlpspd,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+           Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,&
            energs,in%SIC,GPU,&
            pkernel,orbs,psirocc)
 
@@ -1747,6 +1744,7 @@ END SUBROUTINE psivirt_from_gaussians
 
 
 !> Write eigenvalues and related quantities
+!! @todo: must add the writing directory to the files
 subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
    use module_base
    use module_types
@@ -1776,89 +1774,6 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
       occnorbd = orbs%norbd
    end if
 
-
-   !   if(iproc==0)then
-   !     write(*,'(1x,a)')'Complete list of energy eigenvalues'
-   !       if (nspin==1) then
-   ! 	do ikpt=1,orbsv%nkpts
-   ! 	  if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") &
-   ! 	    "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
-   ! 	    do iorb=1,orbs%norb
-   ! 		!if (occorbs) then
-   ! 		!val = orbs%eval(iorb+(ikpt-1)*orbs%norb)
-   ! 	      !else
-   ! 		!val = e(iorb, ikpt, 1)
-   ! 	      !end if
-   ! 	      write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',eval(iorb+(ikpt-1)*orbs%norb)
-   ! 	    end do
-   ! 	    eg=evalv(1+(ikpt-1)*orbsv%norb)-evalv(orbs%norb+(ikpt-1)*orbs%norb)
-   ! 	    write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
-   ! 	      'HOMO LUMO gap   =',eg,' (',Ha_eV*eg,' eV)'
-   ! 	    do iorb=1,orbsv%norb
-   ! 	      write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-   ! 		'e_virtual(',iorb,')=',evalv(iorb+(ikpt-1)*orbsv%norb)!e(iorb+occnorb,ikpt,1)
-   ! 	  end do
-   ! 	end do
-   !       else
-   !         do ikpt=1,orbsv%nkpts
-   !            do iorb=1,min(orbs%norbu,orbs%norbd)
-   !               !if (occorbs) then
-   !                  valu = eval(iorb+(ikpt-1)*orbs%norb)
-   !                  vald = eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
-   !               !else
-   ! 		 !valu = e(iorb, ikpt, 1)
-   !                  !vald = e(iorb+orbsv%norbu, ikpt, 1)
-   !               !end if
-   !               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-   !                    'e_occ(',iorb,',u)=',valu,'e_occ(',iorb,',d)=',vald
-   !            end do
-   !            if (orbs%norbu > orbs%norbd) then
-   !               do iorb=orbs%norbd+1,orbs%norbu
-   !                  !if (occorbs) then
-   !                     valu = eval(iorb+(ikpt-1)*orbs%norb)
-   !                  !else
-   !                  !   valu = e(iorb, ikpt, 1)
-   !                  !end if
-   !                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-   !                       'e_occ(',iorb,',u)=',valu
-   !               end do
-   !            else if (orbs%norbd > orbs%norbu) then
-   !               do iorb=orbs%norbu+1,orbs%norbd
-   !                  !if (occorbs) then
-   !                     vald = eval(iorb+orbs%norbu+(ikpt-1)*orbs%norb)
-   !                  !else
-   !                  !   vald = e(iorb+orbsv%norbu, ikpt, 1)
-   !                  !end if
-   !                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-   !                       'e_occ(',iorb,',d)=',vald
-   !               end do
-   !            end if
-   ! 	   egu=evalv(1+(ikpt-1)*orbsv%norb)-eval(orbs%norbu+(ikpt-1)*orbs%norb)
-   ! 	   egd=evalv(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-eval(orbs%norb+(ikpt-1)*orbs%norb)
-   !            write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
-   !                 'HOMO LUMO gap, u =', egu,' (',Ha_eV*egu,' eV)',&
-   !                 ',d =',egd,' (',Ha_eV*egd,' eV)'
-   !            do iorb=1,min(orbsv%norbu,orbsv%norbd)
-   !               jorb=orbsv%norbu+iorb
-   !               write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-   !                    'e_vrt(',iorb,',u)=',evalv(iorb+(ikpt-1)*orbsv%norb),&!e(iorb,ikpt,1),&
-   !                    'e_vrt(',iorb,',d)=',evalv(jorb+(ikpt-1)*orbsv%norb)!e(jorb,ikpt,1)
-   !            end do
-   !            if (orbsv%norbu > orbsv%norbd) then
-   !               do iorb=orbsv%norbd+1,orbsv%norbu
-   !                  write(*,'(1x,a,i4,a,1x,1pe21.14)') &
-   !                       'e_vrt(',iorb,',u)=',evalv(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
-   !               end do
-   !            else if (orbsv%norbd > orbsv%norbu) then
-   !               do iorb=2*orbsv%norbu+1,orbsv%norbu+orbsv%norbd
-   !                  write(*,'(50x,a,i4,a,1x,1pe21.14)') &
-   !                       'e_vrt(',iorb-orbsv%norbu,',d)=',evalv(iorb+(ikpt-1)*orbsv%norb)!e(iorb,ikpt,1)
-   !               end do
-   !            end if
-   !         end do
-   !      end if
-   !   end if
-   !   
    if(iproc==0)then
       call yaml_open_sequence('Complete list of energy eigenvalues')
       if (nspin==1) then
@@ -1987,56 +1902,72 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
       end if
    end if
 
-
-   ! PLOTTING
-
-   !plot the converged wavefunctions in the different orbitals.
-   !nplot is the requested total of orbitals to plot, where
-   !states near the HOMO/LUMO gap are given higher priority.
-   !Occupied orbitals are only plotted when nplot>nvirt,
-   !otherwise a comment is given in the out file.
-
-   if(abs(nplot)>orbs%norb+nvirt)then
-      if(iproc==0) call yaml_warning('More plots requested than orbitals calculated')
-      !if(iproc==0) write(*,'(1x,A,i3)') "WARNING: More plots requested than orbitals calculated." 
-   end if
-   if(output_wf_format == 2) then
-      !add a modulo operator to get rid of the particular k-point
-      do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
-
-         if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot)) then
-            exit 
-            !if(iproc == 0 .and. abs(nplot) > 0) write(*,'(A)')'No plots of occupied orbitals requested.'
-         end if
-
-         ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-         !plot the orbital and the density
-         write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
-         write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
-         write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
-
-         call plot_wf(orbname,1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
-         call plot_wf(denname,2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
-
-      end do
-
-      do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-         if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(nplot)) then  ! SG 
-            !address
-            ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-            write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
-            write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
-            write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
-
-            call plot_wf(orbname,1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
-            call plot_wf(denname,2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
-
-         endif
-      end do
-   end if
-   ! END OF PLOTTING
-
 END SUBROUTINE write_eigen_objects
+
+
+! PLOTTING
+
+!>plot the converged wavefunctions in the different orbitals.
+!nplot is the requested total of orbitals to plot, where
+!states near the HOMO/LUMO gap are given higher priority.
+!Occupied orbitals are only plotted when nplot>nvirt,
+!otherwise a comment is given in the out file.
+subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi,psivirt)
+  use module_base, only: gp,wp
+  use locregs, only: locreg_descriptors
+  use module_types, only: atoms_data,orbitals_data
+  implicit none
+  integer, intent(in) :: nplot !<number of eigenfuncitions to be plotted close to the fermi level
+  type(atoms_data), intent(in) :: at !<descriptor of atomic properties
+  type(orbitals_data), intent(in) :: orbs,orbsv !<orbitals, occupied and virtual respectively
+  type(locreg_descriptors), intent(in) :: lr !<localization regions of the wavefunctions
+  character(len=*), intent(in) :: dir_output !<directory where the data have to be put in
+  real(gp), dimension(3), intent(in) :: hgrids !<grid spacings of the simulation domain
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz !<atomic positions
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi,psivirt !<occupied and virtual eigenfunctions
+  !local variables
+  integer :: ind,iorb
+  real(gp) :: hx,hy,hz
+  character(len=300) :: orbname,denname
+  
+  hx=hgrids(1)
+  hy=hgrids(2)
+  hz=hgrids(3)
+
+  !add a modulo operator to get rid of the particular k-point
+  do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
+
+     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot)) then
+        exit 
+        !if(iproc == 0 .and. abs(nplot) > 0) write(*,'(A)')'No plots of occupied orbitals requested.'
+     end if
+
+     ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+     !plot the orbital and the density
+     write(orbname,'(A,i4.4)')trim(dir_output)//'virtual',iorb+orbsv%isorb
+     write(denname,'(A,i4.4)')trim(dir_output)//'denvirt',iorb+orbsv%isorb
+     !write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
+
+     call plot_wf(trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+     call plot_wf(trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+
+  end do
+
+  do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
+     if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(nplot)) then  ! SG 
+        !address
+        ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+        write(orbname,'(A,i4.4)')trim(dir_output)//'orbital',iorb+orbs%isorb
+        write(denname,'(A,i4.4)')trim(dir_output)//'densocc',iorb+orbs%isorb
+        !write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
+
+        call plot_wf(trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+        call plot_wf(trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+
+     endif
+  end do
+  ! END OF PLOTTING
+end subroutine dump_eigenfunctions
 
 
 !> Calculate the gap and fill the value in the orbs structure

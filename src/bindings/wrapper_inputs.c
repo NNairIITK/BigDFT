@@ -24,14 +24,15 @@ static void _sync_output(BigDFT_Inputs *in)
 {
   gchar dir_output[100], writing_directory[500];
 
-  FC_FUNC_(inputs_get_output, INPUTS_GET_OUTPUT)(in->data, dir_output, writing_directory, 100, 500);
+  FC_FUNC_(inputs_get_output, INPUTS_GET_OUTPUT)(F_TYPE(in->data),
+                                                 dir_output, writing_directory, 100, 500);
   in->dir_output = _get_c_string(dir_output, 100);
   in->writing_directory = _get_c_string(writing_directory, 500);
 }
-static void _sync(BigDFT_Inputs *in)
+void _inputs_sync(BigDFT_Inputs *in)
 {
-  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
-  FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(in->data, in->h, in->h + 1, in->h + 2,
+  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(F_TYPE(in->data), &in->files);
+  FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(F_TYPE(in->data), in->h, in->h + 1, in->h + 2,
                                            &in->crmult, &in->frmult, &in->ixc,
                                            &in->ncharge, in->elecfield, &in->nspin,
                                            &in->mpol, &in->gnrm_cv, (int*)&in->itermax,
@@ -40,23 +41,23 @@ static void _sync(BigDFT_Inputs *in)
                                            &in->output_wf_format, &in->output_grid,
                                            &in->rbuf, &in->ncongt, &in->norbv, &in->nvirt,
                                            &in->nplot, &in->disableSym);
-  FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(in->data, (int*)&in->iscf, (int*)&in->itrpmax,
+  FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(F_TYPE(in->data), (int*)&in->iscf, (int*)&in->itrpmax,
                                            (int*)&in->norbsempty, (int*)(&in->occopt),
                                            &in->alphamix,
                                            &in->rpnrm_cv, &in->gnrm_startmix, &in->Tel,
                                            &in->alphadiis);
-  FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(in->data, in->geopt_approach,
+  FC_FUNC_(inputs_get_geopt, INPUTS_GET_GEOPT)(F_TYPE(in->data), in->geopt_approach,
                                                &in->ncount_cluster_x, &in->frac_fluct,
                                                &in->forcemax, &in->randdis, &in->betax,
                                                &in->history, &in->ionmov, &in->dtion,
                                                in->strtarget, &in->qmass, 10);
   /* FC_FUNC_(inputs_get_sic, INPUTS_GET_SIC)(); */
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
-  FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(in->data, (int*)&in->linear);
+  FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(F_TYPE(in->data), (int*)&in->linear);
 }
-static void _sync_add(BigDFT_Inputs *in)
+void _inputs_sync_add(BigDFT_Inputs *in)
 {
-  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(in->data, &in->files);
+  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(F_TYPE(in->data), &in->files);
   /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */
   _sync_output(in);
 }
@@ -75,9 +76,9 @@ static BigDFT_Inputs* bigdft_inputs_init()
 }
 static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 {
-  if (in->data)
+  if (F_TYPE(in->data))
     FC_FUNC_(inputs_free, INPUTS_FREE)(&in->data);
-  if (in->input_values)
+  if (F_TYPE(in->input_values))
     FC_FUNC_(dict_free, DICT_FREE)(&in->input_values);
 
   _free_names(in);
@@ -103,12 +104,12 @@ BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
   FC_FUNC_(dict_new, DICT_NEW)(&in->input_values);
   
   if (naming && naming[0])
-    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, naming, strlen(naming));
+    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(F_TYPE(in->data), naming, strlen(naming));
   else
-    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(in->data, " ", 1);
+    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(F_TYPE(in->data), " ", 1);
   /* Get naming schemes. */
   _free_names(in);
-  FC_FUNC_(inputs_get_naming, INPUTS_GET_NAMING)(in->data, run_name, file_occnum, file_igpop,
+  FC_FUNC_(inputs_get_naming, INPUTS_GET_NAMING)(F_TYPE(in->data), run_name, file_occnum, file_igpop,
                                                  file_lin, 100, 100, 100, 100);
   in->run_name = _get_c_string(run_name, 100);
   in->file_occnum = _get_c_string(file_occnum, 100);
@@ -143,15 +144,15 @@ BigDFT_Inputs* bigdft_inputs_new_from_files(const gchar *naming, guint iproc)
   
   return in;
 }
-BigDFT_Inputs* bigdft_inputs_new_from_fortran(_input_variables *inputs)
+BigDFT_Inputs* bigdft_inputs_new_from_fortran(_input_variables_pointer inputs)
 {
   BigDFT_Inputs *in;
 
   in = bigdft_inputs_init();
   in->data = inputs;
 
-  _sync(in);
-  _sync_add(in);
+  _inputs_sync(in);
+  _inputs_sync_add(in);
 
   return in;
 }
@@ -183,58 +184,24 @@ GType bigdft_inputs_get_type(void)
   return g_define_type_id;
 }
 #endif
-void bigdft_inputs_analyse(BigDFT_Inputs *in, BigDFT_Atoms *atoms, gboolean dump)
-{
-  FC_FUNC_(inputs_from_dict, INPUTS_FROM_DICT)(in->data, atoms->data, &in->input_values, (gint*)&dump);
-  _sync(in);
-  _sync_add(in);
-  /* To be removed later, currently, this allocates atoms also. */
-  bigdft_atoms_get_nat_arrays(atoms);
-  bigdft_atoms_get_ntypes_arrays(atoms);
-}
 void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
 {
-  FC_FUNC_(create_dir_output, CREATE_DIR_OUTPUT)((int*)&iproc, in->data);
+  FC_FUNC_(create_dir_output, CREATE_DIR_OUTPUT)((int*)&iproc, F_TYPE(in->data));
   _sync_output(in);
 }
 
-/**
- * bigdft_set_input:
- * @radical: 
- * @posinp: 
- * @atoms: (out) (transfer full):
- *
- * Pouet.
- *
- * Returns: (transfer full):
- **/
-BigDFT_Inputs* bigdft_set_input(const gchar *radical, const gchar *posinp, BigDFT_Atoms **atoms)
-{
-  BigDFT_Atoms *at;
-  BigDFT_Inputs *in;
-
-  at = bigdft_atoms_new();
-  in = bigdft_inputs_init();
-  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
-  FC_FUNC_(bigdft_set_input, BIGDFT_SET_INPUT)(radical, posinp, in->data, at->data,
-                                               strlen(radical), strlen(posinp));
-  _sync(in);
-  _sync_add(in);
-  bigdft_atoms_copy_from_fortran(at);
-  *atoms = at;
-  return in;
-}
-
 /* Wrappers on dictionaries, for the input variables. */
-#include "input_keys.h"
-void bigdft_inputs_set(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar *value)
+void bigdft_inputs_set(BigDFT_Inputs *in, const gchar *level,
+                       const gchar *id, const gchar *value)
 {
-  const gchar *name, *file;
+  BigDFT_Dict *dict;
 
-  name = _input_keys[id];
-  file = _input_keys[_input_files[id]];
-  FC_FUNC_(inputs_set, INPUTS_SET)(&in->input_values, file, name, value,
-                                   strlen(file), strlen(name), strlen(value));
+  dict = bigdft_dict_new(NULL);
+  bigdft_dict_set(dict, id, value);  
+  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(F_TYPE(in->data), level, &dict->root, strlen(level));
+  g_object_unref(G_OBJECT(dict));
+
+  _inputs_sync(in);
 }
 /**
  * bigdft_inputs_set_array:
@@ -244,14 +211,41 @@ void bigdft_inputs_set(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar *v
  *
  * 
  **/
-void bigdft_inputs_set_array(BigDFT_Inputs *in, BigDFT_InputsKeyIds id, const gchar **value)
+void bigdft_inputs_set_array(BigDFT_Inputs *in, const gchar *level,
+                             const gchar *id, const gchar **value)
 {
-  const gchar *name, *file;
-  guint i;
+  BigDFT_Dict *dict;
 
-  name = _input_keys[id];
-  file = _input_keys[_input_files[id]];
-  for (i = 0; value[i]; i++)
-    FC_FUNC_(inputs_set_at, INPUTS_SET_AT)(&in->input_values, file, name, (gint*)&i, value[i],
-                                           strlen(file), strlen(name), strlen(value[i]));
+  dict = bigdft_dict_new(NULL);
+  bigdft_dict_set_array(dict, id, value);  
+  FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(F_TYPE(in->data), level, &dict->root, strlen(level));
+  g_object_unref(G_OBJECT(dict));
+
+  _inputs_sync(in);
+}
+/**
+ * bigdft_inputs_set_array_at:
+ * @in: 
+ * @n_row: 
+ * @n_cols:
+ * @value: (array zero-terminated=1):
+ *
+ * 
+ **/
+void bigdft_inputs_set_matrix(BigDFT_Inputs *in, const gchar *id,
+                              guint n_row, guint n_cols, const gchar **value)
+{
+  /* _dictionary *dict; */
+  /* guint i; */
+
+  /* FC_FUNC_(dict_new, DICT_NEW)(&dict); */
+  
+  /* for (i = 0; value[i]; i++) */
+  /*   FC_FUNC_(dict_set_at, DICT_SET_AT)(&dict, id, (int*)&i, value[i], */
+  /*                                      strlen(id), strlen(value[i])); */
+  /* FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(F_TYPE(in->data), &dict); */
+
+  /* FC_FUNC_(dict_free, DICT_FREE)(&dict); */
+
+  /* _inputs_sync(in); */
 }
