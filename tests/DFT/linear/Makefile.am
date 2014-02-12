@@ -15,7 +15,7 @@ TESTDIRS = Locreg \
        hybrid-directmin \
        experimentalmode \
 	   linearcubic \
-	   highertaylor \
+	   experimentalfoe \
 	   newpulay \
 	   explicit_locregcenters \
 	   intermediateforces \
