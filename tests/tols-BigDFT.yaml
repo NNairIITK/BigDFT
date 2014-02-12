@@ -498,9 +498,9 @@ fructose:
  EXC: 1.1e-10
  Epsilon: 1.1e-11
  D: 1.1e-10
- D eF: 3.3e-6
- D Tr: 3.2e-6
- eF: 3.9e-6
+ D eF: 5.2e-6
+ D Tr: 5.4e-6
+ eF: 5.2e-6
  EH: 1.0e-9
  EvXC: 1.1e-10
  energy: 1.1e-10
@@ -508,7 +508,7 @@ fructose:
  Tr(K): 3.1e-06
  tr(KS) before purification: 1.9e-6
  Total charge: 2.1e-10
- charge diff: 3.1e-6
+ charge diff: 5.4e-6
  multiplicator for the confinement: 1.4e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -669,16 +669,17 @@ experimentalfoe:
  EvXC: 5.4e-08
  eF: 2.5e-05
  tr(KS) before purification: 2.2e-9
- Tr(K): 2.6e-4
+ Tr(K): 3.9e-4
  Total charge: 1.1e-10
  Raw forces norm (Ha/Bohr): 1.8e-10
  Total ionic charge: 1.6e-11
- D Tr: 2.6e-04
- D eF: 9.8e-06
+ D Tr: 3.9e-04
+ D eF: 1.5e-05
  multiplicator for the confinement: 6.4e-10
  energy: 3.8e-10
  Omega: 1.4e-7
- charge diff: 2.6e-4
+ charge diff: 3.9e-4
+ D: 1.1e-10
 
 
 newpulay:
@@ -787,7 +788,7 @@ DIIShistory:
  EH: 3.1e-7
  EXC: 4.7e-8
  Ekin: 1.7e-8
- Enl: 1.9e-9
+ Enl: 6.6e-9
  Epot: 2.8e-7
  EvXC: 6.2e-8
  energy: 3.7e-9
