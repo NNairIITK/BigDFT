@@ -101,16 +101,16 @@
    Number of atoms                     :  14
    Types of atoms                      :  [ B ]
    Boundary Conditions                 : Free #Code: F
-   Number of Symmetries                :  0
-   Space group                         : disabled
+   Number of Symmetries                :  1
+   Space group                         : P 1
   #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
  Geometry Optimization Parameters:
    Maximum steps                       :  1
-   Algorithm                           : BFGS
-   Random atomic displacement          :  0.0E+00
-   Fluctuation in forces               :  1.0E+00
-   Maximum in forces                   :  0.0E+00
-   Steepest descent step               :  4.0E+00
+   Algorithm                           : none
+   Random atomic displacement          :  0.0
+   Fluctuation in forces               :  1.0
+   Maximum in forces                   :  0.0
+   Steepest descent step               :  4.0
  Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:

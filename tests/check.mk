@@ -117,9 +117,9 @@ report:
 	$(MAKE) -f ../Makefile $*.out.out && cp $$datadir/geopt.mon $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
-%.dipole.dat.out: %.out.out
+%.bader.out: $(abs_top_builddir)/src/tools/bader/bader %.out.out
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > bader.out && mv dipole.dat $@
+	$(abs_top_builddir)/src/tools/bader/bader data/electronic_density.cube > $@ && mv dipole.yaml log-dipole.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.freq.out: $(abs_top_builddir)/src/frequencies

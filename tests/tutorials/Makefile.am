@@ -67,8 +67,6 @@ dev.post-clean:
           *) mode="";; \
         esac ; \
         case $* in \
-          CH3-.out*) prec="5.2e-7" ;; \
-          scalability.out*)  prec="1.e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

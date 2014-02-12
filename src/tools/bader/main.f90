@@ -24,7 +24,8 @@
 !!     Sören Wohlthat (Sydney)
 !!
 !! Copyright 2009 Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
-!! Copyright (C) 2009-2011 BigDFT group
+!!
+!! Copyright (C) 2009-2014 BigDFT group
 !! Bader is free software: you can redistribute it and/or modify
 !! it under the terms of the GNU General Public License as published by
 !! the Free Software Foundation, either version 3 of the License, or
@@ -45,6 +46,7 @@ PROGRAM Charge
    USE voronoi_mod
    USE chgcar_mod
    USE dipole_mod
+
    IMPLICIT NONE
 
    ! Variables
@@ -55,6 +57,8 @@ PROGRAM Charge
    TYPE(dipole_obj) :: dpl
    TYPE(voronoi_obj) :: vor
    CHARACTER :: A
+
+   call f_lib_initialize()
    ! Write the version number
    WRITE(*,'(/,2X,A)') 'GRID BASED BADER ANALYSIS  (Version 0.27e 05/09/11)'
    !   WRITE(*,'($ 2X,A)') 'ADDED DIPOLE MOMENTS (06/28/11)'
@@ -95,4 +99,7 @@ PROGRAM Charge
    IF (opts%voronoi_flag) CALL voronoi(vor,ions,chgval)
 
    WRITE(*,*)
+
+   call f_lib_finalize()
+
 END PROGRAM Charge
