@@ -23,7 +23,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Local variables
   integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, istsource
   integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
-  integer :: is3min, ie3max, tag, ncount, ierr
+  integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap
   logical :: datatype_defined
   character(len=*),parameter:: subname='initialize_communication_potential'
 
@@ -90,6 +90,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   ! Determine how many slices each process receives.
   allocate(comgp%noverlaps(0:nproc-1), stat=istat)
   call memocc(istat, comgp%noverlaps, 'comgp%noverlaps', subname)
+  nmaxoverlap=0
   do jproc=0,nproc-1
       is3j=comgp%ise(5,jproc)
       ie3j=comgp%ise(6,jproc)
@@ -112,17 +113,18 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
               end if
           end if
       end do
+      if (ioverlap>nmaxoverlap) nmaxoverlap=ioverlap
       comgp%noverlaps(jproc)=ioverlap
       !!if(iproc==0) write(*,'(2(a,i0),a)') 'Process ',jproc,' gets ',ioverlap,' potential slices.'
   end do
   
   ! Determine the parameters for the communications.
-  allocate(comgp%comarr(6,maxval(comgp%noverlaps),0:nproc-1))
+  allocate(comgp%comarr(6,nmaxoverlap,0:nproc-1))
   call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
-  call to_zero(6*maxval(comgp%noverlaps)*nproc, comgp%comarr(1,1,0))
-  allocate(comgp%mpi_datatypes(2,0:nproc-1), stat=istat)
+  call to_zero(6*nmaxoverlap*nproc, comgp%comarr(1,1,0))
+  allocate(comgp%mpi_datatypes(0:nmaxoverlap,0:nproc-1), stat=istat)
   call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
-  call to_zero(2*nproc, comgp%mpi_datatypes(1,0))
+  call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(1,0))
   comgp%nrecvBuf = 0
   is3min=0
   ie3max=0
@@ -164,9 +166,9 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
                   comgp%comarr(6,ioverlap,jproc)=lzd%glr%d%n1i*lzd%glr%d%n2i
                   if (.not. datatype_defined) then
                       call mpi_type_vector(comgp%ise(4,jproc)-comgp%ise(3,jproc)+1, comgp%ise(2,jproc)-comgp%ise(1,jproc)+1, &
-                           lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(1,jproc), ierr)
-                      call mpi_type_commit(comgp%mpi_datatypes(1,jproc), ierr)
-                      comgp%mpi_datatypes(2,jproc)=1
+                           lzd%glr%d%n1i, mpi_double_precision, comgp%mpi_datatypes(0,jproc), ierr)
+                      call mpi_type_commit(comgp%mpi_datatypes(0,jproc), ierr)
+                      !comgp%mpi_datatypes(2,jproc)=1
                       datatype_defined=.true.
                   end if
     

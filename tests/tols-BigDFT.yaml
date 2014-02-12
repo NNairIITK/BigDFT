@@ -500,13 +500,13 @@ fructose:
  D: 1.1e-10
  D eF: 3.3e-6
  D Tr: 3.2e-6
- eF: 3.7e-6
+ eF: 3.9e-6
  EH: 1.0e-9
  EvXC: 1.1e-10
  energy: 1.1e-10
  Omega: 1.3e-10
  Tr(K): 3.1e-06
- tr(KS) before purification: 1.2e-9
+ tr(KS) before purification: 1.9e-6
  Total charge: 2.1e-10
  charge diff: 3.1e-6
  multiplicator for the confinement: 1.4e-11
@@ -658,26 +658,27 @@ linearcubic_linear:
  Omega: 1.82e-10
 
 experimentalfoe:
- Atomic Forces (Ha/Bohr): 6.2e-11
- Clean forces norm (Ha/Bohr): 3.9e-11
- EH: 7.4e-8
- EXC: 1.1e-08
- Ekin: 1.1e-9
- Enl: 1.1e-10
- Epot: 7.1e-08
- EvXC: 1.4e-08
- Tr(K): 6.1e-07
- charge diff: 6.1e-07
- eF: 4.4e-07
- tr(KS) before purification: 5.4e-10
+ Atomic Forces (Ha/Bohr): 1.2e-10
+ Clean forces norm (Ha/Bohr): 7.2e-11
+ Average noise forces: 2.1e-10
+ EH: 3.0e-7
+ EXC: 4.1e-08
+ Ekin: 5.1e-9
+ Enl: 2.1e-10
+ Epot: 2.1e-07
+ EvXC: 5.4e-08
+ eF: 2.5e-05
+ tr(KS) before purification: 2.2e-9
+ Tr(K): 2.6e-4
  Total charge: 1.1e-10
- Raw forces norm (Ha/Bohr): 4.5e-11
+ Raw forces norm (Ha/Bohr): 1.8e-10
  Total ionic charge: 1.6e-11
- D Tr: 4.1e-08
- D eF: 4.4e-07
- multiplicator for the confinement: 3.4e-10
- energy: 2.0e-10
- Omega: 7.1e-08
+ D Tr: 2.6e-04
+ D eF: 9.8e-06
+ multiplicator for the confinement: 6.4e-10
+ energy: 3.8e-10
+ Omega: 1.4e-7
+ charge diff: 2.6e-4
 
 
 newpulay:

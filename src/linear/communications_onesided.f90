@@ -50,15 +50,15 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
               nit=comm%comarr(5,joverlap,jproc)
               ioffset_send=comm%comarr(6,joverlap,jproc)
               call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
-                   comm%mpi_datatypes(1,jproc), comm%mpi_datatypes(2,jproc), ierr)
-              call mpi_type_commit(comm%mpi_datatypes(2,jproc), ierr)
+                   comm%mpi_datatypes(0,jproc), comm%mpi_datatypes(joverlap,jproc), ierr)
+              call mpi_type_commit(comm%mpi_datatypes(joverlap,jproc), ierr)
               if (iproc==mpidest) then
-                  call mpi_type_size(comm%mpi_datatypes(2,jproc), nsize, ierr)
+                  call mpi_type_size(comm%mpi_datatypes(joverlap,jproc), nsize, ierr)
                   nsize=nsize/size_of_double
                   if(nsize>0) then
                       call mpi_get(recvbuf(istdest), nsize, &
                            mpi_double_precision, mpisource, int((istsource-1),kind=mpi_address_kind), &
-                           1, comm%mpi_datatypes(2,jproc), comm%window, ierr)
+                           1, comm%mpi_datatypes(joverlap,jproc), comm%window, ierr)
                   end if
               end if
           end do
@@ -100,13 +100,15 @@ subroutine synchronize_onesided_communication(iproc, nproc, comm)
   type(p2pComms),intent(inout):: comm
   
   ! Local variables
-  integer:: ierr, jproc
+  integer:: ierr, jproc, joverlap
   
   
   if(.not.comm%communication_complete) then
       call mpi_win_fence(0, comm%window, ierr)
       do jproc=0,nproc-1
-          call mpi_type_free(comm%mpi_datatypes(2,jproc), ierr)
+          do joverlap=1,comm%noverlaps(jproc)
+              call mpi_type_free(comm%mpi_datatypes(joverlap,jproc), ierr)
+          end do
       end do
       call mpi_win_free(comm%window, ierr)
   end if
