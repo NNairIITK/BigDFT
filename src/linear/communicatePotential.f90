@@ -124,7 +124,7 @@ subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, l
   call to_zero(6*nmaxoverlap*nproc, comgp%comarr(1,1,0))
   allocate(comgp%mpi_datatypes(0:nmaxoverlap,0:nproc-1), stat=istat)
   call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
-  call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(1,0))
+  call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
   comgp%nrecvBuf = 0
   is3min=0
   ie3max=0
