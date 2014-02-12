@@ -99,8 +99,8 @@ report:
 	if test -f accel.perf && ! grep -qs ACCEL $$file ; then cat accel.perf >> $$file ; fi ; \
 	echo outdir ./ >> $$file ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	echo "$(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
-	$(abs_top_builddir)/src/bigdft-tool -n 1 > $@ ; \
+	echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool -n 1 > $@ ; \
 	mv log.yaml log-memguess.yaml ; \
 	if test -f $$file.bak ; then mv $$file.bak $$file ; else rm -f $$file ; fi
 	@name=`basename $@ .out` ; \
@@ -149,7 +149,7 @@ report:
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
 	rm -f neb.it*
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(abs_top_builddir)/src/NEB | tee $@
+	$(run_serial) $(abs_top_builddir)/src/NEB | tee $@
 	cat neb.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml
 	echo "---" >> log.yaml
 	grep ":" NEB.NEB.out | grep -v "<BigDFT>" >> log.yaml
@@ -173,7 +173,7 @@ report:
 %.xabs.out: $(abs_top_builddir)/src/abscalc
 	name=`basename $@ .xabs.out` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(abs_top_builddir)/src/abscalc $$name > $@
+	$(run_serial) $(abs_top_builddir)/src/abscalc $$name > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.b2w.out: $(abs_top_builddir)/src/BigDFT2Wannier
