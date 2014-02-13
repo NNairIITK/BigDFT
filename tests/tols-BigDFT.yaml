@@ -171,6 +171,7 @@ FeHyb:
 Li+:
  EKS: 2.e-11
  D: 1.1e-10
+ Epot: 1.1e-10
 
 O2-Spin:
  Epsilon: 1.1e-10
@@ -673,15 +674,15 @@ experimentalfoe:
  EvXC: 7.9e-08
  eF: 2.5e-05
  tr(KS) before purification: 3.2e-9
- Tr(K): 3.9e-4
+ Tr(K): 5.1e-4
  Total charge: 1.1e-10
  Total ionic charge: 1.6e-11
- D Tr: 3.9e-04
+ D Tr: 5.1e-04
  D eF: 1.5e-05
  multiplicator for the confinement: 2.0e-9
  energy: 1.3e-9
  Omega: 4.1e-7
- charge diff: 3.9e-4
+ charge diff: 5.1e-4
  D: 1.1e-10
 
 
