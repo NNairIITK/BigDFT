@@ -622,7 +622,7 @@ foe:
  energy: 1.1e-10
  EH: 1.0e-9
  Omega: 1.64e-10
- EXC: 1.0e-10
+ EXC: 7.1e-10
  Total charge: 2.1e-11
  EvXC: 1.1e-10
  eF: 3.9e-8

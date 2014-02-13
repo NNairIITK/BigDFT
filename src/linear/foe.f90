@@ -301,12 +301,15 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   if (iproc==0) call yaml_map('polynomials','recalculated')
-                  call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, tmb%linmat%denskern_large, hamscal_compr, &
-                       tmb%linmat%inv_ovrlp_large%matrix_compr, calculate_SHS, nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
+                  call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, &
+                       tmb%linmat%denskern_large, hamscal_compr, &
+                       tmb%linmat%inv_ovrlp_large%matrix_compr, calculate_SHS, &
+                       nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
               else
                   ! The Chebyshev polynomials are already available
                   if (iproc==0) call yaml_map('polynomials','from memory')
-                  call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, tmb%linmat%denskern_large, chebyshev_polynomials, cc, fermip)
+                  call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, &
+                      tmb%linmat%denskern_large, chebyshev_polynomials, cc, fermip)
               end if 
     
     
