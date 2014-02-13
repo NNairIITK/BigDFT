@@ -4114,7 +4114,7 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kernel, ham_compr, &
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_compr, &
                    ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials)
           use module_base
           use module_types
@@ -4123,10 +4123,10 @@ module module_interfaces
           real(8),dimension(npl,3),intent(in) :: cc
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(in) :: foe_obj
-          type(sparseMatrix), intent(in) :: sparsemat, kernel
-          real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
+          type(sparseMatrix), intent(in) :: kernel
+          real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
           logical,intent(in) :: calculate_SHS
-          real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
+          real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
           real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials

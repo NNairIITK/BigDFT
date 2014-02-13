@@ -56,7 +56,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   type(sparseMatrix),pointer :: fermi, inv_ovrlp
   integer,parameter :: SMALL=1
   integer,parameter :: LARGE=2
-  integer :: imode, irow, icol, itemp
+  integer :: imode, irow, icol, itemp, matrixindex_in_compressed
   logical :: overlap_calculated, cycle_FOE
 
 
@@ -225,10 +225,20 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               if (foe_obj%evlow/=evlow_old .or. foe_obj%evhigh/=evhigh_old) then
                   scale_factor=2.d0/(foe_obj%evhigh-foe_obj%evlow)
                   shift_value=.5d0*(foe_obj%evhigh+foe_obj%evlow)
-                  !$omp parallel default(none) private(ii) shared(ovrlp,hamscal_compr,scale_factor,ham,shift_value)
+                  !$omp parallel default(none) private(ii,irow,icol,iismall,tt) &
+                  !$omp shared(ovrlp_input,hamscal_compr,scale_factor,ham,shift_value)
                   !$omp do
-                  do ii=1,ovrlp%nvctr
-                      hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*ovrlp%matrix_compr(ii))
+                  do ii=1,ham%nvctr
+                      irow = ham%orb_from_index(1,ii)
+                      icol = ham%orb_from_index(2,ii)
+                      iismall = matrixindex_in_compressed(ovrlp_input, irow, icol)
+                      if (iismall>0) then
+                          tt=ovrlp_input%matrix_compr(iismall)
+                      else
+                          tt=0.d0
+                      end if
+                      hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*tt)
+                      !hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*ovrlp_input%matrix_compr(iismall))
                   end do
                   !$omp end do
                   !$omp end parallel
@@ -311,7 +321,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   if (iproc==0) call yaml_map('polynomials','recalculated')
-                  call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, ovrlp, fermi, hamscal_compr, &
+                  call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, fermi, hamscal_compr, &
                        inv_ovrlp%matrix_compr, calculate_SHS, nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
               else
                   ! The Chebyshev polynomials are already available
@@ -396,17 +406,17 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               if (orbs%norbp>0) then
                   !do jproc=0,nproc-1
                   !    if (iproc==jproc) then
-                          isegstart=ovrlp%istsegline(orbs%isorb_par(iproc)+1)
+                          isegstart=fermi%istsegline(orbs%isorb_par(iproc)+1)
                           if (orbs%isorb+orbs%norbp<orbs%norb) then
-                              isegend=ovrlp%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                              isegend=fermi%istsegline(orbs%isorb_par(iproc+1)+1)-1
                           else
-                              isegend=ovrlp%nseg
+                              isegend=fermi%nseg
                           end if
-                          !$omp parallel default(private) shared(isegstart, isegend, orbs, fermip, ovrlp, sumn) 
+                          !$omp parallel default(private) shared(isegstart, isegend, orbs, fermip, fermi, sumn) 
                           !$omp do reduction(+:sumn)
                           do iseg=isegstart,isegend
-                              ii=ovrlp%keyv(iseg)-1
-                              do jorb=ovrlp%keyg(1,iseg),ovrlp%keyg(2,iseg)
+                              ii=fermi%keyv(iseg)-1
+                              do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
                                   ii=ii+1
                                   iiorb = (jorb-1)/orbs%norb + 1
                                   jjorb = jorb - (iiorb-1)*orbs%norb

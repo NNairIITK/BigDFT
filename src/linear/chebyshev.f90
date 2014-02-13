@@ -9,7 +9,7 @@
 
  
 !> Again assuming all matrices have same sparsity, still some tidying to be done
-subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kernel, ham_compr, &
+subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_compr, &
            ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials)
   use module_base
   use module_types
@@ -21,10 +21,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
   real(8),dimension(npl,3),intent(in) :: cc
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix), intent(in) :: sparsemat, kernel
-  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
+  type(sparseMatrix), intent(in) :: kernel
+  real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
-  real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
+  real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
@@ -50,9 +50,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
 
   if (norbp>0) then
 
-      call init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
+      call init_onedimindices(norbp, isorb, foe_obj, kernel, nout, onedimindices)
     
-      call determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
+      call determine_sequential_length(norbp, isorb, norb, foe_obj, kernel, nseq, nmaxsegk, nmaxvalk)
     
     
       ham_compr_seq = f_malloc(nseq,id='ham_compr_seq')
@@ -60,7 +60,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
       istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
       ivectorindex = f_malloc(nseq,id='ivectorindex')
     
-      call get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+      call get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, kernel, nseq, nmaxsegk, nmaxvalk, &
            istindexarr, ivectorindex)
     
     
@@ -73,15 +73,15 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
           end if
           !write(*,*) 'WARNING CHEBYSHEV: MODIFYING MATRIX MULTIPLICATION'
           if (orbs%norbp>0) then
-              isegstart=sparsemat%istsegline(orbs%isorb_par(iproc)+1)
+              isegstart=kernel%istsegline(orbs%isorb_par(iproc)+1)
               if (orbs%isorb+orbs%norbp<orbs%norb) then
-                  isegend=sparsemat%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                  isegend=kernel%istsegline(orbs%isorb_par(iproc+1)+1)-1
               else
-                  isegend=sparsemat%nseg
+                  isegend=kernel%nseg
               end if
               do iseg=isegstart,isegend
-                  ii=sparsemat%keyv(iseg)-1
-                  do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
+                  ii=kernel%keyv(iseg)-1
+                  do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*orbs%norb
@@ -96,11 +96,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
           end if
       end if
     
-      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, ham_compr, nseq, nmaxsegk, nmaxvalk, &
+      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, kernel, ham_compr, nseq, nmaxsegk, nmaxvalk, &
            ham_compr_seq)
     
     
-      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
+      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, kernel, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
            ovrlp_compr_seq)
     
       vectors = f_malloc((/ norb, norbp, 4 /),id='vectors')
@@ -120,20 +120,20 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
               call to_zero(norbp*norb, matrix(1,1))
               call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
                    norb, norbp, ivectorindex, nout, onedimindices)
-              !call to_zero(sparsemat%nvctr, SHS(1))
+              !call to_zero(kernel%nvctr, SHS(1))
           end if
-          call to_zero(sparsemat%nvctr, SHS(1))
+          call to_zero(kernel%nvctr, SHS(1))
           
           if (orbs%norbp>0) then
-              isegstart=sparsemat%istsegline(orbs%isorb_par(iproc)+1)
+              isegstart=kernel%istsegline(orbs%isorb_par(iproc)+1)
               if (orbs%isorb+orbs%norbp<orbs%norb) then
-                  isegend=sparsemat%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                  isegend=kernel%istsegline(orbs%isorb_par(iproc+1)+1)-1
               else
-                  isegend=sparsemat%nseg
+                  isegend=kernel%nseg
               end if
               do iseg=isegstart,isegend
-                  ii=sparsemat%keyv(iseg)-1
-                  do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
+                  ii=kernel%keyv(iseg)-1
+                  do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*orbs%norb
@@ -142,19 +142,19 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
               end do
           end if
   
-          call mpiallred(SHS(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   
       end if
   
       if (orbs%norbp>0) then
-          call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, SHS, nseq, nmaxsegk, &
+          call sequential_acces_matrix(norbp, isorb, norb, foe_obj, kernel, SHS, nseq, nmaxsegk, &
                nmaxvalk, SHS_seq)
       end if
   
   end if
 
   !!if (iproc==0) then
-  !!    do istat=1,sparsemat%nvctr
+  !!    do istat=1,kernel%nvctr
   !!        write(300,*) ham_compr(istat), SHS(istat)
   !!    end do
   !!end if
