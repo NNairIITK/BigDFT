@@ -912,7 +912,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   ! calculate Tr[Kg]  (not recalculating kernel as don't have the correct occs here)
   !call calculate_kernel_and_energy(iproc,nproc,denskern,grad_coeff,ksres_sum,tmb%coeff,orbs,tmb%orbs,.true.)
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,grad_ovrlp,ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
-  call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+  !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
   if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
 
   call deallocate_sparseMatrix(grad_ovrlp, subname)

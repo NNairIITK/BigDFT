@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
-           ham_input, ovrlp_input, fermi_input, ovrlp_large, ham_large, denskern_large, inv_ovrlp_large, &
+           ham_input, ovrlp_input, ovrlp_large, ham_large, denskern_large, inv_ovrlp_large, &
            ebs, itout, it_scc, order_taylor, &
            tmb)
   use module_base
@@ -26,7 +26,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),intent(inout) :: tmprtr
   integer,intent(in) :: mode
   type(sparseMatrix),intent(inout),target :: ovrlp_input, ham_input !to be able to deallocate
-  type(sparseMatrix),intent(inout),target :: fermi_input
   type(sparseMatrix),intent(inout),target :: ovrlp_large, ham_large, inv_ovrlp_large
   type(sparseMatrix),intent(inout),target :: denskern_large
   real(kind=8),intent(out) :: ebs
@@ -83,7 +82,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
       call transform_sparse_matrix(ovrlp_input, ovrlp_large, 'small_to_large')
       call transform_sparse_matrix(ham_input, ham_large, 'small_to_large')
-      call transform_sparse_matrix(fermi_input, denskern_large, 'small_to_large')
+      !call transform_sparse_matrix(fermi_input, denskern_large, 'small_to_large')
 
       ovrlp => ovrlp_large
       ham => ham_large
@@ -707,9 +706,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       overlap_calculated=.false.
       tmb%can_use_transposed=.false.
       ! go back to small region
-      if (imode==LARGE) then
-          call transform_sparse_matrix(fermi_input, denskern_large, 'large_to_small')
-      end if
+      !if (imode==LARGE) then
+      !    call transform_sparse_matrix(fermi_input, denskern_large, 'large_to_small')
+      !end if
       call purify_kernel(iproc, nproc, tmb, overlap_calculated)
       if (iproc==0) then
           call yaml_close_sequence()
@@ -740,7 +739,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
 
   ! go back to small region
   if (imode==LARGE) then
-      call transform_sparse_matrix(fermi_input, denskern_large, 'large_to_small')
+      !!call transform_sparse_matrix(fermi_input, denskern_large, 'large_to_small')
   
       iall=-product(shape(ovrlp_large%matrix_compr))*kind(ovrlp_large%matrix_compr)
       deallocate(ovrlp_large%matrix_compr,stat=istat)

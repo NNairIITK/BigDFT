@@ -348,13 +348,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          !!     update_kernel)
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,update_kernel)
-         call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+         !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
          !call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern,tmb%linmat%ham,energs%ebs,tmb%coeff,orbs,tmb%orbs,.false.)
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,.false.)
-         call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+         !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
       iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
       deallocate(tmb%linmat%ham%matrix, stat=istat)
@@ -368,7 +368,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
-           tmprtr, 2, ham_small, tmb%linmat%ovrlp, tmb%linmat%denskern, &
+           tmprtr, 2, ham_small, tmb%linmat%ovrlp, &
            tmb%linmat%ovrlp_large, tmb%linmat%ham_large, &
            tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, energs%ebs, &
            itout,it_scc, order_taylor, &
@@ -668,7 +668,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !   end if
           !end do
           call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern_large)
-          call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+          !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
 
       correction_orthoconstraint_local=correction_orthoconstraint
@@ -1827,7 +1827,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
   ! Recalculate the kernel
   call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern_large)
-  call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+  !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
 end subroutine reconstruct_kernel
 
@@ -2266,7 +2266,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   !call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
   call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
-  call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+  !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
   if (.not.overlap_associated) then
       allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr))

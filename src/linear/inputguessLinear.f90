@@ -440,7 +440,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
      tmb%linmat%denskern_large%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
   end do
- call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+ !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -508,7 +508,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
       !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
       !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
-      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
+      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+           tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
  else

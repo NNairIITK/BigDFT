@@ -463,9 +463,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      !tmb%linmat%ovrlp%matrixindex_in_compressed_ptr => tmb%collcom%matrixindex_in_compressed
      !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, in, tmb%linmat%denskern)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern)
+     !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, in, tmb%linmat%denskern_large)
+     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      !call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
      !call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
 
@@ -481,18 +481,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
      !tmb%linmat%inv_ovrlp%matrixindex_in_compressed_ptr => tmb%ham_descr%collcom%matrixindex_in_compressed
 
-
-
-     if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')
+     if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of small sparse matrices')
      call check_matrix_compression(iproc,tmb%linmat%ham)
      call check_matrix_compression(iproc,tmb%linmat%ovrlp)
      !call check_matrix_compression(iproc,tmb%linmat%inv_ovrlp) ! same as denskern for now so won't check
-     call check_matrix_compression(iproc,tmb%linmat%denskern)
+     !call check_matrix_compression(iproc,tmb%linmat%denskern_large)
      if (iproc ==0) call yaml_close_map()
 
+
+
      ! move allocation from here into initsparsematrix?! or new allocatesparsematrix
-     allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
+     !allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=i_stat)
+     !call memocc(i_stat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
      allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
      !allocate(tmb%linmat%inv_ovrlp%matrix_compr(tmb%linmat%inv_ovrlp%nvctr), stat=i_stat) ! only allocate when needed, unlike others
@@ -507,8 +507,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!tmb%lzd%llr(:)%locrad_kernel=100.d0
 
      call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%denskern_large)
-     allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
+     !allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
+     !call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call nullify_sparsematrix(tmb%linmat%ovrlp_large)
@@ -517,6 +517,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ovrlp_large, iproc, subname)
      call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ham_large, iproc, subname)
      call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)
+
+
+     if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of large sparse matrices')
+     !call check_matrix_compression(iproc,tmb%linmat%ham)
+     !call check_matrix_compression(iproc,tmb%linmat%ovrlp)
+     !call check_matrix_compression(iproc,tmb%linmat%inv_ovrlp) ! same as denskern for now so won't check
+     call check_matrix_compression(iproc,tmb%linmat%denskern_large)
+     if (iproc ==0) call yaml_close_map()
 
      !!call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ovrlp_large)
      !!allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr), stat=i_stat)
@@ -531,8 +539,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !tmb%linmat%denskern_large%matrix_compr=f_malloc_ptr(tmb%linmat%denskern_large%nvctr,id='tmb%linmat%denskern_large%matrix_compr')
 
 
-     !allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
-     !call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
+     allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
 
      !!write(*,*) '-----------------------------------'
      !!call random_number(tmb%linmat%denskern%matrix_compr)
@@ -572,7 +580,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      if (in%check_sumrho>0) then
          call check_communication_potential(denspot,tmb)
          call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
-              denspot, tmb%linmat%denskern, in%check_sumrho)
+              denspot, tmb%linmat%denskern_large, in%check_sumrho)
      end if
 
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction) then

@@ -787,11 +787,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   end if
 
   ! MOVE LATER 
-  if (associated(tmb_old%linmat%denskern%matrix_compr)) then
-     i_all=-product(shape(tmb_old%linmat%denskern%matrix_compr))*kind(tmb_old%linmat%denskern%matrix_compr)
-     deallocate(tmb_old%linmat%denskern%matrix_compr, stat=i_stat)
-     call memocc(i_stat, i_all, 'tmb_old%linmat%denskern%matrix_compr', subname)
-  end if
+  !!if (associated(tmb_old%linmat%denskern%matrix_compr)) then
+  !!   i_all=-product(shape(tmb_old%linmat%denskern%matrix_compr))*kind(tmb_old%linmat%denskern%matrix_compr)
+  !!   deallocate(tmb_old%linmat%denskern%matrix_compr, stat=i_stat)
+  !!   call memocc(i_stat, i_all, 'tmb_old%linmat%denskern%matrix_compr', subname)
+  !!end if
   if (associated(tmb_old%linmat%denskern_large%matrix_compr)) then
      i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
      deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)

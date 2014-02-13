@@ -1000,7 +1000,7 @@ subroutine destroy_DFT_wavefunction(wfn)
 
   call deallocate_p2pComms(wfn%comgp, subname)
   call deallocate_foe(wfn%foe_obj, subname)
-  call deallocate_sparseMatrix(wfn%linmat%denskern, subname)
+  !call deallocate_sparseMatrix(wfn%linmat%denskern, subname)
   !call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp, subname)
   call deallocate_sparseMatrix(wfn%linmat%ovrlp, subname)
   call deallocate_sparseMatrix(wfn%linmat%ham, subname)
@@ -1307,7 +1307,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_foe(tmb%foe_obj, subname)
 
-     call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
+     !call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
      call deallocate_sparseMatrix(tmb%linmat%denskern_large, subname)
      call deallocate_sparseMatrix(tmb%linmat%ham_large, subname)
      call deallocate_sparseMatrix(tmb%linmat%ovrlp_large, subname)
@@ -1399,11 +1399,11 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
+     !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
 
      call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, input, tmb%linmat%denskern_large)
-     allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
-     call memocc(istat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
+     !allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
+     !call memocc(istat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call nullify_sparsematrix(tmb%linmat%ovrlp_large)
@@ -1423,14 +1423,14 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
 
 
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern)
+     !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      !call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
      !call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
 
-     allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=istat)
-     call memocc(istat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
+     allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
+     call memocc(istat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
      allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
      call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
      allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)

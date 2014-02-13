@@ -204,7 +204,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,cdft%weight_matrix,&
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
-     call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+     !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
      call timing(iproc,'constraineddft','ON')
      vgrad_old=ebs-cdft%charge
