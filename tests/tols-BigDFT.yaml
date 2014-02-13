@@ -517,13 +517,14 @@ fructose:
   - found warnings
 
 geopt_foe:
- D eF: 5.3e-6
+ D eF: 7.1e-6
  eF: 7.1e-6
  Epot: 1.1e-10
  EH: 1.1e-10
- charge diff: 5.1e-11
+ charge diff: 7.1e-6
  diff from idempotency: 2.1e-09
  tr(KS) before purification: 2.6e-07
+ Tr(K) : 1.3e-6
 
 geopt_diag:
  Epot: 1.1e-10
