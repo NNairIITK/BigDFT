@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
-           ham_input, ovrlp_input,  ham_large, denskern_large, inv_ovrlp_large, &
+           ham_input, ovrlp_input, denskern_large, inv_ovrlp_large, &
            ebs, itout, it_scc, order_taylor, &
            tmb)
   use module_base
@@ -26,7 +26,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),intent(inout) :: tmprtr
   integer,intent(in) :: mode
   type(sparseMatrix),intent(inout),target :: ovrlp_input, ham_input !to be able to deallocate
-  type(sparseMatrix),intent(inout),target :: ham_large, inv_ovrlp_large
+  type(sparseMatrix),intent(inout),target :: inv_ovrlp_large
   type(sparseMatrix),intent(inout),target :: denskern_large
   real(kind=8),intent(out) :: ebs
   type(DFT_wavefunction),intent(inout) :: tmb
@@ -363,7 +363,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
                       else
                           isegend=fermi%nseg
                       end if
-                      !$omp parallel default(private) shared(isegstart, isegend, orbs, penalty_ev, fermi, ovrlp_input, bound_low, bound_up)
+                      !$omp parallel default(private) &
+                      !$omp shared(isegstart, isegend, orbs, penalty_ev, fermi, ovrlp_input, bound_low, bound_up)
                       !$omp do reduction(+:bound_low,bound_up)
                       do iseg=isegstart,isegend
                           ii=fermi%keyv(iseg)-1

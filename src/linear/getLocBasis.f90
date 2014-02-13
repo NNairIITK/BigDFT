@@ -369,7 +369,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
            tmprtr, 2, ham_small, tmb%linmat%ovrlp, &
-           tmb%linmat%ham_large, &
            tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, energs%ebs, &
            itout,it_scc, order_taylor, &
            tmb)
@@ -2094,7 +2093,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   ! Local variables
   integer :: istat, iall, it, lwork, info, iorb, jorb, ierr, jsegstart, jsegend, jseg, jjorb, iiorb
-  integer :: trace_sparse
+  reaL(kind=8) :: trace_sparse
   real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel, overlap, overlap_diag
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'

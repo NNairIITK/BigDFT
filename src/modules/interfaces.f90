@@ -3987,7 +3987,7 @@ module module_interfaces
 
         subroutine foe(iproc, nproc, orbs, foe_obj, &
                    tmprtr, mode, ham_input, ovrlp_input, &
-                   ham_large, denskern_large, ovrlp_inv_large, &
+                   denskern_large, ovrlp_inv_large, &
                    ebs, itout, it_scc, order_taylor, &
                    tmb)
           use module_base
@@ -3999,7 +3999,7 @@ module module_interfaces
           real(kind=8),intent(inout) :: tmprtr
           integer,intent(in) :: mode
           type(sparseMatrix),intent(inout),target :: ovrlp_input, ham_input
-          type(sparseMatrix),intent(inout),target :: ham_large, ovrlp_inv_large
+          type(sparseMatrix),intent(inout),target :: ovrlp_inv_large
           type(sparseMatrix),intent(inout),target :: denskern_large
           real(kind=8),intent(out) :: ebs
           type(DFT_wavefunction),intent(inout) :: tmb
