@@ -367,10 +367,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
-      call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
-           tmprtr, 2, ham_small, tmb%linmat%ovrlp, &
-           tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, energs%ebs, &
-           itout,it_scc, order_taylor, &
+      call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, tmprtr, &
+           energs%ebs, itout,it_scc, order_taylor, &
            tmb)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
@@ -541,8 +539,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_open_map(flow=.true.)
           call yaml_map('Initial kernel purification',.true.)
       end if
-      overlap_calculated=.false.
-      tmb%can_use_transposed=.false.
+      overlap_calculated=.true.
+      !tmb%can_use_transposed=.false.
       call purify_kernel(iproc, nproc, tmb, overlap_calculated)
       if (iproc==0) call yaml_close_map()
   end if
@@ -2145,12 +2143,6 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
   ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
 
-  !!allocate(ks(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-  !!call memocc(istat, ks, 'ks', subname) 
-  !!allocate(ksk(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-  !!call memocc(istat, ksk, 'ksk', subname) 
-  !!allocate(ksksk(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-  !!call memocc(istat, ksksk, 'ksksk', subname) 
 
 
   call timing(iproc,'purify_kernel ','ON') 
@@ -2159,25 +2151,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
 
 
-  !!overlap_associated=associated(tmb%linmat%ovrlp_large%matrix_compr)
-
-  !!if (.not.overlap_associated) then
-  !!    allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr))
-  !!    call memocc(istat,tmb%linmat%ovrlp_large%matrix_compr,'tmb%linmat%ovrlp_large%matrix_compr',subname)
-  !!end if
-  !!call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
-  !!tr_KS=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%ovrlp_large%matrix_compr, &
-  !!           1, tmb%linmat%denskern_large%matrix_compr, 1)
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
   if (iproc==0) then
       call yaml_map('tr(KS) before purification',tr_KS)
       call yaml_newline
   end if
-  !!if (.not.overlap_associated) then
-  !!    iall = -product(shape(tmb%linmat%ovrlp_large%matrix_compr))*kind(tmb%linmat%ovrlp_large%matrix_compr)
-  !!    deallocate(tmb%linmat%ovrlp_large%matrix_compr,stat=istat)
-  !!    call memocc(istat, iall, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
-  !!end if
 
   if (iproc==0) call yaml_open_sequence('purification process')
 
