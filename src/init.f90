@@ -895,7 +895,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   if (input%experimental_mode .and. input%lin%scf_mode/=LINEAR_FOE) then                 
       if (iproc==0) call yaml_map('orthonormalization of input guess','standard')        
       tmb%can_use_transposed = .false.                                         
-      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+           tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
   end if  
 

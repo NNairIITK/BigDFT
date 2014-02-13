@@ -51,11 +51,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
   integer :: jproc, iorder
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
-  real(kind=8),dimension(:,:),allocatable :: SminusI
   real(kind=8),dimension(:,:),allocatable :: workmat
-  real(kind=8),dimension(:,:),pointer :: ovrlpinv1
-  real(kind=8),dimension(:,:),pointer :: ovrlpinv2
-  type(sparseMatrix) :: invovrlp
 
   type(sparseMatrix),pointer :: ovrlp, ham !to be able to deallocate
   type(sparseMatrix),pointer :: fermi, inv_ovrlp
@@ -63,7 +59,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   integer,parameter :: LARGE=2
   integer :: imode, irow, icol, itemp
   logical :: overlap_calculated, cycle_FOE
-  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
 
 
   if (mode==1) then

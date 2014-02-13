@@ -170,6 +170,7 @@ FeHyb:
 
 Li+:
  EKS: 2.e-11
+ D: 1.1e-10
 
 O2-Spin:
  Epsilon: 1.1e-10
@@ -515,11 +516,13 @@ fructose:
   - found warnings
 
 geopt_foe:
- D eF: 1.1e-8
- eF: 8.3e-9
+ D eF: 5.3e-6
+ eF: 7.1e-6
  Epot: 1.1e-10
  EH: 1.1e-10
  charge diff: 5.1e-11
+ diff from idempotency: 2.1e-09
+ tr(KS) before purification: 2.6e-07
 
 geopt_diag:
  Epot: 1.1e-10
@@ -658,8 +661,8 @@ linearcubic_linear:
  Omega: 1.82e-10
 
 experimentalfoe:
- Atomic Forces (Ha/Bohr): 1.2e-10
- Clean forces norm (Ha/Bohr): 2.0e-10
+ Atomic Forces (Ha/Bohr): 3.3e-10
+ Clean forces norm (Ha/Bohr): 3.3e-10
  Average noise forces: 2.1e-10
  Raw forces norm (Ha/Bohr): 2.6e-10
  EH: 4.3e-7

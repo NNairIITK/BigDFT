@@ -508,7 +508,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
       !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
       !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
-      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
+      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
  else
@@ -550,12 +550,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          if (iortho>0) then
              call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
                   tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, &
-                  tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, &
+                  tmb%linmat%inv_ovrlp_large, tmb%collcom, tmb%orthpar, &
                   tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
          end if
          call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
               tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, &
-              tmb%linmat%inv_ovrlp, tmb%collcom, tmb%orthpar, &
+              tmb%linmat%inv_ovrlp_large, tmb%collcom, tmb%orthpar, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
          if (finished) exit ortho_loop
          iortho=iortho+1

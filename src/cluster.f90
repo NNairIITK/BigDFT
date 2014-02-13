@@ -466,8 +466,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, in, tmb%linmat%denskern)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern)
-     call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
-     call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
+     !call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
+     !call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
 
 
      !!! This is nasty.. matrixindex_in_compressed_fortransposed should rather be
