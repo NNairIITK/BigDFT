@@ -494,7 +494,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
 
      if (in%check_sumrho>0) then
-         call check_communication_potential(denspot,tmb)
+         call check_communication_potential(iproc,denspot,tmb)
          call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
               denspot, tmb%linmat%denskern_large, in%check_sumrho)
      end if

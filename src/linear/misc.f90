@@ -655,12 +655,12 @@ end subroutine plotGrid
 
 
 
-subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
+subroutine local_potential_dimensions(iproc,Lzd,orbs,ndimfirstproc)
   use module_base
   use module_types
   use module_xc
   implicit none
-  integer, intent(in) :: ndimfirstproc
+  integer, intent(in) :: iproc, ndimfirstproc
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(orbitals_data), intent(inout) :: orbs
   !local variables
@@ -668,6 +668,8 @@ subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
   logical :: newvalue
   integer :: i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
   integer, dimension(:,:), allocatable :: ilrtable
+
+  call timing(iproc, 'calc_bounds   ', 'ON')
   
   if(Lzd%nlr > 1) then
      allocate(ilrtable(orbs%norbp,2),stat=i_stat)
@@ -757,6 +759,9 @@ subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
   i_all=-product(shape(ilrtable))*kind(ilrtable)
   deallocate(ilrtable,stat=i_stat)
   call memocc(i_stat,i_all,'ilrtable',subname)
+
+
+  call timing(iproc, 'calc_bounds   ', 'OF')
 
 end subroutine local_potential_dimensions
 

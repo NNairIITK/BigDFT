@@ -1695,7 +1695,7 @@ nullify(Qvect,dumQvect)
     !call allocate_comms(nproc,ha%comms,subname)
     call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-    call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
 
     allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
     call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -1863,7 +1863,7 @@ nullify(Qvect,dumQvect)
 
     call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-    call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
 
     if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
     else
@@ -2111,7 +2111,7 @@ nullify(Qvect,dumQvect)
     !call allocate_comms(nproc,ha%comms,subname)
     call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-    call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
 
     allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
     call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)

@@ -3378,11 +3378,11 @@ module module_interfaces
           type(p2pComms),intent(out):: comgp
         end subroutine initialize_communication_potential
 
-        subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
+        subroutine local_potential_dimensions(iproc,Lzd,orbs,ndimfirstproc)
           use module_base
           use module_types
           implicit none
-          integer, intent(in) :: ndimfirstproc
+          integer, intent(in) :: iproc, ndimfirstproc
           type(local_zone_descriptors), intent(inout) :: Lzd
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions

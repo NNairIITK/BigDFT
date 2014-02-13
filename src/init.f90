@@ -888,7 +888,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
       call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-      call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+      call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
   end if
 
   ! Orthonormalize the input guess if necessary
@@ -1308,7 +1308,7 @@ END SUBROUTINE input_memory_linear
            
            !change temporarily value of Lzd%npotddim
            allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
-           call local_potential_dimensions(Lzde,orbse,denspot%dpbox%ngatherarr(0,1))
+           call local_potential_dimensions(iproc,Lzde,orbse,denspot%dpbox%ngatherarr(0,1))
         !   print *,'here',iproc   
            call default_confinement_data(confdatarr,orbse%norbp)
 
@@ -1329,7 +1329,7 @@ END SUBROUTINE input_memory_linear
 
            call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
             !restore the good value
-            call local_potential_dimensions(Lzde,orbs,denspot%dpbox%ngatherarr(0,1))
+            call local_potential_dimensions(iproc,Lzde,orbs,denspot%dpbox%ngatherarr(0,1))
 
              !deallocate potential
              call free_full_potential(denspot%dpbox%mpi_env%nproc,Lzde%lintyp,denspot%pot_work,subname)
@@ -1633,7 +1633,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   else
      allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
      call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
-     call local_potential_dimensions(KSwfn%Lzd,KSwfn%orbs,denspot%dpbox%ngatherarr(0,1))
+     call local_potential_dimensions(iproc,KSwfn%Lzd,KSwfn%orbs,denspot%dpbox%ngatherarr(0,1))
   end if
 
   norbv=abs(in%norbv)
@@ -1985,7 +1985,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
            call calculate_weight_function(in,ref_frags,cdft,&
                 KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,atoms,rxyz,denspot)
-           call calculate_weight_matrix_using_density(cdft,tmb,atoms,in,GPU,denspot)
+           call calculate_weight_matrix_using_density(iproc,cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
            call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,.false.,tmb%orthpar%methTransformOverlap)
@@ -2009,7 +2009,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
      call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-     call local_potential_dimensions(tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+     call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
     !call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'potential.cube', &
     !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)

@@ -26,6 +26,7 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
   integer :: ioffset_send, mpi_type, ist, i2, i3, ist2, ist3, info, nsize, size_of_double
 
 
+  call timing(iproc, 'Pot_comm start', 'ON')
 
   if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
 
@@ -86,6 +87,7 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
       comm%communication_complete=.true.
   end if
 
+  call timing(iproc, 'Pot_comm start', 'OF')
 
 end subroutine start_onesided_communication
 

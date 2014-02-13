@@ -57,9 +57,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
 
   allocate(tmb%linmat%inv_ovrlp_large%matrix_compr(tmb%linmat%inv_ovrlp_large%nvctr), stat=istat)
   call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix_compr, 'tmb%linmat%inv_ovrlp_large%matrix_compr', subname)
-  !!fermi => tmb%linmat%denskern_large
-  !!inv_ovrlp => tmb%linmat%inv_ovrlp_large
-
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -119,15 +116,15 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       else
           isegend=tmb%linmat%denskern_large%nseg
       end if
-      !!$omp parallel default(private) shared(isegstart, isegend, tmb, nsize_polynomial)
-      !!$omp do reduction(+:nsize_polynomial)
+      !$omp parallel default(private) shared(isegstart, isegend, tmb, nsize_polynomial)
+      !$omp do reduction(+:nsize_polynomial)
       do iseg=isegstart,isegend
           do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
               nsize_polynomial=nsize_polynomial+1
           end do
       end do
-      !!$omp end do
-      !!$omp end parallel
+      !$omp end do
+      !$omp end parallel
   end if
   
   
