@@ -192,7 +192,7 @@ void FC_FUNC(getfilecontent, GETFILECONTENT)(void **pt, long *pt_len, const char
   *pt_len = s;
 }
 
-void FC_FUNC(copycbuffer, COPYCBUFFER)(char *to, void **cbuf, int *ln)
+void FC_FUNC(copycbuffer, COPYCBUFFER)(char *to, void **cbuf, long *ln)
 {
   char *from = (char*)*cbuf;
 

@@ -3,6 +3,7 @@
 #include "cufft.h"
 #include "cuda.h"
 #include "cuda_runtime_api.h"
+#include "config.h"
  
 #define DOUBLE
 
@@ -45,7 +46,7 @@ extern "C" void cufftdestroy_(cufftHandle *plan) {
 }
 
 // set device memory
-extern "C" void reset_gpu_data_(int *size, Real* h_data, Real **d_data){
+extern "C" void FC_FUNC_(reset_gpu_data, RESET_GPU_DATA)(int *size, Real* h_data, Real **d_data){
 
  cudaMemcpy(*d_data, h_data, sizeof(Real)*(*size),
          cudaMemcpyHostToDevice);
@@ -55,7 +56,7 @@ extern "C" void reset_gpu_data_(int *size, Real* h_data, Real **d_data){
 }
 
 // read device memory
-extern "C" void get_gpu_data_(int *size, Real *h_data, Real **d_data) {
+extern "C" void FC_FUNC_(get_gpu_data, GET_GPU_DATA)(int *size, Real *h_data, Real **d_data) {
 
  cudaMemcpy(h_data, *d_data, sizeof(Real)*(*size),
          cudaMemcpyDeviceToHost);
@@ -539,7 +540,7 @@ extern "C" void cuda_3d_psolver_cufft3d_(int *NX_p, int *NY_p, int *NZ_p,cufftHa
 
 /************ 3D Poisson Solver for general boundary *************/
 
-extern "C" void cuda_3d_psolver_general_plan_(int *N,
+extern "C" void FC_FUNC_(cuda_3d_psolver_general_plan, CUDA_3D_PSOLVER_GENERAL_PLAN)(int *N,
                  cufftHandle *plan, int *switch_alg,
 		 int *geo) {
 
@@ -603,7 +604,7 @@ extern "C" void cuda_3d_psolver_general_plan_(int *N,
 
 }
 
-extern "C" void cuda_3d_psolver_general_(int *N,
+extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *N,
           cufftHandle *plan,
           Complex **d_data, Complex **d_data2, Real **d_kernel, int *switch_alg,
           int *geo, Real *scal_p) {
@@ -759,7 +760,7 @@ extern "C" void cuda_3d_psolver_general_(int *N,
 }
 
 
-extern "C" void cuda_3d_psolver_plangeneral_(int *N,
+extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERAL)(int *N,
           Complex **d_data, Complex **d_data2, Real **d_kernel,
           int *geo, Real *scal_p) {
 

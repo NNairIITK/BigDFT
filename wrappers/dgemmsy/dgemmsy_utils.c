@@ -21,13 +21,19 @@
 // Set to 1 to use BLAS axpy call to accumulate partial results.
 #ifndef USE_AXPY
 #define USE_AXPY 1
+/*#define ACML_BLAS 1*/
 #endif
 
 #if USE_AXPY
 #if defined(MKL_BLAS) || defined(WIN32)
 #include <mkl_cblas.h>
 #else
+#if defined(ACML_BLAS)
+#include <acml.h>
+#define cblas_daxpy daxpy
+#else
 #include <cblas.h>
+#endif
 #endif
 #endif
 
