@@ -34,12 +34,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   ! Local variables
   integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver, iorb
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge, nsize_polynomial
+  integer :: iismall_ovrlp, iismall_ham
   integer,parameter :: nplx=5000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol, ddot
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
-  real(kind=8) :: fscale, error
+  real(kind=8) :: fscale, error, tt_ovrlp, tt_ham
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -51,6 +52,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   integer :: jproc, iorder
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: workmat
+  real(kind=8) :: trace_sparse
 
   type(sparseMatrix),pointer :: ovrlp, ham !to be able to deallocate
   type(sparseMatrix),pointer :: fermi, inv_ovrlp
@@ -75,17 +77,17 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   else if (imode==LARGE) then
       !allocate(ovrlp_large%matrix_compr(ovrlp_large%nvctr), stat=istat)
       !call memocc(istat, ovrlp_large%matrix_compr, 'ovrlp_large%matrix_compr', subname)
-      allocate(ham_large%matrix_compr(ham_large%nvctr), stat=istat)
-      call memocc(istat, ham_large%matrix_compr, 'ham_large%matrix_compr', subname)
+      !!allocate(ham_large%matrix_compr(ham_large%nvctr), stat=istat)
+      !!call memocc(istat, ham_large%matrix_compr, 'ham_large%matrix_compr', subname)
       allocate(inv_ovrlp_large%matrix_compr(inv_ovrlp_large%nvctr), stat=istat)
       call memocc(istat, inv_ovrlp_large%matrix_compr, 'inv_ovrlp_large%matrix_compr', subname)
 
       !call transform_sparse_matrix(ovrlp_input, ovrlp_large, 'small_to_large')
-      call transform_sparse_matrix(ham_input, ham_large, 'small_to_large')
+      !call transform_sparse_matrix(ham_input, ham_large, 'small_to_large')
       !call transform_sparse_matrix(fermi_input, denskern_large, 'small_to_large')
 
       !ovrlp => ovrlp_large
-      ham => ham_large
+      !ham => ham_large
       fermi => denskern_large
       inv_ovrlp => inv_ovrlp_large
   end if
@@ -136,7 +138,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   end if
 
 
-  allocate(hamscal_compr(ham%nvctr), stat=istat)
+  allocate(hamscal_compr(fermi%nvctr), stat=istat)
   call memocc(istat, hamscal_compr, 'hamscal_compr', subname)
 
     
@@ -231,19 +233,26 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
               if (foe_obj%evlow/=evlow_old .or. foe_obj%evhigh/=evhigh_old) then
                   scale_factor=2.d0/(foe_obj%evhigh-foe_obj%evlow)
                   shift_value=.5d0*(foe_obj%evhigh+foe_obj%evlow)
-                  !$omp parallel default(none) private(ii,irow,icol,iismall,tt) &
-                  !$omp shared(ovrlp_input,hamscal_compr,scale_factor,ham,shift_value)
+                  !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
+                  !$omp shared(fermi,ovrlp_input,ham_input,hamscal_compr,scale_factor,shift_value)
                   !$omp do
-                  do ii=1,ham%nvctr
-                      irow = ham%orb_from_index(1,ii)
-                      icol = ham%orb_from_index(2,ii)
-                      iismall = matrixindex_in_compressed(ovrlp_input, irow, icol)
-                      if (iismall>0) then
-                          tt=ovrlp_input%matrix_compr(iismall)
+                  do ii=1,fermi%nvctr
+                      irow = fermi%orb_from_index(1,ii)
+                      icol = fermi%orb_from_index(2,ii)
+                      iismall_ovrlp = matrixindex_in_compressed(ovrlp_input, irow, icol)
+                      iismall_ham = matrixindex_in_compressed(ham_input, irow, icol)
+                      if (iismall_ovrlp>0) then
+                          tt_ovrlp=ovrlp_input%matrix_compr(iismall_ovrlp)
                       else
-                          tt=0.d0
+                          tt_ovrlp=0.d0
                       end if
-                      hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*tt)
+                      if (iismall_ham>0) then
+                          tt_ham=ham_input%matrix_compr(iismall_ham)
+                      else
+                          tt_ham=0.d0
+                      end if
+                      hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
+                      !hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*tt)
                       !hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*ovrlp_input%matrix_compr(iismall))
                   end do
                   !$omp end do
@@ -739,30 +748,32 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       ! symmetric, this is a simple ddot.
       !sumn=ddot(fermi%nvctr, fermi%matrix_compr, 1, ovrlp%matrix_compr, 1)
 
-      sumn=0.d0
-      if (orbs%norbp>0) then
-          isegstart=ovrlp_input%istsegline(orbs%isorb_par(iproc)+1)
-          if (orbs%isorb+orbs%norbp<orbs%norb) then
-              isegend=ovrlp_input%istsegline(orbs%isorb_par(iproc+1)+1)-1
-          else
-              isegend=ovrlp_input%nseg
-          end if
-          !$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, ovrlp_input, sumn)
-          !$omp do reduction(+:sumn)
-          do iseg=isegstart,isegend
-              ii=ovrlp_input%keyv(iseg)-1
-              do jorb=ovrlp_input%keyg(1,iseg),ovrlp_input%keyg(2,iseg)
-                  ii=ii+1
-                  iiorb = (jorb-1)/orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*orbs%norb
-                  iilarge = matrixindex_in_compressed(fermi, iiorb, jjorb)
-                  sumn = sumn + ovrlp_input%matrix_compr(ii)*fermi%matrix_compr(iilarge)
-              end do  
-          end do
-          !$omp end do
-          !$omp end parallel
-      end if
-      call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      sumn=trace_sparse(iproc, nproc, orbs, ovrlp_input, fermi)
+
+      !!sumn=0.d0
+      !!if (orbs%norbp>0) then
+      !!    isegstart=ovrlp_input%istsegline(orbs%isorb_par(iproc)+1)
+      !!    if (orbs%isorb+orbs%norbp<orbs%norb) then
+      !!        isegend=ovrlp_input%istsegline(orbs%isorb_par(iproc+1)+1)-1
+      !!    else
+      !!        isegend=ovrlp_input%nseg
+      !!    end if
+      !!    !$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, ovrlp_input, sumn)
+      !!    !$omp do reduction(+:sumn)
+      !!    do iseg=isegstart,isegend
+      !!        ii=ovrlp_input%keyv(iseg)-1
+      !!        do jorb=ovrlp_input%keyg(1,iseg),ovrlp_input%keyg(2,iseg)
+      !!            ii=ii+1
+      !!            iiorb = (jorb-1)/orbs%norb + 1
+      !!            jjorb = jorb - (iiorb-1)*orbs%norb
+      !!            iilarge = matrixindex_in_compressed(fermi, iiorb, jjorb)
+      !!            sumn = sumn + ovrlp_input%matrix_compr(ii)*fermi%matrix_compr(iilarge)
+      !!        end do  
+      !!    end do
+      !!    !$omp end do
+      !!    !$omp end parallel
+      !!end if
+      !!call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
 
@@ -794,9 +805,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
       !!deallocate(ovrlp_large%matrix_compr,stat=istat)
       !!call memocc(istat,iall,'ovrlp_large%matrix_compr',subname)
   
-      iall=-product(shape(ham_large%matrix_compr))*kind(ham_large%matrix_compr)
-      deallocate(ham_large%matrix_compr,stat=istat)
-      call memocc(istat,iall,'ham_large%matrix_compr',subname)
+      !!iall=-product(shape(ham_large%matrix_compr))*kind(ham_large%matrix_compr)
+      !!deallocate(ham_large%matrix_compr,stat=istat)
+      !!call memocc(istat,iall,'ham_large%matrix_compr',subname)
 
       iall=-product(shape(inv_ovrlp%matrix_compr))*kind(inv_ovrlp%matrix_compr)
       deallocate(inv_ovrlp%matrix_compr,stat=istat)
