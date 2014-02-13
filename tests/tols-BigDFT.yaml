@@ -306,8 +306,8 @@ cleanup:
  Enl: 8.7e-10
  Atomic Forces (Ha/Bohr): 3.2e-10
  Average noise forces: 3.1e-10
- Clean forces norm (Ha/Bohr): 1.75e-10
- Raw forces norm (Ha/Bohr): 1.85e-10
+ Clean forces norm (Ha/Bohr): 1.9e-10
+ Raw forces norm (Ha/Bohr): 2.6e-10
  Epot: 1.91e-9
  Orbitals: 4.2e-10
  EH: 2.4e-9
@@ -505,7 +505,7 @@ fructose:
  EvXC: 1.1e-10
  energy: 1.1e-10
  Omega: 1.3e-10
- Tr(K): 3.1e-06
+ Tr(K): 5.0e-06
  tr(KS) before purification: 1.9e-6
  Total charge: 2.1e-10
  charge diff: 5.4e-6
@@ -516,7 +516,7 @@ fructose:
 
 geopt_foe:
  D eF: 1.1e-8
- eF: 8.2e-9
+ eF: 8.3e-9
  Epot: 1.1e-10
  EH: 1.1e-10
  charge diff: 5.1e-11
@@ -659,25 +659,25 @@ linearcubic_linear:
 
 experimentalfoe:
  Atomic Forces (Ha/Bohr): 1.2e-10
- Clean forces norm (Ha/Bohr): 7.2e-11
+ Clean forces norm (Ha/Bohr): 2.0e-10
  Average noise forces: 2.1e-10
- EH: 3.0e-7
- EXC: 4.1e-08
- Ekin: 5.1e-9
- Enl: 2.1e-10
- Epot: 2.1e-07
- EvXC: 5.4e-08
+ Raw forces norm (Ha/Bohr): 2.6e-10
+ EH: 4.3e-7
+ EXC: 6.0e-08
+ Ekin: 7.0e-9
+ Enl: 3.1e-10
+ Epot: 4.1e-07
+ EvXC: 7.9e-08
  eF: 2.5e-05
- tr(KS) before purification: 2.2e-9
+ tr(KS) before purification: 3.2e-9
  Tr(K): 3.9e-4
  Total charge: 1.1e-10
- Raw forces norm (Ha/Bohr): 1.8e-10
  Total ionic charge: 1.6e-11
  D Tr: 3.9e-04
  D eF: 1.5e-05
- multiplicator for the confinement: 6.4e-10
- energy: 3.8e-10
- Omega: 1.4e-7
+ multiplicator for the confinement: 2.0e-9
+ energy: 1.3e-9
+ Omega: 4.1e-7
  charge diff: 3.9e-4
  D: 1.1e-10
 
@@ -794,3 +794,6 @@ DIIShistory:
  energy: 3.7e-9
  multiplicator for the confinement: 6.9e-11
  Omega: 1.3e-8
+
+Locreg:
+ EH: 1.1e-10
