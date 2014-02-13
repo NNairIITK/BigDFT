@@ -369,7 +369,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmprtr=0.d0
       call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, &
            tmprtr, 2, ham_small, tmb%linmat%ovrlp, &
-           tmb%linmat%ovrlp_large, tmb%linmat%ham_large, &
+           tmb%linmat%ham_large, &
            tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, energs%ebs, &
            itout,it_scc, order_taylor, &
            tmb)
@@ -2094,6 +2094,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   ! Local variables
   integer :: istat, iall, it, lwork, info, iorb, jorb, ierr, jsegstart, jsegend, jseg, jjorb, iiorb
+  integer :: trace_sparse
   real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel, overlap, overlap_diag
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
@@ -2159,24 +2160,25 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
 
 
-  overlap_associated=associated(tmb%linmat%ovrlp_large%matrix_compr)
+  !!overlap_associated=associated(tmb%linmat%ovrlp_large%matrix_compr)
 
-  if (.not.overlap_associated) then
-      allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr))
-      call memocc(istat,tmb%linmat%ovrlp_large%matrix_compr,'tmb%linmat%ovrlp_large%matrix_compr',subname)
-  end if
-  call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
-  tr_KS=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%ovrlp_large%matrix_compr, &
-             1, tmb%linmat%denskern_large%matrix_compr, 1)
+  !!if (.not.overlap_associated) then
+  !!    allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr))
+  !!    call memocc(istat,tmb%linmat%ovrlp_large%matrix_compr,'tmb%linmat%ovrlp_large%matrix_compr',subname)
+  !!end if
+  !!call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
+  !!tr_KS=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%ovrlp_large%matrix_compr, &
+  !!           1, tmb%linmat%denskern_large%matrix_compr, 1)
+  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
   if (iproc==0) then
       call yaml_map('tr(KS) before purification',tr_KS)
       call yaml_newline
   end if
-  if (.not.overlap_associated) then
-      iall = -product(shape(tmb%linmat%ovrlp_large%matrix_compr))*kind(tmb%linmat%ovrlp_large%matrix_compr)
-      deallocate(tmb%linmat%ovrlp_large%matrix_compr,stat=istat)
-      call memocc(istat, iall, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
-  end if
+  !!if (.not.overlap_associated) then
+  !!    iall = -product(shape(tmb%linmat%ovrlp_large%matrix_compr))*kind(tmb%linmat%ovrlp_large%matrix_compr)
+  !!    deallocate(tmb%linmat%ovrlp_large%matrix_compr,stat=istat)
+  !!    call memocc(istat, iall, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
+  !!end if
 
   if (iproc==0) call yaml_open_sequence('purification process')
 
@@ -2268,22 +2270,23 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
   !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
-  if (.not.overlap_associated) then
-      allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr))
-      call memocc(istat,tmb%linmat%ovrlp_large%matrix_compr,'tmb%linmat%ovrlp_large%matrix_compr',subname)
-  end if
-  call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
-  tr_KS=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%ovrlp_large%matrix_compr, &
-             1, tmb%linmat%denskern_large%matrix_compr, 1)
+  !!if (.not.overlap_associated) then
+  !!    allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr))
+  !!    call memocc(istat,tmb%linmat%ovrlp_large%matrix_compr,'tmb%linmat%ovrlp_large%matrix_compr',subname)
+  !!end if
+  !!call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
+  !!tr_KS=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%ovrlp_large%matrix_compr, &
+  !!           1, tmb%linmat%denskern_large%matrix_compr, 1)
+  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('tr(KS) after purification',tr_KS)
   end if
-  if (.not.overlap_associated) then
-      iall = -product(shape(tmb%linmat%ovrlp_large%matrix_compr))*kind(tmb%linmat%ovrlp_large%matrix_compr)
-      deallocate(tmb%linmat%ovrlp_large%matrix_compr,stat=istat)
-      call memocc(istat, iall, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
-  end if
+  !!if (.not.overlap_associated) then
+  !!    iall = -product(shape(tmb%linmat%ovrlp_large%matrix_compr))*kind(tmb%linmat%ovrlp_large%matrix_compr)
+  !!    deallocate(tmb%linmat%ovrlp_large%matrix_compr,stat=istat)
+  !!    call memocc(istat, iall, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
+  !!end if
 
 
   iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)

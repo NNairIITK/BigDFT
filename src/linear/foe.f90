@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
-           ham_input, ovrlp_input, ovrlp_large, ham_large, denskern_large, inv_ovrlp_large, &
+           ham_input, ovrlp_input,  ham_large, denskern_large, inv_ovrlp_large, &
            ebs, itout, it_scc, order_taylor, &
            tmb)
   use module_base
@@ -26,7 +26,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, mode, &
   real(kind=8),intent(inout) :: tmprtr
   integer,intent(in) :: mode
   type(sparseMatrix),intent(inout),target :: ovrlp_input, ham_input !to be able to deallocate
-  type(sparseMatrix),intent(inout),target :: ovrlp_large, ham_large, inv_ovrlp_large
+  type(sparseMatrix),intent(inout),target :: ham_large, inv_ovrlp_large
   type(sparseMatrix),intent(inout),target :: denskern_large
   real(kind=8),intent(out) :: ebs
   type(DFT_wavefunction),intent(inout) :: tmb
@@ -1427,3 +1427,51 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
       !!$omp end parallel
   end if
 end subroutine uncompress_polynomial_vector
+
+
+!< Calculates the trace of the matrix product amat*bmat.
+!< WARNING: It is mandatory that the sparsity pattern of amat is contained
+!< within the sparsity pattern of bmat!
+function trace_sparse(iproc, nproc, orbs, amat, bmat)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc,  nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(sparseMatrix),intent(in) :: amat, bmat
+
+  ! Local variables
+  integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
+  integer :: matrixindex_in_compressed, ierr
+  real(kind=8) :: sumn, trace_sparse
+
+      sumn=0.d0
+      if (orbs%norbp>0) then
+          isegstart=amat%istsegline(orbs%isorb_par(iproc)+1)
+          if (orbs%isorb+orbs%norbp<orbs%norb) then
+              isegend=amat%istsegline(orbs%isorb_par(iproc+1)+1)-1
+          else
+              isegend=amat%nseg
+          end if
+          !$omp parallel default(private) shared(isegstart, isegend, orbs, bmat, amat, sumn)
+          !$omp do reduction(+:sumn)
+          do iseg=isegstart,isegend
+              ii=amat%keyv(iseg)-1
+              do jorb=amat%keyg(1,iseg),amat%keyg(2,iseg)
+                  ii=ii+1
+                  iiorb = (jorb-1)/orbs%norb + 1
+                  jjorb = jorb - (iiorb-1)*orbs%norb
+                  iilarge = matrixindex_in_compressed(bmat, iiorb, jjorb)
+                  sumn = sumn + amat%matrix_compr(ii)*bmat%matrix_compr(iilarge)
+              end do  
+          end do
+          !$omp end do
+          !$omp end parallel
+      end if
+      call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+      trace_sparse = sumn
+
+end function trace_sparse
