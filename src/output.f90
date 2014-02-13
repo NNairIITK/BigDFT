@@ -1374,9 +1374,10 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
 
 END SUBROUTINE write_strten_info
 
+
 !> Assign some of the physical system variables
 !! Performs also some cross-checks with other variables
-!! The pointer in atoms structure have to be associated or nullified.
+!! The pointers in atoms structure have to be associated or nullified.
 subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   use module_base
   use module_types
@@ -1388,9 +1389,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   real(gp), intent(in) :: hmax
   integer, intent(in) :: ixc, dispersion
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
-  !local variables
-  !character(len=*), parameter :: subname='print_atomic_variables'
-  !integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  !Local variables
   logical :: nonloc
   integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
   real(gp) :: minrad

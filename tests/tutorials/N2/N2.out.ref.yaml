@@ -106,7 +106,6 @@
    norbv                               : 0 #      Davidson subspace dim.
    nvirt                               : 0 #      No. of opt. orbs
    nplot                               : 0 #      No. of plotted orbs
-   disablesym                          : No #     Disable the symmetry detection
  kpt:
    method                              : Manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -169,8 +168,8 @@
    Number of atoms                     :  2
    Types of atoms                      :  [ N ]
    Boundary Conditions                 : Free #Code: F
-   Number of Symmetries                :  16
-   Space group                         : P 4/m m m
+   Number of Symmetries                :  0
+   Space group                         : disabled
   #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
  Geometry Optimization Parameters:
    Maximum steps                       :  1

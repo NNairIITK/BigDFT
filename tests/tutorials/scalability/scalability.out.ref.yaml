@@ -101,8 +101,8 @@
    Number of atoms                     :  14
    Types of atoms                      :  [ B ]
    Boundary Conditions                 : Free #Code: F
-   Number of Symmetries                :  1
-   Space group                         : P 1
+   Number of Symmetries                :  0
+   Space group                         : disabled
   #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
  Geometry Optimization Parameters:
    Maximum steps                       :  1

@@ -522,8 +522,6 @@ subroutine inputs_set_dict(in, level, val)
 END SUBROUTINE inputs_set_dict
 
 
-
-
 subroutine inputs_set_from_file(dict, fname)
   use dictionaries, only: dictionary
   use module_interfaces, only: read_input_dict_from_files
@@ -535,6 +533,8 @@ subroutine inputs_set_from_file(dict, fname)
 
   call read_input_dict_from_files(fname, bigdft_mpi,dict)
 end subroutine inputs_set_from_file
+
+
 subroutine inputs_dump_to_file(iostat, dict, fname, userOnly)
   use dictionaries, only: dictionary
   use module_input_keys, only: input_keys_dump

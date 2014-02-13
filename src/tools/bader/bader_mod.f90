@@ -85,7 +85,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)')   'CALCULATING BADER CHARGE DISTRIBUTION'
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
 
       ! copy bader variable from opts
       bdr%tol = opts%badertol
@@ -133,7 +133,7 @@ MODULE bader_mod
       DO n1=1,chgval%npts(1)
          IF ((n1*10/chgval%npts(1)) > tenths_done) THEN
             tenths_done = (n1*10/chgval%npts(1))
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END IF
          DO n2=1,chgval%npts(2)
             DO n3=1,chgval%npts(3)
@@ -867,7 +867,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)') 'CALCULATING MINIMUM DISTANCES TO ATOMS'
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
 
       !   Store the minimum distance and the vector
       ALLOCATE(bdr%minsurfdist(ions%nions))
@@ -877,7 +877,7 @@ MODULE bader_mod
       DO n1 = 1,chg%npts(1)
          IF ((n1*10/chg%npts(1)) > tenths_done) THEN
             tenths_done = (n1*10/chg%npts(1))
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END IF
          DO n2 = 1,chg%npts(2)
             DO n3 = 1,chg%npts(3)
@@ -951,7 +951,7 @@ contains
 
       WRITE(*,'(/,2x,A)') 'WRITING BADER VOLUMES'
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
 
       tmp = chg
       atomnum = 0
@@ -960,7 +960,7 @@ contains
       DO badercur = 1,bdr%nvols
          DO WHILE ((badercur*10/bdr%nvols) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          ENDDO
          IF(bdr%volchg(badercur) > bdr%tol) THEN
             atomnum = atomnum+1
@@ -1014,7 +1014,7 @@ contains
 
       WRITE(*,'(/,2x,A)') 'WRITING ATOMIC VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
       mab = MAXVAL(bdr%nnion)
       mib = MINVAL(bdr%nnion)
@@ -1033,7 +1033,7 @@ contains
          sc = sc + cc
          DO WHILE ((ik*10/(mab-mib+1)) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
          IF (cc == 0) CYCLE
          WRITE(atomfilename,'(A4,I4.4,A4)') "BvAt",ik,".dat"
@@ -1085,7 +1085,7 @@ contains
 
       WRITE(*,'(/,2x,A)') 'WRITING SELECTED ATOMIC VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
       sc = 0
 
@@ -1103,7 +1103,7 @@ contains
          sc = sc + cc
          DO WHILE ((i*10/opts%selanum) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
          IF (cc == 0) CYCLE
          WRITE(atomfilename,'(A4,I4.4,A4)') "BvAt",ik,".dat"
@@ -1158,7 +1158,7 @@ contains
 
       WRITE(*,'(/,2x,A)') 'WRITING SUM OVER SELECTED ATOMIC VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
       sc = 0
 
@@ -1180,7 +1180,7 @@ contains
          sc = sc + cc
          DO WHILE ((i*10/opts%sumanum) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
          IF (cc == 0) CYCLE
          DO b = 1,cc
@@ -1243,7 +1243,7 @@ contains
 
       WRITE(*,'(/,2x,A)') 'WRITING SELECTED BADER VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
 
       tmp%rho = 0._q2
@@ -1251,7 +1251,7 @@ contains
       DO i = 1,opts%selbnum
          DO WHILE ((i*10/opts%selbnum) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
 
          bvolnum = opts%selbvol(i)
@@ -1314,7 +1314,7 @@ contains
 
       WRITE(*,'(/,2x,A)') 'WRITING SELECTED BADER VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
 
       tmp%rho = 0._q2
@@ -1323,7 +1323,7 @@ contains
       DO i = 1,opts%sumbnum
          DO WHILE ((i*10/opts%sumbnum) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
 
          bvolnum = opts%sumbvol(i)
@@ -1368,7 +1368,7 @@ contains
 
       WRITE(*,'(/,2x,A)') 'WRITING BADER VOLUMES'
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
 
       tmp=chg
       atomnum=0

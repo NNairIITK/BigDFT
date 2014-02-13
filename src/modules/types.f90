@@ -232,6 +232,7 @@ module module_types
 
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
+
      !> Strings of the input files
      character(len=100) :: file_occnum !< Occupation number (input)
      character(len=100) :: file_igpop
@@ -240,6 +241,7 @@ module module_types
      character(len=100) :: dir_output  !< Strings of the directory which contains all data output files
      character(len=100) :: run_name    !< Contains the prefix (by default input) used for input files as input.dft
      integer :: files                  !< Existing files.
+
      !> Miscellaneous variables
      logical :: gaussian_help
      integer :: itrpmax
@@ -252,6 +254,7 @@ module module_types
      real(gp) :: rpnrm_cv
      real(gp) :: gnrm_startmix
      integer :: verbosity   !< Verbosity of the output file
+
      !> DFT basic parameters.
      integer :: ixc         !< XC functional Id
      integer :: ncharge     !< Total charge of the system
@@ -344,58 +347,42 @@ module module_types
      double precision :: gmainloop           !< Internal C pointer on the signaling structure.
      integer :: inguess_geopt                !< 0= Wavelet input guess, 1 = real space input guess 
 
-     !orthogonalisation data
+     !> Orthogonalisation data
      type(orthon_data) :: orthpar
-  
-     !linear scaling data
-     type(linearInputParameters) :: lin
-
-     !fragment data
-     type(fragmentInputParameters) :: frag
-
-     !acceleration parameters
+ 
+     !> Acceleration parameters
      type(material_acceleration) :: matacc
 
-     !> parallelisation scheme of the exact exchange operator
+     ! Parallelisation parameters
+     !> Parallelisation scheme of the exact exchange operator
      !!   BC (Blocking Collective)
      !!   OP2P (Overlap Point-to-Point)
      character(len=4) :: exctxpar
-
-     !> paradigm for unblocking global communications via OMP_NESTING
+     !> Paradigm for unblocking global communications via OMP_NESTING
      character(len=3) :: unblock_comms
-
-     !> communication scheme for the density
-     !!  DBL traditional scheme with double precision
-     !!  MIX mixed single-double precision scheme (requires rho_descriptors)
+     !> Communication scheme for the density
+     !!   DBL traditional scheme with double precision
+     !!   MIX mixed single-double precision scheme (requires rho_descriptors)
      character(len=3) :: rho_commun
-     !> number of taskgroups for the poisson solver
+     !> Number of taskgroups for the poisson solver
      !! works only if the number of MPI processes is a multiple of it
      integer :: PSolver_groupsize
-     
      !> Global MPI group size (will be written in the mpi_environment)
      ! integer :: mpi_groupsize 
 
-     !> linear scaling: store indices of the sparse matrices or recalculate them 
-     logical :: store_index
+     ! Linear scaling parameters
+     type(linearInputParameters) :: lin    !< Linear scaling data
+     type(fragmentInputParameters) :: frag !< Fragment data
+     logical :: store_index                !< (LS) Store indices of the sparse matrices or recalculate them 
+     integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
+     logical :: experimental_mode          !< (LS) Activate the experimental mode
+     logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
+     logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
+     logical :: calculate_KS_residue       !< (LS) Calculate Kohn-Sham residue
+     logical :: intermediate_forces        !< (LS) Calculate intermediate forces
 
-     !> linear scaling: perform a check of sumrho (no check, light check or full check)
-     integer :: check_sumrho
-
-     !>linear scaling: activate the experimental mode
-     logical :: experimental_mode
-
-     !> linear scaling: write KS orbitals for cubic restart
-     logical :: write_orbitals
-
-     !> linear scaling: explicitely specify localization centers
-     logical :: explicit_locregcenters
-
-     !> linear scaling: calculate Kohn-Sham residue
-     logical :: calculate_KS_residue
-     
-     !> linear scaling: calculate intermediate forces
-     logical :: intermediate_forces
   end type input_variables
+
 
   !> Contains all energy terms
   type, public :: energy_terms
@@ -424,6 +411,7 @@ module module_types
      integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
   end type energy_terms
 
+
   !> Memory estimation requirements
   type, public :: memory_estimation
      double precision :: submat
@@ -438,6 +426,7 @@ module module_types
      double precision :: peak
   end type memory_estimation
 
+
   !> Used to split between points to be treated in simple or in double precision
   type, public :: rho_descriptors
      character(len=1) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -448,6 +437,7 @@ module module_types
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
 
+
   !> Quantities used for the symmetry operators.
   type, public :: symmetry_data
      integer :: symObj    !< The symmetry object from ABINIT
@@ -455,8 +445,8 @@ module module_types
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
 
-!> Contains arguments needed for rho_local for WVL+PAW
 
+  !> Contains arguments needed for rho_local for WVL+PAW
   type, public :: rholoc_objects
     integer , pointer, dimension(:)    :: msz ! mesh size for local rho
     real(gp), pointer, dimension(:,:,:) :: d! local rho and derivatives
@@ -464,6 +454,8 @@ module module_types
     real(gp), pointer, dimension(:) :: radius !after this radius, rholoc is zero
   end type rholoc_objects
 
+  
+  !> Define the structure used for the atomic positions
   type, public :: atomic_structure
     character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
     character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
@@ -490,14 +482,14 @@ module module_types
      integer, dimension(:), pointer :: npspcode
      integer, dimension(:), pointer :: ixcpsp
      integer, dimension(:), pointer :: nzatom
-     real(gp), dimension(:,:), pointer :: radii_cf         !< user defined radii_cf, overridden in sysprop.f90
+     real(gp), dimension(:,:), pointer :: radii_cf         !< User defined radii_cf, overridden in sysprop.f90
      real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc,rloc
-     real(gp), dimension(:,:,:), pointer :: psppar         !< pseudopotential parameters (HGH SR section)
-     logical :: donlcc                                     !< activate non-linear core correction treatment
-     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
-     real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-!     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
+     real(gp), dimension(:,:,:), pointer :: psppar         !< Pseudopotential parameters (HGH SR section)
+     logical :: donlcc                                     !< Activate non-linear core correction treatment
+     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !< Number of valence and core gaussians describing NLCC 
+     real(gp), dimension(:,:), pointer :: nlccpar          !< Parameters for the non-linear core correction, if present
+!     real(gp), dimension(:,:), pointer :: ig_nlccpar       !< Parameters for the input NLCC
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels

@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Routines to handle the argument objects of call_bigdft().
 subroutine run_objects_nullify(runObj)
   use module_types
@@ -54,6 +55,7 @@ subroutine run_objects_free(runObj, subname)
   ! to be inserted again soon call f_lib_finalize()
   !call yaml_close_all_streams()
 END SUBROUTINE run_objects_free
+
 
 subroutine run_objects_free_container(runObj)
   use module_types
@@ -136,6 +138,7 @@ subroutine run_objects_parse(runObj, dump)
      call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
   end if
 END SUBROUTINE run_objects_parse
+
 
 subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   use module_types

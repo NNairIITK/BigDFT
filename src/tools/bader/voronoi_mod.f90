@@ -59,7 +59,7 @@ MODULE voronoi_mod
 
     WRITE(*,'(/,2x,A)') 'CALCULATING VORONOI CHARGE DISTRIBUTION'
     WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-    WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+    WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
 
     ALLOCATE(vor%vorchg(ions%nions))
 
@@ -73,7 +73,7 @@ MODULE voronoi_mod
       r_lat(1)=REAL(n1,q2)
       IF ((n1*10/chg%npts(1)) > tenths_done) THEN
         tenths_done=(n1*10/chg%npts(1))
-        WRITE(*,'(A)',advance="no") '**'
+        WRITE(*,'(A)',advance="no") '--'
       END IF
       DO n2=1,chg%npts(2)
         r_lat(2)=REAL(n2,q2)

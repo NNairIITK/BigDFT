@@ -1,4 +1,4 @@
-# definition of the input variables
+# Definitions of the input variables
 ##inputvar: #name of the variable as declared in the code
 ## COMMENT: This is the description of the variable as will appear in the logfile
 ## RANGE: [from,to] #always put two numbers (also .inf) can be put

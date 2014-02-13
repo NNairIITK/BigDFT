@@ -1067,17 +1067,6 @@ module module_interfaces
        real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
       END SUBROUTINE AtomicOrbitals
 
-      subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
-         use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
-         type(atoms_data), intent(inout) :: at
-         !integer, dimension(nmax,lmax), intent(in) :: neleconf
-         real(gp), dimension(nmax,lmax), intent(in) :: neleconf
-      END SUBROUTINE atomic_occupation_numbers
-
       subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
             &   ibyyzz_r) !optional
          use module_base

@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 28/01/2014
+# Date: 13/02/2014
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -183,7 +183,8 @@ elif pseudo:
 else:
     def line_junk(line):
         "Always False except for Hostname"
-        return "Hostname" in line
+        return "Hostname" in line \
+                or "RUN TIME" in line
 
 #Check the last line
 end_line = "Memory Consumption Report" 
@@ -295,7 +296,7 @@ for line in original2:
 t2.flush()
 
 #Generate comparison using the unix diff command
-compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitlines(True))
+compare = iter(commands.getoutput("diff -a -b -d %s %s" %(t1.name,t2.name)).splitlines(True))
 
 t1.close()
 t2.close()

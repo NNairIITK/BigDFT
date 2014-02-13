@@ -1133,6 +1133,8 @@ contains
     end if
   end function input_keys_get_source
 
+
+  !> Fill all the input keys into dict
   subroutine input_keys_fill_all(dict,dict_minimal)
     use dictionaries
     use dynamic_memory
@@ -1150,6 +1152,11 @@ contains
          err_name='BIGDFT_RUNTIME_ERROR')) return
 
     call f_routine(id='input_keys_fill_all')
+
+    ! Overiding the default for isolated system
+    if (.not.has_key(dict//"posinp","Cell") .and. .not. has_key(dict//DFT_VARIABLES,DISABLE_SYM)) then
+       call set(dict // DFT_VARIABLES // DISABLE_SYM,.true.)
+    end if
 
     ! Check and complete dictionary.
     call input_keys_init()
@@ -1185,7 +1192,8 @@ contains
     call f_release_routine()
   end subroutine input_keys_fill_all
 
-  !> this routine is used to create a minimal dictionary which can be used at the place 
+
+  !> This routine is used to create a minimal dictionary which can be used at the place 
   !! of the one provided as an indication on the understood variables
   subroutine input_minimal(dict,minimal)
     use dictionaries
