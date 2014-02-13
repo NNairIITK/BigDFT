@@ -109,7 +109,7 @@
    nplot                               : 0
    disablesym                          : Yes #    disable the symmetry detection
  kpt:
-   method                              : manual # K-point sampling method
+   method                              : Manual # K-point sampling method
    kpt: #                                         Kpt coordinates
    -  [0., 0., 0.]
    wkpt: [1.] #                                   Kpt weights
@@ -119,15 +119,15 @@
    ncount_cluster_x                    : 1 #      Maximum number of force evaluations
    frac_fluct                          : 1.
    forcemax                            : 0.
-   randdis                             : 0. #     random displacement amplitude
-   betax                               : 4. #     Stepsize for the geometry optimisation
+   randdis                             : 0. #     Random displacement amplitude
+   betax                               : 4. #     Stepsize for the geometry optimization
  mix:
-   iscf                                : 0 #      mixing parameters
-   itrpmax                             : 1 #      maximum number of diagonalisation iterations
-   rpnrm_cv                            : 1e-4 #   stop criterion on the residue of potential or density
+   iscf                                : 0 #      Mixing parameters
+   itrpmax                             : 1 #      Maximum number of diagonalisation iterations
+   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
    norbsempty                          : 0 #      No. of additional bands
-   Tel                                 : 0. #     electronic temperature
-   occopt                              : 1 #      smearing method
+   Tel                                 : 0. #     Electronic temperature
+   occopt                              : 1 #      Smearing method
    alphamix                            : 0. #     Multiplying factors for the mixing
    alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
  sic:
@@ -359,7 +359,6 @@
  Orbitals Repartition:
    MPI tasks  0- 2                     :  10
  Total Number of Orbitals              :  30
- Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-30:  1.0}
  Wavefunctions memory occupation for root MPI process:  1 MB 260 KB 624 B
@@ -450,8 +449,8 @@
    Elapsed time (s)                    :  6.32
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Chosen Grid spacings seem too high for this atom. At you own risk!
  - Found no input polarisation, add it for a correct input guess
+ - Chosen Grid spacings seem too high for this atom. At you own risk!
  (F) Exit signal for Wavefunction Optimization Finished:  0
   #========================================================== (F) Start Frequencies calculation
   #(F) The direction  1 of the atom  1 is frozen.
@@ -667,7 +666,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  2, direction:  1, axis: y, displacement (Bohr):  8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -879,7 +877,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  2, direction: -1, axis: z, displacement (Bohr): -8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1089,7 +1086,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  2, direction:  1, axis: z, displacement (Bohr):  8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1301,7 +1297,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  3, direction: -1, axis: x, displacement (Bohr): -8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1511,7 +1506,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  3, direction:  1, axis: x, displacement (Bohr):  8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1721,7 +1715,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
   #(F) The direction  2 of the atom  3 is frozen.
  (F) Move: {atom:  3, direction: -1, axis: z, displacement (Bohr): -8.59375E-03}
 ---
@@ -1932,7 +1925,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  3, direction:  1, axis: z, displacement (Bohr):  8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -2142,7 +2134,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  4, direction: -1, axis: x, displacement (Bohr): -8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -2352,7 +2343,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  4, direction:  1, axis: x, displacement (Bohr):  8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -2566,7 +2556,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  4, direction: -1, axis: y, displacement (Bohr): -8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -2776,7 +2765,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  4, direction:  1, axis: y, displacement (Bohr):  8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -2986,7 +2974,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
   #(F) The direction  3 of the atom  4 is frozen.
   #(F) The direction  1 of the atom  5 is frozen.
   #(F) The direction  2 of the atom  5 is frozen.
@@ -3199,7 +3186,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  5, direction:  1, axis: z, displacement (Bohr):  8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -3409,7 +3395,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
   #(F) The direction  1 of the atom  6 is frozen.
  (F) Move: {atom:  6, direction: -1, axis: y, displacement (Bohr): -8.59375E-03}
 ---
@@ -3540,7 +3525,6 @@
  Orbitals Repartition:
    MPI tasks  0- 2                     :  10
  Total Number of Orbitals              :  30
- Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-30:  1.0}
  Wavefunctions memory occupation for root MPI process:  1 MB 260 KB 624 B
@@ -3620,7 +3604,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  6, direction:  1, axis: y, displacement (Bohr):  8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -3832,7 +3815,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
   #(F) The direction  3 of the atom  6 is frozen.
  (F) Move: {atom:  7, direction: -1, axis: x, displacement (Bohr): -8.59375E-03}
 ---
@@ -4043,7 +4025,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
  (F) Move: {atom:  7, direction:  1, axis: x, displacement (Bohr):  8.59375E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -4249,7 +4230,6 @@
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for this atom. At you own risk!
- - Found no input polarisation, add it for a correct input guess
   #(F) The direction  2 of the atom  7 is frozen.
   #(F) The direction  3 of the atom  7 is frozen.
   #(F) The direction  1 of the atom  8 is frozen.
@@ -4307,239 +4287,6 @@
  (F) Vibrational entropy =             :  7.385524927E+02
  (F) Vibrational Energy (cm-1 and Hartree):  [  1.5561601652E+05,  7.0903874196E-01 ]
  (F) Total Energy (Hartree)            :  7.0903874196E-01
- Status of the memory at finalization:
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x2442630
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x24e7630
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x24423f0
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x244a4c0
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22da950
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x24e4220
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x2451040
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x244ee10
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22e6490
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22d5af0
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22bef80
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x244a940
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22bed40
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x244afd0
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22e7610
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c8600
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22d6910
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22e6b50
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c9ae0
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22d61b0
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22d7670
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x2444e20
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22db890
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c0150
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22e78a0
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c0d40
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c3770
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c1400
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22d8830
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c1610
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c3a40
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c9a10
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c3a40
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22e4330
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c3a40
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22c5de0
-     Address of metadata               : 36222096
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 2824
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22d90c0
-     Address of metadata               : 36222240
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 5648
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x22dbd60
-     Address of metadata               : 36222096
-   Timestamp of Profile initialization:
-     2014-02-04 16:07:40.130
-   Process Id:
-     0
  Memory Consumption Report:
    Tot. No. of Allocations             :  73015
    Tot. No. of Deallocations           :  73015
