@@ -583,6 +583,10 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
      end if
   end if
 
+  if (allgather) then
+     call f_free(mat_coeff_diagp)
+ end if
+
 end subroutine calculate_coeffMatcoeff_diag
  
   ! not really fragment related so prob should be moved - reorders coeffs by eval
