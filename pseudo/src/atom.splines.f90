@@ -101,7 +101,7 @@
 !!             1 means that the requested spline was computed.
 !!          --abnormal codes
 !!             2 means that n, the number of points, was < 4.
-!!             3 means the abscissas were not strictly increasing.
+!!             3 means he abscissas were not strictly increasing.
 !!
 !!   --work--
 !!
