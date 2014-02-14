@@ -317,7 +317,7 @@ cleanup:
  EvXC: 8.7e-10
  Omega: 6.3e-10
  Pulay Forces (Ha/Bohr): 1.9e-9
- energy: 2.8e-10
+ energy: 2.3e-9
 
 directmin:
  Patterns to ignore:
@@ -500,9 +500,9 @@ fructose:
  EXC: 1.1e-10
  Epsilon: 1.1e-11
  D: 1.1e-10
- D eF: 5.2e-6
+ D eF: 3.9e-5
  D Tr: 5.4e-6
- eF: 5.2e-6
+ eF: 5.4e-5
  EH: 1.0e-9
  EvXC: 1.1e-10
  energy: 1.1e-10
@@ -525,6 +525,7 @@ geopt_foe:
  diff from idempotency: 2.1e-09
  tr(KS) before purification: 2.6e-07
  Tr(K) : 1.3e-6
+ D Tr: 7.1e-06
 
 geopt_diag:
  Epot: 1.1e-10
@@ -663,7 +664,7 @@ linearcubic_linear:
  Omega: 1.82e-10
 
 experimentalfoe:
- Atomic Forces (Ha/Bohr): 3.3e-10
+ Atomic Forces (Ha/Bohr): 3.4e-10
  Clean forces norm (Ha/Bohr): 3.3e-10
  Average noise forces: 2.1e-10
  Raw forces norm (Ha/Bohr): 2.6e-10
@@ -789,16 +790,16 @@ DIIShistory:
  Clean forces norm (Ha/Bohr): 1.1e-9
  Raw forces norm (Ha/Bohr): 4.2e-10
  Average noise forces: 2.1e-10
- e: 5.1e-9
- EH: 3.1e-7
- EXC: 4.7e-8
- Ekin: 1.7e-8
+ e: 6.1e-9
+ EH: 3.6e-7
+ EXC: 5.6e-8
+ Ekin: 1.9e-8
  Enl: 6.6e-9
- Epot: 2.8e-7
- EvXC: 6.2e-8
- energy: 3.7e-9
- multiplicator for the confinement: 6.9e-11
- Omega: 1.3e-8
+ Epot: 3.3e-7
+ EvXC: 7.4e-8
+ energy: 4.4e-9
+ multiplicator for the confinement: 8.1e-11
+ Omega: 1.4e-8
 
 Locreg:
  EH: 1.1e-10
