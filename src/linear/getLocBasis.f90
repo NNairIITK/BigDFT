@@ -2209,19 +2209,19 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
               end do
           end do
       end do
-      if (it>1) then
+      !if (it>1) then
           call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
           chargediff=2.d0*tr_KS-tmb%foe_obj%charge
-          if (abs(chargediff)<1.d0 .or. abs(chargediff)<abs(chargediff_old)) then
-              alpha=2.d0*alpha
-          else
-              alpha=alpha*0.5d0
-          end if
-          alpha=min(alpha,0.5d0)
-          alpha=max(alpha,1.0d-4)
-      end if
-      chargediff_old=chargediff
+          !!if (abs(chargediff)<1.d0 .or. abs(chargediff)<abs(chargediff_old)) then
+          !!    alpha=2.d0*alpha
+          !!else
+          !!    alpha=alpha*0.5d0
+          !!end if
+          !!alpha=min(alpha,0.5d0)
+          !!alpha=max(alpha,1.0d-4)
+      !!end if
+      !!chargediff_old=chargediff
 
       call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       diff=sqrt(diff)
@@ -2236,7 +2236,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
           call yaml_close_map()
       end if
 
-      call vcopy(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), 1, k(1,1), 1)
+      !call vcopy(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), 1, k(1,1), 1)
       call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
       do iorb=1,tmb%orbs%norbp
           iiorb=iorb+tmb%orbs%isorb
