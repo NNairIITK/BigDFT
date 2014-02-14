@@ -2128,19 +2128,19 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       !!do iorb=1,tmb%orbs%norb
       !!    write(300,*) ksksk(iorb,1)
       !!end do
-      call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-                 1.d0, ks, tmb%orbs%norb, &
-                 tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
-                 0.d0, ksksk, tmb%orbs%norb) 
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-                 1.d0, ksksk, tmb%orbs%norb, &
-                 ks, tmb%orbs%norb, &
-                 0.d0, k, tmb%orbs%norb) 
-      do iorb=1,tmb%orbs%norb
-          do jorb=1,tmb%orbs%norb
-              write(200,*) iorb, jorb, k(jorb,iorb)
-          end do
-      end do
+      !!call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!           1.d0, ks, tmb%orbs%norb, &
+      !!           tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
+      !!           0.d0, ksksk, tmb%orbs%norb) 
+      !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!           1.d0, ksksk, tmb%orbs%norb, &
+      !!           ks, tmb%orbs%norb, &
+      !!           0.d0, k, tmb%orbs%norb) 
+      !!do iorb=1,tmb%orbs%norb
+      !!    do jorb=1,tmb%orbs%norb
+      !!        write(200,*) iorb, jorb, k(jorb,iorb)
+      !!    end do
+      !!end do
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
                  1.d0, ks, tmb%orbs%norb, &
                  tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
