@@ -2168,7 +2168,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   if (iproc==0) call yaml_open_sequence('purification process')
 
-  alpha=1.d-3
+  alpha=1.d-4
   chargediff=0.d0
 
   do it=1,30
@@ -2213,13 +2213,13 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
           call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
           chargediff=2.d0*tr_KS-tmb%foe_obj%charge
-          if (abs(chargediff)<1.d0) then
+          if (abs(chargediff)<1.d0 .or. abs(chargediff)<abs(chargediff_old)) then
               alpha=2.d0*alpha
           else
               alpha=alpha*0.5d0
           end if
           alpha=min(alpha,0.5d0)
-          alpha=max(alpha,1.0d-3)
+          alpha=max(alpha,1.0d-4)
       end if
       chargediff_old=chargediff
 
