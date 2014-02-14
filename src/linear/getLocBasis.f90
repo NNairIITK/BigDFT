@@ -2061,11 +2061,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   ! Local variables
   integer :: istat, iall, it, lwork, info, iorb, jorb, ierr, jsegstart, jsegend, jseg, jjorb, iiorb
-  reaL(kind=8) :: trace_sparse
-  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel, overlap, overlap_diag
+  reaL(kind=8) :: trace_sparse, alpha
+  real(kind=8),dimension(:,:),allocatable :: k, ks, ksk, ksksk, kernel, overlap, overlap_diag
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
-  real(kind=8) :: dnrm2, diff, ddot, tr_KS
+  real(kind=8) :: dnrm2, diff, ddot, tr_KS, chargediff, chargediff_old
   logical :: overlap_associated
 
   call f_routine(id='purify_kernel')
@@ -2109,6 +2109,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   call uncompressMatrix(iproc,tmb%linmat%denskern_large)
 
+  k=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
   ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
@@ -2129,8 +2130,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   if (iproc==0) call yaml_open_sequence('purification process')
 
+  alpha=1.d-3
 
-  do it=1,20
+  do it=1,30
 
       call to_zero(tmb%orbs%norb**2, ks(1,1))
       if (tmb%orbs%norbp>0) then
@@ -2168,6 +2170,18 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
               end do
           end do
       end do
+      if (it>1) then
+          call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+          tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+          chargediff=2.d0*tr_KS-tmb%foe_obj%charge
+          if (abs(chargediff)<1.d-1) then
+              alpha=2.d0*alpha
+          else
+              alpha=alpha*0.5d0
+          end if
+          alpha=min(alpha,0.5d0)
+      end if
+      chargediff_old=chargediff
 
       call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       diff=sqrt(diff)
@@ -2177,14 +2191,20 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
           call yaml_open_map(flow=.true.)
           call yaml_map('iter',it)
           call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
+          call yaml_map('charge diff',chargediff,fmt='(es9.3)')
+          call yaml_map('alpha',alpha,fmt='(es9.3)')
           call yaml_close_map()
       end if
 
+      call vcopy(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), 1, k(1,1), 1)
       call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
       do iorb=1,tmb%orbs%norbp
           iiorb=iorb+tmb%orbs%isorb
           do jorb=1,tmb%orbs%norb
-              tmb%linmat%denskern_large%matrix(jorb,iiorb) = 3*ksk(jorb,iorb) - 2*ksksk(jorb,iorb)
+              !tmb%linmat%denskern_large%matrix(jorb,iiorb) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
+              tmb%linmat%denskern_large%matrix(jorb,iiorb) = k(jorb,iorb) - alpha*( 4.d0*ksksk(jorb,iorb) &
+                                                                                   -6.d0*ksk(jorb,iorb) &
+                                                                                   +2.d0*k(jorb,iorb) )
           end do
       end do
       call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -2199,6 +2219,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   call timing(iproc,'purify_kernel ','OF') 
 
+  call f_free(k)
   call f_free(ks)
   call f_free(ksk)
   call f_free(ksksk)
