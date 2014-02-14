@@ -51,7 +51,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
 
   type(sparseMatrix),pointer :: ovrlp, ham !to be able to deallocate
   !!type(sparseMatrix),pointer :: fermi, inv_ovrlp
-  integer :: irow, icol, itemp, matrixindex_in_compressed
+  integer :: irow, icol, itemp, matrixindex_in_compressed, iflag
   logical :: overlap_calculated, cycle_FOE
 
 
@@ -315,7 +315,19 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
 
              ! Check for an emergency stop, which happens if the kernel explodes, presumably due
              ! to the eigenvalue bounds being too small.
-             call mpiallred(emergency_stop, 1, mpi_lor, bigdft_mpi%mpi_comm, ierr)
+             ! mpi_lor seems not to work on certain systems...
+             !call mpiallred(emergency_stop, 1, mpi_lor, bigdft_mpi%mpi_comm, ierr)
+             if (emergency_stop) then
+                 iflag=1
+             else
+                 iflag=0
+             end if
+             call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+             if (iflag>0) then
+                 emergency_stop=.true.
+             else
+                 emergency_stop=.false.
+             end if
              if (emergency_stop) then
                   eval_bounds_ok(1)=.false.
                   foe_obj%evlow=foe_obj%evlow*1.2d0
