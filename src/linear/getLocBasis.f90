@@ -2112,7 +2112,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   k=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
-  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
+  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+
 
 
 
@@ -2120,6 +2121,43 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern_large%matrix, 1)
 
+      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !diagonalize overlap matrix
+      ks=tmb%linmat%ovrlp%matrix
+      call dsyev('v', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksksk, k, tmb%orbs%norb**2, istat)
+      !!do iorb=1,tmb%orbs%norb
+      !!    write(300,*) ksksk(iorb,1)
+      !!end do
+      call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                 1.d0, ks, tmb%orbs%norb, &
+                 tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
+                 0.d0, ksksk, tmb%orbs%norb) 
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                 1.d0, ksksk, tmb%orbs%norb, &
+                 ks, tmb%orbs%norb, &
+                 0.d0, k, tmb%orbs%norb) 
+      do iorb=1,tmb%orbs%norb
+          do jorb=1,tmb%orbs%norb
+              write(200,*) iorb, jorb, k(jorb,iorb)
+          end do
+      end do
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                 1.d0, ks, tmb%orbs%norb, &
+                 tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
+                 0.d0, ksksk, tmb%orbs%norb) 
+      call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                 1.d0, ksksk, tmb%orbs%norb, &
+                 ks, tmb%orbs%norb, &
+                 0.d0, k, tmb%orbs%norb) 
+      call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
+      if (iproc==0) then
+          do iorb=1,tmb%orbs%norb
+              write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
+          end do
+      end if
+      !deallocate(overlap_diag)
+      
+      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
@@ -2131,6 +2169,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   if (iproc==0) call yaml_open_sequence('purification process')
 
   alpha=1.d-3
+  chargediff=0.d0
 
   do it=1,30
 
