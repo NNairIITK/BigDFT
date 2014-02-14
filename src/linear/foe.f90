@@ -234,8 +234,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               ! Determine the degree of the polynomial
               !npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/foe_obj%fscale)
               npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/fscale)
+              npl_boundaries=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
-                  npl_boundaries=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
               end if
