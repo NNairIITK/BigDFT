@@ -4109,7 +4109,8 @@ module module_interfaces
         end subroutine copy_kernel_vectors
 
         subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_compr, &
-                   ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials)
+                   ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
+                   emergency_stop)
           use module_base
           use module_types
           implicit none
@@ -4124,6 +4125,7 @@ module module_interfaces
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
           real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
+          logical,intent(out) :: emergency_stop
         end subroutine chebyshev_clean
 
         subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)

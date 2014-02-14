@@ -10,7 +10,8 @@
  
 !> Again assuming all matrices have same sparsity, still some tidying to be done
 subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_compr, &
-           ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials)
+           ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
+           emergency_stop)
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
@@ -28,6 +29,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
+  logical,intent(out) :: emergency_stop
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
@@ -35,7 +37,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   real(8), dimension(:,:,:), allocatable :: vectors
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS_seq
   real(kind=8),dimension(:,:),allocatable :: matrix
-  real(kind=8) :: tt
+  real(kind=8) :: tt, ddot
   integer,dimension(:,:,:),allocatable :: istindexarr
   integer,dimension(:),allocatable :: ivectorindex
   integer,parameter :: one=1, three=3
@@ -205,7 +207,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           call axpy_kernel_vectors(norbp, norb, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
         
         
-          do ipl=3,npl
+          emergency_stop=.false.
+          main_loop: do ipl=3,npl
               ! apply (3/2 - 1/2 S) H (3/2 - 1/2 S)
               if (number_of_matmuls==three) then
                   call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
@@ -233,7 +236,17 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
          
               call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,1), vectors(1,1,4))
               call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,3), vectors(1,1,1))
-          end do
+
+              ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
+              ! be a consequence of the eigenvalue bounds being to small.
+              do iorb=1,norbp
+                  tt=ddot(norb, fermi(1,iorb), 1, fermi(1,iorb), 1)
+                  if (abs(tt)>1.d3) then
+                      emergency_stop=.true.
+                      exit main_loop
+                  end if
+              end do
+          end do main_loop
     
       end if
 

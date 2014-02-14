@@ -36,7 +36,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol, ddot
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
   real(kind=8) :: fscale, error, tt_ovrlp, tt_ham
-  logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
+  logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
   real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS
@@ -304,13 +304,31 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                   call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, &
                        tmb%linmat%denskern_large, hamscal_compr, &
                        tmb%linmat%inv_ovrlp_large%matrix_compr, calculate_SHS, &
-                       nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials)
+                       nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials, &
+                       emergency_stop)
               else
                   ! The Chebyshev polynomials are already available
                   if (iproc==0) call yaml_map('polynomials','from memory')
                   call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, &
                       tmb%linmat%denskern_large, chebyshev_polynomials, cc, fermip)
               end if 
+
+             ! Check for an emergency stop, which happens if the kernel explodes, presumably due
+             ! to the eigenvalue bounds being too small.
+             call mpiallred(emergency_stop, 1, mpi_lor, bigdft_mpi%mpi_comm, ierr)
+             if (emergency_stop) then
+                  eval_bounds_ok(1)=.false.
+                  foe_obj%evlow=foe_obj%evlow*1.2d0
+                  eval_bounds_ok(2)=.false.
+                  foe_obj%evhigh=foe_obj%evhigh*1.2d0
+                  if (iproc==0) then
+                      call yaml_map('eval/bisection bounds ok',&
+                           (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
+                      call yaml_close_map()
+                      !call bigdft_utils_flush(unit=6)
+                  end if
+                  cycle
+             end if
     
     
               call timing(iproc, 'FOE_auxiliary ', 'ON')

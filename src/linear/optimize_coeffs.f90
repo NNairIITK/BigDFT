@@ -582,7 +582,7 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
      end if
   else
      if (allgather) then
-        call vcopy(ksorbs%norb, mat_coeff_diagp, 1, mat_coeff_diag, 1)
+        call vcopy(ksorbs%norb, mat_coeff_diagp(1), 1, mat_coeff_diag(1), 1)
      end if
   end if
 
