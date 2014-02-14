@@ -620,8 +620,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
     
     
-      call timing(iproc, 'FOE_auxiliary ', 'OF')
-      call timing(iproc, 'chebyshev_comm', 'ON')
     
       call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
     
@@ -646,17 +644,16 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
           !$omp end do
           !$omp end parallel
       end if
+
+      call timing(iproc, 'FOE_auxiliary ', 'OF')
+      call timing(iproc, 'chebyshev_comm', 'ON')
     
       call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
     
     
       call timing(iproc, 'chebyshev_comm', 'OF')
-      call timing(iproc, 'FOE_auxiliary ', 'ON')
     
-      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !! TEST: calculate S*S^-1 ##########################################################
     
-      call timing(iproc, 'FOE_auxiliary ', 'OF')
       call overlap_minus_onehalf() !has internal timer
       call timing(iproc, 'FOE_auxiliary ', 'ON')
     
@@ -776,8 +773,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
-     
-      deallocate(penalty_ev, stat=istat)
 
 
 

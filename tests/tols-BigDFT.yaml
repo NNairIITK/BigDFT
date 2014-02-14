@@ -786,7 +786,7 @@ intermediateforces:
  multiplicator for the confinement: 1.6e-11
 
 DIIShistory:
- Atomic Forces (Ha/Bohr): 1.5e-9
+ Atomic Forces (Ha/Bohr): 1.7e-9
  Clean forces norm (Ha/Bohr): 1.1e-9
  Raw forces norm (Ha/Bohr): 4.2e-10
  Average noise forces: 2.1e-10
@@ -798,7 +798,7 @@ DIIShistory:
  Epot: 3.3e-7
  EvXC: 7.4e-8
  energy: 4.4e-9
- multiplicator for the confinement: 8.1e-11
+ multiplicator for the confinement: 5.4e-9
  Omega: 1.4e-8
 
 Locreg:

@@ -580,6 +580,10 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
      else
         call mpiallred(mat_coeff_diag(1), ksorbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
      end if
+  else
+     if (allgather) then
+        call vcopy(ksorbs%norb, mat_coeff_diagp, 1, mat_coeff_diag, 1)
+     end if
   end if
 
   if (allgather) then
