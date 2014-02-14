@@ -2109,7 +2109,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   call uncompressMatrix(iproc,tmb%linmat%denskern_large)
 
-  k=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  !k=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
   ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
@@ -2121,43 +2121,43 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern_large%matrix, 1)
 
-      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !diagonalize overlap matrix
-      ks=tmb%linmat%ovrlp%matrix
-      call dsyev('v', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksksk, k, tmb%orbs%norb**2, istat)
-      !!do iorb=1,tmb%orbs%norb
-      !!    write(300,*) ksksk(iorb,1)
-      !!end do
-      !!call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-      !!           1.d0, ks, tmb%orbs%norb, &
-      !!           tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
-      !!           0.d0, ksksk, tmb%orbs%norb) 
+      !!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !!!diagonalize overlap matrix
+      !!ks=tmb%linmat%ovrlp%matrix
+      !!call dsyev('v', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksksk, k, tmb%orbs%norb**2, istat)
+      !!!!do iorb=1,tmb%orbs%norb
+      !!!!    write(300,*) ksksk(iorb,1)
+      !!!!end do
+      !!!!call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!!!           1.d0, ks, tmb%orbs%norb, &
+      !!!!           tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
+      !!!!           0.d0, ksksk, tmb%orbs%norb) 
+      !!!!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!!!           1.d0, ksksk, tmb%orbs%norb, &
+      !!!!           ks, tmb%orbs%norb, &
+      !!!!           0.d0, k, tmb%orbs%norb) 
+      !!!!do iorb=1,tmb%orbs%norb
+      !!!!    do jorb=1,tmb%orbs%norb
+      !!!!        write(200,*) iorb, jorb, k(jorb,iorb)
+      !!!!    end do
+      !!!!end do
       !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!           1.d0, ks, tmb%orbs%norb, &
+      !!           tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
+      !!           0.d0, ksksk, tmb%orbs%norb) 
+      !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
       !!           1.d0, ksksk, tmb%orbs%norb, &
       !!           ks, tmb%orbs%norb, &
       !!           0.d0, k, tmb%orbs%norb) 
-      !!do iorb=1,tmb%orbs%norb
-      !!    do jorb=1,tmb%orbs%norb
-      !!        write(200,*) iorb, jorb, k(jorb,iorb)
+      !!call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
+      !!if (iproc==0) then
+      !!    do iorb=1,tmb%orbs%norb
+      !!        write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
       !!    end do
-      !!end do
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-                 1.d0, ks, tmb%orbs%norb, &
-                 tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
-                 0.d0, ksksk, tmb%orbs%norb) 
-      call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-                 1.d0, ksksk, tmb%orbs%norb, &
-                 ks, tmb%orbs%norb, &
-                 0.d0, k, tmb%orbs%norb) 
-      call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
-      if (iproc==0) then
-          do iorb=1,tmb%orbs%norb
-              write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
-          end do
-      end if
-      !deallocate(overlap_diag)
-      
-      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !!end if
+      !!!deallocate(overlap_diag)
+      !!
+      !!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
@@ -2171,7 +2171,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   alpha=1.d-4
   chargediff=0.d0
 
-  do it=1,30
+  do it=1,20
 
       call to_zero(tmb%orbs%norb**2, ks(1,1))
       if (tmb%orbs%norbp>0) then
@@ -2232,7 +2232,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
           call yaml_map('iter',it)
           call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
           call yaml_map('charge diff',chargediff,fmt='(es10.3)')
-          call yaml_map('alpha',alpha,fmt='(es8.2)')
+          !call yaml_map('alpha',alpha,fmt='(es8.2)')
           call yaml_close_map()
       end if
 
@@ -2241,10 +2241,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       do iorb=1,tmb%orbs%norbp
           iiorb=iorb+tmb%orbs%isorb
           do jorb=1,tmb%orbs%norb
-              !tmb%linmat%denskern_large%matrix(jorb,iiorb) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
-              tmb%linmat%denskern_large%matrix(jorb,iiorb) = k(jorb,iorb) - alpha*( 4.d0*ksksk(jorb,iorb) &
-                                                                                   -6.d0*ksk(jorb,iorb) &
-                                                                                   +2.d0*k(jorb,iorb) )
+              tmb%linmat%denskern_large%matrix(jorb,iiorb) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
+              !tmb%linmat%denskern_large%matrix(jorb,iiorb) = k(jorb,iorb) - alpha*( 4.d0*ksksk(jorb,iorb) &
+              !                                                                     -6.d0*ksk(jorb,iorb) &
+              !                                                                     +2.d0*k(jorb,iorb) )
           end do
       end do
       call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -2259,7 +2259,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   call timing(iproc,'purify_kernel ','OF') 
 
-  call f_free(k)
+  !call f_free(k)
   call f_free(ks)
   call f_free(ksk)
   call f_free(ksksk)
