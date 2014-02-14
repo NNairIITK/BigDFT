@@ -276,6 +276,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use m_ab6_kpoints
    use lanczos_interface, only: xabs_lanczos,xabs_cg,xabs_chebychev
    use esatto, only: binary_search
+   use module_atoms, only: set_symmetry_data,atoms_data
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -571,7 +572,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !     (verbose > 1))
 
    !calculate the irreductible zone for this region, if necessary.
-   call symmetry_set_irreductible_zone(atoms%astruct%sym,atoms%astruct%geocode,&
+   call set_symmetry_data(atoms%astruct%sym,atoms%astruct%geocode,&
         KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i, in%nspin)
 
 !!$   !calculate the irreductible zone for this region, if necessary.
@@ -669,19 +670,17 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       end if
 
       atoms_clone = atoms
-      nullify(atoms_clone%aocc)
-      nullify(atoms_clone%iasctype)
+      nullify(atoms_clone%aoig)
+      call allocate_atoms_nat(atoms_clone)
 
-
-      allocate(atoms_clone%aocc(lbound(atoms%aocc,1 ):ubound(atoms%aocc,1),&
-         &   lbound(atoms%aocc,2):ubound(atoms%aocc,2)),stat=i_stat)
-      call memocc(i_stat,atoms%aocc,'atoms_clone%aocc',subname)
-
-      allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
-      call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
-
-      atoms_clone%aocc=0.0_gp
-      atoms_clone%iasctype=0
+!!$      allocate(atoms_clone%aocc(lbound(atoms%aocc,1 ):ubound(atoms%aocc,1),&
+!!$         &   lbound(atoms%aocc,2):ubound(atoms%aocc,2)),stat=i_stat)
+!!$      call memocc(i_stat,atoms%aocc,'atoms_clone%aocc',subname)
+!!$
+!!$      allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
+!!$      call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
+!!$         atoms_clone%aoig%aocc=0.0_gp
+!!$         atoms_clone%aiasctype=0
 
       read(in%extraOrbital,*,iostat=ierr)iat
       !control the spin
@@ -709,7 +708,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       print *, "noccmax, nelecmax,lmax ", noccmax, nelecmax,lmax
 
       call read_eleconf(in%extraOrbital ,nsp,nspinor,noccmax, nelecmax,lmax, &
-         &   atoms_clone%aocc(1,iat), atoms_clone%iasctype(iat))
+         &   atoms_clone%aoig(iat)%aocc, atoms_clone%aoig(iat)%iasctype)
 
       nspin=in%nspin
       symObj%symObj = -1
@@ -772,14 +771,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       deallocate(KSwfn%psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
 
-      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
-      deallocate(atoms_clone%aocc,stat=i_stat)
-      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
-      nullify(atoms_clone%aocc)
-      i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
-      deallocate(atoms_clone%iasctype,stat=i_stat)
-      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
-      nullify(atoms_clone%iasctype)
+      deallocate(atoms_clone%aoig)
+      nullify(atoms_clone%aoig)
+!!$      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
+!!$      deallocate(atoms_clone%aocc,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
+!!$      nullify(atoms_clone%aocc)
+!!$      i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
+!!$      deallocate(atoms_clone%iasctype,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
+!!$      nullify(atoms_clone%iasctype)
 
    endif
 

@@ -170,6 +170,8 @@ FeHyb:
 
 Li+:
  EKS: 2.e-11
+ D: 1.01e-10
+ Epot: 1.01e-10
 
 O2-Spin:
  Epsilon: 1.1e-10

@@ -17,7 +17,7 @@ program wvl
   use yaml_output
   use module_input_dicts
   use module_interfaces, only: inputs_from_dict
-  
+  use module_atoms, only: deallocate_atoms_data
   implicit none
 
   type(input_variables)             :: inputs
@@ -295,7 +295,7 @@ program wvl
 
   call deallocate_orbs(orbs,"main")
 
-  call deallocate_atoms(atoms,"main") 
+  call deallocate_atoms_data(atoms) 
   call dpbox_free(dpcom,'main')
   call pkernel_free(pkernel,'main')
   call free_input_variables(inputs)

@@ -327,7 +327,7 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
   real(gp), intent(out) :: epot
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,ii1,ii2,ii3,potorder_half
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,r2
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,r2,tt
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,x,y,z,cp,z2,y2
   real(gp) :: epot_p!,ierr
 
@@ -350,7 +350,7 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift,confdata,potorder_half)&
   !$omp private(ispinor,i1,i2,i3,epot_p)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3)
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3,tt)
 
   !case without bounds
 
@@ -464,8 +464,10 @@ subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2
               tt42=pot3*psir1 !p4
 
               !value of the potential energy
-              epot=epot+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
-                   2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
+              tt=tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+                   2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+&
+                   2.0_gp*tt32*psir3
+              epot=epot+tt
 
               !wavefunction update
               !p1=h1p1+h2p3-h3p4
@@ -535,7 +537,7 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
   real(gp), intent(out) :: epot
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,ii1,ii2,ii3
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p!,ierr
 
@@ -556,7 +558,7 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
   !$omp private(ispinor,i1,i2,i3,epot_p)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3)
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3,tt)
 
   !case without bounds
 
@@ -663,8 +665,10 @@ subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,n
               tt42=pot3*psir1 !p4
 
               !value of the potential energy
-              epot=epot+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
-                   2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
+              tt=tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+                   2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+&
+                   2.0_gp*tt32*psir3
+              epot=epot+tt
 
               !wavefunction update
               !p1=h1p1+h2p3-h3p4
@@ -728,7 +732,7 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
   real(gp), intent(out) :: epot
   !local variables
   integer :: i1,i2,i3,ispinor,i1s,i1e,i2s,i2e,i3s,i3e,ii1,ii2,ii3,i1st,i1et
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p!,ierr
 
@@ -749,7 +753,7 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
   !$omp shared(i1s,i1e,i2s,i2e,i3s,i3e,ishift)&
   !$omp private(ispinor,i1,i2,i3,epot_p)&
   !$omp private(tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42)&
-  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3)
+  !$omp private(psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4,ii1,ii2,ii3,tt)
 
   !case without bounds
 
@@ -858,9 +862,11 @@ subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nsp
               tt42=pot3*psir1 !p4
 
               !value of the potential energy
-              epot=epot+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
-                   2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
-
+              tt=tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+                   2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+&
+                   2.0_gp*tt32*psir3
+              epot=epot+tt
+                            
               !wavefunction update
               !p1=h1p1+h2p3-h3p4
               !p2=h1p2+h2p4+h3p3

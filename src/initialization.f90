@@ -25,6 +25,7 @@ subroutine run_objects_free(runObj, subname)
   use module_base
   use yaml_output
   use dictionaries
+  use  module_atoms, only: deallocate_atoms_data
   implicit none
   type(run_objects), intent(inout) :: runObj
   character(len = *), intent(in) :: subname
@@ -39,7 +40,7 @@ subroutine run_objects_free(runObj, subname)
      deallocate(runObj%rst)
   end if
   if (associated(runObj%atoms)) then
-     call deallocate_atoms(runObj%atoms,subname) 
+     call deallocate_atoms_data(runObj%atoms) 
      deallocate(runObj%atoms)
   end if
   if (associated(runObj%inputs)) then
