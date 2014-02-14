@@ -577,7 +577,6 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
      if (allgather) then
         call mpi_allgatherv(mat_coeff_diagp, ksorbs%norbp, mpi_double_precision, mat_coeff_diag, &
              ksorbs%norb_par(:,0), ksorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-        call f_free(mat_coeff_diagp)
      else
         call mpiallred(mat_coeff_diag(1), ksorbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
      end if
