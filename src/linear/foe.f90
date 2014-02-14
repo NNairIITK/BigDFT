@@ -30,7 +30,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver, iorb
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge, nsize_polynomial
   integer :: iismall_ovrlp, iismall_ham
-  integer,parameter :: nplx=5000
+  integer,parameter :: nplx=50000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol, ddot
@@ -339,7 +339,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                       call yaml_close_map()
                       !call bigdft_utils_flush(unit=6)
                   end if
-                  cycle
+                  iall=-product(shape(cc))*kind(cc)
+                  deallocate(cc, stat=istat)
+                  call memocc(istat, iall, 'cc', subname)
+                  cycle main_loop
              end if
     
     
@@ -854,10 +857,10 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   ! Local variables
   integer :: k, j
   real(kind=8) :: bma, bpa, y, arg, fac, tt, erfcc
-  real(kind=8),dimension(5000) :: cf
+  real(kind=8),dimension(50000) :: cf
   !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
 
-  if (n>5000) stop 'chebft'
+  if (n>50000) stop 'chebft'
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   do k=1,n
@@ -897,9 +900,9 @@ subroutine chebft2(a,b,n,cc)
   integer :: k, j
   !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
   real(kind=8) :: tt, y, arg, fac, bma, bpa
-  real(kind=8),dimension(5000) :: cf
+  real(kind=8),dimension(50000) :: cf
 
-  if (n>5000) stop 'chebft2'
+  if (n>50000) stop 'chebft2'
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   ! 3 gives broder safety zone than 4
