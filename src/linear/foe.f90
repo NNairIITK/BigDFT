@@ -44,7 +44,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
-  integer :: jproc, iorder
+  integer :: jproc, iorder, npl_boundaries
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8) :: trace_sparse
@@ -132,13 +132,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   allocate(chebyshev_polynomials(nsize_polynomial,1),stat=istat)
   call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
 
-  fscale=foe_obj%fscale/0.6d0 ! this will be undone in the first iteration of the following loop
+  fscale=foe_obj%fscale/0.5d0 ! this will be undone in the first iteration of the following loop
 
 
   temp_loop: do itemp=1,20
 
       
-      fscale=fscale*0.6d0 ! make the error function sharper, i.e. more "step function-like"
+      fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
 
       evlow_old=1.d100
       evhigh_old=-1.d100
@@ -234,6 +234,11 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               ! Determine the degree of the polynomial
               !npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/foe_obj%fscale)
               npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/fscale)
+              if (npl>npl_boundaries) then
+                  npl_boundaries=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
+                  npl=npl_boundaries
+                  if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
+              end if
               if (npl>nplx) stop 'npl>nplx'
     
               ! Array the holds the Chebyshev polynomials. Needs to be recalculated
