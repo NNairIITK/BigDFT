@@ -462,7 +462,7 @@
    Inputguess Orbitals Repartition:
      MPI tasks  0- 2                   :  8
    Atomic Input Orbital Generation:
-   -  {Atom Type: Be, Electronic configuration: {s: [ 2.00], p: [ 0.00,  0.00,  0.00]}}
+   -  {Atom Type: Be, Electronic configuration: {s: [ 2.00], p: [ 0/3,  0/3,  0/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
    Wavelet conversion succeeded        :  Yes
    Deviation from normalization        :  3.8E-06
@@ -1528,23 +1528,6 @@
  - support function optimization not converged
  - density optimization not converged
  - commented correction_locrad
- Status of the memory at finalization:
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 8116
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x1c66050
-     Address of metadata               : 28967512
-   wfd%keygloc:
-     Array Id                          : wfd%keygloc
-     Size (Bytes)                      : 16232
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x1c6fa40
-     Address of metadata               : 28967416
-   Timestamp of Profile initialization:
-     2014-01-31 15:46:20.549
-   Process Id:
-     0
  Memory Consumption Report:
    Tot. No. of Allocations             :  36338
    Tot. No. of Deallocations           :  36338

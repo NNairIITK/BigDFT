@@ -98,7 +98,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   ! Keep the natural occupations
   
-  nl_copy=f_malloc((/4,at%astruct%nat/),id='nl_copy')
+  nl_copy=f_malloc((/0 .to. 3,1 .to. at%astruct%nat/),id='nl_copy')
   do iat=1,at%astruct%nat
      nl_copy(:,iat)=at%aoig(iat)%nl
   end do
@@ -114,9 +114,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ist=0
   do iat=1,at%astruct%nat
       ii=input%lin%norbsPerType(at%astruct%iatype(iat))
-      if (sum(at%aoig(iat)%nl) < ii) then
-         call f_err_throw('The number of basis functions asked per type is exceeding the number of IG atomic orbitals'//&
-              ', modify the electronic configuration of input atom'//trim(at%astruct%atomnames(at%astruct%iatype(iat))),&
+      jj=at%aoig(iat)%nao
+      if (jj < ii) then
+         call f_err_throw('The number of basis functions asked per type'//&
+              ' is exceeding the number of IG atomic orbitals'//&
+              ', modify the electronic configuration of input atom '//&
+              trim(at%astruct%atomnames(at%astruct%iatype(iat))),&
               err_name='BIGDFT_INPUT_VARIABLES_ERROR')
          call f_release_routine()
          return
@@ -397,11 +400,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 !!
 !!  ! #######################################################################
 
-
-
-
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
        tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,input%lin%potentialPrefac_ao)
+
   !!call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
   !!     tmb%lzd%nlr,norbsPerAt,mapping, &
   !!     tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_ao)
@@ -433,7 +434,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call memocc(istat,iall,'psigau',subname)
 
   call deallocate_gwf(G,subname)
-
   ! Deallocate locrad, which is not used any longer.
   iall=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=istat)
@@ -452,6 +452,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!     denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
   !Put the Density kernel to identity for now
+
   call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
   do iorb=1,tmb%orbs%norb
      ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
@@ -529,7 +530,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
  else
-
      ! Iterative orthonomalization
      !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
      if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
@@ -550,7 +550,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
              type_covered(itype)=.true.
              !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
              !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
-             jj=sum(nl_copy(:,iat))
+             jj=nl_copy(0,iat)+3*nl_copy(1,iat)+5*nl_copy(2,iat)+7*nl_copy(3,iat)
              maxorbs_type(itype)=jj
              !should not enter in the conditional below due to the raise of the exception above
              if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
@@ -558,6 +558,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                  increase_count: do inl=1,4
                     if (nl_copy(inl,iat)==0) then
                        nl_copy(inl,iat)=1
+                       call f_err_throw('InputguessLinear: Should not be here',&
+                            err_name='BIGDFT_RUNTIME_ERROR')
                        exit increase_count
                     end if
                  end do increase_count

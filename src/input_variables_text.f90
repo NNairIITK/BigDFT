@@ -399,11 +399,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
              "', which is not present in the file containing the atomic coordinates."
      end if
   end do
-  found  = .true.
-  do jtype=1,atoms%astruct%ntypes
-     found = found .and. parametersSpecified(jtype)
-  end do
-  if (.not. found) then
+!  found  = .true.
+!  do jtype=1,atoms%astruct%ntypes
+!     found = found .and. parametersSpecified(jtype)
+!  end do
+  if (.not. all(parametersSpecified) ) then
      ! The parameters were not specified for all atom types.
      if(iproc==0) then
         write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&

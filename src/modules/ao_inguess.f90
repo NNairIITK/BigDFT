@@ -29,13 +29,14 @@ module ao_inguess
                          ! The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
                          !! where n_l are the number of semicore orbitals for a given angular momentum
                          !! starting from the lower principal quantum number of course
+     integer :: nao      !< number of atomic orbitals, counting the total number of shells with nonzero occupation
      integer, dimension(0:lmax_ao) :: nl !< number of orbitals in each of the shells
      real(gp), dimension(nelecmax_ao) :: aocc !< compressed information of the occupation numbers. 
                                               !! adapted at each run to meet the nspin and nspinor conditions
   end type aoig_data
 
-  public :: atomic_info,ao_nspin_ig,iguess_generator,count_atomic_shells,print_eleconf,aocc_from_dict
-  public :: ao_ig_charge,atomic_configuration,aoig_data_null
+  public :: atomic_info,ao_nspin_ig,iguess_generator,count_atomic_shells,print_eleconf,aoig_set_from_dict
+  public :: ao_ig_charge,aoig_set,aoig_data_null
 
 contains
 
@@ -44,6 +45,7 @@ contains
     implicit none
     type(aoig_data) :: aoig
     aoig%iasctype=0
+    aoig%nao=0
     aoig%nl=0
     aoig%aocc=0
   end function aoig_data_null
@@ -411,18 +413,18 @@ contains
 
   END SUBROUTINE count_atomic_shells
 
-  !> fill the corresponding arrays with atomic information, compressed as indicated in the module
-  subroutine atomic_configuration(zatom,zion,input_pol,nspin,aoig)
+  !> fill the corresponding arrays with atomic information, compressed as indicated in the module. start from input polarization and charge if present
+  function aoig_set(zatom,zion,input_pol,nspin) result(aoig)
     use yaml_output, only: yaml_toa
     implicit none
     integer, intent(in) :: zatom       !< Z number of atom
     integer, intent(in) :: zion        !< Number of valence electrons of the ion (PSP should be in agreement)
     integer, intent(in) :: input_pol   !< input polarisation of the atom as indicated by charge_and_spol routine
     integer, intent(in) :: nspin       !< Spin description 1:spin averaged, 2:collinear spin, 4:spinorial
-    type(aoig_data), intent(out) :: aoig !< electronic configuration of IG atom
+    type(aoig_data) :: aoig !< electronic configuration of IG atom
     !local variables
     integer :: nsccode,mxpl,mxchg,nsp,nspinor
-    integer :: ichg, ispol
+    integer :: ichg, ispol,inl
     double precision :: elec
     character(len=2) :: symbol
     real(kind=8), dimension(nmax_ao,0:lmax_ao) :: neleconf
@@ -456,6 +458,12 @@ contains
     call at_occnums(ispol,nsp,nspinor,nmax_ao,lmax_ao+1,nelecmax_ao,&
          eleconf_,aoig%aocc,aoig%nl)
 
+    !fill the number of orbitals
+    aoig%nao=0
+    do inl=0,lmax_ao
+       aoig%nao=aoig%nao+(2*inl+1)*aoig%nl(inl)
+    end do
+
     !check if the atomic charge is consistent with the input polarization
     !check the total number of electrons
     elec=ao_ig_charge(nspin,aoig%aocc)
@@ -468,16 +476,17 @@ contains
             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        return
     end if
-  end subroutine atomic_configuration
+  end function aoig_set
 
-  subroutine aocc_from_dict(dict,nspin_in,aoig)
+  !> fill electronic configuration of the atom from the input dictionary
+  function aoig_set_from_dict(dict,nspin_in) result(aoig)
     use module_defs, only: gp, UNINITIALIZED,f_malloc_str,f_free_str,assignment(=)
     use dictionaries
     use yaml_output, only: yaml_toa,yaml_map
     implicit none
     type(dictionary), pointer :: dict
     integer, intent(in) :: nspin_in
-    type(aoig_data), intent(out) :: aoig !< electronic configuration of IG atom
+    type(aoig_data) :: aoig !< electronic configuration of IG atom
 
     !local variables
     character(len = max_field_length) :: key
@@ -497,13 +506,8 @@ contains
     nlsc(:)=0
     allocc(:,:,:) = UNINITIALIZED(1._gp)
 
-    !allocate(keys(dict_size(dict)))
-!!    keys=f_malloc_str(max_field_length,dict_size(dict),id='keys')
-
     !here we have to iterate on the dictionary instead of allocating the array of the keys
-    
-!!    keys = dict_keys(dict)
-!!    do i = 1, dict_size(dict), 1
+
     dict_tmp=> dict_iter(dict)
     do while(associated(dict_tmp))
        key(1:len(key)) = dict_key(dict_tmp)!keys(i)
@@ -597,7 +601,8 @@ contains
                 end if
              else
                 call f_err_throw('Only scalar and list of correct lenghts are allowed for '//&
-                     'Atomic occupation number of up channel',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                     'Atomic occupation number of up channel',&
+                     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
                 return
              end if
           end if
@@ -640,7 +645,8 @@ contains
                 end if
              else
                 call f_err_throw('Only scalar and list of correct lenghts are allowed for '//&
-                     'Atomic occupation number of down channel',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                     'Atomic occupation number of down channel',&
+                     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
                 return
              end if
           end if
@@ -656,24 +662,8 @@ contains
                'Atomic occupation number',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        end if
        
-!!$       do m = 1, nspin*noncoll*(2*l-1), 1
-!!$          allocc(m, n, l) = dict // key // (m - 1)
-!!$       end do
        dict_tmp=>dict_next(dict_tmp)
     end do
-    !deallocate(keys)
-    !call f_free_str(max_field_length,keys)
-!!$    do l=1,lmax_ao+1
-!!$       call yaml_map('nl',nl(l))
-!!$       do inl=1,nmax_ao
-!!$
-!!$          if (any(allocc(:,inl,l) /=  UNINITIALIZED(1._gp))) then
-!!$             call yaml_map('Shell'//trim(yaml_toa(inl))//'-'//&
-!!$                  trim(yaml_toa(l)),allocc(1:nspin*noncoll*(2*l-1),inl,l))
-!!$          end if
-!!$
-!!$       end do
-!!$    end do
 
     !put the values in the aocc array
     aoig%aocc(:)=0.0_gp
@@ -708,10 +698,16 @@ contains
     !then calculate the nsccode
     aoig%iasctype=0
     do lsc=1,lmax_ao+1
-       aoig%iasctype=aoig%iasctype+nlsc(lsc) * (4**(lsc-1))
+       aoig%iasctype=aoig%iasctype+nlsc(lsc)*(4**(lsc-1))
     end do
 
-  end subroutine aocc_from_dict
+    !fill the number of orbitals
+    aoig%nao=0
+    do inl=0,lmax_ao
+       aoig%nao=aoig%nao+(2*inl+1)*aoig%nl(inl)
+    end do
+
+  end function aoig_set_from_dict
 
 
   !> Print the electronic configuration, with the semicore orbitals

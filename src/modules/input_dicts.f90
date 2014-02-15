@@ -804,99 +804,6 @@ contains
     call f_release_routine()
   end subroutine astruct_file_merge_to_dict
 
-!!$  subroutine aocc_from_dict(dict,nspin,nspinor,nelecmax,lmax,nmax,aocc,nsccode)
-!!$    use module_defs, only: gp, UNINITIALIZED
-!!$    use dictionaries
-!!$    implicit none
-!!$    type(dictionary), pointer :: dict
-!!$    integer, intent(in) :: nelecmax,lmax,nmax,nspinor,nspin
-!!$    integer, intent(out) :: nsccode
-!!$    real(gp), dimension(nelecmax), intent(out) :: aocc
-!!$
-!!$    !local variables
-!!$    character(len = max_field_length) :: key
-!!$    character(max_field_length), dimension(:), allocatable :: keys
-!!$    integer :: i, ln
-!!$    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc
-!!$    integer, dimension(lmax) :: nl,nlsc
-!!$    real(gp), dimension(2*(2*lmax-1),nmax,lmax) :: allocc
-!!$
-!!$    nl(:)=0
-!!$    nlsc(:)=0
-!!$    allocc(:,:,:) = UNINITIALIZED(1._gp)
-!!$
-!!$    !if non-collinear it is like nspin=1 but with the double of orbitals
-!!$    if (nspinor == 4) then
-!!$       noncoll=2
-!!$    else
-!!$       noncoll=1
-!!$    end if
-!!$
-!!$    allocate(keys(dict_size(dict)))
-!!$    keys = dict_keys(dict)
-!!$    do i = 1, dict_size(dict), 1
-!!$       key = keys(i)
-!!$       ln = len_trim(key)
-!!$       is = 1
-!!$       if (key(1:1) == "(" .and. key(ln:ln) == ")") is = 2
-!!$       ! Read the major quantum number
-!!$       read(key(is:is), "(I1)") n
-!!$       is = is + 1
-!!$       ! Read the channel
-!!$       select case(key(is:is))
-!!$       case('s')
-!!$          l=1
-!!$       case('p')
-!!$          l=2
-!!$       case('d')
-!!$          l=3
-!!$       case('f')
-!!$          l=4
-!!$       case default
-!!$          stop "wrong channel"
-!!$       end select
-!!$       nl(l) = nl(l) + 1
-!!$       if (is == 3) nlsc(l) = nlsc(l) + 1
-!!$       if (nlsc(l) > 2) stop 'cannot admit more than two semicore orbitals per channel'
-!!$
-!!$       !read the different atomic occupation numbers
-!!$       if (dict_len(dict // key) /= nspin*noncoll*(2*l-1)) then
-!!$          write(*,*) "Awaited: ", nspin*noncoll*(2*l-1), nspin, noncoll, l
-!!$          write(*,*) "provided", dict_len(dict // key)
-!!$          stop 'Not enough aocc'
-!!$       end if
-!!$       do m = 1, nspin*noncoll*(2*l-1), 1
-!!$          allocc(m, n, l) = dict // key // (m - 1)
-!!$       end do
-!!$    end do
-!!$    deallocate(keys)
-!!$
-!!$    !put the values in the aocc array
-!!$    aocc(:)=0.0_gp
-!!$    iocc=0
-!!$    do l=1,lmax
-!!$       iocc=iocc+1
-!!$       aocc(iocc)=real(nl(l),gp)
-!!$       do inl=1,nmax
-!!$          if (allocc(1, inl, l) == UNINITIALIZED(1._gp)) cycle
-!!$          do ispin=1,nspin
-!!$             do m=1,2*l-1
-!!$                do icoll=1,noncoll !non-trivial only for nspinor=4
-!!$                   iocc=iocc+1
-!!$                   aocc(iocc)=allocc(icoll+(m-1)*noncoll+(ispin-1)*(2*l-1)*noncoll,inl,l)
-!!$                end do
-!!$             end do
-!!$          end do
-!!$       end do
-!!$    end do
-!!$
-!!$    !then calculate the nsccode
-!!$    nsccode=0
-!!$    do lsc=1,lmax
-!!$       nsccode=nsccode+nlsc(lsc) * (4**(lsc-1))
-!!$    end do
-!!$  end subroutine aocc_from_dict
-
   subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
     use module_defs, only: gp
     use dictionaries
@@ -940,7 +847,8 @@ contains
 
   subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
     use module_defs, only: gp
-    use ao_inguess, only: ao_ig_charge,atomic_info,aocc_from_dict,print_eleconf,atomic_configuration
+    use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
+         print_eleconf,aoig_set
     use module_types, only: atoms_data
     use dictionaries
 !    use dynamic_memory
@@ -967,9 +875,8 @@ contains
           if (atoms%astruct%iatype(iat) /= ityp) cycle
 
           !fill the atomic IG configuration from the input_polarization
-          call atomic_configuration(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
-               atoms%astruct%input_polarization(iat),nspin,atoms%aoig(iat))
-               !atoms%iasctype(iat),atoms%aocc(1:,iat))
+          atoms%aoig(iat)=aoig_set(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
+               atoms%astruct%input_polarization(iat),nspin)
 
           ! Possible overwrite, if the dictionary has the item
           if (has_key(dict, key)) then
@@ -980,8 +887,7 @@ contains
              if (has_key(dict // key, trim(atoms%astruct%atomnames(ityp)))) &
                   dict_tmp=>dict // key // trim(atoms%astruct%atomnames(ityp))
              if (associated(dict_tmp)) then
-                call aocc_from_dict(dict_tmp,nspin,atoms%aoig(iat))
-
+                atoms%aoig(iat)=aoig_set_from_dict(dict_tmp,nspin)
                 !check the total number of electrons
                 elec=ao_ig_charge(nspin,atoms%aoig(iat)%aocc)
                 if (nint(elec) /= atoms%nelpsp(ityp)) then
