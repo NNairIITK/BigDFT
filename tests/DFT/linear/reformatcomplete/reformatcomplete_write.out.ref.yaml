@@ -27,27 +27,30 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.1.10
- Timestamp of this run                 : 2014-01-31 16:19:38.014
- Root process Hostname                 : girofle
- Number of MPI tasks                   :  3
+ Version Number                        : 1.7.1.11
+ Timestamp of this run                 : 2014-02-14 08:10:01.742
+ Root process Hostname                 : phys-comp-03
+ Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
  Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  3
+ MPI tasks of root process node        :  4
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/local/stephanm/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 
-     -openmp' 
-     '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
-     p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
-     -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
-     -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
-     -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
-   Compilers (CC, FC, CXX): [icc, /local/stephanm/openmpi-1.6.5_intel/bin/mpif90, g++]
+     " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
+     -heap-arrays 1024 -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
+     ck_lp64.a  -Wl,--start-group  
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
+     -Wl,--end-group -openmp -lpthread -lm'"
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -xSSE4.2 -openmp
+     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : write
@@ -198,7 +201,7 @@
  #|0              DIIS history for density mixing (low, high)                                
  #|1.d0     1     density mixing parameter (low, high)                                       
  #|1.d-9    1.d-  outer loop convergence (low, high)                                         
- #|5.d-6    1.d-6  1.dbasis convergence (low, high) ; early stop TMB optimization (experiment
+ #|5.d-6    1.d-6  1.d-4    basis convergence (low, high) ; early stop TMB optimization, dyna
  #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
  #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
  #|1.d-10   1.d-1 density convergence (low, high)                                            
@@ -212,8 +215,8 @@
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|1 F F F F      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
  #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
- #|O  4 1.0d-3 5.0d-4 0.0d0 8.0 8.0 20.0 Atom name, number of basis functions per atom, prefa
- #|H  1 1.0d-3 5.0d-4 0.0d0 8.0 8.0 20.0 Atom name, number of basis functions per atom, prefa
+ #|O  4 1.0d-3 5.0d-4 0.0d0 8.0 8.0 8.0 20.0 Atom name, number of basis functions per atom, p
+ #|H  1 1.0d-3 5.0d-4 0.0d0 8.0 8.0 8.0 20.0 Atom name, number of basis functions per atom, p
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-write/
   #--------------------------------------------------- Input Atomic System (file: write.xyz)
@@ -325,19 +328,20 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  3
+   MPI tasks                           :  4
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  6.92
-     Kernel (MB)                       :  7.02
+     Density (MB)                      :  5.19
+     Kernel (MB)                       :  5.38
      Full Grid Arrays (MB)             :  19.58
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 2                : 100%
+         MPI tasks 0- 3                : 100%
        Kernel:
          MPI tasks 0- 2                : 100%
+         MPI task 3                    :  92%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -350,15 +354,14 @@
  Total Number of Electrons             :  8
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 0                     :  2
-   MPI tasks  1- 2                     :  1
+   MPI tasks  0- 3                     :  1
  Total Number of Orbitals              :  4
- Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-4:  2.0}
  Support function repartition:
-   MPI tasks  0- 2                     :  2
- Wavefunctions memory occupation for root MPI process:  1 MB 344 KB 752 B
+   MPI tasks  0- 1                     :  2
+   MPI tasks  2- 3                     :  1
+ Wavefunctions memory occupation for root MPI process:  0 MB 684 KB 384 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  1
@@ -369,33 +372,37 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
    Single orbital                      : 0.685 #  (Number of Components: 87599)
-   All (distributed) orbitals          : 4.11 #   (Number of Orbitals per MPI task: 2)
-   Wavefunction storage size           : 20.52 #  (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 2.6 #    (Number of Orbitals per MPI task: 1)
+   Wavefunction storage size           : 10.26 #  (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.102
    Full Uncompressed (ISF) grid        : 19.595
    Workspaces storage size             : 1.731
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 134.362
-   Density Construction                : 80.21
-   Poisson Solver                      : 90.917
-   Hamiltonian application             : 81.483
- Estimated Memory Peak (MB)            :  134
+   Kernel calculation                  : 102.931
+   Density Construction                : 73.178
+   Poisson Solver                      : 68.488
+   Hamiltonian application             : 74.641
+ Estimated Memory Peak (MB)            :  102
  total elements                        :  36
  non-zero elements                     :  36
  sparsity in %                         :  0.0
  total elements                        :  36
  non-zero elements                     :  36
  sparsity in %                         :  0.0
- total elements                        :  36
- non-zero elements                     :  36
- sparsity in %                         :  0.0
- Checking Compression/Uncompression of sparse matrices:
+ Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.0
    Maxdiff for uncompress              :  0.0
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.0
    Maxdiff for uncompress              :  0.0
+ check of kernel cutoff radius:
+ -  {atom type: H, adjustment required:  Yes, new value:  10.4}
+ -  {atom type: O, adjustment required:  Yes, new value:  10.4}
+ total elements                        :  36
+ non-zero elements                     :  36
+ sparsity in %                         :  0.0
+ Checking Compression/Uncompression of large sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.0
    Maxdiff for uncompress              :  0.0
@@ -418,22 +425,23 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  131,  137,  143 ]
-   MPI tasks                           :  3
+   MPI tasks                           :  4
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  6
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 2                   :  2
+     MPI tasks  0- 1                   :  2
+     MPI tasks  2- 3                   :  1
    Atomic Input Orbital Generation:
    -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
    Wavelet conversion succeeded        :  Yes
    Deviation from normalization        :  6.87E-07
-   Total charge                        :  7.9999999488
+   Total charge                        :  7.999999948801
    Poisson Solver:
      BC                                : Free
      Box                               :  [  131,  137,  143 ]
-     MPI tasks                         :  3
+     MPI tasks                         :  4
    orthonormalization of input guess   : standard
    Kernel update:
      max dev from unity                :  1.76E-05
@@ -452,16 +460,16 @@
    Hamiltonian update: {
  Energies: {Ekin:  1.58833217788E+01, Epot: -2.06699193877E+01, Enl:  1.43365466218, 
               EH:  2.03678729367E+01,  EXC: -3.95855613724, EvXC: -5.18788764182}, 
-    Total charge:  7.999999942967, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999942968, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
     #================================================================= Input guess generated
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  27289,  422 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  21321,  317 ]
    Tolerances for this check: [ 7.69835010278399623E-06,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.0
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  26249,  422 ]
+   Number of coarse and fine DoF (MasterMPI task):  [  19687,  317 ]
    Tolerances for this check: [ 8.75990011695720883E-06,  1.33226762955018785E-15]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
    Maxdiff for untranspose             :  0.0
@@ -471,27 +479,27 @@
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  1.16412119733E+01, Epot: -1.33260633248E+01, Enl:  7.18918925673E-01}, 
+ Energies: {Ekin:  1.16412119733E+01, Epot: -1.33260633248E+01, Enl:  7.18918925674E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  4.24E-01, Omega: -1.605053660375388E+01, D: -1.61E+01, D best: -1.61E+01, 
+ iter:  1, fnrm:  4.24E-01, Omega: -1.605053660375327E+01, D: -1.61E+01, D best: -1.61E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.0, max alpha:  1.0, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
  reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  1.00941198761E+01, Epot: -1.20441766974E+01, Enl:  7.05982074374E-01}, 
+ Energies: {Ekin:  1.00941198761E+01, Epot: -1.20441766974E+01, Enl:  7.05982074373E-01}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  2, fnrm:  2.06E-01, Omega: -1.66068212460458E+01, D: -5.56E-01, D best: -5.56E-01, 
+ iter:  2, fnrm:  2.06E-01, Omega: -1.660682124604601E+01, D: -5.56E-01, D best: -5.56E-01, 
  Optimization: {algorithm: SD, mean alpha:  1.017, max alpha:  1.1, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
  reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.3390451037, Epot: -1.13160868818E+01, Enl:  6.52652632405E-01}, 
+ Energies: {Ekin:  9.3390451037, Epot: -1.13160868818E+01, Enl:  6.52652632406E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  1.25E-01, Omega: -1.676745004357636E+01, D: -1.61E-01, D best: -1.61E-01, 
+ iter:  3, fnrm:  1.25E-01, Omega: -1.676745004357639E+01, D: -1.61E-01, D best: -1.61E-01, 
  Optimization: {algorithm: SD, mean alpha:  1.027, max alpha:  1.21, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -500,12 +508,12 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.91135520563, Epot: -1.09014273866E+01, Enl:  6.33960989331E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  4, fnrm:  8.26E-02, Omega: -1.683089413536786E+01, D: -6.34E-02, D best: -6.34E-02, 
+ iter:  4, fnrm:  8.26E-02, Omega: -1.683089413536778E+01, D: -6.34E-02, D best: -6.34E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 4
  target function: TRACE, 
  Energies: {Ekin:  8.91135520563, Epot: -1.09014273866E+01, Enl:  6.33960989331E-01}, 
- iter:  4, fnrm:  8.26E-02, Omega: -1.683089413536786E+01, D: -6.34E-02, D best: -6.34E-02}
+ iter:  4, fnrm:  8.26E-02, Omega: -1.683089413536778E+01, D: -6.34E-02, D best: -6.34E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -524,8 +532,8 @@
        Hamiltonian update: {
  Energies: {Ekin:  8.91135520563, Epot: -1.09852542295E+01, Enl:  6.33960989331E-01, 
               EH:  2.23313324717E+01, EXC: -4.27419990255, EvXC: -5.60481494216}, 
-    Total charge:  7.999999962223, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999962224, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -533,7 +541,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.53E-06, energy: -1.72834388746475085E+01, D: -1.728E+01}]
+ iter:  1, delta:  2.53E-06, energy: -1.72834388746473806E+01, D: -1.728E+01}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  2.73E-06
@@ -543,16 +551,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.53E-02, eBS: -3.16476712254566372, D: -1.385, alpha:  2.0E-01}
+ iter:  1, fnrm:  5.53E-02, eBS: -3.16476712254572234, D: -1.385, alpha:  2.0E-01}
          Kohn-Sham residue             :  1.429E-01
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  0.15703682694794097
+       energydiff                      :  0.15703682694773846
        Hamiltonian update: {
  Energies: {Ekin:  8.91135520563, Epot: -1.17229473692E+01, Enl:  6.33960989331E-01, 
               EH:  2.06989118969E+01, EXC: -3.99374245847, EvXC: -5.23388134671}, 
-    Total charge:  7.999999961992, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999961993, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -560,7 +568,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  7.29E-08, energy: -1.71264020476995675E+01, D:  1.57E-01}]
+ iter:  2, delta:  7.29E-08, energy: -1.71264020476996421E+01, D:  1.57E-01}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  2.73E-06
@@ -570,16 +578,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.95E-02, eBS: -4.54967471903063281, D:  6.486E-02, alpha:  1.0E-01}
+ iter:  1, fnrm:  2.95E-02, eBS: -4.54967471903054665, D:  6.486E-02, alpha:  1.0E-01}
          Kohn-Sham residue             :  1.39E-01
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -1.72911584233048643E-004
+       energydiff                      : -1.72911584069623814E-004
        Hamiltonian update: {
  Energies: {Ekin:  8.91135520563, Epot: -1.16839918886E+01, Enl:  6.33960989331E-01, 
               EH:  2.07675739707E+01, EXC: -4.00505588191, EvXC: -5.24882608759}, 
-    Total charge:  7.999999961938, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999961939, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -587,7 +595,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.76E-08, energy: -1.71265749592838006E+01, D: -1.729E-04}]
+ iter:  3, delta:  1.76E-08, energy: -1.71265749592837118E+01, D: -1.729E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  2.73E-06
@@ -597,16 +605,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.34E-02, eBS: -4.48481687430276565, D:  1.515E-02, alpha:  1.1E-01}
+ iter:  1, fnrm:  2.34E-02, eBS: -4.48481687430256315, D:  1.515E-02, alpha:  1.1E-01}
          Kohn-Sham residue             :  1.381E-01
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -2.10764131477247929E-004
+       energydiff                      : -2.10764131715279746E-004
        Hamiltonian update: {
  Energies: {Ekin:  8.91135520563, Epot: -1.16748139907E+01, Enl:  6.33960989331E-01, 
               EH:  2.07837964532E+01, EXC: -4.00774060737, EvXC: -5.25237272679}, 
-    Total charge:  7.999999961894, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999961895, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -614,7 +622,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.45E-08, energy: -1.71267857234152778E+01, D: -2.108E-04}]
+ iter:  4, delta:  1.45E-08, energy: -1.7126785723415427E+01, D: -2.108E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  2.73E-06
@@ -624,16 +632,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.83E-02, eBS: -4.46966706968439098, D:  1.224E-02, alpha:  1.21E-01}
+ iter:  1, fnrm:  1.83E-02, eBS: -4.46966706968417782, D:  1.224E-02, alpha:  1.21E-01}
          Kohn-Sham residue             :  1.374E-01
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -1.42585952271900851E-004
+       energydiff                      : -1.42585952282558992E-004
        Hamiltonian update: {
  Energies: {Ekin:  8.91135520563, Epot: -1.16674240967E+01, Enl:  6.33960989331E-01, 
               EH:  2.07968713296E+01, EXC: -4.00990956929, EvXC: -5.25523809338}, 
     Total charge:  7.999999961861, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -641,7 +649,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  1.16E-08, energy: -1.71269283093675497E+01, D: -1.426E-04}]
+ iter:  5, delta:  1.16E-08, energy: -1.71269283093677096E+01, D: -1.426E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  2.73E-06
@@ -651,16 +659,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.44E-02, eBS: -4.45743118384401171, D:  9.499E-03, alpha:  1.331E-01}
+ iter:  1, fnrm:  1.44E-02, eBS: -4.45743118384378612, D:  9.499E-03, alpha:  1.331E-01}
          Kohn-Sham residue             :  1.368E-01
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -9.68333814732602605E-005
+       energydiff                      : -9.68333812885191492E-005
        Hamiltonian update: {
  Energies: {Ekin:  8.91135520563, Epot: -1.16616985955E+01, Enl:  6.33960989331E-01, 
               EH:  2.08070086093E+01, EXC: -4.01159679394, EvXC: -5.25746710944}, 
-    Total charge:  7.999999961836, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999961837, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -668,7 +676,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  9.1E-09, energy: -1.7127025142749023E+01, D: -9.683E-05}]
+ iter:  6, delta:  9.1E-09, energy: -1.71270251427489981E+01, D: -9.683E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 7
        Kernel update:
          max dev from unity            :  2.73E-06
@@ -678,16 +686,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.14E-02, eBS: -4.44793252900167069, D:  7.026E-03, alpha:  1.464E-01}
+ iter:  1, fnrm:  1.14E-02, eBS: -4.44793252900143976, D:  7.026E-03, alpha:  1.464E-01}
          Kohn-Sham residue             :  1.364E-01
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -6.69115141249676526E-005
+       energydiff                      : -6.69115140681242337E-005
        Hamiltonian update: {
  Energies: {Ekin:  8.91135520563, Epot: -1.16574666299E+01, Enl:  6.33960989331E-01, 
               EH:  2.08145045878E+01, EXC: -4.01285051431, EvXC: -5.25912347161}, 
-    Total charge:  7.99999996182, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999961821, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -695,7 +703,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  7.11E-09, energy: -1.7127092054263148E+01, D: -6.691E-05}]
+ iter:  7, delta:  7.11E-09, energy: -1.71270920542630662E+01, D: -6.691E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  2.73E-06
@@ -705,16 +713,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.08E-03, eBS: -4.44090610383508633, D:  4.889E-03, alpha:  1.611E-01}
+ iter:  1, fnrm:  9.08E-03, eBS: -4.44090610383484119, D:  4.889E-03, alpha:  1.611E-01}
          Kohn-Sham residue             :  1.361E-01
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
-       energydiff                      : -4.73628711930018653E-005
+       energydiff                      : -4.73628711610274422E-005
        Hamiltonian update: {
  Energies: {Ekin:  8.91135520563, Epot: -1.16545201839E+01, Enl:  6.33960989331E-01, 
               EH:  2.0819723796E+01, EXC: -4.01373019402, EvXC: -5.26028571922}, 
-    Total charge:  7.99999996181, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999961811, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -722,31 +730,31 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  5.67E-09, energy: -1.7127139417134341E+01, D: -4.736E-05}]
+ iter:  8, delta:  5.67E-09, energy: -1.71271394171342273E+01, D: -4.736E-05}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  5.67E-09, energy: -1.7127139417134341E+01, D: -4.736E-05}]}
+ iter:  9, delta:  5.67E-09, energy: -1.71271394171342273E+01, D: -4.736E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter low:  1, delta out:  2.467E-06, energy: -1.7127139417134341E+01, D: -1.713E+01}
+ iter low:  1, delta out:  2.467E-06, energy: -1.71271394171342273E+01, D: -1.713E+01}
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.91135520563, Epot: -1.15688011383E+01, Enl:  6.33960989331E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.3E-01, Omega: -1.674125876969858E+01, D:  2.62E-02, D best:  2.62E-02, 
+ iter:  1, fnrm:  1.3E-01, Omega: -1.67412587696986E+01, D:  2.62E-02, D best:  2.62E-02, 
  Optimization: {algorithm: SD, mean alpha:  1.129, max alpha:  1.129, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
  reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.56133056202, Epot: -1.23848332189E+01, Enl:  7.46832434919E-01}, 
+ Energies: {Ekin:  9.56133056202, Epot: -1.23848332189E+01, Enl:  7.4683243492E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  8.96E-02, Omega: -1.684762932691542E+01, D: -1.06E-01, D best: -1.06E-01, 
+ iter:  2, fnrm:  8.96E-02, Omega: -1.684762932691543E+01, D: -1.06E-01, D best: -1.06E-01, 
  Optimization: {algorithm: SD, mean alpha:  8.658E-01, max alpha:  1.242, 
     consecutive successes:  2}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -755,7 +763,7 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.66843241453, Epot: -1.24875603298E+01, Enl:  7.32547867652E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  3, fnrm:  5.82E-02, Omega: -1.686744897833143E+01, D: -1.98E-02, D best: -1.98E-02, 
+ iter:  3, fnrm:  5.82E-02, Omega: -1.686744897833142E+01, D: -1.98E-02, D best: -1.98E-02, 
  Optimization: {algorithm: SD, mean alpha:  7.924E-01, max alpha:  1.366, 
     consecutive successes:  3}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -764,12 +772,12 @@
  target function: TRACE, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.7639480939, Epot: -1.25854002187E+01, Enl:  7.30105178917E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  4, fnrm:  4.19E-02, Omega: -1.687698277481444E+01, D: -9.53E-03, D best: -9.53E-03, 
+ iter:  4, fnrm:  4.19E-02, Omega: -1.687698277481443E+01, D: -9.53E-03, D best: -9.53E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 4
  target function: TRACE, 
  Energies: {Ekin:  9.7639480939, Epot: -1.25854002187E+01, Enl:  7.30105178917E-01}, 
- iter:  4, fnrm:  4.19E-02, Omega: -1.687698277481444E+01, D: -9.53E-03, D best: -9.53E-03}
+ iter:  4, fnrm:  4.19E-02, Omega: -1.687698277481443E+01, D: -9.53E-03, D best: -9.53E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -782,14 +790,14 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.35E-02, eBS: -4.43601682631653471, D: -8.224E-02, alpha:  2.0E-01}
+ iter:  1, fnrm:  5.35E-02, eBS: -4.43601682631631888, D: -8.224E-02, alpha:  2.0E-01}
          Kohn-Sham residue             :  5.071E-02
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.7639480939, Epot: -1.26638253865E+01, Enl:  7.30105178917E-01, 
               EH:  2.08230739445E+01, EXC: -4.01430240195, EvXC: -5.26104178335}, 
     Total charge:  7.999999955123, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -797,7 +805,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.69E-06, energy: -1.72125409034718118E+01, D: -8.54E-02}]
+ iter:  1, delta:  1.69E-06, energy: -1.72125409034719006E+01, D: -8.54E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  2.03E-06
@@ -807,16 +815,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.4E-01, eBS: -4.51825202044480267, D:  1.425, alpha:  2.0E-01}
+ iter:  1, fnrm:  1.4E-01, eBS: -4.51825202044454421, D:  1.425, alpha:  2.0E-01}
          Kohn-Sham residue             :  1.148E-01
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  6.01166227751761539E-002
+       energydiff                      :  6.01166227751868121E-002
        Hamiltonian update: {
  Energies: {Ekin:  9.7639480939, Epot: -1.184690151E+01, Enl:  7.30105178917E-01, 
               EH:  2.22735489736E+01, EXC: -4.27918457813, EvXC: -5.61115579324}, 
-    Total charge:  7.999999955946, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999955947, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -824,7 +832,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.21E-07, energy: -1.71524242806966356E+01, D:  6.012E-02}]
+ iter:  2, delta:  2.21E-07, energy: -1.71524242806967138E+01, D:  6.012E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  2.03E-06
@@ -834,16 +842,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.31E-02, eBS: -3.09289220221066063, D: -2.392E-01, alpha:  1.0E-01}
+ iter:  1, fnrm:  8.31E-02, eBS: -3.09289220221057493, D: -2.392E-01, alpha:  1.0E-01}
          Kohn-Sham residue             :  9.779E-02
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -1.07461867239067033E-003
+       energydiff                      : -1.07461867244751375E-003
        Hamiltonian update: {
  Energies: {Ekin:  9.7639480939, Epot: -1.19881449343E+01, Enl:  7.30105178917E-01, 
               EH:  2.20225983907E+01, EXC: -4.23916027152, EvXC: -5.55830531212}, 
     Total charge:  7.999999956186, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -851,7 +859,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  6.3E-08, energy: -1.71534988993690263E+01, D: -1.075E-03}]
+ iter:  3, delta:  6.3E-08, energy: -1.71534988993691613E+01, D: -1.075E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  2.03E-06
@@ -861,16 +869,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.72E-02, eBS: -3.33209122931228929, D: -6.966E-02, alpha:  1.1E-01}
+ iter:  1, fnrm:  6.72E-02, eBS: -3.33209122931220225, D: -6.966E-02, alpha:  1.1E-01}
          Kohn-Sham residue             :  9.256E-02
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -1.74920918512810886E-003
+       energydiff                      : -1.74920918494336775E-003
        Hamiltonian update: {
  Energies: {Ekin:  9.7639480939, Epot: -1.20285586312E+01, Enl:  7.30105178917E-01, 
               EH:  2.19510669471E+01, EXC: -4.22784668744, EvXC: -5.54336709926}, 
-    Total charge:  7.999999956395, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999956396, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -878,7 +886,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  5.45E-08, energy: -1.71552481085541544E+01, D: -1.749E-03}]
+ iter:  4, delta:  5.45E-08, energy: -1.71552481085541046E+01, D: -1.749E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  2.03E-06
@@ -888,16 +896,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.35E-02, eBS: -3.40174725331653471, D: -5.998E-02, alpha:  1.21E-01}
+ iter:  1, fnrm:  5.35E-02, eBS: -3.40174725331646099, D: -5.998E-02, alpha:  1.21E-01}
          Kohn-Sham residue             :  8.826E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -1.2088655496604872E-003
+       energydiff                      : -1.20886555001931129E-003
        Hamiltonian update: {
  Energies: {Ekin:  9.7639480939, Epot: -1.20635823155E+01, Enl:  7.30105178917E-01, 
               EH:  2.188917199E+01, EXC: -4.21809405246, EvXC: -5.53049027305}, 
-    Total charge:  7.999999956573, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999956574, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -905,7 +913,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  4.58E-08, energy: -1.71564569741038149E+01, D: -1.209E-03}]
+ iter:  5, delta:  4.58E-08, energy: -1.7156456974104124E+01, D: -1.209E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  2.03E-06
@@ -915,16 +923,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.21E-02, eBS: -3.46172688470785772, D: -5.029E-02, alpha:  1.331E-01}
+ iter:  1, fnrm:  4.21E-02, eBS: -3.46172688470777068, D: -5.029E-02, alpha:  1.331E-01}
          Kohn-Sham residue             :  8.48E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -8.17883290903154148E-004
+       energydiff                      : -8.17883290594068058E-004
        Hamiltonian update: {
  Energies: {Ekin:  9.7639480939, Epot: -1.2093084741E+01, Enl:  7.30105178917E-01, 
               EH:  2.18370839173E+01, EXC: -4.2099200274, EvXC: -5.51969805549}, 
-    Total charge:  7.999999956721, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999956722, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -942,16 +950,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.29E-02, eBS: -3.51201464821689324, D: -4.1E-02, alpha:  1.464E-01}
+ iter:  1, fnrm:  3.29E-02, eBS: -3.51201464821682707, D: -4.1E-02, alpha:  1.464E-01}
          Kohn-Sham residue             :  8.21E-02
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -5.46079295364876316E-004
+       energydiff                      : -5.46079295503432149E-004
        Hamiltonian update: {
  Energies: {Ekin:  9.7639480939, Epot: -1.21172134745E+01, Enl:  7.30105178917E-01, 
               EH:  2.17944952511E+01, EXC: -4.20326683356, EvXC: -5.51091407072}, 
-    Total charge:  7.99999995684, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999956841, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -959,7 +967,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  2.99E-08, energy: -1.71578209366900829E+01, D: -5.461E-04}]
+ iter:  7, delta:  2.99E-08, energy: -1.71578209366902215E+01, D: -5.461E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  2.03E-06
@@ -969,16 +977,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.56E-02, eBS: -3.55301860275208448, D: -3.25E-02, alpha:  1.611E-01}
+ iter:  1, fnrm:  2.56E-02, eBS: -3.55301860275202852, D: -3.25E-02, alpha:  1.611E-01}
          Kohn-Sham residue             :  8.002E-02
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
-       energydiff                      : -3.62858743805816175E-004
+       energydiff                      : -3.62858743834237885E-004
        Hamiltonian update: {
  Energies: {Ekin:  9.7639480939, Epot: -1.21363636004E+01, Enl:  7.30105178917E-01, 
-              EH:  2.17606791071E+01, EXC: -4.19801114752, EvXC: -5.50397541173}, 
+              EH:  2.17606791071E+01, EXC: -4.19801114753, EvXC: -5.50397541173}, 
     Total charge:  7.999999956935, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -986,15 +994,15 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  2.33E-08, energy: -1.71581837954338887E+01, D: -3.629E-04}]
+ iter:  8, delta:  2.33E-08, energy: -1.71581837954340557E+01, D: -3.629E-04}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  2.33E-08, energy: -1.71581837954338887E+01, D: -3.629E-04}]}
+ iter:  9, delta:  2.33E-08, energy: -1.71581837954340557E+01, D: -3.629E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, target function: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter low:  2, delta out:  1.461E-06, energy: -1.71581837954338887E+01, D: -3.104E-02}
+ iter low:  2, delta out:  1.461E-06, energy: -1.71581837954340557E+01, D: -3.104E-02}
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
    Kernel update:
@@ -1005,7 +1013,7 @@
      -  { #-------------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.99E-02, eBS: -3.58551463261199421, D: -2.504E-02, alpha:  1.772E-01}
+ iter:  1, fnrm:  1.99E-02, eBS: -3.58551463261193515, D: -2.504E-02, alpha:  1.772E-01}
      Kohn-Sham residue                 :  7.847E-02
      Coefficients available            :  Yes
     #========================================================= support function optimization
@@ -1014,21 +1022,21 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.7639480939, Epot: -1.21511191528E+01, Enl:  7.30105178917E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.27E-01, Omega: -1.715842548885043E+01, D: -2.91E-01, D best: -2.91E-01, 
+ iter:  1, fnrm:  1.27E-01, Omega: -1.715842548885051E+01, D: -2.91E-01, D best: -2.91E-01, 
  Optimization: {algorithm: SD, mean alpha:  8.095E-01, max alpha:  8.095E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
  reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.15739179631, Epot: -1.14588966887E+01, Enl:  6.27147517057E-01}, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.14588966887E+01, Enl:  6.27147517056E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  9.39E-02, Omega: -1.719214428664027E+01, D: -3.37E-02, D best: -3.37E-02, 
+ iter:  2, fnrm:  9.39E-02, Omega: -1.719214428664031E+01, D: -3.37E-02, D best: -3.37E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
- Energies: {Ekin:  9.15739179631, Epot: -1.14588966887E+01, Enl:  6.27147517057E-01}, 
- iter:  2, fnrm:  9.39E-02, Omega: -1.719214428664027E+01, D: -3.37E-02, D best: -3.37E-02}
+ Energies: {Ekin:  9.15739179631, Epot: -1.14588966887E+01, Enl:  6.27147517056E-01}, 
+ iter:  2, fnrm:  9.39E-02, Omega: -1.719214428664031E+01, D: -3.37E-02, D best: -3.37E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1041,13 +1049,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.64E-02, eBS: -3.61055314493623403, D: -3.391E-02, alpha:  2.0E-01}
+ iter:  1, fnrm:  1.64E-02, eBS: -3.61055314493615365, D: -3.391E-02, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.7639480939, Epot: -1.21511191528E+01, Enl:  7.30105178917E-01, 
               EH:  2.17345919178E+01, EXC: -4.19398081313, EvXC: -5.49865470694}, 
     Total charge:  7.999999959343, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1055,7 +1063,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.07E-06, energy: -1.7192337922489898E+01, D: -3.415E-02}]
+ iter:  1, delta:  1.07E-06, energy: -1.71923379224899548E+01, D: -3.415E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  9.21E-07
@@ -1065,16 +1073,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.07E-01, eBS: -3.64446557857567299, D: -9.807E-01, alpha:  2.0E-01}
+ iter:  1, fnrm:  1.07E-01, eBS: -3.6444655785755895, D: -9.807E-01, alpha:  2.0E-01}
          Kohn-Sham residue             :  9.613E-02
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  2.49202019654113371E-002
+       energydiff                      :  2.49202019654859441E-002
        Hamiltonian update: {
- Energies: {Ekin:  9.15739179631, Epot: -1.20415250787E+01, Enl:  6.27147517057E-01, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.20415250787E+01, Enl:  6.27147517056E-01, 
               EH:  2.06663090575E+01, EXC: -3.99896320283, EvXC: -5.24097208848}, 
-    Total charge:  7.999999958732, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999958733, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1082,7 +1090,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.7E-07, energy: -1.71674177205244867E+01, D:  2.492E-02}]
+ iter:  2, delta:  1.7E-07, energy: -1.71674177205244689E+01, D:  2.492E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  9.21E-07
@@ -1092,16 +1100,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.74E-02, eBS: -4.62516322868114926, D:  1.659E-01, alpha:  1.0E-01}
+ iter:  1, fnrm:  5.74E-02, eBS: -4.62516322868141039, D:  1.659E-01, alpha:  1.0E-01}
          Kohn-Sham residue             :  8.525E-02
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -3.13780764166438075E-004
+       energydiff                      : -3.13780764162885362E-004
        Hamiltonian update: {
- Energies: {Ekin:  9.15739179631, Epot: -1.19417197483E+01, Enl:  6.27147517057E-01, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.19417197483E+01, Enl:  6.27147517056E-01, 
               EH:  2.08415188244E+01, EXC: -4.02709985985, EvXC: -5.27813101934}, 
-    Total charge:  7.999999958569, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.99999995857, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1109,7 +1117,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  4.44E-08, energy: -1.71677315012886531E+01, D: -3.138E-04}]
+ iter:  3, delta:  4.44E-08, energy: -1.71677315012886318E+01, D: -3.138E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  9.21E-07
@@ -1119,16 +1127,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.5E-02, eBS: -4.45928951636950721, D:  4.243E-02, alpha:  1.1E-01}
+ iter:  1, fnrm:  4.5E-02, eBS: -4.45928951636973281, D:  4.243E-02, alpha:  1.1E-01}
          Kohn-Sham residue             :  8.237E-02
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -7.67372439675284568E-004
+       energydiff                      : -7.67372439657520999E-004
        Hamiltonian update: {
- Energies: {Ekin:  9.15739179631, Epot: -1.1915989381E+01, Enl:  6.27147517057E-01, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.1915989381E+01, Enl:  6.27147517056E-01, 
               EH:  2.08870554058E+01, EXC: -4.03440970187, EvXC: -5.28778480617}, 
-    Total charge:  7.99999995843, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999958431, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1136,7 +1144,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  3.76E-08, energy: -1.71684988737283284E+01, D: -7.674E-04}]
+ iter:  4, delta:  3.76E-08, energy: -1.71684988737282893E+01, D: -7.674E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  9.21E-07
@@ -1146,16 +1154,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.45E-02, eBS: -4.41686425224484402, D:  3.601E-02, alpha:  1.21E-01}
+ iter:  1, fnrm:  3.45E-02, eBS: -4.41686425224508472, D:  3.601E-02, alpha:  1.21E-01}
          Kohn-Sham residue             :  8.01E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -4.909271038329166E-004
+       energydiff                      : -4.90927103815153032E-004
        Hamiltonian update: {
- Energies: {Ekin:  9.15739179631, Epot: -1.18943116036E+01, Enl:  6.27147517057E-01, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.18943116036E+01, Enl:  6.27147517056E-01, 
               EH:  2.09255354188E+01, EXC: -4.04058594783, EvXC: -5.29594148563}, 
-    Total charge:  7.999999958314, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999958315, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1163,7 +1171,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  3.11E-08, energy: -1.71689898008321613E+01, D: -4.909E-04}]
+ iter:  5, delta:  3.11E-08, energy: -1.71689898008321045E+01, D: -4.909E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  9.21E-07
@@ -1173,16 +1181,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.6E-02, eBS: -4.38085559981681261, D:  2.981E-02, alpha:  1.331E-01}
+ iter:  1, fnrm:  2.6E-02, eBS: -4.38085559981701866, D:  2.981E-02, alpha:  1.331E-01}
          Kohn-Sham residue             :  7.836E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -3.02230905361966506E-004
+       energydiff                      : -3.02230905322886656E-004
        Hamiltonian update: {
- Energies: {Ekin:  9.15739179631, Epot: -1.18764764598E+01, Enl:  6.27147517057E-01, 
-              EH:  2.09572786484E+01, EXC: -4.04567833536, EvXC: -5.30266670339}, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.18764764598E+01, Enl:  6.27147517056E-01, 
+              EH:  2.09572786484E+01, EXC: -4.04567833537, EvXC: -5.30266670339}, 
     Total charge:  7.99999995822, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1190,7 +1198,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  2.51E-08, energy: -1.71692920317375233E+01, D: -3.022E-04}]
+ iter:  6, delta:  2.51E-08, energy: -1.71692920317374274E+01, D: -3.022E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 7
        Kernel update:
          max dev from unity            :  9.21E-07
@@ -1200,16 +1208,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.92E-02, eBS: -4.35104743141706596, D:  2.401E-02, alpha:  1.464E-01}
+ iter:  1, fnrm:  1.92E-02, eBS: -4.35104743141727468, D:  2.401E-02, alpha:  1.464E-01}
          Kohn-Sham residue             :  7.704E-02
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -1.79202905652431355E-004
+       energydiff                      : -1.79202905627562359E-004
        Hamiltonian update: {
- Energies: {Ekin:  9.15739179631, Epot: -1.18621807056E+01, Enl:  6.27147517057E-01, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.18621807056E+01, Enl:  6.27147517056E-01, 
               EH:  2.09827822687E+01, EXC: -4.04976590869, EvXC: -5.30806483176}, 
-    Total charge:  7.999999958145, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999958146, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1217,7 +1225,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  1.97E-08, energy: -1.71694712346431757E+01, D: -1.792E-04}]
+ iter:  7, delta:  1.97E-08, energy: -1.71694712346430549E+01, D: -1.792E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  9.21E-07
@@ -1227,16 +1235,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.4E-02, eBS: -4.32703356904861103, D:  1.879E-02, alpha:  1.611E-01}
+ iter:  1, fnrm:  1.4E-02, eBS: -4.32703356904881531, D:  1.879E-02, alpha:  1.611E-01}
          Kohn-Sham residue             :  7.606E-02
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
-       energydiff                      : -1.02526192176100039E-004
+       energydiff                      : -1.0252619238926286E-004
        Hamiltonian update: {
- Energies: {Ekin:  9.15739179631, Epot: -1.18510439396E+01, Enl:  6.27147517057E-01, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.18510439396E+01, Enl:  6.27147517056E-01, 
               EH:  2.10026919007E+01, EXC: -4.05295230805, EvXC: -5.31227274571}, 
-    Total charge:  7.999999958088, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999958089, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1244,22 +1252,22 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  1.5E-08, energy: -1.71695737608353518E+01, D: -1.025E-04}]
+ iter:  8, delta:  1.5E-08, energy: -1.71695737608354442E+01, D: -1.025E-04}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  1.5E-08, energy: -1.71695737608353518E+01, D: -1.025E-04}]}
+ iter:  9, delta:  1.5E-08, energy: -1.71695737608354442E+01, D: -1.025E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  3, delta out:  8.859E-07, energy: -1.71695737608353518E+01, D: -1.139E-02}
+ iter high:  3, delta out:  8.859E-07, energy: -1.71695737608354442E+01, D: -1.139E-02}
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.15739179631, Epot: -1.1842631134E+01, Enl:  6.27147517057E-01}, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.1842631134E+01, Enl:  6.27147517056E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.21E-01, Omega: -1.716956645298641E+01, D: -1.11E-02, D best: -1.11E-02, 
+ iter:  1, fnrm:  1.21E-01, Omega: -1.716956645298639E+01, D: -1.11E-02, D best: -1.11E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.857E-01, max alpha:  4.857E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1268,12 +1276,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41126083924, Epot: -1.21788765304E+01, Enl:  7.01137023308E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  5.32E-02, Omega: -1.718638678683192E+01, D: -1.68E-02, D best: -1.68E-02, 
+ iter:  2, fnrm:  5.32E-02, Omega: -1.718638678683191E+01, D: -1.68E-02, D best: -1.68E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.41126083924, Epot: -1.21788765304E+01, Enl:  7.01137023308E-01}, 
- iter:  2, fnrm:  5.32E-02, Omega: -1.718638678683192E+01, D: -1.68E-02, D best: -1.68E-02}
+ iter:  2, fnrm:  5.32E-02, Omega: -1.718638678683191E+01, D: -1.68E-02, D best: -1.68E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1286,13 +1294,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.15E-02, eBS: -4.30824797779228241, D: -2.609E-03, alpha:  2.0E-01}
+ iter:  1, fnrm:  1.15E-02, eBS: -4.30824797779249202, D: -2.609E-03, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
- Energies: {Ekin:  9.15739179631, Epot: -1.18510439396E+01, Enl:  6.27147517057E-01, 
+ Energies: {Ekin:  9.15739179631, Epot: -1.18510439396E+01, Enl:  6.27147517056E-01, 
               EH:  2.10177603356E+01, EXC: -4.05535898778, EvXC: -5.31545086122}, 
-    Total charge:  7.999999957197, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957198, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1300,7 +1308,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  4.85E-07, energy: -1.71864795242723751E+01, D: -1.691E-02}]
+ iter:  1, delta:  4.85E-07, energy: -1.71864795242723716E+01, D: -1.691E-02}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.44E-07
@@ -1310,16 +1318,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.41E-02, eBS: -4.31085674212316761, D:  4.821E-01, alpha:  2.0E-01}
+ iter:  1, fnrm:  4.41E-02, eBS: -4.31085674212339409, D:  4.821E-01, alpha:  2.0E-01}
          Kohn-Sham residue             :  3.334E-02
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  5.37604502224553471E-003
+       energydiff                      :  5.37604502221000757E-003
        Hamiltonian update: {
  Energies: {Ekin:  9.41126083924, Epot: -1.18914928727E+01, Enl:  7.01137023308E-01, 
-              EH:  2.15242277539E+01, EXC: -4.14801249269, EvXC: -5.43786477511}, 
-    Total charge:  7.999999957449, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+              EH:  2.15242277539E+01, EXC: -4.14801249269, EvXC: -5.43786477512}, 
+    Total charge:  7.99999995745, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1327,7 +1335,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  7.06E-08, energy: -1.71811034792501296E+01, D:  5.376E-03}]
+ iter:  2, delta:  7.06E-08, energy: -1.71811034792501616E+01, D:  5.376E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  1.44E-07
@@ -1337,16 +1345,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.39E-02, eBS: -3.82877368776277915, D: -7.161E-02, alpha:  1.0E-01}
+ iter:  1, fnrm:  2.39E-02, eBS: -3.82877368776247851, D: -7.161E-02, alpha:  1.0E-01}
          Kohn-Sham residue             :  2.986E-02
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -5.93953844614247828E-005
+       energydiff                      : -5.93953845324790564E-005
        Hamiltonian update: {
  Energies: {Ekin:  9.41126083924, Epot: -1.1934081574E+01, Enl:  7.01137023308E-01, 
               EH:  2.14487837573E+01, EXC: -4.13587537936, EvXC: -5.42183574009}, 
-    Total charge:  7.999999957518, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957519, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1354,7 +1362,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.9E-08, energy: -1.7181162874634591E+01, D: -5.94E-05}]
+ iter:  3, delta:  1.9E-08, energy: -1.7181162874634694E+01, D: -5.94E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  1.44E-07
@@ -1364,16 +1372,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.86E-02, eBS: -3.90038515808939668, D: -1.948E-02, alpha:  1.1E-01}
+ iter:  1, fnrm:  1.86E-02, eBS: -3.90038515808916486, D: -1.948E-02, alpha:  1.1E-01}
          Kohn-Sham residue             :  2.895E-02
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -1.31151473066637436E-004
+       energydiff                      : -1.31151472906765321E-004
        Hamiltonian update: {
  Energies: {Ekin:  9.41126083924, Epot: -1.19456057548E+01, Enl:  7.01137023308E-01, 
               EH:  2.14283846232E+01, EXC: -4.13260563824, EvXC: -5.41751772424}, 
-    Total charge:  7.999999957577, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957578, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1381,7 +1389,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.61E-08, energy: -1.71812940261076577E+01, D: -1.312E-04}]
+ iter:  4, delta:  1.61E-08, energy: -1.71812940261076008E+01, D: -1.312E-04}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  1.44E-07
@@ -1391,16 +1399,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.42E-02, eBS: -3.91986716897981502, D: -1.655E-02, alpha:  1.21E-01}
+ iter:  1, fnrm:  1.42E-02, eBS: -3.91986716897960275, D: -1.655E-02, alpha:  1.21E-01}
          Kohn-Sham residue             :  2.83E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -8.23343852118796349E-005
+       energydiff                      : -8.23343852296432033E-005
        Hamiltonian update: {
  Energies: {Ekin:  9.41126083924, Epot: -1.19554126369E+01, Enl:  7.01137023308E-01, 
               EH:  2.14110288921E+01, EXC: -4.12982822928, EvXC: -5.41384995487}, 
     Total charge:  7.999999957627, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1408,7 +1416,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  1.33E-08, energy: -1.71813763604928695E+01, D: -8.233E-05}]
+ iter:  5, delta:  1.33E-08, energy: -1.71813763604928305E+01, D: -8.233E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  1.44E-07
@@ -1418,16 +1426,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.06E-02, eBS: -3.93641487400562129, D: -1.367E-02, alpha:  1.331E-01}
+ iter:  1, fnrm:  1.06E-02, eBS: -3.93641487400544055, D: -1.367E-02, alpha:  1.331E-01}
          Kohn-Sham residue             :  2.785E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -4.94986325314528131E-005
+       energydiff                      : -4.94986325385582404E-005
        Hamiltonian update: {
  Energies: {Ekin:  9.41126083924, Epot: -1.19635231172E+01, Enl:  7.01137023308E-01, 
               EH:  2.13966738893E+01, EXC: -4.12753529446, EvXC: -5.41082203487}, 
     Total charge:  7.999999957667, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1435,7 +1443,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  1.07E-08, energy: -1.7181425859125401E+01, D: -4.95E-05}]
+ iter:  6, delta:  1.07E-08, energy: -1.7181425859125369E+01, D: -4.95E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 7
        Kernel update:
          max dev from unity            :  1.44E-07
@@ -1445,16 +1453,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.74E-03, eBS: -3.95008439026259417, D: -1.096E-02, alpha:  1.464E-01}
+ iter:  1, fnrm:  7.74E-03, eBS: -3.95008439026241076, D: -1.096E-02, alpha:  1.464E-01}
          Kohn-Sham residue             :  2.754E-02
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -2.86360463803703169E-005
+       energydiff                      : -2.86360462986579023E-005
        Hamiltonian update: {
  Energies: {Ekin:  9.41126083924, Epot: -1.19700260843E+01, Enl:  7.01137023308E-01, 
               EH:  2.13851589717E+01, EXC: -4.12570003931, EvXC: -5.40839856106}, 
-    Total charge:  7.999999957698, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957699, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1462,7 +1470,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  8.32E-09, energy: -1.71814544951717814E+01, D: -2.864E-05}]
+ iter:  7, delta:  8.32E-09, energy: -1.71814544951716677E+01, D: -2.864E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  1.44E-07
@@ -1472,16 +1480,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.57E-03, eBS: -3.96103972524773607, D: -8.499E-03, alpha:  1.611E-01}
+ iter:  1, fnrm:  5.57E-03, eBS: -3.96103972524757575, D: -8.499E-03, alpha:  1.611E-01}
          Kohn-Sham residue             :  2.734E-02
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
-       energydiff                      : -1.60784161984395269E-005
+       energydiff                      : -1.60784161771232448E-005
        Hamiltonian update: {
  Energies: {Ekin:  9.41126083924, Epot: -1.19750696193E+01, Enl:  7.01137023308E-01, 
               EH:  2.13762209896E+01, EXC: -4.12427927404, EvXC: -5.40652248061}, 
-    Total charge:  7.999999957722, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957723, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1489,22 +1497,22 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  6.25E-09, energy: -1.71814705735879798E+01, D: -1.608E-05}]
+ iter:  8, delta:  6.25E-09, energy: -1.71814705735878448E+01, D: -1.608E-05}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  6.25E-09, energy: -1.71814705735879798E+01, D: -1.608E-05}]}
+ iter:  9, delta:  6.25E-09, energy: -1.71814705735878448E+01, D: -1.608E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  4, delta out:  4.018E-07, energy: -1.71814705735879798E+01, D: -1.19E-02}
+ iter high:  4, delta out:  4.018E-07, energy: -1.71814705735878448E+01, D: -1.19E-02}
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.41126083924, Epot: -1.19788460742E+01, Enl:  7.01137023308E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  4.28E-02, Omega: -1.718146926974898E+01, D: -1.19E-02, D best: -1.19E-02, 
+ iter:  1, fnrm:  4.28E-02, Omega: -1.718146926974904E+01, D: -1.19E-02, D best: -1.19E-02, 
  Optimization: {algorithm: SD, mean alpha:  2.914E-01, max alpha:  2.914E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1513,12 +1521,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38563402049, Epot: -1.19423119737E+01, Enl:  6.89717678741E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  1.58E-02, Omega: -1.718253798098798E+01, D: -1.07E-03, D best: -1.07E-03, 
+ iter:  2, fnrm:  1.58E-02, Omega: -1.718253798098802E+01, D: -1.07E-03, D best: -1.07E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38563402049, Epot: -1.19423119737E+01, Enl:  6.89717678741E-01}, 
- iter:  2, fnrm:  1.58E-02, Omega: -1.718253798098798E+01, D: -1.07E-03, D best: -1.07E-03}
+ iter:  2, fnrm:  1.58E-02, Omega: -1.718253798098802E+01, D: -1.07E-03, D best: -1.07E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -1531,13 +1539,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.59E-03, eBS: -3.96953847060373821, D: -7.437E-03, alpha:  2.0E-01}
+ iter:  1, fnrm:  3.59E-03, eBS: -3.96953847060357701, D: -7.437E-03, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.41126083924, Epot: -1.19750696193E+01, Enl:  7.01137023308E-01, 
               EH:  2.13695202489E+01, EXC: -4.12321763268, EvXC: -5.40512066319}, 
-    Total charge:  7.999999957951, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957952, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1545,7 +1553,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  5.27E-08, energy: -1.71825472756412836E+01, D: -1.077E-03}]
+ iter:  1, delta:  5.27E-08, energy: -1.71825472756413333E+01, D: -1.077E-03}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  2.54E-08
@@ -1555,16 +1563,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.08E-03, eBS: -3.97697573732867315, D: -5.569E-02, alpha:  2.0E-01}
+ iter:  1, fnrm:  4.08E-03, eBS: -3.97697573732850396, D: -5.569E-02, alpha:  2.0E-01}
          Kohn-Sham residue             :  1.112E-02
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  6.88774300989791755E-005
+       energydiff                      :  6.88774300385830429E-005
        Hamiltonian update: {
  Energies: {Ekin:  9.38563402049, Epot: -1.19758317987E+01, Enl:  6.89717678741E-01, 
               EH:  2.13103568053E+01, EXC: -4.11260802059, EvXC: -5.39110704859}, 
     Total charge:  7.999999957931, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1572,7 +1580,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  6.21E-09, energy: -1.71824783982111846E+01, D:  6.888E-05}]
+ iter:  2, delta:  6.21E-09, energy: -1.71824783982112947E+01, D:  6.888E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  2.54E-08
@@ -1582,16 +1590,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.08E-03, eBS: -4.03266630098884793, D:  6.111E-03, alpha:  1.0E-01}
+ iter:  1, fnrm:  2.08E-03, eBS: -4.03266630098900869, D:  6.111E-03, alpha:  1.0E-01}
          Kohn-Sham residue             :  1.111E-02
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -4.49940980473684249E-007
+       energydiff                      : -4.49940728231013054E-007
        Hamiltonian update: {
  Energies: {Ekin:  9.38563402049, Epot: -1.19721550611E+01, Enl:  6.89717678741E-01, 
               EH:  2.13168035029E+01, EXC: -4.11365226262, EvXC: -5.39248623964}, 
     Total charge:  7.999999957926, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1599,7 +1607,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.55E-09, energy: -1.71824788481521651E+01, D: -4.499E-07}]
+ iter:  3, delta:  1.55E-09, energy: -1.7182478848152023E+01, D: -4.499E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  2.54E-08
@@ -1609,16 +1617,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.59E-03, eBS: -4.02655500225508511, D:  1.517E-03, alpha:  1.1E-01}
+ iter:  1, fnrm:  1.59E-03, eBS: -4.02655500225521035, D:  1.517E-03, alpha:  1.1E-01}
          Kohn-Sham residue             :  1.111E-02
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -9.44544197523100593E-007
+       energydiff                      : -9.44544296999083599E-007
        Hamiltonian update: {
  Energies: {Ekin:  9.38563402049, Epot: -1.19712421832E+01, Enl:  6.89717678741E-01, 
               EH:  2.13184047156E+01, EXC: -4.11391194108, EvXC: -5.39282921531}, 
     Total charge:  7.999999957922, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1626,7 +1634,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.28E-09, energy: -1.71824797926963626E+01, D: -9.445E-07}]
+ iter:  4, delta:  1.28E-09, energy: -1.718247979269632E+01, D: -9.445E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  2.54E-08
@@ -1636,16 +1644,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.19E-03, eBS: -4.02503803141145866, D:  1.248E-03, alpha:  1.21E-01}
+ iter:  1, fnrm:  1.19E-03, eBS: -4.02503803141155903, D:  1.248E-03, alpha:  1.21E-01}
          Kohn-Sham residue             :  1.111E-02
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -5.70703928559623819E-007
+       energydiff                      : -5.70703782898362988E-007
        Hamiltonian update: {
  Energies: {Ekin:  9.38563402049, Epot: -1.19704915969E+01, Enl:  6.89717678741E-01, 
               EH:  2.13197213986E+01, EXC: -4.1141256349, EvXC: -5.39311145753}, 
     Total charge:  7.999999957919, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1653,7 +1661,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  1.03E-09, energy: -1.71824803634002912E+01, D: -5.707E-07}]
+ iter:  5, delta:  1.03E-09, energy: -1.71824803634001029E+01, D: -5.707E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  2.54E-08
@@ -1663,16 +1671,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.7E-04, eBS: -4.02379046746207081, D:  9.904E-04, alpha:  1.331E-01}
+ iter:  1, fnrm:  8.7E-04, eBS: -4.02379046746215963, D:  9.904E-04, alpha:  1.331E-01}
          Kohn-Sham residue             :  1.111E-02
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -3.33918602990479485E-007
+       energydiff                      : -3.33918798389731819E-007
        Hamiltonian update: {
  Energies: {Ekin:  9.38563402049, Epot: -1.19698958182E+01, Enl:  6.89717678741E-01, 
               EH:  2.13207665822E+01, EXC: -4.11429544761, EvXC: -5.39333574444}, 
     Total charge:  7.999999957916, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1680,7 +1688,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  7.96E-10, energy: -1.71824806973188942E+01, D: -3.339E-07}]
+ iter:  6, delta:  7.96E-10, energy: -1.71824806973189013E+01, D: -3.339E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 7
        Kernel update:
          max dev from unity            :  2.54E-08
@@ -1690,16 +1698,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.32E-04, eBS: -4.0228000919920337, D:  7.545E-04, alpha:  1.464E-01}
+ iter:  1, fnrm:  6.32E-04, eBS: -4.02280009199214028, D:  7.545E-04, alpha:  1.464E-01}
          Kohn-Sham residue             :  1.111E-02
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -1.936260964896519E-007
+       energydiff                      : -1.93626203071062264E-007
        Hamiltonian update: {
  Energies: {Ekin:  9.38563402049, Epot: -1.19694419346E+01, Enl:  6.89717678741E-01, 
               EH:  2.1321562837E+01, EXC: -4.11442502499, EvXC: -5.39350689111}, 
-    Total charge:  7.999999957914, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957915, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1707,7 +1715,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  5.98E-10, energy: -1.71824808909449906E+01, D: -1.936E-07}]
+ iter:  7, delta:  5.98E-10, energy: -1.71824808909451043E+01, D: -1.936E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  2.54E-08
@@ -1717,16 +1725,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.63E-04, eBS: -4.02204560012293832, D:  5.474E-04, alpha:  1.611E-01}
+ iter:  1, fnrm:  4.63E-04, eBS: -4.0220456001230307, D:  5.474E-04, alpha:  1.611E-01}
          Kohn-Sham residue             :  1.112E-02
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
-       energydiff                      : -1.15302054126686926E-007
+       energydiff                      : -1.15301794778588373E-007
        Hamiltonian update: {
  Energies: {Ekin:  9.38563402049, Epot: -1.19691125725E+01, Enl:  6.89717678741E-01, 
               EH:  2.13221405799E+01, EXC: -4.11451928047, EvXC: -5.39363138688}, 
     Total charge:  7.999999957913, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1734,22 +1742,22 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  4.39E-10, energy: -1.71824810062470448E+01, D: -1.153E-07}]
+ iter:  8, delta:  4.39E-10, energy: -1.71824810062468991E+01, D: -1.153E-07}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  4.39E-10, energy: -1.71824810062470448E+01, D: -1.153E-07}]}
+ iter:  9, delta:  4.39E-10, energy: -1.71824810062468991E+01, D: -1.153E-07}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  5, delta out:  4.416E-08, energy: -1.71824810062470448E+01, D: -1.01E-03}
+ iter high:  5, delta out:  4.416E-08, energy: -1.71824810062468991E+01, D: -1.01E-03}
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38563402049, Epot: -1.19688873319E+01, Enl:  6.89717678741E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.44E-02, Omega: -1.718248100193403E+01, D: -1.01E-03, D best: -1.01E-03, 
+ iter:  1, fnrm:  1.44E-02, Omega: -1.718248100193389E+01, D: -1.01E-03, D best: -1.01E-03, 
  Optimization: {algorithm: SD, mean alpha:  3.206E-01, max alpha:  3.206E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -1758,12 +1766,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38162440378, Epot: -1.19616166964E+01, Enl:  6.86467191888E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  6.14E-03, Omega: -1.718253962349742E+01, D: -5.86E-05, D best: -5.86E-05, 
+ iter:  2, fnrm:  6.14E-03, Omega: -1.718253962349731E+01, D: -5.86E-05, D best: -5.86E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun006  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38162440378, Epot: -1.19616166964E+01, Enl:  6.86467191888E-01}, 
- iter:  2, fnrm:  6.14E-03, Omega: -1.718253962349742E+01, D: -5.86E-05, D best: -5.86E-05}
+ iter:  2, fnrm:  6.14E-03, Omega: -1.718253962349731E+01, D: -5.86E-05, D best: -5.86E-05}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
@@ -1776,13 +1784,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.68E-04, eBS: -4.02149821282812248, D:  3.155E-04, alpha:  2.0E-01}
+ iter:  1, fnrm:  2.68E-04, eBS: -4.02149821282820064, D:  3.155E-04, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.38563402049, Epot: -1.19691125725E+01, Enl:  6.89717678741E-01, 
               EH:  2.13225355578E+01, EXC: -4.1145839877, EvXC: -5.39371685719}, 
     Total charge:  7.99999995796, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1790,7 +1798,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  8.93E-09, energy: -1.71825396756903785E+01, D: -5.867E-05}]
+ iter:  1, delta:  8.93E-09, energy: -1.7182539675690272E+01, D: -5.867E-05}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.82E-08
@@ -1800,16 +1808,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.11E-03, eBS: -4.0211826673819866, D: -1.007E-02, alpha:  2.0E-01}
+ iter:  1, fnrm:  1.11E-03, eBS: -4.02118266738210828, D: -1.007E-02, alpha:  2.0E-01}
          Kohn-Sham residue             :  7.46E-03
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  1.4782920949585332E-006
+       energydiff                      :  1.47829212338024263E-006
        Hamiltonian update: {
  Energies: {Ekin:  9.38162440378, Epot: -1.19677234722E+01, Enl:  6.86467191888E-01, 
               EH:  2.13118689895E+01, EXC: -4.1127139854, EvXC: -5.39124844067}, 
     Total charge:  7.999999957954, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1817,7 +1825,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.77E-09, energy: -1.71825381973982836E+01, D:  1.478E-06}]
+ iter:  2, delta:  1.77E-09, energy: -1.71825381973981486E+01, D:  1.478E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  1.82E-08
@@ -1827,16 +1835,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.95E-04, eBS: -4.03124934317665051, D:  1.768E-03, alpha:  1.0E-01}
+ iter:  1, fnrm:  5.95E-04, eBS: -4.0312493431765084, D:  1.768E-03, alpha:  1.0E-01}
          Kohn-Sham residue             :  7.453E-03
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -3.65020973447371944E-008
+       energydiff                      : -3.65022501114253828E-008
        Hamiltonian update: {
  Energies: {Ekin:  9.38162440378, Epot: -1.19666652509E+01, Enl:  6.86467191888E-01, 
               EH:  2.13137331862E+01, EXC: -4.11301405027, EvXC: -5.39164472666}, 
-    Total charge:  7.999999957952, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957953, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1844,7 +1852,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  4.65E-10, energy: -1.71825382339003809E+01, D: -3.65E-08}]
+ iter:  3, delta:  4.65E-10, energy: -1.71825382339003987E+01, D: -3.65E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  1.82E-08
@@ -1854,16 +1862,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.63E-04, eBS: -4.02948140413538436, D:  4.62E-04, alpha:  1.1E-01}
+ iter:  1, fnrm:  4.63E-04, eBS: -4.02948140413528222, D:  4.62E-04, alpha:  1.1E-01}
          Kohn-Sham residue             :  7.452E-03
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -8.12267835215152445E-008
+       energydiff                      : -8.12266769401048805E-008
        Hamiltonian update: {
  Energies: {Ekin:  9.38162440378, Epot: -1.19663890731E+01, Enl:  6.86467191888E-01, 
               EH:  2.13142203953E+01, EXC: -4.11309236589, EvXC: -5.3917481534}, 
     Total charge:  7.999999957951, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1871,7 +1879,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  3.94E-10, energy: -1.71825383151271645E+01, D: -8.123E-08}]
+ iter:  4, delta:  3.94E-10, energy: -1.71825383151270756E+01, D: -8.123E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  1.82E-08
@@ -1881,16 +1889,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.54E-04, eBS: -4.02901938740421706, D:  3.887E-04, alpha:  1.21E-01}
+ iter:  1, fnrm:  3.54E-04, eBS: -4.02901938740413001, D:  3.887E-04, alpha:  1.21E-01}
          Kohn-Sham residue             :  7.451E-03
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -5.129698976702457E-008
+       energydiff                      : -5.12971922717042617E-008
        Hamiltonian update: {
  Energies: {Ekin:  9.38162440378, Epot: -1.19661568721E+01, Enl:  6.86467191888E-01, 
               EH:  2.13146302589E+01, EXC: -4.11315821578, EvXC: -5.39183511667}, 
     Total charge:  7.99999995795, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1898,7 +1906,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  3.25E-10, energy: -1.71825383664241542E+01, D: -5.13E-08}]
+ iter:  5, delta:  3.25E-10, energy: -1.71825383664242679E+01, D: -5.13E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 6
        Kernel update:
          max dev from unity            :  1.82E-08
@@ -1908,16 +1916,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.65E-04, eBS: -4.02863068841746053, D:  3.176E-04, alpha:  1.331E-01}
+ iter:  1, fnrm:  2.65E-04, eBS: -4.02863068841736105, D:  3.176E-04, alpha:  1.331E-01}
          Kohn-Sham residue             :  7.45E-03
          Coefficients available        :  Yes
        alpha                           :  0.14641000000000004
-       energydiff                      : -3.12559578219406831E-008
+       energydiff                      : -3.12557872916841006E-008
        Hamiltonian update: {
  Energies: {Ekin:  9.38162440378, Epot: -1.19659672894E+01, Enl:  6.86467191888E-01, 
               EH:  2.13149651227E+01, EXC: -4.1132119854, EvXC: -5.3919061257}, 
     Total charge:  7.999999957949, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1925,7 +1933,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  2.62E-10, energy: -1.7182538397680112E+01, D: -3.126E-08}]
+ iter:  6, delta:  2.62E-10, energy: -1.71825383976800552E+01, D: -3.126E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 7
        Kernel update:
          max dev from unity            :  1.82E-08
@@ -1935,16 +1943,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.96E-04, eBS: -4.02831309536081328, D:  2.512E-04, alpha:  1.464E-01}
+ iter:  1, fnrm:  1.96E-04, eBS: -4.02831309536071736, D:  2.512E-04, alpha:  1.464E-01}
          Kohn-Sham residue             :  7.45E-03
          Coefficients available        :  Yes
        alpha                           :  0.16105100000000006
-       energydiff                      : -1.85230355498333665E-008
+       energydiff                      : -1.8523223843658343E-008
        Hamiltonian update: {
  Energies: {Ekin:  9.38162440378, Epot: -1.19658174857E+01, Enl:  6.86467191888E-01, 
               EH:  2.13152299377E+01, EXC: -4.1132544803, EvXC: -5.39196224452}, 
-    Total charge:  7.999999957948, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957949, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1952,7 +1960,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  2.05E-10, energy: -1.71825384162031476E+01, D: -1.852E-08}]
+ iter:  7, delta:  2.05E-10, energy: -1.7182538416203279E+01, D: -1.852E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 8
        Kernel update:
          max dev from unity            :  1.82E-08
@@ -1962,16 +1970,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.43E-04, eBS: -4.02806192277706732, D:  1.916E-04, alpha:  1.611E-01}
+ iter:  1, fnrm:  1.43E-04, eBS: -4.02806192277697761, D:  1.916E-04, alpha:  1.611E-01}
          Kohn-Sham residue             :  7.45E-03
          Coefficients available        :  Yes
        alpha                           :  0.17715610000000007
-       energydiff                      : -1.08128865861090162E-008
+       energydiff                      : -1.08128475062585494E-008
        Hamiltonian update: {
  Energies: {Ekin:  9.38162440378, Epot: -1.19657033583E+01, Enl:  6.86467191888E-01, 
               EH:  2.13154318817E+01, EXC: -4.11328686431, EvXC: -5.3920050103}, 
     Total charge:  7.999999957948, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -1979,22 +1987,22 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  1.58E-10, energy: -1.71825384270160342E+01, D: -1.081E-08}]
+ iter:  8, delta:  1.58E-10, energy: -1.71825384270161265E+01, D: -1.081E-08}]
    -  &final_kernel006  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  1.58E-10, energy: -1.71825384270160342E+01, D: -1.081E-08}]}
+ iter:  9, delta:  1.58E-10, energy: -1.71825384270161265E+01, D: -1.081E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc006
    -  {iter:  6, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  6, delta out:  6.644E-09, energy: -1.71825384270160342E+01, D: -5.742E-05}
+ iter high:  6, delta out:  6.644E-09, energy: -1.71825384270161265E+01, D: -5.742E-05}
     #========================================================= support function optimization
  - support function optimization: &it_supfun007
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38162440378, Epot: -1.19656198841E+01, Enl:  6.86467191888E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  6.12E-03, Omega: -1.718253842636535E+01, D: -5.74E-05, D best: -5.74E-05, 
+ iter:  1, fnrm:  6.12E-03, Omega: -1.71825384263653E+01, D: -5.74E-05, D best: -5.74E-05, 
  Optimization: {algorithm: SD, mean alpha:  3.526E-01, max alpha:  3.526E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2003,12 +2011,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.3810837843, Epot: -1.19642707488E+01, Enl:  6.85684892057E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  3.38E-03, Omega: -1.718254807467778E+01, D: -9.65E-06, D best: -9.65E-06, 
+ iter:  2, fnrm:  3.38E-03, Omega: -1.718254807467774E+01, D: -9.65E-06, D best: -9.65E-06, 
  exit criterion: net number of iterations}
    -  &final_supfun007  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.3810837843, Epot: -1.19642707488E+01, Enl:  6.85684892057E-01}, 
- iter:  2, fnrm:  3.38E-03, Omega: -1.718254807467778E+01, D: -9.65E-06, D best: -9.65E-06}
+ iter:  2, fnrm:  3.38E-03, Omega: -1.718254807467774E+01, D: -9.65E-06, D best: -9.65E-06}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel007
@@ -2021,13 +2029,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.65E-05, eBS: -4.02787037131603931, D:  1.306E-04, alpha:  2.0E-01}
+ iter:  1, fnrm:  9.65E-05, eBS: -4.02787037131594072, D:  1.306E-04, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.38162440378, Epot: -1.19657033583E+01, Enl:  6.86467191888E-01, 
               EH:  2.13155797587E+01, EXC: -4.11331056203, EvXC: -5.39203630465}, 
     Total charge:  7.999999957953, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2035,7 +2043,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.37E-09, energy: -1.71825480813657663E+01, D: -9.654E-06}]
+ iter:  1, delta:  2.37E-09, energy: -1.71825480813657023E+01, D: -9.654E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  6.23E-09
@@ -2045,16 +2053,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.9E-04, eBS: -4.02773974532264933, D: -2.611E-03, alpha:  2.0E-01}
+ iter:  1, fnrm:  2.9E-04, eBS: -4.02773974532254719, D: -2.611E-03, alpha:  2.0E-01}
          Kohn-Sham residue             :  6.507E-03
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  6.68566890738020447E-008
+       energydiff                      :  6.68566926265157235E-008
        Hamiltonian update: {
  Energies: {Ekin:  9.3810837843, Epot: -1.19658851983E+01, Enl:  6.85684892057E-01, 
               EH:  2.13128267999E+01, EXC: -4.11286434196, EvXC: -5.39144845047}, 
-    Total charge:  7.999999957951, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957952, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2062,7 +2070,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  4.59E-10, energy: -1.71825480145090772E+01, D:  6.686E-08}]
+ iter:  2, delta:  4.59E-10, energy: -1.71825480145090097E+01, D:  6.686E-08}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  6.23E-09
@@ -2072,16 +2080,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.6E-04, eBS: -4.03035100314731576, D:  4.593E-04, alpha:  1.0E-01}
+ iter:  1, fnrm:  1.6E-04, eBS: -4.03035100314735395, D:  4.593E-04, alpha:  1.0E-01}
          Kohn-Sham residue             :  6.506E-03
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -3.04872216361218307E-009
+       energydiff                      : -3.04864400391124946E-009
        Hamiltonian update: {
  Energies: {Ekin:  9.3810837843, Epot: -1.19656104529E+01, Enl:  6.85684892057E-01, 
-              EH:  2.13133110714E+01, EXC: -4.1129421502, EvXC: -5.3915512075}, 
+              EH:  2.13133110714E+01, EXC: -4.1129421502, EvXC: -5.39155120751}, 
     Total charge:  7.999999957951, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2089,7 +2097,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.23E-10, energy: -1.71825480175577994E+01, D: -3.049E-09}]
+ iter:  3, delta:  1.23E-10, energy: -1.71825480175576537E+01, D: -3.049E-09}]
    -  #-------------------------------------------------------------------- kernel iter: 4
        Kernel update:
          max dev from unity            :  6.23E-09
@@ -2099,16 +2107,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.26E-04, eBS: -4.02989168350853166, D:  1.214E-04, alpha:  1.1E-01}
+ iter:  1, fnrm:  1.26E-04, eBS: -4.02989168350853255, D:  1.214E-04, alpha:  1.1E-01}
          Kohn-Sham residue             :  6.506E-03
          Coefficients available        :  Yes
        alpha                           :  0.12100000000000002
-       energydiff                      : -6.10484462981730758E-009
+       energydiff                      : -6.10507200349275081E-009
        Hamiltonian update: {
  Energies: {Ekin:  9.3810837843, Epot: -1.19655379612E+01, Enl:  6.85684892057E-01, 
               EH:  2.13134390379E+01, EXC: -4.11296266179, EvXC: -5.39157829518}, 
-    Total charge:  7.99999995795, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957951, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2116,7 +2124,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.04E-10, energy: -1.7182548023662644E+01, D: -6.105E-09}]
+ iter:  4, delta:  1.04E-10, energy: -1.71825480236627257E+01, D: -6.105E-09}]
    -  #-------------------------------------------------------------------- kernel iter: 5
        Kernel update:
          max dev from unity            :  6.23E-09
@@ -2126,16 +2134,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.85E-05, eBS: -4.02977029923123986, D:  1.027E-04, alpha:  1.21E-01}
+ iter:  1, fnrm:  9.85E-05, eBS: -4.02977029923125762, D:  1.027E-04, alpha:  1.21E-01}
          Kohn-Sham residue             :  6.506E-03
          Coefficients available        :  Yes
        alpha                           :  0.13310000000000002
-       energydiff                      : -4.04787670049699955E-009
+       energydiff                      : -4.04778432994135073E-009
        Hamiltonian update: {
  Energies: {Ekin:  9.3810837843, Epot: -1.19654766791E+01, Enl:  6.85684892057E-01, 
               EH:  2.13135472836E+01, EXC: -4.11297999449, EvXC: -5.39160118449}, 
     Total charge:  7.99999995795, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2143,15 +2151,15 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  8.71E-11, energy: -1.71825480277105207E+01, D: -4.048E-09}]
+ iter:  5, delta:  8.71E-11, energy: -1.718254802771051E+01, D: -4.048E-09}]
    -  &final_kernel007  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  8.71E-11, energy: -1.71825480277105207E+01, D: -4.048E-09}]}
+ iter:  5, delta:  8.71E-11, energy: -1.718254802771051E+01, D: -4.048E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc007
    -  {iter:  7, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  7, delta out:  2.055E-09, energy: -1.71825480277105207E+01, D: -9.601E-06}
+ iter high:  7, delta out:  2.055E-09, energy: -1.718254802771051E+01, D: -9.601E-06}
     #========================================================= support function optimization
  - support function optimization: &it_supfun008
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2167,12 +2175,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38113501041, Epot: -1.1965365721E+01, Enl:  6.85596100445E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  2.28E-03, Omega: -1.718255180095322E+01, D: -3.77E-06, D best: -3.77E-06, 
+ iter:  2, fnrm:  2.28E-03, Omega: -1.718255180095325E+01, D: -3.77E-06, D best: -3.77E-06, 
  exit criterion: net number of iterations}
    -  &final_supfun008  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38113501041, Epot: -1.1965365721E+01, Enl:  6.85596100445E-01}, 
- iter:  2, fnrm:  2.28E-03, Omega: -1.718255180095322E+01, D: -3.77E-06, D best: -3.77E-06}
+ iter:  2, fnrm:  2.28E-03, Omega: -1.718255180095325E+01, D: -3.77E-06, D best: -3.77E-06}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel008
@@ -2185,13 +2193,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.31E-05, eBS: -4.02966761417735775, D:  8.074E-05, alpha:  2.0E-01}
+ iter:  1, fnrm:  7.31E-05, eBS: -4.02966761417737018, D:  8.074E-05, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.3810837843, Epot: -1.19654766791E+01, Enl:  6.85684892057E-01, 
-              EH:  2.13136363623E+01, EXC: -4.11299424005, EvXC: -5.39161999664}, 
+              EH:  2.13136363623E+01, EXC: -4.11299424005, EvXC: -5.39161999665}, 
     Total charge:  7.999999957945, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2199,7 +2207,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.45E-09, energy: -1.71825518047964323E+01, D: -3.777E-06}]
+ iter:  1, delta:  1.45E-09, energy: -1.71825518047964358E+01, D: -3.777E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  7.01E-10
@@ -2209,16 +2217,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.92E-05, eBS: -4.02958687909604496, D: -7.029E-04, alpha:  2.0E-01}
+ iter:  1, fnrm:  9.92E-05, eBS: -4.02958687909604407, D: -7.029E-04, alpha:  2.0E-01}
          Kohn-Sham residue             :  6.147E-03
          Coefficients available        :  Yes
        alpha                           :  0.10000000000000001
-       energydiff                      :  3.45486483865897753E-009
+       energydiff                      :  3.45488615494105034E-009
        Hamiltonian update: {
  Energies: {Ekin:  9.38113501041, Epot: -1.19658138321E+01, Enl:  6.85596100445E-01, 
               EH:  2.13129025433E+01, EXC: -4.11289461841, EvXC: -5.39148950847}, 
-    Total charge:  7.999999957944, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957945, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2226,7 +2234,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.5E-10, energy: -1.71825518013415675E+01, D:  3.455E-09}]
+ iter:  2, delta:  1.5E-10, energy: -1.71825518013415497E+01, D:  3.455E-09}]
    -  #-------------------------------------------------------------------- kernel iter: 3
        Kernel update:
          max dev from unity            :  7.01E-10
@@ -2236,16 +2244,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.94E-05, eBS: -4.03028982809160752, D:  1.47E-04, alpha:  1.0E-01}
+ iter:  1, fnrm:  5.94E-05, eBS: -4.03028982809156133, D:  1.47E-04, alpha:  1.0E-01}
          Kohn-Sham residue             :  6.147E-03
          Coefficients available        :  Yes
        alpha                           :  0.11000000000000001
-       energydiff                      : -6.52235598863626365E-010
+       energydiff                      : -6.52221388008911163E-010
        Hamiltonian update: {
  Energies: {Ekin:  9.38113501041, Epot: -1.19657258754E+01, Enl:  6.85596100445E-01, 
               EH:  2.13130575617E+01, EXC: -4.11291948109, EvXC: -5.39152234269}, 
     Total charge:  7.999999957944, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2253,15 +2261,15 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  4.15E-11, energy: -1.71825518019938031E+01, D: -6.522E-10}]
+ iter:  3, delta:  4.15E-11, energy: -1.71825518019937711E+01, D: -6.522E-10}]
    -  &final_kernel008  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  4.15E-11, energy: -1.71825518019938031E+01, D: -6.522E-10}]}
+ iter:  3, delta:  4.15E-11, energy: -1.71825518019937711E+01, D: -6.522E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc008
    -  {iter:  8, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  8, delta out:  1.463E-09, energy: -1.71825518019938031E+01, D: -3.774E-06}
+ iter high:  8, delta out:  1.463E-09, energy: -1.71825518019937711E+01, D: -3.774E-06}
     #========================================================= support function optimization
  - support function optimization: &it_supfun009
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2277,12 +2285,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.3811431793, Epot: -1.19657183085E+01, Enl:  6.85622975921E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  1.62E-03, Omega: -1.718255369470083E+01, D: -1.89E-06, D best: -1.89E-06, 
+ iter:  2, fnrm:  1.62E-03, Omega: -1.718255369470082E+01, D: -1.89E-06, D best: -1.89E-06, 
  exit criterion: net number of iterations}
    -  &final_supfun009  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.3811431793, Epot: -1.19657183085E+01, Enl:  6.85622975921E-01}, 
- iter:  2, fnrm:  1.62E-03, Omega: -1.718255369470083E+01, D: -1.89E-06, D best: -1.89E-06}
+ iter:  2, fnrm:  1.62E-03, Omega: -1.718255369470082E+01, D: -1.89E-06, D best: -1.89E-06}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel009
@@ -2295,13 +2303,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.83E-05, eBS: -4.0301427819655764, D:  3.729E-05, alpha:  2.0E-01}
+ iter:  1, fnrm:  4.83E-05, eBS: -4.030142781965532, D:  3.729E-05, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.38113501041, Epot: -1.19657258754E+01, Enl:  6.85596100445E-01, 
               EH:  2.13130988623E+01, EXC: -4.11292608155, EvXC: -5.39153105903}, 
     Total charge:  7.999999957938, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2309,7 +2317,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  9.44E-10, energy: -1.71825536963882506E+01, D: -1.894E-06}]
+ iter:  1, delta:  9.44E-10, energy: -1.71825536963882293E+01, D: -1.894E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.43E-09
@@ -2319,16 +2327,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.01E-05, eBS: -4.0301054915631358, D: -3.731E-04, alpha:  2.0E-01}
+ iter:  1, fnrm:  6.01E-05, eBS: -4.03010549156307185, D: -3.731E-04, alpha:  2.0E-01}
          Kohn-Sham residue             :  5.951E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -4.73395544986487948E-010
+       energydiff                      : -4.73455941119027557E-010
        Hamiltonian update: {
  Energies: {Ekin:  9.3811431793, Epot: -1.19659543631E+01, Enl:  6.85622975921E-01, 
               EH:  2.13127099013E+01, EXC: -4.11287475703, EvXC: -5.39146391555}, 
-    Total charge:  7.999999957937, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957938, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2336,22 +2344,22 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  8.74E-11, energy: -1.71825536968616461E+01, D: -4.734E-10}]
+ iter:  2, delta:  8.74E-11, energy: -1.71825536968616852E+01, D: -4.735E-10}]
    -  &final_kernel009  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  8.74E-11, energy: -1.71825536968616461E+01, D: -4.734E-10}]}
+ iter:  2, delta:  8.74E-11, energy: -1.71825536968616852E+01, D: -4.735E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc009
    -  {iter:  9, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  9, delta out:  9.527E-10, energy: -1.71825536968616461E+01, D: -1.895E-06}
+ iter high:  9, delta out:  9.527E-10, energy: -1.71825536968616852E+01, D: -1.895E-06}
     #========================================================= support function optimization
  - support function optimization: &it_supfun010
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.3811431793, Epot: -1.19659041909E+01, Enl:  6.85622975921E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.62E-03, Omega: -1.718255369663449E+01, D: -1.89E-06, D best: -1.89E-06, 
+ iter:  1, fnrm:  1.62E-03, Omega: -1.71825536966343E+01, D: -1.89E-06, D best: -1.89E-06, 
  Optimization: {algorithm: SD, mean alpha:  4.694E-01, max alpha:  4.694E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2360,12 +2368,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38111226837, Epot: -1.19658760551E+01, Enl:  6.8564146185E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  1.15E-03, Omega: -1.71825547069764E+01, D: -1.01E-06, D best: -1.01E-06, 
+ iter:  2, fnrm:  1.15E-03, Omega: -1.718255470697622E+01, D: -1.01E-06, D best: -1.01E-06, 
  exit criterion: net number of iterations}
    -  &final_supfun010  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38111226837, Epot: -1.19658760551E+01, Enl:  6.8564146185E-01}, 
- iter:  2, fnrm:  1.15E-03, Omega: -1.71825547069764E+01, D: -1.01E-06, D best: -1.01E-06}
+ iter:  2, fnrm:  1.15E-03, Omega: -1.718255470697622E+01, D: -1.01E-06, D best: -1.01E-06}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel010
@@ -2378,13 +2386,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.66E-05, eBS: -4.03047863412451779, D:  8.287E-05, alpha:  2.0E-01}
+ iter:  1, fnrm:  3.66E-05, eBS: -4.03047863412450269, D:  8.287E-05, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.3811431793, Epot: -1.19659543631E+01, Enl:  6.85622975921E-01, 
               EH:  2.13127983253E+01, EXC: -4.11288891448, EvXC: -5.39148261194}, 
     Total charge:  7.999999957933, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2392,7 +2400,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  5.89E-10, energy: -1.71825547079496914E+01, D: -1.011E-06}]
+ iter:  1, delta:  5.89E-10, energy: -1.71825547079495102E+01, D: -1.011E-06}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.66E-09
@@ -2402,16 +2410,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.4E-05, eBS: -4.03039576017604873, D: -2.234E-04, alpha:  2.0E-01}
+ iter:  1, fnrm:  4.4E-05, eBS: -4.03039576017599543, D: -2.234E-04, alpha:  2.0E-01}
          Kohn-Sham residue             :  5.829E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -1.15994325255996955E-009
+       energydiff                      : -1.15995746341468475E-009
        Hamiltonian update: {
  Energies: {Ekin:  9.38111226837, Epot: -1.19660145753E+01, Enl:  6.8564146185E-01, 
               EH:  2.1312564902E+01, EXC: -4.11285664666, EvXC: -5.39144032666}, 
-    Total charge:  7.999999957932, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957933, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2419,22 +2427,22 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  6.28E-11, energy: -1.71825547091096347E+01, D: -1.16E-09}]
+ iter:  2, delta:  6.28E-11, energy: -1.71825547091094677E+01, D: -1.16E-09}]
    -  &final_kernel010  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  6.28E-11, energy: -1.71825547091096347E+01, D: -1.16E-09}]}
+ iter:  2, delta:  6.28E-11, energy: -1.71825547091094677E+01, D: -1.16E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc010
    -  {iter:  10, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  10, delta out:  5.953E-10, energy: -1.71825547091096347E+01, D: -1.012E-06}
+ iter high:  10, delta out:  5.953E-10, energy: -1.71825547091094677E+01, D: -1.012E-06}
     #========================================================= support function optimization
  - support function optimization: &it_supfun011
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38111226837, Epot: -1.19659785753E+01, Enl:  6.8564146185E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.15E-03, Omega: -1.718255470899201E+01, D: -1.01E-06, D best: -1.01E-06, 
+ iter:  1, fnrm:  1.15E-03, Omega: -1.718255470899197E+01, D: -1.01E-06, D best: -1.01E-06, 
  Optimization: {algorithm: SD, mean alpha:  5.163E-01, max alpha:  5.163E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2443,12 +2451,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38107315268, Epot: -1.19659392455E+01, Enl:  6.85653758333E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  8.08E-04, Omega: -1.718255525684166E+01, D: -5.48E-07, D best: -5.48E-07, 
+ iter:  2, fnrm:  8.08E-04, Omega: -1.718255525684164E+01, D: -5.48E-07, D best: -5.48E-07, 
  exit criterion: net number of iterations}
    -  &final_supfun011  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38107315268, Epot: -1.19659392455E+01, Enl:  6.85653758333E-01}, 
- iter:  2, fnrm:  8.08E-04, Omega: -1.718255525684166E+01, D: -5.48E-07, D best: -5.48E-07}
+ iter:  2, fnrm:  8.08E-04, Omega: -1.718255525684164E+01, D: -5.48E-07, D best: -5.48E-07}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel011
@@ -2461,13 +2469,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.71E-05, eBS: -4.03061916713469248, D:  5.968E-05, alpha:  2.0E-01}
+ iter:  1, fnrm:  2.71E-05, eBS: -4.03061916713475021, D:  5.968E-05, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.38111226837, Epot: -1.19660145753E+01, Enl:  6.8564146185E-01, 
               EH:  2.13126283837E+01, EXC: -4.11286679303, EvXC: -5.3914537258}, 
     Total charge:  7.99999995793, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2475,7 +2483,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.69E-10, energy: -1.71825552573793381E+01, D: -5.483E-07}]
+ iter:  1, delta:  3.69E-10, energy: -1.71825552573793132E+01, D: -5.483E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.44E-09
@@ -2485,16 +2493,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.09E-05, eBS: -4.03055948648635898, D: -1.248E-04, alpha:  2.0E-01}
+ iter:  1, fnrm:  3.09E-05, eBS: -4.0305594864864478, D: -1.248E-04, alpha:  2.0E-01}
          Kohn-Sham residue             :  5.755E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -7.67784058552933857E-010
+       energydiff                      : -7.6773787327510945E-010
        Hamiltonian update: {
  Energies: {Ekin:  9.38107315268, Epot: -1.19660151225E+01, Enl:  6.85653758333E-01, 
               EH:  2.13124977011E+01, EXC: -4.11284796009, EvXC: -5.3914290067}, 
     Total charge:  7.99999995793, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2502,22 +2510,22 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  4.33E-11, energy: -1.71825552581471221E+01, D: -7.678E-10}]
+ iter:  2, delta:  4.33E-11, energy: -1.71825552581470511E+01, D: -7.677E-10}]
    -  &final_kernel011  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  4.33E-11, energy: -1.71825552581471221E+01, D: -7.678E-10}]}
+ iter:  2, delta:  4.33E-11, energy: -1.71825552581470511E+01, D: -7.677E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc011
    -  {iter:  11, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  11, delta out:  3.73E-10, energy: -1.71825552581471221E+01, D: -5.49E-07}
+ iter high:  11, delta out:  3.73E-10, energy: -1.71825552581470511E+01, D: -5.49E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun012
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38107315268, Epot: -1.19659903282E+01, Enl:  6.85653758333E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  8.08E-04, Omega: -1.718255525809117E+01, D: -5.49E-07, D best: -5.49E-07, 
+ iter:  1, fnrm:  8.08E-04, Omega: -1.718255525809113E+01, D: -5.49E-07, D best: -5.49E-07, 
  Optimization: {algorithm: SD, mean alpha:  5.679E-01, max alpha:  5.679E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2526,12 +2534,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38104131869, Epot: -1.19659552012E+01, Enl:  6.85660107052E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  5.5E-04, Omega: -1.718255555073178E+01, D: -2.93E-07, D best: -2.93E-07, 
+ iter:  2, fnrm:  5.5E-04, Omega: -1.718255555073175E+01, D: -2.93E-07, D best: -2.93E-07, 
  exit criterion: net number of iterations}
    -  &final_supfun012  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38104131869, Epot: -1.19659552012E+01, Enl:  6.85660107052E-01}, 
- iter:  2, fnrm:  5.5E-04, Omega: -1.718255555073178E+01, D: -2.93E-07, D best: -2.93E-07}
+ iter:  2, fnrm:  5.5E-04, Omega: -1.718255555073175E+01, D: -2.93E-07, D best: -2.93E-07}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel012
@@ -2544,13 +2552,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.94E-05, eBS: -4.03068428366004294, D:  4.122E-05, alpha:  2.0E-01}
+ iter:  1, fnrm:  1.94E-05, eBS: -4.03068428365999942, D:  4.122E-05, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.38107315268, Epot: -1.19660151225E+01, Enl:  6.85653758333E-01, 
               EH:  2.13125414497E+01, EXC: -4.1128549414, EvXC: -5.39143822598}, 
-    Total charge:  7.999999957928, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957929, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2558,7 +2566,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.26E-10, energy: -1.71825555510076136E+01, D: -2.929E-07}]
+ iter:  1, delta:  2.26E-10, energy: -1.71825555510075709E+01, D: -2.929E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  1.17E-09
@@ -2568,16 +2576,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.07E-05, eBS: -4.03064306588004495, D: -6.252E-05, alpha:  2.0E-01}
+ iter:  1, fnrm:  2.07E-05, eBS: -4.03064306588000409, D: -6.252E-05, alpha:  2.0E-01}
          Kohn-Sham residue             :  5.71E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -4.10320666333063855E-010
+       energydiff                      : -4.10434353170785471E-010
        Hamiltonian update: {
  Energies: {Ekin:  9.38104131869, Epot: -1.19659923104E+01, Enl:  6.85660107052E-01, 
               EH:  2.13124758417E+01, EXC: -4.112845121, EvXC: -5.39142531619}, 
-    Total charge:  7.999999957928, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+    Total charge:  7.999999957929, 
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2585,22 +2593,22 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.84E-11, energy: -1.71825555514179342E+01, D: -4.103E-10}]
+ iter:  2, delta:  2.84E-11, energy: -1.71825555514180053E+01, D: -4.104E-10}]
    -  &final_kernel012  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.84E-11, energy: -1.71825555514179342E+01, D: -4.103E-10}]}
+ iter:  2, delta:  2.84E-11, energy: -1.71825555514180053E+01, D: -4.104E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc012
    -  {iter:  12, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  12, delta out:  2.286E-10, energy: -1.71825555514179342E+01, D: -2.933E-07}
+ iter high:  12, delta out:  2.286E-10, energy: -1.71825555514180053E+01, D: -2.933E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun013
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38104131869, Epot: -1.19659761687E+01, Enl:  6.85660107052E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  5.5E-04, Omega: -1.718255555139443E+01, D: -2.93E-07, D best: -2.93E-07, 
+ iter:  1, fnrm:  5.5E-04, Omega: -1.718255555139415E+01, D: -2.93E-07, D best: -2.93E-07, 
  Optimization: {algorithm: SD, mean alpha:  5.774E-01, max alpha:  5.774E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2609,12 +2617,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38102189944, Epot: -1.19659531646E+01, Enl:  6.85663175811E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  3.74E-04, Omega: -1.718255569205066E+01, D: -1.41E-07, D best: -1.41E-07, 
+ iter:  2, fnrm:  3.74E-04, Omega: -1.718255569205037E+01, D: -1.41E-07, D best: -1.41E-07, 
  exit criterion: net number of iterations}
    -  &final_supfun013  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38102189944, Epot: -1.19659531646E+01, Enl:  6.85663175811E-01}, 
- iter:  2, fnrm:  3.74E-04, Omega: -1.718255569205066E+01, D: -1.41E-07, D best: -1.41E-07}
+ iter:  2, fnrm:  3.74E-04, Omega: -1.718255569205037E+01, D: -1.41E-07, D best: -1.41E-07}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel013
@@ -2627,13 +2635,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.34E-05, eBS: -4.03070558497303111, D:  2.69E-05, alpha:  2.0E-01}
+ iter:  1, fnrm:  1.34E-05, eBS: -4.03070558497307463, D:  2.69E-05, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.38104131869, Epot: -1.19659923104E+01, Enl:  6.85660107052E-01, 
               EH:  2.13125043334E+01, EXC: -4.11284966286, EvXC: -5.39143131398}, 
     Total charge:  7.999999957928, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2641,7 +2649,7 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.23E-10, energy: -1.71825556921808555E+01, D: -1.408E-07}]
+ iter:  1, delta:  1.23E-10, energy: -1.71825556921805642E+01, D: -1.408E-07}]
    -  #-------------------------------------------------------------------- kernel iter: 2
        Kernel update:
          max dev from unity            :  8.78E-10
@@ -2651,16 +2659,16 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.29E-05, eBS: -4.03067868993961476, D: -2.391E-05, alpha:  2.0E-01}
+ iter:  1, fnrm:  1.29E-05, eBS: -4.0306786899396263, D: -2.391E-05, alpha:  2.0E-01}
          Kohn-Sham residue             :  5.687E-03
          Coefficients available        :  Yes
        alpha                           :  0.22000000000000003
-       energydiff                      : -1.81508141849917592E-010
+       energydiff                      : -1.81827886081009638E-010
        Hamiltonian update: {
  Energies: {Ekin:  9.38102189944, Epot: -1.19659668288E+01, Enl:  6.85663175811E-01, 
               EH:  2.13124791831E+01, EXC: -4.11284574563, EvXC: -5.39142615635}, 
     Total charge:  7.999999957928, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2668,22 +2676,22 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.72E-11, energy: -1.71825556923623637E+01, D: -1.815E-10}]
+ iter:  2, delta:  1.72E-11, energy: -1.71825556923623921E+01, D: -1.818E-10}]
    -  &final_kernel013  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.72E-11, energy: -1.71825556923623637E+01, D: -1.815E-10}]}
+ iter:  2, delta:  1.72E-11, energy: -1.71825556923623921E+01, D: -1.818E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc013
    -  {iter:  13, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  13, delta out:  1.26E-10, energy: -1.71825556923623637E+01, D: -1.409E-07}
+ iter high:  13, delta out:  1.26E-10, energy: -1.71825556923623921E+01, D: -1.409E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun014
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.38102189944, Epot: -1.19659573079E+01, Enl:  6.85663175811E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  3.75E-04, Omega: -1.718255569235411E+01, D: -1.41E-07, D best: -1.41E-07, 
+ iter:  1, fnrm:  3.75E-04, Omega: -1.718255569235403E+01, D: -1.41E-07, D best: -1.41E-07, 
  Optimization: {algorithm: SD, mean alpha:  5.87E-01, max alpha:  5.87E-01, 
     consecutive successes:  1}, 
  Orthogonalization:  Yes, communication strategy kernel: ALLREDUCE, 
@@ -2692,12 +2700,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.3810093876, Epot: -1.19659414089E+01, Enl:  6.85664384467E-01}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  2, fnrm:  2.55E-04, Omega: -1.718255576061303E+01, D: -6.83E-08, D best: -6.83E-08, 
+ iter:  2, fnrm:  2.55E-04, Omega: -1.7182555760613E+01, D: -6.83E-08, D best: -6.83E-08, 
  exit criterion: net number of iterations}
    -  &final_supfun014  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.3810093876, Epot: -1.19659414089E+01, Enl:  6.85664384467E-01}, 
- iter:  2, fnrm:  2.55E-04, Omega: -1.718255576061303E+01, D: -6.83E-08, D best: -6.83E-08}
+ iter:  2, fnrm:  2.55E-04, Omega: -1.7182555760613E+01, D: -6.83E-08, D best: -6.83E-08}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel014
@@ -2710,13 +2718,13 @@
          -  { #---------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.78E-06, eBS: -4.0307026000460775, D:  1.588E-05, alpha:  2.0E-01}
+ iter:  1, fnrm:  8.78E-06, eBS: -4.03070260004605885, D:  1.588E-05, alpha:  2.0E-01}
          Coefficients available        :  Yes
        Hamiltonian update: {
  Energies: {Ekin:  9.38102189944, Epot: -1.19659668288E+01, Enl:  6.85663175811E-01, 
               EH:  2.13124959882E+01, EXC: -4.11284842308, EvXC: -5.39142969207}, 
     Total charge:  7.999999957928, 
- Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  3}}
+ Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -1.021318815972, f:  2.0},  # 00001
@@ -2724,15 +2732,15 @@
  {e: -4.559098128438E-01, f:  2.0},  # 00003
  {e: -3.936386967807E-01, f:  2.0}] # 00004
        summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  6.96E-11, energy: -1.71825557606686878E+01, D: -6.831E-08}]
+ iter:  1, delta:  6.96E-11, energy: -1.71825557606686203E+01, D: -6.831E-08}]
    -  &final_kernel014  { #-------------------------------------------------------- iter: 1
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  6.96E-11, energy: -1.71825557606686878E+01, D: -6.831E-08}]}
+ iter:  1, delta:  6.96E-11, energy: -1.71825557606686203E+01, D: -6.831E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc014
    -  {iter:  14, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  14, delta out:  6.955E-11, energy: -1.71825557606686878E+01, D: -6.831E-08}
+ iter high:  14, delta out:  6.955E-11, energy: -1.71825557606686203E+01, D: -6.831E-08}
    Kernel update:
      max dev from unity                :  7.04E-10
      Hamiltonian application required  :  Yes
@@ -2754,7 +2762,7 @@
    -  {iter:  14, 
  Energies: {Ekin:  9.3810093876, Epot: -1.19659476708E+01, Enl:  6.85664384467E-01, 
               EH:  2.13124839012E+01, EXC: -4.11284638658, EvXC: -5.39142700378}, 
-       iter high:  14,      delta out:  6.955E-11,      energy: -1.71825557606686878E+01, 
+       iter high:  14,      delta out:  6.955E-11,      energy: -1.71825557606686203E+01, 
                D:  0.0,  #FINAL
  }
  Write wavefunctions to file           : ./data-write/minBasis.*
@@ -2762,7 +2770,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  7.48E-01,  5.111E-01 ]}
+ -  {Process:  0, Timing:  [  7.6E-01,  6.753E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -2771,27 +2779,27 @@
    Box size has changed                :  2
    Molecule was shifted                :  2
    Molecule was rotated                :  0
- Total charge                          :  7.999999957927
+ Total charge                          :  7.999999957928
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  131,  137,  143 ]
-   MPI tasks                           :  3
+   MPI tasks                           :  4
  Calculate local forces: {Leaked force:  0.0}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  3.90497803E-04, y:  3.83838708E-04, z: -2.09677093E-04, 
                     total:  5.86331963E-04}
- Clean forces norm (Ha/Bohr): {maxval:  5.057863668002E-04, fnrm2:  4.157424582047E-07}
- Raw forces norm (Ha/Bohr): {maxval:  1.078403509104E-03, fnrm2:  1.200811070381E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  5.057863667878E-04, fnrm2:  4.157424581913E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  1.078403509113E-03, fnrm2:  1.200811070402E-06}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 4.928065110709E-04, -9.220399698142E-05, -6.678333944713E-05]} # 0001
- -  {H: [-1.466892486988E-04, -4.945740824886E-07, -2.899597918773E-05]} # 0002
- -  {H: [-3.461172623721E-04,  9.269857106391E-05,  9.577931863486E-05]} # 0003
+ -  {O: [ 4.928065110517E-04, -9.220399699567E-05, -6.678333947574E-05]} # 0001
+ -  {H: [-1.466892486781E-04, -4.945740775485E-07, -2.899597917511E-05]} # 0002
+ -  {H: [-3.461172623736E-04,  9.269857107322E-05,  9.577931865085E-05]} # 0003
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  147.15
-   Elapsed time (s)                    :  74.53
+   CPU time (s)                        :  78.99
+   Elapsed time (s)                    :  40.36
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2823,29 +2831,12 @@
  - density optimization not converged
  - support function optimization not converged
  - density optimization not converged
- Status of the memory at finalization:
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 9972
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x34f1ca0
-     Address of metadata               : 55319944
-   wfd%keygloc:
-     Array Id                          : wfd%keygloc
-     Size (Bytes)                      : 19944
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x34fd630
-     Address of metadata               : 55319848
-   Timestamp of Profile initialization:
-     2014-01-31 16:19:36.966
-   Process Id:
-     0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  19569
-   Tot. No. of Deallocations           :  19569
+   Tot. No. of Allocations             :  19562
+   Tot. No. of Deallocations           :  19562
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  308
+     Peak Value (MB)                   :  273
      for the array                     : x_f3
      in the routine                    : initialize_work_arrays_locham
- Max No. of dictionaries used          :  1408 #(  138 still in use)
+ Max No. of dictionaries used          :  1407 #(  138 still in use)

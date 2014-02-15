@@ -51,7 +51,7 @@ module constrained_dft
        end subroutine LocalHamiltonianApplication
 
        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, &
-            orbs, ovrlp_smat, inv_ovrlp_smat)
+            orbs, ovrlp_smat, inv_ovrlp_smat, check_accur)
          use module_base
          use module_types
          implicit none
@@ -63,6 +63,7 @@ module constrained_dft
          real(kind=8),intent(out) :: error
          type(orbitals_data), optional, intent(in) :: orbs
          type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+         logical,intent(in),optional :: check_accur
        end subroutine overlapPowerGeneral
   end interface
 
@@ -228,9 +229,10 @@ contains
 
   !> CDFT: calculates the weight matrix w_ab given w(r)
   !! for the moment putting densities in global box and ignoring parallelization
-  subroutine calculate_weight_matrix_using_density(cdft,tmb,at,input,GPU,denspot)
+  subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
     use module_fragments
     implicit none
+    integer,intent(in) :: iproc
     type(cdft_data), intent(inout) :: cdft
     type(atoms_data), intent(in) :: at
     type(input_variables),intent(in) :: input
@@ -245,7 +247,7 @@ contains
     type(energy_terms) :: energs
     character(len=*),parameter :: subname='calculate_weight_matrix_using_density'
 
-    call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
     call start_onesided_communication(bigdft_mpi%iproc,bigdft_mpi%nproc,max(denspot%dpbox%ndimpot,1),cdft%weight_function, &
          tmb%ham_descr%comgp%nrecvbuf,tmb%ham_descr%comgp%recvbuf,tmb%ham_descr%comgp,tmb%ham_descr%lzd)
 

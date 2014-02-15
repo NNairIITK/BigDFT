@@ -77,8 +77,8 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
   delta_phit_f=f_malloc(isize,id='delta_phit_f')
   !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
-  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
-  call uncompressMatrix(iproc,tmb%linmat%denskern)
+  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
+  call uncompressMatrix(iproc,tmb%linmat%denskern_large)
   call to_zero(3*at%astruct%nat, fpulay(1,1))
   do idir=1,3
       ! calculate the overlap matrix among hphi and phi_delta_large
@@ -94,7 +94,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
           iat=tmb%orbs%onwhichatom(iiorb)
           tt=0.d0
           do jorb=1,tmb%orbs%norb
-              tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
+              tt = tt -2.d0*tmb%linmat%denskern_large%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
               !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
           end do  
           fpulay(idir,iat)=fpulay(idir,iat)+tt
@@ -102,7 +102,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       call f_free_ptr(tmb%linmat%ham%matrix)
   end do
   call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call f_free_ptr(tmb%linmat%denskern%matrix)
+  call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
   if(iproc==0) then
        call yaml_comment('new Pulay correction',hfill='-')
@@ -147,16 +147,16 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       hphit_f=f_malloc(isize,id='hphit_f')
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                                tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
-      isize=size(tmb%linmat%denskern%matrix_compr)
+      isize=size(tmb%linmat%denskern_large%matrix_compr)
       denskern_tmp=f_malloc(isize,id='denskern_tmp')
-      denskern_tmp=tmb%linmat%denskern%matrix_compr
-      tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
-      tmb%linmat%denskern%matrix=tempmat
-      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
-      call f_free_ptr(tmb%linmat%denskern%matrix)
+      denskern_tmp=tmb%linmat%denskern_large%matrix_compr
+      tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+      tmb%linmat%denskern_large%matrix=tempmat
+      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+      call f_free_ptr(tmb%linmat%denskern_large%matrix)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%denskern, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
-      tmb%linmat%denskern%matrix_compr=denskern_tmp
+           tmb%linmat%denskern_large, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
+      tmb%linmat%denskern_large%matrix_compr=denskern_tmp
     
       call f_free(tempmat)
       call f_free(denskern_tmp)
@@ -454,7 +454,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   character(len=*),parameter :: subname='pulay_correction'
 
   ! Begin by updating the Hpsi
-  call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+  call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
   allocate(lhphilarge(tmb%ham_descr%npsidim_orbs), stat=istat)
   call memocc(istat, lhphilarge, 'lhphilarge', subname)

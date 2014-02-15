@@ -88,6 +88,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   character(len=*), parameter :: GNRM_CV         ='gnrm_cv'
   character(len=*), parameter :: GNRM_CV_COEFF   ='gnrm_cv_coeff'
   character(len=*), parameter :: DELTAE_CV       ='deltae_cv'
+  character(len=*), parameter :: GNRM_DYN        ='gnrm_dyn'
   character(len=*), parameter :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter :: OUTPUT_WF       ='output_wf'
@@ -112,7 +113,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   integer :: dummy_int
   integer, dimension(2) :: dummy_iarr
   real(gp), dimension(2) :: dummy_darr
-  real(gp):: ppao, ppl, pph, lrl, lrh, kco,dummy_real
+  real(gp):: ppao, ppl, pph, lrl, lrh, kco_FOE, kco, dummy_real
   real(gp),dimension(atoms%astruct%ntypes) :: locradType, locradType_lowaccur, locradType_highaccur
   type(dictionary), pointer :: dict
   character(len=dictionary_value_lgt) :: dummy_char,dummy_char2
@@ -170,11 +171,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
   call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
 
-  comments = 'basis convergence (low, high) ; early stop TMB optimization (experimental mode only)'
+  comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm (experimental mode only)'
   call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
   call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
 
-  call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/),comment=comments)
+  call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
+  call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/),comment=comments)
 
   !these variables seems deprecated, put them to their default value
 
@@ -223,7 +225,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   comments='number of iterations in the preconditioner, order of Taylor approximations'
   call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
-  call input_var(in%lin%order_taylor,'1',ranges=(/1,4/),comment=comments)
+  call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
   
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
@@ -293,6 +295,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   in%lin%convCrit_lowaccuracy =dummy_darr(1)
   in%lin%convCrit_highaccuracy=dummy_darr(2)
   in%lin%early_stop=dict//LIN_BASIS//DELTAE_CV
+  in%lin%gnrm_dynamic=dict//LIN_BASIS//GNRM_DYN
   in%lin%alphaDIIS=dict//LIN_BASIS//ALPHA_DIIS
   in%lin%alphaSD=dict//LIN_BASIS//ALPHA_SD
   in%lin%nItPrecond=dict//LIN_BASIS//NSTEP_PREC
@@ -355,7 +358,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
-             'localization radius, kernel cutoff'
+             'localization radius, kernel cutoff, kernel cutoff FOE'
   parametersSpecified=.false.
   itype = 1
   do
@@ -375,7 +378,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      call input_var(pph,'5.d-5',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(lrl,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
      call input_var(lrh,'10.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-     call input_var(kco,'20.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+     call input_var(kco,'12.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     call input_var(kco_FOE,'20.d0',ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
      ! The reading was successful. Check whether this atom type is actually present.
      found=.false.
      do jtype=1,atoms%astruct%ntypes
@@ -392,6 +396,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
            locradType_highaccur(jtype)=lrh
            atoms%rloc(jtype,:)=locradType(jtype)
            in%lin%kernel_cutoff(jtype)=kco
+           in%lin%kernel_cutoff_FOE(jtype)=kco_FOE
         end if
      end do
      if(.not.found) then
@@ -423,6 +428,8 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   end do
   allocate(in%lin%locrad(nlr),stat=istat)
   call memocc(istat,in%lin%locrad,'in%lin%locrad',subname)
+  allocate(in%lin%locrad_kernel(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_kernel,'in%lin%locrad_kernel',subname)
   allocate(in%lin%locrad_lowaccuracy(nlr),stat=istat)
   call memocc(istat,in%lin%locrad_lowaccuracy,'in%lin%locrad_lowaccuracy',subname)
   allocate(in%lin%locrad_highaccuracy(nlr),stat=istat)
@@ -436,11 +443,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
       do iorb=1,in%lin%norbsPerType(itype)
           iiorb=iiorb+1
           in%lin%locrad(iiorb)=locradType(itype)
+          in%lin%locrad_kernel(iiorb)=in%lin%kernel_cutoff(itype)
           in%lin%locrad_lowaccuracy(iiorb)=locradType_lowaccur(itype)
           in%lin%locrad_highaccuracy(iiorb)=locradType_highaccur(itype)
       end do
   end do
-  
+
 !!$  if (.not. exists) then
 !!$     call dict_free(dict)
 !!$     call input_free(.false.)

@@ -1,5 +1,5 @@
-0.44 0.44 0.44   hx,hy,hz: grid spacing in the three directions
-3.5  4.5         crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom
+0.40 0.40 0.40   hx,hy,hz: grid spacing in the three directions
+4.0  5.0         crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom
 1                ixc: exchange-correlation parameter (LDA=1,PBE=11)
 0 0.0 0.0 0.0    ncharge: charge of the system, Electric field
 1  0             nspin=1 non-spin polarization, mpol=total magnetic moment

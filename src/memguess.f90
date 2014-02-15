@@ -892,7 +892,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
       nrhotot=Lzd%Glr%d%n3i
    end if
 
-   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
+   call local_potential_dimensions(iproc,Lzd,orbs,ngatherarr(0,1))
 
    !allocate the necessary objects on the GPU
    !set initialisation of GPU part 

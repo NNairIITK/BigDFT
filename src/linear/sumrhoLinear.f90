@@ -1790,13 +1790,14 @@ end subroutine sumrho_for_TMBs
 !!$end subroutine fill_global_density
 
 !> perform the communication needed for the potential and verify that the results is as expected
-subroutine check_communication_potential(denspot,tmb)
+subroutine check_communication_potential(iproc,denspot,tmb)
   use module_base, only:dp,bigdft_mpi,mpi_sum,mpi_max,mpiallred
   use module_types
   use module_interfaces
   use yaml_output
   use dictionaries, only:f_err_throw
   implicit none
+  integer,intent(in) :: iproc
   type(DFT_wavefunction), intent(inout) :: tmb
   type(DFT_local_fields), intent(inout) :: denspot
   !local variables
@@ -1827,7 +1828,7 @@ subroutine check_communication_potential(denspot,tmb)
   end do
 
   !calculate the dimensions and communication of the potential element with mpi_get
-  call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+  call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 

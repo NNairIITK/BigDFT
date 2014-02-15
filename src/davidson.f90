@@ -193,7 +193,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !     in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
    !     VTwfn%orbs,Lzd,0,ngatherarr,rhopot,pot)
 
-   call local_potential_dimensions(VTwfn%Lzd,VTwfn%orbs,dpcom%ngatherarr(0,1))
+   call local_potential_dimensions(iproc,VTwfn%Lzd,VTwfn%orbs,dpcom%ngatherarr(0,1))
 
    !in the case of NK SIC, put the total density in the psirocc pointer, so that it could be reused for building the 
    !Hamiltonian Application
@@ -597,7 +597,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !     in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
    !     orbsv,Lzd,0,ngatherarr,rhopot,pot)
 
-   call local_potential_dimensions(Lzd,orbsv,dpcom%ngatherarr(0,1))
+   call local_potential_dimensions(iproc,Lzd,orbsv,dpcom%ngatherarr(0,1))
    allocate(confdatarr(orbsv%norbp))
    call default_confinement_data(confdatarr,orbsv%norbp)
 

@@ -8,7 +8,7 @@
 0        0                       DIIS history for density mixing (low, high)
 .4d0     .4d0                    density mixing parameter (low, high)
 1.d-7    1.d-11                  outer loop convergence (low, high)
-4.d-5    4.d-5    1.d-4          basis convergence (low, high) ; early stop TMB optimization (experimental mode only)
+4.d-5    4.d-5    1.d-4   1.d-4  basis convergence (low, high) ; early stop TMB optimization (experimental mode only)
 0.5d0                            factor to reduce the confinement. Only used for hybrid mode.
 1.d-5    1.d-5                   kernel convergence (low, high) - directmin only
 1.d-9    1.d-9                   density convergence (low, high)
@@ -22,5 +22,5 @@
 3.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
 0 T F F F                        output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; Pulay corrections (old/new); diag at end
 F F F 0                          fragment calculation; calculate transfer integrals; constrained DFT calculation; extra states to optimize (dmin only)
-O 4 3.0d-2 3.0d-2 0.0d-4 3.0 3.0 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
-H 1 3.0d-2 3.0d-2 0.0d-4 3.0 3.0 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff
+O 4 3.0d-2 3.0d-2 0.0d-4 3.0 3.0 3.0 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff, kernel cutoff FOE
+H 1 3.0d-2 3.0d-2 0.0d-4 3.0 3.0 3.0 8.d0   number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff, kernel cutoff FOE

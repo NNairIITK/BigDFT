@@ -12,7 +12,7 @@
 module timeData
 !  use module_defs, only: mpi_environment, bigdft_mpi
   implicit none
-  integer, parameter :: ncat=142,ncls=7   ! define timimg categories and classes
+  integer, parameter :: ncat=144,ncls=7   ! define timimg categories and classes
   character(len=14), dimension(ncls), parameter :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -35,6 +35,7 @@ module timeData
        'Rho_comput    ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Calculation of charge density (sumrho) computation
        'Rho_commun    ','Communications' ,'AllReduce grid' ,  &  !< Calculation of charge density (sumrho) communication
        'Pot_commun    ','Communications' ,'AllGathrv grid' ,  &  !< Communication of potential
+       'Pot_comm start','Communications' ,'MPI_types/_get' ,  &  !< Communication of potential
        'Un-TransSwitch','Other         ' ,'RMA pattern   ' ,  &  !< Transposition of wavefunction, computation
        'Un-TransComm  ','Communications' ,'ALLtoALLV     ' ,  &  !< Transposition of wavefunction, communication
        'GramS_comput  ','Linear Algebra' ,'DPOTRF        ' ,  &  !< Gram Schmidt computation        
@@ -164,6 +165,7 @@ module timeData
        'readtmbfiles  ','Initialization' ,'Miscellaneous ' ,  &
        'readisffiles  ','Initialization' ,'Miscellaneous ' ,  &
        'purify_kernel ','Linear Algebra' ,'dgemm         ' ,  &
+       'potential_dims','Other         ' ,'auxiliary     ' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat/))
   logical :: parallel,init,newfile,debugmode
   integer :: ncounters, ncaton,nproc = 0,nextra,ncat_stopped

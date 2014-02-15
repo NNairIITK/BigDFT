@@ -1586,7 +1586,8 @@ module module_interfaces
           fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
-          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
+          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
+          gnrm_dynamic, can_use_ham)
         use module_base
         use module_types
         implicit none
@@ -1612,8 +1613,9 @@ module module_interfaces
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
-        real(kind=8),intent(in) :: conv_crit, early_stop
+        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic
         logical,intent(in) :: experimental_mode
+        logical,intent(out) :: can_use_ham
       end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -2697,7 +2699,7 @@ module module_interfaces
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
-       subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
+       subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
                   orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
@@ -2710,7 +2712,7 @@ module module_interfaces
          real(8),intent(in):: hx, hy, hz
          type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
-         real(8),dimension(nlr),intent(in):: locrad
+         real(8),dimension(nlr),intent(in):: locrad, locrad_kernel
          type(orbitals_data),intent(in):: orbs_KS, orbs
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
@@ -2828,7 +2830,7 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
          logical, intent(in) :: ortho, experimental_mode
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmb%linmat%denskern%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmb%linmat%denskern_large%nvctr),intent(out) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine hpsitopsi_linear
        
@@ -2843,7 +2845,7 @@ module module_interfaces
          real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmbopt%linmat%denskern%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmbopt%linmat%denskern_large%nvctr),intent(out) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine DIISorSD
  
@@ -3299,11 +3301,11 @@ module module_interfaces
           type(p2pComms),intent(out):: comgp
         end subroutine initialize_communication_potential
 
-        subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
+        subroutine local_potential_dimensions(iproc,Lzd,orbs,ndimfirstproc)
           use module_base
           use module_types
           implicit none
-          integer, intent(in) :: ndimfirstproc
+          integer, intent(in) :: iproc, ndimfirstproc
           type(local_zone_descriptors), intent(inout) :: Lzd
           type(orbitals_data), intent(inout) :: orbs
         end subroutine local_potential_dimensions
@@ -3906,8 +3908,9 @@ module module_interfaces
           integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
         end subroutine communication_arrays_repartitionrho
 
-        subroutine foe(iproc, nproc, orbs, foe_obj, &
-                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout, it_scc, order_taylor)
+        subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
+                   ebs, itout, it_scc, order_taylor, &
+                   tmb)
           use module_base
           use module_types
           implicit none
@@ -3915,10 +3918,8 @@ module module_interfaces
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(inout) :: foe_obj
           real(kind=8),intent(inout) :: tmprtr
-          integer,intent(in) :: mode
-          type(sparseMatrix),intent(inout) :: ovrlp, ham
-          type(sparseMatrix),intent(inout) :: fermi
           real(kind=8),intent(out) :: ebs
+          type(DFT_wavefunction),intent(inout) :: tmb
         end subroutine foe
 
         subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
@@ -4030,8 +4031,9 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kernel, ham_compr, &
-                   ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials)
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_compr, &
+                   ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
+                   emergency_stop)
           use module_base
           use module_types
           implicit none
@@ -4039,13 +4041,14 @@ module module_interfaces
           real(8),dimension(npl,3),intent(in) :: cc
           type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(in) :: foe_obj
-          type(sparseMatrix), intent(in) :: sparsemat, kernel
-          real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
+          type(sparseMatrix), intent(in) :: kernel
+          real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
           logical,intent(in) :: calculate_SHS
-          real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
+          real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
           real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
           real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
+          logical,intent(out) :: emergency_stop
         end subroutine chebyshev_clean
 
         subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
@@ -4285,7 +4288,7 @@ module module_interfaces
         end subroutine gramschmidt_subset
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, &
-             orbs, ovrlp_smat, inv_ovrlp_smat)
+             orbs, ovrlp_smat, inv_ovrlp_smat, check_accur)
           use module_base
           use module_types
           implicit none
@@ -4297,6 +4300,7 @@ module module_interfaces
           real(kind=8),intent(out) :: error
           type(orbitals_data), optional, intent(in) :: orbs
           type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+          logical,intent(in),optional :: check_accur
         end subroutine overlapPowerGeneral
 
         subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,orbs)
