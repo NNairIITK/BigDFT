@@ -41,13 +41,19 @@ module dictionaries_base
      type(dictionary), pointer :: previous => null()
   end type dictionary
 
-  !> private type used for contiguous storage of dictionaries
+  !> private types used for contiguous storage of dictionaries
   type :: database_item
+     integer :: item_assigned
      type(dictionary) :: dict
   end type database_item
+  type :: database_book
+     type(database_item), dimension(:), pointer :: folder => null()
+     type(database_book), pointer :: next => null()
+  end type database_book
+
 
   !>database of objects, associated contiguously and used for storage
-  type(database_item), dimension(:), pointer :: database => null()
+  type(database_book), pointer :: database => null()
 
   !> operator to access and create a key in the dictionary
   interface operator(//)
