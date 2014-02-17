@@ -383,9 +383,11 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 !!$        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
 !!$             rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
 !!$             kernel%mpi_env%mpi_comm,ierr)
-         call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
-              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-              kernel%mpi_env%mpi_comm,ierr)
+         call mpiallgatherv(rhopot(istglo), gather_arr(:,1), gather_arr(:,2), &
+              & kernel%mpi_env%iproc, kernel%mpi_env%mpi_comm,ierr)
+!!$         call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
+!!$              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!!$              kernel%mpi_env%mpi_comm,ierr)
          call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
          call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
      
