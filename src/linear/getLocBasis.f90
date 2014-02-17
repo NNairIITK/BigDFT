@@ -2066,10 +2066,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   real(kind=8),dimension(:,:),allocatable :: k, ks, ksk, ksksk, kernel, overlap, overlap_diag, kernel_prime
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
-  real(kind=8) :: dnrm2, diff, ddot, tr_KS, chargediff, chargediff_old
+  real(kind=8) :: dnrm2, diff, ddot, tr_KS, chargediff, chargediff_old, error
   logical :: overlap_associated, inv_ovrlp_associated
   real(kind=8),dimension(2) :: bisec_bounds
   logical,dimension(2) :: bisec_bounds_ok
+  real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
 
   call f_routine(id='purify_kernel')
 
@@ -2119,6 +2120,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   kernel_prime=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   overlap_diag=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
 
+  ovrlp_onehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
+  ovrlp_minusonehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
+
 
 
 
@@ -2126,51 +2130,51 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern_large%matrix, 1)
 
-      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-      !diagonalize overlap matrix
-      ks=tmb%linmat%ovrlp%matrix
-      call dsyev('v', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksksk, k, tmb%orbs%norb**2, istat)
-      if (iproc==0) then
-          do iorb=1,tmb%orbs%norb
-              do jorb=1,tmb%orbs%norb
-                  write(500,*) iorb, jorb, ks(jorb,iorb)
-              end do
-          end do
-      end if
-      overlap_diag=ks
-      !!do iorb=1,tmb%orbs%norb
-      !!    write(300,*) ksksk(iorb,1)
-      !!end do
-      !!call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-      !!           1.d0, ks, tmb%orbs%norb, &
-      !!           tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
-      !!           0.d0, ksksk, tmb%orbs%norb) 
+      !!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !!!diagonalize overlap matrix
+      !!ks=tmb%linmat%ovrlp%matrix
+      !!call dsyev('v', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksksk, k, tmb%orbs%norb**2, istat)
+      !!if (iproc==0) then
+      !!    do iorb=1,tmb%orbs%norb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            write(500,*) iorb, jorb, ks(jorb,iorb)
+      !!        end do
+      !!    end do
+      !!end if
+      !!overlap_diag=ks
+      !!!!do iorb=1,tmb%orbs%norb
+      !!!!    write(300,*) ksksk(iorb,1)
+      !!!!end do
+      !!!!call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!!!           1.d0, ks, tmb%orbs%norb, &
+      !!!!           tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
+      !!!!           0.d0, ksksk, tmb%orbs%norb) 
+      !!!!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!!!           1.d0, ksksk, tmb%orbs%norb, &
+      !!!!           ks, tmb%orbs%norb, &
+      !!!!           0.d0, k, tmb%orbs%norb) 
+      !!!!do iorb=1,tmb%orbs%norb
+      !!!!    do jorb=1,tmb%orbs%norb
+      !!!!        write(200,*) iorb, jorb, k(jorb,iorb)
+      !!!!    end do
+      !!!!end do
       !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!           1.d0, ks, tmb%orbs%norb, &
+      !!           tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
+      !!           0.d0, ksksk, tmb%orbs%norb) 
+      !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
       !!           1.d0, ksksk, tmb%orbs%norb, &
       !!           ks, tmb%orbs%norb, &
       !!           0.d0, k, tmb%orbs%norb) 
-      !!do iorb=1,tmb%orbs%norb
-      !!    do jorb=1,tmb%orbs%norb
-      !!        write(200,*) iorb, jorb, k(jorb,iorb)
+      !!call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
+      !!if (iproc==0) then
+      !!    do iorb=1,tmb%orbs%norb
+      !!        write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
       !!    end do
-      !!end do
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-                 1.d0, ks, tmb%orbs%norb, &
-                 tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
-                 0.d0, ksksk, tmb%orbs%norb) 
-      call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-                 1.d0, ksksk, tmb%orbs%norb, &
-                 ks, tmb%orbs%norb, &
-                 0.d0, k, tmb%orbs%norb) 
-      call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
-      if (iproc==0) then
-          do iorb=1,tmb%orbs%norb
-              write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
-          end do
-      end if
-      !deallocate(overlap_diag)
-      
-      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !!end if
+      !!!deallocate(overlap_diag)
+      !!
+      !!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
@@ -2198,21 +2202,35 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   !call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
   !call vcopy(tmb%orbs%norb**2, tmb%linmat%inv_ovrlp_large%matrix(1,1), 1, overlap_diag(1,1), 1)
   !call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
-  if (iproc==0) then
-      do iorb=1,tmb%orbs%norb
-          do jorb=1,tmb%orbs%norb
-              write(510,*) iorb, jorb, overlap_diag(jorb,iorb)
-          end do
-      end do
-  end if
+!!  if (iproc==0) then
+!!      do iorb=1,tmb%orbs%norb
+!!          do jorb=1,tmb%orbs%norb
+!!              write(510,*) iorb, jorb, overlap_diag(jorb,iorb)
+!!          end do
+!!      end do
+!!  end if
+!!  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+!!             1.d0, overlap_diag, tmb%orbs%norb, &
+!!             tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
+!!             0.d0, ksksk, tmb%orbs%norb) 
+!!  call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+!!             1.d0, ksksk, tmb%orbs%norb, &
+!!             overlap_diag, tmb%orbs%norb, &
+!!             0.d0, kernel_prime, tmb%orbs%norb) 
+
+! ***************** new
+
+  call calculate_overlap_onehalf()
   call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-             1.d0, overlap_diag, tmb%orbs%norb, &
+             1.d0, ovrlp_onehalf, tmb%orbs%norb, &
              tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
              0.d0, ksksk, tmb%orbs%norb) 
-  call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
              1.d0, ksksk, tmb%orbs%norb, &
-             overlap_diag, tmb%orbs%norb, &
+             ovrlp_onehalf, tmb%orbs%norb, &
              0.d0, kernel_prime, tmb%orbs%norb) 
+
+  ! ************** end new
 
   shift=0.d0
   bisec_bounds=0.d0
@@ -2233,14 +2251,21 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
                   end if
               end do
           end do
-          call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-                     1.d0, overlap_diag, tmb%orbs%norb, &
+          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                     1.d0, ovrlp_minusonehalf, tmb%orbs%norb, &
                      k, tmb%orbs%norb, &
                      0.d0, ksksk, tmb%orbs%norb) 
           call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
                      1.d0, ksksk, tmb%orbs%norb, &
-                     overlap_diag, tmb%orbs%norb, &
+                     ovrlp_minusonehalf, tmb%orbs%norb, &
                      0.d0, tmb%linmat%denskern_large%matrix, tmb%orbs%norb) 
+      end if
+
+      call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
+      if (iproc==0) then
+          do iorb=1,tmb%orbs%norb
+              write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
+          end do
       end if
 
       !!! ###############################################
@@ -2415,6 +2440,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call f_free(kernel_prime)
   call f_free(overlap_diag)
 
+  call f_free_ptr(ovrlp_onehalf)
+  call f_free_ptr(ovrlp_minusonehalf)
+
   if (.not.inv_ovrlp_associated) then
       iall = -product(shape(tmb%linmat%inv_ovrlp_large%matrix_compr))*kind(tmb%linmat%inv_ovrlp_large%matrix_compr)
       deallocate(tmb%linmat%inv_ovrlp_large%matrix_compr,stat=istat)
@@ -2463,6 +2491,37 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
 
   call f_release_routine()
+
+
+
+      contains
+
+        subroutine calculate_overlap_onehalf()
+          ! Taylor approximation of S^-1/2 up to higher order
+          !allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+          !call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+          !call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+
+          !allocate(tmb%linmat%inv_ovrlp_large%matrix(orbs%norb,orbs%norb),stat=istat)
+          !call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+
+          call overlapPowerGeneral(iproc, nproc, 10, 2, -1, tmb%orbs%norb, &
+               tmb%linmat%ovrlp%matrix, ovrlp_onehalf, error, tmb%orbs, check_accur=.true.)
+          call overlapPowerGeneral(iproc, nproc, 10, -2, -1, tmb%orbs%norb, &
+               tmb%linmat%ovrlp%matrix, ovrlp_minusonehalf, error, tmb%orbs, check_accur=.true.)
+          if (iproc==0) then
+              call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
+          end if
+          !call compress_matrix_for_allreduce(iproc,tmb%linmat%inv_ovrlp_large)
+
+          !iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix))*kind(tmb%linmat%inv_ovrlp_large%matrix)
+          !deallocate(tmb%linmat%inv_ovrlp_large%matrix,stat=istat)
+          !call memocc(istat,iall,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+
+          !iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+          !deallocate(tmb%linmat%ovrlp%matrix,stat=istat)
+          !call memocc(istat,iall,'tmb%linmat%ovrlp%matrix',subname)
+      end subroutine calculate_overlap_onehalf
 
 end subroutine purify_kernel
 
