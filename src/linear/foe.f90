@@ -767,6 +767,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
 
   end do temp_loop
 
+
   iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix_compr))*kind(tmb%linmat%inv_ovrlp_large%matrix_compr)
   deallocate(tmb%linmat%inv_ovrlp_large%matrix_compr,stat=istat)
   call memocc(istat,iall,'tmb%linmat%inv_ovrlp_large%matrix_compr',subname)

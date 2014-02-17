@@ -2186,12 +2186,14 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       inv_ovrlp_associated=.false.
       allocate(tmb%linmat%inv_ovrlp_large%matrix_compr(tmb%linmat%inv_ovrlp_large%nvctr),stat=istat)
       call memocc(istat,tmb%linmat%inv_ovrlp_large%matrix_compr,'tmb%linmat%inv_ovrlp_large%matrix_compr',subname)
+  else
+      inv_ovrlp_associated=.true.
   end if
-  tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr)
+  !tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr)
   call diagonalize_localized(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large)
   tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
   call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
-  call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
+  !call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
   overlap_diag=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   call vcopy(tmb%orbs%norb**2, tmb%linmat%inv_ovrlp_large%matrix(1,1), 1, overlap_diag(1,1), 1)
   call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
