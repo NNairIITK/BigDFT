@@ -94,7 +94,7 @@ report:
 
 #Binary dependencies
 $(abs_top_builddir)/src/BigDFT2Wannier:
-	cd $(abs_top_builddir)/src && $(MAKE) BigDFT2Wannier;
+	cd $(abs_top_builddir)/src && $(MAKE) BigDFT2Wannier WaCo;
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
 	@name=`basename $@ .memguess.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
