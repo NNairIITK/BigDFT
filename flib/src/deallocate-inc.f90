@@ -21,6 +21,7 @@
 !  if (m%profile) then 
      !address of first element (not needed for deallocation)
      !call getaddress(array,address,len(address),ierr)
+if (track_origins) then
      !address of the metadata 
      call metadata_address(array,iadd)
      address=repeat(' ',len(address))
@@ -50,14 +51,17 @@
           ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
           trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)) return
 
-     call memocc(ierror,-int(ilsize),trim(array_id),trim(routine_id))
-
      if (use_global) then
         !call yaml_dict_dump(dict_global)
         call pop(mems(ictrl)%dict_global,trim(address))
      else
         call pop(mems(ictrl)%dict_routine,trim(address))
      end if
-!  end if
+  else
+     array_id(1:len(array_id))=arrayid
+     routine_id(1:len(routine_id))=routineid
+  end if
+
+  call memocc(ierror,-int(ilsize),trim(array_id),trim(routine_id))
 
   !      call timing(0,'AllocationProf','RS') 

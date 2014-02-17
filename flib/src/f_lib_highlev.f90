@@ -97,14 +97,15 @@ subroutine f_lib_finalize()
   use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_toa
   implicit none
   !local variables
-  integer :: ndict,ndict_max,iproc
+  integer :: ndict,ndict_max,iproc,nlibs,nlibs_max
   call f_malloc_finalize(process_id=iproc)
   !print maximal value of dictionary usage
   if (iproc == 0) then
-     call dict_get_num(ndict,ndict_max)
+     call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
      call yaml_map('Max No. of dictionaries used',ndict_max, advance='no')
      call yaml_comment('( '//trim(yaml_toa(ndict))//' still in use)')
      !general finalization, the f_lib should come back to uninitialized status
+     call yaml_map('Number of dictionary folders allocated',nlibs_max)
   end if
   call yaml_close_all_streams()
   call f_err_finalize()
