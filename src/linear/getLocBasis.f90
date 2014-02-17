@@ -2349,6 +2349,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   end do shift_loop
 
+  if (iproc==0) call yaml_close_sequence
 
   call dscal(tmb%orbs%norb**2, 2.0d0, tmb%linmat%denskern_large%matrix, 1)
 
