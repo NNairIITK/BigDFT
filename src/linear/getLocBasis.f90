@@ -511,7 +511,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       overlap_calculated=.true.
       !tmb%can_use_transposed=.false.
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30)
       if (iproc==0) call yaml_close_map()
   end if
 
@@ -956,7 +956,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   call yaml_map('purify kernel',.true.)
                   call yaml_newline()
               end if
-              call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+              call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30)
           end if
       end if
 
@@ -2047,7 +2047,7 @@ end subroutine estimate_energy_change
 
 
 
-subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
+subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt)
   use module_base
   use module_types
   use yaml_output
@@ -2058,6 +2058,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   integer,intent(in) :: iproc, nproc
   type(DFT_wavefunction),intent(inout):: tmb
   logical,intent(inout):: overlap_calculated
+  integer,intent(in) :: it_shift, it_opt
 
   ! Local variables
   integer :: istat, iall, it, lwork, info, iorb, jorb, ierr, jsegstart, jsegend, jseg, jjorb, iiorb
@@ -2261,12 +2262,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
                      0.d0, tmb%linmat%denskern_large%matrix, tmb%orbs%norb) 
       end if
 
-      call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
-      if (iproc==0) then
-          do iorb=1,tmb%orbs%norb
-              write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
-          end do
-      end if
+      !!call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
+      !!if (iproc==0) then
+      !!    do iorb=1,tmb%orbs%norb
+      !!        write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
+      !!    end do
+      !!end if
 
       !!! ###############################################
       !!!diagonalize overlap matrix

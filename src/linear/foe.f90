@@ -29,7 +29,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   ! Local variables
   integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver, iorb
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge, nsize_polynomial
-  integer :: iismall_ovrlp, iismall_ham
+  integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift
   integer,parameter :: nplx=50000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
@@ -134,8 +134,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
 
   fscale=foe_obj%fscale/0.5d0 ! this will be undone in the first iteration of the following loop
 
+  ntemp=3
 
-  temp_loop: do itemp=1,2
+  temp_loop: do itemp=1,ntemp
 
       
       fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
@@ -738,7 +739,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       end if
       overlap_calculated=.false.
       tmb%can_use_transposed=.false.
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+
+      if (itemp==ntemp) then
+          it_shift=20
+      else
+          it_shift=1
+      end if
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50)
       if (iproc==0) then
           call yaml_close_sequence()
       end if

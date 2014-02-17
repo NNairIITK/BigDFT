@@ -4489,13 +4489,14 @@ module module_interfaces
           integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
-        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
+        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc
           type(DFT_wavefunction),intent(inout):: tmb
           logical,intent(inout):: overlap_calculated
+          integer,intent(in) :: it_shift, it_opt
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
