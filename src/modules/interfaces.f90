@@ -4633,6 +4633,16 @@ module module_interfaces
           type(atoms_data),intent(in) :: at
           real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
         end subroutine pulay_correction_new
+
+        subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(sparseMatrix),intent(in) :: ovrlp
+          type(sparseMatrix),intent(inout) :: inv_ovrlp_half
+        end subroutine diagonalize_localized
   
   end interface
 END MODULE module_interfaces

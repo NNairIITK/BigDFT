@@ -2061,12 +2061,15 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   ! Local variables
   integer :: istat, iall, it, lwork, info, iorb, jorb, ierr, jsegstart, jsegend, jseg, jjorb, iiorb
-  reaL(kind=8) :: trace_sparse, alpha
-  real(kind=8),dimension(:,:),allocatable :: k, ks, ksk, ksksk, kernel, overlap, overlap_diag
+  integer :: ishift
+  real(kind=8) :: trace_sparse, alpha, shift
+  real(kind=8),dimension(:,:),allocatable :: k, ks, ksk, ksksk, kernel, overlap, overlap_diag, kernel_prime
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
   real(kind=8) :: dnrm2, diff, ddot, tr_KS, chargediff, chargediff_old
   logical :: overlap_associated
+  real(kind=8),dimension(2) :: bisec_bounds
+  logical,dimension(2) :: bisec_bounds_ok
 
   call f_routine(id='purify_kernel')
 
@@ -2109,10 +2112,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   call uncompressMatrix(iproc,tmb%linmat%denskern_large)
 
-  !k=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  k=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
   ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  kernel_prime=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
 
 
 
@@ -2121,10 +2125,125 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern_large%matrix, 1)
 
-      !!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !diagonalize overlap matrix
+      ks=tmb%linmat%ovrlp%matrix
+      call dsyev('v', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksksk, k, tmb%orbs%norb**2, istat)
+      if (iproc==0) then
+          do iorb=1,tmb%orbs%norb
+              do jorb=1,tmb%orbs%norb
+                  write(500,*) iorb, jorb, ks(jorb,iorb)
+              end do
+          end do
+      end if
+      !!do iorb=1,tmb%orbs%norb
+      !!    write(300,*) ksksk(iorb,1)
+      !!end do
+      !!call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!           1.d0, ks, tmb%orbs%norb, &
+      !!           tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
+      !!           0.d0, ksksk, tmb%orbs%norb) 
+      !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+      !!           1.d0, ksksk, tmb%orbs%norb, &
+      !!           ks, tmb%orbs%norb, &
+      !!           0.d0, k, tmb%orbs%norb) 
+      !!do iorb=1,tmb%orbs%norb
+      !!    do jorb=1,tmb%orbs%norb
+      !!        write(200,*) iorb, jorb, k(jorb,iorb)
+      !!    end do
+      !!end do
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                 1.d0, ks, tmb%orbs%norb, &
+                 tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
+                 0.d0, ksksk, tmb%orbs%norb) 
+      call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                 1.d0, ksksk, tmb%orbs%norb, &
+                 ks, tmb%orbs%norb, &
+                 0.d0, k, tmb%orbs%norb) 
+      call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
+      if (iproc==0) then
+          do iorb=1,tmb%orbs%norb
+              write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
+          end do
+      end if
+      !deallocate(overlap_diag)
+      
+      ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
+  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+  if (iproc==0) then
+      call yaml_map('tr(KS) before purification',tr_KS)
+      call yaml_newline
+  end if
+
+  if (iproc==0) call yaml_open_sequence('purification process')
+
+  alpha=1.d-4
+  chargediff=0.d0
+  
+  call diagonalize_localized(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large)
+  tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
+  call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
+  overlap_diag=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  call vcopy(tmb%orbs%norb**2, tmb%linmat%inv_ovrlp_large%matrix(1,1), 1, overlap_diag(1,1), 1)
+  call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
+  if (iproc==0) then
+      do iorb=1,tmb%orbs%norb
+          do jorb=1,tmb%orbs%norb
+              write(510,*) iorb, jorb, overlap_diag(jorb,iorb)
+          end do
+      end do
+  end if
+  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+             1.d0, overlap_diag, tmb%orbs%norb, &
+             tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
+             0.d0, ksksk, tmb%orbs%norb) 
+  call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+             1.d0, ksksk, tmb%orbs%norb, &
+             overlap_diag, tmb%orbs%norb, &
+             0.d0, kernel_prime, tmb%orbs%norb) 
+
+  shift=0.d0
+  bisec_bounds=0.d0
+  bisec_bounds_ok=.false.
+
+  shift_loop: do ishift=1,20
+
+  if (iproc==0) call yaml_map('shift of eigenvalues',shift,fmt='(es10.3)')
+
+      ! shift the eigenvalues of the density kernel
+      if (shift/=0.d0) then
+          do iorb=1,tmb%orbs%norb
+              do jorb=1,tmb%orbs%norb
+                  if (jorb==iorb) then
+                      k(jorb,iorb)=kernel_prime(jorb,iorb)+shift
+                  else
+                      k(jorb,iorb)=kernel_prime(jorb,iorb)
+                  end if
+              end do
+          end do
+          call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                     1.d0, overlap_diag, tmb%orbs%norb, &
+                     k, tmb%orbs%norb, &
+                     0.d0, ksksk, tmb%orbs%norb) 
+          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                     1.d0, ksksk, tmb%orbs%norb, &
+                     overlap_diag, tmb%orbs%norb, &
+                     0.d0, tmb%linmat%denskern_large%matrix, tmb%orbs%norb) 
+      end if
+
+      !!! ###############################################
       !!!diagonalize overlap matrix
       !!ks=tmb%linmat%ovrlp%matrix
       !!call dsyev('v', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksksk, k, tmb%orbs%norb**2, istat)
+      !!if (iproc==0) then
+      !!    do iorb=1,tmb%orbs%norb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            write(500,*) iorb, jorb, ks(jorb,iorb)
+      !!        end do
+      !!    end do
+      !!end if
       !!!!do iorb=1,tmb%orbs%norb
       !!!!    write(300,*) ksksk(iorb,1)
       !!!!end do
@@ -2155,103 +2274,123 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       !!        write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
       !!    end do
       !!end if
-      !!!deallocate(overlap_diag)
-      !!
-      !!! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !!! ###############################################
 
 
-  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
-  if (iproc==0) then
-      call yaml_map('tr(KS) before purification',tr_KS)
-      call yaml_newline
-  end if
+      do it=1,20
 
-  if (iproc==0) call yaml_open_sequence('purification process')
-
-  alpha=1.d-4
-  chargediff=0.d0
-
-  do it=1,20
-
-      call to_zero(tmb%orbs%norb**2, ks(1,1))
-      if (tmb%orbs%norbp>0) then
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                     1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
-                     tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-                     0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
-      end if
-      call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      if (tmb%orbs%norbp>0) then
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                     1.d0, ks(1,1), tmb%orbs%norb, &
-                     tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-                     0.d0, ksk(1,1), tmb%orbs%norb)
-      end if
-      if (tmb%orbs%norbp>0) then
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
-                     ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
-      end if
-
-
-      diff=0.d0
-      do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
-          iiorb=iorb-tmb%orbs%isorb
-          jsegstart=tmb%linmat%denskern_large%istsegline(iorb)
-          if (iorb<tmb%orbs%norb) then
-              jsegend=tmb%linmat%denskern_large%istsegline(iorb+1)-1
-          else
-              jsegend=tmb%linmat%denskern_large%nseg
+          call to_zero(tmb%orbs%norb**2, ks(1,1))
+          if (tmb%orbs%norbp>0) then
+              call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+                         1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
+                         tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                         0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
           end if
-          do jseg=jsegstart,jsegend
-              do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
-                  jjorb=jorb-(iorb-1)*tmb%orbs%norb
-                  diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%denskern_large%matrix(jjorb,iorb))**2
+          call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          if (tmb%orbs%norbp>0) then
+              call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+                         1.d0, ks(1,1), tmb%orbs%norb, &
+                         tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                         0.d0, ksk(1,1), tmb%orbs%norb)
+          end if
+          if (tmb%orbs%norbp>0) then
+              call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
+                         ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
+          end if
+
+
+          diff=0.d0
+          do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+              iiorb=iorb-tmb%orbs%isorb
+              jsegstart=tmb%linmat%denskern_large%istsegline(iorb)
+              if (iorb<tmb%orbs%norb) then
+                  jsegend=tmb%linmat%denskern_large%istsegline(iorb+1)-1
+              else
+                  jsegend=tmb%linmat%denskern_large%nseg
+              end if
+              do jseg=jsegstart,jsegend
+                  do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
+                      jjorb=jorb-(iorb-1)*tmb%orbs%norb
+                      diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%denskern_large%matrix(jjorb,iorb))**2
+                  end do
               end do
           end do
-      end do
-      !if (it>1) then
-          call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
-          tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
-          chargediff=2.d0*tr_KS-tmb%foe_obj%charge
-          !!if (abs(chargediff)<1.d0 .or. abs(chargediff)<abs(chargediff_old)) then
-          !!    alpha=2.d0*alpha
-          !!else
-          !!    alpha=alpha*0.5d0
+          !if (it>1) then
+              call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+              tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+              chargediff=2.d0*tr_KS-tmb%foe_obj%charge
+              !!if (abs(chargediff)<1.d0 .or. abs(chargediff)<abs(chargediff_old)) then
+              !!    alpha=2.d0*alpha
+              !!else
+              !!    alpha=alpha*0.5d0
+              !!end if
+              !!alpha=min(alpha,0.5d0)
+              !!alpha=max(alpha,1.0d-4)
           !!end if
-          !!alpha=min(alpha,0.5d0)
-          !!alpha=max(alpha,1.0d-4)
-      !!end if
-      !!chargediff_old=chargediff
+          !!chargediff_old=chargediff
 
-      call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      diff=sqrt(diff)
-      if (iproc==0) then
-          call yaml_newline()
-          call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
-          call yaml_map('iter',it)
-          call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
-          call yaml_map('charge diff',chargediff,fmt='(es10.3)')
-          !call yaml_map('alpha',alpha,fmt='(es8.2)')
-          call yaml_close_map()
+          call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          diff=sqrt(diff)
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_sequence(advance='no')
+              call yaml_open_map(flow=.true.)
+              call yaml_map('iter',it)
+              call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
+              call yaml_map('charge diff',chargediff,fmt='(es10.3)')
+              !call yaml_map('alpha',alpha,fmt='(es8.2)')
+              call yaml_close_map()
+          end if
+
+          !call vcopy(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), 1, k(1,1), 1)
+          call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
+          do iorb=1,tmb%orbs%norbp
+              iiorb=iorb+tmb%orbs%isorb
+              do jorb=1,tmb%orbs%norb
+                  tmb%linmat%denskern_large%matrix(jorb,iiorb) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
+                  !tmb%linmat%denskern_large%matrix(jorb,iiorb) = k(jorb,iorb) - alpha*( 4.d0*ksksk(jorb,iorb) &
+                  !                                                                     -6.d0*ksk(jorb,iorb) &
+                  !                                                                     +2.d0*k(jorb,iorb) )
+              end do
+          end do
+          call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+          if (diff<1.d-10) exit
+
+      end do
+
+      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+      tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+      chargediff=2.d0*tr_KS-tmb%foe_obj%charge
+
+      if (chargediff<1.d-6) exit shift_loop
+
+      if (chargediff>0) then
+          ! make this the new upper bound for the bisection
+          bisec_bounds(2)=shift
+          ! choose new shift, based on whether the lower bound is known or not
+          if (bisec_bounds_ok(1)) then
+              shift=0.5d0*(bisec_bounds(1)+bisec_bounds(2))
+          else
+              shift=bisec_bounds(2)-0.01d0
+          end if
+          bisec_bounds_ok(2)=.true.
+      end if
+      if (chargediff<0) then
+          ! make this the new lower bound for the bisection
+          bisec_bounds(1)=shift
+          ! choose new shift, based on whether the upper bound is known or not
+          if (bisec_bounds_ok(2)) then
+              shift=0.5d0*(bisec_bounds(1)+bisec_bounds(2))
+          else
+              shift=bisec_bounds(1)+0.01d0
+          end if
+          bisec_bounds_ok(1)=.true.
       end if
 
-      !call vcopy(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), 1, k(1,1), 1)
-      call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
-      do iorb=1,tmb%orbs%norbp
-          iiorb=iorb+tmb%orbs%isorb
-          do jorb=1,tmb%orbs%norb
-              tmb%linmat%denskern_large%matrix(jorb,iiorb) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
-              !tmb%linmat%denskern_large%matrix(jorb,iiorb) = k(jorb,iorb) - alpha*( 4.d0*ksksk(jorb,iorb) &
-              !                                                                     -6.d0*ksk(jorb,iorb) &
-              !                                                                     +2.d0*k(jorb,iorb) )
-          end do
-      end do
-      call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-      if (diff<1.d-10) exit
 
-  end do
+  end do shift_loop
 
 
   if (iproc==0) call yaml_close_sequence
@@ -2259,10 +2398,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
 
   call timing(iproc,'purify_kernel ','OF') 
 
-  !call f_free(k)
+  call f_free(k)
   call f_free(ks)
   call f_free(ksk)
   call f_free(ksksk)
+  call f_free(kernel_prime)
 
   !!iall = -product(shape(ks))*kind(ks)
   !!deallocate(ks,stat=istat)
