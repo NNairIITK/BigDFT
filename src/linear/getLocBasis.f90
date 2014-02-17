@@ -2344,12 +2344,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           bisec_bounds_ok(1)=.true.
       end if
 
+      if (iproc==0) call yaml_close_sequence
 
 
   end do shift_loop
 
 
-  if (iproc==0) call yaml_close_sequence
   call dscal(tmb%orbs%norb**2, 2.0d0, tmb%linmat%denskern_large%matrix, 1)
 
   call timing(iproc,'purify_kernel ','OF') 
