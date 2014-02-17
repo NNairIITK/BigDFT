@@ -5,6 +5,12 @@ module module_input_dicts
 
   private
 
+  !parameters to avoid typos in dictionary keys
+  character(len=*), parameter :: ATOMIC_OCC="Atomic occupation"
+
+  ! update a dictionary from a input file
+  public :: merge_input_file_to_dict
+
   ! Main creation routine
   public :: user_dict_from_files
 
@@ -15,6 +21,7 @@ module module_input_dicts
   public :: psp_set_from_dict, nlcc_set_from_dict
   public :: astruct_set_from_dict
   public :: atomic_data_set_from_dict
+  public :: occupation_set_from_dict
 
   ! Types to dictionaries
   public :: psp_data_merge_to_dict
@@ -25,8 +32,80 @@ module module_input_dicts
   public :: atoms_file_merge_to_dict
   public :: astruct_file_merge_to_dict
   public :: atomic_data_file_merge_to_dict
+  public :: occupation_data_file_merge_to_dict
 
 contains
+
+  !> logical function, true if file is existing (basically a fortran inquire)
+  function file_exists(filename) result(exists)
+    use module_base, only: f_err_raise
+    use yaml_output, only: yaml_toa
+    implicit none
+    character(len=*), intent(in) :: filename
+    logical :: exists
+    !local variables
+    integer :: ierr
+    inquire(file = filename, exist = exists,iostat=ierr)
+    if (f_err_raise(ierr /=0,'Error in unit inquiring for filename '//&
+         trim(filename)//', ierr='//trim(yaml_toa(ierr)),&
+         err_name='BIGDFT_RUNTIME_ERROR')) then
+       exists=.false.
+       return
+    end if
+  end function file_exists
+
+  !> Routine to read YAML input files and create input dictionary.
+  !! Update the input dictionary with the result of yaml_parse
+  subroutine merge_input_file_to_dict(dict, fname, mpi_env)
+    use module_base
+    !use yaml_output, only :yaml_map
+    use dictionaries
+    use yaml_parse, only: yaml_parse_from_char_array
+    implicit none
+    type(dictionary), pointer :: dict !<dictionary of the input files. Should be initialized on entry
+    character(len = *), intent(in) :: fname !<name of the file where the dictionaryt has to be read from 
+    type(mpi_environment), intent(in) :: mpi_env !<environment of the reading. Used for broadcasting the result
+    !local variables
+    integer(kind = 8) :: cbuf, cbuf_len
+    integer :: ierr
+    character(len = max_field_length) :: val
+    character, dimension(:), allocatable :: fbuf
+    type(dictionary), pointer :: udict
+
+    call f_routine(id='merge_input_file_to_dict')
+    if (mpi_env%iproc == 0) then
+       call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
+       if (mpi_env%nproc > 1) &
+            & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
+    else
+       call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
+    end if
+    fbuf=f_malloc_str(1,int(cbuf_len),id='fbuf')
+
+    if (mpi_env%iproc == 0) then
+       call copyCBuffer(fbuf(1), cbuf, cbuf_len)
+       call freeCBuffer(cbuf)
+       if (mpi_env%nproc > 1) &
+            & call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+    else
+       call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+    end if
+
+    call f_err_open_try()
+    call yaml_parse_from_char_array(udict, fbuf)
+    ! Handle with possible partial dictionary.
+    call f_free_str(1,fbuf)
+    call dict_update(dict, udict // 0)
+    call dict_free(udict)
+    ierr = 0
+    if (f_err_check()) ierr = f_get_last_error(val)
+    call f_err_close_try()
+    !in the present implementation f_err_check is not cleaned after the close of the try
+    if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
+    call f_release_routine()
+
+  end subroutine merge_input_file_to_dict
+
 
   subroutine user_dict_from_files(dict,radical,posinp, mpi_env)
     use dictionaries
@@ -41,6 +120,8 @@ contains
     character(len = max_field_length) :: str
 
     nullify(dict)
+
+
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
@@ -57,20 +138,38 @@ contains
     ! Add old psppar
     call atoms_file_merge_to_dict(dict)
 
-    if (.not. has_key(dict, "Atomic occupation")) then
+    !when the user has not specified the occupation in the input file
+    if (.not. has_key(dict, ATOMIC_OCC)) then
        ! Add old input.occup
-       call atomic_data_file_merge_to_dict(dict, "Atomic occupation", &
-            & trim(radical) // ".occup")
-    else
-       str = dict_value(dict // "Atomic occupation")
+       !call atomic_data_file_merge_to_dict(dict, ATOMIC_OCC, &
+       !     & trim(radical) // ".occup")
+       !yaml format should be used even for old method
+       if (file_exists(trim(radical)//".occup")) &
+            call merge_input_file_to_dict(dict//ATOMIC_OCC,trim(radical)//".occup",mpi_env)
+    else !otherwise the input file always supersedes
+       str = dict_value(dict // ATOMIC_OCC)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
-          call atomic_data_file_merge_to_dict(dict, "Atomic occupation", trim(str))
+          !call atomic_data_file_merge_to_dict(dict, ATOMIC_OCC, trim(str))
+          if (file_exists(trim(str))) &
+               call merge_input_file_to_dict(dict//ATOMIC_OCC,trim(str),mpi_env)
+       end if
+    end if
+
+    if (.not. has_key(dict, "occupation")) then
+       ! Add old input.occ
+       call occupation_data_file_merge_to_dict(dict, "occupation", &
+            & trim(radical) // ".occ")
+    else
+       str = dict_value(dict // "occupation")
+       if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+          call occupation_data_file_merge_to_dict(dict, "occupation", trim(str))
        end if
     end if
   end subroutine user_dict_from_files
 
   subroutine psp_dict_fill_all(dict, atomname, run_ixc)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
+    use ao_inguess, only: atomic_info
     use dictionaries
     use dynamic_memory
     implicit none
@@ -83,12 +182,12 @@ contains
     logical :: exists
     integer :: nzatom, nelpsp, npspcode
     real(gp) :: psppar(0:4,0:6)
-    integer, parameter :: nmax=6,lmax=4
+!    integer, parameter :: nmax=6,lmax=4
     !integer, parameter :: nelecmax=32
-    character(len=2) :: symbol
-    integer :: i,mxpl,mxchg,nsccode
-    real(gp) :: rcov,rprb,ehomo,radfine,amu,rad
-    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+!    character(len=2) :: symbol
+    integer :: i!,mxpl,mxchg,nsccode
+    real(gp) :: ehomo,radfine,rad!,amu,rcov,rprb
+!    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
     type(dictionary), pointer :: radii
     real(gp), dimension(3) :: radii_cf
     character(len = max_field_length) :: source
@@ -131,8 +230,9 @@ contains
     if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
        !see whether the atom is semicore or not
        !and consider the ground state electronic configuration
-       call eleconf(nzatom, nelpsp,symbol,rcov,rprb,ehomo,&
-            neleconf,nsccode,mxpl,mxchg,amu)
+       call atomic_info(nzatom,nelpsp,ehomo=ehomo)
+       !call eleconf(nzatom, nelpsp,symbol,rcov,rprb,ehomo,&
+       !     neleconf,nsccode,mxpl,mxchg,amu)
 
        !assigning the radii by calculating physical parameters
        radii_cf(1)=1._gp/sqrt(abs(2._gp*ehomo))
@@ -450,8 +550,8 @@ contains
     if (any(radii_cf /= UNINITIALIZED(1._gp))) then
        call dict_init(radii)
        if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse", radii_cf(1))
-       if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Fine", radii_cf(2))
-       if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse PSP", radii_cf(3))
+       if (radii_cf(2) /= UNINITIALIZED(1._gp)) call set(radii // "Fine", radii_cf(2))
+       if (radii_cf(3) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse PSP", radii_cf(3))
        call set(dict // "Radii of active regions (AU)", radii)
     end if
   end subroutine psp_data_merge_to_dict
@@ -695,7 +795,7 @@ contains
     character(len = 1024), intent(out), optional :: comment
 
     !local variables
-    character(len=*), parameter :: subname='read_dict_positions'
+    character(len=*), parameter :: subname='astruct_set_from_dict'
     type(dictionary), pointer :: pos, at
     character(len = max_field_length) :: str
     integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
@@ -860,98 +960,98 @@ contains
     end if
   end subroutine astruct_file_merge_to_dict
 
-  subroutine aocc_from_dict(dict,nspin,nspinor,nelecmax,lmax,nmax,aocc,nsccode)
-    use module_defs, only: gp, UNINITIALIZED
-    use dictionaries
-    implicit none
-    type(dictionary), pointer :: dict
-    integer, intent(in) :: nelecmax,lmax,nmax,nspinor,nspin
-    integer, intent(out) :: nsccode
-    real(gp), dimension(nelecmax), intent(out) :: aocc
-
-    !local variables
-    character(len = max_field_length) :: key
-    character(max_field_length), dimension(:), allocatable :: keys
-    integer :: i, ln
-    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc
-    integer, dimension(lmax) :: nl,nlsc
-    real(gp), dimension(2*(2*lmax-1),nmax,lmax) :: allocc
-
-    nl(:)=0
-    nlsc(:)=0
-    allocc(:,:,:) = UNINITIALIZED(1._gp)
-
-    !if non-collinear it is like nspin=1 but with the double of orbitals
-    if (nspinor == 4) then
-       noncoll=2
-    else
-       noncoll=1
-    end if
-
-    allocate(keys(dict_size(dict)))
-    keys = dict_keys(dict)
-    do i = 1, dict_size(dict), 1
-       key = keys(i)
-       ln = len_trim(key)
-       is = 1
-       if (key(1:1) == "(" .and. key(ln:ln) == ")") is = 2
-       ! Read the major quantum number
-       read(key(is:is), "(I1)") n
-       is = is + 1
-       ! Read the channel
-       select case(key(is:is))
-       case('s')
-          l=1
-       case('p')
-          l=2
-       case('d')
-          l=3
-       case('f')
-          l=4
-       case default
-          stop "wrong channel"
-       end select
-       nl(l) = nl(l) + 1
-       if (is == 3) nlsc(l) = nlsc(l) + 1
-       if (nlsc(l) > 2) stop 'cannot admit more than two semicore orbitals per channel'
-
-       !read the different atomic occupation numbers
-       if (dict_len(dict // key) /= nspin*noncoll*(2*l-1)) then
-          write(*,*) "Awaited: ", nspin*noncoll*(2*l-1), nspin, noncoll, l
-          write(*,*) "provided", dict_len(dict // key)
-          stop 'Not enough aocc'
-       end if
-       do m = 1, nspin*noncoll*(2*l-1), 1
-          allocc(m, n, l) = dict // key // (m - 1)
-       end do
-    end do
-    deallocate(keys)
-
-    !put the values in the aocc array
-    aocc(:)=0.0_gp
-    iocc=0
-    do l=1,lmax
-       iocc=iocc+1
-       aocc(iocc)=real(nl(l),gp)
-       do inl=1,nmax
-          if (allocc(1, inl, l) == UNINITIALIZED(1._gp)) cycle
-          do ispin=1,nspin
-             do m=1,2*l-1
-                do icoll=1,noncoll !non-trivial only for nspinor=4
-                   iocc=iocc+1
-                   aocc(iocc)=allocc(icoll+(m-1)*noncoll+(ispin-1)*(2*l-1)*noncoll,inl,l)
-                end do
-             end do
-          end do
-       end do
-    end do
-
-    !then calculate the nsccode
-    nsccode=0
-    do lsc=1,lmax
-       nsccode=nsccode+nlsc(lsc) * (4**(lsc-1))
-    end do
-  end subroutine aocc_from_dict
+!!$  subroutine aocc_from_dict(dict,nspin,nspinor,nelecmax,lmax,nmax,aocc,nsccode)
+!!$    use module_defs, only: gp, UNINITIALIZED
+!!$    use dictionaries
+!!$    implicit none
+!!$    type(dictionary), pointer :: dict
+!!$    integer, intent(in) :: nelecmax,lmax,nmax,nspinor,nspin
+!!$    integer, intent(out) :: nsccode
+!!$    real(gp), dimension(nelecmax), intent(out) :: aocc
+!!$
+!!$    !local variables
+!!$    character(len = max_field_length) :: key
+!!$    character(max_field_length), dimension(:), allocatable :: keys
+!!$    integer :: i, ln
+!!$    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc
+!!$    integer, dimension(lmax) :: nl,nlsc
+!!$    real(gp), dimension(2*(2*lmax-1),nmax,lmax) :: allocc
+!!$
+!!$    nl(:)=0
+!!$    nlsc(:)=0
+!!$    allocc(:,:,:) = UNINITIALIZED(1._gp)
+!!$
+!!$    !if non-collinear it is like nspin=1 but with the double of orbitals
+!!$    if (nspinor == 4) then
+!!$       noncoll=2
+!!$    else
+!!$       noncoll=1
+!!$    end if
+!!$
+!!$    allocate(keys(dict_size(dict)))
+!!$    keys = dict_keys(dict)
+!!$    do i = 1, dict_size(dict), 1
+!!$       key = keys(i)
+!!$       ln = len_trim(key)
+!!$       is = 1
+!!$       if (key(1:1) == "(" .and. key(ln:ln) == ")") is = 2
+!!$       ! Read the major quantum number
+!!$       read(key(is:is), "(I1)") n
+!!$       is = is + 1
+!!$       ! Read the channel
+!!$       select case(key(is:is))
+!!$       case('s')
+!!$          l=1
+!!$       case('p')
+!!$          l=2
+!!$       case('d')
+!!$          l=3
+!!$       case('f')
+!!$          l=4
+!!$       case default
+!!$          stop "wrong channel"
+!!$       end select
+!!$       nl(l) = nl(l) + 1
+!!$       if (is == 3) nlsc(l) = nlsc(l) + 1
+!!$       if (nlsc(l) > 2) stop 'cannot admit more than two semicore orbitals per channel'
+!!$
+!!$       !read the different atomic occupation numbers
+!!$       if (dict_len(dict // key) /= nspin*noncoll*(2*l-1)) then
+!!$          write(*,*) "Awaited: ", nspin*noncoll*(2*l-1), nspin, noncoll, l
+!!$          write(*,*) "provided", dict_len(dict // key)
+!!$          stop 'Not enough aocc'
+!!$       end if
+!!$       do m = 1, nspin*noncoll*(2*l-1), 1
+!!$          allocc(m, n, l) = dict // key // (m - 1)
+!!$       end do
+!!$    end do
+!!$    deallocate(keys)
+!!$
+!!$    !put the values in the aocc array
+!!$    aocc(:)=0.0_gp
+!!$    iocc=0
+!!$    do l=1,lmax
+!!$       iocc=iocc+1
+!!$       aocc(iocc)=real(nl(l),gp)
+!!$       do inl=1,nmax
+!!$          if (allocc(1, inl, l) == UNINITIALIZED(1._gp)) cycle
+!!$          do ispin=1,nspin
+!!$             do m=1,2*l-1
+!!$                do icoll=1,noncoll !non-trivial only for nspinor=4
+!!$                   iocc=iocc+1
+!!$                   aocc(iocc)=allocc(icoll+(m-1)*noncoll+(ispin-1)*(2*l-1)*noncoll,inl,l)
+!!$                end do
+!!$             end do
+!!$          end do
+!!$       end do
+!!$    end do
+!!$
+!!$    !then calculate the nsccode
+!!$    nsccode=0
+!!$    do lsc=1,lmax
+!!$       nsccode=nsccode+nlsc(lsc) * (4**(lsc-1))
+!!$    end do
+!!$  end subroutine aocc_from_dict
 
   subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
     use module_defs, only: gp
@@ -996,10 +1096,11 @@ contains
 
   subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
     use module_defs, only: gp
+    use ao_inguess, only: ao_ig_charge,atomic_info,aocc_from_dict,print_eleconf,atomic_configuration
     use module_types, only: atoms_data
     use dictionaries
-    use dynamic_memory
-    use yaml_output
+!    use dynamic_memory
+    use yaml_output, only: yaml_warning, yaml_toa
     implicit none
     type(dictionary), pointer :: dict
     type(atoms_data), intent(inout) :: atoms
@@ -1008,114 +1109,49 @@ contains
 
     integer :: iat, ityp, nsccode, mxpl, mxchg, nsp, nspinor
     integer :: ichg, ispol, icoll, iocc, ispin, l, inl, m, nl, noncoll
-    integer, parameter :: nelecmax=32,nmax=6,lmax=4
-    character(len=2) :: symbol
-    real(gp) :: rcov,rprb,ehomo,elec
-    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+    real(gp) :: rcov,elec!,rprb,ehomo,elec
     character(len = max_field_length) :: at
-    real(gp), dimension(nmax,lmax) :: eleconf_
-
-    !control the spin
-    select case(nspin)
-    case(1)
-       nsp=1
-       nspinor=1
-       noncoll=1
-    case(2)
-       nsp=2
-       nspinor=1
-       noncoll=1
-    case(4)
-       nsp=1
-       nspinor=4
-       noncoll=2
-    case default
-       call yaml_warning('nspin not valid. Value=' // trim(yaml_toa(nspin)))
-       !write(*,*)' ERROR: nspin not valid:',nspin
-       stop
-    end select
+    type(dictionary), pointer :: dict_tmp
 
     do ityp = 1, atoms%astruct%ntypes, 1
-       call eleconf(atoms%nzatom(ityp), atoms%nelpsp(ityp), symbol,rcov,rprb,ehomo,&
-            neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
-       !define the localization radius for the Linear input guess
+       !only amu and rcov are needed here
+       call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
+            amu=atoms%amu(ityp),rcov=rcov)
        atoms%rloc(ityp,:) = rcov * 10.0
 
        do iat = 1, atoms%astruct%nat, 1
           if (atoms%astruct%iatype(iat) /= ityp) cycle
 
-          ! Some checks from input values.
-          call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
-          if (abs(ispol) > mxpl+abs(ichg)) then
-             !if (iproc ==0) 
-             write(*,'(1x,a,i0,a,a,2(a,i0))')&
-                  'ERROR: Input polarisation of atom No.',iat,&
-                  ' (',trim(atoms%astruct%atomnames(ityp)),') must be <=',mxpl,&
-                  ', while found ',ispol
-             stop 
-          end if
-          if (abs(ichg) > mxchg) then
-             !if (iproc ==0) 
-             write(*,'(1x,a,i0,a,a,2(a,i0))')&
-                  'ERROR: Input charge of atom No.',iat,&
-                  ' (',trim(atoms%astruct%atomnames(ityp)),') must be <=',mxchg,&
-                  ', while found ',ichg
-             stop
-          end if
+          !fill the atomic IG configuration from the input_polarization
+          call atomic_configuration(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
+               atoms%astruct%input_polarization(iat),nspin,&
+               atoms%iasctype(iat),atoms%aocc(1:,iat))
 
-          ! Fill this atom with default values from eleconf.
-          atoms%iasctype(iat)=nsccode
-          !correct the electronic configuration in case there is a charge
-          !if (ichg /=0) then
-          call correct_semicore(nmax,lmax-1,ichg,&
-               neleconf,eleconf_,atoms%iasctype(iat))
-          !end if
-          call at_occnums(ispol,nsp,nspinor,nmax,lmax,nelecmax,&
-               eleconf_,atoms%aocc(1,iat))
-
-          ! Possible overwrite.
+          ! Possible overwrite, if the dictionary has the item
           if (has_key(dict, key)) then
-             write(at, "(A,I0)") "Atom ", iat
-             if (has_key(dict // key, at)) then
-                ! Case with an atom specific aocc
-                call aocc_from_dict(dict // key // at, &
-                     & nsp, nspinor, nelecmax, lmax, nmax, &
-                     & atoms%aocc(:,iat), atoms%iasctype(iat))
-             else if (has_key(dict // key, trim(atoms%astruct%atomnames(ityp)))) then
-                ! Case with a element specific aocc
-                call aocc_from_dict(dict // key // trim(atoms%astruct%atomnames(ityp)), &
-                     & nsp, nspinor, nelecmax, lmax, nmax, &
-                     & atoms%aocc(:,iat), atoms%iasctype(iat))
+             nullify(dict_tmp)
+             at(1:len(at))="Atom "//trim(adjustl(yaml_toa(iat)))
+             if (has_key(dict // key,trim(at))) &
+                  dict_tmp=>dict//key//trim(at)
+             if (has_key(dict // key, trim(atoms%astruct%atomnames(ityp)))) &
+                  dict_tmp=>dict // key // trim(atoms%astruct%atomnames(ityp))
+             if (associated(dict_tmp)) then
+                call aocc_from_dict(dict_tmp,nspin,atoms%aocc(:,iat),atoms%iasctype(iat))
+
+                !check the total number of electrons
+                elec=ao_ig_charge(nspin,atoms%aocc(1:,iat))
+                if (nint(elec) /= atoms%nelpsp(ityp)) then
+                   call print_eleconf(nspin,atoms%aocc(1:,iat),atoms%iasctype(iat))
+                   call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
+                        ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
+                end if
              end if
           end if
-
-          !check the total number of electrons
-          elec=0.0_gp
-          iocc=0
-          do l=1,lmax
-             iocc=iocc+1
-             nl=nint(atoms%aocc(iocc,iat))
-             do inl=1,nl
-                do ispin=1,nsp
-                   do m=1,2*l-1
-                      do icoll=1,noncoll !non-trivial only for nspinor=4
-                         iocc=iocc+1
-                         elec=elec+atoms%aocc(iocc,iat)
-                      end do
-                   end do
-                end do
-             end do
-          end do
-          if (nint(elec) /= atoms%nelpsp(ityp) - ichg) then
-             call print_eleconf(nsp,nspinor,2,nelecmax,lmax,atoms%aocc(1,iat),atoms%iasctype(iat))
-             write(*,*)'ERROR: the total atomic charge ',elec,&
-                  ' is different from the PSP charge ',atoms%nelpsp(ityp),&
-                  ' plus the charge ',-ichg
-             stop
-          end if
        end do
+
     end do
 
+    !number of atoms with semicore channels
     atoms%natsc = 0
     do iat=1,atoms%astruct%nat
        if (atoms%iasctype(iat) /= 0) atoms%natsc=atoms%natsc+1
@@ -1143,10 +1179,8 @@ contains
 
     open(unit=91,file=filename,status='old',iostat=ierror)
     !Check the open statement
-    if (ierror /= 0) then
-       call yaml_warning('Failed to open the existing file '// trim(filename))
-       stop
-    end if
+    if (f_err_raise(ierror /= 0,'Failed to open the existing file '// trim(filename),&
+         err_name='BIGDFT_RUNTIME_ERROR')) return
 
     parse_inocc: do
        read(91,'(a1024)',iostat=ierror)string
@@ -1163,5 +1197,273 @@ contains
     close(unit = 91)
 
   end subroutine atomic_data_file_merge_to_dict
+
+  subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
+       & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
+    use module_defs, only: gp
+    use dictionaries
+    use dynamic_memory
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(in) :: key
+    real(gp), dimension(:), pointer :: occup
+    integer, intent(in) :: nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max
+    integer, intent(out) :: norbu, norbd
+
+    integer :: norb
+    integer :: ikpt
+    type(dictionary), pointer :: occup_src
+    character(len = 12) :: kpt_key
+
+    ! Default case.
+    if (nspin == 1) then
+       norb  = min((nelec_up + 1) / 2, norb_max)
+       norbu = norb
+    else
+       norb = min(nelec_up + nelec_down, 2 * norb_max)
+       if (nspin == 2) then
+          norbu = min(nelec_up, norb_max)
+       else
+          norbu = min(nelec_up, 2 * norb_max)
+       end if
+    end if
+    norbd = norb - norbu
+!!$    write(*,*) nelec_up, nelec_down, norbsempty, norb_max
+!!$    write(*,*) norbu, norbd, norb
+!!$    stop
+    ! Modify the default with occupation
+    nullify(occup_src)
+    if (has_key(dict, key)) then
+       occup_src => dict //key
+       ! Occupation is provided.
+       if (has_key(occup_src, "K point 1")) then
+          call count_for_kpt(occup_src // "K point 1")
+       else if (nkpts == 1) then
+          call count_for_kpt(occup_src)
+       end if
+       do ikpt = 2, nkpts, 1
+          write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
+          if (has_key(occup_src, kpt_key)) call count_for_kpt(occup_src // kpt_key)
+       end do
+    else if (norbsempty > 0) then
+       !value of empty orbitals up and down, needed to fill occupation numbers
+       if (nspin == 4 .or. nspin == 1) then
+          norbu = norbu + min(norbsempty, norb_max - norbu)
+       else if (nspin == 2) then
+          norbu = norbu + min(norbsempty, norb_max - norbu)
+          norbd = norbd + min(norbsempty, norb_max - norbd)
+       end if
+    end if
+
+    ! Summarize and check.
+    norb = norbu + norbd
+    if (((nspin == 1 .or. nspin == 2) .and. (norbu > norb_max .or. norbd > norb_max)) &
+         & .or. (nspin == 4 .and. (norbu > 2 * norb_max .or. norbd > 0))) then
+       call yaml_warning('Total number of orbitals (found ' // trim(yaml_toa(norb)) &
+            & // ') exceeds the available input guess orbitals (being ' &
+            & // trim(yaml_toa(norb_max)) // ').')
+       stop
+    end if
+
+    ! Allocate occupation accordingly.
+    occup = f_malloc_ptr(norb * nkpts, id = "occup", routine_id = "occupation_set_from_dict")
+    ! Setup occupation
+    if (nspin==1) then
+       do ikpt = 1, nkpts, 1
+          call fill_default((ikpt - 1) * norb, 2, nelec_up, norb)
+          if (associated(occup_src)) then
+             write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
+             if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
+                call fill_for_kpt((ikpt - 1) * norb, occup_src)
+             else
+                call fill_for_kpt((ikpt - 1) * norb, occup_src // kpt_key)
+             end if
+          end if
+       end do
+    else
+       do ikpt = 0, nkpts - 1, 1
+          call fill_default(ikpt * norb, 1, nelec_up, norbu)
+          call fill_default(ikpt * norb + norbu, 1, nelec_down, norbd)
+          if (associated(occup_src)) then
+             write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
+             if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
+                call fill_for_kpt((ikpt - 1) * norb, occup_src // "up")
+                call fill_for_kpt((ikpt - 1) * norb + norbu, occup_src // "down")
+             else
+                call fill_for_kpt((ikpt - 1) * norb, occup_src // kpt_key // "up")
+                call fill_for_kpt((ikpt - 1) * norb + norbu, occup_src // kpt_key // "down")
+             end if
+          end if
+       end do
+    end if
+
+    !Check if sum(occup)=nelec
+    if (abs(sum(occup) / nkpts - real(nelec_up + nelec_down,gp))>1.e-6_gp) then
+       call yaml_warning('the total number of electrons ' &
+            & // trim(yaml_toa(sum(occup) / nkpts,fmt='(f13.6)')) &
+            & // ' is not equal to' // trim(yaml_toa(nelec_up + nelec_down)))
+       stop
+    end if
+
+  contains
+
+    subroutine count_for_kpt(occ)
+      implicit none
+      type(dictionary), pointer :: occ
+      
+      if (nspin == 2) then
+         if (.not. has_key(occ, "up") .or. &
+              & .not. has_key(occ, "down")) stop "missing up or down"
+         call count_orbs(norbu, occ // "up")
+         call count_orbs(norbd, occ // "down")
+      else
+         call count_orbs(norbu, occ)
+      end if
+    end subroutine count_for_kpt
+
+    subroutine count_orbs(n, occ)
+      implicit none
+      type(dictionary), pointer :: occ
+      integer, intent(inout) :: n
+      
+      type(dictionary), pointer :: it
+      character(len = max_field_length) :: key
+      integer :: iorb
+
+      it => dict_iter(occ)
+      do while(associated(it))
+         key = dict_key(it)
+         read(key(index(key, " ") + 1:), *) iorb
+         n = max(n, iorb)
+         it => dict_next(it)
+      end do
+    end subroutine count_orbs
+
+    subroutine fill_default(isorb, nfill, nelec, norb)
+      implicit none
+      integer, intent(in) :: isorb, nfill, nelec, norb
+
+      integer :: nt, it, iorb, ne
+
+      nt=0
+      ne = (nelec + 1) / nfill
+      do iorb=isorb + 1, isorb + min(ne, norb)
+         it=min(nfill,nelec-nt)
+         occup(iorb)=real(it,gp)
+         nt=nt+it
+      enddo
+      do iorb=isorb+min(ne, norb)+1,isorb+norb
+         occup(iorb)=0._gp
+      end do
+    end subroutine fill_default
+
+    subroutine fill_for_kpt(isorb, occ)
+      implicit none
+      integer, intent(in) :: isorb
+      type(dictionary), pointer :: occ
+
+      type(dictionary), pointer :: it
+      character(len = max_field_length) :: key
+      integer :: iorb
+
+      it => dict_iter(occ)
+      do while(associated(it))
+         key = dict_key(it)
+         read(key(index(key, " ") + 1:), *) iorb
+         occup(isorb + iorb) = it
+         it => dict_next(it)
+      end do
+    end subroutine fill_for_kpt
+  end subroutine occupation_set_from_dict
+
+  subroutine occupation_data_file_merge_to_dict(dict, key, filename)
+    use module_defs, only: gp, UNINITIALIZED
+    use dictionaries
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(in) :: filename, key
+
+    logical :: exists
+    integer :: ierror, ntu, ntd, nt, i, iorb
+    character(len = 100) :: line, string
+    type(dictionary), pointer :: valu, vald
+    
+    inquire(file = filename, exist = exists)
+    if (.not. exists) return
+
+    open(unit=91,file=filename,status='old',iostat=ierror)
+    !Check the open statement
+    if (ierror /= 0) then
+       call yaml_warning('Failed to open the existing file '// trim(filename))
+       stop
+    end if
+
+    !The first line gives the number of orbitals
+    read(unit=91,fmt='(a100)') line
+
+    read(line,fmt=*,iostat=ierror) ntu, ntd
+    if (ierror /= 0) then
+       !The first line gives the number of orbitals
+       ntd = 0
+       read(line,fmt=*,iostat=ierror) ntu
+       if (ierror /=0) stop 'ERROR: reading the number of orbitals.'
+    end if
+
+    call dict_init(valu)
+    if (ntd > 0) call dict_init(vald)
+
+    nt = 1
+    do
+       read(unit=91,fmt='(a100)',iostat=ierror) line
+       if (ierror /= 0) then
+          exit
+       end if
+       !Transform the line in case there are slashes (to ease the parsing)
+       do i=1,len(line)
+          if (line(i:i) == '/') then
+             line(i:i) = ':'
+          end if
+       end do
+       read(line,*,iostat=ierror) iorb,string
+       if (ierror /= 0) then
+          exit
+       end if
+       !Transform back the ':' into '/'
+       do i=1,len(string)
+          if (string(i:i) == ':') then
+             string(i:i) = '/'
+          end if
+       end do
+       nt=nt+1
+
+       if (iorb<0 .or. iorb>ntu + ntd) then
+          !if (iproc==0) then
+          write(*,'(1x,a,i0,a)') 'ERROR in line ',nt,' of the file "[name].occ"'
+          write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
+          !end if
+          stop
+       else
+          if (iorb <= ntu) then
+             call set(valu // ("Orbital" // trim(yaml_toa(iorb, fmt = "(I0)"))), string)
+          else
+             call set(vald // ("Orbital" // trim(yaml_toa(iorb, fmt = "(I0)"))), string)
+          end if
+       end if
+    end do
+
+    close(unit = 91)
+
+    if (ntd > 0) then
+       call set(dict // key // "K point 1" // "up", valu)
+       call set(dict // key // "K point 1" // "down", vald)
+    else
+       call set(dict // key // "K point 1", valu)
+    end if
+
+    call set(dict // key // "Source", filename)
+
+  end subroutine occupation_data_file_merge_to_dict
 
 end module module_input_dicts

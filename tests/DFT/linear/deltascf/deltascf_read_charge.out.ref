@@ -1,7 +1,4 @@
  <BigDFT> log of the run will be written in logfile: ./log-read_charge.yaml
-Error, Wahba's cost function is too big    4.53054703E-01    9.99999982E+00
-Error, Wahba's cost function is too big    4.53054703E-01    9.99999982E+00
-Error, Wahba's cost function is too big    4.53054703E-01    9.99999982E+00
 Error, Wahba's cost function is too big    2.68623883E-01    1.00000069E+01
 Error, Wahba's cost function is too big    2.64649011E-01    1.00000092E+01
 Error, Wahba's cost function is too big    2.72200127E-01    1.00000055E+01
@@ -30,6 +27,9 @@ Error, Wahba's cost function is too big    2.45632189E-01    9.99999945E+00
 Error, Wahba's cost function is too big    2.45632189E-01    9.99999945E+00
 Error, Wahba's cost function is too big    2.45632189E-01    9.99999945E+00
 Error, Wahba's cost function is too big    2.45632189E-01    9.99999945E+00
+Error, Wahba's cost function is too big    4.53054703E-01    9.99999982E+00
+Error, Wahba's cost function is too big    4.53054703E-01    9.99999982E+00
+Error, Wahba's cost function is too big    4.53054703E-01    9.99999982E+00
 Error, Wahba's cost function is too big    4.53054703E-01    9.99999982E+00
 Error, Wahba's cost function is too big    2.45632127E-01    9.99999970E+00
 Error, Wahba's cost function is too big    2.45632127E-01    9.99999970E+00

@@ -14,7 +14,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
   use wrapper_MPI
   use module_input_keys
-  use module_interfaces, only: merge_input_file_to_dict
+  use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
   use yaml_output
   implicit none
@@ -87,59 +87,6 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   call f_release_routine()
 end subroutine read_input_dict_from_files
 
-!> Routine to read YAML input files and create input dictionary.
-subroutine merge_input_file_to_dict(dict, fname, mpi_env)
-  use module_base
-  use module_input_keys
-  use dictionaries
-  use yaml_parse
-  use wrapper_MPI
-  implicit none
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
-  type(mpi_environment), intent(in) :: mpi_env
-
-  integer(kind = 8) :: cbuf, cbuf_len
-  integer :: ierr
-  character(len = max_field_length) :: val
-  character, dimension(:), allocatable :: fbuf
-  type(dictionary), pointer :: udict
-  
-  call f_routine(id='merge_input_file_to_dict')
-  if (mpi_env%iproc == 0) then
-     call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
-     if (mpi_env%nproc > 1) &
-          & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-  else
-     call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-  end if
-  fbuf=f_malloc_str(1,int(cbuf_len),id='fbuf')
-
-  if (mpi_env%iproc == 0) then
-     call copyCBuffer(fbuf(1), cbuf, cbuf_len)
-     call freeCBuffer(cbuf)
-     if (mpi_env%nproc > 1) &
-          & call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-  else
-     call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-  end if
-
-  call f_err_open_try()
-  call yaml_parse_from_char_array(udict, fbuf)
-  ! Handle with possible partial dictionary.
-  call f_free_str(1,fbuf)
-  call dict_update(dict, udict // 0)
-  call dict_free(udict)
-
-  ierr = 0
-  if (f_err_check()) ierr = f_get_last_error(val)
-  call f_err_close_try()
-  !in the present implementation f_err_check is not cleaned after the close of the try
-  if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
-  call f_release_routine()
-
-end subroutine merge_input_file_to_dict
-
 !> Fill the input_variables structure with the information
 !! contained in the dictionary dict
 !! the dictionary should be completes to fill all the information
@@ -161,7 +108,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   logical, intent(in) :: dump
 
   !type(dictionary), pointer :: profs
-  integer :: ierr, ityp, iproc_node, nproc_node
+  integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max
   type(dictionary), pointer :: dict_minimal, var
   character(max_field_length) :: radical
 
@@ -190,32 +137,32 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, PERF_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // DFT_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, DFT_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // GEOPT_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, GEOPT_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // MIX_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, MIX_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // SIC_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, SIC_VARIABLES, var)
      var => dict_next(var)
   end do
   var => dict_iter(dict // TDDFT_VARIABLES)
   do while(associated(var))
-     call input_set(in, var)
+     call input_set(in, TDDFT_VARIABLES, var)
      var => dict_next(var)
   end do
 
@@ -277,6 +224,15 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   ! Update atoms with pseudo information.
   call psp_dict_analyse(dict, atoms)
   call atomic_data_set_from_dict(dict, "Atomic occupation", atoms, in%nspin)
+
+  ! Generate orbital occupation
+  call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &
+       & in%ncharge, in%nspin, in%mpol, in%norbsempty)
+  if (norb_max == 0) norb_max = nelec_up + nelec_down ! electron gas case
+  call occupation_set_from_dict(dict, "occupation", &
+       & in%gen_norbu, in%gen_norbd, in%gen_occup, &
+       & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
+  in%gen_norb = in%gen_norbu + in%gen_norbd
   
   if (bigdft_mpi%iproc == 0 .and. dump) then
      call input_keys_dump(dict)
@@ -438,6 +394,10 @@ subroutine default_input_variables(in)
   nullify(in%gen_wkpt)
   nullify(in%kptv)
   nullify(in%nkptsv_group)
+  in%gen_norb = UNINITIALIZED(0)
+  in%gen_norbu = UNINITIALIZED(0)
+  in%gen_norbd = UNINITIALIZED(0)
+  nullify(in%gen_occup)
   ! Default abscalc variables
   call abscalc_input_variables_default(in)
   ! Default frequencies variables
@@ -461,6 +421,7 @@ subroutine default_input_variables(in)
   nullify(in%lin%locrad_lowaccuracy)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%locrad_type)
+  nullify(in%lin%kernel_cutoff_FOE)
   nullify(in%lin%kernel_cutoff)
   !nullify(in%frag%frag_info)
   nullify(in%frag%label)
@@ -687,6 +648,7 @@ subroutine free_input_variables(in)
   use module_base
   use module_types
   use module_xc
+  use dynamic_memory, only: f_free_ptr
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
@@ -696,6 +658,7 @@ subroutine free_input_variables(in)
 
   call free_geopt_variables(in)
   call free_kpt_variables(in)
+  if (associated(in%gen_occup)) call f_free_ptr(in%gen_occup)
   call deallocateBasicArraysInput(in%lin)
   call deallocateInputFragArrays(in%frag)
 

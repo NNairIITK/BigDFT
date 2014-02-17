@@ -206,6 +206,11 @@ void FC_FUNC_(yaml_parser_c_get_stream_end,
 {
   *id = (int)YAML_STREAM_END_EVENT;
 }
+void FC_FUNC_(yaml_parser_c_get_stream_start,
+              YAML_PARSER_C_GET_STREAM_START)(int *id)
+{
+  *id = (int)YAML_STREAM_START_EVENT;
+}
 void FC_FUNC_(yaml_parser_c_get_error,
               YAML_PARSER_C_GET_ERROR)(int *id)
 {

@@ -29,6 +29,7 @@ Keys to ignore:
  - Wavefunction written No.
  - accel
  - Max No. of dictionaries used
+ - Occupation numbers coming from
 Patterns to ignore:
  - Timestamp
  - memory
@@ -91,9 +92,9 @@ SiBulk:
  Enl: 2.1e-11
  Epot: 1.0e-10
  EvXC: 1.1e-10
- Atomic Forces (Ha/Bohr): 1.2e-11
+ Atomic Forces (Ha/Bohr): 1.5e-11
  Clean forces norm (Ha/Bohr): 1.2e-11
- Average noise forces: 1.48e-11
+ Average noise forces: 1.75e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -144,11 +145,11 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Average CG stepsize in terms of betax: 3.501e-4
+ Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
- Average noise forces: 5.31e-8
+ Average noise forces: 6.2e-8
  Clean forces norm (Ha/Bohr): 3.6e-7
- Raw forces norm (Ha/Bohr): 4.0e-7
+ Raw forces norm (Ha/Bohr): 4.1e-7
  Ion-Ion interaction energy: 3.1e-6
  FORCES norm(Ha/Bohr): 1.1e-6
  Forces: 1.1e-7
@@ -285,15 +286,15 @@ base:
 
 Davidson-SiH4:
   e_virtual: 1.7e-11
-  Eigenvalues and eigenstate residue: 1.3e-10
+  Eigenvalues and eigenstate residue: 1.8e-10
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 1.61e-9
-  Eigenvalues and eigenstate residue: 1.1e-7
+  e_virtual: 5.6e-8
+  Eigenvalues and eigenstate residue: 5.0e-6
   Epot: 1.1e-10
-  Gradient Norm: 4.11e-9
-  L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-7
+  Gradient Norm: 2.0e-8
+  L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-6
   Excitation Energy and Oscillator Strength: 1.7e-6
   Transition energies (eV): 1.1e-4
 
@@ -305,8 +306,8 @@ cleanup:
  Enl: 8.7e-10
  Atomic Forces (Ha/Bohr): 3.2e-10
  Average noise forces: 3.1e-10
- Clean forces norm (Ha/Bohr): 1.75e-10
- Raw forces norm (Ha/Bohr): 1.7e-10
+ Clean forces norm (Ha/Bohr): 1.9e-10
+ Raw forces norm (Ha/Bohr): 2.6e-10
  Epot: 1.91e-9
  Orbitals: 4.2e-10
  EH: 2.4e-9
@@ -330,7 +331,7 @@ experimentalmode:
  Epsilon: 8.e-10
  Ekin: 9.4e-07
  Enl: 1.1e-07
- Omega: 4.1e-06
+ Omega: 9.5e-06
  EH: 4.2e-05
  Epot: 3.7e-05
  EXC: 7.9e-06
@@ -465,19 +466,20 @@ molecule_foe:
 
 hybrid-directmin:
  Epsilon: 1.4e-11
- Enl: 1.6e-10
- eBS: 2.9e-09
- Omega: 2.9e-09
+ Enl: 1.7e-10
+ eBS: 4.5e-09
+ Omega: 4.5e-09
  energy: 4.4e-09
- multiplicator for the confinement: 8.7e-11
- Epot: 3.1e-09
- EH: 3.1e-9
- EXC: 4.1e-10
- EvXC: 6.1e-10
+ multiplicator for the confinement: 8.9e-11
+ Epot: 5.1e-09
+ EH: 5.1e-9
+ EXC: 5.1e-10
+ EvXC: 7.1e-10
  Ekin: 1.1e-09
- Atomic Forces (Ha/Bohr): 4.6e-11
+ Atomic Forces (Ha/Bohr): 6.8e-11
  Clean forces norm (Ha/Bohr): 1.9e-11
- Raw forces norm (Ha/Bohr): 2.3e-11
+ Raw forces norm (Ha/Bohr): 3.1e-11
+ Average noise forces: 1.1e-10
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -496,25 +498,28 @@ fructose:
  EXC: 1.1e-10
  Epsilon: 1.1e-11
  D: 1.1e-10
- D eF: 1.1e-9
- eF: 2.3e-10
+ D eF: 5.2e-6
+ D Tr: 5.4e-6
+ eF: 5.2e-6
  EH: 1.0e-9
  EvXC: 1.1e-10
  energy: 1.1e-10
  Omega: 1.3e-10
+ Tr(K): 5.0e-06
+ tr(KS) before purification: 1.9e-6
  Total charge: 2.1e-10
- charge diff: 1.1e-10
+ charge diff: 5.4e-6
  multiplicator for the confinement: 1.4e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
 
 geopt_foe:
- D eF: 1.1e-10
- eF: 6.0e-11
+ D eF: 1.1e-8
+ eF: 8.3e-9
  Epot: 1.1e-10
- eF: 1.1e-10
  EH: 1.1e-10
+ charge diff: 5.1e-11
 
 geopt_diag:
  Epot: 1.1e-10
@@ -531,6 +536,9 @@ water_foe:
  etot: 1.6e-10
  D: 1.1e-9
  charge diff: 1.1e-9
+ eF: 1.1e-8
+ D eF: 1.1e-8
+ D Tr: 3.1e-11
 
 water_dirmin:
  max alpha: 1.1e-04
@@ -612,11 +620,16 @@ foe:
  EXC: 1.0e-10
  Total charge: 2.1e-11
  EvXC: 1.1e-10
- eF: 1.01e-10
+ eF: 3.9e-8
  Pulay Forces (Ha/Bohr): 1.2e-11
  Atomic Forces (Ha/Bohr): 4.0e-11
  mean alpha: 1.1e-4
  max alpha: 1.1e-4
+ D eF: 7.1e-8
+ Tr(K): 1.1e-08
+ charge diff: 2.3e-11
+ D Tr: 4.5e-11
+ tr(KS) before purification: 1.8e-11
 
 onlyhigh:
  EH: 1.1e-10
@@ -644,74 +657,30 @@ linearcubic_linear:
  energy: 1.84e-10
  Omega: 1.82e-10
 
-highertaylor_experimental_order2:
- Atomic Forces (Ha/Bohr): 1.8e-8
- Average noise forces: 2.0e-7
- Clean forces norm (Ha/Bohr): 7.2e-8
- Raw forces norm (Ha/Bohr): 7.5e-08
- charge diff: 2.9e-06
- multiplicator for the confinement: 5.4e-10
- Omega: 1.3e-06
- Tr(K): 2.9e-06
- eF: 7.1e-08
- D Tr: 1.8e-06
- D eF: 7.2e-08
- energy: 1.6e-07
- EH: 1.5e-06
- EXC: 3.1e-07
- Ekin: 1.4e-07
- Enl: 1.7e-08
- Epot: 1.4e-06
- EvXC: 4.0e-07
- D: 1.1e-07
- Total charge: 3.1e-11
+experimentalfoe:
+ Atomic Forces (Ha/Bohr): 1.2e-10
+ Clean forces norm (Ha/Bohr): 2.0e-10
+ Average noise forces: 2.1e-10
+ Raw forces norm (Ha/Bohr): 2.6e-10
+ EH: 4.3e-7
+ EXC: 6.0e-08
+ Ekin: 7.0e-9
+ Enl: 3.1e-10
+ Epot: 4.1e-07
+ EvXC: 7.9e-08
+ eF: 2.5e-05
+ tr(KS) before purification: 3.2e-9
+ Tr(K): 3.9e-4
+ Total charge: 1.1e-10
+ Total ionic charge: 1.6e-11
+ D Tr: 3.9e-04
+ D eF: 1.5e-05
+ multiplicator for the confinement: 2.0e-9
+ energy: 1.3e-9
+ Omega: 4.1e-7
+ charge diff: 3.9e-4
+ D: 1.1e-10
 
-highertaylor_experimental_order3:
- Atomic Forces (Ha/Bohr): 1.4e-8
- Average noise forces: 2.0e-07
- Clean forces norm (Ha/Bohr): 1.6e-07
- Raw forces norm (Ha/Bohr): 1.6e-07
- charge diff: 3.3e-05
- multiplicator for the confinement: 5.1e-10
- Omega: 5.8e-06
- Tr(K): 3.3e-05
- eF: 3.6e-07
- D Tr: 1.5e-05
- D eF: 3.2e-07
- energy: 1.4e-07
- EH: 1.2e-05
- EXC: 3.3e-06
- Ekin: 1.8e-07
- Enl: 1.5e-08
- Epot: 8.8e-06
- EvXC: 4.3e-06
- D: 2.1e-10
- delta: 1.1e-10
- Total charge: 1.3e-09
-
-highertaylor_experimental_order4:
- Atomic Forces (Ha/Bohr): 6.5e-9
- Average noise forces: 3.1e-7
- Clean forces norm (Ha/Bohr): 8.1e-7
- Raw forces norm (Ha/Bohr): 7.7e-9
- EH: 2.9e-5
- EXC: 5.0e-6
- Ekin: 5.1e-6
- Enl: 7.8e-7
- Epot: 2.6e-5
- EvXC: 6.5e-6
- det: 1.4e-1
- Tr(K): 2.4e-2
- D Tr: 1.5e-2
- D eF: 3.2e-2
- bisec/eval bounds: 3.2e-2
- charge diff: 2.4e-2
- eF: 4.9e-7
- energy: 2.9e-8
- multiplicator for the confinement: 5.4e-10
- Omega: 2.1e-5
- Total charge: 2.1e-11
- D: 1.1e-6
 
 newpulay:
  EXC: 1.1e-10
@@ -732,6 +701,7 @@ paracetamol:
  energy: 1.5e-10
  Total charge: 2.1e-11
  charge diff: 1.1e-9
+ D eF: 1.1e-9
 
 reformatcomplete_write:
  Epot: 1.1e-10
@@ -748,6 +718,7 @@ reformatcomplete_read36:
 reformatcomplete_read45:
  energy: 2.5e-11
  Omega: 2.5e-11
+ Atomic Forces (Ha/Bohr): 1.2e-11
 
 reformatcomplete_write:
  EH: 1.1e-10
@@ -797,29 +768,32 @@ intermediateforces:
  Average noise forces: 1.5e-8
  Clean forces norm (Ha/Bohr): 9.1e-9
  Raw forces norm (Ha/Bohr): 1.1e-8
- e: 3.6e-9
+ e: 3.7e-9
  energy: 2.8e-7
- Omega: 9.5e-9
- EXC: 7.7e-8
+ Omega: 9.8e-9
+ EXC: 7.8e-8
  EvXC: 1.1e-7
- EH: 6.8e-7
- Ekin: 1.9e-9
+ EH: 6.9e-7
+ Ekin: 2.1e-9
  Enl: 2.1e-10
- Epot: 8.6e-8
+ Epot: 8.9e-8
  multiplicator for the confinement: 1.6e-11
 
 DIIShistory:
- Atomic Forces (Ha/Bohr): 7.1e-10
+ Atomic Forces (Ha/Bohr): 1.5e-9
  Clean forces norm (Ha/Bohr): 1.1e-9
- Raw forces norm (Ha/Bohr): 3.7e-10
- Average noise forces: 1.1e-10
- e: 8.8e-10
- EH: 4.2e-8
- EXC: 6.1e-9
- Ekin: 1.3e-8
- Enl: 1.9e-9
- Epot: 4.4e-8
- EvXC: 7.8e-9
- energy: 9.1e-10
+ Raw forces norm (Ha/Bohr): 4.2e-10
+ Average noise forces: 2.1e-10
+ e: 5.1e-9
+ EH: 3.1e-7
+ EXC: 4.7e-8
+ Ekin: 1.7e-8
+ Enl: 6.6e-9
+ Epot: 2.8e-7
+ EvXC: 6.2e-8
+ energy: 3.7e-9
  multiplicator for the confinement: 6.9e-11
- Omega: 9.5e-9
+ Omega: 1.3e-8
+
+Locreg:
+ EH: 1.1e-10

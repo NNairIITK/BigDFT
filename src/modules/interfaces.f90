@@ -198,15 +198,6 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
       END SUBROUTINE write_atomic_file
 
-      subroutine merge_input_file_to_dict(dict, fname, mpi_env)
-        use dictionaries
-        use wrapper_MPI, only: mpi_environment
-        implicit none
-        type(dictionary), pointer :: dict
-        character(len = *), intent(in) :: fname
-        type(mpi_environment), intent(in) :: mpi_env
-      end subroutine merge_input_file_to_dict
-
       subroutine read_input_dict_from_files(radical, mpi_env,dict)
         use dictionaries, only: dictionary
         use wrapper_MPI, only: mpi_environment
@@ -1117,15 +1108,6 @@ module module_interfaces
          type(coulomb_operator), intent(in) :: pkernel_ref,pkernel
       END SUBROUTINE correct_hartree_potential
 
-      subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-         implicit none
-         integer, intent(in) :: nzatom,nvalelec
-         character(len=2), intent(out) :: symbol
-         real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
-         integer, parameter :: nmax=6,lmax=3
-         real(kind=8), intent(out) :: neleconf(nmax,0:lmax)
-         integer, intent(out) :: nsccode,mxpl,mxchg
-      END SUBROUTINE eleconf
 
       !     subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
       !          hpsit,psidst,hpsidst_sp,psit)
@@ -1683,7 +1665,8 @@ module module_interfaces
           fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
-          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop)
+          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
+          gnrm_dynamic, can_use_ham)
         use module_base
         use module_types
         implicit none
@@ -1709,8 +1692,9 @@ module module_interfaces
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
-        real(kind=8),intent(in) :: conv_crit, early_stop
+        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic
         logical,intent(in) :: experimental_mode
+        logical,intent(out) :: can_use_ham
       end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -2792,7 +2776,7 @@ module module_interfaces
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
-       subroutine update_locreg(iproc, nproc, nlr, locrad, locregCenter, glr_tmp, &
+       subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
                   orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
@@ -2805,7 +2789,7 @@ module module_interfaces
          real(8),intent(in):: hx, hy, hz
          type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
-         real(8),dimension(nlr),intent(in):: locrad
+         real(8),dimension(nlr),intent(in):: locrad, locrad_kernel
          type(orbitals_data),intent(in):: orbs_KS, orbs
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
@@ -2923,7 +2907,7 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
          logical, intent(in) :: ortho, experimental_mode
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmb%linmat%denskern%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmb%linmat%denskern_large%nvctr),intent(out) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine hpsitopsi_linear
        
@@ -2938,7 +2922,7 @@ module module_interfaces
          real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmbopt%linmat%denskern%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmbopt%linmat%denskern_large%nvctr),intent(out) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine DIISorSD
  
@@ -3661,24 +3645,6 @@ module module_interfaces
           integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
         end subroutine determine_num_orbs_per_gridpoint_new
 
-        subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
-              &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb,quartic_prefactor)
-           use module_base
-           implicit none
-           logical, intent(in) :: enlargerprb
-           integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
-           real(gp), intent(in) :: zion
-           integer, dimension(lmax+1), intent(in) :: nl
-           !real(gp), dimension(0:4,0:6), intent(in) :: psppar
-           real(gp), intent(in) :: psppar
-           !real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
-           real(gp),  intent(in) :: nlccpar
-           real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
-           real(gp), dimension(ng+1), intent(out) :: expo
-           real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
-           real(gp),intent(in),optional:: quartic_prefactor
-        end subroutine iguess_generator
-
         subroutine allocate_convolutions_bounds(ab, subname, bounds)
           use module_base
           use module_types
@@ -4020,7 +3986,10 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, orbs, foe_obj, &
-                   tmprtr, mode, ham, ovrlp, fermi, ebs, itout, it_scc, order_taylor)
+                   tmprtr, mode, ham_input, ovrlp_input, fermi_input, ovrlp_large, &
+                   ham_large, denskern_large, ovrlp_inv_large, &
+                   ebs, itout, it_scc, order_taylor, &
+                   tmb)
           use module_base
           use module_types
           implicit none
@@ -4029,9 +3998,12 @@ module module_interfaces
           type(foe_data),intent(inout) :: foe_obj
           real(kind=8),intent(inout) :: tmprtr
           integer,intent(in) :: mode
-          type(sparseMatrix),intent(inout) :: ovrlp, ham
-          type(sparseMatrix),intent(inout) :: fermi
+          type(sparseMatrix),intent(inout),target :: ovrlp_input, ham_input
+          type(sparseMatrix),intent(inout),target :: fermi_input
+          type(sparseMatrix),intent(inout),target :: ovrlp_large, ham_large, ovrlp_inv_large
+          type(sparseMatrix),intent(inout),target :: denskern_large
           real(kind=8),intent(out) :: ebs
+          type(DFT_wavefunction),intent(inout) :: tmb
         end subroutine foe
 
         subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
@@ -4398,7 +4370,7 @@ module module_interfaces
         end subroutine gramschmidt_subset
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, &
-             orbs, ovrlp_smat, inv_ovrlp_smat)
+             orbs, ovrlp_smat, inv_ovrlp_smat, check_accur)
           use module_base
           use module_types
           implicit none
@@ -4410,6 +4382,7 @@ module module_interfaces
           real(kind=8),intent(out) :: error
           type(orbitals_data), optional, intent(in) :: orbs
           type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+          logical,intent(in),optional :: check_accur
         end subroutine overlapPowerGeneral
 
         subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,orbs)

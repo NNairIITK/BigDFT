@@ -35,7 +35,7 @@ module module_types
   integer :: BIGDFT_RUNTIME_ERROR                   !< error during runtime
   integer :: BIGDFT_MPI_ERROR                       !< see error definitions below
   integer :: BIGDFT_LINALG_ERROR                    !< to be moved to linalg wrappers
-  integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< problems in parsing input variables
+  integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< problems in parsing or in consistency of input variables
 
   !> Input wf parameters.
   integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
@@ -116,7 +116,6 @@ module module_types
   integer, parameter :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter :: LINEAR_FOE=103
   
-
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
      !> directDiag decides which input guess is chosen:
@@ -178,9 +177,10 @@ module module_types
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
     real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
     real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
-    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
+    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff_FOE
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
-    real(kind=8) :: early_stop
+    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
+    real(kind=8) :: early_stop, gnrm_dynamic
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization, new_pulay_correction
@@ -265,6 +265,10 @@ module module_types
      integer, dimension(:), pointer :: nkptsv_group
      real(gp), pointer :: kptv(:,:)
      character(len=100) :: band_structure_filename
+
+     ! Orbitals and input occupation.
+     integer :: gen_norb, gen_norbu, gen_norbd
+     real(gp), dimension(:), pointer :: gen_occup
 
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach !<id of geopt driver
@@ -449,7 +453,7 @@ module module_types
      logical :: donlcc                                     !< activate non-linear core correction treatment
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
+!     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -623,7 +627,7 @@ module module_types
   end type sparseMatrix
 
   type,public :: linear_matrices !may not keep
-      type(sparseMatrix) :: ham, ovrlp, denskern, inv_ovrlp
+      type(sparseMatrix) :: ham, ovrlp, denskern, inv_ovrlp, denskern_large, ovrlp_large, ham_large, inv_ovrlp_large
   end type linear_matrices
 
   type:: collective_comms
@@ -1148,7 +1152,7 @@ contains
      nullify(at%nlcc_ngv)
      nullify(at%nlcc_ngc)
      nullify(at%nlccpar)
-     nullify(at%ig_nlccpar)
+     !nullify(at%ig_nlccpar)
      nullify(at%paw_NofL)
      nullify(at%paw_l)
      nullify(at%paw_nofchannels)
@@ -1963,7 +1967,7 @@ subroutine nullify_atoms_data(at)
   nullify(at%nlcc_ngv)
   nullify(at%nlcc_ngc)
   nullify(at%nlccpar)
-  nullify(at%ig_nlccpar)
+  !nullify(at%ig_nlccpar)
   nullify(at%paw_NofL)
   nullify(at%paw_l)
   nullify(at%paw_nofchannels)
@@ -2259,7 +2263,7 @@ subroutine bigdft_init_errors()
     call f_err_define('BIGDFT_INPUT_VARIABLES_ERROR',&
        'An error while parsing the input variables occured',&
        BIGDFT_INPUT_VARIABLES_ERROR,&
-       err_action='Check above which input variable has been not correctly parsed')
+       err_action='Check above which input variable has been not correctly parsed, or check their values')
 
   !define the severe operation via MPI_ABORT
   call f_err_severe_override(bigdft_severe_abort)
@@ -2330,10 +2334,14 @@ end subroutine bigdft_init_errors
     integer, intent(in) :: val
 
     type(dictionary), pointer :: dict
+    integer :: sep
+
+    sep = index(key, "/")
+    if (sep == 0) stop "no level in key"
 
     call dict_init(dict)
-    call set(dict // key, val)
-    call input_set(in, dict)
+    call set(dict // key(sep + 1:), val)
+    call input_set(in, key(1:sep - 1), dict)
     call dict_free(dict)
   END SUBROUTINE input_set_int
 
@@ -2346,10 +2354,14 @@ end subroutine bigdft_init_errors
     real(gp), intent(in) :: val
 
     type(dictionary), pointer :: dict
+    integer :: sep
+
+    sep = index(key, "/")
+    if (sep == 0) stop "no level in key"
 
     call dict_init(dict)
-    call set(dict // key, val)
-    call input_set(in, dict)
+    call set(dict // key(sep + 1:), val)
+    call input_set(in, key(1:sep - 1), dict)
     call dict_free(dict)
   END SUBROUTINE input_set_dbl
 
@@ -2361,10 +2373,14 @@ end subroutine bigdft_init_errors
     logical, intent(in) :: val
 
     type(dictionary), pointer :: dict
+    integer :: sep
+
+    sep = index(key, "/")
+    if (sep == 0) stop "no level in key"
 
     call dict_init(dict)
-    call set(dict // key, val)
-    call input_set(in, dict)
+    call set(dict // key(sep + 1:), val)
+    call input_set(in, key(1:sep - 1), dict)
     call dict_free(dict)
   END SUBROUTINE input_set_bool
 
@@ -2376,10 +2392,14 @@ end subroutine bigdft_init_errors
     character(len = *), intent(in) :: val
 
     type(dictionary), pointer :: dict
+    integer :: sep
+
+    sep = index(key, "/")
+    if (sep == 0) stop "no level in key"
 
     call dict_init(dict)
-    call set(dict // key, val)
-    call input_set(in, dict)
+    call set(dict // key(sep + 1:), val)
+    call input_set(in, key(1:sep - 1), dict)
     call dict_free(dict)
   END SUBROUTINE input_set_char
 
@@ -2392,12 +2412,16 @@ end subroutine bigdft_init_errors
 
     integer :: i
     type(dictionary), pointer :: dict
+    integer :: sep
+
+    sep = index(key, "/")
+    if (sep == 0) stop "no level in key"
 
     call dict_init(dict)
     do i = 0, size(val) - 1, 1
-       call set(dict // key // i, val(i + 1))
+       call set(dict // key(sep + 1:) // i, val(i + 1))
     end do
-    call input_set(in, dict)
+    call input_set(in, key(1:sep - 1), dict)
     call dict_free(dict)
   END SUBROUTINE input_set_int_array
 
@@ -2411,12 +2435,16 @@ end subroutine bigdft_init_errors
 
     integer :: i
     type(dictionary), pointer :: dict
+    integer :: sep
+
+    sep = index(key, "/")
+    if (sep == 0) stop "no level in key"
 
     call dict_init(dict)
     do i = 0, size(val) - 1, 1
-       call set(dict // key // i, val(i + 1))
+       call set(dict // key(sep + 1:) // i, val(i + 1))
     end do
-    call input_set(in, dict)
+    call input_set(in, key(1:sep - 1), dict)
     call dict_free(dict)
   END SUBROUTINE input_set_dbl_array
 
@@ -2429,199 +2457,213 @@ end subroutine bigdft_init_errors
 
     integer :: i
     type(dictionary), pointer :: dict
+    integer :: sep
+
+    sep = index(key, "/")
+    if (sep == 0) stop "no level in key"
 
     call dict_init(dict)
     do i = 0, size(val) - 1, 1
-       call set(dict // key // i, val(i + 1))
+       call set(dict // key(sep + 1:) // i, val(i + 1))
     end do
-    call input_set(in, dict)
+    call input_set(in, key(1:sep - 1), dict)
     call dict_free(dict)
   END SUBROUTINE input_set_bool_array
 
-  subroutine input_set_dict(in, val)
+  subroutine input_set_dict(in, level, val)
     use dictionaries, only: dictionary, operator(//), assignment(=)
     use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
     use module_defs, only: DistProjApply, GPUblas, gp
     use module_input_keys
     use dynamic_memory
+    use yaml_output, only: yaml_warning
     implicit none
     type(input_variables), intent(inout) :: in
     type(dictionary), pointer :: val
+    character(len = *), intent(in) :: level
 
     character(len = max_field_length) :: str
     integer :: i, ipos
 
     if (index(dict_key(val), "_attributes") > 0) return
 
-    select case (trim(dict_key(val)))
+    select case(trim(level))
+    case ("dft")
        ! the DFT variables ------------------------------------------------------
-    case (HGRIDS)
-       in%hx = val//0 !grid spacings (profiles can be used if we already read PSPs)
-       in%hy = val//1
-       in%hz = val//2
-    case (RMULT)
-       in%crmult = val//0 !coarse and fine radii around atoms
-       in%frmult = val//1
-    case (IXC)
-       in%ixc = val !XC functional (ABINIT XC codes)
-    case (NCHARGE)
-       in%ncharge = val !charge and electric field
-    case (ELECFIELD)
-       in%elecfield = val
-    case (NSPIN)
-       in%nspin = val !spin and polarization
-    case (MPOL)
-       in%mpol = val
-    case (GNRM_CV)
-       in%gnrm_cv = val !convergence parameters
-    case (ITERMAX)
-       in%itermax = val
-    case (NREPMAX)
-       in%nrepmax = val
-    case (NCONG)
-       in%ncong = val !convergence parameters
-    case (IDSX)
-       in%idsx = val
-    case (DISPERSION)
-       in%dispersion = val !dispersion parameter
-       ! Now the variables which are to be used only for the last run
-    case (INPUTPSIID)
-       in%inputPsiId = val
-    case (OUTPUT_WF)
-       in%output_wf_format = val
-    case (OUTPUT_DENSPOT)
-       in%output_denspot = val
-    case (RBUF)
-       in%rbuf = val ! Tail treatment.
-    case (NCONGT)
-       in%ncongt = val
-    case (NORBV)
-       in%norbv = val !davidson treatment
-    case (NVIRT)
-       in%nvirt = val
-    case (NPLOT)
-       in%nplot = val
-    case (DISABLE_SYM)
-       in%disableSym = val ! Line to disable symmetries.
+       select case (trim(dict_key(val)))
+       case (HGRIDS)
+          in%hx = val//0 !grid spacings (profiles can be used if we already read PSPs)
+          in%hy = val//1
+          in%hz = val//2
+       case (RMULT)
+          in%crmult = val//0 !coarse and fine radii around atoms
+          in%frmult = val//1
+       case (IXC)
+          in%ixc = val !XC functional (ABINIT XC codes)
+       case (NCHARGE)
+          in%ncharge = val !charge and electric field
+       case (ELECFIELD)
+          in%elecfield = val
+       case (NSPIN)
+          in%nspin = val !spin and polarization
+       case (MPOL)
+          in%mpol = val
+       case (GNRM_CV)
+          in%gnrm_cv = val !convergence parameters
+       case (ITERMAX)
+          in%itermax = val
+       case (NREPMAX)
+          in%nrepmax = val
+       case (NCONG)
+          in%ncong = val !convergence parameters
+       case (IDSX)
+          in%idsx = val
+       case (DISPERSION)
+          in%dispersion = val !dispersion parameter
+          ! Now the variables which are to be used only for the last run
+       case (INPUTPSIID)
+          in%inputPsiId = val
+       case (OUTPUT_WF)
+          in%output_wf_format = val
+       case (OUTPUT_DENSPOT)
+          in%output_denspot = val
+       case (RBUF)
+          in%rbuf = val ! Tail treatment.
+       case (NCONGT)
+          in%ncongt = val
+       case (NORBV)
+          in%norbv = val !davidson treatment
+       case (NVIRT)
+          in%nvirt = val
+       case (NPLOT)
+          in%nplot = val
+       case (DISABLE_SYM)
+          in%disableSym = val ! Line to disable symmetries.
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
        ! the KPT variables ------------------------------------------------------
-
+    case (kpt)
+       stop "kpt set_input not implemented"
+    case ("perf")
        ! the PERF variables -----------------------------------------------------
-    case (DEBUG)
-       in%debug = val
-    case (FFTCACHE)
-       in%ncache_fft = val
-    case (VERBOSITY)
-       in%verbosity = val
-    case (OUTDIR)
-       in%writing_directory = val
-    case (TOLSYM)
-       in%symTol = val
-    case (PROJRAD)
-       in%projrad = val
-    case (EXCTXPAR)
-       in%exctxpar = val
-    case (INGUESS_GEOPT)
-       in%inguess_geopt = val
-    case (ACCEL)
-       str = dict_value(val)
-       if (input_keys_equal(trim(str), "CUDAGPU")) then
-          in%matacc%iacceleration = 1
-       else if (input_keys_equal(trim(str), "OCLGPU")) then
-          in%matacc%iacceleration = 2
-       else if (input_keys_equal(trim(str), "OCLCPU")) then
-          in%matacc%iacceleration = 3
-       else if (input_keys_equal(trim(str), "OCLACC")) then
-          in%matacc%iacceleration = 4
-       else 
-          in%matacc%iacceleration = 0
-       end if
-    case (OCL_PLATFORM)
-       !determine desired OCL platform which is used for acceleration
-       in%matacc%OCL_platform = val
-       ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
-       do i=ipos,len(in%matacc%OCL_platform)
-          in%matacc%OCL_platform(i:i)=achar(0)
-       end do
-    case (OCL_DEVICES)
-       in%matacc%OCL_devices = val
-       ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
-       do i=ipos,len(in%matacc%OCL_devices)
-          in%matacc%OCL_devices(i:i)=achar(0)
-       end do
-    case (PSOLVER_ACCEL)
-       in%matacc%PSolver_igpu = val
-    case (SIGNALING)
-       in%signaling = val ! Signaling parameters
-    case (SIGNALTIMEOUT)
-       in%signalTimeout = val
-    case (DOMAIN)
-       in%domain = val
-    case (BLAS)
-       GPUblas = val !!@TODO to relocate
-    case (PSP_ONFLY)
-       DistProjApply = val
-    case (IG_DIAG)
-       in%orthpar%directDiag = val
-    case (IG_NORBP)
-       in%orthpar%norbpInguess = val
-    case (IG_TOL)
-       in%orthpar%iguessTol = val
-    case (METHORTHO)
-       in%orthpar%methOrtho = val
-    case (IG_BLOCKS)
-       !Block size used for the orthonormalization
-       in%orthpar%bsLow = val // 0
-       in%orthpar%bsUp  = val // 1
-    case (RHO_COMMUN)
-       in%rho_commun = val
-    case (PSOLVER_GROUPSIZE)
-       in%PSolver_groupsize = val
-    case (UNBLOCK_COMMS)
-       in%unblock_comms = val
-    case (LINEAR)
-       !Use Linear scaling methods
-       str = dict_value(val)
-       if (input_keys_equal(trim(str), "LIG")) then
-          in%linear = INPUT_IG_LIG
-       else if (input_keys_equal(trim(str), "FUL")) then
-          in%linear = INPUT_IG_FULL
-       else if (input_keys_equal(trim(str), "TMO")) then
-          in%linear = INPUT_IG_TMO
-       else
-          in%linear = INPUT_IG_OFF
-       end if
-    case (STORE_INDEX)
-       in%store_index = val
-    case (PDSYEV_BLOCKSIZE)
-       !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-       in%lin%blocksize_pdsyev = val
-    case (PDGEMM_BLOCKSIZE)
-       in%lin%blocksize_pdgemm = val
-    case (MAXPROC_PDSYEV)
-       !max number of process uses for pdsyev/pdsygv, pdgemm
-       in%lin%nproc_pdsyev = val
-    case (MAXPROC_PDGEMM)
-       in%lin%nproc_pdgemm = val
-    case (EF_INTERPOL_DET)
-       !FOE: if the determinant of the interpolation matrix to find the Fermi energy
-       !is smaller than this value, switch from cubic to linear interpolation.
-       in%lin%ef_interpol_det = val
-    case (EF_INTERPOL_CHARGEDIFF)
-       in%lin%ef_interpol_chargediff = val
-       !determines whether a mixing step shall be preformed after the input guess !(linear version)
-    case (MIXING_AFTER_INPUTGUESS)
-       in%lin%mixing_after_inputguess = val
-       !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
-    case (ITERATIVE_ORTHOGONALIZATION)
-       in%lin%iterative_orthogonalization = val
-    case (CHECK_SUMRHO)
-       in%check_sumrho = val
-       !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
-    case (EXPERIMENTAL_MODE)
-       in%experimental_mode = val
-    case (WRITE_ORBITALS)
-       ! linear scaling: write KS orbitals for cubic restart
-       in%write_orbitals = val
+       select case (trim(dict_key(val)))       
+       case (DEBUG)
+          in%debug = val
+       case (FFTCACHE)
+          in%ncache_fft = val
+       case (VERBOSITY)
+          in%verbosity = val
+       case (OUTDIR)
+          in%writing_directory = val
+       case (TOLSYM)
+          in%symTol = val
+       case (PROJRAD)
+          in%projrad = val
+       case (EXCTXPAR)
+          in%exctxpar = val
+       case (INGUESS_GEOPT)
+          in%inguess_geopt = val
+       case (ACCEL)
+          str = dict_value(val)
+          if (input_keys_equal(trim(str), "CUDAGPU")) then
+             in%matacc%iacceleration = 1
+          else if (input_keys_equal(trim(str), "OCLGPU")) then
+             in%matacc%iacceleration = 2
+          else if (input_keys_equal(trim(str), "OCLCPU")) then
+             in%matacc%iacceleration = 3
+          else if (input_keys_equal(trim(str), "OCLACC")) then
+             in%matacc%iacceleration = 4
+          else 
+             in%matacc%iacceleration = 0
+          end if
+       case (OCL_PLATFORM)
+          !determine desired OCL platform which is used for acceleration
+          in%matacc%OCL_platform = val
+          ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
+          do i=ipos,len(in%matacc%OCL_platform)
+             in%matacc%OCL_platform(i:i)=achar(0)
+          end do
+       case (OCL_DEVICES)
+          in%matacc%OCL_devices = val
+          ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
+          do i=ipos,len(in%matacc%OCL_devices)
+             in%matacc%OCL_devices(i:i)=achar(0)
+          end do
+       case (PSOLVER_ACCEL)
+          in%matacc%PSolver_igpu = val
+       case (SIGNALING)
+          in%signaling = val ! Signaling parameters
+       case (SIGNALTIMEOUT)
+          in%signalTimeout = val
+       case (DOMAIN)
+          in%domain = val
+       case (BLAS)
+          GPUblas = val !!@TODO to relocate
+       case (PSP_ONFLY)
+          DistProjApply = val
+       case (IG_DIAG)
+          in%orthpar%directDiag = val
+       case (IG_NORBP)
+          in%orthpar%norbpInguess = val
+       case (IG_TOL)
+          in%orthpar%iguessTol = val
+       case (METHORTHO)
+          in%orthpar%methOrtho = val
+       case (IG_BLOCKS)
+          !Block size used for the orthonormalization
+          in%orthpar%bsLow = val // 0
+          in%orthpar%bsUp  = val // 1
+       case (RHO_COMMUN)
+          in%rho_commun = val
+       case (PSOLVER_GROUPSIZE)
+          in%PSolver_groupsize = val
+       case (UNBLOCK_COMMS)
+          in%unblock_comms = val
+       case (LINEAR)
+          !Use Linear scaling methods
+          str = dict_value(val)
+          if (input_keys_equal(trim(str), "LIG")) then
+             in%linear = INPUT_IG_LIG
+          else if (input_keys_equal(trim(str), "FUL")) then
+             in%linear = INPUT_IG_FULL
+          else if (input_keys_equal(trim(str), "TMO")) then
+             in%linear = INPUT_IG_TMO
+          else
+             in%linear = INPUT_IG_OFF
+          end if
+       case (STORE_INDEX)
+          in%store_index = val
+       case (PDSYEV_BLOCKSIZE)
+          !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+          in%lin%blocksize_pdsyev = val
+       case (PDGEMM_BLOCKSIZE)
+          in%lin%blocksize_pdgemm = val
+       case (MAXPROC_PDSYEV)
+          !max number of process uses for pdsyev/pdsygv, pdgemm
+          in%lin%nproc_pdsyev = val
+       case (MAXPROC_PDGEMM)
+          in%lin%nproc_pdgemm = val
+       case (EF_INTERPOL_DET)
+          !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+          !is smaller than this value, switch from cubic to linear interpolation.
+          in%lin%ef_interpol_det = val
+       case (EF_INTERPOL_CHARGEDIFF)
+          in%lin%ef_interpol_chargediff = val
+          !determines whether a mixing step shall be preformed after the input guess !(linear version)
+       case (MIXING_AFTER_INPUTGUESS)
+          in%lin%mixing_after_inputguess = val
+          !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
+       case (ITERATIVE_ORTHOGONALIZATION)
+          in%lin%iterative_orthogonalization = val
+       case (CHECK_SUMRHO)
+          in%check_sumrho = val
+          !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+       case (EXPERIMENTAL_MODE)
+          in%experimental_mode = val
+       case (WRITE_ORBITALS)
+          ! linear scaling: write KS orbitals for cubic restart
+          in%write_orbitals = val
     case (EXPLICIT_LOCREGCENTERS)
        ! linear scaling: explicitely specify localization centers
        in%explicit_locregcenters = val
@@ -2631,82 +2673,105 @@ end subroutine bigdft_init_errors
     case (INTERMEDIATE_FORCES)
        ! linear scaling: calculate intermediate forces
        in%intermediate_forces = val
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case ("geopt")
 
        ! the GEOPT variables ----------------------------------------------------
-    case (GEOPT_METHOD)
-       in%geopt_approach = val !geometry input parameters
-    case (NCOUNT_CLUSTER_X)
-       in%ncount_cluster_x = val
-    case (FRAC_FLUCT)
-       in%frac_fluct = val
-    case (FORCEMAX)
-       in%forcemax = val
-    case (RANDDIS)
-       in%randdis = val
-    case (IONMOV)
-       in%ionmov = val
-    case (DTION)
-       in%dtion = val
-    case (MDITEMP)
-       in%mditemp = val
-    case (MDFTEMP)
-       in%mdftemp = val
-    case (NOSEINERT)
-       in%noseinert = val
-    case (FRICTION)
-       in%friction = val
-    case (MDWALL)
-       in%mdwall = val
-    case (QMASS)
-       in%nnos = dict_len(val)
-       if (associated(in%qmass)) call f_free_ptr(in%qmass)
-       in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
-       do i=1,in%nnos-1
-          in%qmass(i) = dict_len(val // (i-1))
-       end do
-    case (BMASS)
-       in%bmass = val
-    case (VMASS)
-       in%vmass = val
-    case (BETAX)
-       in%betax = val
-    case (HISTORY)
-       in%history = val
-    case (DTINIT)
-       in%dtinit = val
-    case (DTMAX)
-       in%dtmax = val
+       select case (trim(dict_key(val)))
+       case (GEOPT_METHOD)
+          in%geopt_approach = val !geometry input parameters
+       case (NCOUNT_CLUSTER_X)
+          in%ncount_cluster_x = val
+       case (FRAC_FLUCT)
+          in%frac_fluct = val
+       case (FORCEMAX)
+          in%forcemax = val
+       case (RANDDIS)
+          in%randdis = val
+       case (IONMOV)
+          in%ionmov = val
+       case (DTION)
+          in%dtion = val
+       case (MDITEMP)
+          in%mditemp = val
+       case (MDFTEMP)
+          in%mdftemp = val
+       case (NOSEINERT)
+          in%noseinert = val
+       case (FRICTION)
+          in%friction = val
+       case (MDWALL)
+          in%mdwall = val
+       case (QMASS)
+          in%nnos = dict_len(val)
+          if (associated(in%qmass)) call f_free_ptr(in%qmass)
+          in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
+          do i=1,in%nnos-1
+             in%qmass(i) = dict_len(val // (i-1))
+          end do
+       case (BMASS)
+          in%bmass = val
+       case (VMASS)
+          in%vmass = val
+       case (BETAX)
+          in%betax = val
+       case (HISTORY)
+          in%history = val
+       case (DTINIT)
+          in%dtinit = val
+       case (DTMAX)
+          in%dtmax = val
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case ("mix")
        ! the MIX variables ------------------------------------------------------
-    case (ISCF)
-       in%iscf = val
-       !put the startmix if the mixing has to be done
-       if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
-    case (ITRPMAX)
-       in%itrpmax = val
-    case (RPNRM_CV)
-       in%rpnrm_cv = val
-    case (NORBSEMPTY)
-       in%norbsempty = val
-    case (TEL)
-       in%Tel = val
-    case (OCCOPT)
-       in%occopt = val
-    case (ALPHAMIX)
-       in%alphamix = val
-    case (ALPHADIIS)
-       in%alphadiis = val
+       select case (trim(dict_key(val)))
+       case (ISCF)
+          in%iscf = val
+          !put the startmix if the mixing has to be done
+          if (in%iscf >  SCF_KIND_DIRECT_MINIMIZATION) in%gnrm_startmix=1.e300_gp
+       case (ITRPMAX)
+          in%itrpmax = val
+       case (RPNRM_CV)
+          in%rpnrm_cv = val
+       case (NORBSEMPTY)
+          in%norbsempty = val
+       case (TEL)
+          in%Tel = val
+       case (OCCOPT)
+          in%occopt = val
+       case (ALPHAMIX)
+          in%alphamix = val
+       case (ALPHADIIS)
+          in%alphadiis = val
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case ("sic")
        ! the SIC variables ------------------------------------------------------
-    case (SIC_APPROACH)
-       in%SIC%approach = val
-    case (SIC_ALPHA)
-       in%SIC%alpha = val
-    case (SIC_FREF)
-       in%SIC%fref = val
+       select case (trim(dict_key(val)))
+       case (SIC_APPROACH)
+          in%SIC%approach = val
+       case (SIC_ALPHA)
+          in%SIC%alpha = val
+       case (SIC_FREF)
+          in%SIC%fref = val
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case ("tddft")
        ! the TDDFT variables ----------------------------------------------------
-    case (TDDFT_APPROACH)
-       in%tddft_approach = val
+       select case (trim(dict_key(val)))
+       case (TDDFT_APPROACH)
+          in%tddft_approach = val
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
     case DEFAULT
-       write(*,*) "unknown input key '" // trim(dict_key(val)) // "'"
+       call yaml_warning("unknown level '" // trim(level) //"'")
     end select
   END SUBROUTINE input_set_dict
 

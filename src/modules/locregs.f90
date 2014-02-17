@@ -65,6 +65,7 @@ module locregs
      integer, dimension(3) :: outofzone         !< Vector of points outside of the zone outside Glr for periodic systems
      real(gp), dimension(3) :: locregCenter !< Center of the locreg 
      real(gp) :: locrad                     !< Cutoff radius of the localization region
+     real(gp) :: locrad_kernel              !< Cutoff radius of the localization region (kernel)
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
@@ -228,7 +229,7 @@ contains
     !pointers have not been associated by the f_associate routine (to be implemented to date)
     if (associated(wfd%keyglob, target = wfd%keygloc)) then
        !assuming that globals has been created afterwards
-       call f_free_ptr(wfd%keygloc)
+       call f_free_ptr(wfd%keyglob)
        nullify(wfd%keygloc)
 !!$       i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
 !!$       deallocate(wfd%keyglob,stat=i_stat)
@@ -405,6 +406,7 @@ contains
     glrout%nsi3 = glrin%nsi3
     glrout%Localnorb = glrin%Localnorb
     glrout%locrad=glrin%locrad
+    glrout%locrad_kernel=glrin%locrad_kernel
     glrout%locregCenter=glrin%locregCenter
     glrout%outofzone= glrin%outofzone
 
@@ -447,7 +449,7 @@ contains
     type(wavefunctions_descriptors), intent(out) :: wfdout
 
     ! Local variables
-    integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
+!    integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
 
     !nullify all pointers first
     call nullify_wfd(wfdout)

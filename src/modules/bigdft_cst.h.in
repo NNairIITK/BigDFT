@@ -62,37 +62,42 @@ typedef struct _GObject {guint ref_count;} GObject;
 
 /* Internal types for Fortran datatypes. */
 /* Basic types, used for minimal bindings only. */
-typedef void _dictionary;
-typedef void _memory_estimation;
-typedef void _atoms_data;
-typedef void _atomic_structure;
-typedef void _symmetry_data;
-typedef void _input_variables;
-typedef void _restart_objects;
-typedef void _run_objects;
-typedef void _DFT_global_output;
-typedef void _energy_terms;
-typedef void _run_image;
-typedef void _NEB_data;
-typedef void _system_fragment;
+#define F_TYPE(T) (T.add)
+#define F_DEFINE_TYPE(T) typedef void _ ## T;                                  \
+ typedef struct {_ ## T *add; char buf[64];} _ ## T ## _pointer;
+
+F_DEFINE_TYPE(dictionary);
+F_DEFINE_TYPE(memory_estimation);
+F_DEFINE_TYPE(atoms_data);
+F_DEFINE_TYPE(atomic_structure);
+F_DEFINE_TYPE(symmetry_data);
+F_DEFINE_TYPE(input_variables);
+F_DEFINE_TYPE(restart_objects);
+F_DEFINE_TYPE(run_objects);
+F_DEFINE_TYPE(DFT_global_output);
+F_DEFINE_TYPE(DFT_PSP_projectors);
+F_DEFINE_TYPE(energy_terms);
+F_DEFINE_TYPE(run_image);
+F_DEFINE_TYPE(NEB_data);
+F_DEFINE_TYPE(system_fragment);
 /* Advanced types, used for full bindings. */
-typedef void _communications_arrays;
-typedef void _coulomb_operator;
-typedef void _denspot_distribution;
-typedef void _DFT_local_fields;
-typedef void _DFT_optimization_loop;
-typedef void _DFT_wavefunction;
-typedef void _GPU_pointers;
-typedef void _grid_dimensions;
-typedef void _local_zone_descriptors;
-typedef void _locreg_descriptors;
-typedef void _nonlocal_psp_descriptors;
-typedef void _orbitals_data;
-typedef void _rho_descriptors;
-typedef void _rholoc_objects;
-typedef void _wavefunctions_descriptors;
-typedef void _gaussian_basis;
-typedef void _cdft_data;
+F_DEFINE_TYPE(communications_arrays);
+F_DEFINE_TYPE(coulomb_operator);
+F_DEFINE_TYPE(denspot_distribution);
+F_DEFINE_TYPE(DFT_local_fields);
+F_DEFINE_TYPE(DFT_optimization_loop);
+F_DEFINE_TYPE(DFT_wavefunction);
+F_DEFINE_TYPE(GPU_pointers);
+F_DEFINE_TYPE(grid_dimensions);
+F_DEFINE_TYPE(local_zone_descriptors);
+F_DEFINE_TYPE(locreg_descriptors);
+F_DEFINE_TYPE(nonlocal_psp_descriptors);
+F_DEFINE_TYPE(orbitals_data);
+F_DEFINE_TYPE(rho_descriptors);
+F_DEFINE_TYPE(rholoc_objects);
+F_DEFINE_TYPE(wavefunctions_descriptors);
+F_DEFINE_TYPE(gaussian_basis);
+F_DEFINE_TYPE(cdft_data);
 
 /***************************/
 /* Generic pointer arrays. */

@@ -356,7 +356,7 @@ end subroutine setCommsParameters
 !contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
 !power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, orbs, &
-     ovrlp_smat, inv_ovrlp_smat)
+     ovrlp_smat, inv_ovrlp_smat, check_accur)
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
@@ -369,6 +369,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   real(kind=8),intent(out) :: error
   type(orbitals_data), optional, intent(in) :: orbs
   type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+  logical,intent(in),optional :: check_accur
   
   ! Local variables
   integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i
@@ -377,7 +378,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp
   real(kind=8) :: factor, newfactor
   logical :: ovrlp_allocated, inv_ovrlp_allocated
-  logical, parameter :: check_accuracy=.false. ! move to input.perf
+  logical :: check_accuracy
+
+  if (present(check_accur)) then
+      check_accuracy=check_accur
+  else
+      check_accuracy=.false.
+  end if
 
 
   call f_routine(id='overlapPowerGeneral')
@@ -461,7 +468,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
            isorb=0
            inv_ovrlpp => inv_ovrlp
         end if
-        if (.not.present(inv_ovrlp_smat)) call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+        if (.not.present(inv_ovrlp_smat)) then
+            call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+        end if
      end if
 
      ! add sparse here once we have sparse matrix multiply

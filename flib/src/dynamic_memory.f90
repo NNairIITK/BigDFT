@@ -333,7 +333,7 @@ contains
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
   subroutine f_routine(id,profile)
-    !use yaml_output !debug
+    use yaml_output, only: yaml_map !debug
     implicit none
     logical, intent(in), optional :: profile
     character(len=*), intent(in), optional :: id
@@ -370,7 +370,12 @@ contains
 
     if (.true.) then
        if(associated(mems(ictrl)%dict_routine)) then
+!          call yaml_map('adding routine; '//trim(id),&
+!               (/dict_size(mems(ictrl)%dict_global),dict_size(mems(ictrl)%dict_routine)/))
+!          call yaml_map('Dict to add',mems(ictrl)%dict_routine)
           call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
+!          call yaml_map('verify; '//trim(id),dict_size(mems(ictrl)%dict_global))
+          
           nullify(mems(ictrl)%dict_routine)
        end if
        !this means that the previous routine has not been closed
@@ -560,7 +565,7 @@ contains
     call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
          err_action='Control the order of the allocation of if the memory limit has been reached',&
          callback=f_malloc_callback)
-    call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Dellocation error',err_id=ERR_DEALLOCATE,&
+    call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Deallocation error',err_id=ERR_DEALLOCATE,&
          err_action='Control the order of the allocation of if the memory limit has been reached',&
          callback=f_malloc_callback)
     call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&
@@ -647,7 +652,7 @@ contains
 
   !> Finalize f_malloc (Display status)
   subroutine f_malloc_finalize(dump,process_id)
-    use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream
+    use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream,yaml_map
     implicit none
     !Arguments
     logical, intent(in), optional :: dump !< Dump always information, 
@@ -687,6 +692,8 @@ contains
           if (dict_size(mems(ictrl)%dict_global) == 2) dump_status=.false.
        end if
        if (dump_status) then
+          call yaml_map('Size of the global database',dict_size(mems(ictrl)%dict_global))
+          call yaml_map('Raw version',mems(ictrl)%dict_global)
           call yaml_open_map('Status of the memory at finalization')
           !call yaml_dict_dump(dict_global)
           call dump_leaked_memory(mems(ictrl)%dict_global)
@@ -752,7 +759,8 @@ contains
        call dump_leaked_memory(mems(ictrl)%dict_routine)
        call yaml_close_map()
     end if
-    call yaml_open_map('Global dictionary')
+    call yaml_open_map('Global dictionary (size'//&
+         trim(yaml_toa(dict_size(mems(ictrl)%dict_global)))//')')
     call dump_leaked_memory(mems(ictrl)%dict_global)
     call yaml_close_map()
 

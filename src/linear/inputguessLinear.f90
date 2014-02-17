@@ -40,14 +40,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,matrixindex_in_compressed
-  real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0
+  real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0,tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
   logical,dimension(:),allocatable :: covered, type_covered
   real(kind=8),dimension(:,:),allocatable :: aocc
-  integer, parameter :: nmax=6,lmax=3
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb
   integer :: infoCoeff
@@ -55,11 +54,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
   real(kind=8) :: rcov,rprb,ehomo,amu,pnrm
-  real(kind=8) :: neleconf(nmax,0:lmax)                                        
   integer :: nsccode,mxpl,mxchg
   type(mixrhopotDIISParameters) :: mixdiis
   type(sparseMatrix) :: ham_small ! for FOE
-  logical :: finished
+  logical :: finished, can_use_ham
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   real(kind=8),dimension(:),allocatable :: philarge
   integer :: npsidim_large, sdim, ldim, ists, istl, ilr, nspin, info_basis_functions
@@ -433,18 +431,22 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!     denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
 
   !Put the Density kernel to identity for now
-  call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
+  !call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
+  call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
   do iorb=1,tmb%orbs%norb
-     ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
+     !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
+     ii=matrixindex_in_compressed(tmb%linmat%denskern_large,iorb,iorb)
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
-     tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
+     !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
+     tmb%linmat%denskern_large%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
   end do
+ call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   !!do istat=1,size(denspot%rhov)
   !!    write(300+iproc,*) istat, denspot%rhov(istat)
@@ -571,6 +573,16 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
  end if
 
+ !!!!! adding some noise
+ !!Write(*,*) 'warning: add some noise!'
+ !!do istat=1,size(tmb%psi)
+ !!    call random_number(tt)
+ !!    tt=tt-0.5d0
+ !!    tt=tt*0.6d0
+ !!    tmb%psi(istat)=tmb%psi(istat)*(1.d0+tt)
+ !!end do
+ !!tmb%can_use_transposed=.false.
+
 
  iall=-product(shape(aocc))*kind(aocc)
  deallocate(aocc,stat=istat)
@@ -603,7 +615,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
          50,&
-         ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop)
+         ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
+         input%lin%gnrm_dynamic, can_use_ham)
      reduce_conf=.true.
      call yaml_close_sequence()
      call yaml_close_map()
@@ -672,7 +685,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
 

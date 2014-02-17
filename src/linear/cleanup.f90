@@ -940,15 +940,18 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
   call checkAndDeallocatePointer(p2pcomm%ise, 'p2pcomm%ise', subname)
 
-  if (associated(p2pcomm%mpi_datatypes)) then
-      is=lbound(p2pcomm%mpi_datatypes,2)
-      ie=ubound(p2pcomm%mpi_datatypes,2)
-      do i=is,ie
-          if (p2pcomm%mpi_datatypes(2,i)==1) then
-               call mpi_type_free(p2pcomm%mpi_datatypes(1,i), ierr)
-           end if
-      end do
+  if (.not.p2pcomm%communication_complete) then
+      stop 'cannot deallocate mpi data types if communication has not completed'
   end if
+  !!if (associated(p2pcomm%mpi_datatypes)) then
+  !!    is=lbound(p2pcomm%mpi_datatypes,2)
+  !!    ie=ubound(p2pcomm%mpi_datatypes,2)
+  !!    do i=is,ie
+  !!        if (p2pcomm%mpi_datatypes(2,i)==1) then
+  !!             call mpi_type_free(p2pcomm%mpi_datatypes(1,i), ierr)
+  !!         end if
+  !!    end do
+  !!end if
   call checkAndDeallocatePointer(p2pcomm%mpi_datatypes, 'p2pcomm%mpi_datatypes', subname)
 
 end subroutine deallocate_p2pComms

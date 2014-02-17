@@ -33,7 +33,9 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   logical :: output_denspot_
   logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
 
+  call f_routine(id=subname)
   call timing(iproc,'CrtDescriptors','ON')
+  
 
   !assign the dimensions to improve (a little) readability
   n1=Glr%d%n1
@@ -100,6 +102,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   call memocc(i_stat,i_all,'logrid_f',subname)
 
   call timing(iproc,'CrtDescriptors','OF')
+  call f_release_routine()
 END SUBROUTINE createWavefunctionsDescriptors
 
 
@@ -174,13 +177,19 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
       call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f, &
            & Glr%wfd%keyglob(1,Glr%wfd%nseg_c+1), Glr%wfd%keyvglob(Glr%wfd%nseg_c+1))
    end if
-   i_all = -product(shape(Glr%wfd%keygloc))*kind(Glr%wfd%keygloc)
-   deallocate(Glr%wfd%keygloc,stat=i_stat)
-   call memocc(i_stat,i_all,'Glr%wfd%keygloc',subname)
+   !that is the point where the association is given
+   !one should consider the possiblity of associating the 
+   !arrays with f_associate
+!!$   i_all = -product(shape(Glr%wfd%keygloc))*kind(Glr%wfd%keygloc)
+!!$   deallocate(Glr%wfd%keygloc,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'Glr%wfd%keygloc',subname)
+   call f_free_ptr(Glr%wfd%keygloc)
    Glr%wfd%keygloc => Glr%wfd%keyglob
-   i_all = -product(shape(Glr%wfd%keyvloc))*kind(Glr%wfd%keyvloc)
-   deallocate(Glr%wfd%keyvloc,stat=i_stat)
-   call memocc(i_stat,i_all,'Glr%wfd%keyvloc',subname)
+
+!!$   i_all = -product(shape(Glr%wfd%keyvloc))*kind(Glr%wfd%keyvloc)
+!!$   deallocate(Glr%wfd%keyvloc,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'Glr%wfd%keyvloc',subname)
+   call f_free_ptr(Glr%wfd%keyvloc)
    Glr%wfd%keyvloc => Glr%wfd%keyvglob
  
    ! Copy the information of keyglob to keygloc for Glr (just pointing leads to problem during the deallocation of wfd)
@@ -351,6 +360,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
 
   call f_release_routine()
 END SUBROUTINE createProjectorsArrays
+
 
         !!$subroutine initRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, atoms, rxyz, crmult, frmult, radii, nspin, ixc, rho_commun, rhodsc, nscatterarr, ngatherarr, pot_ion)
         !!$  use module_base
@@ -782,6 +792,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      deallocate(tmb_old%linmat%denskern%matrix_compr, stat=i_stat)
      call memocc(i_stat, i_all, 'tmb_old%linmat%denskern%matrix_compr', subname)
   end if
+  if (associated(tmb_old%linmat%denskern_large%matrix_compr)) then
+     i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
+     deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)
+     call memocc(i_stat, i_all, 'tmb_old%linmat%denskern_large%matrix_compr', subname)
+  end if
 
   ! destroy it all together here - don't have all comms arrays
   !call destroy_DFT_wavefunction(tmb_old)
@@ -869,7 +884,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+           tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
       call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
       call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
@@ -1957,7 +1972,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           tmb%orbs, tmb%psi, tmb%collcom_sr)
 
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+          tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
      ! CDFT: calculate w(r) and w_ab, define some initial guess for V and initialize other cdft_data stuff
      call timing(iproc,'constraineddft','ON')
@@ -2197,6 +2212,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
            rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
 
   use module_defs
+  use ao_inguess, only: atomic_info
   use module_types
   use module_interfaces, except_this_one => input_wf_memory_new
   implicit none
@@ -2223,6 +2239,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: s1d1,s1d2,s1d3,s2d1,s2d2,s2d3,s3d1,s3d2,s3d3,norm_1,norm_2,norm_3,norm,radius,jacdet
   real(wp), dimension(-1:1) :: coeff,ipv,ipv2
 
+
   !To reduce the size, use real(kind=4)
   real(kind=4), dimension(:,:), allocatable :: shift
   real(wp) :: s1_new, s2_new, s3_new,xz,yz,zz,recnormsqr,exp_val, exp_cutoff
@@ -2231,9 +2248,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   integer :: istart,irange,iend,rest,ierr, gridx,gridy,gridz,xbox,ybox,zbox,iy,iz
 
   !Atom description (needed for call to eleconf)
-  integer ::nzatom,nvalelec,nsccode,mxpl,mxchg
-  real(wp) :: rcov,rprb,ehomo,amu,neleconf(6,0:3)
-  character(len=2) :: symbol
+  integer ::nzatom,nvalelec!,nsccode,mxpl,mxchg
+  real(wp) :: rcov
+  !character(len=2) :: symbol
 
   if (lzd_old%Glr%geocode .ne. 'F') then
      write(*,*) 'Not implemented for boundary conditions other than free'
@@ -2300,7 +2317,8 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
      !determine sigma of gaussian (sigma is taken as the covalent radius of the atom,rcov)
      nzatom = atoms%nzatom(atoms%astruct%iatype(k))
      nvalelec =  atoms%nelpsp(atoms%astruct%iatype(k))
-     call eleconf(nzatom, nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+     call atomic_info(nzatom, nvalelec,rcov=rcov)
+     !call eleconf(nzatom, nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
      
      radius = 1.0/((rcov)**2)
      cutoff = 3*rcov

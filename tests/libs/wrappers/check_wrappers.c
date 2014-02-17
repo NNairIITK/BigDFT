@@ -41,7 +41,7 @@ int main(int argc, const char **argv)
 
   BigDFT_Goutput *outs;
 
-  ierr = bigdft_init(&iproc, &nproc, &igroup, &ngroup, 0);
+  ierr = bigdft_lib_init(&iproc, &nproc, &igroup, &ngroup, 0);
 
   /* dict = bigdft_dict_new(&root); */
 
@@ -77,7 +77,7 @@ int main(int argc, const char **argv)
 
   /* Test changing a value of input_variables. */
   ins = bigdft_run_get_inputs(run);
-  bigdft_inputs_set(ins, "gnrm_cv", "1.e-5");
+  bigdft_inputs_set(ins, "dft", "gnrm_cv", "1.e-5");
   bigdft_inputs_unref(ins);
 
   if (iproc == 0) bigdft_run_dump(run, "input.yaml", TRUE);
@@ -90,7 +90,7 @@ int main(int argc, const char **argv)
   bigdft_run_unref(run);
   bigdft_goutput_unref(outs);
 
-  ierr = bigdft_finalize();
+  ierr = bigdft_lib_finalize();
 
   return 0;
 }

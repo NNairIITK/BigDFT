@@ -71,6 +71,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
           if (norbp>0) then
               call to_zero(norb*norbp, matrix(1,1))
           end if
+          !write(*,*) 'WARNING CHEBYSHEV: MODIFYING MATRIX MULTIPLICATION'
           if (orbs%norbp>0) then
               isegstart=sparsemat%istsegline(orbs%isorb_par(iproc)+1)
               if (orbs%isorb+orbs%norbp<orbs%norb) then
@@ -85,6 +86,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
                       iiorb = (jorb-1)/orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*orbs%norb
                       matrix(jjorb,iiorb-orbs%isorb)=ovrlp_compr(ii)
+                      !if (jjorb==iiorb) then
+                      !    matrix(jjorb,iiorb-orbs%isorb)=1.d0
+                      !else
+                      !    matrix(jjorb,iiorb-orbs%isorb)=0.d0
+                      !end if
                   end do
               end do
           end if
@@ -146,6 +152,12 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
       end if
   
   end if
+
+  !!if (iproc==0) then
+  !!    do istat=1,sparsemat%nvctr
+  !!        write(300,*) ham_compr(istat), SHS(istat)
+  !!    end do
+  !!end if
     
   if (norbp>0) then
     

@@ -307,7 +307,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
-  integer :: ilr, nlr
+  integer :: ilr, nlr, iorb, jorb
   character(len=20) :: comment
 
   !debug
@@ -469,6 +469,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
      call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
 
+
      !!! This is nasty.. matrixindex_in_compressed_fortransposed should rather be
      !!! in comms instead of spareMatrix
      !!i_all=-product(shape(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed))*&
@@ -498,6 +499,75 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !call memocc(i_stat, tmb%linmat%inv_ovrlp%matrix_compr, 'tmb%linmat%inv_ovrlp%matrix_compr', subname)
      allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=i_stat)
      call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
+
+
+     ! check the extent of the kernel cutoff (must be at least shamop radius)
+     call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
+     !!! initialize new density kernel with larger cutoff
+     !!tmb%lzd%llr(:)%locrad_kernel=100.d0
+
+     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%denskern_large)
+     allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
+     call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
+     call nullify_sparsematrix(tmb%linmat%ovrlp_large)
+     call nullify_sparsematrix(tmb%linmat%ham_large)
+     call nullify_sparsematrix(tmb%linmat%inv_ovrlp_large)
+     call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ovrlp_large, iproc, subname)
+     call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ham_large, iproc, subname)
+     call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)
+
+     !!call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ovrlp_large)
+     !!allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ovrlp_large%matrix_compr, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
+     !!!tmb%linmat%ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%ovrlp_large%nvctr,id='tmb%linmat%ovrlp_large%matrix_compr')
+
+     !!call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%ham_large)
+     !!allocate(tmb%linmat%ham_large%matrix_compr(tmb%linmat%ham_large%nvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ham_large%matrix_compr, 'tmb%linmat%ham_large%matrix_compr', subname)
+     !!!tmb%linmat%ham_large%matrix_compr=f_malloc_ptr(tmb%linmat%ham_large%nvctr,id='tmb%linmat%ham_large%matrix_compr')
+
+     !tmb%linmat%denskern_large%matrix_compr=f_malloc_ptr(tmb%linmat%denskern_large%nvctr,id='tmb%linmat%denskern_large%matrix_compr')
+
+
+     !allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
+     !call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
+
+     !!write(*,*) '-----------------------------------'
+     !!call random_number(tmb%linmat%denskern%matrix_compr)
+     !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
+     !!call uncompressMatrix(iproc,tmb%linmat%denskern)
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!write(*,*) '-----------------------------------'
+     !!call sparse_matrix_small_to_large(tmb%linmat%denskern, tmb%linmat%denskern_large, 'small_to_large')
+     !!allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
+     !!call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern_large%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!write(*,*) '-----------------------------------'
+     !!call random_number(tmb%linmat%denskern_large%matrix)
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern_large%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+     !!call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+     !!write(*,*) '-----------------------------------'
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern_large%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!write(*,*) '-----------------------------------'
+     !!call sparse_matrix_small_to_large(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+     !!call uncompressMatrix(iproc,tmb%linmat%denskern)
+     !!do iorb=1,tmb%orbs%norb
+     !!    write(*,'(100f9.3)') (tmb%linmat%denskern%matrix(iorb,jorb),jorb=1,tmb%orbs%norb)
+     !!end do
+     !!write(*,*) '-----------------------------------'
+
+
 
      if (in%check_sumrho>0) then
          call check_communication_potential(denspot,tmb)
@@ -1011,10 +1081,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
            !free projectors
            call free_DFT_PSP_projectors(nlpsp)
-!!$           call deallocate_proj_descr(nlpspd,subname)  
-!!$           i_all=-product(shape(proj))*kind(proj)
-!!$           deallocate(proj,stat=i_stat)
-!!$           call memocc(i_stat,i_all,'proj',subname)
 
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
@@ -1052,6 +1118,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            call direct_minimization(iproc,nproc,in,atoms,& 
                 nvirt,rxyz,denspot%rhov,nlpsp, &
                 denspot%pkernelseq,denspot%dpbox,GPU,KSwfn,VTwfn)
+
+           if(abs(in%nplot)>KSwfn%orbs%norb+nvirt) then
+              if(iproc==0) call yaml_warning('More plots requested than orbitals calculated')
+           end if
         else if (in%norbv > 0) then
            call davidson(iproc,nproc,in,atoms,& 
                 KSwfn%orbs,VTwfn%orbs,in%nvirt,VTwfn%Lzd,&
@@ -1062,7 +1132,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 !!$                orbs,orbsv,in%nvirt,Lzd%Glr,comms,VTwfn%comms,&
 !!$                hx,hy,hz,rxyz,denspot%rhov,nlpsp, &
 !!$                psi,VTwfn%psi,nscatterarr,ngatherarr,GPU)
-
+           if(abs(in%nplot)>KSwfn%orbs%norb+in%nvirt) then
+              if(iproc==0) call yaml_warning('More plots requested than orbitals calculated')
+           end if
+        end if
+        if(in%output_wf_format == 2 .and. abs(in%norbv)>0 ) then
+           call dump_eigenfunctions(trim(in%dir_output),in%nplot,atoms,VTwfn%Lzd%hgrids,VTwfn%Lzd%Glr,&
+                KSwfn%orbs,VTwfn%orbs,rxyz,KSwfn%psi,VTwfn%psi)
         end if
 
         deallocate(VTwfn%confdatarr)

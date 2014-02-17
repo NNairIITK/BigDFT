@@ -17,6 +17,7 @@ Short term:
 - FOE charged systems - add parameter to converge the kernel less well, occupations?
 - parallelize dgemms in inverse check
 - weight analysis for fragments in input file, and generalize to include tmbs
+* semicore
 
 Long term:
 - parallelize reading TMB files for fragment calculations
@@ -27,12 +28,21 @@ Long term:
 - spin polarized
 - parallelized matrices (memory)
 - sparse matrix multiply etc.
+* fuse different modes?
+* sparse Lin Alg
+* separate kernel cutoff
+* check necessity of using S,S^-1
+* convergence criterion
+* variable locreg centers
+* PSolver Nazim
+* preconditioning
 
 Known problems:
 - problem with check_surmho on Titan
 - communicate potential problem still existing on Vesta?
 - sparsemat%parallel/=0 doesn't work on Vesta
 - purify kernel on Vesta crashes/NaN on Vesta
+* out of memory on Cray-Rosa
 
 
 ~~~~~~~~~~~~~
@@ -40,7 +50,8 @@ LAPACK on Vesta - check spectral decomposition and dump matrix to file if incorr
 
 
 
-
+final goal:
+* "ready-for-production" version for as many applications as possible
 
 
 
