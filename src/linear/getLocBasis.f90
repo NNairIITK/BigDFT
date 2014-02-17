@@ -2372,7 +2372,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
       chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
-      if (abs(chargediff<1.d-6)) exit shift_loop
+      if (abs(chargediff)<1.d-6) exit shift_loop
 
       if (chargediff>0) then
           ! make this the new upper bound for the bisection
