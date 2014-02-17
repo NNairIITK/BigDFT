@@ -3,7 +3,7 @@
 8        8                       basis iterations (low, high)
 1        1                       Kernel iterations (low, high) - directmin only
 3        3                       Density iterations (low, high)
-5        5                       DIIS history for basis (low, high)
+3        3                       DIIS history for basis (low, high)
 0        0                       DIIS history for kernel (low, high) - directmin only
 3        3                       DIIS history for density mixing (low, high)
 .1d0     .1d0                    density mixing parameter (low, high)
