@@ -542,7 +542,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                    nit_basis,&
                    ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
-                   input%lin%early_stop, input%lin%gnrm_dynamic, can_use_ham)
+                   input%lin%early_stop, input%lin%gnrm_dynamic, can_use_ham, input%lin%order_taylor)
                reduce_conf=.true.
            !!else
            !!    cut=cut-0.5d0

@@ -29,8 +29,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   ! Local variables
   integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver, iorb
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge, nsize_polynomial
-  integer :: iismall_ovrlp, iismall_ham
-  integer,parameter :: nplx=5000
+  integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift
+  integer,parameter :: nplx=50000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol, ddot
@@ -44,7 +44,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
-  integer :: jproc, iorder
+  integer :: jproc, iorder, npl_boundaries
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8) :: trace_sparse
@@ -132,13 +132,14 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   allocate(chebyshev_polynomials(nsize_polynomial,1),stat=istat)
   call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
 
-  fscale=foe_obj%fscale/0.6d0 ! this will be undone in the first iteration of the following loop
+  fscale=foe_obj%fscale/0.5d0 ! this will be undone in the first iteration of the following loop
 
+  ntemp=3
 
-  temp_loop: do itemp=1,20
+  temp_loop: do itemp=1,ntemp
 
       
-      fscale=fscale*0.6d0 ! make the error function sharper, i.e. more "step function-like"
+      fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
 
       evlow_old=1.d100
       evhigh_old=-1.d100
@@ -234,6 +235,11 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               ! Determine the degree of the polynomial
               !npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/foe_obj%fscale)
               npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/fscale)
+              npl_boundaries=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
+              if (npl>npl_boundaries) then
+                  npl=npl_boundaries
+                  if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
+              end if
               if (npl>nplx) stop 'npl>nplx'
     
               ! Array the holds the Chebyshev polynomials. Needs to be recalculated
@@ -339,7 +345,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                       call yaml_close_map()
                       !call bigdft_utils_flush(unit=6)
                   end if
-                  cycle
+                  iall=-product(shape(cc))*kind(cc)
+                  deallocate(cc, stat=istat)
+                  call memocc(istat, iall, 'cc', subname)
+                  cycle main_loop
              end if
     
     
@@ -730,7 +739,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       end if
       overlap_calculated=.false.
       tmb%can_use_transposed=.false.
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated)
+
+      if (itemp==ntemp) then
+          it_shift=20
+      else
+          it_shift=1
+      end if
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor)
       if (iproc==0) then
           call yaml_close_sequence()
       end if
@@ -758,6 +773,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
 
   end do temp_loop
+
 
   iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix_compr))*kind(tmb%linmat%inv_ovrlp_large%matrix_compr)
   deallocate(tmb%linmat%inv_ovrlp_large%matrix_compr,stat=istat)
@@ -854,10 +870,10 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   ! Local variables
   integer :: k, j
   real(kind=8) :: bma, bpa, y, arg, fac, tt, erfcc
-  real(kind=8),dimension(5000) :: cf
+  real(kind=8),dimension(50000) :: cf
   !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
 
-  if (n>5000) stop 'chebft'
+  if (n>50000) stop 'chebft'
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   do k=1,n
@@ -897,9 +913,9 @@ subroutine chebft2(a,b,n,cc)
   integer :: k, j
   !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
   real(kind=8) :: tt, y, arg, fac, bma, bpa
-  real(kind=8),dimension(5000) :: cf
+  real(kind=8),dimension(50000) :: cf
 
-  if (n>5000) stop 'chebft2'
+  if (n>50000) stop 'chebft2'
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   ! 3 gives broder safety zone than 4

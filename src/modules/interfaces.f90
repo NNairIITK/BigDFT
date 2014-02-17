@@ -1587,13 +1587,13 @@ module module_interfaces
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-          gnrm_dynamic, can_use_ham)
+          gnrm_dynamic, can_use_ham, order_taylor)
         use module_base
         use module_types
         implicit none
       
         ! Calling arguments
-        integer,intent(in) :: iproc, nproc
+        integer,intent(in) :: iproc, nproc, order_taylor
         integer,intent(out) :: infoBasisFunctions
         type(atoms_data), intent(in) :: at
         type(orbitals_data) :: orbs
@@ -4412,13 +4412,14 @@ module module_interfaces
           integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
-        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
+        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc
+          integer,intent(in) :: iproc, nproc, order_taylor
           type(DFT_wavefunction),intent(inout):: tmb
           logical,intent(inout):: overlap_calculated
+          integer,intent(in) :: it_shift, it_opt
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
@@ -4556,6 +4557,16 @@ module module_interfaces
           type(atoms_data),intent(in) :: at
           real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
         end subroutine pulay_correction_new
+
+        subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(sparseMatrix),intent(in) :: ovrlp
+          type(sparseMatrix),intent(inout) :: inv_ovrlp_half
+        end subroutine diagonalize_localized
   
   end interface
 END MODULE module_interfaces
