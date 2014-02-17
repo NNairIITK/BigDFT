@@ -64,6 +64,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   use module_base, dictionary_value_lgt => max_field_length
   use module_types
   use module_input
+  use yaml_output, only: yaml_map
   implicit none
   integer, intent(in) :: iproc
   character(len=*), intent(in) :: filename
@@ -264,6 +265,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   !in%lin%support_functions_converged
   !in%lin%deltaenergy_multiplier_TMBexit
   !in%lin%deltaenergy_multiplier_TMBfix
+
+  !the dictionary is now ready, to be inspected by printout
+  call yaml_map('Input lin',dict)
 
   dummy_bool=dict//LIN_GENERAL//HYBRID
   if (dummy_bool) then

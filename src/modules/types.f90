@@ -613,15 +613,6 @@ module module_types
     real(wp),dimension(:,:,:,:),pointer :: xya_f, xyb_f, xyc_f, xye_f
     real(wp),dimension(:,:,:,:),pointer :: xza_f, xzb_f, xzc_f, xze_f
     real(wp),dimension(:,:,:,:),pointer :: yza_f, yzb_f, yzc_f, yze_f
-!are they used?
-!!$    real(wp),dimension(-17:17) :: aeff0, aeff1, aeff2, aeff3
-!!$    real(wp),dimension(-17:17) :: beff0, beff1, beff2, beff3
-!!$    real(wp),dimension(-17:17) :: ceff0, ceff1, ceff2, ceff3
-!!$    real(wp),dimension(-14:14) :: eeff0, eeff1, eeff2, eeff3
-!!$    real(wp),dimension(-17:17) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-!!$    real(wp),dimension(-17:17) :: beff0_2, beff1_2, beff2_2, beff3_2
-!!$    real(wp),dimension(-17:17) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-!!$    real(wp),dimension(-14:14) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
   end type workarrays_quartic_convolutions
 
   type,public:: localizedDIISParameters
@@ -834,7 +825,7 @@ module module_types
   integer :: cplex_dij
    ! cplex=1 if dij are real, 2 if they are complex
 
-  !$integer :: has_dijexxcore
+  !!!!$integer :: has_dijexxcore !> does this makes sense?
    ! 1 if dijexxcore is allocated
    ! 2 if dijexxcore is already computed
 
@@ -2294,23 +2285,28 @@ end subroutine bigdft_init_errors
     type(input_variables), intent(inout) :: in
     type(dictionary), pointer :: val
     character(len = *), intent(in) :: level
-
+    integer, dimension(2) :: dummy_int !<to use as filling for input variables
+    real(gp), dimension(3) :: dummy_gp !< to fill the input variables
     character(len = max_field_length) :: str
     integer :: i, ipos
 
     if (index(dict_key(val), "_attributes") > 0) return
 
     select case(trim(level))
-    case ("dft")
+    case (DFT_VARIABLES)
        ! the DFT variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (HGRIDS)
-          in%hx = val//0 !grid spacings (profiles can be used if we already read PSPs)
-          in%hy = val//1
-          in%hz = val//2
+          !grid spacings (profiles can be used if we already read PSPs)
+          dummy_gp(1:3)=val
+          in%hx = dummy_gp(1)
+          in%hy = dummy_gp(2)
+          in%hz = dummy_gp(3)
        case (RMULT)
-          in%crmult = val//0 !coarse and fine radii around atoms
-          in%frmult = val//1
+          !coarse and fine radii around atoms
+          dummy_gp(1:2)=val
+          in%crmult = dummy_gp(1)
+          in%frmult = dummy_gp(2)
        case (IXC)
           in%ixc = val !XC functional (ABINIT XC codes)
        case (NCHARGE)
@@ -2356,9 +2352,9 @@ end subroutine bigdft_init_errors
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
        ! the KPT variables ------------------------------------------------------
-    case (kpt)
+    case (KPT_VARIABLES)
        stop "kpt set_input not implemented"
-    case ("perf")
+    case (PERF_VARIABLES)
        ! the PERF variables -----------------------------------------------------
        select case (trim(dict_key(val)))       
        case (DEBUG)
@@ -2425,8 +2421,9 @@ end subroutine bigdft_init_errors
           in%orthpar%methOrtho = val
        case (IG_BLOCKS)
           !Block size used for the orthonormalization
-          in%orthpar%bsLow = val // 0
-          in%orthpar%bsUp  = val // 1
+          dummy_int(1:2)=val
+          in%orthpar%bsLow = dummy_int(1)
+          in%orthpar%bsUp  = dummy_int(2)
        case (RHO_COMMUN)
           in%rho_commun = val
        case (PSOLVER_GROUPSIZE)
@@ -2519,7 +2516,7 @@ end subroutine bigdft_init_errors
           in%mdwall = val
        case (QMASS)
           in%nnos = dict_len(val)
-          if (associated(in%qmass)) call f_free_ptr(in%qmass)
+          call f_free_ptr(in%qmass)
           in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
           do i=1,in%nnos-1
              in%qmass(i) = dict_len(val // (i-1))
@@ -2539,7 +2536,7 @@ end subroutine bigdft_init_errors
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-    case ("mix")
+    case (MIX_VARIABLES)
        ! the MIX variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (ISCF)
@@ -2563,7 +2560,7 @@ end subroutine bigdft_init_errors
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-    case ("sic")
+    case (SIC_VARIABLES)
        ! the SIC variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (SIC_APPROACH)
@@ -2575,7 +2572,7 @@ end subroutine bigdft_init_errors
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-    case ("tddft")
+    case (TDDFT_VARIABLES)
        ! the TDDFT variables ----------------------------------------------------
        select case (trim(dict_key(val)))
        case (TDDFT_APPROACH)
