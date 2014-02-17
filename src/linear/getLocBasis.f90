@@ -2117,6 +2117,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
   ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   kernel_prime=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  overlap_diag=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
 
 
 
@@ -2136,6 +2137,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
               end do
           end do
       end if
+      overlap_diag=ks
       !!do iorb=1,tmb%orbs%norb
       !!    write(300,*) ksksk(iorb,1)
       !!end do
@@ -2190,13 +2192,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       inv_ovrlp_associated=.true.
   end if
   !tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr)
-  call diagonalize_localized(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large)
-  tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
-  call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
+  !call diagonalize_localized(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large)
+  !tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
+  !call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
   !call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
-  overlap_diag=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
-  call vcopy(tmb%orbs%norb**2, tmb%linmat%inv_ovrlp_large%matrix(1,1), 1, overlap_diag(1,1), 1)
-  call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
+  !call vcopy(tmb%orbs%norb**2, tmb%linmat%inv_ovrlp_large%matrix(1,1), 1, overlap_diag(1,1), 1)
+  !call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
   if (iproc==0) then
       do iorb=1,tmb%orbs%norb
           do jorb=1,tmb%orbs%norb
@@ -2412,6 +2413,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call f_free(ksk)
   call f_free(ksksk)
   call f_free(kernel_prime)
+  call f_free(overlap_diag)
 
   if (.not.inv_ovrlp_associated) then
       iall = -product(shape(tmb%linmat%inv_ovrlp_large%matrix_compr))*kind(tmb%linmat%inv_ovrlp_large%matrix_compr)
