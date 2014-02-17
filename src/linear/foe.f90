@@ -135,7 +135,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   fscale=foe_obj%fscale/0.5d0 ! this will be undone in the first iteration of the following loop
 
 
-  temp_loop: do itemp=1,20
+  temp_loop: do itemp=1,2
 
       
       fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"

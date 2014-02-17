@@ -2312,7 +2312,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
       !!! ###############################################
 
 
-      do it=1,20
+      do it=1,100
 
           call to_zero(tmb%orbs%norb**2, ks(1,1))
           if (tmb%orbs%norbp>0) then
