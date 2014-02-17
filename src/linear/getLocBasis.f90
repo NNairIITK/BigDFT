@@ -2067,7 +2067,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
   real(kind=8) :: dnrm2, diff, ddot, tr_KS, chargediff, chargediff_old
-  logical :: overlap_associated
+  logical :: overlap_associated, inv_ovrlp_associated
   real(kind=8),dimension(2) :: bisec_bounds
   logical,dimension(2) :: bisec_bounds_ok
 
@@ -2182,6 +2182,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   alpha=1.d-4
   chargediff=0.d0
   
+  if (.not.associated(tmb%linmat%inv_ovrlp_large%matrix_compr)) then
+      inv_ovrlp_associated=.false.
+      allocate(tmb%linmat%inv_ovrlp_large%matrix_compr(tmb%linmat%inv_ovrlp_large%nvctr),stat=istat)
+      call memocc(istat,tmb%linmat%inv_ovrlp_large%matrix_compr,'tmb%linmat%inv_ovrlp_large%matrix_compr',subname)
+  end if
   tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr)
   call diagonalize_localized(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large)
   tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
@@ -2405,6 +2410,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated)
   call f_free(ksk)
   call f_free(ksksk)
   call f_free(kernel_prime)
+
+  if (.not.inv_ovrlp_associated) then
+      iall = -product(shape(tmb%linmat%inv_ovrlp_large%matrix_compr))*kind(tmb%linmat%inv_ovrlp_large%matrix_compr)
+      deallocate(tmb%linmat%inv_ovrlp_large%matrix_compr,stat=istat)
+      call memocc(istat, iall, 'tmb%linmat%inv_ovrlp_large%matrix_compr', subname)
+  end if
 
   !!iall = -product(shape(ks))*kind(ks)
   !!deallocate(ks,stat=istat)
