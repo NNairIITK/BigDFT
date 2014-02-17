@@ -1666,13 +1666,13 @@ module module_interfaces
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-          gnrm_dynamic, can_use_ham)
+          gnrm_dynamic, can_use_ham, order_taylor)
         use module_base
         use module_types
         implicit none
       
         ! Calling arguments
-        integer,intent(in) :: iproc, nproc
+        integer,intent(in) :: iproc, nproc, order_taylor
         integer,intent(out) :: infoBasisFunctions
         type(atoms_data), intent(in) :: at
         type(orbitals_data) :: orbs
@@ -4489,11 +4489,11 @@ module module_interfaces
           integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
-        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt)
+        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc
+          integer,intent(in) :: iproc, nproc, order_taylor
           type(DFT_wavefunction),intent(inout):: tmb
           logical,intent(inout):: overlap_calculated
           integer,intent(in) :: it_shift, it_opt

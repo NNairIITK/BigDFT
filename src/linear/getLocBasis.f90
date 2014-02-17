@@ -375,7 +375,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-    gnrm_dynamic, can_use_ham)
+    gnrm_dynamic, can_use_ham, order_taylor)
   !
   ! Purpose:
   ! ========
@@ -391,7 +391,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, order_taylor
   integer,intent(out) :: infoBasisFunctions
   type(atoms_data), intent(in) :: at
   type(orbitals_data) :: orbs
@@ -511,7 +511,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       overlap_calculated=.true.
       !tmb%can_use_transposed=.false.
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30)
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor)
       if (iproc==0) call yaml_close_map()
   end if
 
@@ -956,7 +956,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   call yaml_map('purify kernel',.true.)
                   call yaml_newline()
               end if
-              call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30)
+              call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor)
           end if
       end if
 
@@ -2047,7 +2047,7 @@ end subroutine estimate_energy_change
 
 
 
-subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt)
+subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor)
   use module_base
   use module_types
   use yaml_output
@@ -2055,7 +2055,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, order_taylor
   type(DFT_wavefunction),intent(inout):: tmb
   logical,intent(inout):: overlap_calculated
   integer,intent(in) :: it_shift, it_opt
@@ -2114,7 +2114,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call uncompressMatrix(iproc,tmb%linmat%ovrlp)
   call uncompressMatrix(iproc,tmb%linmat%denskern_large)
 
-  k=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  !k=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
   ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
@@ -2196,65 +2196,43 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   else
       inv_ovrlp_associated=.true.
   end if
-  !tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr)
-  !call diagonalize_localized(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large)
-  !tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
-  !call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
-  !call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
-  !call vcopy(tmb%orbs%norb**2, tmb%linmat%inv_ovrlp_large%matrix(1,1), 1, overlap_diag(1,1), 1)
-  !call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
-!!  if (iproc==0) then
-!!      do iorb=1,tmb%orbs%norb
-!!          do jorb=1,tmb%orbs%norb
-!!              write(510,*) iorb, jorb, overlap_diag(jorb,iorb)
-!!          end do
-!!      end do
-!!  end if
-!!  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-!!             1.d0, overlap_diag, tmb%orbs%norb, &
-!!             tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
-!!             0.d0, ksksk, tmb%orbs%norb) 
-!!  call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-!!             1.d0, ksksk, tmb%orbs%norb, &
-!!             overlap_diag, tmb%orbs%norb, &
-!!             0.d0, kernel_prime, tmb%orbs%norb) 
 
-! ***************** new
+  if (it_shift>1) then
+      call calculate_overlap_onehalf()
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                 1.d0, ovrlp_onehalf, tmb%orbs%norb, &
+                 tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
+                 0.d0, ksksk, tmb%orbs%norb) 
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
+                 1.d0, ksksk, tmb%orbs%norb, &
+                 ovrlp_onehalf, tmb%orbs%norb, &
+                 0.d0, kernel_prime, tmb%orbs%norb) 
+  end if
 
-  call calculate_overlap_onehalf()
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-             1.d0, ovrlp_onehalf, tmb%orbs%norb, &
-             tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
-             0.d0, ksksk, tmb%orbs%norb) 
-  call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-             1.d0, ksksk, tmb%orbs%norb, &
-             ovrlp_onehalf, tmb%orbs%norb, &
-             0.d0, kernel_prime, tmb%orbs%norb) 
-
-  ! ************** end new
 
   shift=0.d0
   bisec_bounds=0.d0
   bisec_bounds_ok=.false.
 
-  shift_loop: do ishift=1,20
+  shift_loop: do ishift=1,it_shift
 
   if (iproc==0) call yaml_map('shift of eigenvalues',shift,fmt='(es10.3)')
 
-      ! shift the eigenvalues of the density kernel
+      ! shift the eigenvalues of the density kernel, using ks as temporary variable
       if (shift/=0.d0) then
+          if (ishift==1) stop 'eigenvalue shift not allowed for first iteration'
           do iorb=1,tmb%orbs%norb
               do jorb=1,tmb%orbs%norb
                   if (jorb==iorb) then
-                      k(jorb,iorb)=kernel_prime(jorb,iorb)+shift
+                      ks(jorb,iorb)=kernel_prime(jorb,iorb)+shift
                   else
-                      k(jorb,iorb)=kernel_prime(jorb,iorb)
+                      ks(jorb,iorb)=kernel_prime(jorb,iorb)
                   end if
               end do
           end do
           call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
                      1.d0, ovrlp_minusonehalf, tmb%orbs%norb, &
-                     k, tmb%orbs%norb, &
+                     ks, tmb%orbs%norb, &
                      0.d0, ksksk, tmb%orbs%norb) 
           call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
                      1.d0, ksksk, tmb%orbs%norb, &
@@ -2262,58 +2240,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                      0.d0, tmb%linmat%denskern_large%matrix, tmb%orbs%norb) 
       end if
 
-      !!call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
-      !!if (iproc==0) then
-      !!    do iorb=1,tmb%orbs%norb
-      !!        write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
-      !!    end do
-      !!end if
 
-      !!! ###############################################
-      !!!diagonalize overlap matrix
-      !!ks=tmb%linmat%ovrlp%matrix
-      !!call dsyev('v', 'l', tmb%orbs%norb, ks, tmb%orbs%norb, ksksk, k, tmb%orbs%norb**2, istat)
-      !!if (iproc==0) then
-      !!    do iorb=1,tmb%orbs%norb
-      !!        do jorb=1,tmb%orbs%norb
-      !!            write(500,*) iorb, jorb, ks(jorb,iorb)
-      !!        end do
-      !!    end do
-      !!end if
-      !!!!do iorb=1,tmb%orbs%norb
-      !!!!    write(300,*) ksksk(iorb,1)
-      !!!!end do
-      !!!!call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-      !!!!           1.d0, ks, tmb%orbs%norb, &
-      !!!!           tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
-      !!!!           0.d0, ksksk, tmb%orbs%norb) 
-      !!!!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-      !!!!           1.d0, ksksk, tmb%orbs%norb, &
-      !!!!           ks, tmb%orbs%norb, &
-      !!!!           0.d0, k, tmb%orbs%norb) 
-      !!!!do iorb=1,tmb%orbs%norb
-      !!!!    do jorb=1,tmb%orbs%norb
-      !!!!        write(200,*) iorb, jorb, k(jorb,iorb)
-      !!!!    end do
-      !!!!end do
-      !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-      !!           1.d0, ks, tmb%orbs%norb, &
-      !!           tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
-      !!           0.d0, ksksk, tmb%orbs%norb) 
-      !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, &
-      !!           1.d0, ksksk, tmb%orbs%norb, &
-      !!           ks, tmb%orbs%norb, &
-      !!           0.d0, k, tmb%orbs%norb) 
-      !!call dsyev('v', 'l', tmb%orbs%norb, k, tmb%orbs%norb, ksksk, ks, tmb%orbs%norb**2, istat)
-      !!if (iproc==0) then
-      !!    do iorb=1,tmb%orbs%norb
-      !!        write(*,*) 'iorb, eval', iorb, ksksk(iorb,1)
-      !!    end do
-      !!end if
-      !!! ###############################################
-
-
-      do it=1,100
+      do it=1,it_opt
 
           call to_zero(tmb%orbs%norb**2, ks(1,1))
           if (tmb%orbs%norbp>0) then
@@ -2351,19 +2279,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                   end do
               end do
           end do
-          !if (it>1) then
-              call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
-              tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
-              chargediff=2.d0*tr_KS-tmb%foe_obj%charge
-              !!if (abs(chargediff)<1.d0 .or. abs(chargediff)<abs(chargediff_old)) then
-              !!    alpha=2.d0*alpha
-              !!else
-              !!    alpha=alpha*0.5d0
-              !!end if
-              !!alpha=min(alpha,0.5d0)
-              !!alpha=max(alpha,1.0d-4)
-          !!end if
-          !!chargediff_old=chargediff
+
+          call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+          tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+          chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
           call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           diff=sqrt(diff)
@@ -2434,7 +2353,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   call timing(iproc,'purify_kernel ','OF') 
 
-  call f_free(k)
+  !call f_free(k)
   call f_free(ks)
   call f_free(ksk)
   call f_free(ksksk)
@@ -2450,37 +2369,14 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       call memocc(istat, iall, 'tmb%linmat%inv_ovrlp_large%matrix_compr', subname)
   end if
 
-  !!iall = -product(shape(ks))*kind(ks)
-  !!deallocate(ks,stat=istat)
-  !!call memocc(istat, iall, 'ks', subname)
-  !!iall = -product(shape(ksk))*kind(ksk)
-  !!deallocate(ksk,stat=istat)
-  !!call memocc(istat, iall, 'ksk', subname)
-  !!iall = -product(shape(ksksk))*kind(ksksk)
-  !!deallocate(ksksk,stat=istat)
-  !!call memocc(istat, iall, 'ksksk', subname)
 
-  !call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
   call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
-  !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
-  !!if (.not.overlap_associated) then
-  !!    allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr))
-  !!    call memocc(istat,tmb%linmat%ovrlp_large%matrix_compr,'tmb%linmat%ovrlp_large%matrix_compr',subname)
-  !!end if
-  !!call transform_sparse_matrix(tmb%linmat%ovrlp, tmb%linmat%ovrlp_large, 'small_to_large')
-  !!tr_KS=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%ovrlp_large%matrix_compr, &
-  !!           1, tmb%linmat%denskern_large%matrix_compr, 1)
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('tr(KS) after purification',tr_KS)
   end if
-  !!if (.not.overlap_associated) then
-  !!    iall = -product(shape(tmb%linmat%ovrlp_large%matrix_compr))*kind(tmb%linmat%ovrlp_large%matrix_compr)
-  !!    deallocate(tmb%linmat%ovrlp_large%matrix_compr,stat=istat)
-  !!    call memocc(istat, iall, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
-  !!end if
 
 
   iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
@@ -2506,9 +2402,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           !allocate(tmb%linmat%inv_ovrlp_large%matrix(orbs%norb,orbs%norb),stat=istat)
           !call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix,'tmb%linmat%inv_ovrlp_large%matrix',subname)
 
-          call overlapPowerGeneral(iproc, nproc, 10, 2, -1, tmb%orbs%norb, &
+          call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, &
                tmb%linmat%ovrlp%matrix, ovrlp_onehalf, error, tmb%orbs, check_accur=.true.)
-          call overlapPowerGeneral(iproc, nproc, 10, -2, -1, tmb%orbs%norb, &
+          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, &
                tmb%linmat%ovrlp%matrix, ovrlp_minusonehalf, error, tmb%orbs, check_accur=.true.)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')

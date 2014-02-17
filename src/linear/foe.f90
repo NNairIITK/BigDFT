@@ -745,7 +745,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       else
           it_shift=1
       end if
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50)
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor)
       if (iproc==0) then
           call yaml_close_sequence()
       end if

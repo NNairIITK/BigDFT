@@ -617,7 +617,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
          50,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
-         input%lin%gnrm_dynamic, can_use_ham)
+         input%lin%gnrm_dynamic, can_use_ham, input%lin%order_taylor)
      reduce_conf=.true.
      call yaml_close_sequence()
      call yaml_close_map()
