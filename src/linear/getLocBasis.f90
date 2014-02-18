@@ -2358,13 +2358,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       contains
 
         subroutine calculate_overlap_onehalf()
-          ! Taylor approximation of S^-1/2 up to higher order
-          !allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-          !call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-          !call uncompressMatrix(iproc,tmb%linmat%ovrlp)
-
-          !allocate(tmb%linmat%inv_ovrlp_large%matrix(orbs%norb,orbs%norb),stat=istat)
-          !call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+          ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
 
           call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, &
                tmb%linmat%ovrlp%matrix, ovrlp_onehalf, error, tmb%orbs, check_accur=.true.)
@@ -2373,15 +2367,6 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
-          !call compress_matrix_for_allreduce(iproc,tmb%linmat%inv_ovrlp_large)
-
-          !iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix))*kind(tmb%linmat%inv_ovrlp_large%matrix)
-          !deallocate(tmb%linmat%inv_ovrlp_large%matrix,stat=istat)
-          !call memocc(istat,iall,'tmb%linmat%inv_ovrlp_large%matrix',subname)
-
-          !iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-          !deallocate(tmb%linmat%ovrlp%matrix,stat=istat)
-          !call memocc(istat,iall,'tmb%linmat%ovrlp%matrix',subname)
       end subroutine calculate_overlap_onehalf
 
 end subroutine purify_kernel

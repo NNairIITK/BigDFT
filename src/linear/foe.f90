@@ -706,10 +706,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
       call uncompressMatrix(iproc,tmb%linmat%denskern_large)
     
-      !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tmb%linmat%inv_ovrlp_large%matrix, orbs%norb, &
-      !!           tmb%linmat%denskern_large%matrix, orbs%norb, 0.d0, workmat(1,1), orbs%norb)
-      !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1), orbs%norb, &
-      !!           tmb%linmat%inv_ovrlp_large%matrix, orbs%norb, 0.d0, tmb%linmat%denskern_large%matrix(1,1), orbs%norb)
       if (tmb%orbs%norbp>0) then
           call dgemm('n', 't', orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%linmat%denskern_large%matrix(1,1), orbs%norb, &
                      tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%isorb+1,1), orbs%norb, 0.d0, workmat(1,1), orbs%norb)
