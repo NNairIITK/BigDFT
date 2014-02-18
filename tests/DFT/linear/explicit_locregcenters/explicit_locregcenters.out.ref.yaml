@@ -91,7 +91,8 @@
    write_orbitals                      : No #     linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No
  dft:
-   hgrids: [0.45, 0.45, 0.45] #                   grid spacing in the three directions (bohr)
+   disablesym                          : Yes #    Disable the symmetry detection
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
    rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
    ncharge                             : 0 #      charge of the system
@@ -114,7 +115,7 @@
    nplot                               : 0
    disablesym                          : No #     disable the symmetry detection
  kpt:
-   method                              : manual # K-point sampling method
+   method                              : Manual # K-point sampling method
    kpt: #                                         Kpt coordinates
    -  [0., 0., 0.]
    wkpt: [1.] #                                   Kpt weights
@@ -154,10 +155,10 @@
  Geometry Optimization Parameters:
    Maximum steps                       :  1
    Algorithm                           : none
-   Random atomic displacement          :  0.0E+00
-   Fluctuation in forces               :  1.0E+00
-   Maximum in forces                   :  0.0E+00
-   Steepest descent step               :  4.0E+00
+   Random atomic displacement          :  0.0
+   Fluctuation in forces               :  1.0
+   Maximum in forces                   :  0.0
+   Steepest descent step               :  4.0
  Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -311,7 +312,6 @@
    MPI tasks  0- 0                     :  12
    MPI tasks  1- 2                     :  11
  Total Number of Orbitals              :  34
- Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-34:  2.0000}
  Wavefunctions memory occupation for root MPI process:  8 MB 881 KB 320 B
