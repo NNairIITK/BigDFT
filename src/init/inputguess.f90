@@ -201,7 +201,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    do iat=1,at%astruct%nat
       ity=at%astruct%iatype(iat)
       call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
-           at%aoig(iat)%aocc,occup,nl)
+           at%aocc(1:,iat),occup,nl)
 
       norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
 
@@ -213,7 +213,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
       call atomic_info(at%nzatom(ity),at%nelpsp(ity),ehomo=ehomo)
 
       locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
-      nsccode=at%aoig(iat)%iasctype
+      nsccode=at%iasctype(iat)
       if (nsccode/=0) then !the atom has some semicore orbitals
          iatsc=iatsc+1
          niasc=nsccode
@@ -322,7 +322,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    count_shells: do iat=1,at%astruct%nat
       !print *,'atom,aocc',iat,at%aocc(1:nelecmax,iat)
       ity=at%astruct%iatype(iat)
-      call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
+      call count_atomic_shells(nspin_print,at%aocc(1:,iat),occup,nl)
       G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
       G%nshltot=G%nshltot+G%nshell(iat)
       !check the occupation numbers and the atoms type
@@ -331,8 +331,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          if (at%astruct%iatype(jat) == ity) then
             occeq=.true.
             do i=1,nelecmax
-               occeq = occeq .and. &
-                    (at%aoig(jat)%aocc(i) == at%aoig(iat)%aocc(i))
+               occeq = occeq .and. (at%aocc(i,jat) == at%aocc(i,iat))
             end do
             !have found another similar atoms
             if (occeq) then
@@ -380,14 +379,13 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       ity=at%astruct%iatype(iat)
       ityx=iatypex(iat)
       ishltmp=0
-      call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
+      call count_atomic_shells(nspin_print,at%aocc(1:,iat),occup,nl)
       if (ityx > ntypesx) then
          if (iproc == 0 .and. verbose > 1) then
             call yaml_sequence(advance='no')
             call yaml_open_map(flow=.true.)
             call yaml_map('Atom Type',trim(at%astruct%atomnames(ity)))
-            call print_eleconf(nspin_print,&
-                 at%aoig(iat)%aocc,at%aoig(iat)%iasctype)
+            call print_eleconf(nspin_print,at%aocc(1:,iat),at%iasctype(iat))
          end if
 
          !positions for the nlcc arrays
@@ -398,13 +396,13 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          ngc=0
          if(present(quartic_prefactor)) then
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
-                  real(at%nelpsp(ity),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ity),&
+                  real(at%nelpsp(ity),gp),nspin_print,at%aocc(1:,iat),at%psppar(0:,0:,ity),&
                   at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
                   ng-1,xp(1,ityx),psiat(1:,1:,ityx),.false.,&
                   quartic_prefactor=quartic_prefactor(ity))
         else
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
-                  real(at%nelpsp(ity),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ity),&
+                  real(at%nelpsp(ity),gp),nspin_print,at%aocc(1:,iat),at%psppar(0:,0:,ity),&
                   at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
                   ng-1,xp(1,ityx),psiat(1:,1:,ityx),.false.)
          end if
@@ -495,9 +493,9 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
       ity=at%astruct%iatype(iat)
       ityx=iatypex(iat)
-      call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
+      call count_atomic_shells(nspin_print,at%aocc(1:,iat),occup,nl)
 
-      nsccode=at%aoig(iat)%iasctype
+      nsccode=at%iasctype(iat)
 
       !the scorb array was already corrected in readAtomicOrbitals routine
       if (nsccode/=0) then !the atom has some semicore orbitals
@@ -518,7 +516,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       iocc=0
       do l=1,4
          iocc=iocc+1
-         nlo=ceiling(at%aoig(iat)%aocc(iocc))!nint(at%aocc(iocc,iat))
+         nlo=ceiling(at%aocc(iocc,iat))!nint(at%aocc(iocc,iat))
          do inl=1,nlo
             ictotpsi=ictotpsi+1
             ictot=ictot+1
@@ -555,18 +553,17 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                         !full orbital, non polarised
                         !if icoll=1 occ(iocc)+occ(iocc+1)
                         !if icoll=2 occ(iocc-1)+occ(iocc)
-                        if (at%aoig(iat)%aocc(iocc+1-icoll)+&
-                             at%aoig(iat)%aocc(iocc+2-icoll) == 2.0_gp) then
+                        if (at%aocc(iocc+1-icoll,iat)+at%aocc(iocc+2-icoll,iat) == 2.0_gp) then
                            orbpol_nc=.false.
                         end if
                      end if
                      do ikpts=1,orbse%nkpts
                         ikorb=iorb+(ikpts-1)*orbse%norb
                         jorb=ikorb-orbse%isorb
-                        orbse%occup(ikorb)=at%aoig(iat)%aocc(iocc)
+                        orbse%occup(ikorb)=at%aocc(iocc,iat)
 
                         !!write(*,'(a,4i6,2es12.4)') 'iat, l, m, iocc, at%aocc(iocc,iat), ek', iat, l, m, iocc, at%aocc(iocc,iat), ek
-                        eks=eks+ek*at%aoig(iat)%aocc(iocc)*orbse%kwgts(ikpts)
+                        eks=eks+ek*at%aocc(iocc,iat)*orbse%kwgts(ikpts)
                         !!write(*,*) 'iat, at%aocc(iocc,iat)', iat, at%aocc(iocc,iat)
                         if (present(mapping)) then
                            iiorb=mapping(iorb)

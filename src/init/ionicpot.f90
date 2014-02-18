@@ -1180,7 +1180,6 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_input_dicts
   use dictionaries
   use yaml_output
-  use module_atoms, only: deallocate_atoms_data,set_astruct_from_dict,nullify_atoms_data
   !use gaussians
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -1216,11 +1215,11 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
           '--------------------------------------------------- Counter Ionic Potential Creation'
   end if
 
-  call nullify_atoms_data(at)
+  call atoms_nullify(at)
   !read the positions of the counter ions from file
   call dict_init(dict)
   call astruct_file_merge_to_dict(dict, "posinp", 'posinp_ci')
-  call set_astruct_from_dict(dict // "posinp", at%astruct)
+  call astruct_set_from_dict(dict // "posinp", at%astruct)
 
   call atoms_file_merge_to_dict(dict)
   do ityp = 1, at%astruct%ntypes, 1
@@ -1428,7 +1427,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   end if
 
   !deallocations
-  call deallocate_atoms_data(at) 
+  call deallocate_atoms(at,subname) 
 
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)

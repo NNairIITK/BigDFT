@@ -950,7 +950,7 @@ END SUBROUTINE input_memory_linear
         subroutine input_wf_diag(iproc,nproc,at,denspot,&
              orbs,nvirt,comms,Lzd,energs,rxyz,&
              nlpsp,ixc,psi,hpsi,psit,G,&
-             nspin,GPU,input,onlywf,proj_G,paw)
+             nspin,symObj,GPU,input,onlywf,proj_G,paw)
            ! Input wavefunctions are found by a diagonalization in a minimal basis set
            ! Each processors write its initial wavefunctions into the wavefunction file
            ! The files are then read by readwave
@@ -975,7 +975,7 @@ END SUBROUTINE input_memory_linear
            type(DFT_local_fields), intent(inout) :: denspot
            type(GPU_pointers), intent(in) :: GPU
            type(input_variables), intent(in) :: input
-           !type(symmetry_data), intent(in) :: symObj
+           type(symmetry_data), intent(in) :: symObj
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
            type(gaussian_basis), intent(out) :: G !basis for davidson IG
            real(wp), dimension(:), pointer :: psi,hpsi,psit
@@ -1192,7 +1192,7 @@ END SUBROUTINE input_memory_linear
 
            !spin adaptation for the IG in the spinorial case
            orbse%nspin=nspin
-           call sumrho(denspot%dpbox,orbse,Lzde,GPUe,at%astruct%sym,denspot%rhod,psi,denspot%rho_psi)
+           call sumrho(denspot%dpbox,orbse,Lzde,GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
            call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
            call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
 
@@ -1685,7 +1685,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nlpsp,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
-          Gvirt,nspin,GPU,in,.false.)
+          Gvirt,nspin,atoms%astruct%sym,GPU,in,.false.)
 
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory

@@ -1139,7 +1139,6 @@ subroutine deallocate_amnk_calculation()
 END SUBROUTINE deallocate_amnk_calculation
 
 subroutine final_deallocations()
-  use module_atoms, only: deallocate_atoms_data
 
   call deallocate_work_arrays_sumrho(w)
   i_all = -product(shape(psi_etsf))*kind(psi_etsf)
@@ -1197,7 +1196,7 @@ subroutine final_deallocations()
   call deallocate_orbs(orbsb,subname)
   call deallocate_comms(commsb,subname) 
   !call deallocate_atoms_scf(atoms,subname)
-  call deallocate_atoms_data(atoms)
+  call deallocate_atoms(atoms,subname)
 !  call free_input_variables(input)
   call bigdft_free_input(input)
 

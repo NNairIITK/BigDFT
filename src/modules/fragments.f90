@@ -13,12 +13,28 @@ module module_fragments
   use module_base, only: gp,wp
   use module_types
   use dynamic_memory
-  use module_atoms
   implicit none
 
   private
 
+  !interface operator(*)
+  !   module procedure transform_fragment
+  !end interface
+
    interface
+      subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
+         !n(c) use module_base
+         use module_types
+         implicit none
+         character(len=*), intent(in) :: file
+         integer, intent(in) :: iproc
+         type(atomic_structure), intent(inout) :: astruct
+         integer, intent(out), optional :: status
+         real(gp), intent(out), optional :: energy
+         real(gp), dimension(:,:), pointer, optional :: fxyz
+         character(len =*), intent(out), optional :: comment
+      END SUBROUTINE read_atomic_file
+
       subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
                  basis_overlap, coeff, orbs)
         use module_base
@@ -161,7 +177,7 @@ contains
     frag=fragment_null()
 
     ! read fragment positions
-    call set_astruct_from_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
+    call read_atomic_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
 
     ! iproc, nproc, nspinor not needed yet, add in later
     call init_minimal_orbitals_data(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, input, frag%astruct_frg, &
@@ -692,13 +708,18 @@ contains
   subroutine fragment_free(frag)
     implicit none
     type(system_fragment), intent(inout) :: frag
+    character(len=200) :: subname
 
-    call deallocate_atomic_structure(frag%astruct_frg)
+    subname='fragment_free'
+
+    call deallocate_atomic_structure(frag%astruct_frg,subname)
     frag%astruct_frg=atomic_structure_null()
-    call f_free_ptr(frag%rxyz_env)
-    call f_free_ptr(frag%coeff)
-    call f_free_ptr(frag%kernel)
-    call f_free_ptr(frag%eval)
+    call f_routine(id='fragment_free')
+    if (associated(frag%rxyz_env)) call f_free_ptr(frag%rxyz_env)
+    if (associated(frag%coeff)) call f_free_ptr(frag%coeff)
+    if (associated(frag%kernel)) call f_free_ptr(frag%kernel)
+    if (associated(frag%eval)) call f_free_ptr(frag%eval)
+    call f_release_routine()
     call fragment_basis_free(frag%fbasis)
     frag=fragment_null()
 

@@ -19,7 +19,7 @@ program memguess
    use m_ab6_symmetry
    use module_fragments
    use yaml_output
-   use module_atoms, only: set_astruct_from_file
+
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=20) :: tatonam, radical
@@ -267,7 +267,7 @@ program memguess
       stop
    end if
    if (convertpos) then
-      call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
+      call read_atomic_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
       if (i_stat /=0) stop 'error on input file parsing' 
       !find the format of the output file
       if (index(fileTo,'.xyz') > 0) then

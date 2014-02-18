@@ -507,28 +507,6 @@ subroutine d3_ptr_free(array)
   nullify(array)
 end subroutine d3_ptr_free
 
-subroutine i3_ptr(array,m)
-  use metadata_interfaces, metadata_address => geti3ptr
-  implicit none
-  type(malloc_information_ptr), intent(in) :: m
-  integer, dimension(:,:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
-  !allocate the array
-  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
-       m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
-  include 'allocate-inc.f90'
-end subroutine i3_ptr
-
-subroutine i3_ptr_free(array)
-  use metadata_interfaces, metadata_address => geti3ptr
-  implicit none
-  integer, dimension(:,:,:), pointer, intent(inout) :: array
-  include 'deallocate-profile-inc.f90' 
-  if (.not. associated(array)) return
-  include 'deallocate-inc.f90'
-  nullify(array)
-end subroutine i3_ptr_free
-
 subroutine d4_ptr(array,m)
   use metadata_interfaces, metadata_address => getdp4ptr
   implicit none

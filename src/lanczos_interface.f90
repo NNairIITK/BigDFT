@@ -1106,7 +1106,6 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_Moltiplica(p,i)
      use module_interfaces
-     use module_abscalc
      !Arguments
      implicit none
      integer, intent(in) :: p,i

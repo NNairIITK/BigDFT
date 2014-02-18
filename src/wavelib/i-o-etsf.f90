@@ -751,7 +751,7 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
       if (associated(lr%bounds%kb%ibyz_f)) then
          call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, subname)
       end if
-      call deallocate_wfd(lr%wfd)
+      call deallocate_wfd(lr%wfd, subname)
    END SUBROUTINE deallocate_local
 END SUBROUTINE readwavetoisf_etsf
 
@@ -991,8 +991,6 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
    contains
 
    subroutine etsf_write_global(ncid,orbs, n1,n2,n3,hx,hy,hz,rxyz,at,wfd,gcoord,nvctr)
-     use ao_inguess, only: atomic_info
-     implicit none
       integer, intent(in) :: ncid, n1, n2, n3
       real(gp), intent(in) :: hx, hy, hz
       type(atoms_data), intent(in) :: at
@@ -1108,8 +1106,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       allocate(spnames(at%astruct%ntypes),stat=i_stat)
       call memocc(i_stat,spnames,'spnames',subname)
       do iat = 1, at%astruct%ntypes, 1
-         call atomic_info(at%nzatom(iat),at%nelpsp(iat),symbol=spnames(iat))
-         !call nzsymbol(at%nzatom(iat), spnames(iat))
+         call nzsymbol(at%nzatom(iat), spnames(iat))
       end do
       symId = reshape((/1,0,0,0,1,0,0,0,1/), (/3,3,1/))
       transId = reshape((/0.d0,0.d0,0.d0/), (/3,1/))

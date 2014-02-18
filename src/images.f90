@@ -904,7 +904,7 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   use Minimization_routines
   use module_types
   use module_images
-  use module_atoms, only: set_astruct_from_file,deallocate_atomic_structure,nullify_atomic_structure
+  use module_interfaces, only: read_atomic_file
   implicit none
   type(run_image), intent(inout) :: img
   integer, intent(in) :: iteration
@@ -918,15 +918,14 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   type(atomic_structure) :: astruct
   real(gp) :: Vm1, Vp1
   integer :: stat
-  call f_routine(id=subname)
 
   img%error = UNINITIALIZED(real(1, gp))
   nullify(rxyzm1)
   nullify(rxyzp1)
-  call nullify_atomic_structure(astruct)
+  call astruct_nullify(astruct)
 
   if (trim(filem1) /= "") then
-     call set_astruct_from_file(trim(filem1), bigdft_mpi%iproc, astruct, &
+     call read_atomic_file(trim(filem1), bigdft_mpi%iproc, astruct, &
           & status = stat, energy = Vm1)
      if (stat /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
         call free_me()
@@ -934,12 +933,12 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
      end if
      rxyzm1 => astruct%rxyz
      nullify(astruct%rxyz)
-     call deallocate_atomic_structure(astruct)
-     call nullify_atomic_structure(astruct)
+     call deallocate_atomic_structure(astruct, subname)
+     call astruct_nullify(astruct)
   end if
 
   if (trim(filep1) /= "") then
-     call set_astruct_from_file(trim(filep1), bigdft_mpi%iproc, astruct, &
+     call read_atomic_file(trim(filep1), bigdft_mpi%iproc, astruct, &
           & status = stat, energy = Vp1)
      if (stat /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
         call free_me()
@@ -947,8 +946,8 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
      end if
      rxyzp1 => astruct%rxyz
      nullify(astruct%rxyz)
-     call deallocate_atomic_structure(astruct)
-     call nullify_atomic_structure(astruct)
+     call deallocate_atomic_structure(astruct, subname)
+     call astruct_nullify(astruct)
   end if
   
   call image_update_pos(img, iteration, rxyzm1, rxyzp1, Vm1, Vp1, km1, kp1, &
@@ -970,8 +969,7 @@ contains
       deallocate(rxyzm1,stat=i_stat)
       call memocc(i_stat,i_all,'rxyzm1',subname)
     end if
-    call deallocate_atomic_structure(astruct)
-    call f_release_routine()
+    call deallocate_atomic_structure(astruct, subname)
   end subroutine free_me
 END SUBROUTINE image_update_pos_from_file
 

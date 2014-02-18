@@ -15,7 +15,6 @@ program MINHOP
   use module_input_dicts
   use m_ab6_symmetry
   use yaml_output
-  use module_atoms, only: deallocate_atoms_data
   implicit real(kind=8) (a-h,o-z)
   logical :: newmin,CPUcheck,occured,exist_poslocm
   character(len=20) :: unitsp,atmn
@@ -64,6 +63,24 @@ program MINHOP
    !actual value of iproc
    iproc=iproc+igroup*ngroups
    
+!!$  ! Start MPI version
+!!$  call bigdft_mpi_init(ierr)
+!!$  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+!!$  if (iproc == 0 )then
+!!$     write(*,'(23x,a)')' NEW '
+!!$     write(*,'(23x,a)')'      __  __ _ _  _ _   _  __  ___ '
+!!$     write(*,'(23x,a)')'     |  \/  |_| \| | |_| |/  \| _ \ '
+!!$     write(*,'(23x,a)')'     | |\/| |-|    |  _  | <> |  _/ '
+!!$     write(*,'(23x,a)')'     |_|  |_|_|_|\_|_| |_|\__/|_|     WITH'
+!!$     write(*,'(23x,a)')''
+!!$     write(*,'(23x,a)')''
+!!$     write(*,'(23x,a)')''
+!!$     call print_logo()
+!!$     write(*,'(23x,a)')'----> you can grep this file for (MH) to compare with global.out'
+!!$     write(*,'(23x,a)')' (MH) NOTE: this version reads nspin, mpol from input.dat'
+!!$  end if
 
   !open(unit=67,file='global.out')
    if (iproc+igroup==0) call print_logo_MH()
@@ -113,7 +130,7 @@ program MINHOP
 
   !use only the atoms structure for the run
 !!$  call init_atomic_values((bigdft_mpi%iproc == 0),md_atoms,inputs_md%ixc)
-  call deallocate_atoms_data(md_atoms) 
+  call deallocate_atoms(md_atoms,subname) 
 
   !get number of atoms of the system, to allocate local arrays
   natoms=bigdft_get_number_of_atoms(atoms)
@@ -694,7 +711,7 @@ end do hopping_loop
   close(2) 
   !deallocations as in BigDFT
   call free_restart_objects(rst,subname)
-  call deallocate_atoms_data(atoms)
+  call deallocate_atoms(atoms,subname)
 
   ! deallocation of global's variables
 

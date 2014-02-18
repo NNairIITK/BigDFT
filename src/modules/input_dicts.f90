@@ -19,6 +19,7 @@ module module_input_dicts
 
   ! Types from dictionaries
   public :: psp_set_from_dict, nlcc_set_from_dict
+  public :: astruct_set_from_dict
   public :: atomic_data_set_from_dict
   public :: occupation_set_from_dict
 
@@ -70,7 +71,6 @@ contains
     character(len = max_field_length) :: val
     character, dimension(:), allocatable :: fbuf
     type(dictionary), pointer :: udict
-    external :: getFileContent,copyCBuffer,freeCBuffer
 
     call f_routine(id='merge_input_file_to_dict')
     if (mpi_env%iproc == 0) then
@@ -265,7 +265,6 @@ contains
   subroutine psp_dict_analyse(dict, atoms)
     use module_defs, only: gp
     use module_types, only: atoms_data
-    use module_atoms, only: allocate_atoms_data
     use dictionaries
     implicit none
     type(dictionary), pointer :: dict
@@ -278,9 +277,8 @@ contains
     integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
 
     if (.not. associated(atoms%nzatom)) then
-       call allocate_atoms_data(atoms)
-       !call allocate_atoms_nat(atoms, "psp_dict_analyse")
-       !call allocate_atoms_ntypes(atoms, "psp_dict_analyse")
+       call allocate_atoms_nat(atoms, "psp_dict_analyse")
+       call allocate_atoms_ntypes(atoms, "psp_dict_analyse")
     end if
 
     pawpatch = .true.
@@ -374,6 +372,11 @@ contains
              do i = 1, n, 1
                 coeffs => nloc // "Valence" // (i - 1)
                 atoms%nlccpar(:, nlcc_dim + i) = coeffs
+!                atoms%nlccpar(0, nlcc_dim + i) = coeffs // 0
+!                atoms%nlccpar(1, nlcc_dim + i) = coeffs // 1
+!                atoms%nlccpar(2, nlcc_dim + i) = coeffs // 2
+!                atoms%nlccpar(3, nlcc_dim + i) = coeffs // 3
+!                atoms%nlccpar(4, nlcc_dim + i) = coeffs // 4
              end do
              nlcc_dim = nlcc_dim + n
              n = 0
@@ -677,8 +680,8 @@ contains
 
   !> Convert astruct to dictionary for later dump.
   subroutine astruct_merge_to_dict(dict, astruct, rxyz, fxyz, energy, comment)
+    use module_types, only: atomic_structure
     use module_defs, only: gp, UNINITIALIZED, Bohr_Ang
-    use module_atoms, only: atomic_structure
     use dictionaries
     use yaml_strings
     implicit none
@@ -779,30 +782,276 @@ contains
          & call set(dict // "Properties" // "Format", astruct%inputfile_format)
   end subroutine astruct_merge_to_dict
 
+  subroutine astruct_set_from_dict(dict, astruct, comment, energy, fxyz)
+    use module_types, only: atomic_structure
+    use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
+    use dictionaries
+    use dynamic_memory
+    implicit none
+    type(dictionary), pointer :: dict
+    type(atomic_structure), intent(out) :: astruct
+    real(gp), intent(out), optional :: energy
+    real(gp), dimension(:,:), pointer, optional :: fxyz
+    character(len = 1024), intent(out), optional :: comment
+
+    !local variables
+    character(len=*), parameter :: subname='astruct_set_from_dict'
+    type(dictionary), pointer :: pos, at
+    character(len = max_field_length) :: str
+    integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
+    character(len=20), dimension(100) :: atomnames
+
+    call astruct_nullify(astruct)
+    astruct%nat = -1
+    if (present(energy)) energy = UNINITIALIZED(energy)
+    if (present(comment)) write(comment, "(A)") " "
+    if(present(fxyz)) nullify(fxyz)
+    if (.not. has_key(dict, "Positions")) return
+
+    ! The units
+    units = 0
+    write(astruct%units, "(A)") "bohr"
+    if (has_key(dict, "Units")) astruct%units = dict // "Units"
+    select case(trim(astruct%units))
+    case('atomic','atomicd0','bohr','bohrd0')
+       units = 0
+    case('angstroem','angstroemd0')
+       units = 1
+    case('reduced')
+       units = 2
+    end select
+    ! The cell
+    astruct%cell_dim = 0.0_gp
+    if (.not. has_key(dict, "Cell")) then
+       astruct%geocode = 'F'
+    else
+       astruct%geocode = 'P'
+       ! z
+       astruct%cell_dim(3) = dict // "Cell" // 2
+       ! y
+       str = dict // "Cell" // 1
+       if (trim(str) == ".inf") then
+          astruct%geocode = 'S'
+       else
+          astruct%cell_dim(2) = dict // "Cell" // 1
+       end if
+       ! x
+       str = dict // "Cell" // 0
+       if (trim(str) == ".inf") then
+          astruct%geocode = 'W'
+       else
+          astruct%cell_dim(1) = dict // "Cell" // 0
+       end if
+    end if
+    if (units == 1) astruct%cell_dim = astruct%cell_dim / Bohr_Ang
+    ! The atoms
+    if (.not. has_key(dict, "Positions")) return
+    pos => dict // "Positions"
+    astruct%nat = dict_len(pos)
+    call astruct_set_n_atoms(astruct, astruct%nat, subname)
+    ntyp = 0
+    do iat = 1, astruct%nat
+       at => pos // (iat - 1)
+       igspin = 0
+       igchrg = 0
+       nsgn   = 1
+       at => at%child
+       do while(associated(at))
+          str = dict_key(at)
+          if (trim(str) == "Frozen") then
+             str = dict_value(at)
+             call frozen_ftoi(str(1:4), astruct%ifrztyp(iat))
+          else if (trim(str) == "IGSpin") then
+             igspin = at
+          else if (trim(str) == "IGChg") then
+             igchrg = at
+             if (igchrg >= 0) then
+                nsgn = 1
+             else
+                nsgn = -1
+             end if
+          else if (dict_len(at) == 3) then
+             do ityp=1,ntyp
+                if (str(1:20) == atomnames(ityp)) then
+                   astruct%iatype(iat)=ityp
+                   exit
+                endif
+             enddo
+             if (ityp > ntyp) then
+                ntyp=ntyp+1
+                if (ntyp > 100) then
+                   write(*,*) 'more than 100 atomnames not permitted'
+                   astruct%nat = -1
+                   return
+                end if
+                atomnames(ityp)=str(1:20)
+                astruct%iatype(iat)=ntyp
+             end if
+             astruct%rxyz(1, iat) = at // 0
+             astruct%rxyz(2, iat) = at // 1
+             astruct%rxyz(3, iat) = at // 2
+          end if
+          at => dict_next(at)
+       end do
+       astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
+       if (units == 1) then
+          astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
+          astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang
+          astruct%rxyz(3,iat) = astruct%rxyz(3,iat) / Bohr_Ang
+       endif
+       if (units == 2) then !add treatment for reduced coordinates
+          if (astruct%cell_dim(1) > 0.) astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),1.0_gp) * astruct%cell_dim(1)
+          if (astruct%cell_dim(2) > 0.) astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),1.0_gp) * astruct%cell_dim(2)
+          if (astruct%cell_dim(3) > 0.) astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),1.0_gp) * astruct%cell_dim(3)
+       else if (astruct%geocode == 'P') then
+          astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+          astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
+          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+       else if (astruct%geocode == 'S') then
+          astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+       else if (astruct%geocode == 'W') then
+          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+       end if
+    end do
+    if (has_key(dict, "Forces") .and. present(fxyz)) then
+       fxyz = f_malloc_ptr((/ 3, astruct%nat /), subname)
+       pos => dict // "Forces"
+       do iat = 1, astruct%nat
+          at => pos // (iat - 1)
+          fxyz(1, iat) = at // 0
+          fxyz(2, iat) = at // 1
+          fxyz(3, iat) = at // 2
+       end do
+    end if
+
+    call astruct_set_n_types(astruct, ntyp, subname)
+    astruct%atomnames(1:ntyp) = atomnames(1:ntyp)
+
+    if (has_key(dict, "Properties")) then
+       pos => dict // "Properties"
+       if (has_key(pos, "Energy (Ha)") .and. present(energy)) energy = pos // "Energy (Ha)"
+       if (has_key(pos, "Info") .and. present(comment)) comment = pos // "Info"
+       if (has_key(pos, "Format")) astruct%inputfile_format = pos // "Format"
+    end if
+
+  end subroutine astruct_set_from_dict
 
   subroutine astruct_file_merge_to_dict(dict, key, filename)
-    use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine
-    use module_atoms, only: set_astruct_from_file,atomic_structure,&
-         nullify_atomic_structure,deallocate_atomic_structure
+    use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
+    use module_interfaces, only: read_atomic_file
     use dictionaries
     use yaml_strings
+    use module_types, only: atomic_structure
     implicit none
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: filename, key
     
     type(atomic_structure) :: astruct
     integer :: ierr
-    call f_routine(id='astruct_file_merge_to_dict')
+
     ! Read atomic file, old way
-    call nullify_atomic_structure(astruct)
-    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, status = ierr)
+    call astruct_nullify(astruct)
+    call read_atomic_file(filename, bigdft_mpi%iproc, astruct, status = ierr)
     if (ierr == 0) then
        call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
        call set(dict // key // "Properties" // "Source", filename)
-       call deallocate_atomic_structure(astruct)
+       call deallocate_atomic_structure(astruct, "astruct_file_merge_to_dict")
     end if
-    call f_release_routine()
   end subroutine astruct_file_merge_to_dict
+
+!!$  subroutine aocc_from_dict(dict,nspin,nspinor,nelecmax,lmax,nmax,aocc,nsccode)
+!!$    use module_defs, only: gp, UNINITIALIZED
+!!$    use dictionaries
+!!$    implicit none
+!!$    type(dictionary), pointer :: dict
+!!$    integer, intent(in) :: nelecmax,lmax,nmax,nspinor,nspin
+!!$    integer, intent(out) :: nsccode
+!!$    real(gp), dimension(nelecmax), intent(out) :: aocc
+!!$
+!!$    !local variables
+!!$    character(len = max_field_length) :: key
+!!$    character(max_field_length), dimension(:), allocatable :: keys
+!!$    integer :: i, ln
+!!$    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc
+!!$    integer, dimension(lmax) :: nl,nlsc
+!!$    real(gp), dimension(2*(2*lmax-1),nmax,lmax) :: allocc
+!!$
+!!$    nl(:)=0
+!!$    nlsc(:)=0
+!!$    allocc(:,:,:) = UNINITIALIZED(1._gp)
+!!$
+!!$    !if non-collinear it is like nspin=1 but with the double of orbitals
+!!$    if (nspinor == 4) then
+!!$       noncoll=2
+!!$    else
+!!$       noncoll=1
+!!$    end if
+!!$
+!!$    allocate(keys(dict_size(dict)))
+!!$    keys = dict_keys(dict)
+!!$    do i = 1, dict_size(dict), 1
+!!$       key = keys(i)
+!!$       ln = len_trim(key)
+!!$       is = 1
+!!$       if (key(1:1) == "(" .and. key(ln:ln) == ")") is = 2
+!!$       ! Read the major quantum number
+!!$       read(key(is:is), "(I1)") n
+!!$       is = is + 1
+!!$       ! Read the channel
+!!$       select case(key(is:is))
+!!$       case('s')
+!!$          l=1
+!!$       case('p')
+!!$          l=2
+!!$       case('d')
+!!$          l=3
+!!$       case('f')
+!!$          l=4
+!!$       case default
+!!$          stop "wrong channel"
+!!$       end select
+!!$       nl(l) = nl(l) + 1
+!!$       if (is == 3) nlsc(l) = nlsc(l) + 1
+!!$       if (nlsc(l) > 2) stop 'cannot admit more than two semicore orbitals per channel'
+!!$
+!!$       !read the different atomic occupation numbers
+!!$       if (dict_len(dict // key) /= nspin*noncoll*(2*l-1)) then
+!!$          write(*,*) "Awaited: ", nspin*noncoll*(2*l-1), nspin, noncoll, l
+!!$          write(*,*) "provided", dict_len(dict // key)
+!!$          stop 'Not enough aocc'
+!!$       end if
+!!$       do m = 1, nspin*noncoll*(2*l-1), 1
+!!$          allocc(m, n, l) = dict // key // (m - 1)
+!!$       end do
+!!$    end do
+!!$    deallocate(keys)
+!!$
+!!$    !put the values in the aocc array
+!!$    aocc(:)=0.0_gp
+!!$    iocc=0
+!!$    do l=1,lmax
+!!$       iocc=iocc+1
+!!$       aocc(iocc)=real(nl(l),gp)
+!!$       do inl=1,nmax
+!!$          if (allocc(1, inl, l) == UNINITIALIZED(1._gp)) cycle
+!!$          do ispin=1,nspin
+!!$             do m=1,2*l-1
+!!$                do icoll=1,noncoll !non-trivial only for nspinor=4
+!!$                   iocc=iocc+1
+!!$                   aocc(iocc)=allocc(icoll+(m-1)*noncoll+(ispin-1)*(2*l-1)*noncoll,inl,l)
+!!$                end do
+!!$             end do
+!!$          end do
+!!$       end do
+!!$    end do
+!!$
+!!$    !then calculate the nsccode
+!!$    nsccode=0
+!!$    do lsc=1,lmax
+!!$       nsccode=nsccode+nlsc(lsc) * (4**(lsc-1))
+!!$    end do
+!!$  end subroutine aocc_from_dict
 
   subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
     use module_defs, only: gp
@@ -847,8 +1096,7 @@ contains
 
   subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
     use module_defs, only: gp
-    use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
-         print_eleconf,aoig_set
+    use ao_inguess, only: ao_ig_charge,atomic_info,aocc_from_dict,print_eleconf,atomic_configuration
     use module_types, only: atoms_data
     use dictionaries
 !    use dynamic_memory
@@ -866,17 +1114,18 @@ contains
     type(dictionary), pointer :: dict_tmp
 
     do ityp = 1, atoms%astruct%ntypes, 1
-       !only amu and rcov are extracted here
+       !only amu and rcov are needed here
        call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
             amu=atoms%amu(ityp),rcov=rcov)
-!       atoms%rloc(ityp,:) = rcov * 10.0
+       atoms%rloc(ityp,:) = rcov * 10.0
 
        do iat = 1, atoms%astruct%nat, 1
           if (atoms%astruct%iatype(iat) /= ityp) cycle
 
           !fill the atomic IG configuration from the input_polarization
-          atoms%aoig(iat)=aoig_set(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
-               atoms%astruct%input_polarization(iat),nspin)
+          call atomic_configuration(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
+               atoms%astruct%input_polarization(iat),nspin,&
+               atoms%iasctype(iat),atoms%aocc(1:,iat))
 
           ! Possible overwrite, if the dictionary has the item
           if (has_key(dict, key)) then
@@ -887,11 +1136,12 @@ contains
              if (has_key(dict // key, trim(atoms%astruct%atomnames(ityp)))) &
                   dict_tmp=>dict // key // trim(atoms%astruct%atomnames(ityp))
              if (associated(dict_tmp)) then
-                atoms%aoig(iat)=aoig_set_from_dict(dict_tmp,nspin)
+                call aocc_from_dict(dict_tmp,nspin,atoms%aocc(:,iat),atoms%iasctype(iat))
+
                 !check the total number of electrons
-                elec=ao_ig_charge(nspin,atoms%aoig(iat)%aocc)
+                elec=ao_ig_charge(nspin,atoms%aocc(1:,iat))
                 if (nint(elec) /= atoms%nelpsp(ityp)) then
-                   call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%iasctype)
+                   call print_eleconf(nspin,atoms%aocc(1:,iat),atoms%iasctype(iat))
                    call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
                         ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
                 end if
@@ -904,7 +1154,7 @@ contains
     !number of atoms with semicore channels
     atoms%natsc = 0
     do iat=1,atoms%astruct%nat
-       if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
+       if (atoms%iasctype(iat) /= 0) atoms%natsc=atoms%natsc+1
     enddo
   end subroutine atomic_data_set_from_dict
 

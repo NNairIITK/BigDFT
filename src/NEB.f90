@@ -87,10 +87,6 @@ MODULE NEB_routines
       use dictionaries
       use module_interfaces
       use module_input_dicts
-      use module_atoms, only: atomic_structure, &
-           deallocate_atomic_structure, &
-           read_atomic_file => set_astruct_from_file, &
-           astruct_nullify => nullify_atomic_structure
 
       IMPLICIT NONE
 
@@ -218,7 +214,7 @@ MODULE NEB_routines
          call inputs_from_dict(ins(i), atoms(i), dict, .true.)
 
          call dict_free(dict)
-         call deallocate_atomic_structure(astruct)
+         call deallocate_atomic_structure(astruct, "NEB")
       end do
       bigdft_mpi = bigdft_mpi_svg
 
@@ -530,7 +526,6 @@ MODULE NEB_routines
     SUBROUTINE deallocation
       use yaml_output
       use dynamic_memory
-      use module_atoms, only: deallocate_atoms_data
       IMPLICIT NONE
 
       integer :: i, ierr
@@ -546,7 +541,7 @@ MODULE NEB_routines
 
       if (allocated(atoms)) then
          do i = 1, size(atoms)
-            call deallocate_atoms_data(atoms(i))
+            call deallocate_atoms(atoms(i), "deallocation")
          end do
          deallocate(atoms)
       end if

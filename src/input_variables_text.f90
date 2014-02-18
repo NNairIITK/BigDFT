@@ -118,8 +118,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   type(dictionary), pointer :: dict
   character(len=dictionary_value_lgt) :: dummy_char,dummy_char2
 
-
-
   !this variable is temporay for the moment, it should integrate the input dictionary
   call dict_init(dict)
 
@@ -131,6 +129,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
   call input_var(dummy_int,'2',ranges=(/1,2/),comment=comments)
   call dict_set(dict//LIN_GENERAL//HYBRID,dummy_int==1)
+
   ! number of iterations
   comments = 'outer loop iterations (low, high)'
   call input_var(dummy_int,'15',dict//LIN_GENERAL//NIT//0,ranges=(/0,100000/))
@@ -352,10 +351,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
 
   ! Allocate lin pointers and atoms%rloc
-
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
-
+  
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
              'localization radius, kernel cutoff, kernel cutoff FOE'
@@ -371,7 +369,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
         call input_var(atomname,trim(atoms%astruct%atomnames(itype)))
         itype = itype + 1
      end if
-
      call input_var(npt,'1',ranges=(/1,100/),input_iostat=ios)
      call input_var(ppao,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(ppl,'1.2d-2',ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
@@ -404,11 +401,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
              "', which is not present in the file containing the atomic coordinates."
      end if
   end do
-!  found  = .true.
-!  do jtype=1,atoms%astruct%ntypes
-!     found = found .and. parametersSpecified(jtype)
-!  end do
-  if (.not. all(parametersSpecified) ) then
+  found  = .true.
+  do jtype=1,atoms%astruct%ntypes
+     found = found .and. parametersSpecified(jtype)
+  end do
+  if (.not. found) then
      ! The parameters were not specified for all atom types.
      if(iproc==0) then
         write(*,'(1x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
@@ -449,11 +446,6 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
       end do
   end do
 
-!!$  if (.not. exists) then
-!!$     call dict_free(dict)
-!!$     call input_free(.false.)
-!!$     return
-!!$  end if
 
   call dict_free(dict)
 

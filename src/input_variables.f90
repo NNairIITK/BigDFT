@@ -101,7 +101,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   use dynamic_memory
   use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   use module_xc
-  use module_atoms, only: atoms_data,atoms_data_null,set_astruct_from_dict
   implicit none
   type(input_variables), intent(out) :: in
   type(atoms_data), intent(out) :: atoms
@@ -116,9 +115,9 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   call f_routine(id='inputs_from_dict')
 
   ! Atoms case.
-  atoms = atoms_data_null()
+  atoms = atoms_null()
   if (.not. has_key(dict, "posinp")) stop "missing posinp"
-  call set_astruct_from_dict(dict // "posinp", atoms%astruct)
+  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
 
   ! Input variables case.
   call default_input_variables(in)
@@ -790,7 +789,6 @@ END SUBROUTINE input_analyze
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
-  use module_atoms, only: symmetry_data
   use defs_basis
   use m_ab6_kpoints
   use yaml_output
