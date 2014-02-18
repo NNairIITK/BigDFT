@@ -463,7 +463,7 @@
    Inputguess Orbitals Repartition:
      MPI tasks  0- 3                   :  6
    Atomic Input Orbital Generation:
-   -  {Atom Type: Be, Electronic configuration: {s: [ 2.00], p: [ 0.00,  0.00,  0.00]}}
+   -  {Atom Type: Be, Electronic configuration: {s: [ 2.00], p: [ 0/3,  0/3,  0/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
    Wavelet conversion succeeded        :  Yes
    Deviation from normalization        :  3.8E-06

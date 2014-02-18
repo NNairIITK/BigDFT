@@ -138,6 +138,7 @@ end subroutine deallocateBasicArraysInput
 subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
   use module_base
   use module_types
+  use module_atoms, only: atomic_structure
   use module_interfaces, exceptThisOne => initLocregs
   implicit none
   
@@ -213,6 +214,7 @@ end function megabytes
 
 subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset)
   use module_base
+  use module_atoms, only: atomic_structure
   use module_types
   implicit none
   
@@ -331,6 +333,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   use module_base
   use module_types
   use module_xc
+  use ao_inguess, only: atomic_info
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -343,6 +346,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
+  real(gp) :: rcov
   integer :: iat,ityp,nspin_ig,i_all,i_stat,ilr
   real(gp), dimension(:), allocatable :: locrad
   logical,dimension(:),allocatable :: calculateBounds
@@ -364,7 +368,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
      ! locrad read from last line of  psppar
      do iat=1,atoms%astruct%nat
         ityp = atoms%astruct%iatype(iat)
-        locrad(iat) = atoms%rloc(ityp,1)
+        call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),rcov=rcov)
+        locrad(iat) =  rcov * 10.0_gp ! locrad(iat) = atoms%rloc(ityp,1)
      end do  
      call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,&
@@ -465,6 +470,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   use module_base
   use module_types
   use module_xc
+  use ao_inguess, only: atomic_info
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -480,6 +486,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
   integer :: iat,ityp,nspin_ig,i_all,i_stat,ilr
+  real(gp) :: rcov
   real(gp), dimension(:), allocatable :: locrad
   logical,dimension(:),allocatable :: calculateBounds
 
@@ -504,7 +511,8 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
      ! locrad read from last line of  psppar
      do iat=1,atoms%astruct%nat
         ityp = atoms%astruct%iatype(iat)
-        locrad(iat) = atoms%rloc(ityp,1)
+        call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),rcov=rcov)
+        locrad(iat) =  rcov * 10.0_gp ! atoms%rloc(ityp,1)
      end do  
      call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&

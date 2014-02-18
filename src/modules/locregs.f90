@@ -206,15 +206,6 @@ contains
     wfd%keyvglob=f_malloc_ptr(nsegs,id='wfd%keyvglob')
     wfd%keyglob=f_malloc_ptr((/2,nsegs/),id='wfd%keyglob')
     wfd%keygloc=f_malloc_ptr((/2,nsegs/),id='wfd%keygloc')
-    
-!!$    allocate(wfd%keyglob(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
-!!$    call memocc(i_stat,wfd%keyglob,'keyglob',subname)
-!!$    allocate(wfd%keygloc(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
-!!$    call memocc(i_stat,wfd%keygloc,'keygloc',subname)
-!!$    allocate(wfd%keyvloc(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
-!!$    call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
-!!$    allocate(wfd%keyvglob(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
-!!$    call memocc(i_stat,wfd%keyvglob,'keyvglob',subname)
 
   END SUBROUTINE allocate_wfd
 
@@ -231,52 +222,20 @@ contains
        !assuming that globals has been created afterwards
        call f_free_ptr(wfd%keyglob)
        nullify(wfd%keygloc)
-!!$       i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
-!!$       deallocate(wfd%keyglob,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'wfd%keyglob',subname)
-!!$       nullify(wfd%keyglob)
     else
        call f_free_ptr(wfd%keygloc)
        call f_free_ptr(wfd%keyglob)
-!!$       if(associated(wfd%keyglob)) then
-!!$          i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
-!!$          deallocate(wfd%keyglob,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'wfd%keyglob',subname)
-!!$          nullify(wfd%keyglob)
-!!$       end if
-!!$       if(associated(wfd%keygloc)) then 
-!!$          i_all=-product(shape(wfd%keygloc))*kind(wfd%keygloc)
-!!$          deallocate(wfd%keygloc,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'wfd%keygloc',subname)
-!!$          nullify(wfd%keygloc)
-!!$       end if
     end if
     if (associated(wfd%keyvloc, target= wfd%keyvglob)) then
-!!$       i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
-!!$       deallocate(wfd%keyvloc,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'wfd%keyvloc',subname)
-!!$       nullify(wfd%keyvloc)
        call f_free_ptr(wfd%keyvglob)
        nullify(wfd%keyvloc)
     else
        call f_free_ptr(wfd%keyvloc)
        call f_free_ptr(wfd%keyvglob)
-!!$       if (associated(wfd%keyvloc)) then
-!!$          i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
-!!$          deallocate(wfd%keyvloc,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'wfd%keyvloc',subname)
-!!$          nullify(wfd%keyvloc)
-!!$       end if
-!!$       if (associated(wfd%keyvglob)) then
-!!$          i_all=-product(shape(wfd%keyvglob))*kind(wfd%keyvglob)
-!!$          deallocate(wfd%keyvglob,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'wfd%keyvglob',subname)
-!!$          nullify(wfd%keyvglob)
-!!$       end if
     end if
   END SUBROUTINE deallocate_wfd
 
-  !>desctructors
+  !>destructors
   subroutine deallocate_locreg_descriptors(lr)
     implicit none
     ! Calling arguments
@@ -463,75 +422,6 @@ contains
     if (associated(wfdin%keyglob)) wfdout%keyglob=f_malloc_ptr(src=wfdin%keyglob,id='wfdout%keyglob')
     if (associated(wfdin%keyvloc)) wfdout%keyvloc=f_malloc_ptr(src=wfdin%keyvloc,id='wfdout%keyvloc')
     if (associated(wfdin%keyvglob))wfdout%keyvglob=f_malloc_ptr(src=wfdin%keyvglob,id='wfdout%keyvglob')
-
-!!$    if(associated(wfdout%keygloc)) then
-!!$       iall=-product(shape(wfdout%keygloc))*kind(wfdout%keygloc)
-!!$       deallocate(wfdout%keygloc, stat=istat)
-!!$       call memocc(istat, iall, 'wfdout%keygloc', subname)
-!!$    end if
-!!$    if(associated(wfdin%keygloc)) then
-!!$       iis1=lbound(wfdin%keygloc,1)
-!!$       iie1=ubound(wfdin%keygloc,1)
-!!$       iis2=lbound(wfdin%keygloc,2)
-!!$       iie2=ubound(wfdin%keygloc,2)
-!!$
-!!$       allocate(wfdout%keygloc(iis1:iie1,iis2:iie2), stat=istat)
-!!$       call memocc(istat, wfdout%keygloc, 'wfdout%keygloc', subname)
-!!$       do i2=iis2,iie2
-!!$          do i1=iis1,iie1
-!!$             wfdout%keygloc(i1,i2) = wfdin%keygloc(i1,i2)
-!!$          end do
-!!$       end do
-!!$    end if
-!!$
-!!$    if(associated(wfdout%keyglob)) then
-!!$       iall=-product(shape(wfdout%keyglob))*kind(wfdout%keygloc)
-!!$       deallocate(wfdout%keyglob, stat=istat)
-!!$       call memocc(istat, iall, 'wfdout%keyglob', subname)
-!!$    end if
-!!$    if(associated(wfdin%keyglob)) then
-!!$       iis1=lbound(wfdin%keyglob,1)
-!!$       iie1=ubound(wfdin%keyglob,1)
-!!$       iis2=lbound(wfdin%keyglob,2)
-!!$       iie2=ubound(wfdin%keyglob,2)
-!!$       allocate(wfdout%keyglob(iis1:iie1,iis2:iie2), stat=istat)
-!!$       call memocc(istat, wfdout%keyglob, 'wfdout%keyglob', subname)
-!!$       do i2=iis2,iie2
-!!$          do i1=iis1,iie1
-!!$             wfdout%keyglob(i1,i2) = wfdin%keyglob(i1,i2)
-!!$          end do
-!!$       end do
-!!$    end if
-!!$
-!!$    if(associated(wfdout%keyvloc)) then
-!!$       iall=-product(shape(wfdout%keyvloc))*kind(wfdout%keyvloc)
-!!$       deallocate(wfdout%keyvloc, stat=istat)
-!!$       call memocc(istat, iall, 'wfdout%keyvloc', subname)
-!!$    end if
-!!$    if(associated(wfdin%keyvloc)) then
-!!$       iis1=lbound(wfdin%keyvloc,1)
-!!$       iie1=ubound(wfdin%keyvloc,1)
-!!$       allocate(wfdout%keyvloc(iis1:iie1), stat=istat)
-!!$       call memocc(istat, wfdout%keyvloc, 'wfdout%keyvloc', subname)
-!!$       do i1=iis1,iie1
-!!$          wfdout%keyvloc(i1) = wfdin%keyvloc(i1)
-!!$       end do
-!!$    end if
-!!$
-!!$    if(associated(wfdout%keyvglob)) then
-!!$       iall=-product(shape(wfdout%keyvglob))*kind(wfdout%keyvglob)
-!!$       deallocate(wfdout%keyvglob, stat=istat)
-!!$       call memocc(istat, iall, 'wfdout%keyvglob', subname)
-!!$    end if
-!!$    if(associated(wfdin%keyvglob)) then
-!!$       iis1=lbound(wfdin%keyvglob,1)
-!!$       iie1=ubound(wfdin%keyvglob,1)
-!!$       allocate(wfdout%keyvglob(iis1:iie1), stat=istat)
-!!$       call memocc(istat, wfdout%keyvglob, 'wfdout%keyvglob', subname)
-!!$       do i1=iis1,iie1
-!!$          wfdout%keyvglob(i1) = wfdin%keyvglob(i1)
-!!$       end do
-!!$    end if
 
   end subroutine copy_wavefunctions_descriptors
 

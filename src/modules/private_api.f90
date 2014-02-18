@@ -94,12 +94,12 @@ module module_private_api
        integer, dimension(:), pointer :: iatype
      END SUBROUTINE atoms_get_iatype
 
-     subroutine atoms_get_iasctype(atoms, iasctype)
-       use module_types
-       implicit none
-       type(atoms_data), intent(in) :: atoms
-       integer, dimension(:), pointer :: iasctype
-     END SUBROUTINE atoms_get_iasctype
+!!$     subroutine atoms_get_iasctype(atoms, iasctype)
+!!$       use module_types
+!!$       implicit none
+!!$       type(atoms_data), intent(in) :: atoms
+!!$       integer, dimension(:), pointer :: iasctype
+!!$     END SUBROUTINE atoms_get_iasctype
 
      subroutine atoms_get_natpol(atoms, natpol)
        use module_types

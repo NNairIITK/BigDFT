@@ -250,10 +250,6 @@ contains
     if (associated(sym%transNon)) deallocate(sym%transNon)
   end subroutine free_symmetry
 
-
-
-
-
   subroutine symmetry_new(id)
 
 

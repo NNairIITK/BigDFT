@@ -274,6 +274,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     use minimization_sp, only:parameterminimization_sp  !Reza
     use modulesplinedsaddle, only:parametersplinedsaddle
     use module_input_dicts
+    use module_atoms, only: deallocate_atoms_data
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -337,7 +338,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     ! We parse the dictionary.
     call inputs_from_dict(ll_inputs, ll_atoms, dict, .true.)
     call dict_free(dict)
-    call deallocate_atoms(ll_atoms, "givemesaddle")
+    call deallocate_atoms_data(ll_atoms)
     
     !-----------------------------------------------------------
     allocate(rxyz_2(3,atoms%astruct%nat+ndeb1))

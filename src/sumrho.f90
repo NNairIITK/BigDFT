@@ -14,6 +14,7 @@
 subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
   use module_base
   use module_types
+  use module_atoms, only: symmetry_data
   use module_interfaces, fake_name => density_and_hpot
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
@@ -75,6 +76,7 @@ END SUBROUTINE density_and_hpot
 !> Calculates the charge density by summing the square of all orbitals
 subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
    use module_base
+   use module_atoms, only: symmetry_data
    use module_types
    use module_xc
    use yaml_output
