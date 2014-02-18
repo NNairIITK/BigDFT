@@ -1666,7 +1666,7 @@ module module_interfaces
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-          gnrm_dynamic, can_use_ham, order_taylor)
+          gnrm_dynamic, can_use_ham, order_taylor, kappa_conv)
         use module_base
         use module_types
         implicit none
@@ -1692,7 +1692,7 @@ module module_interfaces
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
-        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic
+        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, kappa_conv
         logical,intent(in) :: experimental_mode
         logical,intent(out) :: can_use_ham
       end subroutine getLocalizedBasis

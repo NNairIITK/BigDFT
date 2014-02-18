@@ -16,7 +16,7 @@ TESTDIRS = Locreg \
        experimentalmode \
 	   linearcubic \
 	   experimentalfoe \
-	   newpulay \
+	   sparsity \
 	   explicit_locregcenters \
 	   intermediateforces \
 	   DIIShistory

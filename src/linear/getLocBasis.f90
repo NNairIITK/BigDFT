@@ -375,7 +375,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-    gnrm_dynamic, can_use_ham, order_taylor)
+    gnrm_dynamic, can_use_ham, order_taylor, kappa_conv)
   !
   ! Purpose:
   ! ========
@@ -411,7 +411,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical, intent(inout) :: ortho_on
   integer, intent(in) :: extra_states
   integer,intent(in) :: itout
-  real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic
+  real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, kappa_conv
   logical,intent(in) :: experimental_mode
   logical,intent(out) :: can_use_ham
  
@@ -858,7 +858,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       exit_loop(3) = energy_diff
       exit_loop(4) = (fnrm<conv_crit .and. experimental_mode)
       exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit)
-      exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<0.1d0 .and.  ratio_deltas>0.d0)
+      exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<kappa_conv .and.  ratio_deltas>0.d0)
 
       if(any(exit_loop)) then
           if(exit_loop(1)) then

@@ -625,4 +625,7 @@
    intermediate_forces:
      COMMENT: linear scaling calculate intermediate forces
      default: No
+   kappa_conv:
+     COMMENT: exit kappa for extended input guess (experimental mode)
+     default: 0.1
 
