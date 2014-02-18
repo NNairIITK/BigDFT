@@ -48,9 +48,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8) :: trace_sparse
-
-  type(sparseMatrix),pointer :: ovrlp, ham !to be able to deallocate
-  !!type(sparseMatrix),pointer :: fermi, inv_ovrlp
   integer :: irow, icol, itemp, matrixindex_in_compressed, iflag
   logical :: overlap_calculated, cycle_FOE
 
@@ -233,7 +230,6 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               !!foe_obj%ef = foe_obj%evlow+1.d-4*it
     
               ! Determine the degree of the polynomial
-              !npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/foe_obj%fscale)
               npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/fscale)
               npl_boundaries=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
@@ -701,7 +697,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       allocate(tmb%linmat%inv_ovrlp_large%matrix(orbs%norb,orbs%norb), stat=istat)
       call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix, 'tmb%linmat%inv_ovrlp_large%matrix', subname)
     
-      allocate(workmat(orbs%norb,orbs%norb), stat=istat)
+      allocate(workmat(orbs%norb,orbs%norbp), stat=istat)
       call memocc(istat, workmat, 'workmat', subname)
     
       call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
@@ -710,10 +706,20 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
       call uncompressMatrix(iproc,tmb%linmat%denskern_large)
     
-      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tmb%linmat%inv_ovrlp_large%matrix, orbs%norb, &
-                 tmb%linmat%denskern_large%matrix, orbs%norb, 0.d0, workmat(1,1), orbs%norb)
-      call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1), orbs%norb, &
-                 tmb%linmat%inv_ovrlp_large%matrix, orbs%norb, 0.d0, tmb%linmat%denskern_large%matrix(1,1), orbs%norb)
+      !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, tmb%linmat%inv_ovrlp_large%matrix, orbs%norb, &
+      !!           tmb%linmat%denskern_large%matrix, orbs%norb, 0.d0, workmat(1,1), orbs%norb)
+      !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, workmat(1,1), orbs%norb, &
+      !!           tmb%linmat%inv_ovrlp_large%matrix, orbs%norb, 0.d0, tmb%linmat%denskern_large%matrix(1,1), orbs%norb)
+      if (tmb%orbs%norbp>0) then
+          call dgemm('n', 't', orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%linmat%denskern_large%matrix(1,1), orbs%norb, &
+                     tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%isorb+1,1), orbs%norb, 0.d0, workmat(1,1), orbs%norb)
+          call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
+          call dgemm('n', 'n', orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%linmat%inv_ovrlp_large%matrix, orbs%norb, &
+                     workmat(1,1), orbs%norb, 0.d0, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), orbs%norb)
+      else
+          call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
+      end if
+      call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
     
     
     
