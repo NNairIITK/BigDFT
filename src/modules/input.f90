@@ -1844,6 +1844,9 @@ contains
     call input_var("intermediate_forces", .false., "linear scaling: calculate intermediate forces", dummy_bool)
     call set(dict // INTERMEDIATE_FORCES, dummy_bool)
 
+    call input_var("kappa_conv", 0.1d0, "exit kappa for extended input guess (experimental mode)", dummy_real)
+    call set(dict // KAPPA_CONV, dummy_real)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

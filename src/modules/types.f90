@@ -351,6 +351,9 @@ module module_types
      
      !> linear scaling: calculate intermediate forces
      logical :: intermediate_forces
+
+     !> linear scaling: exit kappa for extended input guess (experimental mode)
+     real(kind=8) :: kappa_conv
   end type input_variables
 
   !> Contains all energy terms
@@ -2673,6 +2676,9 @@ end subroutine bigdft_init_errors
     case (INTERMEDIATE_FORCES)
        ! linear scaling: calculate intermediate forces
        in%intermediate_forces = val
+    case (KAPPA_CONV)
+       ! linear scaling: exit kappa for extended input guess (experimental mode)
+       in%kappa_conv = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

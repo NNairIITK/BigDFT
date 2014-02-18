@@ -542,7 +542,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                    nit_basis,&
                    ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
-                   input%lin%early_stop, input%lin%gnrm_dynamic, can_use_ham, input%lin%order_taylor)
+                   input%lin%early_stop, input%lin%gnrm_dynamic, can_use_ham, input%lin%order_taylor, input%kappa_conv)
                reduce_conf=.true.
            !!else
            !!    cut=cut-0.5d0
@@ -1097,10 +1097,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE&
        .or. input%lin%diag_end)) then
 
+       if (input%lin%scf_mode==LINEAR_FOE) then
+           tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+       end if
+
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
            input%calculate_KS_residue)
+
+       if (input%lin%scf_mode==LINEAR_FOE) then
+           call f_free_ptr(tmb%coeff)
+       end if
   end if
 
        if (bigdft_mpi%iproc ==0) then 
