@@ -739,8 +739,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
           call yaml_open_sequence('Final kernel purification')
           call yaml_newline()
       end if
-      overlap_calculated=.false.
-      tmb%can_use_transposed=.false.
+      overlap_calculated=.true.
+      !tmb%can_use_transposed=.true.
 
       if (itemp==ntemp) then
           it_shift=20
