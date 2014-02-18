@@ -378,8 +378,14 @@ contains
     integer, intent(in) :: incx,incy,n
     complex(kind=4), intent(in) :: dx
     real(kind=4), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
+    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
     call SCOPY(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
   end subroutine copy_complex_real_simple
 
   subroutine copy_complex_real_double(n,dx,incx,dy,incy)
@@ -387,8 +393,14 @@ contains
     integer, intent(in) :: incx,incy,n
     complex(kind=8), intent(in) :: dx
     real(kind=8), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
+    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
     call DCOPY(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
   end subroutine copy_complex_real_double
 
   subroutine copy_integer(n,dx,incx,dy,incy)
@@ -396,8 +408,14 @@ contains
     integer, intent(in) :: incx,incy,n
     integer, intent(in) :: dx
     integer, intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !custom blas routine
+    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
     call icopy(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
   end subroutine copy_integer
 
   subroutine copy_simple(n,dx,incx,dy,incy)
@@ -405,8 +423,14 @@ contains
     integer, intent(in) :: incx,incy,n
     real(kind=4), intent(in) :: dx
     real(kind=4), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
+    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
     call SCOPY(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
   end subroutine copy_simple
 
   subroutine copy_double(n,dx,incx,dy,incy)
@@ -414,8 +438,14 @@ contains
     integer, intent(in) :: incx,incy,n
     real(kind=8), intent(in) :: dx
     real(kind=8), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
+    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
     call DCOPY(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
   end subroutine copy_double
 
   subroutine copy_double_to_simple(n,dx,incx,dy,incy)
@@ -423,8 +453,14 @@ contains
     integer, intent(in) :: incx,incy,n
     real(kind=8), intent(in) :: dx
     real(kind=4), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to custom routine
+    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
     call dscopy(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
   end subroutine copy_double_to_simple
 
   subroutine trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
