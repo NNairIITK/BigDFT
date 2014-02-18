@@ -80,15 +80,15 @@ contains
     else
        call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
     end if
-    fbuf=f_malloc_str(1,int(cbuf_len),id='fbuf')
+    fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
 
     if (mpi_env%iproc == 0) then
        call copyCBuffer(fbuf(1), cbuf, cbuf_len)
        call freeCBuffer(cbuf)
        if (mpi_env%nproc > 1) &
-            & call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+            & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     else
-       call mpi_bcast(fbuf(1), cbuf_len, MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+       call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     end if
 
     call f_err_open_try()

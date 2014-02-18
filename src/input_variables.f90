@@ -87,6 +87,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   call f_release_routine()
 end subroutine read_input_dict_from_files
 
+
 !> Fill the input_variables structure with the information
 !! contained in the dictionary dict
 !! the dictionary should be completes to fill all the information

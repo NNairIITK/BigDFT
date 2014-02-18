@@ -38,7 +38,12 @@ module wrapper_MPI
      module procedure mpiallred_int,mpiallred_real, &
           & mpiallred_double,mpiallred_double_1,mpiallred_double_2,&
           & mpiallred_log
-  end interface
+  end interface mpiallred
+
+  !> Interface for MPI_ALLGATHERV routine
+  interface mpiallgatherv
+     module procedure mpiallgatherv_double
+  end interface mpiallgatherv
 
   !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
@@ -250,7 +255,7 @@ subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,gr
   integer, intent(out) :: group_comm
   !local variables
   character(len=*), parameter :: subname='create_group_comm'
-  integer :: grp,ierr,i,j,base_grp,temp_comm,i_stat,i_all
+  integer :: grp,ierr,i,j,base_grp,temp_comm
   integer, dimension(:), allocatable :: group_list
 
 ! allocate(group_list(group_size+ndebug),stat=i_stat)
@@ -295,7 +300,7 @@ end subroutine create_group_comm1
     !local variables
     character(len=*), parameter :: subname='create_group_master'
     integer :: iproc_group, nproc, nproc_group, ngroups
-    integer :: ierr, i_stat, i_all, i, j
+    integer :: ierr, i, j
     integer, dimension(:), allocatable :: lrank, ids
 
     call mpi_comm_rank(group_comm, iproc_group, ierr)
@@ -333,6 +338,34 @@ end subroutine create_group_comm1
   END SUBROUTINE create_rank_comm
 
 
+  !interface for MPI_ALLGATHERV operations
+  subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
+    implicit none
+    integer, dimension(:), intent(in) :: counts, displs
+    integer, intent(in) :: mpi_comm, me
+    real(kind=8), intent(inout) :: buffer
+    integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+    !case with MPI_IN_PLACE
+    call MPI_ALLGATHERV(MPI_IN_PLACE,counts(me),MPI_DOUBLE_PRECISION,&
+         buffer,counts,displs,MPI_DOUBLE_PRECISION,mpi_comm,ierr)
+#else
+    !local variables
+    real(kind=8), dimension(:), allocatable :: copybuf
+
+    !Here we have a performence penalty by copying all buffer, instead of
+    !just the send part, but I don't see how to get buffer(displs(me))
+    copybuf = f_malloc(sum(counts),id='copybuf')
+
+    call dcopy(sum(counts),buffer,1,copybuf,1) 
+    ierr=0 !put just for MPIfake compatibility
+    call MPI_ALLGATHERV(copybuf(1+displs(me+1)),counts(me+1),MPI_DOUBLE_PRECISION,&
+         buffer,counts,displs,MPI_DOUBLE_PRECISION,mpi_comm,ierr)
+
+    call f_free(copybuf)
+#endif
+    if (ierr /=0) stop 'MPIALLGATHERV_DBL'
+  end subroutine mpiallgatherv_double
 
   !interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
