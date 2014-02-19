@@ -634,7 +634,7 @@ end subroutine calculate_density_kernel_uncompressed
 subroutine init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => init_collective_comms_sumrho
   implicit none
 
   ! Calling arguments
