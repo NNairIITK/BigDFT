@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.1.11
- Timestamp of this run                 : 2014-02-13 15:12:09.922
+ Timestamp of this run                 : 2014-02-19 08:29:41.443
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -96,6 +96,7 @@
    explicit_locregcenters              : No #     linear scaling explicitely specify localization centers
    calculate_KS_residue                : Yes #    linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     linear scaling calculate intermediate forces
+   kappa_conv                          : 0.10000000000000001 # exit kappa for extended input guess (experimental mode)
  dft:
    hgrids: [0.45000000000000001, 0.45000000000000001, 0.45000000000000001] # grid spacing in the three directions (bohr)
    rmult: [5.0, 7.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -457,7 +458,7 @@
      Molecule was shifted              :  7
      Molecule was rotated              :  7
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.71,  2.023 ]}
+   -  {Process:  0, Timing:  [  4.31,  2.407 ]}
    nstates_max                         :  4
    ksorbs%norb                         :  4
    tmb%orbs%norb                       :  7
@@ -465,7 +466,7 @@
   {index:  1, value: -4.394246225825E-01}, 
   {index:  2, value: -2.696744289593E-01}, 
   {index:  3, value: -2.68796504405E-01}, 
-  {index:  4, value: -9.57089283617E-02},  #  <-- last occupied orbital
+  {index:  4, value: -9.570892836169E-02},  #  <-- last occupied orbital
   {index:  5, value:  1.799896928831E-01},  #  <-- first virtual orbital
   {index:  6, value:  1.931908607781E-01}, 
   {index:  7, value:  1.937608023078E-01}, 
@@ -475,7 +476,7 @@
  {e: -4.394246225825E-01, f:  2.0},  # 00001
  {e: -2.696744289593E-01, f:  2.0},  # 00002
  {e: -2.68796504405E-01, f:  2.0},  # 00003
- {e: -9.57089283617E-02, f:  1.0}] # 00004
+ {e: -9.570892836169E-02, f:  1.0}] # 00004
    communication strategy kernel       : ALLREDUCE
    Total charge                        :  6.999999956389
    Poisson Solver:
@@ -515,53 +516,53 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  5.01461064456, Epot: -6.66639130874, Enl:  1.1885497875}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.6E-01, Omega: -5.494572825937339, D: -5.49, D best: -5.49, 
+ iter:  1, fnrm:  1.6E-01, Omega: -5.494572825937332, D: -5.49, D best: -5.49, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  5.01461064456, Epot: -6.66639130874, Enl:  1.1885497875}, 
- iter:  1, fnrm:  1.6E-01, Omega: -5.494572825937339, D: -5.49, D best: -5.49}
+ iter:  1, fnrm:  1.6E-01, Omega: -5.494572825937332, D: -5.49, D best: -5.49}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
-   -  #-------------------------------------------------------------------- kernel iter: 1
-       Kernel update:
-         max dev from unity            :  1.79E-05
-         Hamiltonian application required:  No
-         method                        : directmin
-         expansion coefficients optimization: &it_coeff001_001_001
-         -  { #---------------------------------------------------------------- it coeff: 1
+   -  #--------------------------------------------------------------------- kernel iter: 1
+     Kernel update:
+       max dev from unity              :  1.79E-05
+       Hamiltonian application required:  No
+       method                          : directmin
+       expansion coefficients optimization: &it_coeff001_001_001
+       -  { #------------------------------------------------------------------ it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.02E-02, eBS: -2.0152132772113962, D: -2.952E-04, alpha:  2.0E-01}
-         Coefficients available        :  Yes
-       Hamiltonian update: {
+ iter:  1, fnrm:  2.02E-02, eBS: -2.01521327721139265, D: -2.952E-04, alpha:  2.0E-01}
+       Coefficients available          :  Yes
+     Hamiltonian update: {
  Energies: {Ekin:  5.01461064456, Epot: -6.66639130874, Enl:  1.1885497875, 
               EH:  9.07799446968,  EXC: -2.18693550218, EvXC: -2.85417326138}, 
     Total charge:  6.999999955747, 
  Poisson Solver: {BC: Free, Box:  [  115,  113,  113 ], MPI tasks:  4}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
  {e: -4.394246225825E-01, f:  2.0},  # 00001
  {e: -2.696744289593E-01, f:  2.0},  # 00002
  {e: -2.68796504405E-01, f:  2.0},  # 00003
- {e: -9.57089283617E-02, f:  1.0}] # 00004
-       summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.18E-08, energy: -5.49486800344462178, D: -5.495}]
+ {e: -9.570892836169E-02, f:  1.0}] # 00004
+     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+ iter:  1, delta:  3.18E-08, energy: -5.49486800344461823, D: -5.495}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  3.18E-08, energy: -5.49486800344462178, D: -5.495}]}
+ iter:  2, delta:  3.18E-08, energy: -5.49486800344461823, D: -5.495}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  3.181E-08, energy: -5.49486800344462178, D: -5.495}
+ iter high:  1, delta out:  3.181E-08, energy: -5.49486800344461823, D: -5.495}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -4.394246225825E-01, f:  1.0},  # 00001
  {e: -2.696744289593E-01, f:  1.0},  # 00002
  {e: -2.68796504405E-01, f:  1.0},  # 00003
- {e: -9.57089283617E-02, f:  1.0},  # 00004
+ {e: -9.570892836169E-02, f:  1.0},  # 00004
  {e:  1.799896928831E-01, f:  1.0},  # 00005
  {e:  1.931908607781E-01, f:  1.0},  # 00006
  {e:  1.937608023078E-01, f:  1.0}] # 00007
@@ -570,7 +571,7 @@
    -  {iter:  1, 
  Energies: {Ekin:  5.01461064456, Epot: -6.66639130874, Enl:  1.1885497875, 
               EH:  9.06718043111,  EXC: -2.18716677009, EvXC: -2.85448628952}, 
-       iter high:  1,        delta out:  3.181E-08,  energy: -5.49486800344462178, D:  0.0,  #FINAL
+       iter high:  1,        delta out:  3.181E-08,  energy: -5.49486800344461823, D:  0.0,  #FINAL
  }
  Total charge                          :  6.999999955747
  Site energies: [ #state, energy, orthog energy, frag eval, overlap, orthog overlap, occ
@@ -583,12 +584,12 @@
              frag eval: -2.68796504E-01, overlap:  1.000026, occ:  2.0, 
  state: HOMO, energy: -7.70989709E-02, orthog energy: -7.70985168E-02, 
            frag eval: -9.57089284E-02, overlap:  1.000006, occ:  1.0, 
- 2*frag sum: -2.0150394830707339, 2*frag sum orthog: -2.0150224141311632, 
- 2*eval sum: -2.0515000402553114}, 
+ 2*frag sum: -2.0150394830707077, 2*frag sum orthog: -2.0150224141311588, 
+ 2*eval sum: -2.0515000402553021}, 
  ]
- 2.0_gp*frag_sum_tot                   : -2.0150394830707339
- 2.0_gp*frag_sum_tot_orthog            : -2.0150224141311632
- 2.0_gp*eval_sum_tot                   : -2.0515000402553114
+ 2.0_gp*frag_sum_tot                   : -2.0150394830707077
+ 2.0_gp*frag_sum_tot_orthog            : -2.0150224141311588
+ 2.0_gp*eval_sum_tot                   : -2.0515000402553021
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -598,18 +599,18 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  4.2999389E-03, y: -2.58864988E-03, z:  3.75075652E-03, 
                     total:  6.2656809E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.985338228779E-02, fnrm2:  4.871868296491E-03}
- Raw forces norm (Ha/Bohr): {maxval:  4.024537740034E-02, fnrm2:  4.911815721885E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.98533822878E-02, fnrm2:  4.871868296491E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  4.024537740032E-02, fnrm2:  4.911815721884E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [-9.090067613289E-03,  5.881555835015E-03, -1.092998537879E-02]} # 0001
- -  {H: [-3.89776438522E-03,  2.909418982684E-02,  2.695603143814E-02]} # 0002
- -  {H: [-1.947286769011E-02, -3.282352859356E-02,  6.192026493968E-03]} # 0003
- -  {H: [ 3.246069968862E-02, -2.152217068297E-03, -2.221807255332E-02]} # 0004
+ -  {Si: [-9.0900676133E-03,  5.881555835016E-03, -1.092998537878E-02]} # 0001
+ -  {H: [-3.897764385216E-03,  2.909418982685E-02,  2.695603143814E-02]} # 0002
+ -  {H: [-1.94728676901E-02, -3.282352859356E-02,  6.192026493957E-03]} # 0003
+ -  {H: [ 3.246069968862E-02, -2.152217068303E-03, -2.221807255331E-02]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.48
-   Elapsed time (s)                    :  3.43
+   CPU time (s)                        :  7.12
+   Elapsed time (s)                    :  3.85
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
@@ -624,4 +625,4 @@
      Peak Value (MB)                   :  131
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
- Max No. of dictionaries used          :  1375 #(  138 still in use)
+ Max No. of dictionaries used          :  1379 #(  138 still in use)
