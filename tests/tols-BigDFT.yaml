@@ -285,6 +285,7 @@ base:
   norm(P): 1.1e-9
   Epot: 1.1e-10
   EH: 1.0e-10
+  Ekin: 1.1e-10
 
 Davidson-SiH4:
   e_virtual: 1.7e-11
@@ -335,9 +336,9 @@ experimentalmode:
  Enl: 1.1e-07
  Omega: 9.5e-06
  EH: 4.2e-05
- Epot: 3.7e-05
- EXC: 7.9e-06
- EvXC: 1.1e-05
+ Epot: 9.6e-05
+ EXC: 1.6e-05
+ EvXC: 2.1e-05
  energy: 4.3e-07
  multiplicator for the confinement: 2.4e-07
  Atomic Forces (Ha/Bohr): 8.7e-08
@@ -629,7 +630,7 @@ foe:
  EXC: 7.1e-10
  Total charge: 2.1e-11
  EvXC: 1.1e-10
- eF: 3.9e-8
+ eF: 4.0e-8
  Pulay Forces (Ha/Bohr): 1.2e-11
  Atomic Forces (Ha/Bohr): 4.0e-11
  mean alpha: 1.1e-4
@@ -666,26 +667,26 @@ linearcubic_linear:
  energy: 1.84e-10
  Omega: 1.82e-10
 
-experimentalfoe:
+experimentalfoe_long:
  Atomic Forces (Ha/Bohr): 3.4e-10
  Clean forces norm (Ha/Bohr): 3.3e-10
- Average noise forces: 2.1e-10
- Raw forces norm (Ha/Bohr): 2.6e-10
- EH: 4.3e-7
- EXC: 6.0e-08
- Ekin: 7.0e-9
- Enl: 3.1e-10
- Epot: 4.1e-07
- EvXC: 7.9e-08
+ Average noise forces: 3.0e-7
+ Raw forces norm (Ha/Bohr): 8.5e-7
+ EH: 1.9e-4
+ EXC: 2.5e-05
+ Ekin: 1.9e-6
+ Enl: 5.1e-7
+ Epot: 1.9e-4
+ EvXC: 3.2e-5
  eF: 2.5e-05
- tr(KS) before purification: 3.2e-9
+ tr(KS) before purification: 1.1e-6
  Tr(K): 6.4e-4
  Total charge: 1.1e-10
  Total ionic charge: 1.6e-11
  D Tr: 6.4e-04
  D eF: 2.5e-05
- multiplicator for the confinement: 2.0e-9
- energy: 1.3e-9
+ multiplicator for the confinement: 2.3e-6
+ energy: 1.1e-5
  Omega: 4.1e-7
  charge diff: 6.4e-4
  D: 1.1e-10
@@ -807,3 +808,9 @@ DIIShistory:
 
 Locreg:
  EH: 1.1e-10
+
+sparsity:
+ Total charge: 1.1e-10
+ Omega: 1.2e-11
+ Raw forces norm (Ha/Bohr): 1.3e-11
+ Total ionic charge: 1.3e-11
