@@ -242,8 +242,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
   call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY)
+  in%lin%pulay_correction=dummy_bool
   call input_var(in%lin%new_pulay_correction,'F')
   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_KS,comment=comments)
+
 
 
   ! not sure whether to actually make this an input variable or not so just set to false for now

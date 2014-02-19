@@ -182,5 +182,6 @@ subroutine nullify_collective_comms(collcom)
   nullify(collcom%nrecvcounts_repartitionrho)
   nullify(collcom%nsenddspls_repartitionrho)
   nullify(collcom%nrecvdspls_repartitionrho)
+  nullify(collcom%commarr_repartitionrho)
 
 end subroutine nullify_collective_comms
