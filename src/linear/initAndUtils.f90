@@ -861,7 +861,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
 
   call init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
-      call init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
+      call init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
   end if
 
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
