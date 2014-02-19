@@ -668,8 +668,8 @@ linearcubic_linear:
  Omega: 1.82e-10
 
 experimentalfoe_long:
- Atomic Forces (Ha/Bohr): 3.4e-10
- Clean forces norm (Ha/Bohr): 3.3e-10
+ Atomic Forces (Ha/Bohr): 3.1e-07
+ Clean forces norm (Ha/Bohr): 3.1e-07
  Average noise forces: 3.0e-7
  Raw forces norm (Ha/Bohr): 8.5e-7
  EH: 1.9e-4
@@ -687,9 +687,30 @@ experimentalfoe_long:
  D eF: 2.5e-05
  multiplicator for the confinement: 2.3e-6
  energy: 1.1e-5
- Omega: 4.1e-7
+ Omega: 4.6e-05
  charge diff: 6.4e-4
  D: 1.1e-10
+
+experimentalfoe_short:
+ EH: 3.9e-07
+ EXC: 5.7e-08
+ Ekin: 3.1e-09
+ Enl: 5.7e-10
+ Epot: 2.5e-07
+ EvXC: 7.4e-08
+ energy: 7.9e-08
+ energy: 7.9e-08
+ tr(KS) before purification: 1.4e-09
+ Raw forces norm (Ha/Bohr): 1.1e-08
+ eF: 7.3e-07
+ D Tr: 8.8e-10
+ D eF: 4.5e-07
+ charge diff: 7.1e-10
+ Omega: 9.4e-09
+ Atomic Forces (Ha/Bohr): 1.2e-08
+ Average noise forces: 5.2e-09
+ Clean forces norm (Ha/Bohr): 1.0e-08
+
 
 
 newpulay:
