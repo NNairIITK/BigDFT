@@ -20,12 +20,12 @@ module m_ab6_symmetry
   integer, parameter, public :: AB6_MAX_SYMMETRIES = 16384
 
   type, public :: symmetry_type
-     ! The input characteristics
-     real(dp) :: tolsym
+     !> The input characteristics
+     real(dp) :: tolsym  !< Tolerance for the detection of the symmetry
      real(dp) :: rprimd(3,3), gprimd(3,3), rmet(3,3)
-     integer :: nAtoms
-     integer, pointer :: typeAt(:)
-     real(dp), pointer :: xRed(:,:)
+     integer :: nAtoms               !< Number of atoms
+     integer, pointer :: typeAt(:)   !< Type of the atoms
+     real(dp), pointer :: xRed(:,:)  !< Atomic coordinates
 
      logical :: withField
      real(dp) :: field(3)
@@ -96,12 +96,8 @@ module m_ab6_symmetry
 
 contains
 
+
   subroutine new_item(token)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     type(symmetry_list), pointer :: token
 
@@ -163,12 +159,13 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: free done"
   end subroutine free_item
 
+
+  !> Basic routine to deal with the structure of the symmetry (hidden outside this module)
   subroutine get_item(token, id)
-
-
-    type(symmetry_list), pointer :: token
+    !Arguments
+    type(symmetry_list), pointer, intent(out) :: token
     integer, intent(in) :: id
-
+    !Local variables
     type(symmetry_list), pointer :: tmp
 
     if (AB_DBG) write(0,*) "AB symmetry: request list element ", id
@@ -186,6 +183,7 @@ contains
        tmp => tmp%next
     end do
   end subroutine get_item
+
 
   subroutine symmetry_get_from_id(sym, id, errno)
 
@@ -209,8 +207,8 @@ contains
     end if
   end subroutine symmetry_get_from_id
 
-  subroutine new_symmetry(sym)
 
+  subroutine new_symmetry(sym)
 
     type(symmetry_type), intent(out) :: sym
 
@@ -251,18 +249,11 @@ contains
   end subroutine free_symmetry
 
 
-
-
-
+  !> Create a new symmetry object
   subroutine symmetry_new(id)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
-
+    !Arguments
     integer, intent(out) :: id
-
+    !Local variables
     type(symmetry_list), pointer :: token
 
     if (AB_DBG) write(0,*) "AB symmetry: call new symmetry."
@@ -270,12 +261,8 @@ contains
     id = token%id
   end subroutine symmetry_new
 
+
   subroutine symmetry_free(id)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
 
@@ -287,12 +274,9 @@ contains
     if (associated(token)) call free_item(token)
   end subroutine symmetry_free
 
+
+  !> Set the tolerance for the calculation of the symmetry
   subroutine symmetry_set_tolerance(id, tolsym, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     real(dp), intent(in) :: tolsym
@@ -318,13 +302,8 @@ contains
     end if
   end subroutine symmetry_set_tolerance
 
+
   subroutine symmetry_set_lattice(id, rprimd, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-  use interfaces_42_geometry
-!End of the abilint section
 
     integer, intent(in) :: id
     real(dp), intent(in) :: rprimd(3,3)
@@ -356,12 +335,8 @@ contains
     end if
   end subroutine symmetry_set_lattice
 
+
   subroutine symmetry_set_structure(id, nAtoms, typeAt, xRed, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     integer, intent(in) :: nAtoms
@@ -400,12 +375,8 @@ contains
     if (associated(token%data%indexingAtoms)) deallocate(token%data%indexingAtoms)
   end subroutine symmetry_set_structure
 
+
   subroutine symmetry_set_spin(id, nAtoms, spinAt, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     integer, intent(in) :: nAtoms
@@ -578,12 +549,8 @@ contains
     end if
   end subroutine symmetry_set_jellium
 
+
   subroutine symmetry_set_periodicity(id, periodic, errno)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     logical, intent(in) :: periodic(3)
@@ -608,15 +575,8 @@ contains
   end subroutine symmetry_set_periodicity
 
 
-
-
-
   subroutine symmetry_get_n_atoms(id, nAtoms, errno)
     !scalars
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     integer, intent(out) :: errno
@@ -635,6 +595,7 @@ contains
 
     nAtoms = token%data%nAtoms
   end subroutine symmetry_get_n_atoms
+
 
   subroutine compute_bravais(sym)
 
@@ -663,13 +624,10 @@ contains
     if (AB_DBG) write(0, "(A,I3)") "  center   :", sym%bravais(2)
   end subroutine compute_bravais
 
+
   subroutine symmetry_get_bravais(id, bravais, holohedry, center, &
        & nBravSym, bravSym, errno)
     !scalars
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
 
     integer, intent(in) :: id
     integer, intent(out) :: errno
@@ -796,12 +754,8 @@ contains
     if (AB_DBG) write(0, "(A,I3)") "  space:", sym%spaceGroup
   end subroutine compute_matrices
 
-  subroutine symmetry_get_n_sym(id, nSym, errno)
-    !scalars
 
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-!End of the abilint section
+  subroutine symmetry_get_n_sym(id, nSym, errno)
 
     integer, intent(in) :: id
     integer, intent(out) :: errno

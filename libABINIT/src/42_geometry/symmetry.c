@@ -34,102 +34,7 @@
 #include <string.h>
 #include <math.h>
 
-#ifndef M_PI
-#define M_PI 3.1415926535897932384626433832795028841971694
-#endif
-
-#define	DIMENSION 3
-#define MAXPARAM  7
-
-typedef struct {
-        int     type ;
-        double  x[ DIMENSION ] ;
-    } ATOM ;
-
-/*
- *  All specific structures should have corresponding elements in the
- *  same position generic structure does.
- *
- *  Planes are characterized by the surface normal direction
- *  (taken in the direction *from* the coordinate origin)
- *  and distance from the coordinate origin to the plane
- *  in the direction of the surface normal.
- *
- *  Inversion is characterized by location of the inversion center.
- *
- *  Rotation is characterized by a vector (distance+direction) from the origin
- *  to the rotation axis, axis direction and rotation order. Rotations
- *  are in the clockwise direction looking opposite to the direction
- *  of the axis. Note that this definition of the rotation axis
- *  is *not* unique, since an arbitrary multiple of the axis direction
- *  can be added to the position vector without changing actual operation.
- *
- *  Mirror rotation is defined by the same parameters as normal rotation,
- *  but the origin is now unambiguous since it defines the position of the
- *  plane associated with the axis.
- *
- */
-
-typedef struct _SYMMETRY_ELEMENT_ {
-        void    (*transform_atom)( struct _SYMMETRY_ELEMENT_ *el, ATOM *from, ATOM *to ) ;
-        int *   transform ;     /*   Correspondence table for the transformation         */
-        int     order ;         /*   Applying transformation this many times is identity */
-        int     nparam ;        /*   4 for inversion and planes, 7 for axes              */
-        double  maxdev ;        /*   Larges error associated with the element            */
-        double  distance ;
-        double  normal[ DIMENSION ] ;
-        double  direction[ DIMENSION ] ;
-    } SYMMETRY_ELEMENT ;
-
-typedef struct {
-        char *  group_name ;        /* Canonical group name                              */
-        char *  symmetry_code ;     /* Group symmetry code                               */
-        int     (*check)( void ) ;  /* Additional verification routine, not used         */
-    } POINT_GROUP ;
-
-/* Global variables */
-typedef struct {
-        double                 ToleranceSame         ;
-        double                 TolerancePrimary      ;
-        double                 ToleranceFinal        ;
-        double                 MaxOptStep            ;
-        double                 MinOptStep            ;
-        double                 GradientStep          ;
-        double                 OptChangeThreshold    ;
-        double                 CenterOfSomething[ DIMENSION ] ;
-        double *               DistanceFromCenter    ;
-        int                    verbose               ;
-        int                    MaxOptCycles          ;
-        int                    OptChangeHits         ;
-        int                    MaxAxisOrder          ;
-        int                    AtomsCount            ;
-        ATOM *                 Atoms                 ;
-        int                    PlanesCount           ;
-        SYMMETRY_ELEMENT **    Planes                ;
-        SYMMETRY_ELEMENT *     MolecularPlane        ;
-        int                    InversionCentersCount ;
-        SYMMETRY_ELEMENT **    InversionCenters      ;
-        int                    NormalAxesCount       ;
-        SYMMETRY_ELEMENT **    NormalAxes            ;
-        int                    ImproperAxesCount     ;
-        SYMMETRY_ELEMENT **    ImproperAxes          ;
-        int *                  NormalAxesCounts      ;
-        int *                  ImproperAxesCounts    ;
-        int                    BadOptimization       ;
-        char *                 SymmetryCode          ;
-} SYMMETRIES ;
-
-
-/* Statistics */
-typedef struct {
-        long                   StatTotal             ;
-        long                   StatEarly             ;
-        long                   StatPairs             ;
-        long                   StatDups              ;
-        long                   StatOrder             ;
-        long                   StatOpt               ;
-        long                   StatAccept            ;
-} STATISTICS ;
+#include "symmetry.h"
 
 /*
  *    Point groups I know about
@@ -195,6 +100,7 @@ POINT_GROUP            PointGroups[]         = {
     {  "Ih",    "(i) 6*(C5) 10*(C3) 15*(C2) 6*(S10) 10*(S6) 15*(sigma) ",    true  },
     {  "Kh",    "(i) (Cinf) (sigma) ",                                       true  },
     } ;
+
 #define PointGroupsCount (sizeof(PointGroups)/sizeof(POINT_GROUP))
 char *                 PointGroupRejectionReason = NULL ;
 
@@ -1140,7 +1046,7 @@ for( i = 0 ; i < DIMENSION ; i++ ){
     c[i] = gsym->Atoms[ic].x[i] - gsym->CenterOfSomething[i] ;
     }
 if( ( axis = init_axis_parameters( a, b, c, gsym, stat ) ) == NULL ){
-    if( gsym->verbose > 0 ) printf( "    no coherrent axis is defined by the points\n" ) ;
+    if( gsym->verbose > 0 ) printf( "    no coherent axis is defined by the points\n" ) ;
     return NULL ;
     }
 axis->transform_atom = rotate_atom ;
@@ -1748,9 +1654,7 @@ if( matching_count == 1 ){
     }
 }
 
-/*
- *  Input/Output
- */
+/* Input/Output */
 
 int
 read_coordinates( FILE *in, SYMMETRIES *gsym )
@@ -1776,13 +1680,42 @@ for( i = 0 ; i < gsym->AtomsCount ; i++ ){
 return 0 ;
 }
 
-
-/* The main program */
 int
-main( int argc, char **argv )
+set_coordinates( 
+                SYMMETRIES *gsym, 
+                int * nat,
+                int * typat,
+                double *xat )
 {
-        char          *program = *argv ;
-        FILE          *in ;
+        int i ;
+
+gsym->AtomsCount = nat[0] ;
+gsym->verbose = 1 ;
+if( gsym->verbose > 0 ) printf( "gsym->Atoms count = %d\n", gsym->AtomsCount ) ;
+gsym->Atoms = calloc( gsym->AtomsCount, sizeof( ATOM ) ) ;
+if( gsym->Atoms == NULL ){
+    fprintf( stderr, "Out of memory for atoms coordinates\n" ) ;
+    return -1 ;
+    }
+for( i = 0 ; i < gsym->AtomsCount ; i++ ){
+    gsym->Atoms[i].type = typat[i] ;
+    gsym->Atoms[i].x[0] = xat[i*DIMENSION] ;
+    gsym->Atoms[i].x[1] = xat[i*DIMENSION+1] ;
+    gsym->Atoms[i].x[2] = xat[i*DIMENSION+2] ;
+    printf("%d %5.2f %5.2f %5.2f\n",gsym->Atoms[i].type,gsym->Atoms[i].x[0], gsym->Atoms[i].x[1], gsym->Atoms[i].x[2]) ;
+    }
+return 0 ;
+}
+
+
+/* The main routine */
+int
+find_symmetries_( 
+                int *nat,
+                int * typat,
+                double *xat
+                )
+{
         SYMMETRIES    * gsym = calloc( 1, sizeof( SYMMETRIES ) ) ; 
         STATISTICS    * stat = calloc( 1, sizeof( STATISTICS ) ) ;
 
@@ -1790,144 +1723,7 @@ main( int argc, char **argv )
 init_symmetries(gsym);
 init_statistics(stat);
 
-for( argc--, argv++ ; argc > 0 ; argc -= 2, argv += 2 ){
-    if( **argv != '-' )
-        break ;
-    if( strcmp( *argv, "-help"         ) == 0 ||
-        strcmp( *argv, "-h"            ) == 0 ||
-        strcmp( *argv, "-?"            ) == 0 ){
-        argc++ ; argv-- ;
-        printf( "%s [option value ...] [filename]\n" 
-                "Valid options are:\n"
-                "  -verbose      (%3d) Determines verbosity level\n"
-                "                      All values above 0 are intended for debugging purposes\n"
-                "  -maxaxisorder (%3d) Maximum order of rotation axis to look for\n"
-                "  -maxoptcycles (%3d) Maximum allowed number of cycles in symmetry element optimization\n"
-                "  --                  Terminates option processing\n"
-                "Defaults should be Ok for these:\n"
-                "  -same         (%8g) Atoms are colliding if distance falls below this value\n"
-                "  -primary      (%8g) Initial loose criterion for atom equivalence\n"
-                "  -final        (%8g) Final criterion for atom equivalence\n"
-                "  -maxoptstep   (%8g) Largest step allowed in symmetry element optimization\n"
-                "  -minoptstep   (%8g) Termination criterion in symmetry element optimization\n"
-                "  -gradstep     (%8g) Finite step used in numeric gradient evaluation\n" 
-                "  -minchange    (%8g) Minimum allowed change in target function\n" 
-                "  -minchgcycles (%8d)  Number of minchange cycles before optimization stops\n",
-            program, gsym->verbose, gsym->MaxAxisOrder, gsym->MaxOptCycles, gsym->ToleranceSame, gsym->TolerancePrimary,
-            gsym->ToleranceFinal, gsym->MaxOptStep, gsym->MinOptStep, gsym->GradientStep, gsym->OptChangeThreshold, gsym->OptChangeHits ) ;
-        printf( "\n"
-                "Input is expected in the following format:\n"
-                "number_of_atoms\n"
-                "AtomicNumber X Y Z\n"
-                "...\n" ) ;
-        printf( "\n"
-                "Note that only primitive rotations will be reported\n" ) ;
-        printf( "This is version $Revision: 1.16 $ ($Date: 2003/04/04 13:05:03 $)\n" ) ;
-        exit( EXIT_SUCCESS ) ;
-        }
-    else
-    if( strcmp( *argv, "--"            ) == 0 ){
-        argc-- ; argv++ ; break ;
-        }
-    if( argc < 2 ){
-        fprintf( stderr, "Missing argument for \"%s\"\n", *argv ) ;
-        exit( EXIT_FAILURE ) ;
-        }
-    if( strcmp( *argv, "-minchgcycles" ) == 0 ){
-        if( sscanf( argv[1], "%d", &gsym->OptChangeHits ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -minchgcycles: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-minchange"    ) == 0 ){
-        if( sscanf( argv[1], "%lg", &gsym->OptChangeThreshold ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -minchange: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-same"         ) == 0 ){
-        if( sscanf( argv[1], "%lg", &gsym->ToleranceSame ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -same: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-primary"      ) == 0 ){
-        if( sscanf( argv[1], "%lg", &gsym->TolerancePrimary ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -primary: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-final"        ) == 0 ){
-        if( sscanf( argv[1], "%lg", &gsym->ToleranceFinal ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -final: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-maxoptstep"   ) == 0 ){
-        if( sscanf( argv[1], "%lg", &gsym->MaxOptStep ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -maxoptstep: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-minoptstep"   ) == 0 ){
-        if( sscanf( argv[1], "%lg", &gsym->MinOptStep ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -minoptstep: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-gradstep"     ) == 0 ){
-        if( sscanf( argv[1], "%lg", &gsym->GradientStep ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -gradstep: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-verbose"      ) == 0 ){
-        if( sscanf( argv[1], "%d", &gsym->verbose ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -verbose: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-maxoptcycles" ) == 0 ){
-        if( sscanf( argv[1], "%d", &gsym->MaxOptCycles ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -maxoptcycles: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else
-    if( strcmp( *argv, "-maxaxisorder" ) == 0 ){
-        if( sscanf( argv[1], "%d", &gsym->MaxAxisOrder ) != 1 ){
-            fprintf( stderr, "Invalid parameter for -maxaxisorder: \"%s\"\n", argv[1] ) ;
-            exit( EXIT_FAILURE ) ;
-            }
-        }
-    else {
-        fprintf( stderr, "Unrecognized option \"%s\"\n", *argv ) ;
-        exit( EXIT_FAILURE ) ;
-        }
-    }
-if( argc > 0 ){
-    if( ( in = fopen( *argv, "rt" ) ) == NULL ){
-        perror( *argv ) ;
-        exit( EXIT_FAILURE ) ;
-        }
-    }
-else {
-    in = stdin ;
-    }
-if( read_coordinates( in, gsym ) < 0 ){
-    fprintf( stderr, "Error reading in atomic coordinates\n" ) ;
-    exit( EXIT_FAILURE ) ;
-    }
-fclose( in ) ;
+set_coordinates(gsym, nat, typat, xat) ;
 find_symmetry_elements(gsym, stat) ;
 sort_symmetry_elements(gsym) ;
 summarize_symmetry_elements(gsym) ;
