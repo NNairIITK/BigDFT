@@ -3017,7 +3017,7 @@ module module_interfaces
          real(8),intent(out):: weight_c_tot, weight_f_tot
        end subroutine get_weights
 
-       subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom, collcom_reference)
+       subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
          use module_base
          use module_types
          implicit none
@@ -3025,7 +3025,6 @@ module module_interfaces
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          type(collective_comms),intent(inout):: collcom
-         type(collective_comms),optional,intent(in):: collcom_reference
        end subroutine init_collective_comms
 
        subroutine deallocate_collective_comms(collcom, subname)
