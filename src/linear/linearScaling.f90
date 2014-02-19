@@ -719,7 +719,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !else
                    call yaml_sequence(advance='no')
                 !end if
-                call yaml_open_map(flow=.false.)
+                !call yaml_open_map(flow=.false.)
                 call yaml_comment('kernel iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
              if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then
@@ -922,14 +922,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  info_scf=it_scc
                  if (iproc==0) then
                      !yaml output
-                     call yaml_close_map() !iteration
+                     !call yaml_close_map() !iteration
                      call bigdft_utils_flush(unit=6)
                  end if
                  exit
              else if (pnrm<convCritMix.and.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
                  if (iproc==0) then
                      !yaml output
-                     call yaml_close_map() !iteration
+                     !call yaml_close_map() !iteration
                      call bigdft_utils_flush(unit=6)
                  end if
                 exit
@@ -944,7 +944,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              if (iproc==0) then
                  !yaml output
-                 call yaml_close_map() !iteration
+                 !call yaml_close_map() !iteration
                  call bigdft_utils_flush(unit=6)
              end if
 
@@ -1097,18 +1097,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        .and. (input%lin%pulay_correction.or.input%lin%plotBasisFunctions /= WF_FORMAT_NONE&
        .or. input%lin%diag_end)) then
 
-       if (input%lin%scf_mode==LINEAR_FOE) then
-           tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
-       end if
+       !!if (input%lin%scf_mode==LINEAR_FOE) then
+       !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+       !!end if
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
            input%calculate_KS_residue)
 
-       if (input%lin%scf_mode==LINEAR_FOE) then
-           call f_free_ptr(tmb%coeff)
-       end if
+       !!if (input%lin%scf_mode==LINEAR_FOE) then
+       !!    call f_free_ptr(tmb%coeff)
+       !!end if
   end if
 
        if (bigdft_mpi%iproc ==0) then 
@@ -1118,18 +1118,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   !! TEST ##########################
   if (input%lin%new_pulay_correction) then
-      if (input%lin%scf_mode==LINEAR_FOE) then
-          tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
-      end if
+      !!if (input%lin%scf_mode==LINEAR_FOE .and. ) then
+      !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+      !!end if
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
           .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
            input%calculate_KS_residue)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
-      if (input%lin%scf_mode==LINEAR_FOE) then
-          call f_free_ptr(tmb%coeff)
-      end if
+      !!if (input%lin%scf_mode==LINEAR_FOE) then
+      !!    call f_free_ptr(tmb%coeff)
+      !!end if
   end if
   !! END TEST ######################
 
@@ -1170,7 +1170,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !!! Testing energy corrections due to locrad
       !!call correction_locrad(iproc, nproc, tmblarge, KSwfn%orbs,tmb%coeff) 
       ! Calculate Pulay correction to the forces
+      !!if (input%lin%scf_mode==LINEAR_FOE) then
+      !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
+      !!end if
       call pulay_correction(iproc, nproc, KSwfn%orbs, at, rxyz, nlpsp, input%SIC, denspot, GPU, tmb, fpulay)
+      !!if (input%lin%scf_mode==LINEAR_FOE) then
+      !!    call f_free_ptr(tmb%coeff)
+      !!end if
   else if (.not.input%lin%new_pulay_correction) then
       call to_zero(3*at%astruct%nat, fpulay(1,1))
   end if

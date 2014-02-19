@@ -2282,6 +2282,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
       chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
+      if (iproc==0) call yaml_close_sequence
+
       if (abs(chargediff)<1.d-6) exit shift_loop
 
       if (chargediff>0) then
@@ -2307,12 +2309,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           bisec_bounds_ok(1)=.true.
       end if
 
-      if (iproc==0) call yaml_close_sequence
 
 
   end do shift_loop
 
-  if (iproc==0) call yaml_close_sequence
+  !if (iproc==0) call yaml_close_sequence
 
   call dscal(tmb%orbs%norb**2, 2.0d0, tmb%linmat%denskern_large%matrix, 1)
 
