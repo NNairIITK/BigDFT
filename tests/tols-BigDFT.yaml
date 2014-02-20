@@ -332,15 +332,15 @@ directmin:
 experimentalmode:
  D: 1.1e-06
  Epsilon: 8.e-10
- Ekin: 9.4e-07
- Enl: 1.1e-07
- Omega: 9.5e-06
- EH: 4.2e-05
- Epot: 9.6e-05
- EXC: 1.6e-05
- EvXC: 2.1e-05
- energy: 4.3e-07
- multiplicator for the confinement: 2.4e-07
+ Ekin: 1.7e-06
+ Enl: 2.3e-07
+ Omega: 1.2e-05
+ EH: 2.2e-04
+ Epot: 1.9e-04
+ EXC: 3.1e-05
+ EvXC: 4.0e-05
+ energy: 6.6e-07
+ multiplicator for the confinement: 3.8e-07
  Atomic Forces (Ha/Bohr): 8.7e-08
  Raw forces norm (Ha/Bohr): 1.1e-7
  Clean forces norm (Ha/Bohr): 1.1e-07
@@ -669,50 +669,54 @@ linearcubic_linear:
 
 experimentalfoe_long:
  Atomic Forces (Ha/Bohr): 9.4e-07
- Clean forces norm (Ha/Bohr): 9.4e-07
- Average noise forces: 3.0e-7
- Raw forces norm (Ha/Bohr): 8.5e-7
- EH: 1.9e-4
- EXC: 2.5e-05
- Ekin: 1.9e-6
- Enl: 5.1e-7
- Epot: 1.9e-4
- EvXC: 3.2e-5
+ Clean forces norm (Ha/Bohr): 6.8e-06
+ Average noise forces: 2.4e-6
+ Raw forces norm (Ha/Bohr): 7.0e-6
+ EH: 1.5e-3
+ EXC: 1.9e-04
+ Ekin: 6.1e-6
+ Enl: 4.5e-6
+ Epot: 1.4e-3
+ EvXC: 2.5e-4
  eF: 2.5e-05
- tr(KS) before purification: 1.1e-6
+ tr(KS) before purification: 3.0e-6
  Tr(K): 6.4e-4
- Total charge: 1.1e-10
+ Total charge: 6.1e-10
  Total ionic charge: 1.6e-11
  D Tr: 6.4e-04
  D eF: 2.5e-05
- multiplicator for the confinement: 2.3e-6
+ multiplicator for the confinement: 6.2e-6
  energy: 1.1e-5
- Omega: 4.6e-05
+ Omega: 1.7e-04
  charge diff: 6.4e-4
- D: 1.1e-5
- Kohn-Sham residue: 1.1e-05
+ D: 1.1e-4
+ Kohn-Sham residue: 1.3e-04
  delta: 1.1e-10
+ kappa: 1.1e-4
+ mean kappa: 1.1e-4
+ diff from idempotency: 1.1e-9
 
 experimentalfoe_short:
- EH: 3.1e-06
- EXC: 3.1e-07
- Ekin: 7.4e-09
- Enl: 1.5e-09
- Epot: 6.2e-07
- EvXC: 3.1e-06
- energy: 1.9e-07
- tr(KS) before purification: 3.3e-09
- Raw forces norm (Ha/Bohr): 2.7e-08
+ EH: 1.6e-05
+ EXC: 2.8e-06
+ Ekin: 1.5e-07
+ Enl: 3.0e-08
+ Epot: 1.3e-05
+ EvXC: 3.6e-06
+ energy: 3.9e-06
+ tr(KS) before purification: 6.7e-08
+ Raw forces norm (Ha/Bohr): 5.5e-07
  Tr(K): 1.7e-07
- eF: 3.1e-06
- D Tr: 1.1e-07
- D eF: 1.9e-06
+ eF: 3.6e-05
+ D Tr: 2.1e-07
+ D eF: 2.6e-06
  charge diff: 1.7e-07
  Omega: 1.9e-07
  Atomic Forces (Ha/Bohr): 2.8e-08
- Average noise forces: 1.3e-08
- Clean forces norm (Ha/Bohr): 2.5e-08
- diff from idempotency: 1.1e-09
+ Average noise forces: 2.6e-07
+ Clean forces norm (Ha/Bohr): 5.1e-07
+ diff from idempotency: 3.1e-09
+ D: 1.1e-4
 
 
 
@@ -817,7 +821,7 @@ intermediateforces:
 DIIShistory:
  Atomic Forces (Ha/Bohr): 1.7e-9
  Clean forces norm (Ha/Bohr): 1.1e-9
- Raw forces norm (Ha/Bohr): 4.2e-10
+ Raw forces norm (Ha/Bohr): 1.7e-9
  Average noise forces: 2.1e-10
  e: 7.1e-9
  EH: 4.1e-7
@@ -835,6 +839,8 @@ Locreg:
 
 sparsity:
  Total charge: 1.1e-10
- Omega: 1.2e-11
+ Omega: 2.6e-10
  Raw forces norm (Ha/Bohr): 1.3e-11
  Total ionic charge: 1.3e-11
+ charge diff: 1.1e-10
+ energy: 2.4e-10
