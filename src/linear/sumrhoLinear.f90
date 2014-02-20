@@ -1885,8 +1885,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !!!!    write(200+iproc,*) ierr, rho(ierr)
   !!!!end do
 
-  !!write(*,*) 'iproc, collcom_sr%nptsp_c', iproc, collcom_sr%nptsp_c
-  write(*,*) 'iproc, size(rho_local), size(rho)', iproc, size(rho_local), size(rho)
 
 
   if (nproc>1) then
@@ -1908,15 +1906,15 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
               call mpi_get(rho(istdest), nsize, mpi_double_precision, mpisource, &
                    int((istsource-1),kind=mpi_address_kind), &
                    nsize, mpi_double_precision, collcom_sr%window, ierr)
-              write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest, &
-                                   ' from position ',istsource,' on process ',mpisource, &
-                                   '; error code=',ierr
+              !!write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest, &
+              !!                     ' from position ',istsource,' on process ',mpisource, &
+              !!                     '; error code=',ierr
           end if
       end do
       call mpi_win_fence(0, collcom_sr%window, ierr)
-      write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
+      !!write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
       call mpi_win_free(collcom_sr%window, ierr)
-      write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
+      !!write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
   else
       call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
   end if
@@ -2272,12 +2270,12 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! the communication.
       
       ! First determine how many orbitals one has for each grid point in the current slice
-      ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
-      ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,2)
+      ii3s=denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4)+1
+      ii3e=denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4)+denspot%dpbox%nscatterarr(iproc,1)
       weight=f_malloc0((/lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,ii3s/),id='weight')
 
-      if (denspot%dpbox%nscatterarr(iproc,2)>0) then
-          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2), weight(1,1,ii3s))
+      if (denspot%dpbox%nscatterarr(iproc,1)>0) then
+          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
       end if
 
       do i3=ii3s,ii3e
@@ -2309,8 +2307,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
       orbital_id=f_malloc((/nmax,lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,1,ii3s/),id='orbital_id')
 
-      if (denspot%dpbox%nscatterarr(iproc,2)>0) then
-          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2), weight(1,1,ii3s))
+      if (denspot%dpbox%nscatterarr(iproc,1)>0) then
+          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
       end if
       iorbmin=1000000000
       iorbmax=-1000000000
