@@ -131,7 +131,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
 
   fscale=foe_obj%fscale/0.5d0 ! this will be undone in the first iteration of the following loop
 
-  ntemp=3
+  ntemp=4
 
   temp_loop: do itemp=1,ntemp
 

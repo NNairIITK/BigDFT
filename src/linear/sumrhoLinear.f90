@@ -1545,8 +1545,8 @@ subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatt
 
   ! some checks
   nel=0
-  nel_array=f_malloc(0.to.nproc-1,id='nel_array')
-  nel_array=0
+  nel_array=f_malloc0(0.to.nproc-1,id='nel_array')
+!  nel_array=0
   do ioverlaps=1,ncomms_repartitionrho
       nel=nel+commarr_repartitionrho(4,ioverlaps)
       ii=commarr_repartitionrho(1,ioverlaps)
@@ -1557,7 +1557,7 @@ subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatt
   end if
   call mpiallred(nel_array(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1) then
-      stop 'nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1'
+      !stop 'nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1'
   end if
   call f_free(nel_array)
 
@@ -1886,6 +1886,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !!!!end do
 
   !!write(*,*) 'iproc, collcom_sr%nptsp_c', iproc, collcom_sr%nptsp_c
+  write(*,*) 'iproc, size(rho_local), size(rho)', iproc, size(rho_local), size(rho)
 
 
   if (nproc>1) then
@@ -1904,15 +1905,18 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
           istdest=collcom_sr%commarr_repartitionrho(3,jproc)
           nsize=collcom_sr%commarr_repartitionrho(4,jproc)
           if (nsize>0) then
-              write(*,'(5(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest, &
-                                   ' from position ',istsource,' on process ',mpisource
               call mpi_get(rho(istdest), nsize, mpi_double_precision, mpisource, &
                    int((istsource-1),kind=mpi_address_kind), &
                    nsize, mpi_double_precision, collcom_sr%window, ierr)
+              write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest, &
+                                   ' from position ',istsource,' on process ',mpisource, &
+                                   '; error code=',ierr
           end if
       end do
       call mpi_win_fence(0, collcom_sr%window, ierr)
+      write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
       call mpi_win_free(collcom_sr%window, ierr)
+      write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
   else
       call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
   end if
