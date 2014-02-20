@@ -2113,17 +2113,22 @@ module module_interfaces
        real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(inout):: phid
      end subroutine getDerivativeBasisFunctions
 
-     subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, mixMeth, pnrm)
+
+     subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, mixdiis, alphaMix, ioffset, mixMeth, pnrm)
        use module_base
        use module_types
+       use module_xc
        implicit none
-       integer,intent(in):: iproc, nproc, ndimpot, ndimtot, mixMeth
-       real(8),dimension(ndimpot),intent(in):: rhopotold
-       real(8),dimension(ndimpot),intent(out):: rhopot
+       integer,intent(in):: iproc, nproc, n3d, n3p, mixMeth, ioffset
+       type(locreg_descriptors),intent(in) :: glr
+       type(input_variables),intent(in):: input
+       real(8),dimension(max(glr%d%n1i*glr%d%n2i*n3d,1)*input%nspin),intent(in):: rhopotold
+       real(8),dimension(max(glr%d%n1i*glr%d%n2i*n3d,1)*input%nspin),intent(out):: rhopot
        type(mixrhopotDIISParameters),intent(inout):: mixdiis
        real(8),intent(in):: alphaMix
        real(8),intent(out):: pnrm
      end subroutine mixrhopotDIIS
+
 
      subroutine initializeMixrhopotDIIS(isx, ndimpot, mixdiis)
        use module_base

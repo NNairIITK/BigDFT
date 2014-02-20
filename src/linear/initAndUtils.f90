@@ -1466,7 +1466,7 @@ subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_conve
 
   if(lowaccur_converged) then
      if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
+        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimrhopot, mixdiis)
      else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
         call deallocateMixrhopotDIIS(mixdiis)
      end if

@@ -32,7 +32,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(orbitals_data),intent(inout) :: orbs
   type(DFT_wavefunction),intent(inout) :: kswfn, tmb
   type(DFT_local_fields), intent(inout) :: denspot
-  real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin),intent(inout) :: rhopotold
+  real(dp), dimension(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin),intent(inout) :: rhopotold
   type(energy_terms),intent(inout) :: energs
   real(kind=8),dimension(3,at%astruct%nat),intent(in),optional :: locregcenters
 
@@ -49,7 +49,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8),dimension(:,:),allocatable :: aocc
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb
-  integer :: infoCoeff
+  integer :: infoCoeff, jproc
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
@@ -458,14 +458,26 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%lin%mixing_after_inputguess) then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
            .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-          call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+          call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
       end if
   end if
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
+  !!write(*,'(a,4i8)') 'iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)', &
+  !!                    iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)
+  !!iall=0
+  !!do jproc=0,nproc-1
+  !!    do istat=1,tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%nscatterarr(jproc,2)
+  !!        iall=iall+1
+  !!        if (iproc==jproc) write(500+iproc,*) iall, denspot%rhov(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%i3xcsh+istat)
+  !!    end do
+  !!end do
+  !!call mpi_finalize(istat)
+  !!stop
+
   if (input%lin%mixing_after_inputguess) then
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-          call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+          call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
       end if
   end if
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
@@ -704,7 +716,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
-      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
   if (iproc==0) call yaml_newline()
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
@@ -717,7 +729,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
   if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
 
 
