@@ -668,7 +668,7 @@ linearcubic_linear:
  Omega: 1.82e-10
 
 experimentalfoe_long:
- Atomic Forces (Ha/Bohr): 9.4e-07
+ Atomic Forces (Ha/Bohr): 1.2e-06
  Clean forces norm (Ha/Bohr): 6.8e-06
  Average noise forces: 2.4e-6
  Raw forces norm (Ha/Bohr): 7.0e-6
@@ -695,6 +695,7 @@ experimentalfoe_long:
  kappa: 1.1e-4
  mean kappa: 1.1e-4
  diff from idempotency: 1.1e-9
+ delta out: 1.1e-10
 
 experimentalfoe_short:
  EH: 1.6e-05
