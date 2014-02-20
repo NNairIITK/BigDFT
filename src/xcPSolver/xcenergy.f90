@@ -814,6 +814,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   logical :: use_gradient
 
+
   !check for the dimensions
   if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
      print *,'the XC dimensions are not correct'

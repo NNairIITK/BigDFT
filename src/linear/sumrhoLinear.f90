@@ -778,9 +778,11 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
 
   weight_xy=f_malloc((/lzd%glr%d%n1i,lzd%glr%d%n2i/),id='weight_xy')
 
+  !write(*,*) 'iproc, nscatterarr', iproc, nscatterarr(iproc,:)
+
   tt=0.d0
   weights_per_slice(:) = 0.0d0
-  do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
+  do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,2)
       call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, weight_xy(1,1))
       do iorb=1,orbs%norb
           ilr=orbs%inwhichlocreg(iorb)
@@ -886,7 +888,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
               ii=ii+nscatterarr(jproc_out,1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               cycle outer_loop
           end if
-          i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
+          i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,2)
               call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, slicearr(1,1))
               do iorb=1,orbs%norb
                   ilr=orbs%inwhichlocreg(iorb)
@@ -1023,7 +1025,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (abs(weight_check-weight_tot) > 1.d-3) then
-      stop '2: tt/=weight_tot'
+      stop '2: weight_check/=weight_tot'
   else if (abs(weight_check-weight_tot) > 0.d0) then
      call yaml_warning('The total weight for density seems inconsistent! Ref:'//&
            trim(yaml_toa(weight_tot,fmt='(1pe25.17)'))//', Check:'//&
@@ -1409,7 +1411,7 @@ subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, i
               if (ii>istartend(2,jproc_send)) then
                   jproc_send=jproc_send+1
               end if
-              if (i3>nscatterarr(jproc_recv,3)+nscatterarr(jproc_recv,1)) then
+              if (i3>nscatterarr(jproc_recv,3)+nscatterarr(jproc_recv,2)) then
                   jproc_recv=jproc_recv+1
               end if
               if (iproc==jproc_send) then
@@ -1460,7 +1462,7 @@ subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatt
 
   ! First process from which iproc has to receive data
   ncomms_repartitionrho=0
-  i3=nscatterarr(iproc,3)
+  i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
   ii=(i3)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)+1
   do jproc=nproc-1,0,-1
       if (ii>=istartend(1,jproc)) then
@@ -1476,7 +1478,7 @@ subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatt
   iidest=0
   nel=0
   started=.false.
-  do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
+  do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
       ii=(i3-1)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)
       do i2=1,lzd%glr%d%n2i
           do i1=1,lzd%glr%d%n1i
@@ -1499,7 +1501,7 @@ subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatt
 
   ! First process from which iproc has to receive data
   ioverlaps=0
-  i3=nscatterarr(iproc,3)
+  i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
   ii=(i3)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)+1
   do jproc=nproc-1,0,-1
       if (ii>=istartend(1,jproc)) then
@@ -1514,7 +1516,7 @@ subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatt
   iidest=0
   nel=0
   started=.false.
-  do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
+  do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
       ii=(i3-1)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)
       do i2=1,lzd%glr%d%n2i
           do i1=1,lzd%glr%d%n1i
@@ -1551,7 +1553,7 @@ subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatt
       nel_array(ii)=nel_array(ii)+commarr_repartitionrho(4,ioverlaps)
   end do
   if (nel/=nscatterarr(iproc,1)*lzd%glr%d%n2i*lzd%glr%d%n1i) then
-      stop 'nel/=nscatterarr(iproc,1)*lzd%glr%d%n2i*lzd%glr%d%n1i'
+      stop 'nel/=nscatterarr(iproc,2)*lzd%glr%d%n2i*lzd%glr%d%n1i'
   end if
   call mpiallred(nel_array(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1) then
@@ -1883,6 +1885,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !!!!    write(200+iproc,*) ierr, rho(ierr)
   !!!!end do
 
+  !!write(*,*) 'iproc, collcom_sr%nptsp_c', iproc, collcom_sr%nptsp_c
+
 
   if (nproc>1) then
       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
@@ -1900,7 +1904,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
           istdest=collcom_sr%commarr_repartitionrho(3,jproc)
           nsize=collcom_sr%commarr_repartitionrho(4,jproc)
           if (nsize>0) then
-              !write(*,'(5(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest,' from position ',istsource,' on process ',mpisource
+              write(*,'(5(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest, &
+                                   ' from position ',istsource,' on process ',mpisource
               call mpi_get(rho(istdest), nsize, mpi_double_precision, mpisource, &
                    int((istsource-1),kind=mpi_address_kind), &
                    nsize, mpi_double_precision, collcom_sr%window, ierr)
@@ -1912,9 +1917,11 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
       call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
   end if
 
-  !!do ierr=1,size(rho)
-  !!    write(300+iproc,*) ierr, rho(ierr)
-  !!end do
+  !do ierr=1,size(rho)
+  !    write(300+iproc,*) ierr, rho(ierr)
+  !end do
+  !call mpi_finalize(ierr)
+  !stop
 
 
 
@@ -1931,6 +1938,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   deallocate(rho_local, stat=istat)
   call memocc(istat, iall, 'rho_local', subname)
 
+  !!write(*,*) 'after deallocate'
+  !!call mpi_finalize(ierr)
+  !!stop
 
 end subroutine sumrho_for_TMBs
 
@@ -2259,11 +2269,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       
       ! First determine how many orbitals one has for each grid point in the current slice
       ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
-      ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
+      ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,2)
       weight=f_malloc0((/lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,ii3s/),id='weight')
 
-      if (denspot%dpbox%nscatterarr(iproc,1)>0) then
-          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      if (denspot%dpbox%nscatterarr(iproc,2)>0) then
+          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2), weight(1,1,ii3s))
       end if
 
       do i3=ii3s,ii3e
@@ -2295,8 +2305,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
       orbital_id=f_malloc((/nmax,lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,1,ii3s/),id='orbital_id')
 
-      if (denspot%dpbox%nscatterarr(iproc,1)>0) then
-          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      if (denspot%dpbox%nscatterarr(iproc,2)>0) then
+          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2), weight(1,1,ii3s))
       end if
       iorbmin=1000000000
       iorbmax=-1000000000
