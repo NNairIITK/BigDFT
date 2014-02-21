@@ -205,13 +205,13 @@ end do
 mat(min(mixdiis%isx,mixdiis%is)+1,min(mixdiis%isx,mixdiis%is)+1)=0.d0
 rhs(min(mixdiis%isx,mixdiis%is)+1)=1.d0
 
-if (iproc==0) then
-    do i=1,min(mixdiis%isx,mixdiis%is)+1
-        do j=1,min(mixdiis%isx,mixdiis%is)+1
-            write(*,*) 'i, j, mat(j,i)', i, j, mat(j,i)
-        end do
-    end do 
-end if
+!!if (iproc==0) then
+!!    do i=1,min(mixdiis%isx,mixdiis%is)+1
+!!        do j=1,min(mixdiis%isx,mixdiis%is)+1
+!!            write(*,*) 'i, j, mat(j,i)', i, j, mat(j,i)
+!!        end do
+!!    end do 
+!!end if
 
 
 ! Solve the linear system
@@ -250,19 +250,9 @@ do j=isthist,mixdiis%is
     jj=jj+1
     mj=mod(j-1,mixdiis%isx)+1
     jjst=(mj-1)*ndimtot
-    if (iproc==0) write(*,*) 'j, rhs(jj)', j, rhs(jj)
-    !!write(*,*) 'reset rhs(jj)'
-    !!if (j==mixdiis%is) then
-    !!    rhs(jj)=1.d0
-    !!else
-    !!    rhs(jj)=0.d0
-    !!end if
     do k=1,ndimtot
         rhopot(k) = rhopot(k) + rhs(jj)*(mixdiis%rhopotHist(jjst+k)-mixdiis%rhopotresHist(jjst+k))
     end do
-end do
-do i=1,ndimtot
-    write(120+iproc,*) i, rhopot(i)
 end do
 
 
