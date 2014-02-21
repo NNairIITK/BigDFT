@@ -1363,13 +1363,13 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   if(info/=0)then
     write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',norb
   end if
-  if (iproc==0) then
-      do istat=1,norb
-          do iall=1,norb
-              write(201,*) hamsmall(iall,istat)
-          end do
-      end do
-  end if
+  !!if (iproc==0) then
+  !!    do istat=1,norb
+  !!        do iall=1,norb
+  !!            write(201,*) hamsmall(iall,istat)
+  !!        end do
+  !!    end do
+  !!end if
 
   iall=-product(shape(work))*kind(work)
   deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
