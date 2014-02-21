@@ -307,7 +307,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
-  integer :: ilr, nlr, iorb, jorb
+  integer :: ilr, nlr, iorb, jorb, ioffset
   character(len=20) :: comment
 
   !debug
@@ -734,10 +734,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!call finalize_p2p_tags()
   
      !temporary allocation of the density
-     allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
+     !!allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
+     !!call memocc(i_stat,denspot%rho_work,'rho',subname)
+     !!call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
+     !!     denspot%rhov(1),1,denspot%rho_work(1),1)
+
+     ! keep only the essential part of the density, without the GGA bufffers
+     allocate(denspot%rho_work(denspot%dpbox%ndimpot),stat=i_stat)
      call memocc(i_stat,denspot%rho_work,'rho',subname)
-     call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
-          denspot%rhov(1),1,denspot%rho_work(1),1)
+     ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
+     call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
 
      if (infocode==2) then
         !!! Allocate this array since it will be deallcoated in deallocate_before_exiting
@@ -1871,6 +1877,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake
 
+
   !manipulate scatter array for avoiding the GGA shift
 !!$     call dpbox_repartition(denspot%dpbox%iproc,denspot%dpbox%nproc,atoms%astruct%geocode,'D',1,denspot%dpbox)
   !n3d=n3p
@@ -1905,7 +1912,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
         call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
      end if
      ! Density already present in denspot%rho_work
-     call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
+     call dcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work,1)
      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
           0.0_dp,.false.,stress_tensor=hstrten)
   else

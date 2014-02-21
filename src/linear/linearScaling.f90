@@ -1675,30 +1675,38 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       evxc_tmp=energs%evxc
       eexctX_tmp=energs%eexctX
 
+      ioffset=kswfn%Lzd%Glr%d%n1i*kswfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
+
       if (denspot%dpbox%ndimpot>0) then
           denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
-          rhopot_work=f_malloc(denspot%dpbox%ndimpot+ndebug,id='rhopot_work')
       else
           denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+      end if
+      if (denspot%dpbox%ndimrhopot>0) then
+          rhopot_work=f_malloc(denspot%dpbox%ndimrhopot+ndebug,id='rhopot_work')
+      else
           rhopot_work=f_malloc(1+ndebug,id='rhopot_work')
       end if
-      call dcopy(denspot%dpbox%ndimpot,denspot%rhov,1,rhopot_work,1)
+      call dcopy(denspot%dpbox%ndimrhopot,denspot%rhov,1,rhopot_work,1)
 
 
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-      denspot%rho_work=f_malloc_ptr(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),id='denspot%rho_work')
-      call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
-           denspot%rhov(1),1,denspot%rho_work(1),1)
+      !denspot%rho_work=f_malloc_ptr(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),id='denspot%rho_work')
+      denspot%rho_work=f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%rho_work')
+      !call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
+      !     denspot%rhov(1),1,denspot%rho_work(1),1)
+      call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
       call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
       ! Density already present in denspot%rho_work
-      call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
+      call dcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work,1)
       call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
            0.0_dp,.false.,stress_tensor=hstrten)
 
       
       KSwfn%psi=f_malloc_ptr(1,id='KSwfn%psi')
+
 
       fpulay=0.d0
       call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpsp,rxyz,& 
@@ -1710,7 +1718,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call f_free(fxyz)
       call f_free_ptr(KSwfn%psi)
 
-      call dcopy(denspot%dpbox%ndimpot,rhopot_work,1,denspot%rhov,1)
+      call dcopy(denspot%dpbox%ndimrhopot,rhopot_work,1,denspot%rhov,1)
       energs%eh=eh_tmp
       energs%exc=exc_tmp
       energs%evxc=evxc_tmp
