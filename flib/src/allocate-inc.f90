@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!  call timing(0,'Init to Zero  ','IR') 
+  call timing(0,'AllocationProf','IR') 
   !then perform all the checks and profile the allocation procedure
   if (f_err_raise(ierror/=0,&
        'Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)) return
@@ -28,7 +28,7 @@
           ERR_INVALID_MALLOC)
      return
   end if
-!  call timing(0,'Init to Zero  ','RS') 
+  call timing(0,'AllocationProf','RS') 
 
 contains 
 

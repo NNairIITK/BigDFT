@@ -2638,7 +2638,7 @@ module module_interfaces
          character(len=3), intent(in) :: unblock_comms
          real(gp), intent(in) :: alphamix
          type(atoms_data), intent(in) :: atoms
-         type(DFT_PSP_projectors), intent(in) :: nlpsp
+         type(DFT_PSP_projectors), intent(inout) :: nlpsp
          type(DFT_local_fields), intent(inout) :: denspot
          type(energy_terms), intent(inout) :: energs
          type(DFT_wavefunction), intent(inout) :: wfn
@@ -4480,7 +4480,8 @@ module module_interfaces
           type(energy_terms),intent(inout) :: energs
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           type(input_variables),intent(in) :: input
-          real(kind=8),intent(out) :: energy, energyDiff, energyold
+          real(kind=8),intent(out) :: energy, energyDiff
+          real(kind=8), intent(inout) :: energyold
         end subroutine build_ks_orbitals
 
         subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &

@@ -524,6 +524,7 @@ subroutine allocateInputFragArrays(input_frag)
   allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
+  !f_malloc0_str_ptr should be used here
   allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 

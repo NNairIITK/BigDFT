@@ -1697,7 +1697,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(rho_descriptors),intent(in) :: rhod
    type(denspot_distribution), intent(in) :: dpcom
    type(orbitals_data), intent(inout) :: orbs
-   type(DFT_PSP_projectors), intent(in) :: nlpsp
+   type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
    type(communications_arrays), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU

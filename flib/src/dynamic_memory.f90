@@ -343,6 +343,7 @@ contains
     integer :: lgt,ncalls
     integer(kind=8) :: itime
 
+
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_routine): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return

@@ -31,8 +31,9 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
 
   allocate(lin%potentialPrefac_highaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
-
-  allocate(lin%locrad_type(ntypes),stat=istat)
+  
+  !added a second dimension to include the low and high accuracy values
+  allocate(lin%locrad_type(ntypes,2),stat=istat)
   call memocc(istat,lin%locrad_type,'lin%locrad_type',subname)
 
   allocate(lin%kernel_cutoff_FOE(ntypes), stat=istat)

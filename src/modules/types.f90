@@ -178,7 +178,8 @@ module module_types
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
     real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
     real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
-    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff_FOE
+    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, kernel_cutoff_FOE
+    real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
     real(kind=8) :: early_stop, gnrm_dynamic
@@ -2579,10 +2580,47 @@ end subroutine bigdft_init_errors
           in%tddft_approach = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
-       end select
+       end select      
     case DEFAULT
        call yaml_warning("unknown level '" // trim(level) //"'")
     end select
   END SUBROUTINE input_set_dict
+
+  subroutine basis_params_set_dict(dict_basis,lin,jtype)
+    use module_input_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: jtype !< local type of which we are filling the values
+    type(dictionary), pointer :: dict_basis
+    type(linearInputParameters),intent(inout) :: lin
+    !local variables
+    real(gp), dimension(2) :: dummy_darr
+    !-- default parameters for the basis set of linear scaling
+
+    !then update the values of each parameter if present
+    select case(trim(dict_key(dict_basis)))
+    case(NBASIS)
+       lin%norbsPerType(jtype)=dict_basis !npt
+    case(AO_CONFINEMENT)
+       lin%potentialPrefac_ao(jtype)=dict_basis !ppao
+    case(CONFINEMENT)
+       dummy_darr=dict_basis
+       lin%potentialPrefac_lowaccuracy(jtype)=dummy_darr(1)!ppl
+       lin%potentialPrefac_highaccuracy(jtype)=dummy_darr(2)!pph
+    case(RLOC)
+       dummy_darr=dict_basis
+       !locradType(jtype)=dummy_darr(1) !lrl
+       lin%locrad_type(jtype,1)=dummy_darr(1) !lrl
+       lin%locrad_type(jtype,2)=dummy_darr(2) !lrh
+       !locradType_lowaccur(jtype)=dummy_darr(1) !lrl
+       !locradType_highaccur(jtype)=dummy_darr(2) !lrh
+       !atoms%rloc(jtype,:)=locradType(jtype)
+    case(RLOC_KERNEL) 
+         lin%kernel_cutoff(jtype)=dict_basis !kco
+    case(RLOC_KERNEL_FOE) 
+       lin%kernel_cutoff_FOE(jtype)=dict_basis !kco_FOE
+    end select
+    
+  end subroutine basis_params_set_dict
 
 end module module_types

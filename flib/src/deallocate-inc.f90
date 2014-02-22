@@ -7,7 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-  !      call timing(0,'AllocationProf','IR') 
+  call timing(0,'AllocationProf','IR') 
 
   !here the size should be corrected with ndebug (or maybe not)
   ilsize=int(product(shape(array))*kind(array),kind=8)
@@ -64,4 +64,4 @@ if (track_origins) then
 
   call memocc(ierror,-int(ilsize),trim(array_id),trim(routine_id))
 
-  !      call timing(0,'AllocationProf','RS') 
+  call timing(0,'AllocationProf','RS') 
