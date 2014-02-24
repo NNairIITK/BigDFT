@@ -32,11 +32,11 @@ real(8):: tt
   tt=1.d0-alphaMix
   !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
   !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
-  do i=1,Glr%d%n1i*Glr%d%n2i*n3d
-      rhopot(i)=tt*rhopotOld(i)+alphaMix*rhopot(i)
-  end do
   do i=1,Glr%d%n1i*Glr%d%n2i*n3p
       pnrm=pnrm+(rhopot(ioffset+i)-rhopotOld(ioffset+i))**2
+  end do
+  do i=1,Glr%d%n1i*Glr%d%n2i*n3d
+      rhopot(i)=tt*rhopotOld(i)+alphaMix*rhopot(i)
   end do
   call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
@@ -53,7 +53,7 @@ end subroutine mixPotential
 
 
 
-subroutine mix_main(iproc, nproc, mixHist, input, glr, alpha_mix, &
+subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
            denspot, mixdiis, rhopotold, pnrm)
   use module_base
   use module_types
@@ -61,7 +61,7 @@ subroutine mix_main(iproc, nproc, mixHist, input, glr, alpha_mix, &
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, mixHist
+  integer,intent(in):: iproc, nproc, mix_mode, mixHist
   type(input_variables),intent(in):: input
   type(locreg_descriptors),intent(in):: glr
   real(8),intent(in):: alpha_mix
@@ -73,7 +73,16 @@ subroutine mix_main(iproc, nproc, mixHist, input, glr, alpha_mix, &
   ! Local variables
   integer:: ndimtot, ioffset
   
-  ioffset=glr%d%n1i*glr%d%n2i*denspot%dpbox%i3xcsh
+  ! Offset to calculate the change in the density / potential. Since the density
+  ! contains some buffer in the case of GGA, a non-zero shift is required. For the
+  ! potential, however, no buffers are present, so no shift is needed.
+  if (mix_mode==LINEAR_MIXDENS_SIMPLE) then
+      ioffset=glr%d%n1i*glr%d%n2i*denspot%dpbox%i3xcsh
+  else if (mix_mode==LINEAR_MIXPOT_SIMPLE) then
+      ioffset=0
+  else
+      stop 'ERROR: illegal mixing mode'
+  end if
 
 
   ! Mix the density.

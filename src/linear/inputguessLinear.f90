@@ -703,14 +703,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
 
   ! Mix the density.
-  if (input%lin%mixing_after_inputguess .and. (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
+  if (input%lin%mixing_after_inputguess .and. &
+          (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
      if (input%experimental_mode) then
          !if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
          if (iproc==0) call yaml_map('INFO mixing parameter for this step',1.d0)
-         call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, 1.d0, &
+         call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, 1.d0, &
               denspot, mixdiis, rhopotold, pnrm)
      else
-         call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+         call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
               denspot, mixdiis, rhopotold, pnrm)
      end if
   end if
@@ -723,7 +724,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if(iproc==0) call yaml_close_map()
   ! Mix the potential.
   if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-     call mix_main(iproc, nproc, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+     call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
           denspot, mixdiis, rhopotold, pnrm)
   end if
 
