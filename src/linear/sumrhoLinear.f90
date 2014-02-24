@@ -1350,7 +1350,9 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
   allocate(indexrecvorbital2(ndimind), stat=istat)
   call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
 
-  call vcopy(ndimind, indexrecvorbital(1), 1, indexrecvorbital2(1), 1)
+  if (ndimind>0) then
+      call vcopy(ndimind, indexrecvorbital(1), 1, indexrecvorbital2(1), 1)
+  end if
 
   !$omp parallel default(none) &
   !$omp shared(ndimind, iextract, indexrecvorbital, indexrecvorbital2) private(i, ind)

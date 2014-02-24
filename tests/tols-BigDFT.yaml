@@ -341,7 +341,7 @@ experimentalmode:
  EvXC: 4.6e-05
  energy: 7.6e-07
  multiplicator for the confinement: 4.4e-07
- Atomic Forces (Ha/Bohr): 8.7e-08
+ Atomic Forces (Ha/Bohr): 1.1e-07
  Raw forces norm (Ha/Bohr): 1.1e-7
  Clean forces norm (Ha/Bohr): 1.1e-07
  Orbitals: 1.1e-04
@@ -668,7 +668,7 @@ linearcubic_linear:
  Omega: 1.82e-10
 
 experimentalfoe_long:
- Atomic Forces (Ha/Bohr): 2.1e-06
+ Atomic Forces (Ha/Bohr): 8.1e-06
  Clean forces norm (Ha/Bohr): 7.8e-06
  Average noise forces: 2.7e-6
  Raw forces norm (Ha/Bohr): 7.0e-6
@@ -698,22 +698,22 @@ experimentalfoe_long:
  delta out: 1.1e-10
 
 experimentalfoe_short:
- EH: 1.6e-05
+ EH: 2.0e-05
  EXC: 7.1e-06
  Ekin: 1.5e-07
  Enl: 3.0e-08
  Epot: 1.3e-05
- EvXC: 3.6e-06
+ EvXC: 3.8e-06
  energy: 3.9e-06
- tr(KS) before purification: 6.7e-08
+ tr(KS) before purification: 4.0e-06
  Raw forces norm (Ha/Bohr): 5.5e-07
  Tr(K): 1.7e-07
  eF: 3.6e-05
  D Tr: 2.1e-07
- D eF: 1.8e-05
+ D eF: 2.3e-05
  charge diff: 1.7e-07
- Omega: 3.7e-07
- Atomic Forces (Ha/Bohr): 9.8e-08
+ Omega: 4.0e-06
+ Atomic Forces (Ha/Bohr): 5.8e-07
  Average noise forces: 2.6e-07
  Clean forces norm (Ha/Bohr): 5.1e-07
  diff from idempotency: 3.1e-09
@@ -857,6 +857,7 @@ PBE_densmixlin:
   - found warnings
 
 PBE_potmixlin:
+ Ekin: 1.1e-10
  Epot: 1.1e-10
  EXC: 1.1e-10
  energy: 2.2e-11
@@ -866,7 +867,7 @@ PBE_potmixlin:
   - found warnings
 
 PBE_potmixdiis:
- Atomic Forces (Ha/Bohr): 6.4e-10
+ Atomic Forces (Ha/Bohr): 8.1e-10
  Clean forces norm (Ha/Bohr): 6.4e-10
  Raw forces norm (Ha/Bohr): 3.3e-10
  Average noise forces: 6.4e-10
@@ -883,4 +884,4 @@ PBE_potmixdiis:
 PBE_densmixdiis:
  Epot: 1.1e-10
  energy: 2.5e-11
- Omega: 2.4e-11
+ Omega: 3.4e-11
