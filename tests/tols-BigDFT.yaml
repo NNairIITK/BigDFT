@@ -842,9 +842,10 @@ sparsity:
  Total charge: 1.1e-10
  Omega: 2.6e-10
  Raw forces norm (Ha/Bohr): 1.4e-11
- Total ionic charge: 1.3e-11
+ Total ionic charge: 2.2e-11
  charge diff: 1.1e-10
  energy: 2.6e-10
+ EXC: 1.1e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
