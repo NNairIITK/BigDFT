@@ -848,6 +848,9 @@ sparsity:
 
 PBE_densmixlin:
  Ekin: 1.1e-10
+ Epot: 1.1e-10
+ energy: 2.1e-11
+ Omega: 2.0e-1
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -855,6 +858,8 @@ PBE_densmixlin:
 PBE_potmixlin:
  Epot: 1.1e-10
  EXC: 1.1e-10
+ energy: 2.2e-11
+ Omega: 2.3e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -871,8 +876,10 @@ PBE_potmixdiis:
  Omega: 6.4e-10
  Epot: 5.5e-9
  EH: 1.8e-9
- Ekin: 1.1e-10
+ Ekin: 5.0e-10
  Enl: 2.1e-11
 
 PBE_densmixdiis:
  Epot: 1.1e-10
+ energy: 2.5e-11
+ Omega: 2.4e-11
