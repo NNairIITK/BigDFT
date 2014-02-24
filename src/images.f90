@@ -277,9 +277,9 @@ contains
     REAL (gp)                            :: invLx, invLy, invLz
     INTEGER                                    :: i, dim
 
-    invLx = 1.D0 / Lx
-    invLy = 1.D0 / Ly
-    invLz = 1.D0 / Lz
+    if (Lx /= 0._gp) invLx = 1.D0 / Lx
+    if (Ly /= 0._gp) invLy = 1.D0 / Ly
+    if (Lz /= 0._gp) invLz = 1.D0 / Lz
 
     dim = size(vect)
     DO i = 1, dim

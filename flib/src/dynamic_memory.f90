@@ -43,12 +43,12 @@ module dynamic_memory
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
 
   !error codes
-  integer :: ERR_ALLOCATE
-  integer :: ERR_DEALLOCATE
-  integer :: ERR_MEMLIMIT
-  integer :: ERR_INVALID_MALLOC
-  integer :: ERR_INVALID_RANK
-  integer :: ERR_MALLOC_INTERNAL
+  integer, save :: ERR_ALLOCATE
+  integer, save :: ERR_DEALLOCATE
+  integer, save :: ERR_MEMLIMIT
+  integer, save :: ERR_INVALID_MALLOC
+  integer, save :: ERR_INVALID_RANK
+  integer, save :: ERR_MALLOC_INTERNAL
 
   !> control structure of flib library. 
   !Contains all global variables of interest in a separate instance of f_lib
@@ -565,10 +565,10 @@ contains
     implicit none
     
     call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
+         err_action='Control the order of the allocation or if the memory limit has been reached',&
          callback=f_malloc_callback)
     call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Deallocation error',err_id=ERR_DEALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
+         err_action='Control the order of the allocation or if the memory limit has been reached',&
          callback=f_malloc_callback)
     call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&
          err_action='Control the size of the arrays needed for this run with bigdft-tool program',&

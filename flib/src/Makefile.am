@@ -94,7 +94,7 @@ f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 $(flush_object): yaml_output.o dictionaries.o
 
-time.o: $(mpi_include) #this is temporary, mpif.h should only be in wrappers
+time.o: dynamic_memory.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 
 #Fake mpif.h for serial compilation
 mpif.h:

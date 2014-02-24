@@ -560,7 +560,7 @@
      COMMENT: input guess to be used during the optimization
      EXCLUSIVE:
        0: wavelet input guess
-       1: real space input guess
+       1: real space input guess (Free BC only)
      default: 0
    store_index:
      COMMENT: store indices or recalculate them for linear scaling

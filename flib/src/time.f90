@@ -176,55 +176,343 @@ module timeData
   character(len=50) :: formatstring,strextra
   character(len=128) :: filename_time
 
+  !Error codes
+  integer, save :: TIMING_INVALID
+
   contains
 
-    subroutine sum_results(iproc,mpi_comm,message)
+    !>for the moment the timing callback is a severe error.
+    !! we should decide what to do to override this
+    subroutine f_timing_callback()
+      use yaml_output, only: yaml_warning
+      use dictionaries, only: f_err_severe
       implicit none
-      include 'mpif.h'
-      character(len=*), intent(in) :: message
-      integer, intent(in) :: iproc,mpi_comm
-      !local variables
-      integer :: i,ierr,j,icls,icat,jproc,iextra
+      call yaml_warning('An error occured in timing module')
+      call f_err_severe()
+    end subroutine f_timing_callback
 
-      real(kind=8) :: total_pc,pc
-      integer, dimension(ncat) :: isort
-      real(kind=8), dimension(ncls,0:nproc) :: timecls
-      real(kind=8), dimension(ncat+1,0:nproc-1) :: timeall
+    !> initialize error codes of timing module
+    subroutine timing_errors()
+      use dictionaries, only: f_err_define
+      implicit none
+       call f_err_define(err_name='TIMING_INVALID',err_msg='Error in timing routines',&
+            err_id=TIMING_INVALID,&
+            err_action='Control the order of the timing routines called',&
+            callback=f_timing_callback)
+    end subroutine timing_errors
+    
 
-      ! Not initialised case.
-      if (nproc == 0) return
+    !> The same timing routine but with system_clock (in case of a supported specs)
+    subroutine f_timing(iproc,category,action)
+      use dictionaries, only: f_err_raise,f_err_throw
+      use dynamic_memory, only: f_time
+      implicit none
+      !Variables
+      integer, intent(in) :: iproc
+      character(len=*), intent(in) :: category
+      character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
+      !Local variables
+      logical :: catfound
+      integer :: i,ierr,ii,iproc_true
+      integer :: nthreads,jproc,namelen
+      integer(kind=8) :: itns
+      real(kind=8) :: t1
 
-      if (parallel) then 
-         call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&
-              timeall,ncat+1,MPI_DOUBLE_PRECISION,0,mpi_comm,ierr)
-      else
-         do i=1,ncat+1
-            timeall(i,0)=timesum(i)
-         end do
-      endif
-      if (iproc == 0) then
-        
-         !regroup the data for each category in any processor
-         do icls=1,ncls
-            timecls(icls,0:nproc)=0.d0 
-            do icat=1,ncat
-               if(trim(cats(2,icat))==clss(icls)) then
-                  do jproc=0,nproc-1
-                     timecls(icls,jproc)=timecls(icls,jproc)+timeall(icat,jproc)
-                  end do
-               end if
-            end do
-         end do
+      !first of all, read the time
+      !call system_clock(itime,count_rate,count_max)
+      itns=f_time()
+      !call nanosec(itns)
 
-         !synthesis of the categories
-         call data_synthesis(parallel,debugmode,nproc,ncat+1,timeall,timesum)
-         !synthesis of the classes
-         call data_synthesis(parallel,debugmode,nproc,ncls,timecls,timecls(1,nproc))
+      ! write(*,*) 'ACTION=',action,'...','CATEGORY=',category,'...'
+      select case(action)
+      case('IN') ! INIT
+         filename_time=repeat(' ',128)
+         time0=real(itns,kind=8)*1.d-9
+         do i=1,ncat
+            timesum(i)=0.d0
+            pctimes(i)=0.d0
+         enddo
+         !in this case iproc stands for nproc
+         parallel=abs(iproc) > 1!trim(category).eq.'parallel'
+         nproc=abs(iproc)
+         filename_time=trim(category)
+         newfile=.true.
+         init=.false.
+         debugmode=(nproc == 2) .or. iproc < -1
+         if (nproc >=2) then
+            nextra=nproc
+            if (.not. debugmode) nextra=2
+            write(strextra,'(i5)')nextra
+            formatstring='1x,f5.1,a,1x,1pe9.2,a,'//trim(strextra)//'(1x,0pf5.2,a)'
+         else
+            nextra=0
+            formatstring='1x,f5.1,a,1x,1pe9.2,a'
+         end if
+         ncat_stopped=0 !no stopped category
+         ncounters=0
+      case('PR')
+         !stop partial counters and restart from the beginning
+         if (init) then
+            print *, 'ERROR: TIMING IS INITIALIZED BEFORE PARTIAL RESULTS'
+            stop 
+         endif
+         ncounters=ncounters+1
+         if (ncounters > ncat) then
+            print *, 'It is not allowed to have more partial counters that categories; ncat=',ncat
+            stop
+         end if
+         !name of the category
+         pcnames(ncounters)=trim(category)
+         !total time elapsed in the category
+         timesum(ncat+1)=real(itns,kind=8)*1.d-9-time0
+         pctimes(ncounters)=timesum(ncat+1)
+         !here iproc is the communicator
+         call sum_results(nproc,parallel,newfile,ncat,ncls,nextra,filename_time,&
+              formatstring,debugmode,iproc,pcnames(ncounters),timesum,clss,cats)
+         !call sum_results(iproc_true,iproc,pcnames(ncounters))
+         !reset all timings
+         time0=real(itns,kind=8)*1.d-9
+         do i=1,ncat
+            timesum(i)=0.d0
+         enddo
+      case('RE') ! RESULT
+         if (init) then
+            print *, 'TIMING IS INITIALIZED BEFORE RESULTS'
+            stop 
+         endif
 
-         !calculate the summary of the category
-         call sort_positions(ncat,timesum,isort)
+         if (ncounters == 0) then !no partial counters selected
+            timesum(ncat+1)=real(itns,kind=8)*1.d-9-time0
+            !here iproc is the communicator
+            call sum_results(nproc,parallel,newfile,ncat,ncls,nextra,filename_time,&
+                 formatstring,debugmode,iproc,'ALL',timesum,clss,cats)
+            !call sum_results(iproc_true,iproc,'ALL')
+         else !consider only the results of the partial counters
+            call sum_counters(pctimes,pcnames,ncounters,nproc,iproc,parallel,debugmode,formatstring,filename_time)
+         end if
+      case('ON')
+         !if some other category was initalized before, return (no action)
+         if (init) return
+         call find_category(category,catfound,ii)
+         t0=real(itns,kind=8)*1.d-9
+         init=.true.
+         ncaton=ii !category which has been activated
+      case('OF')
+         call find_category(category,catfound,ii)
+         if (ii==ncaton) then !switching off the good category
+            if (f_err_raise(.not. init,'Timing category '//&
+                 trim(cats(1,ii))//' not initialized',err_id=TIMING_INVALID)) &
+                 return
+            t1=real(itns,kind=8)*1.d-9
+            timesum(ii)=timesum(ii)+t1-t0
+            init=.false.
+         else !no action except for misuse of interrupts
+            if (ncat_stopped /=0) &
+                 call f_err_throw('INTERRUPTS SHOULD NOT BE HALTED BY OF',&
+                 err_id=TIMING_INVALID)
+            return
+            !interrupt the active category and replace it by the proposed one
+         end if
+      case('IR') !interrupt category
+         if (ncat_stopped /=0) then
+            print *, cats(1,ncat_stopped), 'already exclusively initialized'
+            stop
+         end if
+         call find_category(category,catfound,ii)
+         !time
+         t1=real(itns,kind=8)*1.d-9
+         if (init) then !there is already something active
+            !stop the active counter
+            timesum(ncaton)=timesum(ncaton)+t1-t0
+            ncat_stopped=ncaton
+         else
+            init=.true.
+            ncat_stopped=-1
+         end if
+         ncaton=ii
+         t0=t1
+      case('RS') !resume the interrupted category
+         if (ncat_stopped ==0) then
+            stop 'NOTHING TO RESUME'
+         end if
+         call find_category(category,catfound,ii)
+         if (ii /= ncaton) stop 'WRONG RESUMED CATEGORY'
+         !time
+         t1=real(itns,kind=8)*1.d-9
+         timesum(ii)=timesum(ii)+t1-t0
+         if (ncat_stopped == -1) then
+            init =.false. !restore normal counter
+         else
+            ncaton=ncat_stopped
+            t0=t1
+         end if
+         ncat_stopped=0
+      case default
+         call find_category(category,catfound,ii)
+         print *,action,ii,ncaton,trim(category)
+         stop 'TIMING ACTION UNDEFINED'
+      end select
+
+    contains
+      
+      subroutine find_category(category,catfound,ii)
+        implicit none
+        character(len=*), intent(in) :: category
+        logical, intent(out) :: catfound
+        integer, intent(out) :: ii !< id of the found category
+        !local variables
+        integer :: i
+        !controls if the category exists
+        catfound=.false.
+        ii=0
+        do i=1,ncat
+           if (trim(category) == trim(cats(1,i))) then
+              ii=i
+              catfound=.true.
+              exit
+           endif
+        enddo
+        if (f_err_raise(.not. catfound,'Timing routine error,'//&
+             ' the category '//trim(category)//' requested for action '//&
+             trim(action)//' has not been found',err_id=TIMING_INVALID)) then
+           !if the callback is safe then set everything to OK
+           catfound=.true.
+        end if
+      end subroutine find_category
+
+    END SUBROUTINE f_timing
+
+end module timeData
+
+subroutine sum_counters(pctimes,pcnames,ncounters,nproc,mpi_comm,parallel,debugmode,formatstring,filename_time)
+  implicit none
+  include 'mpif.h'
+  logical, intent(in) :: debugmode,parallel
+  integer, intent(in) :: nproc,mpi_comm,ncounters
+  real(kind=8), dimension(ncounters), intent(in) :: pctimes
+  character(len=10), dimension(ncounters), intent(in) :: pcnames
+  character(len=*), intent(in) :: filename_time,formatstring
+  !local variables
+  integer :: i,ierr,iproc,jproc,icat,nthreads,namelen
+  real(kind=8) :: pc
+  real(kind=8), dimension(ncounters,0:nproc) :: timecnt 
+  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+  character(len=MPI_MAX_PROCESSOR_NAME), dimension(0:nproc-1) :: nodename
+  !$ integer :: omp_get_max_threads
+
+
+  if (parallel) then 
+     call MPI_COMM_RANK(mpi_comm,iproc,ierr)
+     call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
+          timecnt,ncounters,MPI_DOUBLE_PRECISION,0,mpi_comm,ierr)
+     if (debugmode) then
+        !initalise nodenames
+        do jproc=0,nproc-1
+           nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
+        end do
+
+        call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+
+        !gather the result between all the process
+        call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+             nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+             mpi_comm,ierr)
+     end if
+
+  else
+     do i=1,ncounters
+        timecnt(i,0)=pctimes(i)
+     end do
+     iproc=0
+  endif
+
+  if (iproc == 0) then
+     open(unit=60,file=trim(filename_time),status='unknown',position='append')
+     write(60,'(a,t14,a)')'SUMMARY:','   #     % ,  Time (s)'
+
+     !synthesis of the counters
+     call data_synthesis(parallel,debugmode,nproc,ncounters,timecnt,timecnt(1,nproc))
+
+     !sum all the information by class
+     do i=1,ncounters
+        pc=100.d0*timecnt(i,nproc)/sum(timecnt(1:ncounters,nproc))
+        write(60,'(2x,a,t19,a,'//trim(formatstring)//')') trim(pcnames(i))//':','[',&
+             pc,',',timecnt(i,nproc),']'
+     end do
+     write(60,'(2x,a,t19,a,1x,f5.1,a,1x,1pe9.2,a)') 'Total:','[',&
+          100.d0,',',sum(timecnt(1:ncounters,nproc)),']'
+     !write the number of processors and the number of OpenMP threads
+     nthreads = 0
+     !$  nthreads=omp_get_max_threads()
+     write(60,'(2x,a)')'CPU Parallelism:'
+     write(60,'(t10,a,1x,i6)')'MPI procs: ',nproc
+     write(60,'(t10,a,1x,i6)')'OMP thrds: ',nthreads
+     if (debugmode) then
+        write(60,'(t10,a)')'Hostnames:'
+        do jproc=0,nproc-1
+           write(60,'(t10,a)')'  - '//trim(nodename(jproc))
+        end do
+     end if
+     close(unit=60)
+  end if
+end subroutine sum_counters
+
+
+subroutine sum_results(nproc,parallel,newfile,ncat,ncls,nextra,filename_time,&
+     formatstring,debugmode,mpi_comm,message,timesum,clss,cats)
+  implicit none
+  include 'mpif.h'
+  logical, intent(in) :: debugmode,parallel
+  integer, intent(in) :: nproc,mpi_comm,ncat,ncls,nextra
+  character(len=*), intent(in) :: message
+  character(len=*), intent(in) :: filename_time,formatstring
+ character(len=14), dimension(ncls), intent(in) :: clss
+  character(len=14), dimension(3,ncat), intent(in) :: cats
+  logical, intent(inout) :: newfile
+  real(kind=8), dimension(ncat+1), intent(inout) :: timesum
+   !local variables
+  integer :: i,ierr,j,icls,icat,jproc,iextra,iproc
+  real(kind=8) :: total_pc,pc
+  integer, dimension(ncat) :: isort
+  real(kind=8), dimension(ncls,0:nproc) :: timecls
+  real(kind=8), dimension(ncat+1,0:nproc-1) :: timeall
+
+  ! Not initialised case.
+  if (nproc == 0) return
+
+  if (parallel) then 
+     call MPI_COMM_RANK(mpi_comm,iproc,ierr)
+     call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&
+          timeall,ncat+1,MPI_DOUBLE_PRECISION,0,mpi_comm,ierr)
+  else
+     do i=1,ncat+1
+        timeall(i,0)=timesum(i)
+     end do
+     iproc=0
+  endif
+  if (iproc == 0) then
+
+     !regroup the data for each category in any processor
+     do icls=1,ncls
+        timecls(icls,0:nproc)=0.d0 
+        do icat=1,ncat
+           if(trim(cats(2,icat))==clss(icls)) then
+              do jproc=0,nproc-1
+                 timecls(icls,jproc)=timecls(icls,jproc)+timeall(icat,jproc)
+              end do
+           end if
+        end do
+     end do
+
+     !synthesis of the categories
+     call data_synthesis(parallel,debugmode,nproc,ncat+1,timeall,timesum)
+     !synthesis of the classes
+     call data_synthesis(parallel,debugmode,nproc,ncls,timecls,timecls(1,nproc))
+
+     !calculate the summary of the category
+     call sort_positions(ncat,timesum,isort)
 !!$         iunit=60
-         open(unit=60,file=trim(filename_time),status='unknown',position='append')
+     open(unit=60,file=trim(filename_time),status='unknown',position='append')
 !!$                  
 !!$         !first get the default stream
 !!$         call yaml_get_default_stream(iunit_def)
@@ -283,53 +571,52 @@ module timeData
 !!$            call yaml_set_default_stream(iunit_def,ierr)
 !!$         end if
 
-         if (newfile) then
-            write(60,'(a)')'---'
-            newfile=.false.
-         end if
-         if (.not. parallel) then
-            write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s)' 
-         else if (debugmode) then
-            write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s), Load per MPI proc (relative) ' 
-         else
-            write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s), Max, Min Load (relative) ' 
-         end if
-         !sum all the information by class
-         write(60,'(2x,a)')'Classes:'
-         total_pc=0.d0
-         do icls=1,ncls
-            pc=0.0d0
-            if (timesum(ncat+1)/=0.d0) pc=100.d0*timecls(icls,nproc)/timesum(ncat+1)
-            total_pc=total_pc+pc
-            write(60,'(4x,a,t21,a,'//trim(formatstring)//')') trim(clss(icls))//':','[',&
-                 pc,',',timecls(icls,nproc),&
-                 (',',timecls(icls,iextra),iextra=0,nextra-1),']'
-         end do
-         write(60,'(4x,a,t21,a,'//trim(formatstring)//')') 'Total:','[',&
-                 total_pc,',',timesum(ncat+1),&
-                    (',',timeall(ncat+1,iextra),iextra=0,nextra-1),']'
-         !Write all relevant categories
-         write(60,'(2x,a)')'Categories:'
-         do j=1,ncat
-            i=isort(j)
-            pc=0.d0
-            if (timesum(i) /= 0.d0) then
-               if (timesum(ncat+1)/=0.d0) pc=100.d0*timesum(i)/timesum(ncat+1)
-               write(60,'(4x,a)') trim(cats(1,i))//':'
-               write(60,'(t12,a,1x,a,'//trim(formatstring)//')')&
-                    ' Data:  ','[',pc,',',timesum(i),&
-                    (',',timeall(i,iextra),iextra=0,nextra-1),']'
-               write(60,'(t12,a,1x,a)')' Class: ',trim(cats(2,i))
-               write(60,'(t12,a,1x,a)')' Info:  ',trim(cats(3,i))
-            end if
+     if (newfile) then
+        write(60,'(a)')'---'
+        newfile=.false.
+     end if
+     if (.not. parallel) then
+        write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s)' 
+     else if (debugmode) then
+        write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s), Load per MPI proc (relative) ' 
+     else
+        write(60,'(a,t16,a)')trim(message)//':','   #     % ,  Time (s), Max, Min Load (relative) ' 
+     end if
+     !sum all the information by class
+     write(60,'(2x,a)')'Classes:'
+     total_pc=0.d0
+     do icls=1,ncls
+        pc=0.0d0
+        if (timesum(ncat+1)/=0.d0) pc=100.d0*timecls(icls,nproc)/timesum(ncat+1)
+        total_pc=total_pc+pc
+        write(60,'(4x,a,t21,a,'//trim(formatstring)//')') trim(clss(icls))//':','[',&
+             pc,',',timecls(icls,nproc),&
+             (',',timecls(icls,iextra),iextra=0,nextra-1),']'
+     end do
+     write(60,'(4x,a,t21,a,'//trim(formatstring)//')') 'Total:','[',&
+          total_pc,',',timesum(ncat+1),&
+          (',',timeall(ncat+1,iextra),iextra=0,nextra-1),']'
+     !Write all relevant categories
+     write(60,'(2x,a)')'Categories:'
+     do j=1,ncat
+        i=isort(j)
+        pc=0.d0
+        if (timesum(i) /= 0.d0) then
+           if (timesum(ncat+1)/=0.d0) pc=100.d0*timesum(i)/timesum(ncat+1)
+           write(60,'(4x,a)') trim(cats(1,i))//':'
+           write(60,'(t12,a,1x,a,'//trim(formatstring)//')')&
+                ' Data:  ','[',pc,',',timesum(i),&
+                (',',timeall(i,iextra),iextra=0,nextra-1),']'
+           write(60,'(t12,a,1x,a)')' Class: ',trim(cats(2,i))
+           write(60,'(t12,a,1x,a)')' Info:  ',trim(cats(3,i))
+        end if
 
-         enddo
-         close(unit=60)
-      endif
+     enddo
+     close(unit=60)
+  endif
 
-    END SUBROUTINE sum_results
+END SUBROUTINE sum_results
 
-end module timeData
 
 
 !> The same timing routine but with system_clock (in case of a supported specs)
@@ -395,12 +682,6 @@ subroutine timing(iproc,category,action)
         print *, 'ERROR: TIMING IS INITIALIZED BEFORE PARTIAL RESULTS'
         stop 
      endif
-     !here iproc is the communicator
-     if (parallel) then
-        call MPI_COMM_RANK(iproc,iproc_true,ierr)
-     else
-        iproc_true = 0
-     end if
      ncounters=ncounters+1
      if (ncounters > ncat) then
         print *, 'It is not allowed to have more partial counters that categories; ncat=',ncat
@@ -411,7 +692,10 @@ subroutine timing(iproc,category,action)
      !total time elapsed in the category
      timesum(ncat+1)=real(itns,kind=8)*1.d-9-time0
      pctimes(ncounters)=timesum(ncat+1)
-     call sum_results(iproc_true,iproc,pcnames(ncounters))
+     !here iproc is the communicator
+     call sum_results(nproc,parallel,newfile,ncat,ncls,nextra,filename_time,&
+          formatstring,debugmode,iproc,pcnames(ncounters),timesum,clss,cats)
+     !call sum_results(iproc_true,iproc,pcnames(ncounters))
      !reset all timings
      time0=real(itns,kind=8)*1.d-9
      do i=1,ncat
@@ -423,16 +707,12 @@ subroutine timing(iproc,category,action)
         print *, 'TIMING IS INITIALIZED BEFORE RESULTS'
         stop 
      endif
-     !here iproc is the communicator
-     if (parallel) then
-        call MPI_COMM_RANK(iproc,iproc_true,ierr)
-     else
-        iproc_true = 0
-     end if
-
      if (ncounters == 0) then !no partial counters selected
         timesum(ncat+1)=real(itns,kind=8)*1.d-9-time0
-        call sum_results(iproc_true,iproc,'ALL')
+        !here iproc is the communicator
+        call sum_results(nproc,parallel,newfile,ncat,ncls,nextra,filename_time,&
+             formatstring,debugmode,iproc,'ALL',timesum,clss,cats)
+        !call sum_results(iproc_true,iproc,'ALL')
      else !consider only the results of the partial counters
         if (parallel) then 
            call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
