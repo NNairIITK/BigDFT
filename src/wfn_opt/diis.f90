@@ -193,7 +193,7 @@
 !!  !!$  call memocc(i_stat,hamovr,'hamovr',subname)
 !!  !!$
 !!  !!$  !initialise hamovr
-!!  !!$  call razero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
+!!  !!$  call to_zero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
 !!  !!$  ispsi=1
 !!  !!$  do ikptp=1,orbsu%nkptsp
 !!  !!$     ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
@@ -876,9 +876,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
 
         !recreate the wavefunction using the new weigths
 !!$        do iorb=iorb_group_sh+1,norbi+iorb_group_sh!1,orbs%norb
-!!$           call razero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
+!!$           call to_zero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
         
-        !call razero(nvctrp*orbs%nspinor*norbi,psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor))
+        !call to_zero(nvctrp*orbs%nspinor*norbi,psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor))
         !change the approach and fill only the difference between the original psit and the updated one
         jst=max(1,diis%ids-diis%idsx+1)
         !use the array which will be erased in the next step as the work array
@@ -1171,7 +1171,7 @@ end function s2d_dot
 !!
 !!
 !!  orbsLoop: do iorb=1,orbs%norb
-!!      call razero((diisArr(iorb)%idsx+1)*orbs%nkpts,rds)
+!!      call to_zero((diisArr(iorb)%idsx+1)*orbs%nkpts,rds)
 !!
 !!      ispsidst=1
 !!      do ikptp=1,orbs%nkptsp
@@ -1261,7 +1261,7 @@ end function s2d_dot
 !!
 !!! new guess
 !!     !do iorb=1,orbs%norb
-!!         call razero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
+!!         call to_zero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
 !!         
 !!         jst=max(1,diisArr(iorb)%ids-diisArr(iorb)%idsx+1)
 !!         jj=0

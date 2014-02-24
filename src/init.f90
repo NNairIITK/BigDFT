@@ -2047,7 +2047,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
 
         !reset occ
-        call razero(tmb%orbs%norb,tmb%orbs%occup(1))
+        call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
         do iorb=1,kswfn%orbs%norb
           tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
         end do

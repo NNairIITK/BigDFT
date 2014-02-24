@@ -114,7 +114,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-  call razero(3*atoms%astruct%nat,dfunctional)
+  call to_zero(3*atoms%astruct%nat,dfunctional)
 
   !write reference in the array
   call vcopy(3*atoms%astruct%nat,rst%rxyz_new(1,1),1,rxyz_ref(1,1),1)
@@ -842,7 +842,7 @@ call f_routine(id=subname)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
   allocate(scalprod(2,0:9,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
-  call razero(2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor,scalprod)
+  call to_zero(2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
 
 
   Enl=0._gp
@@ -3991,7 +3991,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   ! Wavefunction in real space
   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 
 
 
@@ -4276,7 +4276,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
   allocate(scalprod(2,0:ndir,7,3,4,at%astruct%nat,max(1,orbs%norbp*orbs%nspinor+ndebug)),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
-  call razero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
+  call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
 
 
 
@@ -4563,7 +4563,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   allocate(scalprod_sendbuf(2,0:ndir,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%astruct%nat),stat=i_stat)
   call memocc(i_stat,scalprod_sendbuf,'scalprod_sendbuf',subname)
-  call razero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
+  call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
   ! Copy scalprod to auxiliary array for communication
   do iorb=1,orbs%norbp
@@ -4582,7 +4582,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   allocate(scalprod_recvbuf(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod_recvbuf,'scalprod_recvbuf',subname)
-  call razero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
+  call to_zero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
 
   if (nproc>1) then
       call mpi_alltoallv(scalprod_sendbuf, sendcounts, senddspls, mpi_double_precision, &

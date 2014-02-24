@@ -302,7 +302,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! reset e 
   !
-  call razero(orbsv%norb*2*orbsv%nkpts,e)
+  call to_zero(orbsv%norb*2*orbsv%nkpts,e)
   !
   ! compute rayleigh quotients.
   !
@@ -393,7 +393,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! put to zero all the k-points which are not needed
   !
-  call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+  call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
   !
   ! End interaction/overlap hamovr matrix allocation
   ! **********************************************
@@ -591,7 +591,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! reset expanded hamiltonian/overlap matrices
      !
-     call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+     call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
      !
      ! compute expanded hamiltonian/overlap matrices   
      ! store upper triangular part of these matrices only
@@ -848,7 +848,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! compute rayleigh quotients. 
      !
-     call razero(orbsv%norb*2*orbsv%nkpts,e)
+     call to_zero(orbsv%norb*2*orbsv%nkpts,e)
      ! starting index
      ispsi=1
      ! number of components

@@ -324,7 +324,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   call memocc(i_stat,hamovr,'hamovr',subname)
 
   !initialise hamovr
-  call razero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr)
+  call to_zero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr(1,1,1))
 
   if (iproc == 0 .and. verbose > 1) call yaml_open_map('Input Guess Overlap Matrices',flow=.true.)
   !     'Overlap Matrix...'

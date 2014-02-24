@@ -174,7 +174,7 @@ contains
     ! optimize this to just change the matrix multiplication?
     proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
 
-    call razero(tmb%orbs%norb**2,proj_mat(1,1))
+    call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
     isforb=0
     do ifrag=1,input%frag%nfrag
        ifrag_ref=input%frag%frag_index(ifrag)
@@ -257,7 +257,7 @@ contains
     call small_to_large_locreg(bigdft_mpi%iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
          tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
-    if (tmb%ham_descr%npsidim_orbs > 0) call razero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+    if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
 
     call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,2, &
          denspot%dpbox,cdft%weight_function,denspot%pot_work,tmb%ham_descr%comgp)

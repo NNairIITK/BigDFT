@@ -416,7 +416,7 @@ program BigDFT2Wannier
          !print *,'inverse overlap_proj',overlap_proj
 
          ! Scalar product of amnk=<sph_daub|psi> in parallel.
-         call razero(orbsp%norb*orbsv%norb,amnk)
+         call to_zero(orbsp%norb*orbsv%norb,amnk)
          nvctrp=commsv%nvctr_par(iproc,1)
          call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsfv(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
@@ -541,7 +541,7 @@ program BigDFT2Wannier
       if(associated(orbs%eval)) nullify(orbs%eval)
       allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
       call memocc(i_stat,orbs%eval,'orbs%eval',subname)
-      call razero(orbs%norb*orbs%nkpts,orbs%eval)
+      call to_zero(orbs%norb*orbs%nkpts,orbs%eval)
       if(orbs%norbp > 0) then
             filename=trim(input%dir_output) // 'wavefunction'
             call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
@@ -582,7 +582,7 @@ program BigDFT2Wannier
       if(associated(orbsv%eval)) nullify(orbsv%eval)
       allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
       call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
-      call razero(orbsv%norb*orbsv%nkpts,orbsv%eval)
+      call to_zero(orbsv%norb*orbsv%nkpts,orbsv%eval)
       if(orbsv%norbp > 0 .and. .not. residentity) then
          filename=trim(input%dir_output) // 'virtuals'
             call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
@@ -731,7 +731,7 @@ program BigDFT2Wannier
          npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
          allocate(psi_etsf2(npsidim),stat=i_stat) !!doing this because psi_etsfv does not incorporate enough space for transpose
          call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
-         call razero(npsidim,psi_etsf2)
+         call to_zero(npsidim,psi_etsf2)
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
@@ -747,7 +747,7 @@ program BigDFT2Wannier
          npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
          allocate(psi_etsf2(npsidim),stat=i_stat) 
          call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
-         call razero(npsidim,psi_etsf2)
+         call to_zero(npsidim,psi_etsf2)
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)

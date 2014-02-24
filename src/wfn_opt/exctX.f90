@@ -65,7 +65,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   call memocc(i_stat,psiw,'psiw',subname)
 
   if (geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
   end if
 
   !uncompress the wavefunction in the real grid
@@ -129,7 +129,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   end if
 
   !this is the array of the actions of the X potential on psi
-  call razero(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir)
+  call to_zero(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir)
 
   !build the partial densities for the poisson solver, calculate the partial potential
   !and accumulate the result
@@ -346,10 +346,10 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   allocate(psiwocc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1)+ndebug),stat=i_stat)
   call memocc(i_stat,psiwocc,'psiwocc',subname)
 
-  call razero(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1),psiwocc)
+  call to_zero(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1),psiwocc)
 
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,psirocc)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,psirocc)
   end if
 
   !uncompress the wavefunction in the real grid
@@ -471,7 +471,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   call memocc(i_stat,psiwvirt,'psiwvirt',subname)
 
   if (geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,psiwvirt)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,psiwvirt)
   end if
 
   !uncompress the wavefunction in the real grid
@@ -538,7 +538,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   end if
 
   !this is the array of the actions of the X potential on psi
-  call razero(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb,psirvirt)
+  call to_zero(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb,psirvirt)
 
   !build the partial densities for the poisson solver, calculate the partial potential
   !and accumulate the result
@@ -720,7 +720,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
   character(len=*), parameter :: subname='exact_exchange_potential_round'
   logical :: doit
   integer :: i_all,i_stat,ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
-  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs
+  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii
   integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
   real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
   integer, dimension(4) :: mpireq,mpireq2
@@ -732,6 +732,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
   real(wp), dimension(:), allocatable :: rp_ij
   real(wp), dimension(:,:), allocatable :: psir
   real(wp), dimension(:,:,:,:), allocatable :: psiw,dpsiw
+  integer,dimension(1) :: iiarr
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
@@ -1042,7 +1043,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
   
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir)
+  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
   
   !uncompress the wavefunction in the real grid
   do iorb=1,orbs%norbp
@@ -1061,10 +1062,15 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
   call memocc(i_stat,rp_ij,'rp_ij',subname)
   
   !this is the array of the actions of the X potential on psi
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*2*ngroupp,psiw)
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*3*ngroupp,dpsiw)
+  iiarr=maxval(orbs%norb_par,1)
+  ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*iiarr(1)*2*ngroupp
+  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*2*ngroupp,psiw(1,1,1,1))
+  call to_zero(ii,psiw(1,1,1,1))
+  ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*iiarr(1)*3*ngroupp
+  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*3*ngroupp,dpsiw(1,1,1,1))
+  call to_zero(ii,dpsiw(1,1,1,1))
   
-  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir)
+  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir(1,1))
 
   ncalls=0
   !real communication
@@ -1110,7 +1116,10 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
      do igroup=1,ngroupp
         if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
            !put to zero the sending element
-           call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1),dpsiw(1,1,3,igroup))
+           iiarr=maxval(orbs%norb_par,1)
+           ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*iiarr(1)
+           !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1),dpsiw(1,1,3,igroup))
+           call to_zero(ii,dpsiw(1,1,3,igroup))
         end if
      end do
      
@@ -1605,7 +1614,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,psir,'psir',subname)
 !!$  
-!!$  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir)
+!!$  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir)
 !!$  
 !!$  !uncompress the wavefunction in the real grid
 !!$  do iorb=1,orbs%norbp
@@ -1624,10 +1633,10 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  call memocc(i_stat,rp_ij,'rp_ij',subname)
 !!$  
 !!$  !this is the array of the actions of the X potential on psi
-!!$  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*2*ngroupp,psiw)
-!!$  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*3*ngroupp,dpsiw)
+!!$  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*2*ngroupp,psiw)
+!!$  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par)*3*ngroupp,dpsiw)
 !!$  
-!!$  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir)
+!!$  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir)
 !!$
 !!$  ncalls=0
 !!$  !real communication
@@ -1673,7 +1682,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$     do igroup=1,ngroupp
 !!$        if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
 !!$           !put to zero the sending element
-!!$           call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par),dpsiw(1,1,3,igroup))
+!!$           call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par),dpsiw(1,1,3,igroup))
 !!$        end if
 !!$     end do
 !!$     

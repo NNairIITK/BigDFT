@@ -2469,7 +2469,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 
    if(nspinor==4) then
 
-      call razero(4*norb*ndim,mom_vec)
+      call to_zero(4*norb*ndim,mom_vec)
 
       do iorb=1,norb_par(iproc)
          oidx=(iorb-1)*nspinor+1
@@ -2944,7 +2944,7 @@ END SUBROUTINE broadcast_kpt_objects
 !!  call memocc(i_stat,alag,'alag',subname)
 !!
 !!  !put to zero all the k-points which are not needed
-!!  call razero(ndimovrlp(nspin,orbs%nkpts),alag)
+!!  call to_zero(ndimovrlp(nspin,orbs%nkpts),alag)
 !!
 !!  ! Transpose orbitals
 !!  allocate(psiwork(size(psi)), stat=i_stat)

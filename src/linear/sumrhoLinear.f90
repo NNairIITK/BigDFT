@@ -80,11 +80,11 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      call memocc(i_stat,psir,'psir',subname)
   
      if (Lzd%Llr(ilr)%geocode == 'F') then
-        call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
+        call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
      end if
  
      !Need to zero rho_p
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn, rho_p)
+     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn, rho_p)
 
      !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
      !hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(iorb)/(hxh*hyh*hzh))
@@ -1845,7 +1845,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   
   ! Initialize rho. (not necessary for the moment)
   !if (xc_isgga()) then
-  !    call razero(collcom_sr%nptsp_c, rho_local)
+  !    call to_zero(collcom_sr%nptsp_c, rho_local)
   !else
    !   ! There is no mpi_allreduce, therefore directly initialize to
    !   ! 10^-20 and not 10^-20/nproc.

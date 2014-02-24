@@ -1570,11 +1570,11 @@ end do
 
 !!allocate(comsr%sendBuf(comsr%nsendBuf), stat=istat)
 !!call memocc(istat, comsr%sendBuf, 'comsr%sendBuf', subname)
-!!call razero(comsr%nSendBuf, comsr%sendBuf)
+!!call to_zero(comsr%nSendBuf, comsr%sendBuf)
 !!
 !!allocate(comsr%recvBuf(comsr%nrecvBuf), stat=istat)
 !!call memocc(istat, comsr%recvBuf, 'comsr%recvBuf', subname)
-!!call razero(comsr%nrecvBuf, comsr%recvBuf)
+!!call to_zero(comsr%nrecvBuf, comsr%recvBuf)
 
 
 ! Determine the size of the auxiliary array

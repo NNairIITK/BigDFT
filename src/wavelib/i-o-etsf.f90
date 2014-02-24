@@ -496,7 +496,7 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
 
       allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
       call memocc(i_stat,psigold,'psigold',subname)
-      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+      call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
       do iorb = 1, norb, 1
          do ispinor = 1, nspinor, 1

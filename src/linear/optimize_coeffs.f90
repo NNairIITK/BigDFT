@@ -1244,7 +1244,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   occup_tmp=f_malloc(tmb%orbs%norb,id='occup_tmp')
   call vcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,occup_tmp(1),1)
 
-  call razero(tmb%orbs%norb,tmb%orbs%occup(1))
+  call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
   do iorb=1,KSorbs%norb+num_extra
      tmb%orbs%occup(iorb)=1.0d0
   end do
@@ -1571,7 +1571,7 @@ subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
       endif
     
       ! Make a new guess for the orbital.
-      call razero(ncount, coeff(ist))
+      call to_zero(ncount, coeff(ist))
       isthist=max(1,ldiis%is-ldiis%isx+1)
       jj=0
       jst=0

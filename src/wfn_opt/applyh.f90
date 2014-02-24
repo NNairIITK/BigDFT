@@ -2242,7 +2242,7 @@ END SUBROUTINE ncplx_kpt
 !!  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
 !!  call memocc(i_stat,psir,'psir',subname)
 !!
-!!  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+!!  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 !!
 !!  ekin_sum=0.0_gp
 !!  epot_sum=0.0_gp

@@ -621,7 +621,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
           !call memocc(istat, occup_tmp, 'occup_tmp', subname)
           !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
-          !call razero(tmb%orbs%norb,tmb%orbs%occup(1))
+          !call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
           !call vcopy(orbs%norb, orbs%occup(1), 1, tmb%orbs%occup(1), 1)
           !! occupy the next few states - don't need to preserve the charge as only using for support function optimization
           !do iorb=1,tmb%orbs%norb

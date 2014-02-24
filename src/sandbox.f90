@@ -263,15 +263,15 @@ program sandbox
 !!! Allocate overlaps accumulators
 !!     allocate(overlap1(orbs%norb,orbs%norb),stat=i_stat)
 !!     call memocc(i_stat,overlap1,'overlap1',subname)
-!!     call razero(orbs%norb*orbs%norb,overlap1)
+!!     call to_zero(orbs%norb*orbs%norb,overlap1)
 !!
 !!     allocate(koverlap(orbs%norb,orbs%norb),stat=i_stat)
 !!     call memocc(i_stat,koverlap,'koverlap',subname)
-!!     call razero(orbs%norb*orbs%norb,koverlap)
+!!     call to_zero(orbs%norb*orbs%norb,koverlap)
 !!
 !!     allocate(poverlap(orbs%norb,orbs%norb),stat=i_stat)
 !!     call memocc(i_stat,poverlap,'poverlap',subname)
-!!     call razero(orbs%norb*orbs%norb,poverlap)    
+!!     call to_zero(orbs%norb*orbs%norb,poverlap)    
 !!
 !!! Third, transform the wavefunction to overlap regions
 !!     do ilr=1,isovrlp
@@ -375,8 +375,8 @@ program sandbox
 !!  call memocc(i_stat,ppsi,'ppsi',subname)
 !!
 !!! initialise lppsi and ppsi
-!!  call razero((Olr(ilr)%wfd%nvctr_c + 7*Olr(ilr)%wfd%nvctr_f)*orbs%norb*orbs%nspinor,lppsi)
-!!  call razero((Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f)*orbs%norb*orbs%nspinor,ppsi)
+!!  call to_zero((Olr(ilr)%wfd%nvctr_c + 7*Olr(ilr)%wfd%nvctr_f)*orbs%norb*orbs%nspinor,lppsi)
+!!  call to_zero((Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f)*orbs%norb*orbs%nspinor,ppsi)
 !!
 !!! Apply without the localization (for comparison)
 !!  eproj_sum = 0.0_gp
@@ -762,7 +762,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 !!$  end if
 
      !copy the eigenvectors to the matrix
-     call razero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+     call to_zero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
      if (orbs%norb > G%ncoeff) stop 'wrong gaussian basis'
      jorb=mod(orbs%isorb,orbs%norb)
      do iorb=1,orbs%norbp
@@ -860,7 +860,7 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
  
   call daub_to_isf(lr,w,psi,psir)

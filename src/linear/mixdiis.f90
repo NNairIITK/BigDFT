@@ -243,7 +243,7 @@ endif
 ! If we are mixing the density (mixMeth==1) it is initialized to 0 or 10^-20, depending on the functional.
 ! If we are mixing the potential (mixMeth==2) it is always initialized to 0.
 if (xc_isgga() .or. mixMeth==2) then
-    call razero(ndimtot, rhopot)
+    call to_zero(ndimtot, rhopot)
 else
     ! There is no mpi_allreduce, therefore directly initialize to
     ! 10^-20 and not 10^-20/nproc.

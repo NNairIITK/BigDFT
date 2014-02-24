@@ -314,7 +314,7 @@ contains
     if (xc%kind == XC_ABINIT) then
        call tenminustwenty(n,rho,nproc)
     else
-       call razero(n,rho)
+       call to_zero(n,rho)
     end if
   end subroutine xc_init_rho
 

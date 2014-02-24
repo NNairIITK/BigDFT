@@ -16,6 +16,8 @@ module wrapper_linalg
   interface to_zero
      module procedure put_to_zero_simple, &
           & put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
+          & put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5, &
+          & put_to_zero_double_6, put_to_zero_double_7, &
           & put_to_zero_integer
   end interface
   ! MOVE ME TO F_MALLOC
@@ -867,6 +869,81 @@ contains
     call razero(n,da)
     if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
   end subroutine put_to_zero_double_2
+
+  subroutine put_to_zero_double_3(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+    call razero(n,da)
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+  end subroutine put_to_zero_double_3
+
+  subroutine put_to_zero_double_4(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+    call razero(n,da)
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+  end subroutine put_to_zero_double_4
+
+  subroutine put_to_zero_double_5(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+    call razero(n,da)
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+  end subroutine put_to_zero_double_5
+
+  subroutine put_to_zero_double_6(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+    call razero(n,da)
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+  end subroutine put_to_zero_double_6
+
+  subroutine put_to_zero_double_7(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
+    call razero(n,da)
+    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
+  end subroutine put_to_zero_double_7
 
   subroutine put_to_zero_integer(n,da)
     implicit none

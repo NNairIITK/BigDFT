@@ -294,7 +294,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
              orbs%norb, coeff_tmp(1,istate), orbs%norbp, 0.d0, homo_ham(istate), 1)
      end do
   else
-     call razero(nstates,homo_ham(1))
+     call to_zero(nstates,homo_ham(1))
   end if
 
   if (nproc>1) then
@@ -314,7 +314,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
              orbs%norb, coeff_tmp(1,istate), orbs%norbp, 0.d0, homo_ovrlp(istate), 1)
      end do
   else
-     call razero(nstates,homo_ovrlp(1))
+     call to_zero(nstates,homo_ovrlp(1))
   end if
 
   if (nproc>1) then
@@ -381,7 +381,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
 
      norb_tmp=min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
 
-     !call razero(ovrlp%nfvctr**2,coeffs_tmp(1,1),1)
+     !call to_zero(ovrlp%nfvctr**2,coeffs_tmp(1,1),1)
      do ih=1,norb_tmp
         call vcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,homo_coeffs(ind,istate+ih-1),1)
         !call vcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,coeffs_tmp(ind,ih),1)

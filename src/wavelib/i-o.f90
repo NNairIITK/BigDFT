@@ -102,7 +102,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
      hzh=.5_gp*hz
      hzh_old=.5_gp*hz_old
 
-     call razero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf)
+     call to_zero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf(1))
 
      do i3=-nb3,2*n3+1+nb3
         z=real(i3,gp)*hzh
@@ -546,7 +546,7 @@ contains
     lstat = .false.
     write(error, "(A)") "cannot read psig values."
 
-    call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+    call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
     do iel=1,nvctr_c
        if (formatted) then
           read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
@@ -673,7 +673,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
      psigold = f_malloc((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
 
-     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+     call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold(0,1,0,1,0,1))
      do iel=1,nvctr_c_old
         if (useFormattedInput) then
            read(unitwf,*) i1,i2,i3,tt
@@ -1226,7 +1226,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
      call f_free(ww)
   else
      call initialize_work_arrays_sumrho(llr,w)
-     call razero(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f,psi)
+     call to_zero(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f,psi)
      call isf_to_daub(llr,w,psir,psi)
      call deallocate_work_arrays_sumrho(w)
      call f_free_ptr(psir)

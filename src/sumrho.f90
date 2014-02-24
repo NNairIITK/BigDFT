@@ -422,7 +422,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    !initialisation
    !print *,iproc,'there'
    if (lr%geocode == 'F') then
-      call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir)
+      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir)
    end if
 
    do iorb=1,orbs%norbp

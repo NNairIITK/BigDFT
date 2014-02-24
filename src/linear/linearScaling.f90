@@ -244,7 +244,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   ! modify tmb%orbs%occup, as we normally use orbs%occup elsewhere
   if (input%lin%extra_states>0) then
-     call razero(tmb%orbs%norb,tmb%orbs%occup(1))
+     call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
      call vcopy(KSwfn%orbs%norb, KSwfn%orbs%occup(1), 1, tmb%orbs%occup(1), 1)
      ! occupy the next few states - don't need to preserve the charge as only using for support function optimization
      do iorb=1,tmb%orbs%norb
@@ -984,7 +984,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
             !! CHECK HERE WHETHER n3d is correct!!
             ! reset rhopotold (to zero) to ensure we don't exit immediately if V only changes a little
-            !call razero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
+            !call to_zero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
             call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                  rhopotOld_out(1), 1, rhopotOld(1), 1) 
 
@@ -1281,7 +1281,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !!      !end do
   !!      !close(370)
 
-  !!      !call razero(tmb%npsidim_orbs,psi2)
+  !!      !call to_zero(tmb%npsidim_orbs,psi2)
   !!      !call isf_to_daub(tmb%lzd%llr(ilr),w,psir2,psi2(ind))
   !!   
   !!      !!tmb_diff=0.0d0

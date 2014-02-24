@@ -902,7 +902,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
   call memocc(i_stat,psigaup,'psigaup',subname)
 
   !the coefficients are elements of the identity matrix
-  call razero(Gpswf%ncoeff*ncoeff_par(iproc,1),psigaup)
+  call to_zero(Gpswf%ncoeff*ncoeff_par(iproc,1),psigaup)
   do jorb=1,ncoeff_par(iproc,1)
      psigaup(isorb+jorb,jorb)=1.0_gp
   end do
@@ -921,7 +921,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
   call memocc(i_stat,psir,'psir',subname)
 
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
 
   do jorb=1,ncoeff_par(iproc,1)

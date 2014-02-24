@@ -177,7 +177,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
            sum(comms%ncntt(0:nproc-1)))
      allocate(workarr(Gdim+ndebug),stat=i_stat)
      call memocc(i_stat,workarr,'workarr',subname)
-     call razero(Gdim,workarr)
+     call to_zero(Gdim,workarr)
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
@@ -343,7 +343,7 @@ subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
            sum(comms%ncntt(0:nproc-1)))
      allocate(workarr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,workarr,'workarr',subname)
-     call razero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
+     call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor

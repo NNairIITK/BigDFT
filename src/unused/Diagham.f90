@@ -205,7 +205,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    call memocc(i_stat,hamovr,'hamovr',subname)
 
    !initialise hamovr
-   call razero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
+   call to_zero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
 
    if (iproc == 0 .and. verbose > 1) call yaml_comment('Overlap Matrix...')
    !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no') 'Overlap Matrix...'

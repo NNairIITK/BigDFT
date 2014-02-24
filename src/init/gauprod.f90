@@ -411,13 +411,13 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   !of the molecular orbitals
   allocate(Gocc(G%ncoeff+ndebug),stat=i_stat)
   call memocc(i_stat,Gocc,'Gocc',subname)
-  call razero(G%ncoeff,Gocc)
+  call to_zero(G%ncoeff,Gocc)
 
   if( present(gaenes)) then
 
      allocate(gaenes(G%ncoeff+ndebug),stat=i_stat)
      call memocc(i_stat,gaenes,'gaenes',subname)
-     call razero(G%ncoeff,gaenes)
+     call to_zero(G%ncoeff,gaenes)
 
 
      allocate(iorbtolr(G%ncoeff+ndebug),stat=i_stat)

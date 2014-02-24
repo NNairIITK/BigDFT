@@ -1024,7 +1024,7 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   perz=(lr%geocode /= 'F')
 
   !initialize the wavefunction
-  call razero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
+  call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
 
   !calculate the number of terms for this orbital
   nterms=0

@@ -199,7 +199,7 @@ do iorb=1,orbs%norbp
     !ilr=onWhichAtom(iorb)
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    call razero(ncount, phi(ist))
+    call to_zero(ncount, phi(ist))
     isthist=max(1,ldiis%is-ldiis%isx+1)
     jj=0
     jst=0
@@ -520,7 +520,7 @@ end subroutine deallocateDIIS
 !!    ilr=onWhichAtomp(iorb)
 !!    !ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
 !!    ncount=matmin%mlr(ilr)%norbinlr
-!!    call razero(ncount, lcoeff(1,iorb))
+!!    call to_zero(ncount, lcoeff(1,iorb))
 !!    isthist=max(1,ldiis%is-ldiis%isx+1)
 !!    jj=0
 !!    jst=0
