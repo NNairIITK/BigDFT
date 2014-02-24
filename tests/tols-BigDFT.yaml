@@ -668,7 +668,7 @@ linearcubic_linear:
  Omega: 1.82e-10
 
 experimentalfoe_long:
- Atomic Forces (Ha/Bohr): 1.2e-06
+ Atomic Forces (Ha/Bohr): 2.1e-06
  Clean forces norm (Ha/Bohr): 7.8e-06
  Average noise forces: 2.7e-6
  Raw forces norm (Ha/Bohr): 7.0e-6
@@ -713,7 +713,7 @@ experimentalfoe_short:
  D eF: 1.8e-05
  charge diff: 1.7e-07
  Omega: 3.7e-07
- Atomic Forces (Ha/Bohr): 8.8e-08
+ Atomic Forces (Ha/Bohr): 9.8e-08
  Average noise forces: 2.6e-07
  Clean forces norm (Ha/Bohr): 5.1e-07
  diff from idempotency: 3.1e-09
@@ -847,12 +847,14 @@ sparsity:
  energy: 2.6e-10
 
 PBE_densmixlin:
+ Ekin: 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
 
 PBE_potmixlin:
  Epot: 1.1e-10
+ EXC: 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -862,11 +864,15 @@ PBE_potmixdiis:
  Clean forces norm (Ha/Bohr): 6.4e-10
  Raw forces norm (Ha/Bohr): 3.3e-10
  Average noise forces: 6.4e-10
- Epot: 3.3e-10
  Orbitals: 5.5e-9
  energy: 7.3e-9
- EXC: 3.3e-10
- EvXC: 3.3e-10
+ EXC: 4.1e-10
+ EvXC: 5.0e-10
  Omega: 6.4e-10
  Epot: 5.5e-9
  EH: 1.8e-9
+ Ekin: 1.1e-10
+ Enl: 2.1e-11
+
+PBE_densmixdiis:
+ Epot: 1.1e-10
