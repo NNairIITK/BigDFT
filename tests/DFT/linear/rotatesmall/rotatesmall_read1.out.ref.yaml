@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.1.11
- Timestamp of this run                 : 2014-02-19 08:29:36.913
+ Timestamp of this run                 : 2014-02-24 13:36:32.865
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -458,7 +458,7 @@
      Molecule was shifted              :  7
      Molecule was rotated              :  7
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.24,  1.808 ]}
+   -  {Process:  0, Timing:  [  3.57,  1.876 ]}
    nstates_max                         :  4
    ksorbs%norb                         :  4
    tmb%orbs%norb                       :  7
@@ -466,7 +466,7 @@
   {index:  1, value: -4.394246225825E-01}, 
   {index:  2, value: -2.696744289593E-01}, 
   {index:  3, value: -2.68796504405E-01}, 
-  {index:  4, value: -9.570892836169E-02},  #  <-- last occupied orbital
+  {index:  4, value: -9.57089283617E-02},  #  <-- last occupied orbital
   {index:  5, value:  1.799896928831E-01},  #  <-- first virtual orbital
   {index:  6, value:  1.931908607781E-01}, 
   {index:  7, value:  1.937608023078E-01}, 
@@ -476,7 +476,7 @@
  {e: -4.394246225825E-01, f:  2.0},  # 00001
  {e: -2.696744289593E-01, f:  2.0},  # 00002
  {e: -2.68796504405E-01, f:  2.0},  # 00003
- {e: -9.570892836169E-02, f:  1.0}] # 00004
+ {e: -9.57089283617E-02, f:  1.0}] # 00004
    communication strategy kernel       : ALLREDUCE
    Total charge                        :  6.999999950204
    Poisson Solver:
@@ -516,12 +516,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  5.01463058435, Epot: -6.66645789452, Enl:  1.18855204039}, 
  Orthoconstraint:  Yes, Preconditioning:  Yes, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.494625826573108, D: -5.49, D best: -5.49, 
+ iter:  1, fnrm:  1.71E-01, Omega: -5.49462582657312, D: -5.49, D best: -5.49, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  5.01463058435, Epot: -6.66645789452, Enl:  1.18855204039}, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.494625826573108, D: -5.49, D best: -5.49}
+ iter:  1, fnrm:  1.71E-01, Omega: -5.49462582657312, D: -5.49, D best: -5.49}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -534,7 +534,7 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.03E-02, eBS: -2.01524540741293379, D: -2.962E-04, alpha:  2.0E-01}
+ iter:  1, fnrm:  2.03E-02, eBS: -2.01524540741313984, D: -2.962E-04, alpha:  2.0E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  5.01463058435, Epot: -6.66645789452, Enl:  1.18855204039, 
@@ -546,23 +546,23 @@
  {e: -4.394246225825E-01, f:  2.0},  # 00001
  {e: -2.696744289593E-01, f:  2.0},  # 00002
  {e: -2.68796504405E-01, f:  2.0},  # 00003
- {e: -9.570892836169E-02, f:  1.0}] # 00004
+ {e: -9.57089283617E-02, f:  1.0}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.3E-08, energy: -5.49492204117461647, D: -5.495}]
+ iter:  1, delta:  3.3E-08, energy: -5.49492204117462713, D: -5.495}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  3.3E-08, energy: -5.49492204117461647, D: -5.495}]}
+ iter:  2, delta:  3.3E-08, energy: -5.49492204117462713, D: -5.495}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  3.302E-08, energy: -5.49492204117461647, D: -5.495}
+ iter high:  1, delta out:  3.302E-08, energy: -5.49492204117462713, D: -5.495}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -4.394246225825E-01, f:  1.0},  # 00001
  {e: -2.696744289593E-01, f:  1.0},  # 00002
  {e: -2.68796504405E-01, f:  1.0},  # 00003
- {e: -9.570892836169E-02, f:  1.0},  # 00004
+ {e: -9.57089283617E-02, f:  1.0},  # 00004
  {e:  1.799896928831E-01, f:  1.0},  # 00005
  {e:  1.931908607781E-01, f:  1.0},  # 00006
  {e:  1.937608023078E-01, f:  1.0}] # 00007
@@ -571,7 +571,7 @@
    -  {iter:  1, 
  Energies: {Ekin:  5.01463058435, Epot: -6.66645789452, Enl:  1.18855204039, 
               EH:  9.06718252159,  EXC: -2.18717529496, EvXC: -2.85449746753}, 
-       iter high:  1,        delta out:  3.302E-08,  energy: -5.49492204117461647, D:  0.0,  #FINAL
+       iter high:  1,        delta out:  3.302E-08,  energy: -5.49492204117462713, D:  0.0,  #FINAL
  }
  Total charge                          :  6.99999994947
  Site energies: [ #state, energy, orthog energy, frag eval, overlap, orthog overlap, occ
@@ -584,12 +584,12 @@
              frag eval: -2.68796504E-01, overlap:  1.000019, occ:  2.0, 
  state: HOMO, energy: -7.7093738E-02, orthog energy: -7.70938506E-02, 
            frag eval: -9.57089284E-02, overlap:  9.999991E-01, occ:  1.0, 
- 2*frag sum: -2.0150678798534876, 2*frag sum orthog: -2.0150538662309736, 
- 2*eval sum: -2.0515000402553021}, 
+ 2*frag sum: -2.0150678798541555, 2*frag sum orthog: -2.0150538662311872, 
+ 2*eval sum: -2.0515000402553305}, 
  ]
- 2.0_gp*frag_sum_tot                   : -2.0150678798534876
- 2.0_gp*frag_sum_tot_orthog            : -2.0150538662309736
- 2.0_gp*eval_sum_tot                   : -2.0515000402553021
+ 2.0_gp*frag_sum_tot                   : -2.0150678798541555
+ 2.0_gp*frag_sum_tot_orthog            : -2.0150538662311872
+ 2.0_gp*eval_sum_tot                   : -2.0515000402553305
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -599,18 +599,18 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -2.08983856E-03, y:  1.81473486E-03, z: -5.57606615E-03, 
                     total:  6.22520694E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.968024207667E-02, fnrm2:  4.853268992139E-03}
- Raw forces norm (Ha/Bohr): {maxval:  3.996422199579E-02, fnrm2:  4.892186749247E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.968024207672E-02, fnrm2:  4.853268992147E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  3.996422199578E-02, fnrm2:  4.892186749255E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [ 3.452395131989E-03, -3.496580418655E-03,  1.454721538137E-02]} # 0001
- -  {H: [ 3.598760818319E-02,  1.209191810229E-02, -1.154119513412E-02]} # 0002
- -  {H: [-1.224138745169E-02, -3.527801299303E-02, -1.130971920094E-02]} # 0003
- -  {H: [-2.719861586349E-02,  2.668267530939E-02,  8.303698953693E-03]} # 0004
+ -  {Si: [ 3.45239513193E-03, -3.496580418604E-03,  1.454721538137E-02]} # 0001
+ -  {H: [ 3.598760818325E-02,  1.209191810225E-02, -1.154119513415E-02]} # 0002
+ -  {H: [-1.224138745166E-02, -3.527801299305E-02, -1.130971920095E-02]} # 0003
+ -  {H: [-2.719861586352E-02,  2.668267530941E-02,  8.303698953731E-03]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.0
-   Elapsed time (s)                    :  3.21
+   CPU time (s)                        :  6.38
+   Elapsed time (s)                    :  3.32
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
@@ -618,11 +618,11 @@
  - support function optimization not converged
  - density optimization not converged
  Memory Consumption Report:
-   Tot. No. of Allocations             :  1627
-   Tot. No. of Deallocations           :  1627
+   Tot. No. of Allocations             :  1629
+   Tot. No. of Deallocations           :  1629
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  127
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
- Max No. of dictionaries used          :  1379 #(  138 still in use)
+ Max No. of dictionaries used          :  1385 #(  138 still in use)
