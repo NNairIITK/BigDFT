@@ -2833,12 +2833,12 @@ module module_interfaces
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
-       subroutine mix_main(iproc, nproc, mixHist, input, glr, alpha_mix, &
+       subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
                   denspot, mixdiis, rhopotold, pnrm)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, mixHist
+         integer,intent(in):: iproc, nproc, mix_mode, mixHist
          type(input_variables),intent(in):: input
          type(locreg_descriptors),intent(in):: glr
          real(8),intent(in):: alpha_mix
