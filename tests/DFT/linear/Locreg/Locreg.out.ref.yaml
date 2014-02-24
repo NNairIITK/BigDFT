@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.1.11
- Timestamp of this run                 : 2014-02-19 08:22:11.693
+ Timestamp of this run                 : 2014-02-24 13:30:04.233
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -393,7 +393,7 @@
    Expected kinetic energy             :  5.0225194919
    Energies: {Ekin:  5.02378127043, Epot: -7.89137339256, Enl:  8.74950283601E-01, 
                 EH:  1.12186349378E+01, EXC: -2.67140759016, EvXC: -3.44314794589}
-   EKS                                 : -5.42785453753502889
+   EKS                                 : -5.42785453753503067
    Input Guess Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
@@ -422,7 +422,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.53502728749, Epot: -7.31527393058, Enl:  8.9389644576E-01, 
               EH:  1.10415377074E+01, EXC: -2.48832669733, EvXC: -3.21435771907}, 
- iter:  1, EKS: -6.19017499985514963, gnrm:  1.34E-01, D: -7.62E-01, 
+ iter:  1, EKS: -6.19017499985518871, gnrm:  1.34E-01, D: -7.62E-01, 
  DIIS weights: [ 1.0,  1.0], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
  GPU acceleration:  No, 
@@ -432,7 +432,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.63946084472, Epot: -7.36141318048, Enl:  8.14439249509E-01, 
               EH:  1.10858936344E+01, EXC: -2.52211001192, EvXC: -3.25625203665}, 
- iter:  2, EKS: -6.24758281284290273, gnrm:  5.87E-02, D: -5.74E-02, 
+ iter:  2, EKS: -6.24758281284292583, gnrm:  5.87E-02, D: -5.74E-02, 
  DIIS weights: [-5.79E-01,  1.58, -1.89E-03], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
  GPU acceleration:  No, 
@@ -442,7 +442,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.75306263129, Epot: -7.42713284641, Enl:  7.97952933672E-01, 
               EH:  1.11449800006E+01, EXC: -2.55838243137, EvXC: -3.30183389146}, 
- iter:  3, EKS: -6.26596393887353731, gnrm:  2.7E-02, D: -1.84E-02, 
+ iter:  3, EKS: -6.26596393887356218, gnrm:  2.7E-02, D: -1.84E-02, 
  DIIS weights: [ 8.49E-02, -5.35E-01,  1.45, -1.91E-04], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
  GPU acceleration:  No, 
@@ -451,8 +451,8 @@
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.79600227926, Epot: -7.44877417121, Enl:  7.82288622936E-01, 
-              EH:  1.1157220999E+01, EXC: -2.57140990109, EvXC: -3.31820971729}, 
- iter:  4, EKS: -6.2692225687822285, gnrm:  1.17E-02, D: -3.26E-03, 
+              EH:  1.11572209991E+01, EXC: -2.57140990109, EvXC: -3.31820971729}, 
+ iter:  4, EKS: -6.26922256878220541, gnrm:  1.17E-02, D: -3.26E-03, 
  DIIS weights: [ 1.73E-02,  1.64E-02, -4.96E-01,  1.46, -1.79E-05], 
      Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 5
@@ -463,7 +463,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.80894427168, Epot: -7.45579637726, Enl:  7.79517627898E-01, 
               EH:  1.11619798218E+01, EXC: -2.57548291648, EvXC: -3.32335676458}, 
- iter:  5, EKS: -6.26975856827989109, gnrm:  4.05E-03, D: -5.36E-04, 
+ iter:  5, EKS: -6.26975856827987155, gnrm:  4.05E-03, D: -5.36E-04, 
  DIIS weights: [-9.28E-03,  1.31E-02,  1.21E-01, -7.15E-01,  1.59, -1.46E-06], 
      Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 6
@@ -474,7 +474,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81231174316, Epot: -7.45689247748, Enl:  7.78350630518E-01, 
               EH:  1.11633771803E+01, EXC: -2.57636123714, EvXC: -3.32446738693}, 
- iter:  6, EKS: -6.26981925124778439, gnrm:  1.15E-03, D: -6.07E-05, 
+ iter:  6, EKS: -6.26981925124777018, gnrm:  1.15E-03, D: -6.07E-05, 
  DIIS weights: [ 8.26E-04, -2.8E-03,  2.55E-03,  6.44E-02, -3.77E-01,  1.31, -1.86E-07], 
      Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 7
@@ -485,7 +485,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81239342813, Epot: -7.4570614811, Enl:  7.78553857129E-01, 
               EH:  1.11634917967E+01, EXC: -2.57634800402, EvXC: -3.32444973715}, 
- iter:  7, EKS: -6.26982237635973139, gnrm:  3.3E-04, D: -3.13E-06, 
+ iter:  7, EKS: -6.2698223763596852, gnrm:  3.3E-04, D: -3.13E-06, 
  DIIS weights: [-5.53E-04, -1.76E-03,  3.57E-03,  6.18E-02, -5.61E-01,  1.5, -1.81E-08], 
      Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 8
@@ -496,7 +496,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.81231601646, Epot: -7.4571083391, Enl:  7.78588554878E-01, 
               EH:  1.11633903941E+01, EXC: -2.57630581647, EvXC: -3.32439536607}, 
- iter:  8, EKS: -6.26982272922451944, gnrm:  1.26E-04, D: -3.53E-07, 
+ iter:  8, EKS: -6.26982272922450168, gnrm:  1.26E-04, D: -3.53E-07, 
  DIIS weights: [ 2.63E-03, -1.26E-02,  1.75E-02,  7.16E-02, -5.34E-01,  1.45, -2.41E-09], 
      Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 9
@@ -507,7 +507,7 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  3.8122837543, Epot: -7.45713849228, Enl:  7.78633703251E-01, 
               EH:  1.11633706323E+01, EXC: -2.57629597966, EvXC: -3.32438298992}, 
- iter:  9, EKS: -6.26982277373273522, gnrm:  5.65E-05, D: -4.45E-08, 
+ iter:  9, EKS: -6.26982277373273877, gnrm:  5.65E-05, D: -4.45E-08, 
  DIIS weights: [ 1.05E-03, -3.43E-03,  1.76E-02,  2.49E-02, -4.6E-01,  1.42, -1.92E-10], 
      Orthogonalization Method:  0}
        -  &FINAL001  { #---------------------------------------------------------- iter: 10
@@ -516,12 +516,12 @@
  Rho Commun: ALLRED, Total electronic charge:  7.999999911938, 
  Poisson Solver: {BC: Free, Box:  [  111,  111,  111 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, 
- iter:  10, EKS: -6.26982277959719259, gnrm:  5.65E-05, D: -5.86E-09,  #FINAL
+ iter:  10, EKS: -6.26982277959722101, gnrm:  5.65E-05, D: -5.86E-09,  #FINAL
  Energies: {Ekin:  3.81227576248, Epot: -7.45714041284, Enl:  7.78636818296E-01, 
               EH:  1.11633631145E+01, EXC: -2.57629319622, EvXC: -3.3243794801, 
             Eion:  7.01168188308}, 
  SCF criterion:  0}
-       Non-Hermiticity of Hamiltonian in the Subspace:  6.93E-33
+       Non-Hermiticity of Hamiltonian in the Subspace:  2.28E-32
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
  {e: -4.951184766096E-01, f:  2.0},  # 00001
@@ -532,7 +532,7 @@
  Write wavefunctions to file           : ./data/wavefunction.*
   # 1th wavefunction written
  Write Waves Time:
- -  {Process:  0, Timing:  [  3.5E-01,  1.78E-01 ]}
+ -  {Process:  0, Timing:  [  2.7E-01,  1.916E-01 ]}
   #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
   #WARNING: Using fake local mapping array. Check whether this is correct!
@@ -552,19 +552,19 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.33595513E-05, y:  1.33595513E-05, z:  1.33595513E-05, 
                     total:  2.31394217E-05}
- Clean forces norm (Ha/Bohr): {maxval:  9.298810654008E-05, fnrm2:  3.385581635584E-08}
- Raw forces norm (Ha/Bohr): {maxval:  9.69869589119E-05, fnrm2:  3.439124919044E-08}
+ Clean forces norm (Ha/Bohr): {maxval:  9.298810654145E-05, fnrm2:  3.385581635658E-08}
+ Raw forces norm (Ha/Bohr): {maxval:  9.698695891308E-05, fnrm2:  3.439124919135E-08}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [-3.358131423381E-06, -3.358131423259E-06, -3.358131542519E-06]} # 0001
- -  {H: [-5.125628856235E-05, -5.12562885605E-05, -5.125628853573E-05]} # 0002
- -  {H: [ 5.391788315813E-05,  5.391788315599E-05, -5.322134630368E-05]} # 0003
- -  {H: [-5.322134633436E-05,  5.391788316004E-05,  5.391788319108E-05]} # 0004
- -  {H: [ 5.391788316196E-05, -5.322134633228E-05,  5.391788319086E-05]} # 0005
+ -  {Si: [-3.358131420872E-06, -3.358131421982E-06, -3.358131536912E-06]} # 0001
+ -  {H: [-5.12562885627E-05, -5.125628856109E-05, -5.125628853794E-05]} # 0002
+ -  {H: [ 5.391788315765E-05,  5.391788315571E-05, -5.322134630608E-05]} # 0003
+ -  {H: [-5.322134633605E-05,  5.391788316091E-05,  5.391788319091E-05]} # 0004
+ -  {H: [ 5.391788316196E-05, -5.322134633355E-05,  5.391788319002E-05]} # 0005
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  8.66
-   Elapsed time (s)                    :  4.55
+   CPU time (s)                        :  8.79
+   Elapsed time (s)                    :  4.68
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Using fake local mapping array. Check whether this is correct!
