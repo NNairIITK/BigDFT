@@ -845,3 +845,11 @@ sparsity:
  Total ionic charge: 1.3e-11
  charge diff: 1.1e-10
  energy: 2.4e-10
+
+PBE_densmixlin:
+ Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
+
+PBE_potmixlin:
+ Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
