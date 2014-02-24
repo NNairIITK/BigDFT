@@ -740,7 +740,7 @@ program BigDFT2Wannier
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
          else
-            call dcopy(orbsb%norb*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
+            call vcopy(orbsb%norb*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
          end if
       else
          ! Tranposition of the distribution of the BigDFT occupied wavefunctions : orbitals -> components.
@@ -756,7 +756,7 @@ program BigDFT2Wannier
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
          else
-            call dcopy(orbsb%norb*orbs%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
+            call vcopy(orbsb%norb*orbs%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
          end if
 
          ! Scalar product of amnk=<sph_daub|occ> in parallel.
@@ -775,7 +775,7 @@ program BigDFT2Wannier
          shft  = nvctrp*orbs%norb
          do np=1, orbsp%norb
             !np=npp+orbsp%isorb 
-            call dcopy(nvctrp,sph_daub(1+pshft),1,psi_etsf2(1+shft),1)
+            call vcopy(nvctrp,sph_daub(1+pshft),1,psi_etsf2(1+shft),1)
             wshft = 0
             do nb = 1,orbs%norb*orbs%nspinor    !Should be on all occupied bands
                do j=1,nvctrp
@@ -796,7 +796,7 @@ program BigDFT2Wannier
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
          else
-            call dcopy(orbsb%norb*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf2(1),1,psi_etsf(1,1),1)
+            call vcopy(orbsb%norb*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf2(1),1,psi_etsf(1,1),1)
          end if
          ! Should write the symmetrized projectors to file
          if(write_resid .and. orbsv%norbp > 0)then
@@ -850,7 +850,7 @@ program BigDFT2Wannier
       !!pshft = 0
       !!do npp=1, orbsp%norbp
       !!   np=npp+orbsp%isorb 
-      !!   call dcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,sph_daub(1+pshft),1,pvirt(1+pshft),1)
+      !!   call vcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,sph_daub(1+pshft),1,pvirt(1+pshft),1)
       !!   do i = 1,orbsb%norbp*orbsb%nspinor    !Should be on all bands
       !!      nb = i + orbsb%isorb
       !!      !print *,'amnk(nb,np)',nb,np,amnk(nb,np),ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi_etsf(1,i),1,psi_etsf(1,i),1)

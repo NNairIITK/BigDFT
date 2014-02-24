@@ -389,7 +389,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
              end do
           else
              do iorb=1,orbs%norbp
-                call dcopy(orbs_tmb%norb,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
+                call vcopy(orbs_tmb%norb,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
              end do
           end if
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &

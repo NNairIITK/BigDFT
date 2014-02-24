@@ -776,9 +776,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
           ! Copy the coefficients
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      call dcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
+      call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
   end if
-          !!write(*,*) 'after dcopy, iproc',iproc
+          !!write(*,*) 'after vcopy, iproc',iproc
 
   if (associated(tmb_old%coeff)) then
       i_all=-product(shape(tmb_old%coeff))*kind(tmb_old%coeff)
@@ -855,10 +855,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      ! the following subroutine will overwrite phi, therefore store in a temporary array...
      !!allocate(phi_tmp(size(tmb%psi)), stat=i_stat)
      !!call memocc(i_stat, phi_tmp, 'phi_tmp', subname)
-     !!call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
+     !!call vcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
      call inputguessConfinement(iproc, nproc, at, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           rxyz,nlpsp,GPU,KSwfn%orbs, kswfn, tmb,denspot,denspot0,energs)
-     !!call dcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
+     !!call vcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
      !!i_all=-product(shape(phi_tmp))*kind(phi_tmp)
      !!deallocate(phi_tmp, stat=i_stat)
      !!call memocc(i_stat, i_all, 'phi_tmp', subname)
@@ -885,7 +885,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-      call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
+      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
       call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
       call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
@@ -1205,7 +1205,7 @@ END SUBROUTINE input_memory_linear
               irhotot_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,4)+1
               irho_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)*input%nspin+1
               do ispin=1,input%nspin
-                call dcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2),&
+                call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2),&
                      denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
                 irhotot_add=irhotot_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)
                 irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
@@ -1299,7 +1299,7 @@ END SUBROUTINE input_memory_linear
            allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
            call memocc(i_stat,hpsi,'hpsi',subname)
            
-             !call dcopy(orbse%npsidim,psi,1,hpsi,1)
+             !call vcopy(orbse%npsidim,psi,1,hpsi,1)
            if (input%exctxpar == 'OP2P') then
               energs%eexctX = UNINITIALIZED(1.0_gp)
            else
@@ -1436,7 +1436,7 @@ END SUBROUTINE input_memory_linear
                          orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1)
                  end if
               end do
-              !call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1) !this is not good with k-points
+              !call vcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1) !this is not good with k-points
               !associate the entropic energy contribution
               orbs%eTS=orbse%eTS
               
@@ -1879,7 +1879,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              in%lin%calc_transfer_integrals)
         if (in%lin%calc_transfer_integrals) then
            in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
-           call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
+           call vcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
            ! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
            in_frag_charge(cdft%ifrag_charged(2))=in%ncharge - in_frag_charge(cdft%ifrag_charged(1))
            ! want the difference in number of electrons here, rather than explicitly the charge
@@ -1915,8 +1915,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            nullify(in_frag_charge)
         end if
      else
-        call dcopy(tmb%orbs%norb**2,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
-        call dcopy(tmb%orbs%norb,ref_frags(1)%eval(1),1,tmb%orbs%eval(1),1)
+        call vcopy(tmb%orbs%norb**2,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
+        call vcopy(tmb%orbs%norb,ref_frags(1)%eval(1),1,tmb%orbs%eval(1),1)
         if (associated(ref_frags(1)%coeff)) call f_free_ptr(ref_frags(1)%coeff)
         if (associated(ref_frags(1)%eval)) call f_free_ptr(ref_frags(1)%eval)
      end if
@@ -2004,7 +2004,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
     !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
 
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
-     call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
+     call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)
      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
@@ -2078,7 +2078,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call yaml_newline()
      call yaml_comment('Saving the KS potential obtained from IG')
      allocate(denspot%rho_work(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
-     call dcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,&
+     call vcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,&
           denspot%rhov(1),1,denspot%rho_work(1),1)
   end if
 

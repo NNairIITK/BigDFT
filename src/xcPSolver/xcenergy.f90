@@ -527,9 +527,9 @@ call to_zero(6,rhocstr(1))
   !the value of the shift depends of the distributed i/o or not
   if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
      !copy the relevant part of vxci on the output potxc
-     call dcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
+     call vcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
      if (nspin == 2) then
-        call dcopy(m1*m3*nxc,vxci(1,1,nxcl,2),1,potxc(1+m1*m3*nxc),1)
+        call vcopy(m1*m3*nxc,vxci(1,1,nxcl,2),1,potxc(1+m1*m3*nxc),1)
      end if
   end if
  
@@ -925,7 +925,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   if(nspden==1) sfactor=2.0_dp
 
   !compact the rho array into the total charge density
-  !try to use dot and dcopy routines, more general
+  !try to use dot and vcopy routines, more general
   ! e.g. exc=dot(m1*m3*nxc,exci(1,1,nxcl),1,rho(1,1,offset+nxcl-1,ispden),1)
 
   ispden=1

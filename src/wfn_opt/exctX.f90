@@ -78,7 +78,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      do jproc=0,nproc-1
         !write(*,'(a,1x,8(i10))'),'iproc,jproc',iproc,jproc,iorb,orbs%norbp,ispsir,ispsiw,&
         !     lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
-        call dcopy(n3parr(jproc),psiw(ispsiw),1,psir(ispsir),1)
+        call vcopy(n3parr(jproc),psiw(ispsiw),1,psir(ispsir),1)
         ispsiw=ispsiw+n3parr(jproc)
         if (jproc /= nproc-1) then
            do jorb=iorb,orbs%norbp
@@ -125,7 +125,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
           psiw,ncommarr(0,3),ncommarr(0,4),mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
   else
-     call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psiw,1)
+     call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir(1),1,psiw(1),1)
   end if
 
   !this is the array of the actions of the X potential on psi
@@ -280,7 +280,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
   !assign the potential for each function
   if (nproc > 1) then
-     !call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
+     !call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
      !recommunicate the values in the psir array
      call MPI_ALLTOALLV(psir,ncommarr(0,3),ncommarr(0,4),mpidtypw, &
           psiw,ncommarr(0,1),ncommarr(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
@@ -289,7 +289,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
      do iorb=1,orbs%norbp
         ispsir=1+(iorb-1)*n3parr(0)
         do jproc=0,nproc-1
-           call dcopy(n3parr(jproc),psiw(ispsir),1,psir(ispsiw),1)
+           call vcopy(n3parr(jproc),psiw(ispsir),1,psir(ispsiw),1)
            ispsiw=ispsiw+n3parr(jproc)
            if (jproc /= nproc-1) then
               do jorb=iorb,orbs%norbp
@@ -364,7 +364,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      do jproc=0,nproc-1
         !write(*,'(a,1x,8(i10))'),'iproc,jproc',iproc,jproc,iorb,orbs%norbp,ispsir,ispsiw,&
         !     lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
-        call dcopy(n3parr(jproc),psirocc(ispsiw),1,psiwocc(ispsir),1)
+        call vcopy(n3parr(jproc),psirocc(ispsiw),1,psiwocc(ispsir),1)
         ispsiw=ispsiw+n3parr(jproc)
         if (jproc /= nproc-1) then
            do jorb=iorb,orbsocc%norbp
@@ -410,7 +410,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      call MPI_ALLTOALLV(psiwocc,ncommocc(0,1),ncommocc(0,2),mpidtypw, &
           psirocc,ncommocc(0,3),ncommocc(0,4),mpidtypw,bigdft_mpi%mpi_comm,ierr)
   else
-     call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbsocc%norb,psiwocc,1,psirocc,1)
+     call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbsocc%norb,psiwocc(1),1,psirocc(1),1)
   end if
   i_all=-product(shape(psiwocc))*kind(psiwocc)
   deallocate(psiwocc,stat=i_stat)
@@ -485,7 +485,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      do jproc=0,nproc-1
         !write(*,'(a,1x,8(i10))'),'iproc,jproc',iproc,jproc,iorb,orbs%norbp,ispsir,ispsiw,&
         !     lr%d%n1i*lr%d%n2i*max(lr%d%n3i*orbs%norbp,n3p*orbs%norb),n3parr(jproc)
-        call dcopy(n3parr(jproc),psiwvirt(ispsiw),1,psirvirt(ispsir),1)
+        call vcopy(n3parr(jproc),psiwvirt(ispsiw),1,psirvirt(ispsir),1)
         ispsiw=ispsiw+n3parr(jproc)
         if (jproc /= nproc-1) then
            do jorb=iorb,orbsvirt%norbp
@@ -534,7 +534,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
           psiwvirt,ncommvirt(0,3),ncommvirt(0,4),mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
   else
-     call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb,psirvirt,1,psiwvirt,1)
+     call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbsvirt%norb,psirvirt(1),1,psiwvirt(1),1)
   end if
 
   !this is the array of the actions of the X potential on psi
@@ -656,7 +656,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
 
   !assign the potential for each function
   if (nproc > 1) then
-     !call dcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
+     !call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbs%norb,psir,1,psirt,1)
      !recommunicate the values in the psir array
      call MPI_ALLTOALLV(psirvirt,ncommvirt(0,3),ncommvirt(0,4),mpidtypw, &
           psiwvirt,ncommvirt(0,1),ncommvirt(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
@@ -665,7 +665,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      do iorb=1,orbsvirt%norbp
         ispsir=1+(iorb-1)*n3parr(0)
         do jproc=0,nproc-1
-           call dcopy(n3parr(jproc),psiwvirt(ispsir),1,psirvirt(ispsiw),1)
+           call vcopy(n3parr(jproc),psiwvirt(ispsir),1,psirvirt(ispsiw),1)
            ispsiw=ispsiw+n3parr(jproc)
            if (jproc /= nproc-1) then
               do jorb=iorb,orbsvirt%norbp
@@ -1269,7 +1269,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
                    ': sending',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
                    'elements from',iproc,'to',jprocsr(3,jproc,igroup)
            end if
-           call dcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
+           call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
                 dpsiw(1,1,3,igroup),1,dpsiw(1,1,isnow2,igroup),1)
            
            call MPI_ISEND(dpsiw(1,1,isnow2,igroup),&
@@ -1832,7 +1832,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$                   ': sending',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
 !!$                   'elements from',iproc,'to',jprocsr(3,jproc,igroup)
 !!$           end if
-!!$           call dcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
+!!$           call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
 !!$                dpsiw(1,1,3,igroup),1,dpsiw(1,1,isnow2,igroup),1)
 !!$           
 !!$           call MPI_ISEND(dpsiw(1,1,isnow2,igroup),&

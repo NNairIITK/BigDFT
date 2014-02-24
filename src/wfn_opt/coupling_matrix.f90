@@ -181,7 +181,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      end do
      if (.not. onlyfxc) then
         !copy the partial density onto the partial potential space to pass it to PSolver
-        call dcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
+        call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
         !partial potential term for each partial density
 !        if (iproc == 0 .and. verbose > 1) then
 !           write(*,*)'Poisson Solver application: orbitals (virt,occ):',iorba,iorbi
@@ -271,7 +271,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
   if (nspin==1) then
      !copy the values of the dipoles in the second part of the array
-     call dcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
+     call vcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
      call dscal(3*ndipoles,hxh*hyh*hzh,dipoles(1,1),1)
   end if
 

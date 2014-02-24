@@ -23,7 +23,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   allocate(tpsit(nvctrp,orbs%nspinor,orbs%norb,orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,tpsit,'tpsit',subname)
   if(forward) then
-     !we can use dcopy here
+     !we can use vcopy here
      do ikpts=1,orbs%nkpts
         do iorb=1,orbs%norb
            do isp=1,orbs%nspinor
@@ -77,7 +77,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
         end do
      end if
 
-     !here we can use dcopy
+     !here we can use vcopy
      do ikpts=1,orbs%nkpts
         do iorb=1,orbs%norb
            do isp=1,orbs%nspinor

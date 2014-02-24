@@ -2016,7 +2016,7 @@ subroutine symmetry_set_irreductible_zone(sym, geocode, n1i, n2i, n3i, nspin)
               call kpoints_get_irreductible_zone(irrzon, phnons, n1i, 1, n3i, &
                    & nspin, nspin, sym%symObj, i_stat)
               sym%irrzon(:,:,i_third:i_third) = irrzon
-              call dcopy(2*n1i*n3i, phnons, 1, sym%phnons(1,1,i_third), 1)
+              call vcopy(2*n1i*n3i, phnons(1,1,1), 1, sym%phnons(1,1,i_third), 1)
            end do
            i_all=-product(shape(irrzon))*kind(irrzon)
            deallocate(irrzon,stat=i_stat)

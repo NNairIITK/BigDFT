@@ -2377,7 +2377,7 @@ do ikptp=1,orbs%nkptsp
             end if
 
             ! Now copy the orbitals from the temporary variable to psit.
-            call dcopy(nvctrp*norb*nspinor, psitt(1), 1, psit(ist), 1)
+            call vcopy(nvctrp*norb*nspinor, psitt(1), 1, psit(ist), 1)
 
             ! For PAW: upgrade also spsi and cprj
             if(usepaw==1) then
@@ -2391,7 +2391,7 @@ do ikptp=1,orbs%nkptsp
                end if
 
                ! Now copy the orbitals from the temporary variable to psit.
-               call dcopy(nvctrp*norb*nspinor, psitt(1), 1, paw%spsi(ist), 1)
+               call vcopy(nvctrp*norb*nspinor, psitt(1), 1, paw%spsi(ist), 1)
                
                !Now upgrade cprj:
                !Pending: check that this works for more than 1 orbital, and in parallel

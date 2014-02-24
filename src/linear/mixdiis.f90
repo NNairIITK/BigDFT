@@ -44,7 +44,7 @@ real(8):: tt
 
   !!if(pnrm<input%lin%convCritMix) then
   !!    if(iproc==0) write(*,*) 'keep old density / potential'
-  !!    call dcopy(Glr%d%n1i*Glr%d%n2i*n3p, rhopotOld(1), 1, rhopot(1), 1)
+  !!    call vcopy(Glr%d%n1i*Glr%d%n2i*n3p, rhopotOld(1), 1, rhopot(1), 1)
   !!end if
 
   call timing(iproc,'mix_linear    ','OF')
@@ -95,7 +95,7 @@ subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
   end if
 
   ! Copy the current charge density.
-  call dcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
+  call vcopy(max(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
 
 end subroutine mix_main
 
@@ -168,10 +168,10 @@ call to_zero(mixdiis%isx+1, rhs(1))
 
 ! Copy rhopot and rhopotres to the DIIS history.
 jst=(mixdiis%mis-1)*ndimtot+1
-!call dcopy(ndimtot, rhopotold, 1, mixdiis%rhopotHist, 1)
-!call dcopy(ndimtot, rhopotres, 1, mixdiis%rhopotresHist, 1)
-call dcopy(ndimtot, rhopotold, 1, mixdiis%rhopotHist(jst), 1)
-call dcopy(ndimtot, rhopotres, 1, mixdiis%rhopotresHist(jst), 1)
+!call vcopy(ndimtot, rhopotold, 1, mixdiis%rhopotHist, 1)
+!call vcopy(ndimtot, rhopotres, 1, mixdiis%rhopotresHist, 1)
+call vcopy(ndimtot, rhopotold(1), 1, mixdiis%rhopotHist(jst), 1)
+call vcopy(ndimtot, rhopotres(1), 1, mixdiis%rhopotresHist(jst), 1)
 
 ! Shift the DIIS matrix left up if we reached the maximal history length.
 if(mixdiis%is>mixdiis%isx) then

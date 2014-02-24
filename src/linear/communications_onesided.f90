@@ -72,7 +72,7 @@ subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbu
           ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
           do i2=comm%ise(3,iproc),comm%ise(4,iproc)
               ist2=(i2-1)*lzd%glr%d%n1i
-              call dcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+              call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
               ist=ist+comm%ise(2,iproc)-comm%ise(1,iproc)+1
           end do
       end do

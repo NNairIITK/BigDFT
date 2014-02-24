@@ -93,7 +93,7 @@
 !!    call memocc(i_stat,psiw,'psiw',subname)
 !!  
 !!    !put the hpsi wavefunction in the work array
-!!    call dcopy(orbs%npsidim,hpsi,1,psiw,1)
+!!    call vcopy(orbs%npsidim,hpsi,1,psiw,1)
 !!  
 !!    call DiagHam(iproc,nproc,0,orbs%nspin,orbs,lr%wfd,comms,&
 !!       psi,psiw,psit,orthpar,passmat)
@@ -126,7 +126,7 @@
 !!    !fill the other part, for spin, polarised
 !!    npot=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2) !n1i*n2i*n3d
 !!    if (nspin == 2) then
-!!       call dcopy(npot,rhopot(1),1,rhopot(1+npot),1)
+!!       call vcopy(npot,rhopot(1),1,rhopot(1+npot),1)
 !!    end if
 !!    !spin up and down together with the XC part
 !!    call axpy(npot*nspin,1.0_dp,potxc(1),1,rhopot(1),1)
@@ -164,7 +164,7 @@
 !!  !!$  !end do
 !!  !!$
 !!  !!$  !call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,psiw,work=psit,outadd=hpsi(1))
-!!  !!$  !call dcopy(orbs%npsidim,psi,1,psiw,1)
+!!  !!$  !call vcopy(orbs%npsidim,psi,1,psiw,1)
 !!  !!$  call DiagHam(iproc,nproc,0,orbs%nspin,orbs,lr%wfd,comms,&
 !!  !!$     psi,psiw,psit,orthpar,passmat)
 !!  !!$
@@ -512,7 +512,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   deallocate(user_data,stat=i_stat)
   call memocc(i_stat,i_all,'user_data',subname)
   ! Copy new in vrespc
-  call dcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
+  call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
 
 END SUBROUTINE mix_rhopot
 
@@ -1084,11 +1084,11 @@ end function s2d_dot
 !!        
 !!     !here we can choose to store the DIIS arrays with single precision
 !!     !psidst=psit
-!!        call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
+!!        call vcopy(nvctrp*orbs%norb*orbs%nspinor,&
 !!             psit(ispsi),1,&
 !!             diis%psidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
 !!     !hpsidst=hpsi
-!!     !   call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
+!!     !   call vcopy(nvctrp*orbs%norb*orbs%nspinor,&
 !!     !        hpsit(ispsi),1,&
 !!     !        hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(mids-1)),1)
 !!

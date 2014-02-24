@@ -113,12 +113,12 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         ldiis_coeff%ids=ldiis_coeff%ids+1
 
         if (present(num_extra)) then
-           call dcopy(tmb%orbs%norb*tmb%orbs%norbp,tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp,1)
+           call vcopy(tmb%orbs%norb*tmb%orbs%norbp,tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
 
            call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%orbs%norb*tmb%orbs%norbp/),tmb%orbs%norb*tmb%orbs%norbp,&
                 grad_cov_or_coeffp,grad,ldiis_coeff) 
         else
-           call dcopy(tmb%orbs%norb*orbs%norbp,tmb%coeff(1,orbs%isorb+1),1,grad_cov_or_coeffp,1)
+           call vcopy(tmb%orbs%norb*orbs%norbp,tmb%coeff(1,orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
 
            call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
                 grad_cov_or_coeffp,grad,ldiis_coeff) 
@@ -157,7 +157,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
               tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
         else
-           call dcopy(tmb%orbs%norb*tmb%orbs%norb,grad_cov_or_coeffp(1,1),1,tmb%coeff(1,1),1)
+           call vcopy(tmb%orbs%norb*tmb%orbs%norb,grad_cov_or_coeffp(1,1),1,tmb%coeff(1,1),1)
         end if
 
         call timing(iproc,'dirmin_allgat','OF')
@@ -169,7 +169,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
               tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
         else
-           call dcopy(tmb%orbs%norb*orbs%norb,grad_cov_or_coeffp(1,1),1,tmb%coeff(1,1),1)
+           call vcopy(tmb%orbs%norb*orbs%norb,grad_cov_or_coeffp(1,1),1,tmb%coeff(1,1),1)
         end if
 
         call timing(iproc,'dirmin_allgat','OF')
@@ -479,7 +479,7 @@ subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs,
      call dgemm('n', 'n', basis_orbs%norb, ksorbs%norb, ksorbs%norb, 1.d0, coeff(1,1), &
           basis_orbs%norb, ham_coeff, ksorbs%norb, 0.d0, coeff_tmp, basis_orbs%norb)
  
-     call dcopy(basis_orbs%norb*(ksorbs%norb),coeff_tmp(1,1),1,coeff(1,1),1)
+     call vcopy(basis_orbs%norb*(ksorbs%norb),coeff_tmp(1,1),1,coeff(1,1),1)
      call f_free(coeff_tmp)
   end if
 
@@ -779,7 +779,7 @@ subroutine reordering_coeffs(iproc, nproc, num_extra, ksorbs, basis_orbs, ham, o
           basis_orbs%norb, ham_coeff_small, ksorbs%norb+num_extra, 0.d0, coeff_tmp, basis_orbs%norb)
  
      call f_free(ham_coeff_small)
-     call dcopy(basis_orbs%norb*(ksorbs%norb+num_extra),coeff_tmp(1,1),1,coeff(1,1),1)
+     call vcopy(basis_orbs%norb*(ksorbs%norb+num_extra),coeff_tmp(1,1),1,coeff(1,1),1)
      call f_free(coeff_tmp)
 
      do iorb=1,basis_orbs%norb
@@ -852,7 +852,7 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
      call mpi_allgatherv(coeffp, tmb%orbs%norb*orbs%norbp, mpi_double_precision, coeff_tmp, &
         tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
-     call dcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,coeff_tmp(1,1),1)
+     call vcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,coeff_tmp(1,1),1)
   end if
 
   ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
@@ -1001,7 +1001,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
         tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
         mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
-     call dcopy(tmb%orbs%norbp*tmb%orbs%norb,skhp(1,1),1,skh(1,1),1)
+     call vcopy(tmb%orbs%norbp*tmb%orbs%norb,skhp(1,1),1,skh(1,1),1)
   end if
 
   call timing(iproc,'dirmin_lagmat2','OF')
@@ -1185,7 +1185,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
         call dgemm('n', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp(1,1), &
              tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
      else
-        call dcopy(tmb%orbs%norb*KSorbs%norbp,grad_cov,1,grad,1)
+        call vcopy(tmb%orbs%norb*KSorbs%norbp,grad_cov(1,1),1,grad(1,1),1)
      end if
      call f_free_ptr(inv_ovrlp)
   else
@@ -1196,12 +1196,12 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
         call mpi_allgatherv(grad_cov, tmb%orbs%norb*KSorbs%norbp, mpi_double_precision, grad_full, &
            tmb%orbs%norb*KSorbs%norb_par(:,0), tmb%orbs%norb*KSorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
-        call dcopy(tmb%orbs%norb*KSorbs%norb,grad_cov(1,1),1,grad_full(1,1),1)
+        call vcopy(tmb%orbs%norb*KSorbs%norb,grad_cov(1,1),1,grad_full(1,1),1)
      end if
 
      call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
           tmb%orbs%norb, KSorbs%norb, tmb%linmat%ovrlp%matrix, tmb%orbs%norb, grad_full, tmb%orbs%norb, info)
-     call dcopy(tmb%orbs%norb*KSorbs%norbp,grad_full(1,KSorbs%isorb+1),1,grad(1,1),1)
+     call vcopy(tmb%orbs%norb*KSorbs%norbp,grad_full(1,KSorbs%isorb+1),1,grad(1,1),1)
 
      call f_free(grad_full)
      if(info/=0) then
@@ -1242,7 +1242,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   call timing(iproc,'dirmin_lagmat1','ON')
 
   occup_tmp=f_malloc(tmb%orbs%norb,id='occup_tmp')
-  call dcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,occup_tmp(1),1)
+  call vcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,occup_tmp(1),1)
 
   call razero(tmb%orbs%norb,tmb%orbs%occup(1))
   do iorb=1,KSorbs%norb+num_extra
@@ -1255,7 +1255,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   !call uncompressMatrix(iproc,tmb%linmat%denskern)
   call calculate_density_kernel_uncompressed (iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern_large%matrix)
 
-  call dcopy(tmb%orbs%norb,occup_tmp(1),1,tmb%orbs%occup(1),1)
+  call vcopy(tmb%orbs%norb,occup_tmp(1),1,tmb%orbs%occup(1),1)
   call f_free(occup_tmp)
 
   sk=f_malloc0((/tmb%orbs%norbp,tmb%orbs%norb/), id='sk')
@@ -1296,7 +1296,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
         tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
         mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
-     call dcopy(tmb%orbs%norbp*tmb%orbs%norb,skhp(1,1),1,skh(1,1),1)
+     call vcopy(tmb%orbs%norbp*tmb%orbs%norb,skhp(1,1),1,skh(1,1),1)
   end if
 
   call timing(iproc,'dirmin_lagmat2','OF')
@@ -1325,7 +1325,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   ! Solve the linear system ovrlp*grad=grad_cov
   if(tmb%orthpar%blocksize_pdsyev<0) then
      !! keep the covariant gradient to calculate fnrm correctly
-     !call dcopy(tmb%orbs%norb*tmb%orbs%norbp,grad_cov,1,grad,1)
+     !call vcopy(tmb%orbs%norb*tmb%orbs%norbp,grad_cov,1,grad,1)
      !if (tmb%orbs%norbp>0) then
      !   ipiv=f_malloc(tmb%orbs%norb,id='ipiv')
      !   call dgesv(tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, ipiv(1), &
@@ -1340,7 +1340,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp(1,1), &
              tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
      else
-        call dcopy(tmb%orbs%norb*tmb%orbs%norbp,grad_cov,1,grad,1)
+        call vcopy(tmb%orbs%norb*tmb%orbs%norbp,grad_cov(1,1),1,grad(1,1),1)
      end if
      call f_free_ptr(inv_ovrlp)
   else
@@ -1350,14 +1350,14 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
          call mpi_allgatherv(grad_cov, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, grad_full, &
             tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
       else
-         call dcopy(tmb%orbs%norb*tmb%orbs%norb,grad_cov(1,1),1,grad_full(1,1),1)
+         call vcopy(tmb%orbs%norb*tmb%orbs%norb,grad_cov(1,1),1,grad_full(1,1),1)
       end if
       !call mpiallred(grad(1,1), tmb%orbs%norb*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
       call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
            tmb%orbs%norb, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, tmb%orbs%norb, grad_full, tmb%orbs%norb, info)
 
-      call dcopy(tmb%orbs%norb*tmb%orbs%norbp,grad_full(1,tmb%orbs%isorb+1),1,grad(1,1),1)
+      call vcopy(tmb%orbs%norb*tmb%orbs%norbp,grad_full(1,tmb%orbs%isorb+1),1,grad(1,1),1)
 
       call f_free(grad_full)
   end if
@@ -1416,7 +1416,7 @@ subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
   if(info/=0) then
       stop 'ERROR in dgesv'
   end if
-  !call dcopy(nel, rhs(1), 1, grad(1), 1)
+  !call vcopy(nel, rhs(1), 1, grad(1), 1)
   do iorb=1,norb
       do itmb=1,ntmb
           grad(itmb,iorb)=real(rhs(itmb,iorb))
@@ -1487,8 +1487,8 @@ subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
           jst=jst+ncount*ldiis%isx
       end do
       jst=jst+(ldiis%mis-1)*ncount
-      call dcopy(ncount, coeff(ist+tmb%orbs%isorb*tmb%orbs%norb), 1, ldiis%phiHist(jst), 1)
-      call dcopy(ncount, grad(ist), 1, ldiis%hphiHist(jst), 1)
+      call vcopy(ncount, coeff(ist+tmb%orbs%isorb*tmb%orbs%norb), 1, ldiis%phiHist(jst), 1)
+      call vcopy(ncount, grad(ist), 1, ldiis%hphiHist(jst), 1)
       ist=ist+ncount
   end do
   

@@ -394,8 +394,8 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
   allocate(work(100+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
 
-  call dcopy(nbasis*nbasis,H,1,Hwork,1)
-  call dcopy(nbasis,rhoarr,1,u,1)
+  call vcopy(nbasis*nbasis,H,1,Hwork,1)
+  call vcopy(nbasis,rhoarr,1,u,1)
   !workspace query
   call dsysv('U',nbasis,1,Hwork(1,1),nbasis,iwork(1),u(1),nbasis,work(1),-1,info)
   nwork=work(1)
@@ -408,16 +408,16 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
   call memocc(i_stat,work,'work',subname)
 
   !here we start with the linear algebra
-  call dcopy(nbasis,rhoarr,1,u,1)
-  call dcopy(nbasis*nbasis,H,1,Hwork,1)
+  call vcopy(nbasis,rhoarr,1,u,1)
+  call vcopy(nbasis*nbasis,H,1,Hwork,1)
   call dsysv('U',nbasis,1,Hwork(1,1),nbasis,iwork(1),u(1),nbasis,work(1),nwork,info)
   if (info /= 0) then
      write(*,*) 'info calculation of u',info
   end if
 
   !here we start with the linear algebra
-  call dcopy(nbasis,D,1,v,1)
-  call dcopy(nbasis*nbasis,H,1,Hwork,1)
+  call vcopy(nbasis,D,1,v,1)
+  call vcopy(nbasis*nbasis,H,1,Hwork,1)
 !!$  if (iproc == 0) print *,'here',v(:)
 !!$  if (iproc == 0) print '(a,4(1pe15.7))','000',Hwork(1,1),Hwork(1,2),Hwork(2,1),Hwork(2,2)
   call dsysv('U',nbasis,1,Hwork(1,1),nbasis,iwork(1),v(1),nbasis,work(1),nwork,info)
@@ -439,7 +439,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
   !gammafac=ddotu/ddotv
 
   !calculate the eigenvalues of H
-  call dcopy(nbasis*nbasis,H,1,Hwork,1)
+  call vcopy(nbasis*nbasis,H,1,Hwork,1)
   !print *,'nwork',nwork,3*nbasis-1
   call dsyev('N','U',nbasis,Hwork(1,1),nbasis,v(1),work(1),nwork,info)
 
@@ -458,7 +458,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
   call vscal(nbasis,gammafac,D(1),1)
 
   !initalise C
-  call dcopy(nbasis,D,1,Caux,1)
+  call vcopy(nbasis,D,1,Caux,1)
   
   !fill it 
   call axpy(nbasis,-1.0_gp,rhoarr(1),1,Caux(1),1)
@@ -867,7 +867,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
           ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
   else
      !not efficient, the copy can be saved
-     call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i,rho,1,rhotot,1)
+     call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i,rho,1,rhotot,1)
   end if
 
   allocate(ncoeff_par(0:nproc-1,2+ndebug),stat=i_stat)

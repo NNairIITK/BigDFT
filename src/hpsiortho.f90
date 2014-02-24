@@ -173,7 +173,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         irhotot_add=wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh+1
         irho_add=wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d*wfn%orbs%nspin+1
         do ispin=1,wfn%orbs%nspin
-           call dcopy(denspot%dpbox%ndimpot,&
+           call vcopy(denspot%dpbox%ndimpot,&
                 denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
            irhotot_add=irhotot_add+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
            irho_add=irho_add+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
@@ -204,7 +204,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         !sum the two potentials in rhopot array
         !fill the other part, for spin, polarised
         if (wfn%orbs%nspin == 2) then
-           call dcopy(denspot%dpbox%ndimpot,denspot%rhov(1),1,&
+           call vcopy(denspot%dpbox%ndimpot,denspot%rhov(1),1,&
                 denspot%rhov(1+denspot%dpbox%ndimpot),1)
         end if
         !spin up and down together with the XC part
@@ -243,7 +243,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,ixc,
         end if
 
         allocate(denspot%rho_work(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
-        call dcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,denspot%rhov(1),1,&
+        call vcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,denspot%rhov(1),1,&
              denspot%rho_work(1),1)
      end if
 
@@ -1136,10 +1136,10 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
          if (odp) then
             allocate(pot1(npot+ndebug),stat=i_stat)
             call memocc(i_stat,pot1,'pot1',subname)
-            call dcopy(dpbox%ndimgrid*orbs%nspin,potential,1,pot1,1)
+            call vcopy(dpbox%ndimgrid*orbs%nspin,potential(1),1,pot1(1),1)
             if (dpbox%i3rho_add >0 .and. orbs%norbp > 0) then
                ispot=dpbox%ndimgrid*orbs%nspin+1
-               call dcopy(dpbox%ndimgrid*orbs%nspin,potential(ispot+dpbox%i3rho_add),1,pot1(ispot),1)
+               call vcopy(dpbox%ndimgrid*orbs%nspin,potential(ispot+dpbox%i3rho_add),1,pot1(ispot),1)
             end if
          else
             pot1 => potential
@@ -1235,7 +1235,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    !#################################################################################################################################################
    if(iflag==0) then
       !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      !       call dcopy(lzd%ndimpotisf,pot,1,pot,1) 
+      !       call vcopy(lzd%ndimpotisf,pot,1,pot,1) 
       pot=>pot1
       !print *,iproc,shape(pot),shape(pot1),'shapes'
       !print *,'potential sum',iproc,sum(pot)
@@ -1959,7 +1959,7 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
       ispsi_as=1
       do iorb=1,orbs%norb
          if (mask_array(iorb+(ikpt-1)*orbs%norb)) then
-            call dcopy(nvctrp,psi(ispsi),1,psi_as(ispsi_as),1)
+            call vcopy(nvctrp,psi(ispsi),1,psi_as(ispsi_as),1)
             ispsi_as=ispsi_as+nvctrp*orbs_as%nspinor
          end if
          ispsi=ispsi+nvctrp*orbs%nspinor
@@ -3143,7 +3143,7 @@ END SUBROUTINE broadcast_kpt_objects
 !!  nvctrp=comms%nvctr_par(iproc,0)
 !!  call gemm('n', 'n', nvctrp, orbs%norb, orbs%norb, 1.0_wp, psi(1), max(1,nvctrp), &
 !!            omat(1,1), orbs%norb, 0.0_wp, psiwork(1), max(1,nvctrp))
-!!  call dcopy(size(psi), psiwork(1), 1, psi(1), 1)
+!!  call vcopy(size(psi), psiwork(1), 1, psi(1), 1)
 !!
 !!  ! I think this is not required..
 !!  call orthogonalize(iproc,nproc,orbs,comms,psi,orthpar)

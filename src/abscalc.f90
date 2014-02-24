@@ -1853,7 +1853,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised
      if (nspin == 2) then
-        call dcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2),rhopot(1),1,&
+        call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2),rhopot(1),1,&
              rhopot(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2)+1),1)
      end if
      !spin up and down together with the XC part

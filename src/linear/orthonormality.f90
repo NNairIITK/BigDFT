@@ -94,8 +94,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
 
-      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
       call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       allocate(norm(orbs%norb), stat=istat)
@@ -1495,8 +1495,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
 
-      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
 
       call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
@@ -1695,8 +1695,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
 
-      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
       !!call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
       !!     psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       call build_linear_combination_transposed(collcom, ovrlp, &

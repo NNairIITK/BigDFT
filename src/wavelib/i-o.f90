@@ -65,7 +65,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
        n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
        displ<= 1.d-2) then
      !if (iproc==0) write(*,*) iproc,' orbital just copied'
-     call dcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscfold(-nb1,-nb2,-nb3),1,&
+     call vcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscfold(-nb1,-nb2,-nb3),1,&
           psifscf(1),1)
 !!$     do i3=-nb3,2*n3+1+nb3
 !!$        do i2=-nb2,2*n2+1+nb2

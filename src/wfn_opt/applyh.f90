@@ -618,7 +618,7 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   end if
   
   !for mixed precision code it should be changed
-  call dcopy(nspinor*n1*n2*n3,ww,1,x,1)
+  call vcopy(nspinor*n1*n2*n3,ww(1),1,x(1),1)
 END SUBROUTINE transpose_for_kpoints
 
 

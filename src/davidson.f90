@@ -748,7 +748,7 @@ subroutine davidson(iproc,nproc,in,at,&
       allocate(g(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,g,'g',subname)
 
-      call dcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv,1,g,1)! don't overwrite hv
+      call vcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv(1),1,g(1),1)! don't overwrite hv
 
       call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
       !also these operations are presumably GEMMs
@@ -1132,7 +1132,7 @@ subroutine davidson(iproc,nproc,in,at,&
             !!$           enddo
             !!$        enddo
             !!$
-            !!$        call dcopy(nvctrp*orbsv%norb,hv(ispsi),1,v(ispsi),1)
+            !!$        call vcopy(nvctrp*orbsv%norb,hv(ispsi),1,v(ispsi),1)
             !!$
             !!$        ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
             !!$     end do
@@ -1491,7 +1491,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
          &   work(1),ncomp*nvctrp)
    end if
 
-   call dcopy(nspinor*nvctrp*norb,work(1),1,v(1),1)
+   call vcopy(nspinor*nvctrp*norb,work(1),1,v(1),1)
 
 END SUBROUTINE update_psivirt
 
@@ -1645,7 +1645,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
       do iorb=1,orbs%norbp
          jorb=jorb+1
          if (jorb == orbs%norb+1) jorb=1 !for k-points calculation
-         call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,1,iorb),orbs%nspinor)
+         call vcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,1,iorb),orbs%nspinor)
       end do
 
 

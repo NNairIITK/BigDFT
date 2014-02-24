@@ -849,7 +849,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,Lzd,rxyz,hx,hy,hz,nspin,psi)
      do iorb=1,orbs%norbp
         jorb=jorb+1
         if (jorb == orbs%norb+1) jorb=1 !for k-points calculation
-        call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
+        call vcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
      end do
 
 
@@ -956,10 +956,10 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi)
 
   print *,'normISF',dot(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir(-nl1,-nl2,-nl3),1)
 
-  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+  call vcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
   call isf_to_daub(lr,w,psir2,psi2)
   !psir2 is destroyed
-  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+  call vcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
 
   print *,'normDaub2',dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi2(1),1,psi2(1),1)
 

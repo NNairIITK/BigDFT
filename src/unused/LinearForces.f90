@@ -799,7 +799,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
                  jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
                  do jorb=1,linorbs%norbp*linorbs%nspinor
                     if(nonzeroValue(jorb,jat)) then
-                       call dcopy(ncount, scalprod(1,0,1,1,1,jat,jorb), 1, temparr(jst), 1)
+                       call vcopy(ncount, scalprod(1,0,1,1,1,jat,jorb), 1, temparr(jst), 1)
                        jst=jst+ncount
                     end if
                  end do
@@ -961,7 +961,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
               ! Copy scalprod to temporary array for communication.
               do jorb=1,linorbs%norbp*linorbs%nspinor
                  if(nonzeroValue(jorb,iat+nitoverlaps)) then
-                    call dcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
+                    call vcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
                     jst=jst+ncount
                  end if
               end do

@@ -1352,7 +1352,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call memocc(istat, iall, 'tmb%psi', subname)
      allocate(tmb%psi(tmb%npsidim_orbs), stat=istat)
      call memocc(istat, tmb%psi, 'tmb%psi', subname)
-     call dcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
+     call vcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
      iall=-product(shape(lphilarge))*kind(lphilarge)
      deallocate(lphilarge, stat=istat)
      call memocc(istat, iall, 'lphilarge', subname) 

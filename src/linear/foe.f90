@@ -1265,6 +1265,7 @@ end subroutine get_roots_of_cubic_polynomial
 
 
 real(kind=8) function determinant(iproc, n, mat)
+    use module_base
     implicit none
 
     ! Calling arguments
@@ -1277,7 +1278,7 @@ real(kind=8) function determinant(iproc, n, mat)
     real(kind=8),dimension(n,n) :: mat_tmp
     real(kind=8) :: sgn
 
-    call dcopy(n**2, mat, 1, mat_tmp, 1)
+    call vcopy(n**2, mat(1,1), 1, mat_tmp(1,1), 1)
 
     call dgetrf(n, n, mat_tmp, n, ipiv, info)
     if (info/=0) then

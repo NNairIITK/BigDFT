@@ -1701,12 +1701,12 @@ subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psi
          iiorb=orbs%isorb+iorb
          ilr=orbs%inwhichlocreg(iiorb)
 
-         call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
+         call vcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
 
          i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
          i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
 
-         call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
+         call vcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
 
          i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
          i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
@@ -1716,7 +1716,7 @@ subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psi
 
   else
       ! only coarse part is used...
-      call dcopy(collcom%ndimpsi_c, psi, 1, psi_c, 1)
+      call vcopy(collcom%ndimpsi_c, psi(1), 1, psi_c(1), 1)
   end if
 
   ! coarse part
@@ -1814,10 +1814,10 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   !!iisend=0
   !!iirecv=0
   !!do jproc=0,nproc-1
-  !!    if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
+  !!    if(collcom%nsendcounts_c(jproc)>0) call vcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
   !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
   !!    ist=ist+collcom%nsendcounts_c(jproc)
-  !!    if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
+  !!    if(collcom%nsendcounts_f(jproc)>0) call vcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
   !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
   !!    ist=ist+7*collcom%nsendcounts_f(jproc)
   !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
@@ -1847,10 +1847,10 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   !!ist_c=1
   !!ist_f=1
   !!do jproc=0,nproc-1
-  !!    if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
+  !!    if(collcom%nrecvcounts_c(jproc)>0) call vcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
   !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
   !!    ist=ist+collcom%nrecvcounts_c(jproc)
-  !!    if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
+  !!    if(collcom%nrecvcounts_f(jproc)>0) call vcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
   !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
   !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
   !!end do
@@ -2052,10 +2052,10 @@ subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwor
   !!iisend=0
   !!iirecv=0
   !!do jproc=0,nproc-1
-  !!    if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
+  !!    if(collcom%nrecvcounts_c(jproc)>0) call vcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
   !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
   !!    ist=ist+collcom%nrecvcounts_c(jproc)
-  !!    if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
+  !!    if(collcom%nrecvcounts_f(jproc)>0) call vcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
   !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
   !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
   !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
@@ -2081,10 +2081,10 @@ subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwor
   !!ist_c=1
   !!ist_f=1
   !!do jproc=0,nproc-1
-  !!    if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
+  !!    if(collcom%nsendcounts_c(jproc)>0) call vcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
   !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
   !!    ist=ist+collcom%nsendcounts_c(jproc)
-  !!    if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
+  !!    if(collcom%nsendcounts_f(jproc)>0) call vcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
   !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
   !!    ist=ist+7*collcom%nsendcounts_f(jproc)
   !!end do
@@ -2189,12 +2189,12 @@ subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwor
             iiorb=orbs%isorb+iorb
             ilr=orbs%inwhichlocreg(iiorb)
 
-            call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi_c(i_c+1),1,psi(i_tot+1),1)
+            call vcopy(lzd%llr(ilr)%wfd%nvctr_c,psi_c(i_c+1),1,psi(i_tot+1),1)
 
             i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
             i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
             
-            call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
+            call vcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
 
 
             i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
@@ -2205,7 +2205,7 @@ subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwor
     !!$omp end parallel 
 
     else
-        call dcopy(collcom%ndimpsi_c, psi_c, 1, psi, 1)
+        call vcopy(collcom%ndimpsi_c, psi_c(1), 1, psi(1), 1)
     end if
   
   iall=-product(shape(psi_c))*kind(psi_c)

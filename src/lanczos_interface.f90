@@ -356,16 +356,16 @@ nullify(Qvect,dumQvect)
      integer, intent(in) :: i,j
 
      if( i.ge.0 .and. j.ge.0) then
-        call dcopy(EP_dim,Qvect(1,j),1,Qvect(1,i),1)
+        call vcopy(EP_dim,Qvect(1,j),1,Qvect(1,i),1)
         !Qvect(:,i)=Qvect(:,j)
      else  if( i.lt.0 .and. j.ge.0) then
-        call dcopy(EP_dim,Qvect(1,j),1,dumQvect(1,-i),1)
+        call vcopy(EP_dim,Qvect(1,j),1,dumQvect(1,-i),1)
         !dumQvect(:,-i)=Qvect(:,j)
      else  if( i.ge.0 .and. j.lt.0) then
-        call dcopy(EP_dim,dumQvect(1,-j),1,Qvect(1,i),1)
+        call vcopy(EP_dim,dumQvect(1,-j),1,Qvect(1,i),1)
         !Qvect(:,i)=dumQvect(:,-j)
      else 
-        call dcopy(EP_dim,dumQvect(1,-j),1,dumQvect(1,-i),1)
+        call vcopy(EP_dim,dumQvect(1,-j),1,dumQvect(1,-i),1)
         !dumQvect(:,-i)=dumQvect(:,-j)
      endif
 
@@ -929,7 +929,7 @@ nullify(Qvect,dumQvect)
      !!$       wrk(ind+7)=Qvect_tmp(ind+7)*scal(7)       !  2 2 2
      !!$    enddo
 
-     call dcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
+     call vcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
 
 
      if( dopcproj) then

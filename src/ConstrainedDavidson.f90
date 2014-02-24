@@ -419,7 +419,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! copy hv => g, as we keep hv for later
      !
-     call dcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv,1,g,1)  
+     call vcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv(1),1,g(1),1)  
      !
      ! substract g = g - v*<v|H|v>/<v|P|v>
      !
@@ -725,7 +725,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
                 !
                 ! copy best case in first part of hamovr
                 !
-                call dcopy(2*norb,VR(1+(imin-1)*2*norb),1,hamovr(ish1+(iorb-1)*2*norb),1)
+                call vcopy(2*norb,VR(1+(imin-1)*2*norb),1,hamovr(ish1+(iorb-1)*2*norb),1)
                 !
                 ! store energy in e and scratch ew(imin)
                 ! 
