@@ -845,3 +845,28 @@ sparsity:
  Total ionic charge: 1.3e-11
  charge diff: 1.1e-10
  energy: 2.4e-10
+
+PBE_densmixlin:
+ Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
+  - found warnings
+
+PBE_potmixlin:
+ Epot: 1.1e-10
+ Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
+  - found warnings
+
+PBE_potmixdiis:
+ Atomic Forces (Ha/Bohr): 6.4e-10
+ Clean forces norm (Ha/Bohr): 6.4e-10
+ Raw forces norm (Ha/Bohr): 3.3e-10
+ Average noise forces: 6.4e-10
+ Epot: 3.3e-10
+ Orbitals: 5.5e-9
+ energy: 7.3e-9
+ EXC: 3.3e-10
+ EvXC: 3.3e-10
+ Omega: 6.4e-10
+ Epot: 5.5e-9
+ EH: 1.8e-9
