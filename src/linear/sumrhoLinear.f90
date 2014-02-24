@@ -1350,7 +1350,9 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
   allocate(indexrecvorbital2(ndimind), stat=istat)
   call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
 
-  call vcopy(ndimind, indexrecvorbital(1), 1, indexrecvorbital2(1), 1)
+  if (ndimind>0) then
+      call vcopy(ndimind, indexrecvorbital(1), 1, indexrecvorbital2(1), 1)
+  end if
 
   !$omp parallel default(none) &
   !$omp shared(ndimind, iextract, indexrecvorbital, indexrecvorbital2) private(i, ind)
@@ -1454,112 +1456,126 @@ subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatt
   character(len=*),parameter :: subname='communication_arrays_repartitionrho_general'
 
   ! Local variables
-  integer :: i1, i2, i3, ii, jproc, jproc_send, iidest, nel, ioverlaps, istat, ierr
+  integer :: i1, i2, i3, ii, jproc, jproc_send, iidest, nel, ioverlaps, istat, ierr, iassign
   logical :: started
   integer,dimension(:),allocatable :: nel_array
 
   call f_routine(id='nel_array')
 
-  ! First process from which iproc has to receive data
-  ncomms_repartitionrho=0
-  i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
-  ii=(i3)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)+1
-  do jproc=nproc-1,0,-1
-      if (ii>=istartend(1,jproc)) then
-          jproc_send=jproc
-          ncomms_repartitionrho=ncomms_repartitionrho+1
-          exit
-      end if
-  end do
-
-
-
-  ! The remaining processes
-  iidest=0
-  nel=0
-  started=.false.
-  do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
-      ii=(i3-1)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)
-      do i2=1,lzd%glr%d%n2i
-          do i1=1,lzd%glr%d%n1i
-              ii=ii+1
-              iidest=iidest+1
-              if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
-                  nel=nel+1
-              else
-                  jproc_send=jproc_send+1
-                  ncomms_repartitionrho=ncomms_repartitionrho+1
-              end if
+  ! only do this if task iproc has to receive a part of the potential
+  if (nscatterarr(iproc,1)>0) then
+    
+    
+      ! First process from which iproc has to receive data
+      ncomms_repartitionrho=0
+      i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+      ii=(i3)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)+1
+      do jproc=nproc-1,0,-1
+          if (ii>=istartend(1,jproc)) then
+              jproc_send=jproc
+              ncomms_repartitionrho=ncomms_repartitionrho+1
+              exit
+          end if
+      end do
+    
+    
+    
+      ! The remaining processes
+      iidest=0
+      nel=0
+      started=.false.
+      do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          ii=(i3-1)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)
+          do i2=1,lzd%glr%d%n2i
+              do i1=1,lzd%glr%d%n1i
+                  ii=ii+1
+                  iidest=iidest+1
+                  if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
+                      nel=nel+1
+                  else
+                      jproc_send=jproc_send+1
+                      ncomms_repartitionrho=ncomms_repartitionrho+1
+                  end if
+              end do
           end do
       end do
-  end do
-
-
-  allocate(commarr_repartitionrho(4,ncomms_repartitionrho),stat=istat)
-  call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
-
-
-  ! First process from which iproc has to receive data
-  ioverlaps=0
-  i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
-  ii=(i3)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)+1
-  do jproc=nproc-1,0,-1
-      if (ii>=istartend(1,jproc)) then
-          jproc_send=jproc
-          ioverlaps=ioverlaps+1
-          exit
-      end if
-  end do
-
-
-  ! The remaining processes
-  iidest=0
-  nel=0
-  started=.false.
-  do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
-      ii=(i3-1)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)
-      do i2=1,lzd%glr%d%n2i
-          do i1=1,lzd%glr%d%n1i
-              ii=ii+1
-              iidest=iidest+1
-              if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
-                  nel=nel+1
-              else
-                  commarr_repartitionrho(4,ioverlaps)=nel
-                  jproc_send=jproc_send+1
-                  ioverlaps=ioverlaps+1
-                  nel=1
-                  started=.false.
-              end if
-              if (.not.started) then
-                  commarr_repartitionrho(1,ioverlaps)=jproc_send
-                  commarr_repartitionrho(2,ioverlaps)=ii-istartend(1,jproc_send)+1
-                  commarr_repartitionrho(3,ioverlaps)=iidest
-                  started=.true.
-              end if
+    
+    
+      allocate(commarr_repartitionrho(4,ncomms_repartitionrho),stat=istat)
+      call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
+    
+    
+      ! First process from which iproc has to receive data
+      ioverlaps=0
+      i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+      ii=(i3)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)+1
+      do jproc=nproc-1,0,-1
+          if (ii>=istartend(1,jproc)) then
+              jproc_send=jproc
+              ioverlaps=ioverlaps+1
+              exit
+          end if
+      end do
+    
+    
+      ! The remaining processes
+      iassign=0
+      iidest=0
+      nel=0
+      started=.false.
+      do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          ii=(i3-1)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)
+          do i2=1,lzd%glr%d%n2i
+              do i1=1,lzd%glr%d%n1i
+                  ii=ii+1
+                  iidest=iidest+1
+                  if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
+                      nel=nel+1
+                  else
+                      commarr_repartitionrho(4,ioverlaps)=nel
+                      jproc_send=jproc_send+1
+                      ioverlaps=ioverlaps+1
+                      nel=1
+                      started=.false.
+                  end if
+                  if (.not.started) then
+                      if (jproc_send>=nproc) stop 'ERROR: jproc_send>=nproc'
+                      commarr_repartitionrho(1,ioverlaps)=jproc_send
+                      commarr_repartitionrho(2,ioverlaps)=ii-istartend(1,jproc_send)+1
+                      commarr_repartitionrho(3,ioverlaps)=iidest
+                      started=.true.
+                      iassign=iassign+1
+                  end if
+              end do
           end do
       end do
-  end do
-  commarr_repartitionrho(4,ioverlaps)=nel
-  if (ioverlaps/=ncomms_repartitionrho) stop 'ERROR: ioverlaps/=ncomms_repartitionrho'
+      commarr_repartitionrho(4,ioverlaps)=nel
+      if (ioverlaps/=ncomms_repartitionrho) stop 'ERROR: ioverlaps/=ncomms_repartitionrho'
+      if (iassign/=ncomms_repartitionrho) stop 'ERROR: iassign/=ncomms_repartitionrho'
+    
+      ! some checks
+      nel=0
+      !nel_array=f_malloc0(0.to.nproc-1,id='nel_array')
+      do ioverlaps=1,ncomms_repartitionrho
+          nel=nel+commarr_repartitionrho(4,ioverlaps)
+          ii=commarr_repartitionrho(1,ioverlaps)
+          !nel_array(ii)=nel_array(ii)+commarr_repartitionrho(4,ioverlaps)
+      end do
+      if (nel/=nscatterarr(iproc,1)*lzd%glr%d%n2i*lzd%glr%d%n1i) then
+          stop 'nel/=nscatterarr(iproc,2)*lzd%glr%d%n2i*lzd%glr%d%n1i'
+      end if
+      !!call mpiallred(nel_array(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!if (nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1) then
+      !!    !stop 'nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1'
+      !!end if
+      !!call f_free(nel_array)
 
-  ! some checks
-  nel=0
-  nel_array=f_malloc0(0.to.nproc-1,id='nel_array')
-!  nel_array=0
-  do ioverlaps=1,ncomms_repartitionrho
-      nel=nel+commarr_repartitionrho(4,ioverlaps)
-      ii=commarr_repartitionrho(1,ioverlaps)
-      nel_array(ii)=nel_array(ii)+commarr_repartitionrho(4,ioverlaps)
-  end do
-  if (nel/=nscatterarr(iproc,1)*lzd%glr%d%n2i*lzd%glr%d%n1i) then
-      stop 'nel/=nscatterarr(iproc,2)*lzd%glr%d%n2i*lzd%glr%d%n1i'
+  else
+      ncomms_repartitionrho=0
+      allocate(commarr_repartitionrho(1,1),stat=istat)
+      call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
+
   end if
-  call mpiallred(nel_array(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1) then
-      !stop 'nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1'
-  end if
-  call f_free(nel_array)
 
 
 end subroutine communication_arrays_repartitionrho_general
