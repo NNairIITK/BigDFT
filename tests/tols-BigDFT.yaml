@@ -853,3 +853,13 @@ PBE_densmixlin:
 PBE_potmixlin:
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
+
+PBE_potmixdiis:
+ Atomic Forces (Ha/Bohr): 3.3e-10
+ Clean forces norm (Ha/Bohr): 3.3e-10
+ Raw forces norm (Ha/Bohr): 3.3e-10
+ Epot: 3.3e-10
+ Orbitals: 3.3e-10
+ energy: 3.3e-10
+ EXC: 3.3e-10
+ EvXC: 3.3e-10
