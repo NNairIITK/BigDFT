@@ -76,12 +76,10 @@ subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
   ! Offset to calculate the change in the density / potential. Since the density
   ! contains some buffer in the case of GGA, a non-zero shift is required. For the
   ! potential, however, no buffers are present, so no shift is needed.
-  if (mix_mode==LINEAR_MIXDENS_SIMPLE) then
-      ioffset=glr%d%n1i*glr%d%n2i*denspot%dpbox%i3xcsh
-  else if (mix_mode==LINEAR_MIXPOT_SIMPLE) then
+  if (mix_mode==LINEAR_MIXPOT_SIMPLE) then
       ioffset=0
-  else
-      stop 'ERROR: illegal mixing mode'
+  else 
+      ioffset=glr%d%n1i*glr%d%n2i*denspot%dpbox%i3xcsh
   end if
 
 
