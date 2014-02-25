@@ -546,8 +546,8 @@ water_foe:
  etot: 1.6e-10
  D: 1.1e-9
  charge diff: 2.1e-9
- eF: 1.2e-8
- D eF: 1.1e-8
+ eF: 2.3e-8
+ D eF: 2.3e-8
  D Tr: 3.1e-11
 
 water_dirmin:
