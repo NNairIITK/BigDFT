@@ -341,7 +341,7 @@ experimentalmode:
  EvXC: 4.6e-05
  energy: 7.6e-07
  multiplicator for the confinement: 4.4e-07
- Atomic Forces (Ha/Bohr): 1.1e-07
+ Atomic Forces (Ha/Bohr): 1.2e-07
  Raw forces norm (Ha/Bohr): 1.1e-7
  Clean forces norm (Ha/Bohr): 1.1e-07
  Orbitals: 1.1e-04
@@ -671,26 +671,26 @@ experimentalfoe_long:
  Atomic Forces (Ha/Bohr): 8.1e-06
  Clean forces norm (Ha/Bohr): 7.8e-06
  Average noise forces: 2.7e-6
- Raw forces norm (Ha/Bohr): 7.0e-6
- EH: 1.7e-3
- EXC: 2.2e-04
+ Raw forces norm (Ha/Bohr): 9.2e-6
+ EH: 1.9e-3
+ EXC: 2.5e-04
  Ekin: 6.1e-6
- Enl: 5.2e-6
- Epot: 1.6e-3
- EvXC: 2.8e-4
+ Enl: 6.1e-6
+ Epot: 1.9e-3
+ EvXC: 3.2e-4
  eF: 2.5e-05
- tr(KS) before purification: 8.5e-6
- Tr(K): 7.0e-4
- Total charge: 6.1e-10
+ tr(KS) before purification: 9.5e-6
+ Tr(K): 8.0e-4
+ Total charge: 8.1e-10
  Total ionic charge: 1.6e-11
  D Tr: 7.0e-04
  D eF: 2.5e-05
- multiplicator for the confinement: 1.8e-5
- energy: 1.0e-4
- Omega: 5.7e-04
+ multiplicator for the confinement: 2.0e-5
+ energy: 1.2e-4
+ Omega: 6.6e-04
  charge diff: 7.0e-4
  D: 1.1e-4
- Kohn-Sham residue: 1.5e-04
+ Kohn-Sham residue: 1.8e-04
  delta: 1.1e-10
  kappa: 1.1e-4
  mean kappa: 1.1e-4
