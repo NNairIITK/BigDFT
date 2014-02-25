@@ -885,6 +885,11 @@ subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_
         lwork = int(work(1))
         call f_free(work)
         work=f_malloc(lwork,id='work')
+           !!do iorb=1,norb
+           !!   do jorb=1,norb
+           !!      write(2000+bigdft_mpi%iproc,'(a,3i8,es16.7)') 'iproc, iorb, jorb, val', bigdft_mpi%iproc, iorb, jorb, inv_ovrlp_half(jorb,iorb)
+           !!   end do
+           !!end do
         call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, lwork, info)
         if (check_lapack) then
            tempArr=f_malloc((/norb,norb/), id='tempArr')
