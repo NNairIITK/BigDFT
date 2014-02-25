@@ -842,7 +842,7 @@ call f_routine(id=subname)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
   allocate(scalprod(2,0:9,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
-  if (orbs%norbp>0) then
+  if (2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor>0) then
       call to_zero(2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
   end if
 

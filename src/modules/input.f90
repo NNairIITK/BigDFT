@@ -1847,6 +1847,12 @@ contains
     call input_var("kappa_conv", 0.1d0, "exit kappa for extended input guess (experimental mode)", dummy_real)
     call set(dict // KAPPA_CONV, dummy_real)
 
+    call input_var("evbounds_nsatur", 3, "number of FOE cycles before the eigenvalue bounds are shrinked", dummy_int)
+    call set(dict // EVBOUNDS_NSATUR, dummy_int)
+
+    call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
+    call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

@@ -668,7 +668,7 @@ linearcubic_linear:
  Omega: 1.82e-10
 
 experimentalfoe_long:
- Atomic Forces (Ha/Bohr): 1.2e-05
+ Atomic Forces (Ha/Bohr): 1.3e-05
  Clean forces norm (Ha/Bohr): 1.2e-05
  Average noise forces: 3.3e-6
  Raw forces norm (Ha/Bohr): 9.2e-6

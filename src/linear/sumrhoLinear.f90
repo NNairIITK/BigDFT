@@ -1057,9 +1057,6 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
   character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
 
-  do jproc=0,nproc-1
-  if (iproc==0) write(*,'(a,i6,2i12)') 'determine_communication_arrays_sumrho: jproc, istartend(:,jproc)', jproc, istartend(:,jproc)
-  end do
 
   call to_zero(nproc,nsendcounts(0))
 
@@ -2170,7 +2167,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   nxyz=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  if (iproc==0) write(*,*) 'before filling'
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Fill the direct array with a recognizable pattern
@@ -2207,7 +2203,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   end if
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  if (iproc==0) write(*,*) 'after filling'
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Rearrange data
@@ -2229,7 +2224,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_free(psirtwork)
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  if (iproc==0) write(*,*) 'after communicate'
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Check the layout of the transposed data
@@ -2275,7 +2269,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   end if
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  if (iproc==0) write(*,*) 'after check'
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Get mean value for the sum

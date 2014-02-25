@@ -49,7 +49,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8) :: trace_sparse
   integer :: irow, icol, itemp, matrixindex_in_compressed, iflag
-  logical :: overlap_calculated, cycle_FOE
+  logical :: overlap_calculated, cycle_FOE, evbounds_shrinked
 
 
   allocate(tmb%linmat%inv_ovrlp_large%matrix_compr(tmb%linmat%inv_ovrlp_large%nvctr), stat=istat)
@@ -130,6 +130,16 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
 
   fscale=foe_obj%fscale/0.5d0 ! this will be undone in the first iteration of the following loop
+
+  ! try to decrease the eigenvalue spectrum a bit
+  if (foe_obj%evbounds_isatur>foe_obj%evbounds_nsatur .and. &
+      foe_obj%evboundsshrink_isatur<=foe_obj%evboundsshrink_nsatur) then
+      foe_obj%evlow=0.9d0*foe_obj%evlow
+      foe_obj%evhigh=0.9d0*foe_obj%evhigh
+      evbounds_shrinked=.true.
+  else
+      evbounds_shrinked=.false.
+  end if
 
   ntemp=4
 
@@ -415,6 +425,11 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               call memocc(istat, iall, 'cc', subname)
     
               if (restart) then
+                  if(evbounds_shrinked) then
+                      ! this shrink was not good, increase the saturation counter
+                      foe_obj%evboundsshrink_isatur=foe_obj%evboundsshrink_isatur+1
+                  end if
+                  foe_obj%evbounds_isatur=0
                   if (iproc==0) then
                       call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
@@ -424,6 +439,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                   cycle
               end if
                   
+              ! eigenvalue bounds ok
+              if (calculate_SHS) then
+                  foe_obj%evbounds_isatur=foe_obj%evbounds_isatur+1
+              end if
             
     
               sumn=0.d0

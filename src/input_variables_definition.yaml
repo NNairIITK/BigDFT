@@ -628,4 +628,9 @@
    kappa_conv:
      COMMENT: exit kappa for extended input guess (experimental mode)
      default: 0.1
-
+   evbounds_nsatur:
+     COMMENT: number of FOE cycles before the eigenvalue bounds are shrinked
+     default: 3
+   evboundsshrink_nsatur:
+     COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
+     default: 4
