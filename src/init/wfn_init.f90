@@ -1045,7 +1045,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    ! Calling arguments
    integer,intent(in):: iproc, nproc, nspin, nspinor, sizePsi, natsc, ndim_hamovr, norbsc
    integer, dimension(natsc+1,nspin), intent(in) :: norbscArr
-   type(orbitals_data), intent(in) :: orbs
+   type(orbitals_data), intent(inout) :: orbs
    !real(kind=8),dimension(norbtot*norbtot*nspinor,nspin,2,orbs%nkpts),intent(in):: hamovr
    real(kind=8),dimension(ndim_hamovr,nspin,2,orbs%nkpts),intent(inout):: hamovr
    real(kind=8),dimension(sizePsi),intent(in):: psi
