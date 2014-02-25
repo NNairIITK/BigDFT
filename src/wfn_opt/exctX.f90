@@ -732,7 +732,6 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
   real(wp), dimension(:), allocatable :: rp_ij
   real(wp), dimension(:,:), allocatable :: psir
   real(wp), dimension(:,:,:,:), allocatable :: psiw,dpsiw
-  integer,dimension(1) :: iiarr
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
@@ -1062,11 +1061,10 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
   call memocc(i_stat,rp_ij,'rp_ij',subname)
   
   !this is the array of the actions of the X potential on psi
-  iiarr=maxval(orbs%norb_par,1)
-  ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*iiarr(1)*2*ngroupp
+  ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp
   !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*2*ngroupp,psiw(1,1,1,1))
   call to_zero(ii,psiw(1,1,1,1))
-  ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*iiarr(1)*3*ngroupp
+  ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp
   !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*3*ngroupp,dpsiw(1,1,1,1))
   call to_zero(ii,dpsiw(1,1,1,1))
   
@@ -1116,8 +1114,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
      do igroup=1,ngroupp
         if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
            !put to zero the sending element
-           iiarr=maxval(orbs%norb_par,1)
-           ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*iiarr(1)
+           ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))
            !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1),dpsiw(1,1,3,igroup))
            call to_zero(ii,dpsiw(1,1,3,igroup))
         end if

@@ -670,31 +670,31 @@ linearcubic_linear:
 experimentalfoe_long:
  Atomic Forces (Ha/Bohr): 1.2e-05
  Clean forces norm (Ha/Bohr): 1.2e-05
- Average noise forces: 2.7e-6
+ Average noise forces: 3.3e-6
  Raw forces norm (Ha/Bohr): 9.2e-6
- EH: 1.9e-3
- EXC: 2.5e-04
- Ekin: 6.1e-6
- Enl: 6.1e-6
- Epot: 1.9e-3
- EvXC: 3.2e-4
+ EH: 2.1e-3
+ EXC: 2.7e-04
+ Ekin: 7.3e-6
+ Enl: 6.7e-6
+ Epot: 2.0e-3
+ EvXC: 3.5e-4
  eF: 2.5e-05
- tr(KS) before purification: 9.5e-6
- Tr(K): 8.0e-4
+ tr(KS) before purification: 1.1e-5
+ Tr(K): 8.7e-4
  Total charge: 8.1e-10
  Total ionic charge: 1.6e-11
- D Tr: 7.1e-04
+ D Tr: 8.6e-04
  D eF: 2.5e-05
- multiplicator for the confinement: 2.0e-5
- energy: 1.2e-4
- Omega: 6.6e-04
- charge diff: 7.2e-4
- D: 1.1e-4
- Kohn-Sham residue: 1.8e-04
+ multiplicator for the confinement: 2.1e-5
+ energy: 1.3e-4
+ Omega: 7.2e-04
+ charge diff: 8.7e-4
+ D: 1.2e-4
+ Kohn-Sham residue: 1.9e-04
  delta: 1.1e-10
  kappa: 1.1e-4
  mean kappa: 1.1e-4
- diff from idempotency: 1.1e-9
+ diff from idempotency: 1.1e-6
  delta out: 1.1e-10
 
 experimentalfoe_short:
