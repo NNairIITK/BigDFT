@@ -440,7 +440,9 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       stop 
    end if
 
-   call to_zero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff(1,1,1))
+   if (orbse%norbp*orbse%nspinor*G%ncoeff>0) then
+       call to_zero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff(1,1,1))
+   end if
 
    !allocate and assign the exponents and the coefficients
    allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)

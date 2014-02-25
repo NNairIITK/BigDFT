@@ -749,7 +749,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
           if (iproc==0) call yaml_map('kappa',ratio_deltas,fmt='(es10.3)')
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-              if (ratio_deltas>0.d0) then
+              !if (ratio_deltas>0.d0) then
+              if (ratio_deltas>1.d-12) then
                   if (iproc==0) call yaml_map('kappa to history',.true.)
                   nkappa_history=nkappa_history+1
                   ii=mod(nkappa_history-1,3)+1
