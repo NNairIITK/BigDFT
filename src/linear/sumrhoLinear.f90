@@ -885,7 +885,7 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
       outer_loop: do jproc_out=0,nproc-1
           if (tt+weights_per_slice(jproc_out)<weights_startend(1,iproc)) then
               tt=tt+weights_per_slice(jproc_out)
-              ii=ii+nscatterarr(jproc_out,1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+              ii=ii+nscatterarr(jproc_out,2)*lzd%glr%d%n1i*lzd%glr%d%n2i
               cycle outer_loop
           end if
           i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,2)
@@ -976,7 +976,9 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   real(8) :: tt, weight_check
 
 
-  call to_zero(nptsp, norb_per_gridpoint(1))
+  if (nptsp>0) then
+      call to_zero(nptsp, norb_per_gridpoint(1))
+  end if
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
           (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
@@ -1055,6 +1057,9 @@ subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs,
   integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
   character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
 
+  do jproc=0,nproc-1
+  if (iproc==0) write(*,'(a,i6,2i12)') 'determine_communication_arrays_sumrho: jproc, istartend(:,jproc)', jproc, istartend(:,jproc)
+  end do
 
   call to_zero(nproc,nsendcounts(0))
 
@@ -2155,12 +2160,18 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_routine(id='check_communication_sumrho')
 
   ! Allocate all the main arrays arrays
-  psir=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c') !direct array
-  psirwork=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c') !direct workarray
+  psir=f_malloc(collcom_sr%ndimpsi_c,id='psir') !direct array
+
+  psirwork=f_malloc(collcom_sr%ndimpsi_c,id='psirwork') !direct workarray
+
   psirtwork=f_malloc(collcom_sr%ndimind_c,id='psirtwork') !transposed workarray
 
   ! Size of global box
   nxyz=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  if (iproc==0) write(*,*) 'before filling'
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Fill the direct array with a recognizable pattern
   ist=0
@@ -2195,6 +2206,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       stop
   end if
 
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  if (iproc==0) write(*,*) 'after filling'
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Rearrange data
   call transpose_switch_psir(collcom_sr, psir, psirwork)
@@ -2214,6 +2228,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   ! Transposed workarray not needed anymore
   call f_free(psirtwork)
 
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  if (iproc==0) write(*,*) 'after communicate'
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Check the layout of the transposed data
   maxdiff=0.d0
@@ -2257,6 +2274,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   end if
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  if (iproc==0) write(*,*) 'after check'
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Get mean value for the sum
   sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i)
@@ -2507,8 +2527,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       rj=real(j,kind=8)
       rn=real(n,kind=8)
       !test_value=fac*real((i-1)*n+j,dp)
-      !test_value=fac*(ri-1.d0)*rn+rj
+      !test_value_sumrho=fac*(ri-1.d0)*rn+rj
       test_value_sumrho=sine_taylor((ri-1.d0)*rn)*cosine_taylor(rj)
+      !test_value_sumrho=0.d0
 
     end function test_value_sumrho
 
@@ -2520,7 +2541,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8) :: sine_taylor
 
       ! Local variables
-      real(kind=8) :: x, x2, x3, x5, x7, x9, x11, x13, x15
+      real(kind=8) :: xxtmp, x, x2, x3, x5, x7, x9, x11, x13, x15
       real(kind=8),parameter :: pi=3.14159265358979323846d0
       real(kind=8),parameter :: pi2=6.28318530717958647693d0
       real(kind=8),parameter :: inv6=1.66666666666666666667d-1
@@ -2532,9 +2553,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8),parameter :: inv1307674368000=7.6471637318198164759d-13
 
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
+      ! This first part is equivalent to x=mod(xx,pi2)-pi
       x=xx/pi2
-      x=real(int(x),kind=8)*pi2
+      x=real(int(x,kind=8),kind=8)*pi2
       x=xx-x-pi
+
       x2=x*x
       x3=x2*x
       x5=x3*x2
@@ -2573,10 +2596,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8),parameter :: inv87178291200=1.14707455977297247139d-11
 
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
-      !x=mod(xx,pi2)-pi
+      ! This first part is equivalent to x=mod(xx,pi2)-pi
       x=xx/pi2
-      x=real(int(x),kind=8)*pi2
+      x=real(int(x,kind=8),kind=8)*pi2
       x=xx-x-pi
+
       x2=x*x
       x4=x2*x2
       x6=x4*x2
