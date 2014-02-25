@@ -354,6 +354,12 @@ module module_types
 
      !> linear scaling: exit kappa for extended input guess (experimental mode)
      real(kind=8) :: kappa_conv
+
+     !> linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+     integer :: evbounds_nsatur
+
+     !> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+     integer :: evboundsshrink_nsatur
   end type input_variables
 
   !> Contains all energy terms
@@ -603,6 +609,7 @@ module module_types
     real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
     real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
     real(kind=8) :: charge !total charge of the system
+    integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
 !!$  type, public :: sparseMatrix_metadata
@@ -2681,6 +2688,12 @@ end subroutine bigdft_init_errors
     case (KAPPA_CONV)
        ! linear scaling: exit kappa for extended input guess (experimental mode)
        in%kappa_conv = val
+   case (EVBOUNDS_NSATUR)
+       ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+       in%evbounds_nsatur = val
+   case(EVBOUNDSSHRINK_NSATUR)
+       ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+       in%evboundsshrink_nsatur = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

@@ -248,6 +248,10 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
      do iorb=1,orbs_KS%norb
           foe_obj%charge=foe_obj%charge+orbs_KS%occup(iorb)
      end do
+     foe_obj%evbounds_isatur=0
+     foe_obj%evboundsshrink_isatur=0
+     foe_obj%evbounds_nsatur=input%evbounds_nsatur
+     foe_obj%evboundsshrink_nsatur=input%evboundsshrink_nsatur
   end if
 
   call nullify_foe(foe_obj)
