@@ -13,28 +13,12 @@ module module_fragments
   use module_base, only: gp,wp
   use module_types
   use dynamic_memory
+  use module_atoms
   implicit none
 
   private
 
-  !interface operator(*)
-  !   module procedure transform_fragment
-  !end interface
-
    interface
-      subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: file
-         integer, intent(in) :: iproc
-         type(atomic_structure), intent(inout) :: astruct
-         integer, intent(out), optional :: status
-         real(gp), intent(out), optional :: energy
-         real(gp), dimension(:,:), pointer, optional :: fxyz
-         character(len =*), intent(out), optional :: comment
-      END SUBROUTINE read_atomic_file
-
       subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
                  basis_overlap, coeff, orbs)
         use module_base
@@ -177,7 +161,7 @@ contains
     frag=fragment_null()
 
     ! read fragment positions
-    call read_atomic_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
+    call set_astruct_from_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
 
     ! iproc, nproc, nspinor not needed yet, add in later
     call init_minimal_orbitals_data(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, input, frag%astruct_frg, &
@@ -529,7 +513,7 @@ contains
     indr=1
 
     gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
-    call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+    call razero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
     call initialize_work_arrays_sumrho(tmb%lzd%glr, w)
     psir=f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i*frag%fbasis%forbs%norb,id='psir')
 
@@ -563,7 +547,7 @@ contains
     hzh=.5d0*tmb%lzd%hgrids(3)
     factor=1.d0/(hxh*hyh*hzh)
     total_charge=0.d0
-    !call to_zero(ndimrho,frag%fbasis%density)
+    !call razero(ndimrho,frag%fbasis%density)
     do ipt=1,ndimrho
        tt=1.e-20_dp
        do iiorb=1,frag%fbasis%forbs%norb
@@ -708,18 +692,13 @@ contains
   subroutine fragment_free(frag)
     implicit none
     type(system_fragment), intent(inout) :: frag
-    character(len=200) :: subname
 
-    subname='fragment_free'
-
-    call deallocate_atomic_structure(frag%astruct_frg,subname)
+    call deallocate_atomic_structure(frag%astruct_frg)
     frag%astruct_frg=atomic_structure_null()
-    call f_routine(id='fragment_free')
-    if (associated(frag%rxyz_env)) call f_free_ptr(frag%rxyz_env)
-    if (associated(frag%coeff)) call f_free_ptr(frag%coeff)
-    if (associated(frag%kernel)) call f_free_ptr(frag%kernel)
-    if (associated(frag%eval)) call f_free_ptr(frag%eval)
-    call f_release_routine()
+    call f_free_ptr(frag%rxyz_env)
+    call f_free_ptr(frag%coeff)
+    call f_free_ptr(frag%kernel)
+    call f_free_ptr(frag%eval)
     call fragment_basis_free(frag%fbasis)
     frag=fragment_null()
 
@@ -1152,14 +1131,14 @@ contains
     ! copy from coeff fragment to global coeffs - occupied states only
     isforb=0
     jsforb=0
-    call to_zero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
-    !*call to_zero(tmb%linmat%denskern%nvctr,kernel_final(1))
+    call razero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
+    !*call razero(tmb%linmat%denskern%nvctr,kernel_final(1))
     tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
     call uncompressMatrix(iproc,tmb%linmat%ovrlp)
     do ifrag=1,input%frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
-       call to_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
+       call razero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
        jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp+num_extra_per_frag
        !jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
@@ -1214,7 +1193,7 @@ contains
        !end do
        ! end debug
 
-       !call to_zero(tmb%linmat%denskern%nvctr,tmb%linmat%denskern%matrix_compr(1))
+       !call razero(tmb%linmat%denskern%nvctr,tmb%linmat%denskern%matrix_compr(1))
 
        ! should correct the occupation for kernel here, but as we replace the smaller kernel with the correct bigger kernel
        ! don't worry about this for now
@@ -1258,7 +1237,7 @@ contains
     end do
     call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
-    !*call vcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
+    !*call dcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
     call vcopy(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1),1,tmb%coeff(1,1),1)
 
     !*call f_free(kernel_final)
@@ -1372,17 +1351,17 @@ contains
        ! reorder ksorbs%norb states by energy - no longer taking charge as input
        call order_coeffs_by_energy(ksorbs%norb,tmb%orbs%norb,tmb%coeff(1,1),eval_tmp(1),ipiv(1))!,tmb%orbs%eval(1))
                !eval_tmp2=f_malloc(tmb%orbs%norb,id='eval_tmp2')
-               !call vcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,eval_tmp2(1),1)
+               !call dcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,eval_tmp2(1),1)
                !do itmb=1,ksorbs%norb
                !   tmb%orbs%occup(itmb)=eval_tmp2(ipiv(itmb))
                !end do
-               !call vcopy(tmb%orbs%norb,tmb%orbs%eval(1),1,eval_tmp2(1),1)
-               !call vcopy(tmb%orbs%norb,eval_tmp(1),1,tmb%orbs%eval(1),1)
+               !call dcopy(tmb%orbs%norb,tmb%orbs%eval(1),1,eval_tmp2(1),1)
+               !call dcopy(tmb%orbs%norb,eval_tmp(1),1,tmb%orbs%eval(1),1)
                !nullify(mom_vec_fake)
                !if (bigdft_mpi%iproc==0) then 
                !   call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
                !end if
-               !call vcopy(tmb%orbs%norb,eval_tmp2(1),1,tmb%orbs%eval(1),1)
+               !call dcopy(tmb%orbs%norb,eval_tmp2(1),1,tmb%orbs%eval(1),1)
                !call f_free(eval_tmp2)
        call vcopy(ksorbs%norb,tmb%orbs%eval(1),1,eval_tmp(1),1)
        do itmb=1,ksorbs%norb
