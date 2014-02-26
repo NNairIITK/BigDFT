@@ -167,6 +167,8 @@ if test x"$ac_build_dynamic" = x"yes" ; then
     done
     ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
   fi
+else
+  ax_flag_pic=""
 fi
 AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
@@ -405,6 +407,9 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Optional Cuda installation dir.
   AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
                          [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
+  if test x"$ac_with_cuda_path" = x"no" ; then
+    ac_with_cuda_path="/usr"
+  fi
   CUDA_PATH=$ac_with_cuda_path
   AC_SUBST(CUDA_PATH)
   dnl Test the existence of things.
@@ -452,15 +457,8 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AC_LANG_POP(C)
 
   dnl Add the flags.
-  AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-nvcc-flags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
-                         [ac_with_nvcc_flags=$withval],
-                         [ac_with_nvcc_flags="no"])
-  if test x"$ac_with_nvcc_flags" != x"no" ; then
-    NVCC_FLAGS="$ac_with_nvcc_flags"
-  else
-    if test -z "NVCC_FLAGS" ; then
-      NVCC_FLAGS="-O3 --compiler-options -fno-strict-aliasing"
-    fi
+  if test -z "NVCC_FLAGS" ; then
+    NVCC_FLAGS="-O3 --compiler-options '-fno-strict-aliasing $ax_flag_pic'"
   fi
   AC_SUBST(NVCC_FLAGS)
   LIBCUDA_LIBS="-lcudart -lcublas -lcufft"
@@ -902,10 +900,10 @@ end program]], withlibxcmod=yes, withlibxcmod=no)
       FCFLAGS=$FCFLAGS_SVG
         
       dnl Test the library of libXC.
-      LDFLAGS_SVG=$LDFLAGS
-      LDFLAGS="$LDFLAGS $ac_libxc_libdir"
+      LIBS_SVG=$LIBS
+      LIBS="$LIBS $ac_libxc_libdir"
       AC_CHECK_LIB(xc, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
-      LDFLAGS=$LDFLAGS_SVG
+      LIBS=$LIBS_SVG
   
       if test "$ac_use_libxc" = "yes" -a "$withlibxcmod" = "yes" ; then
         AC_SUBST(LIBXC_INCLUDE, $ac_libxc_incdir)
