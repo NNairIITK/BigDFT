@@ -440,6 +440,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3),save :: kappa_history
   integer,save :: nkappa_history
   logical,dimension(6) :: exit_loop
+  logical :: associated_psit_c, associated_psit_f
 
   call f_routine(id='getLocalizedBasis')
 
@@ -603,6 +604,47 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                hpsi_noconf, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+          !@NEW
+          if(associated(tmb%ham_descr%psit_c)) then
+              iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
+              deallocate(tmb%ham_descr%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+              associated_psit_c=.true.
+          else
+              associated_psit_c=.false.
+          end if
+          if(associated(tmb%ham_descr%psit_f)) then
+              iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
+              deallocate(tmb%ham_descr%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+              associated_psit_f=.true.
+          else
+              associated_psit_f=.false.
+          end if
+
+          allocate(tmb%ham_descr%psit_c(tmb%ham_descr%collcom%ndimind_c), stat=istat)
+          call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
+          allocate(tmb%ham_descr%psit_f(7*tmb%ham_descr%collcom%ndimind_f), stat=istat)
+          call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+          call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+               tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
+          call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+               tmb%ham_descr%psit_c, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ovrlp)
+          call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, 0.d0, &
+               energs%ebs, -1, -10, order_taylor, tmb)
+          if (.not.associated_psit_c) then
+              iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
+              deallocate(tmb%ham_descr%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+          end if
+          if (.not.associated_psit_f) then
+              iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
+              deallocate(tmb%ham_descr%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+          end if
+          !@ENDNEW
       else
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
@@ -953,11 +995,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
           else if (experimental_mode .and. .not.complete_reset) then
+              !if (iproc==0) then
+              !    call yaml_map('purify kernel',.true.)
+              !    call yaml_newline()
+              !end if
+              !call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor)
               if (iproc==0) then
-                  call yaml_map('purify kernel',.true.)
-                  call yaml_newline()
+                  call yaml_map('purify kernel',.false.)
               end if
-              call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor)
           end if
       end if
 

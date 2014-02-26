@@ -22,7 +22,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   integer,intent(in) :: iproc, nproc,itout,it_scc, order_taylor
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(inout) :: foe_obj
-  real(kind=8),intent(inout) :: tmprtr
+  real(kind=8),intent(in) :: tmprtr
   real(kind=8),intent(out) :: ebs
   type(DFT_wavefunction),intent(inout) :: tmb
 
