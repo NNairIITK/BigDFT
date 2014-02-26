@@ -928,7 +928,7 @@ end program]], withlibxcmod=yes, withlibxcmod=no)
     ac_use_libxc="yes"
     AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-2.0.x/src)
     LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-2.0.x/src/.libs"
-    LIBXC_LIBS="-lxc"
+    LIBXC_LIBS="-lxcf90 -lxc"
   fi
 else
   ac_use_libxc="no"
