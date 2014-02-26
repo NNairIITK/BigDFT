@@ -98,6 +98,8 @@
        100: Linear AO
        101: Linear restart
        102: Linear on disk
+     linear: 100
+     linear restart: 102
    output_wf:
      default: 0
      EXCLUSIVE:

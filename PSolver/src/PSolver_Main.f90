@@ -34,14 +34,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !!  it MUST be created by following the same geocode as the Poisson Solver.
    type(coulomb_operator), intent(in) :: kernel
    character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
-   !> Total integral on the supercell of the final potential on output
    !! To be used only in the periodic case, ignored for other boundary conditions.
    logical, intent(in) :: sumpion
-   !> Logical value which states whether to sum pot_ion to the final result or not
-   !!   .true.  rhopot will be the Hartree potential + pot_ion+vxci
+   !< Logical value which states whether to sum pot_ion to the final result or not
+   !!   .true.  rhopot will be the Hartree potential + pot_ion
    !!           pot_ion will be untouched
    !!   .false. rhopot will be only the Hartree potential
-   !!           pot_ion will be the XC potential vxci
+   !!           pot_ion will be ignored
+   !> Total integral on the supercell of the final potential on output
    real(dp), intent(in) :: offset
    real(gp), intent(out) :: eh !< Hartree Energy
    !> On input, it represents the density values on the grid points
@@ -383,9 +383,11 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 !!$        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
 !!$             rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
 !!$             kernel%mpi_env%mpi_comm,ierr)
-         call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
-              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-              kernel%mpi_env%mpi_comm,ierr)
+         call mpiallgatherv(rhopot(istglo), gather_arr(:,1), gather_arr(:,2), &
+              & kernel%mpi_env%iproc, kernel%mpi_env%mpi_comm,ierr)
+!!$         call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
+!!$              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!!$              kernel%mpi_env%mpi_comm,ierr)
          call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
          call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
      

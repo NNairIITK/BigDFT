@@ -46,7 +46,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(wp), dimension(:,:,:), pointer :: psigau
   integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
   logical,dimension(:),allocatable :: covered, type_covered
-  real(kind=8),dimension(:,:),allocatable :: aocc
+  !real(kind=8),dimension(:,:),allocatable :: aocc
+  integer, dimension(:,:), allocatable :: nl_copy 
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb
   integer :: infoCoeff, jproc
@@ -54,7 +55,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
   real(kind=8) :: rcov,rprb,ehomo,amu,pnrm
-  integer :: nsccode,mxpl,mxchg
+  integer :: nsccode,mxpl,mxchg,inl
   type(mixrhopotDIISParameters) :: mixdiis
   type(sparseMatrix) :: ham_small ! for FOE
   logical :: finished, can_use_ham
@@ -65,6 +66,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   logical :: ortho_on, reduce_conf
   type(localizedDIISParameters) :: ldiis
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+
+  call f_routine(id=subname)
 
   call nullify_orbitals_data(orbs_gauss)
   nullify(mom_vec_fake)
@@ -94,9 +97,16 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
 
   ! Keep the natural occupations
-  allocate(aocc(32,at%astruct%nat),stat=istat)
-  call memocc(istat,aocc,'aocc',subname)
-  call vcopy(32*at%astruct%nat, at%aocc(1,1), 1, aocc(1,1), 1)
+  
+  nl_copy=f_malloc((/0 .to. 3,1 .to. at%astruct%nat/),id='nl_copy')
+  do iat=1,at%astruct%nat
+     nl_copy(:,iat)=at%aoig(iat)%nl
+  end do
+
+!!$  allocate(aocc(32,at%astruct%nat),stat=istat)
+!!$  call memocc(istat,aocc,'aocc',subname)
+!!$  call vcopy(32*at%astruct%nat, at%aocc(1,1), 1, aocc(1,1), 1)
+
 
   ! Determine how many atomic orbitals we have. Maybe we have to increase this number to more than
   ! its 'natural' value.
@@ -104,33 +114,47 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ist=0
   do iat=1,at%astruct%nat
       ii=input%lin%norbsPerType(at%astruct%iatype(iat))
-      iadd=0
-      do 
-          ! Count the number of atomic orbitals and increase the number if necessary until we have more
-          ! (or equal) atomic orbitals than basis functions per atom.
-          jj=1*nint(at%aocc(1,iat))+3*nint(at%aocc(3,iat))+&
-               5*nint(at%aocc(7,iat))+7*nint(at%aocc(13,iat))
-          if(jj>=ii) then
-              ! we have enough atomic orbitals
-              exit
-          else
-              ! add additional orbitals
-              iadd=iadd+1
-              select case(iadd)
-                  case(1) 
-                      at%aocc(1,iat)=1.d0
-                  case(2) 
-                      at%aocc(3,iat)=1.d0
-                  case(3) 
-                      at%aocc(7,iat)=1.d0
-                  case(4) 
-                      at%aocc(13,iat)=1.d0
-                  case default 
-                      write(*,'(1x,a)') 'ERROR: more than 16 basis functions per atom are not possible!'
-                      stop
-              end select
-          end if
-      end do
+      jj=at%aoig(iat)%nao
+      if (jj < ii) then
+         call f_err_throw('The number of basis functions asked per type'//&
+              ' is exceeding the number of IG atomic orbitals'//&
+              ', modify the electronic configuration of input atom '//&
+              trim(at%astruct%atomnames(at%astruct%iatype(iat))),&
+              err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+         call f_release_routine()
+         return
+      end if
+
+!!$      iadd=0
+!!$      do 
+!!$          ! Count the number of atomic orbitals and increase the number if necessary until we have more
+!!$          ! (or equal) atomic orbitals than basis functions per atom.
+!!$         !jj=1*nint(at%aocc(1,iat))+3*nint(at%aocc(3,iat))+&
+!!$         !      5*nint(at%aocc(7,iat))+7*nint(at%aocc(13,iat))
+!!$         jj=sum(at%aoig(iat)%nl)
+!!$
+!!$          if(jj>=ii) then
+!!$              ! we have enough atomic orbitals
+!!$              exit
+!!$          else
+!!$             ! add additional orbitals
+!!$             iadd=iadd+1
+!!$             select case(iadd)
+!!$             case(1) 
+!!$                at%aocc(1,iat)=1.d0
+!!$             case(2) 
+!!$                at%aocc(3,iat)=1.d0
+!!$             case(3) 
+!!$                at%aocc(7,iat)=1.d0
+!!$             case(4) 
+!!$                at%aocc(13,iat)=1.d0
+!!$             case default 
+!!$                write(*,'(1x,a)') 'ERROR: more than 16 basis functions per atom are not possible!'
+!!$                stop
+!!$             end select
+!!$          end if
+!!$       end do
+
       norbsPerAt(iat)=jj
       norbat=norbat+norbsPerAt(iat)
   end do
@@ -376,11 +400,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 !!
 !!  ! #######################################################################
 
-
-
-
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
        tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,input%lin%potentialPrefac_ao)
+
   !!call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
   !!     tmb%lzd%nlr,norbsPerAt,mapping, &
   !!     tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,input%lin%potentialPrefac_ao)
@@ -412,7 +434,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call memocc(istat,iall,'psigau',subname)
 
   call deallocate_gwf(G,subname)
-
   ! Deallocate locrad, which is not used any longer.
   iall=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=istat)
@@ -525,7 +546,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
  else
-
      ! Iterative orthonomalization
      !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
      if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
@@ -544,20 +564,30 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
              itype=at%astruct%iatype(iat)
              if (type_covered(itype)) cycle
              type_covered(itype)=.true.
-             jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
-                  5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
+             !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
+             !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
+             jj=nl_copy(0,iat)+3*nl_copy(1,iat)+5*nl_copy(2,iat)+7*nl_copy(3,iat)
              maxorbs_type(itype)=jj
+             !should not enter in the conditional below due to the raise of the exception above
              if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
                  finished=.false.
-                 if (ceiling(aocc(1,iat))==0) then
-                     aocc(1,iat)=1.d0
-                 else if (ceiling(aocc(3,iat))==0) then
-                     aocc(3,iat)=1.d0
-                 else if (ceiling(aocc(7,iat))==0) then
-                     aocc(7,iat)=1.d0
-                 else if (ceiling(aocc(13,iat))==0) then
-                     aocc(13,iat)=1.d0
-                 end if
+                 increase_count: do inl=1,4
+                    if (nl_copy(inl,iat)==0) then
+                       nl_copy(inl,iat)=1
+                       call f_err_throw('InputguessLinear: Should not be here',&
+                            err_name='BIGDFT_RUNTIME_ERROR')
+                       exit increase_count
+                    end if
+                 end do increase_count
+!!$                 if (ceiling(aocc(1,iat))==0) then
+!!$                     aocc(1,iat)=1.d0
+!!$                 else if (ceiling(aocc(3,iat))==0) then
+!!$                     aocc(3,iat)=1.d0
+!!$                 else if (ceiling(aocc(7,iat))==0) then
+!!$                     aocc(7,iat)=1.d0
+!!$                 else if (ceiling(aocc(13,iat))==0) then
+!!$                     aocc(13,iat)=1.d0
+!!$                 end if
              end if
          end do
          if (iortho>0) then
@@ -586,6 +616,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
  end if
 
+ call f_free(nl_copy)
  !!!!! adding some noise
  !!Write(*,*) 'warning: add some noise!'
  !!do istat=1,size(tmb%psi)
@@ -597,17 +628,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  !!tmb%can_use_transposed=.false.
 
 
- iall=-product(shape(aocc))*kind(aocc)
- deallocate(aocc,stat=istat)
- call memocc(istat, iall,'aocc',subname)
+!!$ iall=-product(shape(aocc))*kind(aocc)
+!!$ deallocate(aocc,stat=istat)
+!!$ call memocc(istat, iall,'aocc',subname)
 
  !!call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp, &
  !!     tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
  !!call mpi_finalize(istat)
  !!stop
-
-
-
 
  if (input%experimental_mode) then
      ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
@@ -682,11 +710,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   end if
 
-
-
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
-
 
   if (iproc==0) then
       call yaml_open_map('Hamiltonian update',flow=.true.)
@@ -695,7 +720,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      ! to prevent it from writing too much
     call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
   end if
-
 
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
@@ -781,5 +805,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   iall=-product(shape(inversemapping))*kind(inversemapping)
   deallocate(inversemapping, stat=istat)
   call memocc(istat, iall, 'inversemapping',subname)
+
+  call f_release_routine()
 
 END SUBROUTINE inputguessConfinement

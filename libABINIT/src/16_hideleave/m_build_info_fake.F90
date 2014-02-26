@@ -35,7 +35,6 @@
 module m_build_info_fake
 
  use defs_basis
- use m_profiling
 
  implicit none
 

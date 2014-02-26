@@ -115,19 +115,6 @@ module module_interfaces
         real(gp), intent(in), optional :: rxyz0
       end subroutine run_objects_associate
 
-      subroutine read_atomic_file(file,iproc,astruct,status,comment,energy,fxyz)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: file
-         integer, intent(in) :: iproc
-         type(atomic_structure), intent(inout) :: astruct
-         integer, intent(out), optional :: status
-         real(gp), intent(out), optional :: energy
-         real(gp), dimension(:,:), pointer, optional :: fxyz
-         character(len =*), intent(out), optional :: comment
-      END SUBROUTINE read_atomic_file
-
       !> @author
       !! Written by Laurent K Beland 2011 UdeM
       !! For QM/MM implementation of BigDFT-ART
@@ -139,53 +126,6 @@ module module_interfaces
          type(atoms_data), intent(inout) :: at
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE initialize_atomic_file
-
-      subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc,ifile
-         type(atomic_structure), intent(inout) :: astruct
-         real(gp), intent(out) :: energy
-         real(gp), dimension(:,:), pointer :: fxyz
-         character(len = 1024), intent(out) :: comment
-         interface
-            subroutine getline(line,ifile,eof)
-               integer, intent(in) :: ifile
-               character(len=150), intent(out) :: line
-               logical, intent(out) :: eof
-            END SUBROUTINE getline
-         end interface
-      END SUBROUTINE read_xyz_positions
-
-      subroutine read_ascii_positions(iproc,ifile,astruct,comment_,energy_,fxyz_,getline)
-         ! use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc,ifile
-         type(atomic_structure), intent(inout) :: astruct
-         real(gp), intent(out) :: energy_
-         real(gp), dimension(:,:), pointer :: fxyz_
-         character(len = 1024), intent(out) :: comment_
-         interface
-            subroutine getline(line,ifile,eof)
-               integer, intent(in) :: ifile
-               character(len=150), intent(out) :: line
-               logical, intent(out) :: eof
-            END SUBROUTINE getline
-         end interface
-      END SUBROUTINE read_ascii_positions
-
-      subroutine read_yaml_positions(filename,astruct,comment_,energy_,fxyz_)
-        use module_base
-        use module_types
-        implicit none
-        character(len = *), intent(in) :: filename
-        type(atomic_structure), intent(inout) :: astruct
-        real(gp), intent(out) :: energy_
-        real(gp), dimension(:,:), pointer :: fxyz_
-        character(len = 1024), intent(out) :: comment_
-      END SUBROUTINE read_yaml_positions
 
       subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
          !n(c) use module_base
@@ -219,7 +159,8 @@ module module_interfaces
       end subroutine inputs_from_dict
 
       subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
-        use module_base
+        use module_base, only: gp
+        use module_atoms, only: symmetry_data
         use module_types
         use dictionaries
         implicit none
@@ -443,7 +384,7 @@ module module_interfaces
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,energs,rxyz,&
             nlpsp,ixc,psi,hpsi,psit,G,&
-            nspin,symObj,GPU,input,onlywf,proj_G,paw)
+            nspin,GPU,input,onlywf,proj_G,paw)
          ! Input wavefunctions are found by a diagonalization in a minimal basis set
          ! Each processors write its initial wavefunctions into the wavefunction file
          ! The files are then read by readwave
@@ -465,7 +406,7 @@ module module_interfaces
          type(DFT_local_fields), intent(inout) :: denspot
          type(GPU_pointers), intent(in) :: GPU
          type(input_variables):: input
-         type(symmetry_data), intent(in) :: symObj
+         !type(symmetry_data), intent(in) :: symObj
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
          real(wp), dimension(:), pointer :: psi,hpsi,psit
@@ -537,6 +478,7 @@ module module_interfaces
       subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,hstrten)
         use module_base
         use module_types
+        use module_atoms, only: symmetry_data
         implicit none
         type(denspot_distribution), intent(in) :: dpbox
         type(rho_descriptors),intent(inout) :: rhodsc
@@ -551,7 +493,8 @@ module module_interfaces
       end subroutine density_and_hpot
 
       subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,psi,rho_p,mapping)
-        use module_base
+        use module_base, only: wp,gp
+        use module_atoms, only: symmetry_data
         use module_types
         implicit none
         !Arguments
@@ -672,28 +615,6 @@ module module_interfaces
          real(gp),optional, intent(out) :: eproj_sum
          real(gp),optional, dimension(3,at%astruct%nat), intent(in) :: rxyz
       END SUBROUTINE hpsitopsi
-
-      subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
-            &   psi,hpsi,psit,orthpar,passmat,& !mandatory
-         orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc,nproc,natsc,nspin
-         type(wavefunctions_descriptors), intent(in) :: wfd
-         type(communications_arrays), target, intent(in) :: comms
-         type(orbitals_data), target, intent(inout) :: orbs
-         type(orthon_data), intent(in) :: orthpar
-         real(wp), dimension(:), pointer :: psi,hpsi,psit
-         real(wp), dimension(*), intent(out) :: passmat
-         !optional arguments
-         real(gp), optional, intent(in) :: etol
-         type(orbitals_data), optional, intent(in) :: orbsv
-         type(orbitals_data), optional, target, intent(in) :: orbse
-         type(communications_arrays), optional, target, intent(in) :: commse
-         integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
-         real(wp), dimension(:), pointer, optional :: psivirt
-      END SUBROUTINE DiagHam
 
       subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
         use module_base
@@ -965,7 +886,7 @@ module module_interfaces
          use module_types
          implicit none
          character(len=*), intent(in) :: filename
-         type(orbitals_data), intent(in) :: orbs
+         type(orbitals_data), intent(inout) :: orbs
          type(gaussian_basis), intent(out) :: G
          real(wp), dimension(:,:), pointer :: coeffs
          logical, optional :: opt_fillrxyz
@@ -1233,7 +1154,7 @@ module module_interfaces
          implicit none
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3,at%astruct%nat), target, intent(in) :: rxyz
-         type(gaussian_basis_c), intent(out) :: G
+         type(gaussian_basis_c), intent(inout) :: G
 
          integer, pointer :: iorbtolr(:)
          integer, pointer :: iorbto_l(:)
@@ -2259,6 +2180,7 @@ module module_interfaces
         
     subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
       use module_base
+      use module_atoms, only: atomic_structure
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc
@@ -2435,6 +2357,7 @@ module module_interfaces
 
        subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset)
          use module_base
+         use module_atoms, only: atomic_structure
          use module_types
          implicit none
          integer,intent(in):: iproc, nproc
@@ -2721,7 +2644,7 @@ module module_interfaces
          character(len=3), intent(in) :: unblock_comms
          real(gp), intent(in) :: alphamix
          type(atoms_data), intent(in) :: atoms
-         type(DFT_PSP_projectors), intent(in) :: nlpsp
+         type(DFT_PSP_projectors), intent(inout) :: nlpsp
          type(DFT_local_fields), intent(inout) :: denspot
          type(energy_terms), intent(inout) :: energs
          type(DFT_wavefunction), intent(inout) :: wfn
@@ -4560,7 +4483,8 @@ module module_interfaces
           type(energy_terms),intent(inout) :: energs
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           type(input_variables),intent(in) :: input
-          real(kind=8),intent(out) :: energy, energyDiff, energyold
+          real(kind=8),intent(out) :: energy, energyDiff
+          real(kind=8), intent(inout) :: energyold
         end subroutine build_ks_orbitals
 
         subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &

@@ -715,14 +715,16 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
      return
   end if
 
+  ! apply all PSP projectors for all orbitals belonging to iproc
+  call timing(iproc,'ApplyProj     ','ON')
+
+
   call f_routine(id=subname)
 
   !array of the scalar products
   scpr=f_malloc(orbs%norbp*orbs%nspinor,id='scpr')
 
 
-  ! apply all PSP projectors for all orbitals belonging to iproc
-  call timing(iproc,'ApplyProj     ','ON')
 
   nwarnings=0
 
@@ -910,11 +912,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
      end if
   end if
 
-  call timing(iproc,'ApplyProj     ','OF')
-
   call f_free(scpr)
   call f_release_routine()
 
+  call timing(iproc,'ApplyProj     ','OF')
 contains
 
   !> count the number of projectors given a set of psppar

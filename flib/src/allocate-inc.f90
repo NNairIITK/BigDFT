@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!  call timing(0,'Init to Zero  ','IR') 
+  call timing(0,'AllocationProf','IR') 
   !then perform all the checks and profile the allocation procedure
   if (f_err_raise(ierror/=0,&
        'Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)) return
@@ -28,7 +28,7 @@
           ERR_INVALID_MALLOC)
      return
   end if
-!  call timing(0,'Init to Zero  ','RS') 
+  call timing(0,'AllocationProf','RS') 
 
 contains 
 
@@ -41,11 +41,13 @@ contains
     type(dictionary), pointer :: dict_tmp
     character(len=info_length) :: address
     
-    !write the address of the first element in the address string
-    call getaddress(array,address,len(address),ierr)
 
     !size
     sizeof=kind(array)
+
+if (track_origins) then
+    !write the address of the first element in the address string
+    call getaddress(array,address,len(address),ierr)
     ilsize=int(sizeof*product(m%shape(1:m%rank)),kind=8)
 
     !create the dictionary array
@@ -63,7 +65,7 @@ contains
 
     !call set(dict_routine//trim(address),dict_tmp)
     call set(mems(ictrl)%dict_routine//trim(long_toa(iadd)),dict_tmp)
-
+ end if
     !call check_for_errors(ierror,m%try)
     call memocc(ierror,product(m%shape(1:m%rank))*sizeof,m%array_id,m%routine_id)
 

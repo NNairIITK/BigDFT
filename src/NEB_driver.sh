@@ -172,7 +172,7 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
     wait_jobs $iter
 
     if [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; then
-	sleep 10s
+	sleep 10s 2> /dev/null
     fi
     iter=$(($iter + 1))
 done

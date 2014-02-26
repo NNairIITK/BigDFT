@@ -870,7 +870,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   type(energy_terms),intent(inout) :: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(input_variables),intent(in) :: input
-  real(kind=8),intent(out) :: energy, energyDiff, energyold
+  real(kind=8),intent(out) :: energy, energyDiff
+  real(kind=8), intent(inout) :: energyold
 
   ! Local variables
   type(orbitals_data) :: orbs
