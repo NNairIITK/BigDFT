@@ -115,6 +115,10 @@ module module_types
   integer, parameter :: LINEAR_MIXDENS_SIMPLE=101
   integer, parameter :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter :: LINEAR_FOE=103
+
+  !> How to update the density kernel during teh support function optimization
+  integer, parameter :: UPDATE_BY_PURIFICATION = 0
+  integer, parameter :: UPDATE_BY_FOE = 1
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -360,6 +364,9 @@ module module_types
 
      !> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
      integer :: evboundsshrink_nsatur
+
+     !> linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+     integer :: method_updatekernel
   end type input_variables
 
   !> Contains all energy terms
@@ -2676,24 +2683,27 @@ end subroutine bigdft_init_errors
        case (WRITE_ORBITALS)
           ! linear scaling: write KS orbitals for cubic restart
           in%write_orbitals = val
-    case (EXPLICIT_LOCREGCENTERS)
-       ! linear scaling: explicitely specify localization centers
-       in%explicit_locregcenters = val
-    case (CALCULATE_KS_RESIDUE)
-       ! linear scaling: calculate Kohn-Sham residue
-       in%calculate_KS_residue = val
-    case (INTERMEDIATE_FORCES)
-       ! linear scaling: calculate intermediate forces
-       in%intermediate_forces = val
-    case (KAPPA_CONV)
-       ! linear scaling: exit kappa for extended input guess (experimental mode)
-       in%kappa_conv = val
-   case (EVBOUNDS_NSATUR)
-       ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
-       in%evbounds_nsatur = val
-   case(EVBOUNDSSHRINK_NSATUR)
-       ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
-       in%evboundsshrink_nsatur = val
+       case (EXPLICIT_LOCREGCENTERS)
+          ! linear scaling: explicitely specify localization centers
+          in%explicit_locregcenters = val
+       case (CALCULATE_KS_RESIDUE)
+          ! linear scaling: calculate Kohn-Sham residue
+          in%calculate_KS_residue = val
+       case (INTERMEDIATE_FORCES)
+          ! linear scaling: calculate intermediate forces
+          in%intermediate_forces = val
+       case (KAPPA_CONV)
+          ! linear scaling: exit kappa for extended input guess (experimental mode)
+          in%kappa_conv = val
+       case (EVBOUNDS_NSATUR)
+           ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+           in%evbounds_nsatur = val
+       case(EVBOUNDSSHRINK_NSATUR)
+           ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+           in%evboundsshrink_nsatur = val
+       case (METHOD_UPDATEKERNEL)
+           ! linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+           in%method_updatekernel = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

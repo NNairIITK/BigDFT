@@ -634,3 +634,6 @@
    evboundsshrink_nsatur:
      COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
      default: 4
+   method_updatekernel:
+     COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE)
+     default: 0

@@ -133,6 +133,7 @@ module module_input_keys
   character(len = *), parameter, public :: KAPPA_CONV = "kappa_conv"
   character(len = *), parameter, public :: EVBOUNDS_NSATUR = "evbounds_nsatur"
   character(len = *), parameter, public :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
+  character(len = *), parameter, public :: METHOD_UPDATEKERNEL = "method_updatekernel"
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0
