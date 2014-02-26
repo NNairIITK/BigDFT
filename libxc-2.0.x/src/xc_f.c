@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #include "config.h"
@@ -27,6 +28,9 @@
 #include "xc.h"
 #include "string_f.h"
 
+/* xc_config.h needs to be included to use FLOAT and related macros*/
+#include "xc_config.h"
+
 /* version */
 void XC_FC_FUNC(f90_version, F90_VERSION)
      (int *major, int *minor)
@@ -34,8 +38,8 @@ void XC_FC_FUNC(f90_version, F90_VERSION)
   XC(version)(major, minor);
 }
 
-/* info */
 
+/* info */
 CC_FORTRAN_INT XC_FC_FUNC(f90_info_number, F90_INFO_NUMBER)
      (void **info)
 {
@@ -63,14 +67,16 @@ CC_FORTRAN_INT  XC_FC_FUNC(f90_info_family, F90_INFO_FAMILY)
   return (CC_FORTRAN_INT) ((XC(func_info_type) *)(*info))->family;
 }
 
+
 CC_FORTRAN_INT  XC_FC_FUNC(f90_info_flags, F90_INFO_FLAGS)
      (void **info)
 {
   return (CC_FORTRAN_INT) ((XC(func_info_type) *)(*info))->flags;
 }
 
+
 void XC_FC_FUNC(f90_info_refs, F90_INFO_REFS)
-  (void **info, CC_FORTRAN_INT *number, char **s, STR_F_TYPE ref_f STR_ARG1)
+     (void **info, CC_FORTRAN_INT *number, char **s, STR_F_TYPE ref_f STR_ARG1)
 {
   char *c, ref[256]; /* hopefully no ref is longer than 256 characters ;) */
   XC(func_info_type) *func_p = (XC(func_info_type) *)(*info);
@@ -93,12 +99,42 @@ void XC_FC_FUNC(f90_info_refs, F90_INFO_REFS)
   fflush(stdout);
 }
 
+
+void XC_FC_FUNC(f90_functional_get_name, F90_FUNCTIONAL_GET_NAME)
+     (CC_FORTRAN_INT *func_number, STR_F_TYPE func_string STR_ARG1)
+{
+  char *name;
+
+  name = XC(functional_get_name)(*func_number);
+  if ( name == NULL ) name = strdup("unknown");
+
+  TO_F_STR1(name, func_string);
+  free(name);
+}
+
+
+CC_FORTRAN_INT  XC_FC_FUNC(f90_functional_get_number, F90_FUNCTIONAL_GET_NUMBER)
+     (STR_F_TYPE func_string STR_ARG1)
+{
+  char *name;
+  int ret;
+
+  TO_C_STR1(func_string, name);
+  
+  ret = XC(functional_get_number)(name);
+  free(name);
+
+  return (CC_FORTRAN_INT) ret;
+}
+
+
 /* functionals */
 CC_FORTRAN_INT  XC_FC_FUNC(f90_family_from_id, F90_FAMILY_FROM_ID)
   (CC_FORTRAN_INT  *functional)
 {
   return (CC_FORTRAN_INT) XC(family_from_id)((int) (*functional), NULL, NULL);
 }
+
 
 /* Standard initialization */
 void XC_FC_FUNC(f90_func_init, F90_FUNC_INIT)
@@ -112,6 +148,7 @@ void XC_FC_FUNC(f90_func_init, F90_FUNC_INIT)
   *p    = (void *) func_p;
   *info = (void *)(func_p->info);
 }
+
 
 void XC_FC_FUNC(f90_func_end, F90_FUNC_END)
      (void **p)
@@ -131,12 +168,14 @@ void XC_FC_FUNC(f90_lda, F90_LDA)
   XC(lda)((XC(func_type) *)(*p), *np, rho, zk, vrho, v2rho2, v3rho3);
 }
 
+
 void XC_FC_FUNC(f90_lda_exc, F90_LDA_EXC)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho,
       FLOAT *zk)
 {
   XC(lda)((XC(func_type) *)(*p), *np, rho, zk, NULL, NULL, NULL);
 }
+
 
 void XC_FC_FUNC(f90_lda_exc_vxc, F90_LDA_EXC_VXC)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho, 
@@ -145,6 +184,7 @@ void XC_FC_FUNC(f90_lda_exc_vxc, F90_LDA_EXC_VXC)
   XC(lda)((XC(func_type) *)(*p), *np, rho, zk, vrho, NULL, NULL);
 }
 
+
 void XC_FC_FUNC(f90_lda_vxc, F90_LDA_VXC)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho, 
       FLOAT *vrho)
@@ -152,12 +192,14 @@ void XC_FC_FUNC(f90_lda_vxc, F90_LDA_VXC)
   XC(lda)((XC(func_type) *)(*p), *np, rho, NULL, vrho, NULL, NULL);
 }
 
+
 void XC_FC_FUNC(f90_lda_fxc, F90_LDA_FXC)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho,
       FLOAT *v2rho2)
 {
   XC(lda)((XC(func_type) *)(*p), *np, rho, NULL, NULL, v2rho2, NULL);
 }
+
 
 void XC_FC_FUNC(f90_lda_kxc, F90_LDA_KXC)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho,
@@ -210,38 +252,53 @@ void XC_FC_FUNC(f90_lda_c_2d_prm_set_par, F90_LDA_C_2D_PRM_SET_PAR)
 void XC_FC_FUNC(f90_gga, F90_GGA)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho, FLOAT *sigma, 
       FLOAT *zk, FLOAT *vrho, FLOAT *vsigma,
-      FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
+      FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2,
+      FLOAT *v3rho3, FLOAT *v3rho2sigma, FLOAT *v3rhosigma2, FLOAT *v3sigma3)
 {
-  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, zk, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2);
+  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, zk, vrho, vsigma, 
+	  v2rho2, v2rhosigma, v2sigma2, v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3);
 }
 
 void XC_FC_FUNC(f90_gga_exc, F90_GGA_EXC)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho, FLOAT *sigma, 
       FLOAT *zk)
 {
-  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, zk, NULL, NULL, NULL, NULL, NULL);
+  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, zk, NULL, NULL, 
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
 void XC_FC_FUNC(f90_gga_exc_vxc, F90_GGA_EXC_VXC)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho, FLOAT *sigma, 
       FLOAT *zk, FLOAT *vrho, FLOAT *vsigma)
 {
-  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, zk, vrho, vsigma, NULL, NULL, NULL);
+  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, zk, vrho, vsigma, 
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
 void XC_FC_FUNC(f90_gga_vxc, F90_GGA_VXC)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho, FLOAT *sigma, 
       FLOAT *vrho, FLOAT *vsigma)
 {
-  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, NULL, vrho, vsigma, NULL, NULL, NULL);
+  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, NULL, vrho, vsigma, 
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
 void XC_FC_FUNC(f90_gga_fxc, F90_GGA_FXC)
      (void **p, CC_FORTRAN_INT *np, FLOAT *rho, FLOAT *sigma, 
       FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
 {
-  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, NULL, NULL, NULL, v2rho2, v2rhosigma, v2sigma2);
+  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, NULL, NULL, NULL, 
+	  v2rho2, v2rhosigma, v2sigma2, NULL, NULL, NULL, NULL);
 }
+
+void XC_FC_FUNC(f90_gga_kxc, F90_GGA_KXC)
+     (void **p, CC_FORTRAN_INT *np, FLOAT *rho, FLOAT *sigma, 
+      FLOAT *v3rho3, FLOAT *v3rho2sigma, FLOAT *v3rhosigma2, FLOAT *v3sigma3)
+{
+  XC(gga)((XC(func_type) *)(*p), *np, rho, sigma, NULL, NULL, NULL, 
+	  NULL, NULL, NULL, v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3);
+}
+
 
 /* the van Leeuwen & Baerends functional is special */
 void XC_FC_FUNC(f90_gga_lb_set_par, F90_GGA_LB_SET_PAR)
@@ -266,6 +323,12 @@ void XC_FC_FUNC(f90_gga_x_hjs_set_par, F90_GGA_X_HJS_SET_PAR)
   (void **p, FLOAT *omega)
 {
   XC(gga_x_hjs_set_params)((XC(func_type) *)(*p), *omega);
+}
+
+void XC_FC_FUNC(f90_gga_ak13_get_asymptotic, F90_GGA_AK13_GET_ASYMPTOTIC)
+  (FLOAT *homo, FLOAT *asymp)
+{
+  *asymp = XC(gga_ak13_get_asymptotic)(*homo);
 }
 
 void XC_FC_FUNC(f90_hyb_exx_coef, F90_HYB_EXX_COEF)
