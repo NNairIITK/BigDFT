@@ -64,7 +64,7 @@ typedef struct _GObject {guint ref_count;} GObject;
 /* Basic types, used for minimal bindings only. */
 #define F_TYPE(T) (T.add)
 #define F_DEFINE_TYPE(T) typedef void _ ## T;                                  \
- typedef struct {_ ## T *add; char buf[64];} _ ## T ## _pointer;
+ typedef struct {_ ## T *add; char buf[64];} _ ## T ## _pointer
 
 F_DEFINE_TYPE(dictionary);
 F_DEFINE_TYPE(memory_estimation);
