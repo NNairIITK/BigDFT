@@ -668,10 +668,10 @@ linearcubic_linear:
  Omega: 1.82e-10
 
 experimentalfoe_long:
- Atomic Forces (Ha/Bohr): 1.3e-05
+ Atomic Forces (Ha/Bohr): 1.4e-05
  Clean forces norm (Ha/Bohr): 1.2e-05
  Average noise forces: 3.3e-6
- Raw forces norm (Ha/Bohr): 9.2e-6
+ Raw forces norm (Ha/Bohr): 1.4e-5
  EH: 2.1e-3
  EXC: 2.7e-04
  Ekin: 7.3e-6
@@ -885,5 +885,6 @@ PBE_potmixdiis:
 
 PBE_densmixdiis:
  Epot: 1.1e-10
+ Enl: 1.1e-10
  energy: 2.5e-11
  Omega: 3.4e-11
