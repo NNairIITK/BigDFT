@@ -338,7 +338,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
-      call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, tmprtr, &
+      call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, &
            tmb)
       ! Eigenvalues not available, therefore take -.5d0
@@ -418,24 +418,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
-  integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, lwork, ncharge
+  integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, ncharge
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
-  real(kind=8),dimension(:),allocatable :: psit_c_tmp, psit_f_tmp, work, eval, delta_energy_arr
+  real(kind=8),dimension(:),allocatable :: delta_energy_arr
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
-  real(kind=8),dimension(:,:),allocatable :: coeff_old, tempmat
+  real(kind=8),dimension(:,:),allocatable :: coeff_old
   logical :: energy_increased, overlap_calculated
   character(len=*),parameter :: subname='getLocalizedBasis'
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(8),dimension(2):: reducearr
   real(gp) :: econf, dynamic_convcrit, kappa_mean
-  real(kind=8),dimension(3,3) :: interpol_matrix, tmp_matrix
-  real(kind=8),dimension(3) :: interpol_vector, interpol_solution
-  integer :: i, ist, iiorb, ilr, ii, info
-  real(kind=8) :: tt, ddot, d2e, ttt, energy_first, hxh, hyh, hzh, trH_ref, dnrm2, charge
-  integer,dimension(3) :: ipiv
-  real(kind=8),dimension(:,:),allocatable :: psi_old
-  real(kind=8),dimension(:),allocatable :: psi_tmp, kernel_best
+  integer :: i, ist, iiorb, ilr, ii
+  real(kind=8) :: energy_first, hxh, hyh, hzh, trH_ref, charge
+  real(kind=8),dimension(:),allocatable :: kernel_best
   integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
   logical :: energy_diff, energy_increased_previous, complete_reset, even
   real(kind=8),dimension(3),save :: kappa_history
@@ -485,17 +481,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   trH_ref=trH_old
   dynamic_convcrit=1.d-100
 
-  !!! normalize
-  !!ist=1
-  !!do iorb=1,tmb%orbs%norbp
-  !!    iiorb=tmb%orbs%isorb+iorb
-  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
-  !!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !!    tt=dnrm2(ncount, tmb%psi(ist), 1)
-  !!    tt=1/tt
-  !!    call dscal(ncount, tt, tmb%psi(ist), 1)
-  !!    ist=ist+ncount
-  !!end do
 
   ! Count whether there is an even or an odd number of electrons
   charge=0.d0
@@ -658,7 +643,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                    tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
-              call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, 0.d0, &
+              call foe(iproc, nproc, 0.d0, &
                    energs%ebs, -1, -10, order_taylor, tmb)
               if (.not.associated_psit_c) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -2158,6 +2143,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   real(kind=8),dimension(2) :: bisec_bounds
   logical,dimension(2) :: bisec_bounds_ok
   real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
+
 
   call f_routine(id='purify_kernel')
 
