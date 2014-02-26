@@ -441,6 +441,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer,save :: nkappa_history
   logical,dimension(6) :: exit_loop
   logical :: associated_psit_c, associated_psit_f
+  logical :: associated_psitlarge_c, associated_psitlarge_f
 
   call f_routine(id='getLocalizedBasis')
 
@@ -609,17 +610,17 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
               deallocate(tmb%ham_descr%psit_c, stat=istat)
               call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
-              associated_psit_c=.true.
+              associated_psitlarge_c=.true.
           else
-              associated_psit_c=.false.
+              associated_psitlarge_c=.false.
           end if
           if(associated(tmb%ham_descr%psit_f)) then
               iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
               deallocate(tmb%ham_descr%psit_f, stat=istat)
               call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
-              associated_psit_f=.true.
+              associated_psitlarge_f=.true.
           else
-              associated_psit_f=.false.
+              associated_psitlarge_f=.false.
           end if
 
           allocate(tmb%ham_descr%psit_c(tmb%ham_descr%collcom%ndimind_c), stat=istat)
@@ -630,16 +631,49 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
-          call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-               tmb%ham_descr%psit_c, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ovrlp)
+
+          if(associated(tmb%psit_c)) then
+              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+              deallocate(tmb%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_c', subname)
+              associated_psit_c=.true.
+          else
+              associated_psit_c=.false.
+          end if
+          if(associated(tmb%psit_f)) then
+              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+              deallocate(tmb%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_f', subname)
+              associated_psit_f=.true.
+          else
+              associated_psit_f=.false.
+          end if
+          allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=istat)
+          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+          allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=istat)
+          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+          call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
+               tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
           call foe(iproc, nproc, tmb%orbs, tmb%foe_obj, 0.d0, &
                energs%ebs, -1, -10, order_taylor, tmb)
           if (.not.associated_psit_c) then
+              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+              deallocate(tmb%psit_c, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_c', subname)
+          end if
+          if (.not.associated_psit_f) then
+              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+              deallocate(tmb%psit_f, stat=istat)
+              call memocc(istat, iall, 'tmb%psit_f', subname)
+          end if
+          if (.not.associated_psitlarge_c) then
               iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
               deallocate(tmb%ham_descr%psit_c, stat=istat)
               call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
           end if
-          if (.not.associated_psit_f) then
+          if (.not.associated_psitlarge_f) then
               iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
               deallocate(tmb%ham_descr%psit_f, stat=istat)
               call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)

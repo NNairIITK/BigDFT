@@ -482,7 +482,7 @@ hybrid-directmin:
  EXC: 5.1e-10
  EvXC: 7.1e-10
  Ekin: 1.1e-09
- Atomic Forces (Ha/Bohr): 8.0e-11
+ Atomic Forces (Ha/Bohr): 8.7e-11
  Clean forces norm (Ha/Bohr): 8.0e-11
  Raw forces norm (Ha/Bohr): 3.1e-11
  Average noise forces: 1.1e-10
