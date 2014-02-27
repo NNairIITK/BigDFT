@@ -453,7 +453,7 @@ program memguess
 
       !!$  !plot the wavefunctions for the AE atom
       !!$  !not possible, the code should recognize the AE eleconf
-      !!$  call razero(35,runObj%atoms%psppar(0,0,runObj%atoms%astruct%iatype(1)))
+      !!$  call to_zero(35,runObj%atoms%psppar(0,0,runObj%atoms%astruct%iatype(1)))
       !!$  runObj%atoms%psppar(0,0,runObj%atoms%astruct%iatype(1))=0.01_gp
       !!$  nullify(G%rxyz)
       !!$  call gaussian_pswf_basis(ng,.false.,0,runObj%inputs%nspin,atoms,runObj%atoms%astruct%rxyz,G,gbd_occ)
@@ -829,8 +829,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    allocate(hpsi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
    call memocc(i_stat,hpsi,'hpsi',subname)
 
-   call razero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
-   call razero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
+   call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
+   call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
 
    !convert the gaussians in wavelets
    call gaussians_to_wavelets(iproc,nproc,at%astruct%geocode,orbs,Lzd%Glr%d,&
