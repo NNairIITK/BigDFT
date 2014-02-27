@@ -167,36 +167,50 @@ contains
     end if
   end function allocate_file
 
-  !free the space from the library
   recursive subroutine deallocate_file(file)
     implicit none
     integer(kind=8), intent(in) :: file !< the target is already inside
-    !local variables
-    integer :: ifolder
-    
-    !find the file in the registry
-    !then search in the present library the first free place
-    ifolder=0
-    find_place: do
-       ifolder=ifolder+1
-       if (ifolder > nfolder_size) exit find_place
-       if (library%registry(ifolder) == file) exit find_place
-    end do find_place
-    !if no place has been found go back to the previous library
-    if (ifolder > nfolder_size) then 
-       if (associated(library%previous)) then
-          library=>library%previous
-          call deallocate_file(file)
-       else
-          stop 'dictionary has not been allocated by pull'
-       end if
-    else 
-       !if the place has been found the dictionary can be identified
-       !the registry is freed and the dictionary nullified
-       library%registry(ifolder)=int(0,kind=8)
-       call dictionary_nullify(library%files(ifolder))
+
+    !first, find last library
+    if (associated(library%next)) then
+       library=>library%next
+       call deallocate_file(file)
+    else
+       call deallocate_file_(file)
+       !then search the file to destroy
     end if
 
+  contains
+    !free the space from the library
+    recursive subroutine deallocate_file_(file)
+      implicit none
+      integer(kind=8), intent(in) :: file !< the target is already inside
+      !local variables
+      integer :: ifolder
+      !find the file in the registry
+      !then search in the present library the first free place
+      ifolder=0
+      find_place: do
+         ifolder=ifolder+1
+         if (ifolder > nfolder_size) exit find_place
+         if (library%registry(ifolder) == file) exit find_place
+      end do find_place
+      !if no place has been found go back to the previous library
+      if (ifolder > nfolder_size) then 
+         if (associated(library%previous)) then
+            library=>library%previous
+            call deallocate_file_(file)
+         else
+            stop 'dictionary has not been allocated by pull'
+         end if
+      else 
+         !if the place has been found the dictionary can be identified
+         !the registry is freed and the dictionary nullified
+         library%registry(ifolder)=int(0,kind=8)
+         call dictionary_nullify(library%files(ifolder))
+      end if
+
+    end subroutine deallocate_file_
   end subroutine deallocate_file
 
   !terminate the library and free all memory space
