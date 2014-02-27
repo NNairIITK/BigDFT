@@ -455,7 +455,11 @@ END SUBROUTINE createProjectorsArrays
                call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
 
           !Fill randomly the wavefunctions coefficients for the orbitals considered
-          nvctr=orbs%npsidim_orbs/(orbs%nspinor*orbs%norbp)
+          if (orbs%norbp > 0) then
+             nvctr=orbs%npsidim_orbs/(orbs%nspinor*orbs%norbp)
+          else
+             nvctr=0
+          end if
           do icoeff=1,nvctr !tt not dependent of iproc
              !Be sure to call always a different random number, per orbital
              do jorb=1,orbs%isorb*orbs%nspinor
