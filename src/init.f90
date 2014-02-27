@@ -778,7 +778,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
   end if
-          !!write(*,*) 'after dcopy, iproc',iproc
+          !!write(*,*) 'after vcopy, iproc',iproc
 
   if (associated(tmb_old%coeff)) then
       i_all=-product(shape(tmb_old%coeff))*kind(tmb_old%coeff)
@@ -855,10 +855,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      ! the following subroutine will overwrite phi, therefore store in a temporary array...
      !!allocate(phi_tmp(size(tmb%psi)), stat=i_stat)
      !!call memocc(i_stat, phi_tmp, 'phi_tmp', subname)
-     !!call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
+     !!call vcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
      call inputguessConfinement(iproc, nproc, at, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           rxyz,nlpsp,GPU,KSwfn%orbs, kswfn, tmb,denspot,denspot0,energs)
-     !!call dcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
+     !!call vcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
      !!i_all=-product(shape(phi_tmp))*kind(phi_tmp)
      !!deallocate(phi_tmp, stat=i_stat)
      !!call memocc(i_stat, i_all, 'phi_tmp', subname)
@@ -1299,7 +1299,7 @@ END SUBROUTINE input_memory_linear
            allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
            call memocc(i_stat,hpsi,'hpsi',subname)
            
-             !call dcopy(orbse%npsidim,psi,1,hpsi,1)
+             !call vcopy(orbse%npsidim,psi,1,hpsi,1)
            if (input%exctxpar == 'OP2P') then
               energs%eexctX = UNINITIALIZED(1.0_gp)
            else
@@ -1436,7 +1436,7 @@ END SUBROUTINE input_memory_linear
                          orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1)
                  end if
               end do
-              !call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1) !this is not good with k-points
+              !call vcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1) !this is not good with k-points
               !associate the entropic energy contribution
               orbs%eTS=orbse%eTS
               

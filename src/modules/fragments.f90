@@ -1237,7 +1237,7 @@ contains
     end do
     call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
-    !*call dcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
+    !*call vcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
     call vcopy(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1),1,tmb%coeff(1,1),1)
 
     !*call f_free(kernel_final)
@@ -1351,17 +1351,17 @@ contains
        ! reorder ksorbs%norb states by energy - no longer taking charge as input
        call order_coeffs_by_energy(ksorbs%norb,tmb%orbs%norb,tmb%coeff(1,1),eval_tmp(1),ipiv(1))!,tmb%orbs%eval(1))
                !eval_tmp2=f_malloc(tmb%orbs%norb,id='eval_tmp2')
-               !call dcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,eval_tmp2(1),1)
+               !call vcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,eval_tmp2(1),1)
                !do itmb=1,ksorbs%norb
                !   tmb%orbs%occup(itmb)=eval_tmp2(ipiv(itmb))
                !end do
-               !call dcopy(tmb%orbs%norb,tmb%orbs%eval(1),1,eval_tmp2(1),1)
-               !call dcopy(tmb%orbs%norb,eval_tmp(1),1,tmb%orbs%eval(1),1)
+               !call vcopy(tmb%orbs%norb,tmb%orbs%eval(1),1,eval_tmp2(1),1)
+               !call vcopy(tmb%orbs%norb,eval_tmp(1),1,tmb%orbs%eval(1),1)
                !nullify(mom_vec_fake)
                !if (bigdft_mpi%iproc==0) then 
                !   call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
                !end if
-               !call dcopy(tmb%orbs%norb,eval_tmp2(1),1,tmb%orbs%eval(1),1)
+               !call vcopy(tmb%orbs%norb,eval_tmp2(1),1,tmb%orbs%eval(1),1)
                !call f_free(eval_tmp2)
        call vcopy(ksorbs%norb,tmb%orbs%eval(1),1,eval_tmp(1),1)
        do itmb=1,ksorbs%norb
