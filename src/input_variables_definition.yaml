@@ -98,6 +98,8 @@
        100: Linear AO
        101: Linear restart
        102: Linear on disk
+     linear: 100
+     linear restart: 102
    output_wf:
      default: 0
      EXCLUSIVE:
@@ -634,3 +636,6 @@
    evboundsshrink_nsatur:
      COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
      default: 4
+   method_updatekernel:
+     COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE)
+     default: 0

@@ -22,7 +22,12 @@ module dictionaries_base
   !global variables associated to the number of dictionaries allocated
   integer, private :: ndicts=0         !< number of dictionaries allocated simultaneously
   integer, private :: ndicts_max=0     !< maximum number of dictionaries allocated
-
+  integer, private :: nfolders=0       !< number of libraries
+  integer, private :: nfolders_max=0   !< maximum number of libraries allocated
+  
+  integer, private :: nfolder_size=10000 !< size of the folder of pre-allocated dictionaries. Should be about 7 MB.
+  
+  
   type, public :: storage
      sequence
      integer :: item   !< Id of the item associated to the list
@@ -41,10 +46,29 @@ module dictionaries_base
      type(dictionary), pointer :: previous => null()
   end type dictionary
 
+  !> the database book is a workspace of pre-allocated dictionaries, which is used to manage dictionary creation
+  type, private :: database_book
+     !> this is the registry of the dictionary. It keeps track of the address of the associated dictionaries
+     !it is null when the corresponding file item is free
+     integer(kind=8), dimension(:), pointer :: registry => null()
+     !>this is the place occupied by a dictionary, which is pre-allocated by
+     !! the allocation in database_book. The routine dict_init associates the dictionary to a database item
+     type(dictionary), dimension(:), pointer :: files => null()
+     !> this is useful to create new books of the library in case the book is full
+     type(database_book), pointer :: next => null()
+     type(database_book), pointer :: previous => null()
+  end type database_book
+
+
+  !>database of objects, associated contiguously and used for storage
+  type(database_book), pointer, private :: library => null()
+
   !> operator to access and create a key in the dictionary
   interface operator(//)
      module procedure get_child_ptr,get_list_ptr
   end interface
+
+  private :: allocate_library, allocate_file, deallocate_file, destroy_library
 
 contains
   
@@ -82,29 +106,166 @@ contains
     nullify(dict%child,dict%next,dict%parent,dict%previous)
   end subroutine dictionary_nullify
 
-  !pure 
+  pure subroutine allocate_library(library,previous)
+    implicit none
+    type(database_book), pointer :: previous 
+    type(database_book), intent(out) :: library 
+    !local variables
+    integer :: ifolder
+
+    allocate(library%registry(nfolder_size))
+    allocate(library%files(nfolder_size))
+    nullify(library%next)
+    library%previous=>previous
+    !all free places in the library
+    do ifolder=1,nfolder_size
+       library%registry(ifolder)=int(0,kind=8)
+    end do
+  end subroutine allocate_library
+
+  !> assign a place in the library to the newcoming dictionary
+  recursive function allocate_file(previous) result(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+    type(database_book), pointer, optional :: previous !> previous library to be linked with
+    !local variables
+    integer :: ifolder
+    integer(kind=8), external :: f_loc
+    type(database_book), pointer :: lib_tmp
+        
+    !first create the place for a folder if there is none
+    if (.not. associated(library%registry)) then
+       if (present(previous)) then
+          lib_tmp=>previous
+       else
+          nullify(lib_tmp)
+       end if
+       call allocate_library(library,lib_tmp)
+       nfolders=nfolders+1
+       nfolders_max=max(nfolders_max,nfolders)
+    end if
+    !then search in the present library the first free place
+    ifolder=0
+    find_free_place: do
+       ifolder=ifolder+1
+       if (ifolder > nfolder_size) exit find_free_place
+       if (library%registry(ifolder) == int(0,kind=8)) exit find_free_place
+    end do find_free_place
+    !if no free place has been found move to the next library
+    if (ifolder > nfolder_size) then 
+       !then the library which is used is the following one
+       lib_tmp=>library
+       if (.not. associated(library%next)) allocate(library%next) !the pointer
+       library=>library%next
+       dict=>allocate_file(previous=lib_tmp)
+    else 
+       !if the free place has been found the dictionary can be identified
+       !the registry is updated
+       library%registry(ifolder)=f_loc(library%files(ifolder))
+       call dictionary_nullify(library%files(ifolder))
+       dict=>library%files(ifolder)
+    end if
+  end function allocate_file
+
+  !free the space from the library
+  recursive subroutine deallocate_file(file)
+    implicit none
+    integer(kind=8), intent(in) :: file !< the target is already inside
+    !local variables
+    integer :: ifolder
+    
+    !find the file in the registry
+    !then search in the present library the first free place
+    ifolder=0
+    find_place: do
+       ifolder=ifolder+1
+       if (ifolder > nfolder_size) exit find_place
+       if (library%registry(ifolder) == file) exit find_place
+    end do find_place
+    !if no place has been found go back to the previous library
+    if (ifolder > nfolder_size) then 
+       if (associated(library%previous)) then
+          library=>library%previous
+          call deallocate_file(file)
+       else
+          stop 'dictionary has not been allocated by pull'
+       end if
+    else 
+       !if the place has been found the dictionary can be identified
+       !the registry is freed and the dictionary nullified
+       library%registry(ifolder)=int(0,kind=8)
+       call dictionary_nullify(library%files(ifolder))
+    end if
+
+  end subroutine deallocate_file
+
+  !terminate the library and free all memory space
+  recursive subroutine destroy_library()
+    implicit none
+    !first, find last library
+    if (associated(library%next)) then
+       library=>library%next
+       call destroy_library()
+    else
+       !once we are at the last tree free memory spaces
+       deallocate(library%registry)
+       nullify(library%registry)
+       deallocate(library%files)
+       nullify(library%files)
+    end if
+    !then come back of one step
+    if (associated(library%previous)) then
+       library => library%previous
+       !and free the memory space of the library
+       deallocate(library%next)
+       nullify(library%next)
+       nfolders=nfolders-1
+       call destroy_library()
+    end if
+  end subroutine destroy_library
+
   subroutine dict_init(dict)
     implicit none
     type(dictionary), pointer :: dict
-    allocate(dict)
+    if (nfolder_size == 0) then
+       !this is normal allocation, let the system do the allocation
+       allocate(dict)
+       call dictionary_nullify(dict)
+    else
+       !this strategy retrieves the allocation from the library
+       if (.not. associated(library)) allocate(library) ! the pointer
+       dict=>allocate_file()
+    end if
+    !global variables counting the number of dictionaries simultaneously used
     ndicts=ndicts+1
     ndicts_max=max(ndicts_max,ndicts)
-    call dictionary_nullify(dict)
   end subroutine dict_init
 
   !> destroy only one level
-  !pure 
   subroutine dict_destroy(dict)
     implicit none
     type(dictionary), pointer :: dict
-!    if (associated(dict)) then !in principle this conditional is not needed
-    deallocate(dict)
+    !local variables
+    integer(kind=8), external :: f_loc
+    !strategy which uses systems' allocation
+    if (nfolder_size==0) then
+       deallocate(dict)
+    else
+       !free a space in the library and let the allocation lives
+       call deallocate_file(f_loc(dict))
+    end if
+
     ndicts=ndicts-1
     nullify(dict)
-!    end if
+    !if there are no dictionaries anymore the library can be destroyed
+    if (ndicts==0 .and. associated(library)) then
+       call destroy_library()
+       !otherwise free the last tree 
+       deallocate(library)
+       nullify(library)
+    end if
   end subroutine dict_destroy
 
-  !pure 
   subroutine dict_free(dict)
     type(dictionary), pointer :: dict
 
@@ -116,7 +277,6 @@ contains
 
   contains
 
-    !pure 
     recursive subroutine dict_free_(dict)
       implicit none
       type(dictionary), pointer :: dict
@@ -487,14 +647,17 @@ contains
   !!> export the number of dictionaries
   !! this routine is useful to understand the total usage of the 
   !! dictionaries in the f_lib module
-  subroutine dict_get_num(ndict,ndict_max)
+  subroutine dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
     implicit none
     integer, intent(out) :: ndict     !< actual number of dictionaries active
     integer, intent(out) :: ndict_max !< maximum number of dictionaries active during the session
-
+    integer, intent(out) :: nlibs     !< actual number of libraries active at present
+    integer, intent(out) :: nlibs_max !< maximum number of libraries active at present (should be nlibs)
 
     ndict=ndicts
     ndict_max=ndicts_max
+    nlibs=nfolders
+    nlibs_max=nfolders_max
   end subroutine dict_get_num
 
 end module dictionaries_base

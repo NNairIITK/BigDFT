@@ -778,7 +778,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
   end if
-          !!write(*,*) 'after vcopy, iproc',iproc
+          !!write(*,*) 'after dcopy, iproc',iproc
 
   if (associated(tmb_old%coeff)) then
       i_all=-product(shape(tmb_old%coeff))*kind(tmb_old%coeff)
@@ -855,10 +855,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      ! the following subroutine will overwrite phi, therefore store in a temporary array...
      !!allocate(phi_tmp(size(tmb%psi)), stat=i_stat)
      !!call memocc(i_stat, phi_tmp, 'phi_tmp', subname)
-     !!call vcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
+     !!call dcopy(size(tmb%psi), tmb%psi, 1, phi_tmp, 1)
      call inputguessConfinement(iproc, nproc, at, input, KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           rxyz,nlpsp,GPU,KSwfn%orbs, kswfn, tmb,denspot,denspot0,energs)
-     !!call vcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
+     !!call dcopy(size(tmb%psi), phi_tmp, 1, tmb%psi, 1)
      !!i_all=-product(shape(phi_tmp))*kind(phi_tmp)
      !!deallocate(phi_tmp, stat=i_stat)
      !!call memocc(i_stat, i_all, 'phi_tmp', subname)
@@ -950,7 +950,7 @@ END SUBROUTINE input_memory_linear
         subroutine input_wf_diag(iproc,nproc,at,denspot,&
              orbs,nvirt,comms,Lzd,energs,rxyz,&
              nlpsp,ixc,psi,hpsi,psit,G,&
-             nspin,symObj,GPU,input,onlywf,proj_G,paw)
+             nspin,GPU,input,onlywf,proj_G,paw)
            ! Input wavefunctions are found by a diagonalization in a minimal basis set
            ! Each processors write its initial wavefunctions into the wavefunction file
            ! The files are then read by readwave
@@ -975,7 +975,7 @@ END SUBROUTINE input_memory_linear
            type(DFT_local_fields), intent(inout) :: denspot
            type(GPU_pointers), intent(in) :: GPU
            type(input_variables), intent(in) :: input
-           type(symmetry_data), intent(in) :: symObj
+           !type(symmetry_data), intent(in) :: symObj
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
            type(gaussian_basis), intent(out) :: G !basis for davidson IG
            real(wp), dimension(:), pointer :: psi,hpsi,psit
@@ -1192,7 +1192,7 @@ END SUBROUTINE input_memory_linear
 
            !spin adaptation for the IG in the spinorial case
            orbse%nspin=nspin
-           call sumrho(denspot%dpbox,orbse,Lzde,GPUe,symObj,denspot%rhod,psi,denspot%rho_psi)
+           call sumrho(denspot%dpbox,orbse,Lzde,GPUe,at%astruct%sym,denspot%rhod,psi,denspot%rho_psi)
            call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
            call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
 
@@ -1299,7 +1299,7 @@ END SUBROUTINE input_memory_linear
            allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
            call memocc(i_stat,hpsi,'hpsi',subname)
            
-             !call vcopy(orbse%npsidim,psi,1,hpsi,1)
+             !call dcopy(orbse%npsidim,psi,1,hpsi,1)
            if (input%exctxpar == 'OP2P') then
               energs%eexctX = UNINITIALIZED(1.0_gp)
            else
@@ -1436,7 +1436,7 @@ END SUBROUTINE input_memory_linear
                          orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1)
                  end if
               end do
-              !call vcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1) !this is not good with k-points
+              !call dcopy(orbs%norb*orbs%nkpts,orbse%occup(1),1,orbs%occup(1),1) !this is not good with k-points
               !associate the entropic energy contribution
               orbs%eTS=orbse%eTS
               
@@ -1685,7 +1685,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nlpsp,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
-          Gvirt,nspin,atoms%astruct%sym,GPU,in,.false.)
+          Gvirt,nspin,GPU,in,.false.)
 
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory
@@ -2047,7 +2047,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
 
         !reset occ
-        call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+        call razero(tmb%orbs%norb,tmb%orbs%occup(1))
         do iorb=1,kswfn%orbs%norb
           tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
         end do

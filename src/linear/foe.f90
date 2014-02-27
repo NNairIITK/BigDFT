@@ -9,7 +9,7 @@
 
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
-subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
+subroutine foe(iproc, nproc, tmprtr, &
            ebs, itout, it_scc, order_taylor, &
            tmb)
   use module_base
@@ -20,9 +20,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc,itout,it_scc, order_taylor
-  type(orbitals_data),intent(in) :: orbs
-  type(foe_data),intent(inout) :: foe_obj
-  real(kind=8),intent(inout) :: tmprtr
+  real(kind=8),intent(in) :: tmprtr
   real(kind=8),intent(out) :: ebs
   type(DFT_wavefunction),intent(inout) :: tmb
 
@@ -62,10 +60,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   interpol_solution = 0.d0
 
 
-  allocate(penalty_ev(orbs%norb,orbs%norbp,2), stat=istat)
+  allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norbp,2), stat=istat)
   call memocc(istat, penalty_ev, 'penalty_ev', subname)
 
-  allocate(fermip(orbs%norb,orbs%norbp), stat=istat)
+  allocate(fermip(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
   call memocc(istat, fermip, 'fermip', subname)
 
   allocate(SHS(tmb%linmat%denskern_large%nvctr), stat=istat)
@@ -75,8 +73,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       ii=0
       do iseg=1,tmb%linmat%denskern_large%nseg
           do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
-              iiorb = (jorb-1)/orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*orbs%norb
+              iiorb = (jorb-1)/tmb%orbs%norb + 1
+              jjorb = jorb - (iiorb-1)*tmb%orbs%norb
               ii=ii+1
               iismall = matrixindex_in_compressed(tmb%linmat%ovrlp, iiorb, jjorb)
               if (iismall>0) then
@@ -106,10 +104,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
   nsize_polynomial=0
-  if (orbs%norbp>0) then
-      isegstart=tmb%linmat%denskern_large%istsegline(orbs%isorb_par(iproc)+1)
-      if (orbs%isorb+orbs%norbp<orbs%norb) then
-          isegend=tmb%linmat%denskern_large%istsegline(orbs%isorb_par(iproc+1)+1)-1
+  if (tmb%orbs%norbp>0) then
+      isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
+      if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+          isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
       else
           isegend=tmb%linmat%denskern_large%nseg
       end if
@@ -129,13 +127,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
   allocate(chebyshev_polynomials(nsize_polynomial,1),stat=istat)
   call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
 
-  fscale=foe_obj%fscale/0.5d0 ! this will be undone in the first iteration of the following loop
+  fscale=tmb%foe_obj%fscale/0.5d0 ! this will be undone in the first iteration of the following loop
 
   ! try to decrease the eigenvalue spectrum a bit
-  if (foe_obj%evbounds_isatur>foe_obj%evbounds_nsatur .and. &
-      foe_obj%evboundsshrink_isatur<=foe_obj%evboundsshrink_nsatur) then
-      foe_obj%evlow=0.9d0*foe_obj%evlow
-      foe_obj%evhigh=0.9d0*foe_obj%evhigh
+  if (tmb%foe_obj%evbounds_isatur>tmb%foe_obj%evbounds_nsatur .and. &
+      tmb%foe_obj%evboundsshrink_isatur<=tmb%foe_obj%evboundsshrink_nsatur) then
+      tmb%foe_obj%evlow=0.9d0*tmb%foe_obj%evlow
+      tmb%foe_obj%evhigh=0.9d0*tmb%foe_obj%evhigh
       evbounds_shrinked=.true.
   else
       evbounds_shrinked=.false.
@@ -154,10 +152,10 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       if (iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
     
           ! Don't let this value become too small.
-          foe_obj%bisection_shift = max(foe_obj%bisection_shift,1.d-4)
+          tmb%foe_obj%bisection_shift = max(tmb%foe_obj%bisection_shift,1.d-4)
     
-          efarr(1)=foe_obj%ef-foe_obj%bisection_shift
-          efarr(2)=foe_obj%ef+foe_obj%bisection_shift
+          efarr(1)=tmb%foe_obj%ef-tmb%foe_obj%bisection_shift
+          efarr(2)=tmb%foe_obj%ef+tmb%foe_obj%bisection_shift
           sumnarr(1)=0.d0
           sumnarr(2)=1.d100
     
@@ -166,8 +164,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
           calculate_SHS=.true.
     
-          if (orbs%norbp>0) then
-              call to_zero(orbs%norb*orbs%norbp, fermip(1,1))
+          if (tmb%orbs%norbp>0) then
+              call to_zero(tmb%orbs%norb*tmb%orbs%norbp, fermip(1,1))
           end if
     
           if (iproc==0) then
@@ -196,16 +194,16 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               end if
               
               if (adjust_lower_bound) then
-                  foe_obj%ef=efarr(1)
+                  tmb%foe_obj%ef=efarr(1)
               else if (adjust_upper_bound) then
-                  foe_obj%ef=efarr(2)
+                  tmb%foe_obj%ef=efarr(2)
               end if
           
     
               ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
-              if (foe_obj%evlow/=evlow_old .or. foe_obj%evhigh/=evhigh_old) then
-                  scale_factor=2.d0/(foe_obj%evhigh-foe_obj%evlow)
-                  shift_value=.5d0*(foe_obj%evhigh+foe_obj%evlow)
+              if (tmb%foe_obj%evlow/=evlow_old .or. tmb%foe_obj%evhigh/=evhigh_old) then
+                  scale_factor=2.d0/(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)
+                  shift_value=.5d0*(tmb%foe_obj%evhigh+tmb%foe_obj%evlow)
                   !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
                   !$omp shared(tmb,hamscal_compr,scale_factor,shift_value)
                   !$omp do
@@ -234,14 +232,14 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               else
                   calculate_SHS=.false.
               end if
-              evlow_old=foe_obj%evlow
-              evhigh_old=foe_obj%evhigh
+              evlow_old=tmb%foe_obj%evlow
+              evhigh_old=tmb%foe_obj%evhigh
     
-              !!foe_obj%ef = foe_obj%evlow+1.d-4*it
+              !!tmb%foe_obj%ef = tmb%foe_obj%evlow+1.d-4*it
     
               ! Determine the degree of the polynomial
-              npl=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/fscale)
-              npl_boundaries=nint(3.0d0*(foe_obj%evhigh-foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
+              npl=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
+              npl_boundaries=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
@@ -260,13 +258,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
               if (iproc==0) then
                   call yaml_map('bisec/eval bounds',&
-                       (/efarr(1),efarr(2),foe_obj%evlow,foe_obj%evhigh/),fmt='(f5.2)')
+                       (/efarr(1),efarr(2),tmb%foe_obj%evlow,tmb%foe_obj%evhigh/),fmt='(f5.2)')
                   !call yaml_map('lower bisection bound',efarr(1),fmt='(es10.3)')
                   !call yaml_map('upper bisection bound',efarr(1),fmt='(es10.3)')
-                  !call yaml_map('lower eigenvalue bound',foe_obj%evlow,fmt='(es10.3)')
-                  !call yaml_map('upper eigenvalue bound',foe_obj%evhigh,fmt='(es10.3)')
+                  !call yaml_map('lower eigenvalue bound',tmb%foe_obj%evlow,fmt='(es10.3)')
+                  !call yaml_map('upper eigenvalue bound',tmb%foe_obj%evhigh,fmt='(es10.3)')
                   call yaml_map('pol deg',npl,fmt='(i3)')
-                  call yaml_map('eF',foe_obj%ef,fmt='(es16.9)')
+                  call yaml_map('eF',tmb%foe_obj%ef,fmt='(es16.9)')
                   !call yaml_map('conv crit',charge_tolerance,fmt='(es10.3)')
               end if
     
@@ -274,32 +272,32 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               allocate(cc(npl,3), stat=istat)
               call memocc(istat, cc, 'cc', subname)
     
-              if (foe_obj%evlow>=0.d0) then
+              if (tmb%foe_obj%evlow>=0.d0) then
                   stop 'ERROR: lowest eigenvalue must be negative'
               end if
-              if (foe_obj%evhigh<=0.d0) then
+              if (tmb%foe_obj%evhigh<=0.d0) then
                   stop 'ERROR: highest eigenvalue must be positive'
               end if
     
               call timing(iproc, 'FOE_auxiliary ', 'OF')
               call timing(iproc, 'chebyshev_coef', 'ON')
     
-              !call chebft(foe_obj%evlow, foe_obj%evhigh, npl, cc(1,1), foe_obj%ef, foe_obj%fscale, temperature)
-              call chebft(foe_obj%evlow, foe_obj%evhigh, npl, cc(1,1), foe_obj%ef, fscale, tmprtr)
-              call chder(foe_obj%evlow, foe_obj%evhigh, cc(1,1), cc(1,2), npl)
-              call chebft2(foe_obj%evlow, foe_obj%evhigh, npl, cc(1,3))
-              call evnoise(npl, cc(1,3), foe_obj%evlow, foe_obj%evhigh, anoise)
+              !call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,1), tmb%foe_obj%ef, tmb%foe_obj%fscale, temperature)
+              call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,1), tmb%foe_obj%ef, fscale, tmprtr)
+              call chder(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, cc(1,1), cc(1,2), npl)
+              call chebft2(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,3))
+              call evnoise(npl, cc(1,3), tmb%foe_obj%evlow, tmb%foe_obj%evhigh, anoise)
     
               call timing(iproc, 'chebyshev_coef', 'OF')
               call timing(iproc, 'FOE_auxiliary ', 'ON')
             
               !!if (iproc==0) then
-              !!    call pltwght(npl,cc(1,1),cc(1,2),foe_obj%evlow,foe_obj%evhigh,foe_obj%ef,foe_obj%fscale,temperature)
-              !!    call pltexp(anoise,npl,cc(1,3),foe_obj%evlow,foe_obj%evhigh)
+              !!    call pltwght(npl,cc(1,1),cc(1,2),tmb%foe_obj%evlow,tmb%foe_obj%evhigh,tmb%foe_obj%ef,tmb%foe_obj%fscale,temperature)
+              !!    call pltexp(anoise,npl,cc(1,3),tmb%foe_obj%evlow,tmb%foe_obj%evhigh)
               !!end if
             
             
-              if (orbs%nspin==1) then
+              if (tmb%orbs%nspin==1) then
                   do ipl=1,npl
                       cc(ipl,1)=2.d0*cc(ipl,1)
                       cc(ipl,2)=2.d0*cc(ipl,2)
@@ -313,7 +311,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   if (iproc==0) call yaml_map('polynomials','recalculated')
-                  call chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, &
+                  call chebyshev_clean(iproc, nproc, npl, cc, tmb%orbs, tmb%foe_obj, &
                        tmb%linmat%denskern_large, hamscal_compr, &
                        tmb%linmat%inv_ovrlp_large%matrix_compr, calculate_SHS, &
                        nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials, &
@@ -321,7 +319,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               else
                   ! The Chebyshev polynomials are already available
                   if (iproc==0) call yaml_map('polynomials','from memory')
-                  call chebyshev_fast(iproc, nsize_polynomial, npl, orbs, &
+                  call chebyshev_fast(iproc, nsize_polynomial, npl, tmb%orbs, &
                       tmb%linmat%denskern_large, chebyshev_polynomials, cc, fermip)
               end if 
 
@@ -342,9 +340,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
              end if
              if (emergency_stop) then
                   eval_bounds_ok(1)=.false.
-                  foe_obj%evlow=foe_obj%evlow*1.2d0
+                  tmb%foe_obj%evlow=tmb%foe_obj%evlow*1.2d0
                   eval_bounds_ok(2)=.false.
-                  foe_obj%evhigh=foe_obj%evhigh*1.2d0
+                  tmb%foe_obj%evhigh=tmb%foe_obj%evhigh*1.2d0
                   if (iproc==0) then
                       call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
@@ -369,30 +367,30 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                   ! The penalty function must be smaller than the noise.
                   bound_low=0.d0
                   bound_up=0.d0
-                  if (orbs%norbp>0) then
-                      isegstart=tmb%linmat%denskern_large%istsegline(orbs%isorb_par(iproc)+1)
-                      if (orbs%isorb+orbs%norbp<orbs%norb) then
-                          isegend=tmb%linmat%denskern_large%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                  if (tmb%orbs%norbp>0) then
+                      isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
+                      if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+                          isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
                       else
                           isegend=tmb%linmat%denskern_large%nseg
                       end if
                       !$omp parallel default(private) &
-                      !$omp shared(isegstart, isegend, orbs, penalty_ev, tmb, bound_low, bound_up)
+                      !$omp shared(isegstart, isegend, penalty_ev, tmb, bound_low, bound_up)
                       !$omp do reduction(+:bound_low,bound_up)
                       do iseg=isegstart,isegend
                           ii=tmb%linmat%denskern_large%keyv(iseg)-1
                           do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
                               ii=ii+1
-                              iiorb = (jorb-1)/orbs%norb + 1
-                              jjorb = jorb - (iiorb-1)*orbs%norb
+                              iiorb = (jorb-1)/tmb%orbs%norb + 1
+                              jjorb = jorb - (iiorb-1)*tmb%orbs%norb
                               iismall = matrixindex_in_compressed(tmb%linmat%ovrlp, iiorb, jjorb)
                               if (iismall>0) then
                                   tt=tmb%linmat%ovrlp%matrix_compr(iismall)
                               else
                                   tt=0.d0
                               end if
-                              bound_low = bound_low + penalty_ev(jjorb,iiorb-orbs%isorb,2)*tt
-                              bound_up = bound_up +penalty_ev(jjorb,iiorb-orbs%isorb,1)*tt
+                              bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%orbs%isorb,2)*tt
+                              bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%orbs%isorb,1)*tt
                           end do  
                       end do
                       !$omp end do
@@ -406,14 +404,14 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                   anoise=10.d0*anoise
                   if (allredarr(1)>anoise) then
                       eval_bounds_ok(1)=.false.
-                      foe_obj%evlow=foe_obj%evlow*1.2d0
+                      tmb%foe_obj%evlow=tmb%foe_obj%evlow*1.2d0
                       restart=.true.
                   else
                       eval_bounds_ok(1)=.true.
                   end if
                   if (allredarr(2)>anoise) then
                       eval_bounds_ok(2)=.false.
-                      foe_obj%evhigh=foe_obj%evhigh*1.2d0
+                      tmb%foe_obj%evhigh=tmb%foe_obj%evhigh*1.2d0
                       restart=.true.
                   else
                       eval_bounds_ok(2)=.true.
@@ -427,9 +425,9 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               if (restart) then
                   if(evbounds_shrinked) then
                       ! this shrink was not good, increase the saturation counter
-                      foe_obj%evboundsshrink_isatur=foe_obj%evboundsshrink_isatur+1
+                      tmb%foe_obj%evboundsshrink_isatur=tmb%foe_obj%evboundsshrink_isatur+1
                   end if
-                  foe_obj%evbounds_isatur=0
+                  tmb%foe_obj%evbounds_isatur=0
                   if (iproc==0) then
                       call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
@@ -441,30 +439,30 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                   
               ! eigenvalue bounds ok
               if (calculate_SHS) then
-                  foe_obj%evbounds_isatur=foe_obj%evbounds_isatur+1
+                  tmb%foe_obj%evbounds_isatur=tmb%foe_obj%evbounds_isatur+1
               end if
             
     
               sumn=0.d0
               sumnder=0.d0
-              if (orbs%norbp>0) then
+              if (tmb%orbs%norbp>0) then
                   !do jproc=0,nproc-1
                   !    if (iproc==jproc) then
-                          isegstart=tmb%linmat%denskern_large%istsegline(orbs%isorb_par(iproc)+1)
-                          if (orbs%isorb+orbs%norbp<orbs%norb) then
-                              isegend=tmb%linmat%denskern_large%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                          isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
+                          if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+                              isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
                           else
                               isegend=tmb%linmat%denskern_large%nseg
                           end if
-                          !$omp parallel default(private) shared(isegstart, isegend, orbs, fermip, tmb, sumn) 
+                          !$omp parallel default(private) shared(isegstart, isegend, fermip, tmb, sumn) 
                           !$omp do reduction(+:sumn)
                           do iseg=isegstart,isegend
                               ii=tmb%linmat%denskern_large%keyv(iseg)-1
                               do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
                                   ii=ii+1
-                                  iiorb = (jorb-1)/orbs%norb + 1
-                                  jjorb = jorb - (iiorb-1)*orbs%norb
-                                  if (jjorb==iiorb) sumn = sumn + fermip(jjorb,iiorb-orbs%isorb)
+                                  iiorb = (jorb-1)/tmb%orbs%norb + 1
+                                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                                  if (jjorb==iiorb) sumn = sumn + fermip(jjorb,iiorb-tmb%orbs%isorb)
                               end do  
                           end do
                           !$omp end do
@@ -481,21 +479,21 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
               ! Make sure that the bounds for the bisection are negative and positive
               restart=.false.
-              charge_diff = sumn-foe_obj%charge
+              charge_diff = sumn-tmb%foe_obj%charge
               if (adjust_lower_bound) then
                   !if (iproc==0) call yaml_map('checking lower bisection bound, charge diff',charge_diff,fmt='(es9.2)')
                   if (charge_diff<=0.d0) then
                       ! Lower bound okay
                       adjust_lower_bound=.false.
-                      foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
+                      tmb%foe_obj%bisection_shift=tmb%foe_obj%bisection_shift*9.d-1
                       sumnarr(1)=sumn
                       if (iproc==0) then
                       end if
                       restart=.true.
                       bisection_bounds_ok(1)=.true.
                   else
-                      efarr(1)=efarr(1)-foe_obj%bisection_shift
-                      foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
+                      efarr(1)=efarr(1)-tmb%foe_obj%bisection_shift
+                      tmb%foe_obj%bisection_shift=tmb%foe_obj%bisection_shift*1.1d0
                       restart=.true.
                       bisection_bounds_ok(1)=.false.
                   end if
@@ -512,13 +510,13 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                   if (charge_diff>=0.d0) then
                       ! Upper bound okay
                       adjust_upper_bound=.false.
-                      foe_obj%bisection_shift=foe_obj%bisection_shift*9.d-1
+                      tmb%foe_obj%bisection_shift=tmb%foe_obj%bisection_shift*9.d-1
                       sumnarr(2)=sumn
                       restart=.false.
                       bisection_bounds_ok(2)=.true.
                   else
-                      efarr(2)=efarr(2)+foe_obj%bisection_shift
-                      foe_obj%bisection_shift=foe_obj%bisection_shift*1.1d0
+                      efarr(2)=efarr(2)+tmb%foe_obj%bisection_shift
+                      tmb%foe_obj%bisection_shift=tmb%foe_obj%bisection_shift*1.1d0
                       restart=.true.
                       bisection_bounds_ok(2)=.false.
                   end if
@@ -543,15 +541,15 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               if (it_solver>1) then
                   if (iproc==0) call yaml_newline()
                   if (iproc==0) call yaml_open_map('interpol check',flow=.true.)
-                  if (iproc==0) call yaml_map('D eF',foe_obj%ef-ef_old,fmt='(es13.6)')
+                  if (iproc==0) call yaml_map('D eF',tmb%foe_obj%ef-ef_old,fmt='(es13.6)')
                   if (iproc==0) call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
-                  if (foe_obj%ef>ef_old .and. sumn<sumn_old) then
+                  if (tmb%foe_obj%ef>ef_old .and. sumn<sumn_old) then
                       interpolation_possible=.false.
                   end if
-                  if (foe_obj%ef<ef_old .and. sumn>sumn_old) then
+                  if (tmb%foe_obj%ef<ef_old .and. sumn>sumn_old) then
                       interpolation_possible=.false.
                   end if
-                  if (foe_obj%ef>ef_old .and. sumn<sumn_old .or. foe_obj%ef<ef_old .and. sumn>sumn_old) then
+                  if (tmb%foe_obj%ef>ef_old .and. sumn<sumn_old .or. tmb%foe_obj%ef<ef_old .and. sumn>sumn_old) then
                       if (iproc==0) call yaml_map('interpol possible',.false.)
                   else
                       if (iproc==0) call yaml_map('interpol possible',.true.)
@@ -565,7 +563,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                   it_solver=0
               end if
     
-              ef_old=foe_obj%ef
+              ef_old=tmb%foe_obj%ef
               sumn_old=sumn
     
               ! Shift up the old results.
@@ -581,11 +579,11 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               end if
               !LG: if it_solver==0 this index comes out of bounds!
               ii=max(min(it_solver,4),1)
-              interpol_matrix(ii,1)=foe_obj%ef**3
-              interpol_matrix(ii,2)=foe_obj%ef**2
-              interpol_matrix(ii,3)=foe_obj%ef
+              interpol_matrix(ii,1)=tmb%foe_obj%ef**3
+              interpol_matrix(ii,2)=tmb%foe_obj%ef**2
+              interpol_matrix(ii,3)=tmb%foe_obj%ef
               interpol_matrix(ii,4)=1
-              interpol_vector(ii)=sumn-foe_obj%charge
+              interpol_vector(ii)=sumn-tmb%foe_obj%charge
     
               ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
               if (it_solver>=4) then
@@ -604,16 +602,16 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
     
                   call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
-                       interpol_solution(3), interpol_solution(4), foe_obj%ef, ef_interpol)
+                       interpol_solution(3), interpol_solution(4), tmb%foe_obj%ef, ef_interpol)
               end if
     
     
               ! Adjust the bounds for the bisection.
               if (charge_diff<0.d0) then
-                  efarr(1)=foe_obj%ef
+                  efarr(1)=tmb%foe_obj%ef
                   sumnarr(1)=sumn
               else if (charge_diff>=0.d0) then
-                  efarr(2)=foe_obj%ef
+                  efarr(2)=tmb%foe_obj%ef
                   sumnarr(2)=sumn
               end if
     
@@ -621,28 +619,28 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
               ! Calculate the new Fermi energy.
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_open_map('Search new eF',flow=.true.)
-              if (it_solver>=4 .and.  abs(sumn-foe_obj%charge)<foe_obj%ef_interpol_chargediff) then
+              if (it_solver>=4 .and.  abs(sumn-tmb%foe_obj%charge)<tmb%foe_obj%ef_interpol_chargediff) then
                   det=determinant(iproc,4,interpol_matrix)
                   if (iproc==0) call yaml_map('det',det,fmt='(es10.3)')
-                  if (iproc==0) call yaml_map('limit',foe_obj%ef_interpol_det,fmt='(es10.3)')
-                  if(abs(det)>foe_obj%ef_interpol_det) then
-                      foe_obj%ef=ef_interpol
+                  if (iproc==0) call yaml_map('limit',tmb%foe_obj%ef_interpol_det,fmt='(es10.3)')
+                  if(abs(det)>tmb%foe_obj%ef_interpol_det) then
+                      tmb%foe_obj%ef=ef_interpol
                       if (iproc==0) call yaml_map('method','cubic interpolation')
                   else
                       ! linear interpolation
                       if (iproc==0) call yaml_map('method','linear interpolation')
                       m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
                       b = interpol_vector(4)-m*interpol_matrix(4,3)
-                      foe_obj%ef = -b/m
+                      tmb%foe_obj%ef = -b/m
                   end if
               else
                   ! Use mean value of bisection and secant method
                   ! Secant method solution
-                  foe_obj%ef = efarr(2)-(sumnarr(2)-foe_obj%charge)*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1))
+                  tmb%foe_obj%ef = efarr(2)-(sumnarr(2)-tmb%foe_obj%charge)*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1))
                   ! Add bisection solution
-                  foe_obj%ef = foe_obj%ef + .5d0*(efarr(1)+efarr(2))
+                  tmb%foe_obj%ef = tmb%foe_obj%ef + .5d0*(efarr(1)+efarr(2))
                   ! Take the mean value
-                  foe_obj%ef=.5d0*foe_obj%ef
+                  tmb%foe_obj%ef=.5d0*tmb%foe_obj%ef
                   if (iproc==0) call yaml_map('method','bisection / secant method')
               end if
               if (iproc==0) then
@@ -656,7 +654,7 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
                   call yaml_newline()
                   call yaml_map('iter',it)
                   call yaml_map('Tr(K)',sumn,fmt='(es16.9)')
-                  call yaml_map('charge diff',sumn-foe_obj%charge,fmt='(es16.9)')
+                  call yaml_map('charge diff',sumn-tmb%foe_obj%charge,fmt='(es16.9)')
               end if
     
               if (iproc==0) then
@@ -677,22 +675,22 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
       call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
     
-      if (orbs%norbp>0) then
-          isegstart=tmb%linmat%denskern_large%istsegline(orbs%isorb_par(iproc)+1)
-          if (orbs%isorb+orbs%norbp<orbs%norb) then
-              isegend=tmb%linmat%denskern_large%istsegline(orbs%isorb_par(iproc+1)+1)-1
+      if (tmb%orbs%norbp>0) then
+          isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
+          if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+              isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
           else
               isegend=tmb%linmat%denskern_large%nseg
           end if
-          !$omp parallel default(private) shared(isegstart, isegend, orbs, fermip, tmb)
+          !$omp parallel default(private) shared(isegstart, isegend, fermip, tmb)
           !$omp do
           do iseg=isegstart,isegend
               ii=tmb%linmat%denskern_large%keyv(iseg)-1
               do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
                   ii=ii+1
-                  iiorb = (jorb-1)/orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*orbs%norb
-                  tmb%linmat%denskern_large%matrix_compr(ii)=fermip(jjorb,iiorb-orbs%isorb)
+                  iiorb = (jorb-1)/tmb%orbs%norb + 1
+                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                  tmb%linmat%denskern_large%matrix_compr(ii)=fermip(jjorb,iiorb-tmb%orbs%isorb)
               end do
           end do
           !$omp end do
@@ -702,7 +700,8 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
       call timing(iproc, 'FOE_auxiliary ', 'OF')
       call timing(iproc, 'chebyshev_comm', 'ON')
     
-      call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
+           mpi_sum, bigdft_mpi%mpi_comm, ierr)
     
     
       call timing(iproc, 'chebyshev_comm', 'OF')
@@ -713,24 +712,28 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
     
     
-      allocate(tmb%linmat%inv_ovrlp_large%matrix(orbs%norb,orbs%norb), stat=istat)
+      allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
       call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix, 'tmb%linmat%inv_ovrlp_large%matrix', subname)
     
-      allocate(workmat(orbs%norb,orbs%norbp), stat=istat)
+      allocate(workmat(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
       call memocc(istat, workmat, 'workmat', subname)
     
       call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
     
-      allocate(tmb%linmat%denskern_large%matrix(orbs%norb,orbs%norb))
+      allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
       call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
       call uncompressMatrix(iproc,tmb%linmat%denskern_large)
     
       if (tmb%orbs%norbp>0) then
-          call dgemm('n', 't', orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%linmat%denskern_large%matrix(1,1), orbs%norb, &
-                     tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%isorb+1,1), orbs%norb, 0.d0, workmat(1,1), orbs%norb)
+          call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+               1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
+               tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%isorb+1,1), tmb%orbs%norb, &
+               0.d0, workmat(1,1), tmb%orbs%norb)
           call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
-          call dgemm('n', 'n', orbs%norb, orbs%norbp, orbs%norb, 1.d0, tmb%linmat%inv_ovrlp_large%matrix, orbs%norb, &
-                     workmat(1,1), orbs%norb, 0.d0, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), orbs%norb)
+          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+               1.d0, tmb%linmat%inv_ovrlp_large%matrix, tmb%orbs%norb, &
+               workmat(1,1), tmb%orbs%norb, &
+               0.d0, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb)
       else
           call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
       end if
@@ -773,14 +776,14 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
     
     
       ! Calculate trace(KS).
-      sumn=trace_sparse(iproc, nproc, orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+      sumn=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
 
 
 
       ! Check whether this agrees with the number of electrons. If not,
       ! calculate a new kernel with a sharper decay of the error function
       ! (correponds to a lower temperature)
-      if (abs(sumn-foe_obj%charge)>1.d-6) then
+      if (abs(sumn-tmb%foe_obj%charge)>1.d-6) then
           cycle_FOE=.true.
       else
           cycle_FOE=.false.
@@ -848,15 +851,15 @@ subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
 
         subroutine overlap_minus_onehalf()
           ! Taylor approximation of S^-1/2 up to higher order
-          allocate(tmb%linmat%ovrlp%matrix(orbs%norb,orbs%norb), stat=istat)
+          allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
           call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
           call uncompressMatrix(iproc,tmb%linmat%ovrlp)
 
-          allocate(tmb%linmat%inv_ovrlp_large%matrix(orbs%norb,orbs%norb),stat=istat)
+          allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
           call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix,'tmb%linmat%inv_ovrlp_large%matrix',subname)
 
-          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, orbs%norb, &
-               tmb%linmat%ovrlp%matrix, tmb%linmat%inv_ovrlp_large%matrix, error, orbs, check_accur=.true.)
+          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, &
+               tmb%linmat%ovrlp%matrix, tmb%linmat%inv_ovrlp_large%matrix, error, tmb%orbs, check_accur=.true.)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if

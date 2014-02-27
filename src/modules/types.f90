@@ -20,6 +20,7 @@ module module_types
   use dictionaries, only: dictionary
   use locregs
   use psp_projectors
+  use module_atoms, only: atoms_data,symmetry_data,atomic_structure
 
   implicit none
 
@@ -115,6 +116,10 @@ module module_types
   integer, parameter :: LINEAR_MIXDENS_SIMPLE=101
   integer, parameter :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter :: LINEAR_FOE=103
+
+  !> How to update the density kernel during teh support function optimization
+  integer, parameter :: UPDATE_BY_PURIFICATION = 0
+  integer, parameter :: UPDATE_BY_FOE = 1
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -177,7 +182,8 @@ module module_types
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
     real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
     real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
-    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff_FOE
+    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, kernel_cutoff_FOE
+    real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
     real(kind=8) :: early_stop, gnrm_dynamic
@@ -360,6 +366,9 @@ module module_types
 
      !> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
      integer :: evboundsshrink_nsatur
+
+     !> linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+     integer :: method_updatekernel
   end type input_variables
 
   !> Contains all energy terms
@@ -413,13 +422,6 @@ module module_types
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
 
-  !> Quantities used for the symmetry operators.
-  type, public :: symmetry_data
-     integer :: symObj    !< The symmetry object from ABINIT
-     integer, dimension(:,:,:), pointer :: irrzon
-     real(dp), dimension(:,:,:), pointer :: phnons
-  end type symmetry_data
-
 !> Contains arguments needed for rho_local for WVL+PAW
 
   type, public :: rholoc_objects
@@ -428,49 +430,6 @@ module module_types
     real(gp),pointer,dimension(:,:)  :: rad!radial mesh for local rho
     real(gp),pointer,dimension(:) :: radius !after this radius, rholoc is zero
   end type rholoc_objects
-
-  type, public :: atomic_structure
-    character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
-    character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
-    character(len=20) :: units           !< Can be angstroem or bohr 
-    integer :: nat                       !< Number of atoms
-    integer :: ntypes                    !< Number of atomic species in the structure
-    real(gp), dimension(3) :: cell_dim   !< Dimensions of the simulation domain (each one periodic or free according to geocode)
-    !pointers
-    real(gp), dimension(:,:), pointer :: rxyz !< Atomic positions (always in AU, units variable is considered for I/O only)
-    character(len=20), dimension(:), pointer :: atomnames !< Atomic species names
-    integer, dimension(:), pointer :: iatype              !< Atomic species id
-    integer, dimension(:), pointer :: ifrztyp             !< Freeze atoms while updating structure
-    integer, dimension(:), pointer :: input_polarization  !< Used in AO generation for WFN input guess
-    type(symmetry_data) :: sym                      !< The symmetry operators
-  end type atomic_structure
-
-
-  !> Atomic data (name, polarisation, ...)
-  type, public :: atoms_data
-     type(atomic_structure) :: astruct
-     integer :: natsc
-     integer, dimension(:), pointer :: iasctype
-     integer, dimension(:), pointer :: nelpsp
-     integer, dimension(:), pointer :: npspcode
-     integer, dimension(:), pointer :: ixcpsp
-     integer, dimension(:), pointer :: nzatom
-     real(gp), dimension(:,:), pointer :: radii_cf         !< user defined radii_cf, overridden in sysprop.f90
-     real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
-     real(gp), dimension(:,:), pointer :: aocc,rloc
-     real(gp), dimension(:,:,:), pointer :: psppar         !< pseudopotential parameters (HGH SR section)
-     logical :: donlcc                                     !< activate non-linear core correction treatment
-     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
-     real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-!     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
-
-     !! for abscalc with pawpatch
-     integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
-     integer, dimension(:), pointer ::  paw_nofgaussians
-     real(gp), dimension(:), pointer :: paw_Greal, paw_Gimag, paw_Gcoeffs
-     real(gp), dimension(:), pointer :: paw_H_matrices, paw_S_matrices, paw_Sm1_matrices
-     integer :: iat_absorber 
-  end type atoms_data
 
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
@@ -481,7 +440,6 @@ module module_types
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
-
 
 !>   Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
   type, public :: gaussian_basis_c
@@ -675,15 +633,6 @@ module module_types
     real(wp),dimension(:,:,:,:),pointer :: xya_f, xyb_f, xyc_f, xye_f
     real(wp),dimension(:,:,:,:),pointer :: xza_f, xzb_f, xzc_f, xze_f
     real(wp),dimension(:,:,:,:),pointer :: yza_f, yzb_f, yzc_f, yze_f
-!are they used?
-!!$    real(wp),dimension(-17:17) :: aeff0, aeff1, aeff2, aeff3
-!!$    real(wp),dimension(-17:17) :: beff0, beff1, beff2, beff3
-!!$    real(wp),dimension(-17:17) :: ceff0, ceff1, ceff2, ceff3
-!!$    real(wp),dimension(-14:14) :: eeff0, eeff1, eeff2, eeff3
-!!$    real(wp),dimension(-17:17) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-!!$    real(wp),dimension(-17:17) :: beff0_2, beff1_2, beff2_2, beff3_2
-!!$    real(wp),dimension(-17:17) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-!!$    real(wp),dimension(-14:14) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
   end type workarrays_quartic_convolutions
 
   type,public:: localizedDIISParameters
@@ -896,7 +845,7 @@ module module_types
   integer :: cplex_dij
    ! cplex=1 if dij are real, 2 if they are complex
 
-  !$integer :: has_dijexxcore
+  !!!!$integer :: has_dijexxcore !> does this makes sense?
    ! 1 if dijexxcore is allocated
    ! 2 if dijexxcore is already computed
 
@@ -1126,82 +1075,6 @@ contains
     nullify(lzd%Llr)
   end function default_lzd
  
-  pure function symm_null() result(sym)
-     implicit none
-     type(symmetry_data) :: sym
-     call nullify_symm(sym)
-  end function symm_null
-
-  pure subroutine nullify_symm(sym)
-    type(symmetry_data), intent(out) :: sym
-    sym%symObj=-1
-    nullify(sym%irrzon)
-    nullify(sym%phnons)
-  end subroutine nullify_symm
-  pure subroutine nullify_sym(sym)
-     type(symmetry_data), intent(out) :: sym
-     sym%symObj=-1
-     nullify(sym%irrzon)
-     nullify(sym%phnons)
-  end subroutine nullify_sym
-
-  function atoms_null() result(at)
-     type(atoms_data) :: at
-     call nullify_atomic_structure(at%astruct)
-     !at%astruct=atomic_structure_null()
-     at%donlcc=.false.
-     at%iat_absorber=-1
-     nullify(at%iasctype)
-     nullify(at%nelpsp)
-     nullify(at%npspcode)
-     nullify(at%ixcpsp)
-     nullify(at%nzatom)
-     nullify(at%radii_cf)
-     nullify(at%amu)
-     nullify(at%aocc)
-     nullify(at%rloc)
-     nullify(at%psppar)
-     nullify(at%nlcc_ngv)
-     nullify(at%nlcc_ngc)
-     nullify(at%nlccpar)
-     !nullify(at%ig_nlccpar)
-     nullify(at%paw_NofL)
-     nullify(at%paw_l)
-     nullify(at%paw_nofchannels)
-     nullify(at%paw_nofgaussians)
-     nullify(at%paw_Greal)
-     nullify(at%paw_Gimag)
-     nullify(at%paw_Gcoeffs)
-     nullify(at%paw_H_matrices)
-     nullify(at%paw_S_matrices)
-     nullify(at%paw_Sm1_matrices)
-  end function atoms_null
-
-  pure function atomic_structure_null() result(astruct)
-    implicit none
-    type(atomic_structure) :: astruct
-     call nullify_atomic_structure(astruct)
-  end function atomic_structure_null
-
-  pure subroutine nullify_atomic_structure(astruct)
-    type(atomic_structure), intent(out) :: astruct
-
-    astruct%geocode='X'
-    astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
-    astruct%units=repeat(' ',len(astruct%units))
-    astruct%nat=-1
-    astruct%ntypes=-1
-    astruct%cell_dim(1)=0.0_gp
-    astruct%cell_dim(2)=0.0_gp
-    astruct%cell_dim(3)=0.0_gp
-    nullify(astruct%input_polarization)
-    nullify(astruct%ifrztyp)
-    nullify(astruct%atomnames)
-    nullify(astruct%iatype)
-    nullify(astruct%rxyz)
-    call nullify_symm(astruct%sym)
-  end subroutine nullify_atomic_structure
-
   function bigdft_run_id_toa()
     use yaml_output
     implicit none
@@ -1653,34 +1526,6 @@ subroutine deallocate_orbs(orbs,subname)
 !    end if
   END SUBROUTINE deallocate_lr
 
-  subroutine deallocate_symmetry(sym, subname)
-    use module_base
-    use m_ab6_symmetry
-    implicit none
-    type(symmetry_data), intent(inout) :: sym
-    character(len = *), intent(in) :: subname
-
-    integer :: i_stat, i_all
-
-    if (sym%symObj >= 0) then
-       call symmetry_free(sym%symObj)
-    end if
-
-    if (associated(sym%irrzon)) then
-       i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
-       deallocate(sym%irrzon,stat=i_stat)
-       call memocc(i_stat,i_all,'irrzon',subname)
-       nullify(sym%irrzon)
-    end if
-
-    if (associated(sym%phnons)) then
-       i_all=-product(shape(sym%phnons))*kind(sym%phnons)
-       deallocate(sym%phnons,stat=i_stat)
-       call memocc(i_stat,i_all,'phnons',subname)
-       nullify(sym%phnons)
-    end if
-  end subroutine deallocate_symmetry
-
   subroutine deallocate_Lzd(Lzd,subname)
     use module_base
     character(len=*), intent(in) :: subname
@@ -1958,39 +1803,6 @@ subroutine nullify_rho_descriptors(rhod)
   nullify(rhod%cseg_b)
   nullify(rhod%fseg_b)
 end subroutine nullify_rho_descriptors
-
-subroutine nullify_atoms_data(at)
-  implicit none
-  type(atoms_data),intent(out) :: at
-
-  nullify(at%astruct%atomnames)
-  nullify(at%astruct%iatype)
-  nullify(at%iasctype)
-  nullify(at%nelpsp)
-  nullify(at%npspcode)
-  nullify(at%ixcpsp)
-  nullify(at%nzatom) 
-  nullify(at%radii_cf)
-  nullify(at%astruct%ifrztyp)
-  nullify(at%amu)
-  nullify(at%aocc)
-  nullify(at%rloc)
-  nullify(at%psppar)
-  nullify(at%nlcc_ngv)
-  nullify(at%nlcc_ngc)
-  nullify(at%nlccpar)
-  !nullify(at%ig_nlccpar)
-  nullify(at%paw_NofL)
-  nullify(at%paw_l)
-  nullify(at%paw_nofchannels)
-  nullify(at%paw_nofgaussians)
-  nullify(at%paw_Greal) 
-  nullify(at%paw_Gimag) 
-  nullify(at%paw_Gcoeffs)
-  nullify(at%paw_H_matrices) 
-  nullify(at%paw_S_matrices) 
-  nullify(at%paw_Sm1_matrices)
-end subroutine nullify_atoms_data
 
 subroutine nullify_GPU_pointers(gpup)
   implicit none
@@ -2493,23 +2305,28 @@ end subroutine bigdft_init_errors
     type(input_variables), intent(inout) :: in
     type(dictionary), pointer :: val
     character(len = *), intent(in) :: level
-
+    integer, dimension(2) :: dummy_int !<to use as filling for input variables
+    real(gp), dimension(3) :: dummy_gp !< to fill the input variables
     character(len = max_field_length) :: str
     integer :: i, ipos
 
     if (index(dict_key(val), "_attributes") > 0) return
 
     select case(trim(level))
-    case ("dft")
+    case (DFT_VARIABLES)
        ! the DFT variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (HGRIDS)
-          in%hx = val//0 !grid spacings (profiles can be used if we already read PSPs)
-          in%hy = val//1
-          in%hz = val//2
+          !grid spacings (profiles can be used if we already read PSPs)
+          dummy_gp(1:3)=val
+          in%hx = dummy_gp(1)
+          in%hy = dummy_gp(2)
+          in%hz = dummy_gp(3)
        case (RMULT)
-          in%crmult = val//0 !coarse and fine radii around atoms
-          in%frmult = val//1
+          !coarse and fine radii around atoms
+          dummy_gp(1:2)=val
+          in%crmult = dummy_gp(1)
+          in%frmult = dummy_gp(2)
        case (IXC)
           in%ixc = val !XC functional (ABINIT XC codes)
        case (NCHARGE)
@@ -2555,9 +2372,9 @@ end subroutine bigdft_init_errors
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
        ! the KPT variables ------------------------------------------------------
-    case (kpt)
+    case (KPT_VARIABLES)
        stop "kpt set_input not implemented"
-    case ("perf")
+    case (PERF_VARIABLES)
        ! the PERF variables -----------------------------------------------------
        select case (trim(dict_key(val)))       
        case (DEBUG)
@@ -2624,8 +2441,9 @@ end subroutine bigdft_init_errors
           in%orthpar%methOrtho = val
        case (IG_BLOCKS)
           !Block size used for the orthonormalization
-          in%orthpar%bsLow = val // 0
-          in%orthpar%bsUp  = val // 1
+          dummy_int(1:2)=val
+          in%orthpar%bsLow = dummy_int(1)
+          in%orthpar%bsUp  = dummy_int(2)
        case (RHO_COMMUN)
           in%rho_commun = val
        case (PSOLVER_GROUPSIZE)
@@ -2676,24 +2494,27 @@ end subroutine bigdft_init_errors
        case (WRITE_ORBITALS)
           ! linear scaling: write KS orbitals for cubic restart
           in%write_orbitals = val
-    case (EXPLICIT_LOCREGCENTERS)
-       ! linear scaling: explicitely specify localization centers
-       in%explicit_locregcenters = val
-    case (CALCULATE_KS_RESIDUE)
-       ! linear scaling: calculate Kohn-Sham residue
-       in%calculate_KS_residue = val
-    case (INTERMEDIATE_FORCES)
-       ! linear scaling: calculate intermediate forces
-       in%intermediate_forces = val
-    case (KAPPA_CONV)
-       ! linear scaling: exit kappa for extended input guess (experimental mode)
-       in%kappa_conv = val
-   case (EVBOUNDS_NSATUR)
-       ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
-       in%evbounds_nsatur = val
-   case(EVBOUNDSSHRINK_NSATUR)
-       ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
-       in%evboundsshrink_nsatur = val
+       case (EXPLICIT_LOCREGCENTERS)
+          ! linear scaling: explicitely specify localization centers
+          in%explicit_locregcenters = val
+       case (CALCULATE_KS_RESIDUE)
+          ! linear scaling: calculate Kohn-Sham residue
+          in%calculate_KS_residue = val
+       case (INTERMEDIATE_FORCES)
+          ! linear scaling: calculate intermediate forces
+          in%intermediate_forces = val
+       case (KAPPA_CONV)
+          ! linear scaling: exit kappa for extended input guess (experimental mode)
+          in%kappa_conv = val
+       case (EVBOUNDS_NSATUR)
+           ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+           in%evbounds_nsatur = val
+       case(EVBOUNDSSHRINK_NSATUR)
+           ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+           in%evboundsshrink_nsatur = val
+       case (METHOD_UPDATEKERNEL)
+           ! linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+           in%method_updatekernel = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2727,7 +2548,7 @@ end subroutine bigdft_init_errors
           in%mdwall = val
        case (QMASS)
           in%nnos = dict_len(val)
-          if (associated(in%qmass)) call f_free_ptr(in%qmass)
+          call f_free_ptr(in%qmass)
           in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
           do i=1,in%nnos-1
              in%qmass(i) = dict_len(val // (i-1))
@@ -2747,7 +2568,7 @@ end subroutine bigdft_init_errors
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-    case ("mix")
+    case (MIX_VARIABLES)
        ! the MIX variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (ISCF)
@@ -2771,7 +2592,7 @@ end subroutine bigdft_init_errors
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-    case ("sic")
+    case (SIC_VARIABLES)
        ! the SIC variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (SIC_APPROACH)
@@ -2783,17 +2604,54 @@ end subroutine bigdft_init_errors
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-    case ("tddft")
+    case (TDDFT_VARIABLES)
        ! the TDDFT variables ----------------------------------------------------
        select case (trim(dict_key(val)))
        case (TDDFT_APPROACH)
           in%tddft_approach = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
-       end select
+       end select      
     case DEFAULT
        call yaml_warning("unknown level '" // trim(level) //"'")
     end select
   END SUBROUTINE input_set_dict
+
+  subroutine basis_params_set_dict(dict_basis,lin,jtype)
+    use module_input_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: jtype !< local type of which we are filling the values
+    type(dictionary), pointer :: dict_basis
+    type(linearInputParameters),intent(inout) :: lin
+    !local variables
+    real(gp), dimension(2) :: dummy_darr
+    !-- default parameters for the basis set of linear scaling
+
+    !then update the values of each parameter if present
+    select case(trim(dict_key(dict_basis)))
+    case(NBASIS)
+       lin%norbsPerType(jtype)=dict_basis !npt
+    case(AO_CONFINEMENT)
+       lin%potentialPrefac_ao(jtype)=dict_basis !ppao
+    case(CONFINEMENT)
+       dummy_darr=dict_basis
+       lin%potentialPrefac_lowaccuracy(jtype)=dummy_darr(1)!ppl
+       lin%potentialPrefac_highaccuracy(jtype)=dummy_darr(2)!pph
+    case(RLOC)
+       dummy_darr=dict_basis
+       !locradType(jtype)=dummy_darr(1) !lrl
+       lin%locrad_type(jtype,1)=dummy_darr(1) !lrl
+       lin%locrad_type(jtype,2)=dummy_darr(2) !lrh
+       !locradType_lowaccur(jtype)=dummy_darr(1) !lrl
+       !locradType_highaccur(jtype)=dummy_darr(2) !lrh
+       !atoms%rloc(jtype,:)=locradType(jtype)
+    case(RLOC_KERNEL) 
+         lin%kernel_cutoff(jtype)=dict_basis !kco
+    case(RLOC_KERNEL_FOE) 
+       lin%kernel_cutoff_FOE(jtype)=dict_basis !kco_FOE
+    end select
+    
+  end subroutine basis_params_set_dict
 
 end module module_types

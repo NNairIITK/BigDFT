@@ -434,7 +434,6 @@ contains
     !control the spin
     call spin_variables(nspin,nsp,nspinor)
 
-
     call atomic_info(zatom,zion,elconf=neleconf,nsccode=nsccode,&
          maxpol=mxpl,maxchg=mxchg,symbol=symbol)
 

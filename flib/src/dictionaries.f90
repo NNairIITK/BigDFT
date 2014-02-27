@@ -560,7 +560,7 @@ contains
 
    !> Retrieve the pointer to the dictionary which has this key.
    !! If the key does not exists, search for it in the next chain 
-   !! Key Must be already present 
+   !! Key Must be already present, otherwise result is nullified
    recursive function find_key(dict,key) result (dict_ptr)
      implicit none
      type(dictionary), intent(in), pointer :: dict !hidden inout

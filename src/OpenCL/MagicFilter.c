@@ -376,7 +376,7 @@ void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(b
     magicfilter_generic((*command_queue)->kernels.magicfiltershrink1d_kernel_d, (*command_queue)->command_queue,  &n1, &ndat, tmp, out);
   }
   ndat = n1*n2*n3;
-  dot_d_async_(command_queue, &ndat, psi, out, tmp, tmp_dot, epot);
+  FC_FUNC_(dot_d_async, DOT_D_ASYNC)(command_queue, &ndat, psi, out, tmp, tmp_dot, epot);
 }
 
 void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot) {

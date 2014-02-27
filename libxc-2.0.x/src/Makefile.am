@@ -18,7 +18,6 @@
 ## 02111-1307, USA.
 ##
 ## $Id: Makefile.am 2433 2006-09-28 11:06:54Z marques $
-
 lib_LTLIBRARIES = libxc.la
 
 libxc_la_FUNC_SOURCES = \
