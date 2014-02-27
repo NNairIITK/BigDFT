@@ -341,7 +341,8 @@ end subroutine create_group_comm1
   !interface for MPI_ALLGATHERV operations
   subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
     implicit none
-    integer, dimension(:), intent(in) :: counts, displs
+    integer, dimension(0:), intent(in) :: counts
+    integer, dimension(:), intent(in) :: displs
     integer, intent(in) :: mpi_comm, me
     real(kind=8), intent(inout) :: buffer
     integer, intent(out) :: ierr

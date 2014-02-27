@@ -83,7 +83,6 @@
     type(dictionary), pointer :: dict_error
 
     !assure initialization of the library in case of misuse
-    !when f_lib library becomes beta, this should become a severe error
     if (.not. associated(dict_errors)) then !call f_err_initialize()
        write(0,*)'error_handling library not initialized, f_lib_initialized should be called'
        call f_err_severe()

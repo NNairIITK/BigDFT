@@ -2330,7 +2330,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
       x=xx/pi2
-      x=real(int(x),kind=8)*pi2
+      x=real(int(x,kind=8),kind=8)*pi2
       x=xx-x-pi
       x2=x*x
       x3=x2*x
@@ -2372,7 +2372,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
       !x=mod(xx,pi2)-pi
       x=xx/pi2
-      x=real(int(x),kind=8)*pi2
+      x=real(int(x,kind=8),kind=8)*pi2
       x=xx-x-pi
       x2=x*x
       x4=x2*x2

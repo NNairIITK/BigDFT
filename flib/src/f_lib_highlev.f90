@@ -80,6 +80,7 @@ end subroutine initialize_flib_errors
 subroutine f_lib_initialize()
   use dictionaries, only: f_err_initialize
   use dynamic_memory, only: f_malloc_initialize
+  use time_profiling, only: f_timing_initialize
   implicit none
   
   !general initialization, for lowest level f_lib calling
@@ -87,6 +88,8 @@ subroutine f_lib_initialize()
   call initialize_flib_errors()
   !initializtion of memory allocation profiling
   call f_malloc_initialize()
+  !initialization of timing module
+  call f_timing_initialize()
 
 end subroutine f_lib_initialize
 
@@ -95,6 +98,7 @@ subroutine f_lib_finalize()
   use dictionaries, only: f_err_finalize,dict_get_num
   use dynamic_memory, only: f_malloc_finalize
   use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_toa
+  use time_profiling, only: f_timing_finalize
   implicit none
   !local variables
   integer :: ndict,ndict_max,iproc,nlibs,nlibs_max
@@ -109,6 +113,7 @@ subroutine f_lib_finalize()
   end if
   call yaml_close_all_streams()
   call f_err_finalize()
+  call f_timing_finalize()
 
 end subroutine f_lib_finalize
 

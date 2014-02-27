@@ -116,16 +116,16 @@ subroutine MemoryEstimator(nproc,idsx,lr,norb,nspinor,nkpt,nprojel,nspin,itrpmax
 
   if (nproc > 1) then 
      mem%kernel=19.d0*omemker
-     mem%density=omemwf+nden*omemden+npotden*omempot+omemker+omemproj
-     mem%psolver=12.d0*omemden+omemwf+omemker+omemproj
-     mem%ham=nden*omemden+npotham*omempot+omemwf+omemker+omemproj
+     mem%density=mem%psistorage+nden*omemden+npotden*omempot+omemker+omemproj
+     mem%psolver=12.d0*omemden+mem%psistorage+omemker+omemproj
+     mem%ham=nden*omemden+npotham*omempot+mem%psistorage+omemker+omemproj
   else
      mem%kernel=11.d0*omemker
-     mem%density=omemwf+nden*omemden+(npotden-1.d0)*omempot+omemker+omemproj
-     mem%psolver=8.d0*omemden+omemwf+omemker+omemproj
-     mem%ham=nden*omemden+(npotham-1.d0)*omempot+omemwf+omemker+omemproj
+     mem%density=mem%psistorage+nden*omemden+(npotden-1.d0)*omempot+omemker+omemproj
+     mem%psolver=8.d0*omemden+mem%psistorage+omemker+omemproj
+     mem%ham=nden*omemden+(npotham-1.d0)*omempot+mem%psistorage+omemker+omemproj
   end if
   !estimation of the memory peak
-  mem%peak=max(mem%kernel,mem%density,mem%psolver,mem%ham)
+  mem%peak=max(mem%kernel,mem%density,mem%psolver,mem%ham+mem%submat)
 
 END SUBROUTINE MemoryEstimator

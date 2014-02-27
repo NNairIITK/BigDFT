@@ -188,7 +188,8 @@ contains
           library=>library%previous
           call deallocate_file(file)
        else
-          stop 'dictionary has not been allocated by pull'
+          !this might also mean that a variable has not been found
+          stop 'dictionary has not been allocated by pool'
        end if
     else 
        !if the place has been found the dictionary can be identified
