@@ -518,6 +518,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
         ityp = atoms%astruct%iatype(iat)
         call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),rcov=rcov)
         locrad(iat) =  rcov * 10.0_gp ! atoms%rloc(ityp,1)
+        !locrad(iat)=18.d0
      end do  
      call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
