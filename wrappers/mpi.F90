@@ -341,7 +341,7 @@ end subroutine create_group_comm1
   !interface for MPI_ALLGATHERV operations
   subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
     implicit none
-    integer, dimension(:), intent(in) :: counts, displs
+    integer, dimension(0:), intent(in) :: counts, displs
     integer, intent(in) :: mpi_comm, me
     real(kind=8), intent(inout) :: buffer
     integer, intent(out) :: ierr
@@ -359,7 +359,7 @@ end subroutine create_group_comm1
 
     call dcopy(sum(counts),buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
-    call MPI_ALLGATHERV(copybuf(1+displs(me+1)),counts(me+1),MPI_DOUBLE_PRECISION,&
+    call MPI_ALLGATHERV(copybuf(1+displs(me)),counts(me),MPI_DOUBLE_PRECISION,&
          buffer,counts,displs,MPI_DOUBLE_PRECISION,mpi_comm,ierr)
 
     call f_free(copybuf)
