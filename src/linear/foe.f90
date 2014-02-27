@@ -700,7 +700,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       call timing(iproc, 'FOE_auxiliary ', 'OF')
       call timing(iproc, 'chebyshev_comm', 'ON')
     
-      call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
+           mpi_sum, bigdft_mpi%mpi_comm, ierr)
     
     
       call timing(iproc, 'chebyshev_comm', 'OF')
@@ -724,11 +725,15 @@ subroutine foe(iproc, nproc, tmprtr, &
       call uncompressMatrix(iproc,tmb%linmat%denskern_large)
     
       if (tmb%orbs%norbp>0) then
-          call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
-                     tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, workmat(1,1), tmb%orbs%norb)
+          call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+               1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
+               tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%isorb+1,1), tmb%orbs%norb, &
+               0.d0, workmat(1,1), tmb%orbs%norb)
           call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%inv_ovrlp_large%matrix, tmb%orbs%norb, &
-                     workmat(1,1), tmb%orbs%norb, 0.d0, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+               1.d0, tmb%linmat%inv_ovrlp_large%matrix, tmb%orbs%norb, &
+               workmat(1,1), tmb%orbs%norb, &
+               0.d0, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb)
       else
           call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
       end if
