@@ -457,10 +457,12 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AC_LANG_POP(C)
 
   dnl Add the flags.
-  if test -z "NVCC_FLAGS" ; then
+  AC_MSG_CHECKING([for NVCC flags])
+  if test -z "$NVCC_FLAGS" ; then
     NVCC_FLAGS="-O3 --compiler-options '-fno-strict-aliasing $ax_flag_pic'"
   fi
   AC_SUBST(NVCC_FLAGS)
+  AC_MSG_RESULT([$NVCC_FLAGS])
   LIBCUDA_LIBS="-lcudart -lcublas -lcufft"
   LDFLAGS="$LDFLAGS -L$ac_cuda_lib_path"
 fi
