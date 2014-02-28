@@ -670,12 +670,14 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         end if
 
         !calculate the evsum if the k-point is associated to this processor
-        if (ispin==1) ise=0
-        do iorb=1,norb
-           occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
-           evsum=evsum+orbs%eval(isorb+iorb-1+(ikpt-1)*orbs%norb)*occ
-        enddo
-        ise=norb
+        if (orbs%ikptproc(ikpt) == iproc) then
+           if (ispin==1) ise=0
+           do iorb=1,norb
+              occ=real(orbs%kwgts(ikpt)*orbs%occup((ikpt-1)*orbs%norb+iorb+ise),dp)
+              evsum=evsum+orbs%eval(isorb+iorb-1+(ikpt-1)*orbs%norb)*occ
+           enddo
+           ise=norb
+        end if
 
         ispsi=ispsi+nvctrp*norb*nspinor
         isorb=isorb+norb
