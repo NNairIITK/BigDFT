@@ -715,7 +715,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
            call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (iproc /= orbs%ikptproc(ikpt)) &
-                & hamks(ndim_ovrlp(ispin,ikpt-1)+1:ndim_ovrlp(ispin,ikpt-1)+norb*norb) = 0._wp
+                & hamks(ndim_ovrlp(ispin,ikpt-1)+1:ndim_ovrlp(ispin,ikpt-1)+norbs*norb) = 0._wp
         end do
      end do
      call mpiallred(hamks(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm,ierr)
