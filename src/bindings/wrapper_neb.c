@@ -52,8 +52,8 @@ static void bigdft_image_dispose(GObject *obj)
 static void bigdft_image_finalize(GObject *obj)
 {
   BigDFT_Image *image = BIGDFT_IMAGE(obj);
-  _run_objects_pointer run;
-  _DFT_global_output_pointer outs;
+  f90_run_objects_pointer run;
+  f90_DFT_global_output_pointer outs;
 
   if (F_TYPE(image->data))
     {
@@ -71,8 +71,8 @@ static void bigdft_image_finalize(GObject *obj)
 BigDFT_Image* bigdft_image_new(BigDFT_Atoms *atoms, BigDFT_Inputs *ins, BigDFT_Restart *rst, BigDFT_ImageAlgo algo)
 {
   BigDFT_Image *image;
-  _run_objects_pointer run;
-  _DFT_global_output_pointer outs;
+  f90_run_objects_pointer run;
+  f90_DFT_global_output_pointer outs;
   int algo_;
   /* long self; */
 
@@ -158,7 +158,7 @@ void bigdft_image_update_pos(BigDFT_Image *image, guint iteration,
 {
   const BigDFT_Image *m1, *p1;
   gboolean optimization;
-  _NEB_data_pointer neb;
+  f90_NEB_data_pointer neb;
 
   m1 = (imgm1)?imgm1:image;
   p1 = (imgp1)?imgp1:image;
@@ -191,7 +191,7 @@ gboolean bigdft_image_update_pos_from_file(BigDFT_Image *image, guint iteration,
                                            const gchar *filem1, const gchar *filep1,
                                            double k_before, double k_after, gboolean climbing)
 {
-  _NEB_data_pointer neb;
+  f90_NEB_data_pointer neb;
   gchar *filem1_, *filep1_;
 
   filem1_ = g_strdup((filem1)?filem1:" ");

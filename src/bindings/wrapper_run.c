@@ -93,7 +93,7 @@ BigDFT_Goutput* bigdft_goutput_new(guint nat)
 
   return outs;
 }
-void FC_FUNC_(energs_new_wrapper, ENERGS_NEW_WRAPPER)(double *self, _DFT_global_output *obj)
+void FC_FUNC_(energs_new_wrapper, ENERGS_NEW_WRAPPER)(double *self, f90_DFT_global_output *obj)
 {
   /* BigDFT_Goutput *outs; */
 
@@ -121,7 +121,7 @@ static void _sync_outs(BigDFT_Goutput *outs)
   outs->fxyz = fxyz.data;
   _sync_energs(outs);
 }
-BigDFT_Goutput* bigdft_goutput_new_from_fortran(_DFT_global_output_pointer obj)
+BigDFT_Goutput* bigdft_goutput_new_from_fortran(f90_DFT_global_output_pointer obj)
 {
   BigDFT_Goutput *outs;
 
@@ -140,8 +140,8 @@ void FC_FUNC_(energs_free_wrapper, ENERGS_FREE_WRAPPER)(gpointer *obj)
 {
   BigDFT_Goutput *outs = BIGDFT_GOUTPUT(*obj);
 
-  F_TYPE(outs->data) = (_DFT_global_output*)0;
-  F_TYPE(outs->energs) = (_energy_terms*)0;
+  F_TYPE(outs->data) = (f90_DFT_global_output*)0;
+  F_TYPE(outs->energs) = (f90_energy_terms*)0;
   bigdft_goutput_unref(outs);
 }
 void bigdft_goutput_unref(BigDFT_Goutput *outs)
@@ -260,7 +260,7 @@ void FC_FUNC_(restart_new_wrapper, RESTART_NEW_WRAPPER)(double *self, void *obj)
   /* restart = bigdft_restart_new_from_fortran(obj); */
   /* *self = *((double*)&restart); */
 }
-BigDFT_Restart* bigdft_restart_new_from_fortran(_restart_objects_pointer obj)
+BigDFT_Restart* bigdft_restart_new_from_fortran(f90_restart_objects_pointer obj)
 {
   BigDFT_Restart *restart;
 
@@ -278,7 +278,7 @@ void FC_FUNC_(restart_free_wrapper, RESTART_FREE_WRAPPER)(gpointer *obj)
 {
   BigDFT_Restart *restart = BIGDFT_RESTART(*obj);
 
-  F_TYPE(restart->data) = (_restart_objects*)0;
+  F_TYPE(restart->data) = (f90_restart_objects*)0;
   bigdft_restart_unref(restart);
 }
 void bigdft_restart_unref(BigDFT_Restart *restart)
@@ -416,9 +416,9 @@ BigDFT_Run* bigdft_run_new()
 }
 static void _attributes_from_fortran(BigDFT_Run *run)
 {
-  _atoms_data_pointer atoms;
-  _input_variables_pointer inputs;
-  _restart_objects_pointer rst;
+  f90_atoms_data_pointer atoms;
+  f90_input_variables_pointer inputs;
+  f90_restart_objects_pointer rst;
 
   /* Create C wrappers for Fortran objects. */
   FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(F_TYPE(run->data), &inputs, &atoms, &rst);
@@ -444,10 +444,8 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
 }
 /**
  * bigdft_run_new_from_dict:
- * @inputs: 
- * @atoms: 
- * @rst: (allow-none):
- * @iproc: 
+ * @dict: 
+ * @dump: 
  *
  * Pouet.
  *
@@ -479,7 +477,7 @@ BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict, gboolean dump)
 /*   run = bigdft_run_new_from_fortran(obj); */
 /*   *self = *((double*)&run); */
 /* } */
-BigDFT_Run* bigdft_run_new_from_fortran(_run_objects_pointer obj,
+BigDFT_Run* bigdft_run_new_from_fortran(f90_run_objects_pointer obj,
                                         gboolean create_wrappers)
 {
   BigDFT_Run *run;

@@ -144,7 +144,7 @@ BigDFT_Inputs* bigdft_inputs_new_from_files(const gchar *naming, guint iproc)
   
   return in;
 }
-BigDFT_Inputs* bigdft_inputs_new_from_fortran(_input_variables_pointer inputs)
+BigDFT_Inputs* bigdft_inputs_new_from_fortran(f90_input_variables_pointer inputs)
 {
   BigDFT_Inputs *in;
 

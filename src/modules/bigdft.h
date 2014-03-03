@@ -61,24 +61,35 @@ struct _BigDFT_Dict
   gboolean dispose_has_run;
 
   /* Private. */
-  _dictionary_pointer current;
-  _dictionary_pointer root;
+  f90_dictionary_pointer current;
+  f90_dictionary_pointer root;
 };
 typedef struct _BigDFT_DictIter BigDFT_DictIter;
 struct _BigDFT_DictIter
 {
   BigDFT_Dict *dict;
-  _dictionary_pointer pointer;
+  f90_dictionary_pointer pointer;
 };
-BigDFT_Dict *bigdft_dict_new  (BigDFT_DictIter *root);
-BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf);
-gboolean bigdft_dict_move_to  (BigDFT_Dict *dict, BigDFT_DictIter *iter);
-void  bigdft_dict_insert      (BigDFT_Dict *dict, const gchar *id, BigDFT_DictIter *iter);
-void  bigdft_dict_append      (BigDFT_Dict *dict, BigDFT_DictIter *iter);
-void  bigdft_dict_set         (BigDFT_Dict *dict, const gchar *id, const gchar *value);
-void  bigdft_dict_set_array   (BigDFT_Dict *dict, const gchar *id, const gchar **value);
-void  bigdft_dict_unref       (BigDFT_Dict *dict);
-void  bigdft_dict_dump        (BigDFT_Dict *dict);
+BigDFT_Dict *bigdft_dict_new     (BigDFT_DictIter *root);
+BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf, BigDFT_DictIter *root);
+void bigdft_dict_get_current     (BigDFT_Dict *dict, BigDFT_DictIter *iter);
+gboolean bigdft_dict_move_to     (BigDFT_Dict *dict, BigDFT_DictIter *iter);
+gboolean bigdft_dict_move_to_key (BigDFT_Dict *dict, const gchar *key,
+                                  BigDFT_DictIter *iter);
+gboolean bigdft_dict_move_to_item(BigDFT_Dict *dict, guint id, BigDFT_DictIter *iter);
+gboolean bigdft_dict_iter        (BigDFT_Dict *dict, BigDFT_DictIter *iter);
+gboolean bigdft_dict_next        (BigDFT_Dict *dict, BigDFT_DictIter *iter);
+void  bigdft_dict_insert         (BigDFT_Dict *dict, const gchar *key,
+                                  BigDFT_DictIter *iter);
+void  bigdft_dict_append         (BigDFT_Dict *dict, BigDFT_DictIter *iter);
+void  bigdft_dict_set            (BigDFT_Dict *dict, const gchar *id, const gchar *value);
+void  bigdft_dict_set_array      (BigDFT_Dict *dict, const gchar *id, const gchar **value);
+gboolean bigdft_dict_pop         (BigDFT_Dict *dict, const gchar *key);
+gchar* bigdft_dict_key           (BigDFT_Dict *dict);
+gchar* bigdft_dict_value         (BigDFT_Dict *dict);
+guint bigdft_dict_len            (BigDFT_Dict *dict);
+void  bigdft_dict_unref          (BigDFT_Dict *dict);
+void  bigdft_dict_dump           (BigDFT_Dict *dict);
 /*********************************/
 
 /********************************/
@@ -135,9 +146,9 @@ struct _BigDFT_Atoms
   double energy;
 
   /* Private. */
-  _atomic_structure_pointer astruct;
-  _atoms_data_pointer data;
-  _symmetry_data_pointer sym;
+  f90_atomic_structure_pointer astruct;
+  f90_atoms_data_pointer data;
+  f90_symmetry_data_pointer sym;
 };
 /********************************/
 BigDFT_Atoms* bigdft_atoms_new();
@@ -160,6 +171,8 @@ void          bigdft_atoms_set_default_file_format(BigDFT_Atoms *atoms, const gc
 void          bigdft_atoms_write             (BigDFT_Atoms *atoms,
                                               const gchar *filename, const gchar *format);
 gchar*        bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat);
+void          bigdft_atoms_merge_to_dict     (const BigDFT_Atoms *atoms,
+                                              BigDFT_DictIter *iter);
 /********************************/
 
 /*********************************/
@@ -222,8 +235,8 @@ struct _BigDFT_Inputs
 
   /* Private. */
   guint refCount;
-  _input_variables_pointer data;
-  _dictionary_pointer input_values;
+  f90_input_variables_pointer data;
+  f90_dictionary_pointer input_values;
 };
 /*********************************/
 #ifdef GLIB_MAJOR_VERSION
@@ -280,8 +293,8 @@ struct _BigDFT_Goutput
   double strten[6];
 
   /* Private. */
-  _DFT_global_output_pointer data;
-  _energy_terms_pointer energs;
+  f90_DFT_global_output_pointer data;
+  f90_energy_terms_pointer energs;
 };
 /********************************/
 BigDFT_Goutput* bigdft_goutput_new        (guint nat);
@@ -323,7 +336,7 @@ struct _BigDFT_Restart
 
   /* Private. */
   BigDFT_Inputs *in;
-  _restart_objects_pointer data;
+  f90_restart_objects_pointer data;
 };
 /*********************************/
 BigDFT_Restart* bigdft_restart_new     (BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
@@ -352,7 +365,7 @@ struct _BigDFT_Memory
 
   /* Private. */
   guint ref;
-  _memory_estimation_pointer data;
+  f90_memory_estimation_pointer data;
 };
 #ifdef GLIB_MAJOR_VERSION
 GType bigdft_memory_get_type(void);
@@ -388,7 +401,7 @@ struct _BigDFT_Run
 
   /* Private. */
   BigDFT_Dict  *dict; /* Not null if built from a dict. */
-  _run_objects_pointer data;
+  f90_run_objects_pointer data;
 };
 /*********************************/
 BigDFT_Run*     bigdft_run_new();
@@ -444,7 +457,7 @@ struct _BigDFT_Image
   guint id;
 
   /* Private. */
-  _run_image_pointer data;
+  f90_run_image_pointer data;
 };
 /*********************************/
 BigDFT_Image* bigdft_image_new       (BigDFT_Atoms *atoms, BigDFT_Inputs *ins,
