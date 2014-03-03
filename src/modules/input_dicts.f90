@@ -629,25 +629,25 @@ contains
     !cell information
     BC :select case(astruct%geocode)
     case('S')
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(1)*factor(1)))
-       call add(dict // "Cell", '.inf')
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(3)*factor(3)))
+       call set(dict // "Cell" // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
+       call set(dict // "Cell" // 1, '.inf')
+       call set(dict // "Cell" // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
        !angdeg to be added
        if (reduced) then
           factor(1) = 1._gp / astruct%cell_dim(1)
           factor(3) = 1._gp / astruct%cell_dim(3)
        end if
     case('W')
-       call add(dict // "Cell", '.inf')
-       call add(dict // "Cell", '.inf')
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(3)*factor(3)))
+       call set(dict // "Cell" // 0, '.inf')
+       call set(dict // "Cell" // 1, '.inf')
+       call set(dict // "Cell" // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
        if (reduced) then
           factor(3) = 1._gp / astruct%cell_dim(3)
        end if
     case('P')
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(1)*factor(1)))
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(2)*factor(2)))
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(3)*factor(3)))
+       call set(dict // "Cell" // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
+       call set(dict // "Cell" // 1, yaml_toa(astruct%cell_dim(2)*factor(2)))
+       call set(dict // "Cell" // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
        !angdeg to be added
        if (reduced) then
           factor(1) = 1._gp / astruct%cell_dim(1)
@@ -655,9 +655,11 @@ contains
           factor(3) = 1._gp / astruct%cell_dim(3)
        end if
     case('F')
-       ! Default, store nothing
+       ! Default, store nothing and erase key if already exist.
+       if (has_key(dict, "Cell")) call pop(dict, "Cell")
     end select BC
 
+    if (has_key(dict, "Positions")) call pop(dict, "Positions")
     pos => dict // "Positions"
     do iat=1,astruct%nat
        call dict_init(at)
@@ -674,6 +676,7 @@ contains
        call add(pos, at)
     end do
 
+    if (has_key(dict, "Forces (Ha/Bohr)")) call pop(dict, "Forces (Ha/Bohr)")
     if (present(fxyz)) then
        pos => dict // "Forces (Ha/Bohr)"
        do iat=1,astruct%nat
