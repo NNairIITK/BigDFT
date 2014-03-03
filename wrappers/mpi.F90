@@ -213,9 +213,6 @@ contains
 
   !> create communicators associated to the groups of size group_size
   subroutine create_group_comm(base_comm,group_size,group_list,group_comm)
-    use yaml_output
-    use dictionaries
-
     implicit none
     integer, intent(in) :: base_comm,group_size
     integer, dimension(group_size), intent(in) :: group_list !< list of id of the group identified by group_id in units of base_comm
@@ -225,24 +222,48 @@ contains
 
     !take the base group
     call MPI_COMM_GROUP(base_comm,base_grp,ierr)
-    if (f_err_raise(ierr/=0,'Problem in group creation, ierr:'//yaml_toa(ierr),&
-         err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'group creation')
+       return
+    end if
     !create the groups with the list
     call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
-    if (f_err_raise(ierr/=0,'Problem in group inclusion, ierr:'//yaml_toa(ierr),&
-         err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'group inclusion')
+       return
+    end if
     !free base group
     call MPI_GROUP_FREE(base_grp,ierr)
-    if (f_err_raise(ierr/=0,'Problem in base_group free, ierr:'//yaml_toa(ierr),&
-         err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'base_group free')
+       return
+    end if
     !create the communicator (the communicator can be also null)
     call MPI_COMM_CREATE(base_comm,grp,group_comm,ierr)
-    if (f_err_raise(ierr/=0,'Problem in communicator creator, ierr:'//yaml_toa(ierr),&
-         err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'communicator creator')
+       return
+    end if
     !free temporary group
     call MPI_GROUP_FREE(grp,ierr)
-    if (f_err_raise(ierr/=0,'Problem in new_group free, ierr:'//yaml_toa(ierr),&
-              err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'new_group free')
+       return
+    end if
+
+    contains
+      
+      subroutine check_ierr(ierr,message)
+        use yaml_output, only: yaml_toa
+        use dictionaries, only: f_err_throw
+        implicit none
+        integer, intent(in) :: ierr
+        character(len=*), intent(in) :: message
+        if (ierr /= 0) then
+           call f_err_throw('Problem in '//trim(message)//&
+                ', ierr:'//yaml_toa(ierr),err_name='BIGDFT_MPI_ERROR')
+        end if
+      end subroutine check_ierr
 
   end subroutine create_group_comm
 
@@ -354,7 +375,7 @@ end subroutine create_group_comm1
     !local variables
     real(kind=8), dimension(:), allocatable :: copybuf
 
-    !Here we have a performence penalty by copying all buffer, instead of
+    !Here we have a performance penalty by copying all buffer, instead of
     !just the send part, but I don't see how to get buffer(displs(me))
     copybuf = f_malloc(sum(counts),id='copybuf')
 

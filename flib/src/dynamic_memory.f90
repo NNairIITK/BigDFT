@@ -66,7 +66,7 @@ module dynamic_memory
   
   !>global variable controlling the different instances of the calls
   !the 0 component is supposed to be unused, it is allocated to avoid segfaults
-  ! if the library routines are called without initialization
+  !if the library routines are called without initialization
   type(mem_ctrl), dimension(0:max_ctrl) :: mems
 
   !> Structure needed to allocate an allocatable array

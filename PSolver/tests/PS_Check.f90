@@ -16,7 +16,7 @@ program PS_Check
    use yaml_output
    use dynamic_memory
    use dictionaries
-
+   use time_profiling
    implicit none
    !include 'mpif.h'
    !Length of the box
@@ -67,7 +67,9 @@ program PS_Check
 
    !initialize memory counting and timings
    !call memocc(0,iproc,'count','start')
-   call timing(nproc,'time.yaml','IN')
+   !call timing(nproc,'time.yaml','IN')
+   call f_timing_reset(filename='time.yaml',master=iproc==0)
+
 
    !Start global timing
    call cpu_time(tcpu0)
@@ -272,7 +274,7 @@ program PS_Check
 
    call f_free(density,potential,pot_ion,extra_ref)
 
-   call timing(MPI_COMM_WORLD,'              ','RE')
+   call f_timing_stop(mpi_comm=MPI_COMM_WORLD)
 
    !Final timing
    call cpu_time(tcpu1)

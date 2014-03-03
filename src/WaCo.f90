@@ -34,7 +34,7 @@ program WaCo
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
    real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
-   integer :: iproc, nproc, nproctiming, i_stat, ierr, npsidim
+   integer :: iproc, nproc, i_stat, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
    integer :: ncount0,ncount1,ncount_rate,ncount_max,iat,iformat
@@ -121,13 +121,17 @@ program WaCo
    end if
    call dict_free(user_inputs)
 
-   if (input%verbosity > 2) then
-      nproctiming=-nproc !timing in debug mode                                                                                                                                                                 
-   else
-      nproctiming=nproc
-   end if
+!!$   if (input%verbosity > 2) then
+!!$      nproctiming=-nproc !timing in debug mode
+!!$   else
+!!$      nproctiming=nproc
+!!$   end if
 
-   call timing(nproctiming,'WaCo_time.prc','IN')
+   !call timing(nproctiming,'WaCo_time.prc','IN')
+   call f_timing_reset(filename=trim(in%dir_output)//'WaCo_time.yaml',&
+        master=iproc==0,&
+        debug_mode=input%verbosity>2)
+
 
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max) 
@@ -1303,7 +1307,7 @@ program WaCo
   !#########################################################
   ! Ending timing and MPI
   !#########################################################
-  call timing(bigdft_mpi%mpi_comm,'             ','RE')
+  call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
 
   call cpu_time(tcpu1)
   call system_clock(ncount1,ncount_rate,ncount_max)

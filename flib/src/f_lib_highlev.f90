@@ -93,6 +93,15 @@ subroutine f_lib_initialize()
 
 end subroutine f_lib_initialize
 
+!> calls f_err_severe from outside the module
+subroutine f_lib_err_severe_external(message)
+  use dictionaries, only: f_err_severe
+  implicit none
+  character(len=*), intent(in) :: message
+  write(0,*)trim(message)
+  call f_err_severe()
+end subroutine f_lib_err_severe_external
+
 !>routine which finalize f_lib 
 subroutine f_lib_finalize()
   use dictionaries, only: f_err_finalize,dict_get_num
