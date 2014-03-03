@@ -1599,6 +1599,26 @@ subroutine mem_to_c(mem, submat, ncomponents, norb, norbp, oneorb, allpsi_mpi, &
   peak = mem%peak
 END SUBROUTINE mem_to_c
 
+subroutine dict_move_to_key(dict, exists, key)
+  use dictionaries, only: dictionary, operator(//), has_key
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+  character(len = *), intent(in) :: key
+
+  exists = has_key(dict, key(1:len(key)))
+  if (exists) dict => dict // key(1:len(key))
+end subroutine dict_move_to_key
+subroutine dict_move_to_item(dict, exists, id)
+  use dictionaries, only: dictionary, operator(//), dict_len
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+  integer, intent(in) :: id
+
+  exists = (id < dict_len(dict) .and. id >= 0)
+  if (exists) dict => dict // id
+end subroutine dict_move_to_item
 subroutine dict_insert(dict, key)
   use dictionaries, only: dictionary, operator(//)
   implicit none
@@ -1642,3 +1662,69 @@ subroutine dict_parse(dict, buf)
   call yaml_parse_from_string(dict, buf)
   dict => dict // 0
 END SUBROUTINE dict_parse
+subroutine dict_pop(dict, exists, key)
+  use dictionaries, only: dictionary, has_key, pop
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+  character(len = *), intent(in) :: key
+
+  exists = (has_key(dict, key(1:len(key))))
+  if (exists) call pop(dict, key(1:len(key)))
+END SUBROUTINE dict_pop
+subroutine dict_value(dict, buf)
+  use dictionaries, only: dictionary, max_field_length, wrapper => dict_value
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = max_field_length), intent(out) :: buf
+  
+  buf = wrapper(dict)
+END SUBROUTINE dict_value
+subroutine dict_key(dict, buf)
+  use dictionaries, only: dictionary, max_field_length, wrapper => dict_key
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = max_field_length), intent(out) :: buf
+  
+  buf = wrapper(dict)
+END SUBROUTINE dict_key
+subroutine dict_iter(dict, exists)
+  use dictionaries, only: dictionary, wrapper => dict_iter
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+
+  type(dictionary), pointer :: start
+
+  start => wrapper(dict)
+  exists = associated(start)
+  if (exists) dict => start
+END SUBROUTINE dict_iter
+subroutine dict_next(dict, exists)
+  use dictionaries, only: dictionary, wrapper => dict_next
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+
+  type(dictionary), pointer :: next
+
+  next => wrapper(dict)
+  exists = associated(next)
+  if (exists) dict => next
+END SUBROUTINE dict_next
+subroutine dict_len(dict, ln)
+  use dictionaries, only: dictionary, wrapper => dict_len
+  implicit none
+  type(dictionary), pointer :: dict
+  integer, intent(out) :: ln
+
+  ln = wrapper(dict)
+END SUBROUTINE dict_len
+subroutine dict_size(dict, ln)
+  use dictionaries, only: dictionary, wrapper => dict_size
+  implicit none
+  type(dictionary), pointer :: dict
+  integer, intent(out) :: ln
+
+  ln = wrapper(dict)
+END SUBROUTINE dict_size
