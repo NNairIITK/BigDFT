@@ -11,7 +11,7 @@
 !> Here starts the routine for building partial density inside the localisation region
 !! This routine should be treated as a building-block for the linear scaling code
 subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
-     nrhotot,Lzd,hxh,hyh,hzh,nspin,orbs,mapping,psi,rho)
+     nrhotot,Lzd,hxh,hyh,hzh,xc,nspin,orbs,mapping,psi,rho)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => local_partial_densityLinear
@@ -20,9 +20,10 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: nproc
-  integer,intent(inout) :: nrhotot
+  integer,intent(in) :: nrhotot
   integer, intent(in) :: nspin
   real(gp), intent(in) :: hxh,hyh,hzh
+  type(xc_info), intent(in) :: xc
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data),intent(in) :: orbs
   integer,dimension(orbs%norb),intent(in) :: mapping
@@ -61,7 +62,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
 
   !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
   !otherwise use libXC routine
-  call xc_init_rho(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho,nproc)
+  call xc_init_rho(xc, max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho,nproc)
 
   ind=1
   orbitalsLoop: do ii=1,orbs%norbp
@@ -1827,13 +1828,13 @@ subroutine check_communication_potential(denspot,tmb)
   end do
 
   !calculate the dimensions and communication of the potential element with mpi_get
-  call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+  call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
   !check the fetching of the potential element, destroy the MPI window, results in pot_work
   call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,&
-       2,denspot%dpbox,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+       2,denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
 
   maxdiff=0.0_dp
   sumdiff=0.0_dp

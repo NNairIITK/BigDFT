@@ -75,10 +75,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
 
   if (present(denspot)) then
-     call initialize_DFT_local_fields(denspot)
+     call initialize_DFT_local_fields(denspot, in%ixc, in%nspin)
 
      !here the initialization of dpbox can be set up
-     call dpbox_set(denspot%dpbox,Lzd,iproc,nproc,bigdft_mpi%mpi_comm,in,atoms%astruct%geocode)
+     call dpbox_set(denspot%dpbox,Lzd,denspot%xc,iproc,nproc,bigdft_mpi%mpi_comm, &
+          & in%PSolver_groupsize, in%SIC%approach, atoms%astruct%geocode, in%nspin)
 
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
@@ -272,7 +273,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   if (present(denspot)) then
      !here dpbox can be put as input
-     call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+     call density_descriptors(iproc,nproc,denspot%xc,in%nspin,in%crmult,in%frmult,atoms,&
           denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)
      !allocate the arrays.
      call allocateRhoPot(iproc,Lzd%Glr,in%nspin,atoms,rxyz,denspot)
@@ -316,7 +317,7 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
        geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
   !create the sequential kernel if the exctX parallelisation scheme requires it
-  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
+  if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups

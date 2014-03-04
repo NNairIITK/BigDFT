@@ -344,6 +344,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Arrays for the symmetrisation, not used here...
    type(symmetry_data) :: symObj
    type(denspot_distribution) :: dpcom
+   type(xc_info) :: xc
    character(len=5) :: gridformat
 
    !for xabsorber
@@ -450,9 +451,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    end if
 
    if (ixc < 0) then
-      call xc_init(ixc, XC_MIXED, nspin)
+      call xc_init(xc, ixc, XC_MIXED, nspin)
    else
-      call xc_init(ixc, XC_ABINIT, nspin)
+      call xc_init(xc, ixc, XC_ABINIT, nspin)
    end if
 
    !character string for quieting the Poisson solver
@@ -528,9 +529,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
    !complete dpbox initialization
-   call dpbox_set(dpcom,KSwfn%Lzd,iproc,nproc,MPI_COMM_WORLD,in,atoms%astruct%geocode)
+   call dpbox_set(dpcom,KSwfn%Lzd,xc,iproc,nproc,MPI_COMM_WORLD,in%PSolver_groupsize, &
+        & in%SIC%approach,atoms%astruct%geocode,nspin)
 
-  call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+  call density_descriptors(iproc,nproc,xc,in%nspin,in%crmult,in%frmult,atoms,&
        dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
 
 !!$
@@ -1225,18 +1227,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-             rhopot(1,1,1,1),energs,in%nspin,GPU,&
+             rhopot(1,1,1,1),energs,xc,in%nspin,GPU,&
              in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
+            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
             &   , in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
+            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
             &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
          if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
@@ -1383,7 +1385,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !! call deallocate_atomdatapaw(atoms,subname)
      
       ! Free the libXC stuff if necessary.
-      call xc_end()
+      call xc_end(xc)
 
       !end of wavefunction minimisation
       call timing(bigdft_mpi%mpi_comm,'LAST','PR')
@@ -1686,6 +1688,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use module_base
    use module_interfaces, except_this_one => extract_potential_for_spectra
    use module_types
+   use module_xc
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    implicit none
    !Arguments
@@ -1710,6 +1713,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    real(wp), dimension(:), pointer :: psi,hpsi,psit
    real(wp), dimension(:,:,:,:), pointer :: rhocore
    type(coulomb_operator), intent(in) :: pkernel,pkernelseq
+   type(xc_info) :: xc
    integer, intent(in) ::potshortcut
 
   !local variables
@@ -1810,7 +1814,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   !spin adaptation for the IG in the spinorial case
   nullify(rho_p)
   orbse%nspin=nspin
-  call sumrho(dpcom,orbse,Lzde,GPU,symObj,rhod,psi,rho_p)
+  call sumrho(dpcom,orbse,Lzde,GPU,symObj,rhod,xc,psi,rho_p)
   call communicate_density(dpcom,orbse%nspin,rhod,rho_p,rhopot,.false.)
   orbse%nspin=nspin_ig
 
@@ -1827,11 +1831,16 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   endif
   !---
 
+  if (ixc < 0) then
+     call xc_init(xc, ixc, XC_MIXED, nspin)
+  else
+     call xc_init(xc, ixc, XC_ABINIT, nspin)
+  end if
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
      call PSolverNC(at%astruct%geocode,'D',iproc,nproc,Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,&
           dpcom%nscatterarr(iproc,1),& !this is n3d
-          ixc,hxh,hyh,hzh,&
+          xc,hxh,hyh,hzh,&
           rhopot,pkernel%kernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
   else
      !Allocate XC potential
@@ -1844,11 +1853,13 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      end if
 
      call XC_potential(at%astruct%geocode,'D',iproc,nproc,MPI_COMM_WORLD,&
-          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,ixc,hxh,hyh,hzh,&
+          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,xc,hxh,hyh,hzh,&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc,xcstr)
      if( iand(potshortcut,4)==0) then
         call H_potential('D',pkernel,rhopot,pot_ion,ehart,0.0_dp,.true.)
      endif
+
+     call xc_end(xc)
 
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised

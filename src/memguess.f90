@@ -793,6 +793,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    real(kind=8) :: CPUtime,GPUtime
    type(gaussian_basis) :: G
    type(GPU_pointers) :: GPU
+   type(xc_info) :: xc
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(wp), dimension(:,:,:,:), allocatable :: pot,rho
    real(wp), dimension(:), pointer:: pottmp
@@ -859,9 +860,15 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
    call memocc(i_stat,nscatterarr,'nscatterarr',subname)
 
+   if (ixc < 0) then
+      call xc_init(xc, ixc, XC_MIXED, nspin)
+   else
+      call xc_init(xc, ixc, XC_ABINIT, nspin)
+   end if
+
    !normally nproc=1
    do jproc=0,nproc-1
-      call PS_dim4allocation(at%astruct%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,xc_isgga(),(ixc/=13),&
+      call PS_dim4allocation(at%astruct%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,xc_isgga(xc),(ixc/=13),&
          &   n3d,n3p,n3pi,i3xcsh,i3s)
       nscatterarr(jproc,1)=n3d
       nscatterarr(jproc,2)=n3p
@@ -880,7 +887,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    end if
 
    !flag for toggling the REDUCE_SCATTER stategy
-   rsflag = .not.xc_isgga()
+   rsflag = .not.xc_isgga(xc)
 
    !calculate dimensions of the complete array to be allocated before the reduction procedure
    if (rsflag) then
@@ -892,7 +899,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
       nrhotot=Lzd%Glr%d%n3i
    end if
 
-   call local_potential_dimensions(Lzd,orbs,ngatherarr(0,1))
+   call local_potential_dimensions(Lzd,orbs,xc,ngatherarr(0,1))
 
    !allocate the necessary objects on the GPU
    !set initialisation of GPU part 
@@ -993,16 +1000,18 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !apply the CPU hamiltonian
    !take timings
    call nanosec(itsc0)
+   xc%ixc = 0
    do j=1,ntimes
       allocate(pottmp(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug)),stat=i_stat)
       call memocc(i_stat,pottmp,'pottmp',subname)
       call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
       call local_hamiltonian(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
-           fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+           fake_pkernelSIC,xc,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
       i_all=-product(shape(pottmp))*kind(pottmp)
       deallocate(pottmp,stat=i_stat)
       call memocc(i_stat,i_all,'pottmp',subname)
    end do
+   xc%ixc = ixc
    call nanosec(itsc1)
    CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
@@ -1160,6 +1169,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    else if (OCLconv) then
       call free_gpu_OCL(GPU,orbs,nspin)
    end if
+
+   call xc_end(xc)
 
    !finalise the material accelearion usage
    call release_material_acceleration(GPU)

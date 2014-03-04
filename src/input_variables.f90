@@ -255,11 +255,11 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   call input_analyze(in)
 
   ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
-  end if
+!!$  if (in%ixc < 0) then
+!!$     call xc_init(in%xcObj, in%ixc, XC_MIXED, in%nspin)
+!!$  else
+!!$     call xc_init(in%xcObj, in%ixc, XC_ABINIT, in%nspin)
+!!$  end if
 
   ! Shake atoms, if required.
   call astruct_set_displacement(atoms%astruct, in%randdis)
@@ -716,7 +716,7 @@ subroutine free_input_variables(in)
   call deallocateInputFragArrays(in%frag)
 
   ! Free the libXC stuff if necessary, related to the choice of in%ixc.
-  call xc_end()
+!!$  call xc_end(in%xcObj)
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)

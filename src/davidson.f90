@@ -11,7 +11,7 @@
 !>  Naive subroutine which performs a direct minimization of the energy 
 !!  for a given hamiltonian
 subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
-     pkernel,dpcom,GPU,KSwfn,VTwfn)
+     pkernel,dpcom,xc,GPU,KSwfn,VTwfn)
    use module_base
    use module_types
    use module_interfaces, except_this_one => direct_minimization
@@ -28,6 +28,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    type(coulomb_operator), intent(in) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
+   type(xc_info), intent(in) :: xc
    !local variables
    character(len=*), parameter :: subname='direct_minimization'
    logical :: msg,exctX,occorbs,endloop !extended output
@@ -81,7 +82,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !verify whether the calculation of the exact exchange term
    !should be performed
    energs%eexctX=0.0_gp
-   exctX = xc_exctXfac() /= 0.0_gp
+   exctX = xc_exctXfac(xc) /= 0.0_gp
    if (in%exctxpar == 'OP2P') energs%eexctX = UNINITIALIZED(1.0_gp)
    !check the size of the rhopot array related to NK SIC
    nrhodim=in%nspin
@@ -187,13 +188,13 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    end if
 
    !allocate the potential in the full box
-   call full_local_potential(iproc,nproc,VTwfn%orbs,VTwfn%Lzd,0,dpcom,rhopot,pot)
+   call full_local_potential(iproc,nproc,VTwfn%orbs,VTwfn%Lzd,0,dpcom,xc,rhopot,pot)
    !iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
    !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
    !     in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
    !     VTwfn%orbs,Lzd,0,ngatherarr,rhopot,pot)
 
-   call local_potential_dimensions(VTwfn%Lzd,VTwfn%orbs,dpcom%ngatherarr(0,1))
+   call local_potential_dimensions(VTwfn%Lzd,VTwfn%orbs,xc,dpcom%ngatherarr(0,1))
 
    !in the case of NK SIC, put the total density in the psirocc pointer, so that it could be reused for building the 
    !Hamiltonian Application
@@ -253,7 +254,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 
       call FullHamiltonianApplication(iproc,nproc,at,VTwfn%orbs,rxyz,&
            VTwfn%Lzd,nlpsp,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
-           energs,in%SIC,GPU,&
+           energs,in%SIC,GPU,xc,&
            pkernel,KSwfn%orbs,psirocc)
 
       energs%ebs=energs%ekin+energs%epot+energs%eproj
@@ -347,7 +348,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !!!!! end point of the direct minimisation procedure
 
    !deallocate potential
-   call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
+   call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
    if (GPUconv) then
       call free_gpu(GPU,VTwfn%orbs%norbp)
@@ -405,7 +406,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 !!   (retranspose v and psi)\n
 subroutine davidson(iproc,nproc,in,at,&
      & orbs,orbsv,nvirt,Lzd,comms,commsv,&
-     & rxyz,rhopot,nlpsp,pkernel,psi,v,dpcom,GPU)
+     & rxyz,rhopot,nlpsp,pkernel,psi,v,dpcom,xc,GPU)
    use module_base
    use module_types
    use module_interfaces, except_this_one => davidson
@@ -426,6 +427,7 @@ subroutine davidson(iproc,nproc,in,at,&
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
    type(GPU_pointers), intent(inout) :: GPU
+   type(xc_info), intent(in) :: xc
    real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
    !v, that is psivirt, is transposed on input and direct on output
    !local variables
@@ -483,7 +485,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !verify whether the calculation of the exact exchange term
    !should be performed
    energs%eexctX=0.0_gp
-   exctX = xc_exctXfac() /= 0.0_gp
+   exctX = xc_exctXfac(xc) /= 0.0_gp
    if (in%exctxpar == 'OP2P') energs%eexctX = UNINITIALIZED(1.0_gp)
 
    !check the size of the rhopot array related to NK SIC
@@ -591,13 +593,13 @@ subroutine davidson(iproc,nproc,in,at,&
    call memocc(i_stat,hv,'hv',subname)
 
    !allocate the potential in the full box
-   call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,rhopot,pot)
+   call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,xc,rhopot,pot)
    !(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
    !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
    !     in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
    !     orbsv,Lzd,0,ngatherarr,rhopot,pot)
 
-   call local_potential_dimensions(Lzd,orbsv,dpcom%ngatherarr(0,1))
+   call local_potential_dimensions(Lzd,orbsv,xc,dpcom%ngatherarr(0,1))
    allocate(confdatarr(orbsv%norbp))
    call default_confinement_data(confdatarr,orbsv%norbp)
 
@@ -624,7 +626,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
    call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
         Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,&
-        energs,in%SIC,GPU,&
+        energs,in%SIC,GPU,xc,&
         pkernel,orbs,psirocc)
 
    !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -940,7 +942,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,g,hg,&
-           energs,in%SIC,GPU,&
+           energs,in%SIC,GPU,xc,&
            pkernel,orbs,psirocc)
 
       !transpose  g and hg
@@ -1213,7 +1215,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
            Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,&
-           energs,in%SIC,GPU,&
+           energs,in%SIC,GPU,xc,&
            pkernel,orbs,psirocc)
 
       !transpose  v and hv
@@ -1232,7 +1234,7 @@ subroutine davidson(iproc,nproc,in,at,&
    end do davidson_loop
 
    !deallocate potential
-   call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
+   call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
    i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
    deallocate(ndimovrlp,stat=i_stat)

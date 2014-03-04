@@ -432,7 +432,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
       end if
   end if
-  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
   if (input%lin%mixing_after_inputguess) then
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
@@ -665,7 +665,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call dcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
   end if
   if (iproc==0) call yaml_newline()
-  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   if(iproc==0) call yaml_close_map()
   ! Mix the potential.
   if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then

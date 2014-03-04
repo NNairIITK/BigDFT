@@ -116,7 +116,7 @@ endif
 $(modules): $(libmodules_a_OBJECTS)
 input_keys.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
-types.o: base.o gaussians.o locregs.o psp_projectors.o
+types.o: base.o gaussians.o locregs.o psp_projectors.o xc.o
 input.o: base.o types.o input_keys.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o
 gaussians.o: base.o

@@ -15,6 +15,7 @@ module module_types
   use m_ab7_mixing, only : ab7_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc,vcopy
+  use module_xc, only : xc_info
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
   use dictionaries, only: dictionary
@@ -738,6 +739,7 @@ module module_types
      real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC
      type(rho_descriptors) :: rhod !< descriptors of the density for parallel communication
      type(denspot_distribution) :: dpbox !< distribution of density and potential box
+     type(xc_info) :: xc !< structure about the used xc functionals
      character(len=3) :: PSquiet
      !real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
      type(coulomb_operator) :: pkernel !< kernel of the Poisson Solver used for V_H[rho]

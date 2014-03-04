@@ -8,11 +8,13 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 !> Denspot initialization
-subroutine initialize_DFT_local_fields(denspot)
+subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
   use module_base
   use module_types
+  use module_xc
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
+  integer, intent(in) :: ixc, nspden
 
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C)
@@ -39,6 +41,12 @@ subroutine initialize_DFT_local_fields(denspot)
   denspot%dpbox=dpbox_null()
 
   nullify(denspot%mix)
+
+  if (ixc < 0) then
+     call xc_init(denspot%xc, ixc, XC_MIXED, nspden)
+  else
+     call xc_init(denspot%xc, ixc, XC_ABINIT, nspden)
+  end if
 end subroutine initialize_DFT_local_fields
 
 subroutine initialize_coulomb_operator(kernel)
@@ -70,14 +78,16 @@ subroutine initialize_rho_descriptors(rhod)
 
 end subroutine initialize_rho_descriptors
 
-subroutine dpbox_set(dpbox,Lzd,iproc,nproc,mpi_comm,in,geocode)
+subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)
   use module_base
   use module_types
+  use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,mpi_comm
+  integer, intent(in) :: iproc,nproc,mpi_comm,PS_groupsize,nspin
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  type(input_variables), intent(in) :: in 
+  character(len=4), intent(in) :: SICapproach
   type(local_zone_descriptors), intent(in) :: Lzd
+  type(xc_info), intent(in) :: xc
   type(denspot_distribution), intent(out) :: dpbox
   !local variables
   integer :: npsolver_groupsize
@@ -87,16 +97,16 @@ subroutine dpbox_set(dpbox,Lzd,iproc,nproc,mpi_comm,in,geocode)
   call dpbox_set_box(dpbox,Lzd)
 
   !if the taskgroup size is not a divisor of nproc do not create taskgroups
-  if (nproc >1 .and. in%PSolver_groupsize > 0 .and. &
-       in%PSolver_groupsize < nproc .and.&
-       mod(nproc,in%PSolver_groupsize)==0) then
-     npsolver_groupsize=in%PSolver_groupsize
+  if (nproc > 1 .and. PS_groupsize > 0 .and. &
+       PS_groupsize < nproc .and.&
+       mod(nproc,PS_groupsize)==0) then
+     npsolver_groupsize=PS_groupsize
   else
      npsolver_groupsize=nproc
   end if
   call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,npsolver_groupsize)
 
-  call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,in%ixc,in%nspin,geocode,in%SIC%approach,dpbox)
+  call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,xc,nspin,geocode,SICapproach,dpbox)
 
 end subroutine dpbox_set
 
@@ -190,12 +200,14 @@ subroutine denspot_free_history(denspot)
   end if
 end subroutine denspot_free_history
 
-subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbox)
+subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox)
   use module_base
   use module_types
+  use module_xc
   use module_interfaces, except_this_one => denspot_communications
   implicit none
-  integer, intent(in) :: ixc,nspin,iproc,nproc
+  integer, intent(in) :: nspin,iproc,nproc
+  type(xc_info), intent(in) :: xc
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=4), intent(in) :: SICapproach
   type(denspot_distribution), intent(inout) :: dpbox
@@ -215,7 +227,7 @@ subroutine denspot_communications(iproc,nproc,ixc,nspin,geocode,SICapproach,dpbo
   allocate(dpbox%ngatherarr(0:nproc-1,3+ndebug),stat=i_stat)
   call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
 
-  call dpbox_repartition(iproc,nproc,geocode,'D',ixc,dpbox)
+  call dpbox_repartition(iproc,nproc,geocode,'D',xc,dpbox)
 
   !Allocate Charge density / Potential in real space
   !here the full_density treatment should be put
@@ -496,7 +508,7 @@ END SUBROUTINE allocateRhoPot
 !!$     rxyz,crmult,frmult,radii_cf,nspin,datacode,ixc,rho_commun,&
 !!$     n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 !> Create the descriptors for the density and the potential
-subroutine dpbox_repartition(iproc,nproc,geocode,datacode,ixc,dpbox)
+subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
 
   use module_base
   use module_types
@@ -504,7 +516,8 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,ixc,dpbox)
   use module_xc
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc,ixc
+  integer, intent(in) :: iproc,nproc
+  type(xc_info), intent(in) :: xc
   character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
   type(denspot_distribution), intent(inout) :: dpbox
@@ -514,7 +527,7 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,ixc,dpbox)
   if (datacode == 'D') then
      do jproc=0,nproc-1
         call PS_dim4allocation(geocode,datacode,jproc,nproc,&
-             dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),xc_isgga(),(ixc/=13),&
+             dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),xc_isgga(xc),(xc%ixc/=13),&
              n3d,n3p,n3pi,i3xcsh,i3s)
         dpbox%nscatterarr(jproc,1)=n3d            !number of planes for the density
         dpbox%nscatterarr(jproc,2)=n3p            !number of planes for the potential
@@ -556,7 +569,7 @@ end subroutine dpbox_repartition
 
 !END SUBROUTINE createDensPotDescriptors
 
-subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
+subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
      rho_commun,rxyz,radii_cf,rhodsc)
   use module_base
   use module_types
@@ -564,6 +577,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   use module_interfaces, except_this_one_A => density_descriptors
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
+  type(xc_info), intent(in) :: xc
   real(gp), intent(in) :: crmult,frmult
   type(atoms_data), intent(in) :: atoms
   type(denspot_distribution), intent(in) :: dpbox
@@ -573,7 +587,7 @@ subroutine density_descriptors(iproc,nproc,nspin,crmult,frmult,atoms,dpbox,&
   type(rho_descriptors), intent(out) :: rhodsc
   !local variables
 
-  if (.not.xc_isgga()) then
+  if (.not.xc_isgga(xc)) then
      rhodsc%icomm=1
   else
      rhodsc%icomm=0
