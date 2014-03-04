@@ -389,11 +389,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   ! Setup all descriptors and allocate what should be.
   if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-    call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,&
+    call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,&
+         & .false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
          KSwfn%comms,shift,radii_cf,ref_frags,denspot,tmb_old%orbs%inwhichlocreg,tmb_old%orbs%onwhichatom)
   else
-    call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,&
+    call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,&
+         & .false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
          KSwfn%comms,shift,radii_cf,ref_frags,denspot)
   end if
@@ -1047,7 +1049,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         if (in%tddft_approach=='TDA') then
 
            !does it makes sense to use GPU only for a one-shot sumrho?
-           if (OCLconv) then
+           if (GPU%OCLconv) then
               call allocate_data_OCL(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
                    atoms%astruct%geocode,&
                    in%nspin,KSwfn%Lzd%Glr%wfd,KSwfn%orbs,GPU)
@@ -1062,7 +1064,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
                 denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
            call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, -1,iproc,nproc)
 
-           if (OCLconv) then
+           if (GPU%OCLconv) then
               call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)
            end if
 
@@ -1322,7 +1324,7 @@ contains
     !free GPU if it is the case
     if (GPUconv .and. .not.(DoDavidson)) then
        call free_gpu(GPU,KSwfn%orbs%norbp)
-    else if (OCLconv .and. .not.(DoDavidson)) then
+    else if (GPU%OCLconv .and. .not.(DoDavidson)) then
        call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)
     end if
 

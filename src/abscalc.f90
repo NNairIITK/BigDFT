@@ -470,7 +470,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,KSwfn%Lzd%Glr,shift)
+   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
    if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, shift, hx, hy, hz)
 
    if ( KSwfn%orbs%nspinor.gt.1) then
@@ -1789,7 +1789,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   if (GPUconv .and. potshortcut ==0 ) then
      call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
           hx,hy,hz,Lzd%Glr%wfd,orbse,GPU)
-  else if (OCLconv .and. potshortcut ==0) then
+  else if (GPU%OCLconv .and. potshortcut ==0) then
      call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%astruct%geocode,&
           nspin_ig,Lzde%Glr%wfd,orbse,GPU)
      if (iproc == 0) write(*,*)&
@@ -1797,9 +1797,9 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   else if (GPUconv .and. potshortcut >0 ) then
      switchGPUconv=.true.
      GPUconv=.false.
-  else if (OCLconv .and. potshortcut >0 ) then
+  else if (GPU%OCLconv .and. potshortcut >0 ) then
      switchOCLconv=.true.
-     OCLconv=.false.
+     GPU%OCLconv=.false.
   end if
 
   call timing(iproc,'wavefunction  ','ON')   
@@ -1882,7 +1882,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      GPUconv=.true.
   end if
   if (switchOCLconv) then
-     OCLconv=.true.
+     GPU%OCLconv=.true.
   end if
 
   call deallocate_orbs(orbse,subname)

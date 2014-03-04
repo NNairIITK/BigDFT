@@ -182,7 +182,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz(1,1), 1)
 
   call system_initialization(iproc, nproc, .false., inputpsi, input_wf_format, .true., &
-       & runObj%inputs, runObj%atoms, rxyz, runObj%rst%KSwfn%orbs, &
+       & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
        & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
        & nlpsp, runObj%rst%KSwfn%comms, shift, runObj%radii_cf, &
@@ -348,34 +348,32 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
   else if (matacc%iacceleration >= 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
-     if (.not. OCLconv) then
-        call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
-        !initialize the id_proc per node
-        call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
-        !initialize the opencl context for any process in the node
-        !call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-        !do jproc=0,mproc-1
-        !   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-        !   if (iproc == jproc) then
-        !      print '(a,a,i4,i4)','Initializing for node: ',trim(nodename_local),iproc,GPU%id_proc
-        call init_acceleration_OCL(matacc,GPU)
-        !   end if
-        !end do
-        GPU%ndevices=min(GPU%ndevices,nproc_node)
-        if (iproc == 0) then
-           call yaml_map('Material acceleration','OpenCL',advance='no')
-           call yaml_comment('iproc=0')
-           call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
-           call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
-           call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
-           !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
-           !     min(GPU%ndevices,nproc_node),GPU%ndevices
-           call yaml_close_map()
-        end if
-        !the number of devices is the min between the number of processes per node
-        GPU%ndevices=min(GPU%ndevices,nproc_node)
-        OCLconv=.true.
+     call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
+     !initialize the id_proc per node
+     call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
+     !initialize the opencl context for any process in the node
+     !call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+     !do jproc=0,mproc-1
+     !   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+     !   if (iproc == jproc) then
+     !      print '(a,a,i4,i4)','Initializing for node: ',trim(nodename_local),iproc,GPU%id_proc
+     call init_acceleration_OCL(matacc,GPU)
+     !   end if
+     !end do
+     GPU%ndevices=min(GPU%ndevices,nproc_node)
+     if (iproc == 0) then
+        call yaml_map('Material acceleration','OpenCL',advance='no')
+        call yaml_comment('iproc=0')
+        call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
+        call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
+        call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
+        !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
+        !     min(GPU%ndevices,nproc_node),GPU%ndevices
+        call yaml_close_map()
      end if
+     !the number of devices is the min between the number of processes per node
+     GPU%ndevices=min(GPU%ndevices,nproc_node)
+     GPU%OCLconv=.true.
 
   else
      if (iproc == 0) then
@@ -392,15 +390,15 @@ subroutine release_material_acceleration(GPU)
   use module_base
   use module_types
   implicit none
-  type(GPU_pointers), intent(out) :: GPU
+  type(GPU_pointers), intent(inout) :: GPU
   
   if (GPUconv) then
      call sg_end()
   end if
 
-  if (OCLconv) then
+  if (GPU%OCLconv) then
      call release_acceleration_OCL(GPU)
-     OCLconv=.false.
+     GPU%OCLconv=.false.
   end if
 
 END SUBROUTINE release_material_acceleration

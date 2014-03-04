@@ -1683,7 +1683,7 @@ nullify(Qvect,dumQvect)
             &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
     end if
     GPU%full_locham=.true.
-    if (OCLconv) then
+    if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
             &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
        if (iproc == 0) write(*,*) 'GPU data allocated'
@@ -1781,7 +1781,7 @@ nullify(Qvect,dumQvect)
 
     if (GPUconv) then
        call free_gpu(GPU,orbs%norbp)
-    else if (OCLconv) then
+    else if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
@@ -1853,7 +1853,7 @@ nullify(Qvect,dumQvect)
 
     GPU%full_locham=.true.
 
-    if (OCLconv) then
+    if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
             &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
        if (iproc == 0) write(*,*)&
@@ -2005,7 +2005,7 @@ nullify(Qvect,dumQvect)
 !!$
     if (GPUconv) then
        call free_gpu(GPU,orbs%norbp)
-    else if (OCLconv) then
+    else if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
@@ -2102,7 +2102,7 @@ nullify(Qvect,dumQvect)
             &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
     end if
     GPU%full_locham=.true.
-    if (OCLconv) then
+    if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
             &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
        if (iproc == 0) write(*,*)&
@@ -2218,7 +2218,7 @@ nullify(Qvect,dumQvect)
 
     if (GPUconv) then
        call free_gpu(GPU,orbs%norbp)
-    else if (OCLconv) then
+    else if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 

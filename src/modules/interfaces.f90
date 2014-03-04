@@ -85,7 +85,7 @@ module module_interfaces
          real(gp), dimension(at%astruct%ntypes,3), intent(out) :: radii_cf
       END SUBROUTINE system_properties
 
-      subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+      subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
          !n(c) use module_base
          use module_types
          implicit none
@@ -94,6 +94,7 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
          real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
          real(gp), intent(inout) :: hx,hy,hz
+         logical, intent(in) :: OCLconv
          type(locreg_descriptors), intent(out) :: Glr
          real(gp), dimension(3), intent(out) :: shift
       END SUBROUTINE system_size
@@ -2662,7 +2663,8 @@ module module_interfaces
          logical, dimension(0:n1,0:n2,0:n3), intent(in), optional :: logrid_f
        end subroutine export_grids
 
-       subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,in,atoms,rxyz,&
+       subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,&
+            & dry_run,in,atoms,rxyz,OCLconv,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,radii_cf,&
             ref_frags, denspot, inwhichlocreg_old, onwhichatom_old, output_grid)
          use module_base
@@ -2674,6 +2676,7 @@ module module_interfaces
          type(input_variables), intent(in) :: in 
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
+         logical, intent(in) :: OCLconv
          type(orbitals_data), intent(inout) :: orbs,lorbs
          type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
          type(DFT_local_fields), intent(out), optional :: denspot

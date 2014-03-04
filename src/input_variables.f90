@@ -325,7 +325,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   end if
 
   ! Stop the code if it is trying to run GPU with spin=4
-  if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
+  if (in%nspin == 4 .and. in%matacc%iacceleration /= 0) then
      if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if

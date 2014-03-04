@@ -505,6 +505,7 @@ module module_types
   !! So they are declared as kind=8 variables either if the GPU works in simple precision
   !! Also other information concerning the GPU runs can be stored in this structure
   type, public :: GPU_pointers
+     logical :: OCLconv  !< True if OCL is used for convolutions for this MPI process
      logical :: useDynamic,full_locham
      integer :: id_proc,ndevices
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
