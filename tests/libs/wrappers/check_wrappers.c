@@ -64,7 +64,7 @@ int main(int argc, const char **argv)
   /* bigdft_dict_set(dict, "nspin", "2"); */
   /* bigdft_dict_set(dict, "itermax", "4"); */
 
-  dict = bigdft_dict_new_from_yaml(yaml);
+  dict = bigdft_dict_new_from_yaml(yaml, NULL);
 
   /* bigdft_dict_dump(dict); */
 
