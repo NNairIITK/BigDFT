@@ -476,7 +476,7 @@ gchar* bigdft_dict_value(BigDFT_Dict *dict)
   
   buf[max_field_length] = ' ';
   FC_FUNC_(dict_value, DICT_VALUE)(&dict->current, buf, max_field_length);
-  for (i = max_field_length; i >= 0 && buf[i] == ' '; i--)
+  for (i = max_field_length; i > 0 && buf[i] == ' '; i--)
     buf[i] = '\0';
   ln = max_field_length - i;
   out = g_malloc(sizeof(gchar) * (ln + 1));
