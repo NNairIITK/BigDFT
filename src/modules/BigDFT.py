@@ -29,7 +29,7 @@ class DictAccessor:
     else:
       raise TypeError(type(k))
     if not(valid):
-      raise IndexError(k)
+      raise KeyError(k)
     return DictAccessor(self.dict, it)
 
   def __setitem__(self, k, v):
@@ -40,7 +40,7 @@ class DictAccessor:
     elif isinstance(k, int):
       (valid, it) = self.dict.move_to_item(k)
       if not(valid):
-        raise IndexError(k)
+        raise KeyError(k)
       self.dict.update(v, it)
     else:
       raise AttributeError
@@ -66,6 +66,12 @@ class DictAccessor:
       raise StopIteration
     self.id += 1
     return DictAccessor(self.dict, it)
+
+  def append(self, v):
+    self.dict.move_to(self.position)
+    if not(self.dict.value() == "__list__") and self.dict.len() > 0:
+      raise TypeError("Not a list")
+    self.dict.update(v, self.dict.append())
 
   def map(self, func):
     self.dict.move_to(self.position)
