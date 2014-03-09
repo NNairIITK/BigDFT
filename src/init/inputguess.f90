@@ -442,7 +442,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       stop 
    end if
 
-   call razero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
+   call to_zero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
 
    !allocate and assign the exponents and the coefficients
    allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
@@ -1838,7 +1838,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
       end do
    end do
 
-   call razero(nvctr*nspin*norbep,psi)
+   call to_zero(nvctr*nspin*norbep,psi)
 
    do iorb=1,norbe
       jorb=iorb-iproc*norbep

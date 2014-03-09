@@ -10,11 +10,14 @@
 
 !> Modules which defines wrappers for the linear alegra.
 module wrapper_linalg
-
+  use time_profiling, only: TIMING_UNINITIALIZED
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
   logical :: GPUblas=.false.
+
+  !>timing categories of the module
+  integer, save, private :: TCAT_COPY_ARRAYS=TIMING_UNINITIALIZED
 
   !> interfaces for LAPACK routines
   interface potrf
@@ -98,6 +101,17 @@ module wrapper_linalg
   end interface c_axpy
 
 contains
+
+  subroutine linalg_initialize_timing_categories()
+    use time_profiling, only: f_timing_category
+    implicit none
+    character(len=*), parameter :: flibgrp='Flib LowLevel' !<this will be moved
+
+    call f_timing_category('Vector copy',flibgrp,&
+         'Memory copy of arrays (excluded allocations)',&
+         TCAT_COPY_ARRAYS)
+
+  end subroutine linalg_initialize_timing_categories
 
   !> Interfaces for LAPACK routines
   !! @warning
@@ -369,8 +383,14 @@ contains
     integer, intent(in) :: incx,incy,n
     complex(kind=4), intent(in) :: dx
     real(kind=4), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call SCOPY(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_complex_real_simple
 
   subroutine copy_complex_real_double(n,dx,incx,dy,incy)
@@ -378,8 +398,14 @@ contains
     integer, intent(in) :: incx,incy,n
     complex(kind=8), intent(in) :: dx
     real(kind=8), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call DCOPY(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_complex_real_double
 
   subroutine copy_integer(n,dx,incx,dy,incy)
@@ -387,8 +413,14 @@ contains
     integer, intent(in) :: incx,incy,n
     integer, intent(in) :: dx
     integer, intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !custom blas routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call icopy(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_integer
 
   subroutine copy_simple(n,dx,incx,dy,incy)
@@ -396,8 +428,14 @@ contains
     integer, intent(in) :: incx,incy,n
     real(kind=4), intent(in) :: dx
     real(kind=4), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call SCOPY(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_simple
 
   subroutine copy_double(n,dx,incx,dy,incy)
@@ -405,8 +443,14 @@ contains
     integer, intent(in) :: incx,incy,n
     real(kind=8), intent(in) :: dx
     real(kind=8), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call DCOPY(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_double
 
   subroutine copy_double_to_simple(n,dx,incx,dy,incy)
@@ -414,8 +458,14 @@ contains
     integer, intent(in) :: incx,incy,n
     real(kind=8), intent(in) :: dx
     real(kind=4), intent(out) :: dy
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call dscopy(n,dx,incx,dy,incy)
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_double_to_simple
 
   subroutine trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)

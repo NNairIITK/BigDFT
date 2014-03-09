@@ -179,14 +179,16 @@ contains
   subroutine PS_initialize_timing_categories()
     use time_profiling, only: f_timing_category_group,f_timing_category
     use wrapper_mpi, only: comm => tgrp_mpi_name, mpi_initialize_timing_categories
+    use wrapper_linalg, only: linalg_initialize_timing_categories
     implicit none
     character(len=*), parameter :: pscpt='PS Computation'
 
     call mpi_initialize_timing_categories()
 
+    call linalg_initialize_timing_categories()
     !group of Poisson Solver operations, separate category
-  call f_timing_category_group(pscpt,&
-       'Computations of Poisson Solver operations')
+    call f_timing_category_group(pscpt,&
+         'Computations of Poisson Solver operations')
 
   !define the timing categories
   call f_timing_category('PSolver Computation',pscpt,&

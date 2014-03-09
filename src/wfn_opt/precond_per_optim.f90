@@ -46,7 +46,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   ! b'=D^{-1/2}b
   call wscal_per_self(nvctr_c,nvctr_f,scal,x(1),x(nvctr_c+1))
   !b=x
-  call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
+  call vcopy(nvctr_c+7*nvctr_f,x(1),1,b(1),1) 
 
   !if GPU is swithced on and there is no call to GPU preconditioner
   !do not do the FFT preconditioning

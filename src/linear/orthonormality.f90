@@ -94,8 +94,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
 
-      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
       call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       allocate(norm(orbs%norb), stat=istat)
@@ -469,7 +469,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
            inv_ovrlpp => inv_ovrlp
         end if
         if (.not.present(inv_ovrlp_smat)) then
-            call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+            if (norbp>0) then
+                call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+            end if
         end if
      end if
 
@@ -883,6 +885,11 @@ subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_
         lwork = int(work(1))
         call f_free(work)
         work=f_malloc(lwork,id='work')
+           !!do iorb=1,norb
+           !!   do jorb=1,norb
+           !!      write(2000+bigdft_mpi%iproc,'(a,3i8,es16.7)') 'iproc, iorb, jorb, val', bigdft_mpi%iproc, iorb, jorb, inv_ovrlp_half(jorb,iorb)
+           !!   end do
+           !!end do
         call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, lwork, info)
         if (check_lapack) then
            tempArr=f_malloc((/norb,norb/), id='tempArr')
@@ -1493,8 +1500,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
 
-      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
 
       call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
@@ -1693,8 +1700,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
 
-      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
       !!call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
       !!     psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       call build_linear_combination_transposed(collcom, ovrlp, &

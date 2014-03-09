@@ -675,7 +675,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
 
   call daub_to_isf(lr,w,psi,psir)
@@ -974,7 +974,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   if (n3i /= 2*n3+(1-nbz)+2*nl3) stop 'n3i not valid'
 
   !zero the pointer
-  call razero(n1i*n2i*n3i,rho)
+  call to_zero(n1i*n2i*n3i,rho)
 
   do iat=1,nat
      !read(22,'(i5,4(f12.6))')! idum , dum1 , (rxyz(j,iat),j=1,3)

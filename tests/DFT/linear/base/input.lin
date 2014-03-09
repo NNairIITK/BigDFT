@@ -1,6 +1,6 @@
 2                                number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)
-2        4                       outer loop iterations (low, high)
-6        8                       basis iterations (low, high)
+2        3                       outer loop iterations (low, high)
+4        5                       basis iterations (low, high)
 1        1                       kernel iterations (low, high) - directmin only
 5        5	                     density iterations (low, high)
 5        0                       DIIS history for basis (low, high)
@@ -22,6 +22,5 @@
 5.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
 0 T T F F                        output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; Pulay corrections (old/new); diag at end
 F F F 0                          fragment calculation; Calculate transfer integrals; Constrained DFT calculation; extra states to optimize (dmin only)
-C 4 4.0d-2 4.0d-2 0.0d-4 6.0 7.0 7.0 20.d0   Number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff, kernel cutoff FOE
-H 1 4.0d-2 4.0d-2 0.0d-4 6.0 7.0 7.0 20.d0   Number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff, kernel cutoff FOE
-
+Si 9 4.0d-2 4.0d-2 0.0d-4 6.0 7.0 7.0 20.d0   Number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff, kernel cutoff FOE
+H  1 4.0d-2 4.0d-2 0.0d-4 6.0 7.0 7.0 20.d0   Number of basis functions per atom, prefactor for confinement potential, localization radius, kernel cutoff, kernel cutoff FOE

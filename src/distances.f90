@@ -303,7 +303,6 @@ contains
     use BigDFT_API
     use module_interfaces
     use m_ab6_symmetry
-    use module_atoms, only: set_astruct_from_file,deallocate_atomic_structure
     implicit none
     character(len=1), intent(in) :: whichone
     character(len=40), intent(in) :: contcar
@@ -316,7 +315,7 @@ contains
     integer :: i,ityp
     real(kind=8) :: xlo,xhi
     integer, dimension(ntypes) :: natoms
-    type(atomic_structure) :: astruct
+    type(atoms_data) :: atoms
     character(len=*), parameter :: subname='box_features'
 
     !!allocate arrays and set atom types
@@ -373,17 +372,19 @@ contains
     else if (whichone == 'B') then
        !open the first file to check box features
 !print *,'here'
-       call set_astruct_from_file(trim(contcar),0,astruct)
-       nat=astruct%nat
+       call read_atomic_file(trim(contcar),0,atoms%astruct)
+       nat=atoms%astruct%nat
 !print *,'nat',nat
        allocate(iatype(nrep**3*nat),pos(3,nrep**3*nat))
        do i=1,nat
-          iatype(i)=astruct%iatype(i)
+          iatype(i)=atoms%astruct%iatype(i)
        enddo
-       factor=astruct%cell_dim(1) * Bohr_Ang
+       factor=atoms%astruct%cell_dim(1) * Bohr_Ang
 
-       deallocate(astruct%rxyz)
-       call deallocate_atomic_structure(astruct) 
+       deallocate(atoms%astruct%rxyz)
+       call deallocate_atomic_structure(atoms%astruct,"box_features") 
+!       call deallocate_atoms(atoms, "box_features")
+
     end if
 
     !replica of the atom types
@@ -403,7 +404,6 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   use BigDFT_API
   use module_interfaces
   use m_ab6_symmetry
-  use module_atoms, only: set_astruct_from_file,deallocate_atomic_structure
   implicit none
   character(len=1), intent(in) :: whichone
   integer, intent(in) :: iunit,nat,nrep
@@ -412,7 +412,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   character(len=5) :: fn4
   integer :: i,iat,ityp,i1,i2,i3
   real(kind=8) :: x,y,z,vx,vy,vz,xlo,xhi,ylo,yhi,zlo,zhi,alat(3)
-  type(atomic_structure) :: astruct
+  type(atoms_data) :: atoms
   character(len=*), parameter :: subname='read_pos'
 
 
@@ -437,23 +437,22 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   else if (whichone == 'B') then
      !use the BigDFT call with iunit to control the posout
      write(fn4,'(i5.5)') iunit
-     call set_astruct_from_file('posmd_'//fn4,0,astruct)
-     !call allocate_atoms_data(atoms)
-     !call allocate_atoms_nat(atoms, subname)
-     !call allocate_atoms_ntypes(atoms, subname)
+     call read_atomic_file('posmd_'//fn4,0,atoms%astruct)
+     call allocate_atoms_nat(atoms, subname)
+     call allocate_atoms_ntypes(atoms, subname)
      !transform the positions in reduced coordinates
-     alat(1) = astruct%cell_dim(1)
-     if (astruct%geocode == 'F') alat(1) = 1.d0
-     alat(2) = astruct%cell_dim(2)
-     if (astruct%geocode == 'F' .or. astruct%geocode == 'S') alat(2) = 1.d0
-     alat(3) = astruct%cell_dim(3)
-     if (astruct%geocode == 'F') alat(3) = 1.d0
+     alat(1) = atoms%astruct%cell_dim(1)
+     if (atoms%astruct%geocode == 'F') alat(1) = 1.d0
+     alat(2) = atoms%astruct%cell_dim(2)
+     if (atoms%astruct%geocode == 'F' .or. atoms%astruct%geocode == 'S') alat(2) = 1.d0
+     alat(3) = atoms%astruct%cell_dim(3)
+     if (atoms%astruct%geocode == 'F') alat(3) = 1.d0
      do iat=1,nat
-        pos(1,iat)=astruct%rxyz(1,iat)/alat(1)
-        pos(2,iat)=astruct%rxyz(2,iat)/alat(2)
-        pos(3,iat)=astruct%rxyz(3,iat)/alat(3)
+        pos(1,iat)=atoms%astruct%rxyz(1,iat)/alat(1)
+        pos(2,iat)=atoms%astruct%rxyz(2,iat)/alat(2)
+        pos(3,iat)=atoms%astruct%rxyz(3,iat)/alat(3)
      enddo
-     call deallocate_atomic_structure(astruct)
+     call deallocate_atomic_structure(atoms%astruct, 'distance')
   end if
 
   !replica of the atom positions

@@ -212,8 +212,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
   call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY)
+  in%lin%pulay_correction=dummy_bool
   call input_var(in%lin%new_pulay_correction,'F')
   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_KS,comment=comments)
+
 
 
   !!!!Came to here for the definition of the input variables. Fill the input variable structure with what found so far

@@ -3334,7 +3334,7 @@ END SUBROUTINE get_mindist
 !     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
 !     call memocc(i_stat,psigold,'psigold',subname)
 !
-!     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+!     call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 !     do iel=1,nvctr_c_old
 !        if (useFormattedInput) then
 !           read(unitwf,*) i1,i2,i3,tt

@@ -10,7 +10,7 @@ module module_abscalc
   use module_base
   use module_types
   implicit none
-  private
+
   !> Contains all array necessary to apply preconditioning projectors 
   type, public :: pcproj_data_type
      type(DFT_PSP_projectors) :: pc_nl
@@ -189,10 +189,6 @@ module module_abscalc
 !!$     END SUBROUTINE cg_spectra
 
   end interface
-
-
-  public :: deallocate_pawproj_data, deallocate_pcproj_data, applypcprojectors, applypawprojectors
-  public :: gatom_modified, abs_generator_modified
 
 
 contains

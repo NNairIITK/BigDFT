@@ -116,6 +116,10 @@ module module_types
   integer, parameter :: LINEAR_MIXDENS_SIMPLE=101
   integer, parameter :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter :: LINEAR_FOE=103
+
+  !> How to update the density kernel during teh support function optimization
+  integer, parameter :: UPDATE_BY_PURIFICATION = 0
+  integer, parameter :: UPDATE_BY_FOE = 1
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -353,6 +357,18 @@ module module_types
      
      !> linear scaling: calculate intermediate forces
      logical :: intermediate_forces
+
+     !> linear scaling: exit kappa for extended input guess (experimental mode)
+     real(kind=8) :: kappa_conv
+
+     !> linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+     integer :: evbounds_nsatur
+
+     !> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+     integer :: evboundsshrink_nsatur
+
+     !> linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+     integer :: method_updatekernel
   end type input_variables
 
   !> Contains all energy terms
@@ -551,6 +567,7 @@ module module_types
     real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
     real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
     real(kind=8) :: charge !total charge of the system
+    integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
 !!$  type, public :: sparseMatrix_metadata
@@ -593,6 +610,8 @@ module module_types
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
     integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
+    integer :: ncomms_repartitionrho, window
+    integer,dimension(:,:),pointer :: commarr_repartitionrho
   end type collective_comms
 
 
@@ -2698,15 +2717,27 @@ end subroutine find_category
        case (WRITE_ORBITALS)
           ! linear scaling: write KS orbitals for cubic restart
           in%write_orbitals = val
-    case (EXPLICIT_LOCREGCENTERS)
-       ! linear scaling: explicitely specify localization centers
-       in%explicit_locregcenters = val
-    case (CALCULATE_KS_RESIDUE)
-       ! linear scaling: calculate Kohn-Sham residue
-       in%calculate_KS_residue = val
-    case (INTERMEDIATE_FORCES)
-       ! linear scaling: calculate intermediate forces
-       in%intermediate_forces = val
+       case (EXPLICIT_LOCREGCENTERS)
+          ! linear scaling: explicitely specify localization centers
+          in%explicit_locregcenters = val
+       case (CALCULATE_KS_RESIDUE)
+          ! linear scaling: calculate Kohn-Sham residue
+          in%calculate_KS_residue = val
+       case (INTERMEDIATE_FORCES)
+          ! linear scaling: calculate intermediate forces
+          in%intermediate_forces = val
+       case (KAPPA_CONV)
+          ! linear scaling: exit kappa for extended input guess (experimental mode)
+          in%kappa_conv = val
+       case (EVBOUNDS_NSATUR)
+           ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+           in%evbounds_nsatur = val
+       case(EVBOUNDSSHRINK_NSATUR)
+           ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+           in%evboundsshrink_nsatur = val
+       case (METHOD_UPDATEKERNEL)
+           ! linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+           in%method_updatekernel = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

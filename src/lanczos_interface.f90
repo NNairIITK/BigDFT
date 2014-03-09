@@ -356,16 +356,16 @@ nullify(Qvect,dumQvect)
      integer, intent(in) :: i,j
 
      if( i.ge.0 .and. j.ge.0) then
-        call dcopy(EP_dim,Qvect(1,j),1,Qvect(1,i),1)
+        call vcopy(EP_dim,Qvect(1,j),1,Qvect(1,i),1)
         !Qvect(:,i)=Qvect(:,j)
      else  if( i.lt.0 .and. j.ge.0) then
-        call dcopy(EP_dim,Qvect(1,j),1,dumQvect(1,-i),1)
+        call vcopy(EP_dim,Qvect(1,j),1,dumQvect(1,-i),1)
         !dumQvect(:,-i)=Qvect(:,j)
      else  if( i.ge.0 .and. j.lt.0) then
-        call dcopy(EP_dim,dumQvect(1,-j),1,Qvect(1,i),1)
+        call vcopy(EP_dim,dumQvect(1,-j),1,Qvect(1,i),1)
         !Qvect(:,i)=dumQvect(:,-j)
      else 
-        call dcopy(EP_dim,dumQvect(1,-j),1,dumQvect(1,-i),1)
+        call vcopy(EP_dim,dumQvect(1,-j),1,dumQvect(1,-i),1)
         !dumQvect(:,-i)=dumQvect(:,-j)
      endif
 
@@ -400,8 +400,8 @@ nullify(Qvect,dumQvect)
      real(wp) :: ovrlp_local ( ha%orbs%nkpts  )
      real(wp) :: ovrlp_global( ha%orbs%nkpts  )
      integer :: ik, ipos, ic, iorb
-     call razero(ha%orbs%nkpts,ovrlp_local)
-     call razero(ha%orbs%nkpts,ovrlp_global)
+     call to_zero(ha%orbs%nkpts,ovrlp_local)
+     call to_zero(ha%orbs%nkpts,ovrlp_global)
      if(ha%orbs%nspinor==1) then
         ipos=1
         do ik = 1, ha%orbs%nkptsp  !! this supposes norb=1 for chebychev
@@ -525,7 +525,7 @@ nullify(Qvect,dumQvect)
      if ( ha%at%paw_NofL(ha%at%astruct%iatype(ha%in_iat_absorber )).gt.0  ) then
         if (ha%iproc == 0) write(*,*) "USING PTILDES TO BUILD INITIAL WAVE"
         !!if(EP_dim_tot.gt.0) then
-        call razero(EP_dim_tot  ,  Qvect_tmp  )
+        call to_zero(EP_dim_tot  ,  Qvect_tmp  )
         call applyPAWprojectors(ha%orbs,ha%at,&
            &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,Qvect_tmp, ha%at%paw_S_matrices, &
            &   .true. ,    ha%in_iat_absorber, ha%Labsorber+1, &
@@ -543,7 +543,7 @@ nullify(Qvect,dumQvect)
      !!$    if(exist) then
      !!$       if(  sum( ha%at%paw_NofL ).gt.0 ) then
      !!$          if(  associated( ha%PAWD) ) then
-     !!$             call razero(EP_dim_tot  ,  wrk  )
+     !!$             call to_zero(EP_dim_tot  ,  wrk  )
      !!$             call applyPAWprojectors(ha%orbs,ha%at,&
      !!$                  ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
      !!$                  .false.)      
@@ -929,18 +929,18 @@ nullify(Qvect,dumQvect)
      !!$       wrk(ind+7)=Qvect_tmp(ind+7)*scal(7)       !  2 2 2
      !!$    enddo
 
-     call dcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
+     call vcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
 
 
      if( dopcproj) then
 
-        call razero(EP_dim_tot  ,  wrk1  )
+        call to_zero(EP_dim_tot  ,  wrk1  )
         ha%PPD%iproj_to_factor(:) =  1.0_gp
         call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
            &   ha%Lzd%Glr,ha%PPD,wrk,wrk1 )
 
 
-        call razero(EP_dim_tot  ,  wrk2  )
+        call to_zero(EP_dim_tot  ,  wrk2  )
         !!$       do k=1, ha%PPD%mprojtot
         !!$          print *, ha%PPD%iproj_to_ene(k), ha%PPD%iproj_to_l(k)
         !!$       end do
@@ -968,7 +968,7 @@ nullify(Qvect,dumQvect)
 
      if( dopcproj) then
 
-        call razero(EP_dim_tot  ,  wrk1  )
+        call to_zero(EP_dim_tot  ,  wrk1  )
         ha%PPD%iproj_to_factor(:) =  1.0_gp
         call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
            &   ha%Lzd%Glr,ha%PPD,wrk,wrk1)
@@ -1106,7 +1106,6 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_Moltiplica(p,i)
      use module_interfaces
-     use module_abscalc
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1153,7 +1152,7 @@ nullify(Qvect,dumQvect)
            call applyPAWprojectors(ha%orbs,ha%at,&
               &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk,ha%at%paw_H_matrices, .false.  )
 
-           !!$          call razero(EP_dim_tot  ,  wrk1  )
+           !!$          call to_zero(EP_dim_tot  ,  wrk1  )
            !!$          call applyPAWprojectors(ha%orbs,ha%at,&
            !!$               ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,wrk,wrk1, ha%at%paw_S_matrices )
            !!$          do k=1, EP_dim_tot
@@ -1229,7 +1228,7 @@ nullify(Qvect,dumQvect)
            enddo
         endif
      endif
-     call razero(EP_dim_tot  ,  wrk  )
+     call to_zero(EP_dim_tot  ,  wrk  )
      if(  sum( ha%at%paw_NofL ).gt.0 ) then
         if(  associated( ha%PAWD) ) then
            call applyPAWprojectors(ha%orbs,ha%at,&
@@ -1296,7 +1295,7 @@ nullify(Qvect,dumQvect)
            enddo
         endif
      endif
-     call razero(EP_dim_tot  ,  wrk  )
+     call to_zero(EP_dim_tot  ,  wrk  )
      if(  sum( ha%at%paw_NofL ).gt.0 ) then
         if(  associated( ha%PAWD) ) then
            call applyPAWprojectors(ha%orbs,ha%at,&
@@ -1389,7 +1388,7 @@ nullify(Qvect,dumQvect)
      call memocc(i_stat,tpsi,'tpsi',subname)
 
      !initialize the wavefunction
-     call razero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
+     call to_zero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
      !this can be changed to be passed only once to all the gaussian basis
      !eks=0.d0
      !loop over the atoms

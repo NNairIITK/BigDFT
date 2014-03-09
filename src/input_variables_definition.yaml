@@ -627,4 +627,15 @@
    intermediate_forces:
      COMMENT: linear scaling calculate intermediate forces
      default: No
-
+   kappa_conv:
+     COMMENT: exit kappa for extended input guess (experimental mode)
+     default: 0.1
+   evbounds_nsatur:
+     COMMENT: number of FOE cycles before the eigenvalue bounds are shrinked
+     default: 3
+   evboundsshrink_nsatur:
+     COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
+     default: 4
+   method_updatekernel:
+     COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE)
+     default: 0

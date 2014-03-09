@@ -98,7 +98,7 @@ subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
-  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
   
@@ -730,7 +730,7 @@ subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal) &
   !$omp shared(psifscf)
   
-  call razero(8*(n1+1)*(n2+1)*(n3+1),psifscf)
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psifscf(0,1,0,1,0,1))
 
   ! coarse part
   !$omp do
@@ -878,7 +878,7 @@ subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
-  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
   
@@ -955,7 +955,7 @@ subroutine uncompress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
 
-  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,0,0,0))
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
   
@@ -1092,7 +1092,7 @@ subroutine uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
-  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,0,0,0))
 
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
@@ -1223,7 +1223,7 @@ subroutine uncompress_c(hpsi,x_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
   !local variables
   integer iseg,jj,j0,j1,ii,i3,i2,i0,i1,i
 
-  call razero((n1+1)*(n2+1)*(n3+1),x_c)
+  call to_zero((n1+1)*(n2+1)*(n3+1),x_c(0,0,0))
   !$omp parallel default(private) &
   !$omp shared(hpsi,x_c,keyv_c,keyg_c,n1,n2,n3,nseg_c)
   
@@ -1371,7 +1371,7 @@ subroutine uncompress_slab_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
-  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
 
   ! coarse part
   do iseg=1,nseg_c
@@ -1501,7 +1501,7 @@ subroutine uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
-  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+  call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
 
   ! coarse part
   do iseg=1,nseg_c

@@ -1844,6 +1844,18 @@ contains
     call input_var("intermediate_forces", .false., "linear scaling: calculate intermediate forces", dummy_bool)
     call set(dict // INTERMEDIATE_FORCES, dummy_bool)
 
+    call input_var("kappa_conv", 0.1d0, "exit kappa for extended input guess (experimental mode)", dummy_real)
+    call set(dict // KAPPA_CONV, dummy_real)
+
+    call input_var("evbounds_nsatur", 3, "number of FOE cycles before the eigenvalue bounds are shrinked", dummy_int)
+    call set(dict // EVBOUNDS_NSATUR, dummy_int)
+
+    call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
+    call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
+
+    call input_var("method_updatekernel", 0, (/0,1/), "kernel update during the sup. fun. opt. (0: purific., 1: FOE)", dummy_int)
+    call set(dict // METHOD_UPDATEKERNEL, dummy_int)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

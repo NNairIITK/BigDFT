@@ -130,6 +130,10 @@ module module_input_keys
   character(len = *), parameter, public :: EXPLICIT_LOCREGCENTERS = "explicit_locregcenters"
   character(len = *), parameter, public :: CALCULATE_KS_RESIDUE = "calculate_KS_residue"
   character(len = *), parameter, public :: INTERMEDIATE_FORCES = "intermediate_forces"
+  character(len = *), parameter, public :: KAPPA_CONV = "kappa_conv"
+  character(len = *), parameter, public :: EVBOUNDS_NSATUR = "evbounds_nsatur"
+  character(len = *), parameter, public :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
+  character(len = *), parameter, public :: METHOD_UPDATEKERNEL = "method_updatekernel"
 
   !keys for linear input variables
   !level keys

@@ -822,7 +822,7 @@ contains
   enddo
   ! normalize velocities to target ekinetic
     call velnorm(atoms%astruct%nat,atoms%astruct%rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
-    call razero(3*atoms%astruct%nat,gg)
+    call to_zero(3*atoms%astruct%nat,gg)
 
     if(iproc==0) call torque(atoms%astruct%nat,atoms%astruct%rxyz,vxyz)
 

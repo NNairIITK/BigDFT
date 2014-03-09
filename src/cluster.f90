@@ -307,7 +307,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
-  integer :: ilr, nlr, iorb, jorb
+  integer :: ilr, nlr, iorb, jorb, ioffset
   character(len=20) :: comment
 
   !debug
@@ -501,7 +501,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
               denspot, tmb%linmat%denskern_large, in%check_sumrho)
      end if
 
-     if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction) then
+     if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
+         (in%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. in%lin%diag_end) then
         allocate(tmb%coeff(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
         call memocc(i_stat, tmb%coeff, 'tmb%coeff', subname)
      else
@@ -659,7 +660,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            if (iproc==0) write(*,*) '--------------------------------------------------------------------------------------'
 
            !in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
-           !call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
+           !call vcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
            !! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
            !in_frag_charge(cdft%ifrag_charged(1))=in%ncharge - in_frag_charge(cdft%ifrag_charged(2))
            !overlap_calculated=.true.
@@ -685,7 +686,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !     tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
            !! Must initialize rhopotold (FOR NOW... use the trivial one)
-           !call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
+           !call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
            !     denspot%rhov(1), 1, denspot0(1), 1)
            !!!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
            !call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
@@ -694,7 +695,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !! keep a copy of previous wavefunctions and energies...
            !allocate(psi_constrained(tmb%npsidim_orbs), stat=i_stat)
            !call memocc(i_stat, psi_constrained, 'psi_constrained', subname)
-           !call dcopy(tmb%npsidim_orbs,tmb%psi(1),1,psi_constrained(1),1)
+           !call vcopy(tmb%npsidim_orbs,tmb%psi(1),1,psi_constrained(1),1)
            !energy_constrained=energy
 
            !call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
@@ -735,10 +736,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!call finalize_p2p_tags()
   
      !temporary allocation of the density
-     allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
+     !!allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
+     !!call memocc(i_stat,denspot%rho_work,'rho',subname)
+     !!call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
+     !!     denspot%rhov(1),1,denspot%rho_work(1),1)
+
+     ! keep only the essential part of the density, without the GGA bufffers
+     allocate(denspot%rho_work(denspot%dpbox%ndimpot),stat=i_stat)
      call memocc(i_stat,denspot%rho_work,'rho',subname)
-     call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
-          denspot%rhov(1),1,denspot%rho_work(1),1)
+     ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
+     call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
 
      if (infocode==2) then
         !!! Allocate this array since it will be deallcoated in deallocate_before_exiting
@@ -1138,7 +1145,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         !in the case of band structure calculation, copy the values of the eigenvectors
         !into a new array to write them afterwards
         if (associated(in%kptv) .and. in%nkptv > 0) then
-           call dcopy(VTwfn%orbs%norb*nkptv,VTwfn%orbs%eval(1),1,band_structure_eval(1,ikpt),1)
+           call vcopy(VTwfn%orbs%norb*nkptv,VTwfn%orbs%eval(1),1,band_structure_eval(1,ikpt),1)
            !increment the value of ikpt
            ikpt=ikpt+in%nkptsv_group(igroup)
         end if
@@ -1242,7 +1249,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
                 mpidtypd,denspot%dpbox%mpi_env%mpi_comm,ierr)
         end if
      else
-        call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_work,1)
+        call vcopy(n1i*n2i*n3i*in%nspin,denspot%rhov(1),1,denspot%pot_work(1),1)
      end if
 
      call dpbox_free(denspot%dpbox, subname)
@@ -1872,6 +1879,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake
 
+
   !manipulate scatter array for avoiding the GGA shift
 !!$     call dpbox_repartition(denspot%dpbox%iproc,denspot%dpbox%nproc,atoms%astruct%geocode,'D',1,denspot%dpbox)
   !n3d=n3p
@@ -1906,7 +1914,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
         call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
      end if
      ! Density already present in denspot%rho_work
-     call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
+     call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
           0.0_dp,.false.,stress_tensor=hstrten)
   else

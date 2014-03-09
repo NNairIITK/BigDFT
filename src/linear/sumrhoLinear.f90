@@ -80,11 +80,11 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      call memocc(i_stat,psir,'psir',subname)
   
      if (Lzd%Llr(ilr)%geocode == 'F') then
-        call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
+        call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
      end if
  
      !Need to zero rho_p
-     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn, rho_p)
+     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn, rho_p)
 
      !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
      !hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(iorb)/(hxh*hyh*hzh))
@@ -389,7 +389,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
              end do
           else
              do iorb=1,orbs%norbp
-                call dcopy(orbs_tmb%norb,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
+                call vcopy(orbs_tmb%norb,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
              end do
           end if
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
@@ -631,9 +631,10 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
 
 end subroutine calculate_density_kernel_uncompressed
 
-subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
+subroutine init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => init_collective_comms_sumrho
   implicit none
 
   ! Calling arguments
@@ -647,7 +648,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
   integer :: ierr, istat, iall, ipt
   real(kind=8) :: weight_tot, weight_ideal
   integer,dimension(:,:),allocatable :: istartend
-  character(len=*),parameter :: subname='init_collective_comms_sumro'
+  character(len=*),parameter :: subname='init_collective_comms_sumrho'
   real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
 
   ! Note: all weights are double precision to avoid integer overflow
@@ -736,6 +737,9 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
        collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
        collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
 
+  call communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatterarr, istartend, & 
+       collcom_sr%ncomms_repartitionrho, collcom_sr%commarr_repartitionrho)
+
   iall = -product(shape(weights_per_zpoint))*kind(weights_per_zpoint)
   deallocate(weights_per_zpoint,stat=istat)
   call memocc(istat, iall, 'weights_per_zpoint', subname)
@@ -746,7 +750,7 @@ subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, col
 
   call timing(iproc,'init_collco_sr','OF')
 
-end subroutine init_collective_comms_sumro
+end subroutine init_collective_comms_sumrho
 
 subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
            weight_tot, weight_ideal, weights_per_slice, weights_per_zpoint)
@@ -774,9 +778,11 @@ subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
 
   weight_xy=f_malloc((/lzd%glr%d%n1i,lzd%glr%d%n2i/),id='weight_xy')
 
+  !write(*,*) 'iproc, nscatterarr', iproc, nscatterarr(iproc,:)
+
   tt=0.d0
   weights_per_slice(:) = 0.0d0
-  do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,1)
+  do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,2)
       call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, weight_xy(1,1))
       do iorb=1,orbs%norb
           ilr=orbs%inwhichlocreg(iorb)
@@ -879,10 +885,10 @@ subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_idea
       outer_loop: do jproc_out=0,nproc-1
           if (tt+weights_per_slice(jproc_out)<weights_startend(1,iproc)) then
               tt=tt+weights_per_slice(jproc_out)
-              ii=ii+nscatterarr(jproc_out,1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+              ii=ii+nscatterarr(jproc_out,2)*lzd%glr%d%n1i*lzd%glr%d%n2i
               cycle outer_loop
           end if
-          i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,1)
+          i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,2)
               call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, slicearr(1,1))
               do iorb=1,orbs%norb
                   ilr=orbs%inwhichlocreg(iorb)
@@ -970,7 +976,9 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   real(8) :: tt, weight_check
 
 
-  call to_zero(nptsp, norb_per_gridpoint(1))
+  if (nptsp>0) then
+      call to_zero(nptsp, norb_per_gridpoint(1))
+  end if
   do i3=1,lzd%glr%d%n3i
       if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
           (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
@@ -1019,7 +1027,7 @@ subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orb
   ! Some check
   call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (abs(weight_check-weight_tot) > 1.d-3) then
-      stop '2: tt/=weight_tot'
+      stop '2: weight_check/=weight_tot'
   else if (abs(weight_check-weight_tot) > 0.d0) then
      call yaml_warning('The total weight for density seems inconsistent! Ref:'//&
            trim(yaml_toa(weight_tot,fmt='(1pe25.17)'))//', Check:'//&
@@ -1344,7 +1352,9 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
   allocate(indexrecvorbital2(ndimind), stat=istat)
   call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
 
-  call vcopy(ndimind, indexrecvorbital(1), 1, indexrecvorbital2(1), 1)
+  if (ndimind>0) then
+      call vcopy(ndimind, indexrecvorbital(1), 1, indexrecvorbital2(1), 1)
+  end if
 
   !$omp parallel default(none) &
   !$omp shared(ndimind, iextract, indexrecvorbital, indexrecvorbital2) private(i, ind)
@@ -1405,7 +1415,7 @@ subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, i
               if (ii>istartend(2,jproc_send)) then
                   jproc_send=jproc_send+1
               end if
-              if (i3>nscatterarr(jproc_recv,3)+nscatterarr(jproc_recv,1)) then
+              if (i3>nscatterarr(jproc_recv,3)+nscatterarr(jproc_recv,2)) then
                   jproc_recv=jproc_recv+1
               end if
               if (iproc==jproc_send) then
@@ -1429,6 +1439,151 @@ subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, i
 
 
 end subroutine communication_arrays_repartitionrho
+
+
+
+subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatterarr, istartend, &
+           ncomms_repartitionrho, commarr_repartitionrho)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+  integer,intent(out) :: ncomms_repartitionrho
+  integer,dimension(:,:),pointer,intent(out) :: commarr_repartitionrho
+  character(len=*),parameter :: subname='communication_arrays_repartitionrho_general'
+
+  ! Local variables
+  integer :: i1, i2, i3, ii, jproc, jproc_send, iidest, nel, ioverlaps, istat, ierr, iassign
+  logical :: started
+  integer,dimension(:),allocatable :: nel_array
+
+  call f_routine(id='nel_array')
+
+  ! only do this if task iproc has to receive a part of the potential
+  if (nscatterarr(iproc,1)>0) then
+    
+    
+      ! First process from which iproc has to receive data
+      ncomms_repartitionrho=0
+      i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+      ii=(i3)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)+1
+      do jproc=nproc-1,0,-1
+          if (ii>=istartend(1,jproc)) then
+              jproc_send=jproc
+              ncomms_repartitionrho=ncomms_repartitionrho+1
+              exit
+          end if
+      end do
+    
+    
+    
+      ! The remaining processes
+      iidest=0
+      nel=0
+      started=.false.
+      do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          ii=(i3-1)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)
+          do i2=1,lzd%glr%d%n2i
+              do i1=1,lzd%glr%d%n1i
+                  ii=ii+1
+                  iidest=iidest+1
+                  if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
+                      nel=nel+1
+                  else
+                      jproc_send=jproc_send+1
+                      ncomms_repartitionrho=ncomms_repartitionrho+1
+                  end if
+              end do
+          end do
+      end do
+    
+    
+      allocate(commarr_repartitionrho(4,ncomms_repartitionrho),stat=istat)
+      call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
+    
+    
+      ! First process from which iproc has to receive data
+      ioverlaps=0
+      i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+      ii=(i3)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)+1
+      do jproc=nproc-1,0,-1
+          if (ii>=istartend(1,jproc)) then
+              jproc_send=jproc
+              ioverlaps=ioverlaps+1
+              exit
+          end if
+      end do
+    
+    
+      ! The remaining processes
+      iassign=0
+      iidest=0
+      nel=0
+      started=.false.
+      do i3=nscatterarr(iproc,3)-nscatterarr(iproc,4)+1,nscatterarr(iproc,3)-nscatterarr(iproc,4)+nscatterarr(iproc,1)
+          ii=(i3-1)*(lzd%glr%d%n2i)*(lzd%glr%d%n1i)
+          do i2=1,lzd%glr%d%n2i
+              do i1=1,lzd%glr%d%n1i
+                  ii=ii+1
+                  iidest=iidest+1
+                  if (ii>=istartend(1,jproc_send) .and. ii<=istartend(2,jproc_send)) then
+                      nel=nel+1
+                  else
+                      commarr_repartitionrho(4,ioverlaps)=nel
+                      jproc_send=jproc_send+1
+                      ioverlaps=ioverlaps+1
+                      nel=1
+                      started=.false.
+                  end if
+                  if (.not.started) then
+                      if (jproc_send>=nproc) stop 'ERROR: jproc_send>=nproc'
+                      commarr_repartitionrho(1,ioverlaps)=jproc_send
+                      commarr_repartitionrho(2,ioverlaps)=ii-istartend(1,jproc_send)+1
+                      commarr_repartitionrho(3,ioverlaps)=iidest
+                      started=.true.
+                      iassign=iassign+1
+                  end if
+              end do
+          end do
+      end do
+      commarr_repartitionrho(4,ioverlaps)=nel
+      if (ioverlaps/=ncomms_repartitionrho) stop 'ERROR: ioverlaps/=ncomms_repartitionrho'
+      if (iassign/=ncomms_repartitionrho) stop 'ERROR: iassign/=ncomms_repartitionrho'
+    
+      ! some checks
+      nel=0
+      !nel_array=f_malloc0(0.to.nproc-1,id='nel_array')
+      do ioverlaps=1,ncomms_repartitionrho
+          nel=nel+commarr_repartitionrho(4,ioverlaps)
+          ii=commarr_repartitionrho(1,ioverlaps)
+          !nel_array(ii)=nel_array(ii)+commarr_repartitionrho(4,ioverlaps)
+      end do
+      if (nel/=nscatterarr(iproc,1)*lzd%glr%d%n2i*lzd%glr%d%n1i) then
+          stop 'nel/=nscatterarr(iproc,2)*lzd%glr%d%n2i*lzd%glr%d%n1i'
+      end if
+      !!call mpiallred(nel_array(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!if (nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1) then
+      !!    !stop 'nel_array(iproc)/=istartend(2,iproc)-istartend(1,iproc)+1'
+      !!end if
+      !!call f_free(nel_array)
+
+  else
+      ncomms_repartitionrho=0
+      allocate(commarr_repartitionrho(1,1),stat=istat)
+      call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
+
+  end if
+
+
+end subroutine communication_arrays_repartitionrho_general
+
+
+
 
 subroutine transpose_switch_psir(collcom_sr, psir, psirwork)
   use module_base
@@ -1666,6 +1821,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
   logical :: print_local
+  integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc
 
   if (present(print_results)) then
       if (print_results) then
@@ -1691,7 +1847,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   
   ! Initialize rho. (not necessary for the moment)
   !if (xc_isgga()) then
-  !    call razero(collcom_sr%nptsp_c, rho_local)
+  !    call to_zero(collcom_sr%nptsp_c, rho_local)
   !else
    !   ! There is no mpi_allreduce, therefore directly initialize to
    !   ! 10^-20 and not 10^-20/nproc.
@@ -1735,13 +1891,59 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   call timing(iproc,'sumrho_allred','ON')
 
   ! Communicate the density to meet the shape required by the Poisson solver.
+  !!if (nproc>1) then
+  !!    call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
+  !!                       mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
+  !!                       collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  !!else
+  !!    call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
+  !!end if
+
+  !!!!do ierr=1,size(rho)
+  !!!!    write(200+iproc,*) ierr, rho(ierr)
+  !!!!end do
+
+
+
   if (nproc>1) then
-      call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
-                         mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
-                         collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+      call mpi_info_create(info, ierr)
+      call mpi_info_set(info, "no_locks", "true", ierr)
+      call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*size_of_double,kind=mpi_address_kind), size_of_double, &
+           info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
+      call mpi_info_free(info, ierr)
+
+      call mpi_win_fence(mpi_mode_noprecede, collcom_sr%window, ierr)
+
+      do jproc=1,collcom_sr%ncomms_repartitionrho
+          mpisource=collcom_sr%commarr_repartitionrho(1,jproc)
+          istsource=collcom_sr%commarr_repartitionrho(2,jproc)
+          istdest=collcom_sr%commarr_repartitionrho(3,jproc)
+          nsize=collcom_sr%commarr_repartitionrho(4,jproc)
+          if (nsize>0) then
+              call mpi_get(rho(istdest), nsize, mpi_double_precision, mpisource, &
+                   int((istsource-1),kind=mpi_address_kind), &
+                   nsize, mpi_double_precision, collcom_sr%window, ierr)
+              !!write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest, &
+              !!                     ' from position ',istsource,' on process ',mpisource, &
+              !!                     '; error code=',ierr
+          end if
+      end do
+      call mpi_win_fence(0, collcom_sr%window, ierr)
+      !!write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
+      call mpi_win_free(collcom_sr%window, ierr)
+      !!write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
   else
       call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
   end if
+
+  !do ierr=1,size(rho)
+  !    write(300+iproc,*) ierr, rho(ierr)
+  !end do
+  !call mpi_finalize(ierr)
+  !stop
+
+
 
   call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
@@ -1756,6 +1958,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   deallocate(rho_local, stat=istat)
   call memocc(istat, iall, 'rho_local', subname)
 
+  !!write(*,*) 'after deallocate'
+  !!call mpi_finalize(ierr)
+  !!stop
 
 end subroutine sumrho_for_TMBs
 
@@ -1952,12 +2157,17 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_routine(id='check_communication_sumrho')
 
   ! Allocate all the main arrays arrays
-  psir=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c') !direct array
-  psirwork=f_malloc(collcom_sr%ndimpsi_c,id='collcom_sr%ndimpsi_c') !direct workarray
+  psir=f_malloc(collcom_sr%ndimpsi_c,id='psir') !direct array
+
+  psirwork=f_malloc(collcom_sr%ndimpsi_c,id='psirwork') !direct workarray
+
   psirtwork=f_malloc(collcom_sr%ndimind_c,id='psirtwork') !transposed workarray
 
   ! Size of global box
   nxyz=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Fill the direct array with a recognizable pattern
   ist=0
@@ -1992,6 +2202,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       stop
   end if
 
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Rearrange data
   call transpose_switch_psir(collcom_sr, psir, psirwork)
@@ -2011,6 +2223,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   ! Transposed workarray not needed anymore
   call f_free(psirtwork)
 
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Check the layout of the transposed data
   maxdiff=0.d0
@@ -2054,6 +2268,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   end if
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
   ! Get mean value for the sum
   sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i)
@@ -2083,8 +2299,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! the communication.
       
       ! First determine how many orbitals one has for each grid point in the current slice
-      ii3s=denspot%dpbox%nscatterarr(iproc,3)+1
-      ii3e=denspot%dpbox%nscatterarr(iproc,3)+denspot%dpbox%nscatterarr(iproc,1)
+      ii3s=denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4)+1
+      ii3e=denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4)+denspot%dpbox%nscatterarr(iproc,1)
       weight=f_malloc0((/lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,ii3s/),id='weight')
 
       if (denspot%dpbox%nscatterarr(iproc,1)>0) then
@@ -2304,8 +2520,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       rj=real(j,kind=8)
       rn=real(n,kind=8)
       !test_value=fac*real((i-1)*n+j,dp)
-      !test_value=fac*(ri-1.d0)*rn+rj
+      !test_value_sumrho=fac*(ri-1.d0)*rn+rj
       test_value_sumrho=sine_taylor((ri-1.d0)*rn)*cosine_taylor(rj)
+      !test_value_sumrho=0.d0
 
     end function test_value_sumrho
 
@@ -2317,7 +2534,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8) :: sine_taylor
 
       ! Local variables
-      real(kind=8) :: x, x2, x3, x5, x7, x9, x11, x13, x15
+      real(kind=8) :: xxtmp, x, x2, x3, x5, x7, x9, x11, x13, x15
       real(kind=8),parameter :: pi=3.14159265358979323846d0
       real(kind=8),parameter :: pi2=6.28318530717958647693d0
       real(kind=8),parameter :: inv6=1.66666666666666666667d-1
@@ -2329,9 +2546,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8),parameter :: inv1307674368000=7.6471637318198164759d-13
 
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
+      ! This first part is equivalent to x=mod(xx,pi2)-pi
       x=xx/pi2
       x=real(int(x,kind=8),kind=8)*pi2
       x=xx-x-pi
+
       x2=x*x
       x3=x2*x
       x5=x3*x2
@@ -2370,10 +2589,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       real(kind=8),parameter :: inv87178291200=1.14707455977297247139d-11
 
       ! The Taylor approximation is most accurate around 0, so shift by pi to be centered around this point.
-      !x=mod(xx,pi2)-pi
+      ! This first part is equivalent to x=mod(xx,pi2)-pi
       x=xx/pi2
       x=real(int(x,kind=8),kind=8)*pi2
       x=xx-x-pi
+
       x2=x*x
       x4=x2*x2
       x6=x4*x2

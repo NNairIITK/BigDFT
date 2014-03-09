@@ -618,7 +618,7 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   end if
   
   !for mixed precision code it should be changed
-  call dcopy(nspinor*n1*n2*n3,ww,1,x,1)
+  call vcopy(nspinor*n1*n2*n3,ww(1),1,x(1),1)
 END SUBROUTINE transpose_for_kpoints
 
 
@@ -2242,7 +2242,7 @@ END SUBROUTINE ncplx_kpt
 !!  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
 !!  call memocc(i_stat,psir,'psir',subname)
 !!
-!!  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+!!  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 !!
 !!  ekin_sum=0.0_gp
 !!  epot_sum=0.0_gp

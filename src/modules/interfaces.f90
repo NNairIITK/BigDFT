@@ -1587,7 +1587,7 @@ module module_interfaces
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-          gnrm_dynamic, can_use_ham, order_taylor)
+          gnrm_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel)
         use module_base
         use module_types
         implicit none
@@ -1613,9 +1613,10 @@ module module_interfaces
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
-        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic
+        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, kappa_conv
         logical,intent(in) :: experimental_mode
         logical,intent(out) :: can_use_ham
+        integer,intent(in) :: method_updatekernel
       end subroutine getLocalizedBasis
 
     subroutine inputOrbitals(iproc,nproc,at,&
@@ -2034,17 +2035,22 @@ module module_interfaces
        real(8),dimension(max(lborbs%npsidim_orbs,lborbs%npsidim_comp)),target,intent(inout):: phid
      end subroutine getDerivativeBasisFunctions
 
-     subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, mixMeth, pnrm)
+
+     subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, mixdiis, alphaMix, ioffset, mixMeth, pnrm)
        use module_base
        use module_types
+       use module_xc
        implicit none
-       integer,intent(in):: iproc, nproc, ndimpot, ndimtot, mixMeth
-       real(8),dimension(ndimpot),intent(in):: rhopotold
-       real(8),dimension(ndimpot),intent(out):: rhopot
+       integer,intent(in):: iproc, nproc, n3d, n3p, mixMeth, ioffset
+       type(locreg_descriptors),intent(in) :: glr
+       type(input_variables),intent(in):: input
+       real(8),dimension(max(glr%d%n1i*glr%d%n2i*n3d,1)*input%nspin),intent(in):: rhopotold
+       real(8),dimension(max(glr%d%n1i*glr%d%n2i*n3d,1)*input%nspin),intent(out):: rhopot
        type(mixrhopotDIISParameters),intent(inout):: mixdiis
        real(8),intent(in):: alphaMix
        real(8),intent(out):: pnrm
      end subroutine mixrhopotDIIS
+
 
      subroutine initializeMixrhopotDIIS(isx, ndimpot, mixdiis)
        use module_base
@@ -2751,12 +2757,12 @@ module module_interfaces
          type(orbitals_data),intent(out):: lorbs
        end subroutine init_orbitals_data_for_linear
 
-       subroutine mix_main(iproc, nproc, mixHist, input, glr, alpha_mix, &
+       subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
                   denspot, mixdiis, rhopotold, pnrm)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, mixHist
+         integer,intent(in):: iproc, nproc, mix_mode, mixHist
          type(input_variables),intent(in):: input
          type(locreg_descriptors),intent(in):: glr
          real(8),intent(in):: alpha_mix
@@ -2940,7 +2946,7 @@ module module_interfaces
          real(8),intent(out):: weight_c_tot, weight_f_tot
        end subroutine get_weights
 
-       subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom, collcom_reference)
+       subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
          use module_base
          use module_types
          implicit none
@@ -2948,7 +2954,6 @@ module module_interfaces
          type(orbitals_data),intent(in):: orbs
          type(local_zone_descriptors),intent(in):: lzd
          type(collective_comms),intent(inout):: collcom
-         type(collective_comms),optional,intent(in):: collcom_reference
        end subroutine init_collective_comms
 
        subroutine deallocate_collective_comms(collcom, subname)
@@ -3797,7 +3802,7 @@ module module_interfaces
           type(collective_comms),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
 
-        subroutine init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
+        subroutine init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
           use module_base
           use module_types
           implicit none
@@ -3806,7 +3811,7 @@ module module_interfaces
           type(orbitals_data),intent(in) :: orbs
           integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
           type(collective_comms),intent(inout) :: collcom_sr
-        end subroutine init_collective_comms_sumro
+        end subroutine init_collective_comms_sumrho
 
         subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
           use module_base
@@ -3908,16 +3913,14 @@ module module_interfaces
           integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
         end subroutine communication_arrays_repartitionrho
 
-        subroutine foe(iproc, nproc, orbs, foe_obj, tmprtr, &
+        subroutine foe(iproc, nproc, tmprtr, &
                    ebs, itout, it_scc, order_taylor, &
                    tmb)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
-          type(orbitals_data),intent(in) :: orbs
-          type(foe_data),intent(inout) :: foe_obj
-          real(kind=8),intent(inout) :: tmprtr
+          real(kind=8),intent(in) :: tmprtr
           real(kind=8),intent(out) :: ebs
           type(DFT_wavefunction),intent(inout) :: tmb
         end subroutine foe
@@ -4568,6 +4571,19 @@ module module_interfaces
           type(sparseMatrix),intent(in) :: ovrlp
           type(sparseMatrix),intent(inout) :: inv_ovrlp_half
         end subroutine diagonalize_localized
+
+        subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatterarr, istartend, &
+                   ncomms_repartitionrho, commarr_repartitionrho)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(local_zone_descriptors),intent(in) :: lzd
+          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+          integer,dimension(2,0:nproc-1),intent(in) :: istartend
+          integer,intent(out) :: ncomms_repartitionrho
+          integer,dimension(:,:),pointer,intent(out) :: commarr_repartitionrho
+        end subroutine communication_arrays_repartitionrho_general
   
   end interface
 END MODULE module_interfaces
