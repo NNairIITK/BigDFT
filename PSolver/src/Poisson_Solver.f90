@@ -59,6 +59,8 @@ module Poisson_Solver
    use wrapper_MPI
    ! TO BE REMOVED with f_malloc
    use memory_profiling
+   use dynamic_memory, only: to_zero
+   use time_profiling, only: TIMING_UNINITIALIZED
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    
@@ -74,6 +76,11 @@ module Poisson_Solver
    integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
    integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
    integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
+
+   !timing categories
+   integer, public, save :: TCAT_PSOLV_COMPUT=TIMING_UNINITIALIZED
+   integer, public, save :: TCAT_PSOLV_COMMUN=TIMING_UNINITIALIZED
+   integer, public, save :: TCAT_PSOLV_KERNEL=TIMING_UNINITIALIZED
    
    include 'configure.inc'
    
@@ -113,7 +120,9 @@ module Poisson_Solver
       integer :: initCufftPlan
       integer :: keepGPUmemory
    end type coulomb_operator
-   
+
+   !intialization of the timings
+   public :: PS_initialize_timing_categories
    ! Calculate the allocation dimensions
    public :: PS_dim4allocation, PS_getVersion
    ! Routine that creates the kernel
@@ -164,6 +173,33 @@ contains
     k%initCufftPlan=0
     k%keepGPUmemory=1
   end function pkernel_null
+
+  !> switch on the timing categories for the Poisson Solver
+  !! shuold be called if the time_profiling module has to be used for profiling the routines
+  subroutine PS_initialize_timing_categories()
+    use time_profiling, only: f_timing_category_group,f_timing_category
+    use wrapper_mpi, only: comm => tgrp_mpi_name, mpi_initialize_timing_categories
+    implicit none
+    character(len=*), parameter :: pscpt='PS Computation'
+
+    call mpi_initialize_timing_categories()
+
+    !group of Poisson Solver operations, separate category
+  call f_timing_category_group(pscpt,&
+       'Computations of Poisson Solver operations')
+
+  !define the timing categories
+  call f_timing_category('PSolver Computation',pscpt,&
+       '3D SG_FFT and related operations',&
+       TCAT_PSOLV_COMPUT)
+  call f_timing_category('PSolver Kernel Creation',pscpt,&
+       'ISF operations and creation of the kernel',&
+       TCAT_PSOLV_KERNEL)
+  call f_timing_category('PSolver Communication',comm,&
+       'MPI_ALLTOALL and MPI_ALLGATHERV',&
+       TCAT_PSOLV_COMMUN)
+
+  end subroutine PS_initialize_timing_categories
 
   function PS_getVersion() result(str)
     character(len = 128) :: str

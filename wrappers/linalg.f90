@@ -10,15 +10,6 @@
 
 !> Modules which defines wrappers for the linear alegra.
 module wrapper_linalg
-  !!@todo MOVE ME TO F_MALLOC
-  ! MOVE ME TO F_MALLOC
-  !> initialize to zero an array
-  interface to_zero
-     module procedure put_to_zero_simple, &
-          & put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
-          & put_to_zero_integer
-  end interface
-  ! MOVE ME TO F_MALLOC
 
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
@@ -770,81 +761,5 @@ contains
     !call to BLAS routine
     call ZHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
   end subroutine herk_double
-
-  subroutine put_to_zero_simple(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=4), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero_simple(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_simple
-
-  !!@todo To remove this routine which is not conformed to the Fortran standard (TD)
-  subroutine put_to_zero_double(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double
-
-  subroutine put_to_zero_double_1(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double_1
-
-  subroutine put_to_zero_double_2(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double_2
-
-  subroutine put_to_zero_integer(n,da)
-    implicit none
-    integer, intent(in) :: n
-    integer, intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero_integer(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_integer
 
 end module wrapper_linalg

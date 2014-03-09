@@ -15,6 +15,7 @@ program PS_Check
    use module_interfaces
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use yaml_output
+   use module_types, only: TCAT_EXCHANGECORR
 
    implicit none
    character(len=*), parameter :: subname='PS_Check'
@@ -44,6 +45,14 @@ program PS_Check
    call MPI_INIT(ierr)
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+   !initialize categories for the Poisson Solver
+   call PS_initialize_timing_categories()
+   !add xc category
+   call f_timing_category('Exchange-Correlation','PS Computation',&
+        'Operations needed to construct local XC potential',&
+        TCAT_EXCHANGECORR)
+
 
    call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
    call f_routine(id='PS_Check')

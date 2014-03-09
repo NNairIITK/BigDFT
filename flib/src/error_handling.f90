@@ -55,7 +55,6 @@
     end if
     if (.not. associated(dict_errors)) then
        call dict_init(dict_errors)
-       !call dictionaries_errors()
     end if
   end subroutine f_err_initialize
 

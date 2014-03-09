@@ -16,164 +16,8 @@ module time_profiling
 
   !private to be put
 
-  integer, parameter :: ncls_max=7,ncat_bigdft=144   ! define timimg categories and classes
-  character(len=14), dimension(ncls_max), parameter :: clss = (/ &
-       'Communications'    ,  &
-       'Convolutions  '    ,  &
-       'Linear Algebra'    ,  &
-       'Other         '    ,  &
-       'Potential     '    ,  &
-       'Initialization'    ,  &
-       'Finalization  '    /)
-  character(len=14), dimension(3,ncat_bigdft), parameter :: cats = reshape((/ &
-       !       Name           Class       Operation Kind
-       'ReformatWaves ','Initialization' ,'Small Convol  ' ,  &  !< Reformatting of input waves
-       'CrtDescriptors','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of descriptor arrays
-       'CrtLocPot     ','Initialization' ,'Miscellaneous ' ,  &  !< Calculation of local potential
-       'CrtProjectors ','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of projectors
-       'CrtPcProjects ','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of preconditioning projectors
-       'CrtPawProjects','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of abscalc-pawprojectors
-       'ApplyLocPotKin','Convolutions  ' ,'OpenCL ported ' ,  &  !< Application of PSP, kinetic energy
-       'ApplyProj     ','Other         ' ,'RMA pattern   ' ,  &  !< Application of nonlocal PSP
-       'Precondition  ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Precondtioning
-       'Rho_comput    ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Calculation of charge density (sumrho) computation
-       'Rho_commun    ','Communications' ,'AllReduce grid' ,  &  !< Calculation of charge density (sumrho) communication
-       'Pot_commun    ','Communications' ,'AllGathrv grid' ,  &  !< Communication of potential
-       'Pot_comm start','Communications' ,'MPI_types/_get' ,  &  !< Communication of potential
-       'Un-TransSwitch','Other         ' ,'RMA pattern   ' ,  &  !< Transposition of wavefunction, computation
-       'Un-TransComm  ','Communications' ,'ALLtoALLV     ' ,  &  !< Transposition of wavefunction, communication
-       'GramS_comput  ','Linear Algebra' ,'DPOTRF        ' ,  &  !< Gram Schmidt computation        
-       'GramS_commun  ','Communications' ,'ALLReduce orbs' ,  &  !< Gram Schmidt communication
-       'LagrM_comput  ','Linear Algebra' ,'DGEMM         ' ,  &  !< Lagrange Multipliers computation
-       'LagrM_commun  ','Communications' ,'ALLReduce orbs' ,  &  !< Lagrange Multipliers communication
-       'Diis          ','Other         ' ,'Other         ' ,  &  
-       'PSolv_comput  ','Potential     ' ,'3D FFT        ' ,  &  
-       'PSolv_commun  ','Communications' ,'ALLtoALL      ' ,  &  
-       'PSolvKernel   ','Initialization' ,'Miscellaneous ' ,  &  
-       'Exchangecorr  ','Potential     ' ,'Miscellaneous ' ,  &  
-       'Forces        ','Finalization  ' ,'Miscellaneous ' ,  &  
-       'Tail          ','Finalization  ' ,'Miscellaneous ' ,  &
-       'Loewdin_comput','Linear Algebra' ,'              ' ,  &
-       'Loewdin_commun','Communications' ,'ALLReduce orbs' ,  &
-       'Chol_commun   ','Communications' ,'              ' ,  &
-       'Chol_comput   ','Linear Algebra' ,'ALLReduce orbs' ,  &
-       'GS/Chol_comput','Linear Algebra' ,'              ' ,  &
-       'GS/Chol_commun','Communications' ,'ALLReduce orbs' ,  &
-       'Input_comput  ','Initialization' ,'Miscellaneous ' ,  &
-       'Input_commun  ','Communications' ,'ALLtoALL+Reduc' ,  &
-       'Davidson      ','Finalization  ' ,'Complete SCF  ' ,  &
-       'check_IG      ','Initialization' ,'Linear Scaling' ,  &
-       'constrc_locreg','Initialization' ,'Miscellaneous ' ,  &
-       'wavefunction  ','Initialization' ,'Miscellaneous ' ,  &
-       'create_nlpspd ','Initialization' ,'RMA pattern   ' ,  &
-       'p2pOrtho_post ','Communications' ,'irecv / irsend' ,  &
-       'p2pOrtho_wait ','Communications' ,'mpi_waitany   ' ,  &
-       'lovrlp_comm   ','Communications' ,'mpi_allgatherv' ,  &
-       'lovrlp_comp   ','Linear Algebra' ,'many ddots    ' ,  &
-       'lovrlp_compr  ','Other         ' ,'cut out zeros ' ,  &
-       'lovrlp_uncompr','Other         ' ,'insert zeros  ' ,  &
-       'extract_orbs  ','Other         ' ,'copy to sendb ' ,  &
-       'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
-       'lovrlp^-1/2old','Linear Algebra' ,'exact or appr ' ,  &
-       'lovrlp^-1/2com','Linear Algebra' ,'exact or appr ' ,  &
-       'lovrlp^-1/2par','Linear Algebra' ,'exact or appr ' ,  &
-       'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
-       'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
-       'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
-       'sumrho_TMB    ','Other         ' ,'port to GPU?  ' ,  &
-       'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
-       'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
-       'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
-       'lovrlp^-1     ','Linear Algebra' ,'exact or appr ' ,  &
-       'lagmat_orthoco','Linear Algebra' ,'dgemm seq/par ' ,  &
-       'optimize_DIIS ','Other         ' ,'Other         ' ,  &
-       'optimize_SD   ','Other         ' ,'Other         ' ,  &
-       'mix_linear    ','Other         ' ,'Other         ' ,  &
-       'mix_DIIS      ','Other         ' ,'Other         ' ,  &
-       'ig_matric_comm','Communications' ,'mpi p2p       ' ,  &
-       'wf_signals    ','Communications' ,'Socket transf.' ,  &
-       'energs_signals','Communications' ,'Socket transf.' ,  &
-       'rhov_signals  ','Communications' ,'Socket transf.' ,  &
-       'init_locregs  ','Initialization' ,'Miscellaneous ' ,  &
-       'init_commSumro','Initialization' ,'Miscellaneous ' ,  &
-       'init_commPot  ','Initialization' ,'Miscellaneous ' ,  &
-       'init_commOrtho','Initialization' ,'Miscellaneous ' ,  &
-       'init_inguess  ','Initialization' ,'Miscellaneous ' ,  &
-       'init_matrCompr','Initialization' ,'Miscellaneous ' ,  &
-       'init_collcomm ','Initialization' ,'Miscellaneous ' ,  &
-       'init_collco_sr','Initialization' ,'Miscellaneous ' ,  &
-       'init_orbs_lin ','Initialization' ,'Miscellaneous ' ,  &
-       'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
-       'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
-       'Pot_after_comm','Other         ' ,'global_to_loca' ,  & 
-       'Init to Zero  ','Other         ' ,'Memset        ' ,  &
-       'calc_kernel   ','Other         ' ,'Miscellaneous ' ,  &
-       'commun_kernel ','Communications' ,'mpi_allgatherv' ,  &
-       'getlocbasinit ','Other         ' ,'Miscellaneous ' ,  &
-       'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
-       'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
-       'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
-       'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
-       'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
-       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
-       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
-       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
-       'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
-       'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
-       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
-       'sumrho_allred ','Communications' ,'mpiallred     ' ,  &
-       'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
-       'large2small   ','Other         ' ,'Miscellaneous ' ,  &
-       'small2large   ','Other         ' ,'Miscellaneous ' ,  &
-       'renormCoefCom1','Linear Algebra' ,'Miscellaneous ' ,  &
-       'renormCoefCom2','Linear Algebra' ,'Miscellaneous ' ,  &
-       'renormCoefComm','Communications' ,'Miscellaneous ' ,  &
-       'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
-       'UnBlockPot    ','Other         ' ,'Overlap comms ' ,  &
-       'UnBlockDen    ','Other         ' ,'Overlap comms ' ,  &
-       'global_local  ','Initialization' ,'Unknown       ' ,  &
-       'wfd_creation  ','Other         ' ,'Miscellaneous ' ,  & 
-       'comm_llr      ','Communications' ,'Miscellaneous ' ,  &
-       'AllocationProf','Other         ' ,'Allocate arrs ' ,  &
-       'dirmin_lagmat1','Linear Algebra' ,'grad calc     ' ,  &
-       'dirmin_lagmat2','Linear Algebra' ,'allgatherv    ' ,  &
-       'dirmin_dgesv  ','Linear Algebra' ,'dgesv/pdgesv  ' ,  &
-       'dirmin_sddiis ','Linear Algebra' ,'Miscellaneous ' ,  &
-       'dirmin_allgat ','Linear Algebra' ,'allgatherv    ' ,  &
-       'dirmin_sdfit  ','Linear Algebra' ,'allgatherv etc' ,  &
-       'chebyshev_comp','Linear Algebra' ,'matmul/matadd ' ,  &
-       'chebyshev_comm','Communications' ,'allreduce     ' ,  &
-       'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
-       'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
-       'FOE_init      ','Other         ' ,'Miscellaneous ' ,  &
-       'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
-       'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
-       'misc          ','Other         ' ,'Miscellaneous ' ,  &
-       'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
-       'constraineddft','Other         ' ,'Miscellaneous ' ,  &
-       'transfer_int  ','Other         ' ,'Miscellaneous ' ,  &
-       'Reformatting  ','Initialization' ,'Interpolation ' ,  &
-       'restart_wvl   ','Initialization' ,'inguess    rst' ,  &
-       'restart_rsp   ','Initialization' ,'inguess    rst' ,  &
-       'check_sumrho  ','Initialization' ,'unitary check ' ,  &
-       'check_pot     ','Initialization' ,'unitary check ' ,  &
-       'ApplyLocPot   ','Convolutions  ' ,'OpenCL ported ' ,  &
-       'ApplyLocKin   ','Convolutions  ' ,'OpenCL ported ' ,  &
-       'kernel_init   ','Other         ' ,'Fragment calc ' ,  &
-       'calc_energy   ','Linear Algebra' ,'allred etc    ' ,  &
-       'new_pulay_corr','Other         ' ,'Pulay forces  ' ,  &
-       'dev_from_unity','Other         ' ,'Miscellaneous ' ,  &
-       'ks_residue    ','Linear Algebra' ,'Miscellaneous ' ,  &
-       'weightanalysis','Linear Algebra' ,'Fragment calc ' ,  &
-       'tmbrestart    ','Initialization' ,'Miscellaneous ' ,  &
-       'readtmbfiles  ','Initialization' ,'Miscellaneous ' ,  &
-       'readisffiles  ','Initialization' ,'Miscellaneous ' ,  &
-       'purify_kernel ','Linear Algebra' ,'dgemm         ' ,  &
-       'potential_dims','Other         ' ,'auxiliary     ' ,  &
-       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
-
   !>maximum number of allowed categories
-  integer, parameter :: ncat_max=144
+  integer, parameter :: ncat_max=200
   !>maximum number of partial counters active
   integer, parameter :: nctr_max=10
   !>integer indicating the file unit
@@ -188,22 +32,14 @@ module time_profiling
   character(len=*), parameter :: catname='Category'
   character(len=*), parameter :: grpname='Group'
   character(len=*), parameter :: catinfo='Info'
+  !uninitalized category, used for distinguish if a cat_id is active of not
+  integer, parameter, public :: TIMING_UNINITIALIZED=-2
 
   !unspecified timings
-  integer, save :: TIMING_CAT_UNSPEC
+  integer, save :: TCAT_UNSPECIFIED=TIMING_UNINITIALIZED !<after initialization this should be 0
   !Error codes
   integer, save :: TIMING_INVALID
-
-
-  !old variables, to be removed
-!!$  logical :: init=.false.,debugmode=.false.
-!!$  integer :: ncaton,ncat_stopped
-!!$  real(kind=8) :: time0=0.d0,t0=0.d0
-!!$  real(kind=8), dimension(ncat_max+1) :: timesum=0.0d0
-!!$  real(kind=8), dimension(ncat_max) :: pctimes=0.0d0 !total times of the partial counters
-!!$  character(len=10), dimension(ncat_max) :: pcnames=repeat(' ',10) !names of the partial counters, to be assigned
-!!$  character(len=128) :: filename_time=repeat(' ',10)
-  
+ 
   !> contains all global variables associated to time profiling
   type :: time_ctrl
      logical :: debugmode !<flag to store how to process the information
@@ -223,7 +59,6 @@ module time_profiling
 
   !>global variable controlling the different instances of the calls
   type(time_ctrl), dimension(max_ctrl) :: times
-
 
   contains
 
@@ -349,8 +184,6 @@ module time_profiling
     subroutine f_timing_initialize()
       use yaml_output, only: yaml_toa
       implicit none
-      !initialize errors
-      if (ictrl==0) call timing_errors()
       !create the general category for unspecified timings
       ictrl=ictrl+1
       if (f_err_raise(ictrl > max_ctrl,&
@@ -358,16 +191,20 @@ module time_profiling
            trim(yaml_toa(max_ctrl)),TIMING_INVALID)) return
       call nullify_time_ctrl(times(ictrl))
 
-      call dict_init(times(ictrl)%dict_timing_groups)
-      call dict_init(times(ictrl)%dict_timing_categories)
+      if (ictrl==1) then
+         call dict_init(times(ictrl)%dict_timing_groups)
+         call dict_init(times(ictrl)%dict_timing_categories)
+      else
+         !pre-existing categories can be modified
+         times(ictrl)%dict_timing_groups=>times(ictrl-1)%dict_timing_groups
+         
+      end if
 
       !define the main groups and categories
       call f_timing_category_group('NULL','Nullified group to contain unspecifed category')
       call f_timing_category('UNSPECIFIED','NULL',&
-           'Unspecified category collecting garbage timings',TIMING_CAT_UNSPEC)
+           'Unspecified category collecting garbage timings',TCAT_UNSPECIFIED)
       times(ictrl)%timing_ncat=0
-      !to be moved somewhere else
-      call timing_initialize_categories()
     end subroutine f_timing_initialize
 
     !finalize the timing by putting to zero all the chronometers
@@ -380,26 +217,6 @@ module time_profiling
       times(ictrl)=time_ctrl_null()
       ictrl=ictrl-1
     end subroutine f_timing_finalize
-
-    !> this routine should go in the bigdft_init routine as the categories are specific to BigDFT
-    subroutine timing_initialize_categories()
-      implicit none
-      !local variables
-      integer :: icls,icat
-      integer, dimension(ncat_bigdft) :: cat_ids
-
-      !initialize groups
-      do icls=1,ncls_max
-         call f_timing_category_group(trim(clss(icls)),'Empty description for the moment')
-      end do
-      !initialize categories
-      do icat=1,ncat_bigdft
-         call f_timing_category(trim(cats(1,icat)),trim(cats(2,icat)),trim(cats(3,icat)),&
-              cat_ids(icat))
-      end do
-      !then fill the cat ids into parameters
-    end subroutine timing_initialize_categories
-
 
     !re-initialize the timing by putting to zero all the chronometers (old action IN)
     subroutine f_timing_reset(filename,master,verbose_mode)
@@ -553,6 +370,15 @@ module time_profiling
       !first of all, read the time
       itns=f_time()
 
+      !routine has no effect if the module has not been initialized
+      !this is important to guarantee the possibility of
+      !putting timing calls to lower-level routines which might have been called
+      !before initialization
+      if (ictrl==0 .or. cat_id==TIMING_UNINITIALIZED) return
+      if (cat_id <= 0) then
+         call f_err_throw('Timing category id must be a valid positive number',&
+              err_id=TIMING_INVALID)
+      end if
       select case(action)
       case('ON')
          if (times(ictrl)%cat_paused /=0) then
@@ -583,7 +409,9 @@ module time_profiling
          if (times(ictrl)%cat_paused /=0) then
             call f_err_throw('Category No. '//&
                  trim(yaml_toa(times(ictrl)%cat_paused))//&
-                 ' already interrupted, cannot interrupt again',&
+                 ' already interrupted ('//trim(yaml_toa(times(ictrl)%cat_on))//&
+                 ' is active),  cannot interrupt again with'//&
+                 trim(yaml_toa(cat_id)),&
                  err_id=TIMING_INVALID)
             return
          end if
@@ -595,12 +423,11 @@ module time_profiling
                  times(ictrl)%clocks(times(ictrl)%cat_on)+t1-times(ictrl)%t0
             times(ictrl)%cat_paused=times(ictrl)%cat_on
          else
-            !init=.true.
             times(ictrl)%cat_paused=-1 !start by pausing
          end if
          times(ictrl)%cat_on=cat_id
          times(ictrl)%t0=t1
-      case('RS') !resume the interrupted category
+      case('RS') !resume the category by supposing it has been activated by IR
          if (f_err_raise(times(ictrl)%cat_paused==0,&
               'It appears no category has to be resumed',&
               err_id=TIMING_INVALID)) return
@@ -622,32 +449,32 @@ module time_profiling
             times(ictrl)%cat_on=0
          end if
          times(ictrl)%cat_paused=0
+      case('RX') !resume the interrupted category, cat_id is ignored here
+         !dry run if expert mode active and not initialized categories
+         if (times(ictrl)%cat_paused==0 .or. times(ictrl)%cat_on==0) return
+!!$         if (f_err_raise(times(ictrl)%cat_paused==0 .or. &
+!!$              times(ictrl)%cat_on==0 ,&
+!!$              'It appears no category has to be resumed (RX case),'//&
+!!$              ' control whether the interrupted category has been initialized',&
+!!$              err_id=TIMING_INVALID)) return
+         !time
+         t1=real(itns,kind=8)*1.d-9
+         times(ictrl)%clocks(times(ictrl)%cat_on)=&
+              times(ictrl)%clocks(times(ictrl)%cat_on)+&
+              t1-times(ictrl)%t0
+         !restore normal counter
+         if (times(ictrl)%cat_paused/=-1) then
+            times(ictrl)%cat_on=times(ictrl)%cat_paused
+            times(ictrl)%t0=t1
+         else
+            times(ictrl)%cat_on=0
+         end if
+         times(ictrl)%cat_paused=0
       case default
          call f_err_throw('TIMING ACTION UNDEFINED',err_id=TIMING_INVALID)
       end select
 
     END SUBROUTINE f_timing
-
-    subroutine find_category(category,ii)
-      implicit none
-      character(len=*), intent(in) :: category
-      integer, intent(out) :: ii !< id of the found category
-      !local variables
-      integer :: i
-      !controls if the category exists
-      ii=0
-      do i=1,times(ictrl)%timing_ncat
-         if (trim(category) == trim(cats(1,i))) then
-            ii=i
-            exit
-         endif
-      enddo
-      if (ii==0) then
-         call f_err_throw('Timing routine error,'//&
-              ' the category '//trim(category)//' requested has not been found',&
-              err_id=TIMING_INVALID)
-      end if
-    end subroutine find_category
 
     !>opens the file of the timing unit
     subroutine timing_open_stream(iunit_def)
@@ -953,7 +780,7 @@ module time_profiling
      !$  nthreads=omp_get_max_threads()
      if (nthreads /= 0) call yaml_map('OMP threads',nthreads)
      call yaml_close_map()
-     if (debugmode) then
+     if (debugmode .and. parallel) then
         call yaml_open_sequence('Hostnames')
         do jproc=0,nproc-1
            call yaml_sequence(trim(nodename(jproc)))
@@ -1011,50 +838,24 @@ subroutine sum_results(ncat,mpi_comm,message,timesum)
 
 END SUBROUTINE sum_results
 
-
-!> The same timing routine but with system_clock (in case of a supported specs)
-subroutine timing(iproc,category,action)
-  use yaml_output, only: yaml_toa
-  use time_profiling, ncat => ncat_max, ncls => ncls_max
-
+!> interrupts all timing activities to profile the category indicated by cat_id
+!! see e.g. http://en.wikipedia.org/wiki/Interrupt 
+!! The action is then finished by calling the routine f_timer_resume
+subroutine f_timer_interrupt(cat_id)
+  use time_profiling, only: f_timing
   implicit none
+  integer, intent(in) :: cat_id
 
-  include 'mpif.h'
-  !Variables
-  integer, intent(in) :: iproc
-  character(len=*), intent(in) :: category
-  character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
-  !Local variables
-  integer :: i,ierr,ii,iproc_true
-  integer :: nthreads,jproc,namelen,cat_id
-  integer(kind=8) :: itns
-  !cputime routine gives a real
-  !real :: total,total0,time,time0
-  real(kind=8) :: pc,t1
-  character(len=max_field_length) :: cattmp
-!!$  real(kind=8), dimension(ncounters,0:nproc) :: timecnt !< useful only at the very end
-!!$  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
-!!$  character(len=MPI_MAX_PROCESSOR_NAME), dimension(0:nproc-1) :: nodename
+  call f_timing(cat_id,'IR')
+end subroutine f_timer_interrupt
 
-!$ integer :: omp_get_max_threads
-
-  !modification of the timing to see if it works
-  select case(action)
-  case('PR')
-     call f_timing_checkpoint(ctr_name=category,mpi_comm=iproc)
-  case default
-     !find category in the old scheme
-     call find_category(category,cat_id)
-
-     cattmp=times(ictrl)%dict_timing_categories//cat_id//catname
-     if (f_err_raise(trim(cattmp)/=trim(category),'Error in category '//&
-          trim(yaml_toa(cat_id))//' (name='//trim(category)//' ), found '//&
-          trim(cattmp)//' instead',err_id=TIMING_INVALID)) return
-
-     call f_timing(cat_id,action)   
-  end select
-
-END SUBROUTINE timing
+!>restore the previous status of the timer and stop the counter of the interruption
+subroutine f_timer_resume()
+  use time_profiling, only: f_timing
+  implicit none
+  
+  call f_timing(1,'RX')
+end subroutine f_timer_resume
 
 subroutine sort_positions(n,a,ipiv)
   implicit none

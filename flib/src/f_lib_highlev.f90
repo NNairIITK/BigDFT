@@ -67,19 +67,40 @@ subroutine initialize_flib_errors()
   use yaml_output, only: yaml_output_errors
   use yaml_parse, only: yaml_parse_errors
   use dynamic_memory, only: dynamic_memory_errors
+  use time_profiling, only: timing_errors
   implicit none
 
   call dictionaries_errors()
   call yaml_output_errors()
   call yaml_parse_errors()
   call dynamic_memory_errors()
+  call timing_errors()
   
 end subroutine initialize_flib_errors
 
-!>routine which initializes f_lib global pointers, to be called in general
+subroutine initialize_flib_timing_categories()
+  use time_profiling, only: f_timing_category,f_timing_category_group
+  use dynamic_memory, only: TCAT_INIT_TO_ZERO,TCAT_ARRAY_ALLOCATIONS
+  implicit none
+  character(len=*), parameter :: flibgrp='Flib LowLevel' 
+  !group of f_lib operations, separate category
+  call f_timing_category_group(flibgrp,&
+       'Low Level operations of flib module collection')
+  !extract from BigDFT categories the ones which are associated to flib
+  call f_timing_category('Init to Zero',flibgrp,'Memset of storage space',&
+       TCAT_INIT_TO_ZERO)
+  call f_timing_category('Array allocations',flibgrp,&
+       'Heap storage allocation and associated profiling',&
+       TCAT_ARRAY_ALLOCATIONS)
+
+end subroutine initialize_flib_timing_categories
+
+!>routine which initializes f_lib global pointers, to be called before any action 
+!! is taken
 subroutine f_lib_initialize()
   use dictionaries, only: f_err_initialize
-  use dynamic_memory, only: f_malloc_initialize
+  use dynamic_memory, only: f_malloc_initialize,&
+       TCAT_INIT_TO_ZERO,TCAT_ARRAY_ALLOCATIONS
   use time_profiling, only: f_timing_initialize
   implicit none
   
@@ -90,6 +111,8 @@ subroutine f_lib_initialize()
   call f_malloc_initialize()
   !initialization of timing module
   call f_timing_initialize()
+  !initialization of internal timing categories of f_lib
+  call initialize_flib_timing_categories()
 
 end subroutine f_lib_initialize
 

@@ -297,6 +297,7 @@ contains
 
   subroutine image_init(img, inputs, atoms, rst, algorithm)
     use module_interfaces, only: run_objects_associate
+    use dynamic_memory, only: to_zero
     implicit none
     type(run_image), intent(out) :: img
     type(input_variables), intent(in) :: inputs
@@ -810,6 +811,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
      & km1, kp1, optimization, climbing, neb)
   use Minimization_routines
   use module_images
+  use dynamic_memory, only: to_zero
   implicit none
   type(run_image), intent(inout) :: img
   integer, intent(in) :: iteration

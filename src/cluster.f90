@@ -340,7 +340,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   end if
   !call timing(nproctiming,trim(in%dir_output)//'time.yaml','IN')
   call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0,&
-       verbose_mode=verbose>2)
+       verbose_mode=verbose>2 .and. nproc>1)
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 

@@ -49,6 +49,10 @@ program PS_Check
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+   !initialize categories for the Poisson Solver
+   call PS_initialize_timing_categories()
+  
+
    call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
    call f_routine(id='PS_Check')
 
@@ -222,8 +226,8 @@ program PS_Check
       density,potential,pkernel)
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0)call yaml_close_map()
 
-
-   call timing(MPI_COMM_WORLD,'Parallel','PR')
+      call f_timing_checkpoint('Parallel',MPI_COMM_WORLD)
+      !call timing(MPI_COMM_WORLD,'Parallel','PR')
 
    call pkernel_free(pkernel,subname)
 
@@ -268,7 +272,8 @@ program PS_Check
      call yaml_close_map()
    endif
 
-   call timing(MPI_COMM_WORLD,'Serial','PR')
+   call f_timing_checkpoint('Serial',MPI_COMM_WORLD)
+   !call timing(MPI_COMM_WORLD,'Serial','PR')
 
    !call f_malloc_dump_status()
 
