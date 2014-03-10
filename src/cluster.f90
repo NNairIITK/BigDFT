@@ -149,6 +149,12 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
           & outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
           runObj%rst%KSwfn,runObj%rst%tmb,&!psi,runObj%rst%Lzd,runObj%rst%gaucoeffs,runObj%rst%gbd,runObj%rst%orbs,&
           runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
+     !save the new atomic positions in the rxyz_old array
+     do iat=1,runObj%atoms%astruct%nat
+        runObj%rst%rxyz_old(1,iat)=runObj%rst%rxyz_new(1,iat)
+        runObj%rst%rxyz_old(2,iat)=runObj%rst%rxyz_new(2,iat)
+        runObj%rst%rxyz_old(3,iat)=runObj%rst%rxyz_new(3,iat)
+     enddo
      if (exists) then
         call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs, &
              & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
@@ -341,54 +347,66 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !call nullify_wavefunctions_descriptors(wfd_old)
   call nullify_wfd(wfd_old)
   ! We save the variables that defined the previous psi if the restart is active
+  inputpsi = in%inputPsiId
   if (in%inputPsiId == INPUT_PSI_MEMORY_WVL) then
-     !regenerate grid spacings (this would not be needed if hgrids is in Lzd)
-     if (atoms%astruct%geocode == 'P') then
-        call correct_grid(atoms%astruct%cell_dim(1),hx_old,KSwfn%Lzd%Glr%d%n1)
-        call correct_grid(atoms%astruct%cell_dim(2),hy_old,KSwfn%Lzd%Glr%d%n2)
-        call correct_grid(atoms%astruct%cell_dim(3),hz_old,KSwfn%Lzd%Glr%d%n3)
-     else if (atoms%astruct%geocode == 'S') then 
-        call correct_grid(atoms%astruct%cell_dim(1),hx_old,KSwfn%Lzd%Glr%d%n1)
-        call correct_grid(atoms%astruct%cell_dim(3),hz_old,KSwfn%Lzd%Glr%d%n3)
+     if (associated(KSwfn%psi)) then
+        !regenerate grid spacings (this would not be needed if hgrids is in Lzd)
+        if (atoms%astruct%geocode == 'P') then
+           call correct_grid(atoms%astruct%cell_dim(1),hx_old,KSwfn%Lzd%Glr%d%n1)
+           call correct_grid(atoms%astruct%cell_dim(2),hy_old,KSwfn%Lzd%Glr%d%n2)
+           call correct_grid(atoms%astruct%cell_dim(3),hz_old,KSwfn%Lzd%Glr%d%n3)
+        else if (atoms%astruct%geocode == 'S') then 
+           call correct_grid(atoms%astruct%cell_dim(1),hx_old,KSwfn%Lzd%Glr%d%n1)
+           call correct_grid(atoms%astruct%cell_dim(3),hz_old,KSwfn%Lzd%Glr%d%n3)
+        end if
+
+        call copy_local_zone_descriptors(KSwfn%Lzd, lzd_old, subname)
+
+        !if the history is bigger than two, create the workspace to store the wavefunction
+        if (in%wfn_history > 2) then
+           call old_wavefunction_set(KSwfn%oldpsis(in%wfn_history+1),&
+                atoms%astruct%nat,KSwfn%orbs%norbp*KSwfn%orbs%nspinor,&
+                KSwfn%Lzd,rxyz_old,KSwfn%psi)
+           !to maintain the same treatment destroy wfd afterwards (to be unified soon)
+           !deallocation
+           call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+        else
+           call copy_old_wavefunctions(nproc,KSwfn%orbs,&
+                KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
+                KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
+        end if
+        !already here due to new input guess
+        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
+     else
+        inputpsi = INPUT_PSI_LCAO
      end if
-     
-     call copy_local_zone_descriptors(KSwfn%Lzd, lzd_old, subname)
-     
-     !if the history is bigger than two, create the workspace to store the wavefunction
-     if (in%wfn_history > 2) then
-        call old_wavefunction_set(KSwfn%oldpsis(in%wfn_history+1),&
-             atoms%astruct%nat,KSwfn%orbs%norbp*KSwfn%orbs%nspinor,&
-             KSwfn%Lzd,rxyz_old,KSwfn%psi)
-        !to maintain the same treatment destroy wfd afterwards (to be unified soon)
-        !deallocation
+  else if (in%inputPsiId == INPUT_PSI_MEMORY_GAUSS) then
+     if (associated(KSwfn%psi)) then
+        !deallocate wavefunction and descriptors for placing the gaussians
+        
+        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
+
+        i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
+        deallocate(KSwfn%psi,stat=i_stat)
+        call memocc(i_stat,i_all,'psi',subname)
+     else
+        inputpsi = INPUT_PSI_LCAO
+     end if
+  else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. associated(KSwfn%psi)) then
+     if (associated(KSwfn%psi) .and. associated(tmb%psi)) then
+        call copy_tmbs(iproc, tmb, tmb_old, subname)
+        call destroy_DFT_wavefunction(tmb)
+        i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
+        deallocate(KSwfn%psi,stat=i_stat)
+        call memocc(i_stat,i_all,'psi',subname)
         call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
      else
-        call copy_old_wavefunctions(nproc,KSwfn%orbs,&
-             KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
-             KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
+        inputpsi = INPUT_PSI_LINEAR_AO
      end if
-     !already here due to new input guess
-     call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
-
-  else if (in%inputPsiId == INPUT_PSI_MEMORY_GAUSS) then
-     !deallocate wavefunction and descriptors for placing the gaussians
-
-     call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
-
-     i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-     deallocate(KSwfn%psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi',subname)
-  else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
-     call copy_tmbs(iproc, tmb, tmb_old, subname)
-     call destroy_DFT_wavefunction(tmb)
-     i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-     deallocate(KSwfn%psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi',subname)
-     call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
   end if
 
   ! Setup all descriptors and allocate what should be.
-  if(in%inputPsiId == INPUT_PSI_MEMORY_LINEAR) then
+  if(inputpsi == INPUT_PSI_MEMORY_LINEAR) then
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,&
          & .false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
@@ -406,7 +424,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
        nlpsp%nprojel,in%nspin,in%itrpmax,in%iscf,mem)
   if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
-  if (in%lin%fragment_calculation .and. in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+  if (in%lin%fragment_calculation .and. inputpsi == INPUT_PSI_DISK_LINEAR) then
      call output_fragment_rotations(iproc,nproc,atoms%astruct%nat,rxyz,1,trim(in%dir_output),in%frag,ref_frags)
      !call mpi_finalize(i_all)
      !stop
@@ -572,12 +590,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   call deallocate_wfd(wfd_old)
   call deallocate_local_zone_descriptors(lzd_old,subname)
 
-  !save the new atomic positions in the rxyz_old array
-  do iat=1,atoms%astruct%nat
-     rxyz_old(1,iat)=rxyz(1,iat)
-     rxyz_old(2,iat)=rxyz(2,iat)
-     rxyz_old(3,iat)=rxyz(3,iat)
-  enddo
   !save the new grid spacing into the hgrid_old value
   hx_old=KSwfn%Lzd%hgrids(1)
   hy_old=KSwfn%Lzd%hgrids(2)
@@ -687,7 +699,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
 
      ! deallocate fragments
-     if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+     if (inputpsi == INPUT_PSI_DISK_LINEAR) then
         if (in%lin%fragment_calculation) then ! we really need to deallocate
            do ifrag=1,in%frag%nfrag_ref
               call fragment_free(ref_frags(ifrag))
@@ -879,9 +891,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !refill projectors for tails, davidson
      refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
 
-     if (in%inputPsiId /= INPUT_PSI_LINEAR_AO .and. &
-          & in%inputPsiId /= INPUT_PSI_MEMORY_LINEAR .and. &
-          & in%inputPsiId /= INPUT_PSI_DISK_LINEAR) then
+     if (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+          & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+          & inputpsi /= INPUT_PSI_DISK_LINEAR) then
         allocate(fpulay(3,atoms%astruct%nat+ndebug),stat=i_stat)
         call memocc(i_stat,fpulay,'fpulay',subname)
         if (atoms%astruct%nat > 0) call to_zero(3 * atoms%astruct%nat,fpulay(1, 1))

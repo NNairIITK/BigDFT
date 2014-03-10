@@ -2672,7 +2672,8 @@ module module_interfaces
          use module_fragments
          implicit none
          integer, intent(in) :: iproc,nproc
-         integer, intent(out) :: inputpsi,input_wf_format,lnpsidim_orbs,lnpsidim_comp
+         integer, intent(out) :: input_wf_format,lnpsidim_orbs,lnpsidim_comp
+         integer, intent(inout) :: inputpsi
          type(input_variables), intent(in) :: in 
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
@@ -4474,13 +4475,6 @@ module module_interfaces
           implicit none
           type(atoms_data), pointer :: atoms
         end subroutine atoms_new
-
-        subroutine rst_new(self, rst)
-          use module_types
-          implicit none
-          integer(kind = 8), intent(in) :: self
-          type(restart_objects), pointer :: rst
-        end subroutine rst_new
 
         subroutine inputs_new(in)
           use module_types

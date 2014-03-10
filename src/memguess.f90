@@ -328,6 +328,7 @@ program memguess
    !call cpu_time(tcpu0)
    !call system_clock(ncount0,ncount_rate,ncount_max)
 
+   inputpsi = runObj%inputs%inputPsiId
    call system_initialization(0, nproc, .true.,inputpsi, input_wf_format, .true., &
         & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, runObj%rst%GPU%OCLconv, &
         & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
