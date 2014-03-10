@@ -304,47 +304,6 @@ void            bigdft_goutput_emit_energs(BigDFT_Goutput *energs, guint istep,
 /********************************/
 
 /*********************************/
-/* BigDFT_Restart data structure */
-/*********************************/
-typedef enum
-  {
-    BIGDFT_RESTART_LCAO,
-    BIGDFT_RESTART_WVL_MEMORY
-  } BigDFT_RestartModes;
-
-#ifdef GLIB_MAJOR_VERSION
-#define BIGDFT_RESTART_TYPE    (bigdft_restart_get_type())
-#define BIGDFT_RESTART(obj)                                               \
-  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_RESTART_TYPE, BigDFT_Restart))
-typedef struct _BigDFT_RestartClass BigDFT_RestartClass;
-struct _BigDFT_RestartClass
-{
-  GObjectClass parent;
-};
-GType bigdft_restart_get_type(void);
-#else
-#define BIGDFT_RESTART_TYPE    (999)
-#define BIGDFT_RESTART(obj)    ((BigDFT_Restart*)obj)
-#endif
-typedef struct _BigDFT_Restart BigDFT_Restart;
-struct _BigDFT_Restart
-{
-  GObject parent;
-  gboolean dispose_has_run;
-
-  BigDFT_RestartModes inputPsiId;
-
-  /* Private. */
-  BigDFT_Inputs *in;
-  f90_restart_objects_pointer data;
-};
-/*********************************/
-BigDFT_Restart* bigdft_restart_new     (BigDFT_Atoms *atoms, BigDFT_Inputs *in, guint iproc);
-void            bigdft_restart_unref   (BigDFT_Restart *restart);
-void            bigdft_restart_set_mode(BigDFT_Restart *restart, BigDFT_RestartModes id);
-/*********************************/
-
-/*********************************/
 /* BigDFT_Memory data structure */
 /*********************************/
 /**
@@ -395,25 +354,26 @@ struct _BigDFT_Run
   GObject parent;
   gboolean dispose_has_run;
 
+  BigDFT_Dict    *dict;
   BigDFT_Atoms   *atoms;
   BigDFT_Inputs  *inputs;
-  BigDFT_Restart *restart;
 
   /* Private. */
-  BigDFT_Dict  *dict; /* Not null if built from a dict. */
   f90_run_objects_pointer data;
 };
 /*********************************/
 BigDFT_Run*     bigdft_run_new();
 BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
 BigDFT_Run*     bigdft_run_new_from_dict   (BigDFT_Dict *dict, gboolean dump);
+void            bigdft_run_update          (BigDFT_Run *run,
+                                            BigDFT_Dict *dict, gboolean dump);
 gboolean        bigdft_run_dump            (BigDFT_Run *run, const gchar *filename,
                                             gboolean full);
 BigDFT_Memory*  bigdft_run_memoryEstimation(BigDFT_Run *run, guint iproc, guint nproc);
 BigDFT_Goutput* bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint nproc);
+BigDFT_Dict*    bigdft_run_get_dict        (BigDFT_Run *run);
 BigDFT_Atoms*   bigdft_run_get_atoms       (BigDFT_Run *run);
 BigDFT_Inputs*  bigdft_run_get_inputs      (BigDFT_Run *run);
-BigDFT_Restart* bigdft_run_get_restart     (BigDFT_Run *run);
 void            bigdft_run_unref           (BigDFT_Run *run);
 /*********************************/
 
@@ -460,8 +420,8 @@ struct _BigDFT_Image
   f90_run_image_pointer data;
 };
 /*********************************/
-BigDFT_Image* bigdft_image_new       (BigDFT_Atoms *atoms, BigDFT_Inputs *ins,
-                                      BigDFT_Restart *rst, BigDFT_ImageAlgo algo);
+/* BigDFT_Image* bigdft_image_new       (BigDFT_Atoms *atoms, BigDFT_Inputs *ins, */
+/*                                       BigDFT_Restart *rst, BigDFT_ImageAlgo algo); */
 void          bigdft_image_unref     (BigDFT_Image *image);
 void          bigdft_image_update_pos(BigDFT_Image *image, guint iteration,
                                       const BigDFT_Image *imgm1, const BigDFT_Image *imgp1,

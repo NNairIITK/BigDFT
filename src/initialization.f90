@@ -23,6 +23,7 @@ END SUBROUTINE run_objects_nullify
 subroutine run_objects_free(runObj, subname)
   use module_types
   use module_base
+  use dynamic_memory
   use yaml_output
   use dictionaries
   implicit none
@@ -47,9 +48,7 @@ subroutine run_objects_free(runObj, subname)
      deallocate(runObj%inputs)
   end if
   if (associated(runObj%radii_cf)) then
-     i_all=-product(shape(runObj%radii_cf))*kind(runObj%radii_cf)
-     deallocate(runObj%radii_cf,stat=i_stat)
-     call memocc(i_stat,i_all,'radii_cf',subname)
+     call f_free_ptr(runObj%radii_cf)
   end if
   ! to be inserted again soon call f_lib_finalize()
   !call yaml_close_all_streams()
@@ -58,6 +57,7 @@ END SUBROUTINE run_objects_free
 subroutine run_objects_free_container(runObj)
   use module_types
   use module_base
+  use dynamic_memory
   use yaml_output
   implicit none
   type(run_objects), intent(inout) :: runObj
@@ -70,9 +70,7 @@ subroutine run_objects_free_container(runObj)
   end if
   ! Radii_cf are always owned by run objects.
   if (associated(runObj%radii_cf)) then
-     i_all=-product(shape(runObj%radii_cf))*kind(runObj%radii_cf)
-     deallocate(runObj%radii_cf,stat=i_stat)
-     call memocc(i_stat,i_all,'radii_cf',"run_objects_free_container")
+     call f_free_ptr(runObj%radii_cf)
   end if
   ! Currently do nothing except nullifying everything.
   call run_objects_nullify(runObj)
@@ -85,22 +83,65 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
   type(run_objects), intent(out) :: runObj
   character(len = *), intent(in) :: radical, posinp
 
+  integer(kind = 8) :: dummy
+
   call run_objects_nullify(runObj)
 
-  call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
+  ! Allocate persistent structures.
+  allocate(runObj%rst)
+  call restart_objects_new(runObj%rst)
 
+  ! Generate input dictionary and parse it.
+  call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
   call run_objects_parse(runObj, .true.)
+
+  ! Start the signaling loop in a thread if necessary.
+  if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
+     call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
+          & runObj%inputs%domain, len_trim(runObj%inputs%domain))
+     call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
+  end if
 END SUBROUTINE run_objects_init_from_files
+
+subroutine run_objects_update(runObj, dict, dump)
+  use module_types
+  use dictionaries, only: dictionary, dict_update
+  use dynamic_memory
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  type(dictionary), pointer :: dict
+  logical, intent(in) :: dump
+
+  ! We merge the previous dictionnary with new entries.
+  call dict_update(runObj%user_inputs, dict)
+  
+  ! Free changing data structures.
+  if (associated(runObj%atoms)) then
+     call deallocate_atoms(runObj%atoms, "run_objects_update") 
+     deallocate(runObj%atoms)
+  end if
+  if (associated(runObj%inputs)) then
+     call free_input_variables(runObj%inputs)
+     deallocate(runObj%inputs)
+  end if
+  if (associated(runObj%radii_cf)) then
+     call f_free_ptr(runObj%radii_cf)
+  end if
+  if (associated(runObj%rst)) then
+     call release_material_acceleration(runObj%rst%GPU)
+  end if
+
+  ! Parse new dictionnary.
+  call run_objects_parse(runObj, dump)
+END SUBROUTINE run_objects_update
 
 subroutine run_objects_parse(runObj, dump)
   use module_types
-  use module_interfaces, only: atoms_new, rst_new, inputs_new, inputs_from_dict
+  use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict
+  use dynamic_memory
   implicit none
   type(run_objects), intent(inout) :: runObj
   logical, intent(in) :: dump
-
-  integer :: i_stat
-  integer(kind = 8) :: dummy
 
   call atoms_new(runObj%atoms)
   call inputs_new(runObj%inputs)
@@ -115,23 +156,18 @@ subroutine run_objects_parse(runObj, dump)
      call print_general_parameters(runObj%inputs,runObj%atoms)
   end if
 
-  call rst_new(dummy, runObj%rst)
-  call restart_objects_new(runObj%rst)
+  ! Number of atoms should not change.
+  if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
+     stop "nat changed"
+  else if (runObj%rst%nat == 0) then
+     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_parse")
+  end if
   call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
-  call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_parse")
   call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
 
-  allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_parse")
+  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), "run_objects_parse")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
-
-  ! Start the signaling loop in a thread if necessary.
-  if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
-     call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
-          & runObj%inputs%domain, len_trim(runObj%inputs%domain))
-     call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
-  end if
 END SUBROUTINE run_objects_parse
 
 subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
@@ -143,8 +179,6 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   type(restart_objects), intent(in), target :: rst
   real(gp), intent(in), optional :: rxyz0
 
-  integer :: i_stat
-
   call run_objects_free_container(runObj)
   runObj%atoms  => atoms
   runObj%inputs => inputs
@@ -153,8 +187,7 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
      call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
   end if
 
-  allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_associate")
+  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), "run_objects_associate")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 END SUBROUTINE run_objects_associate

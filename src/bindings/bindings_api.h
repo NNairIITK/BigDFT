@@ -2631,9 +2631,9 @@ type(atoms_data), pointer :: atoms
 type(restart_objects), pointer :: rst
 */
 void FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(const f90_run_objects *runObj, 
+                                                f90_dictionary_pointer *dict,
                                                 f90_input_variables_pointer *inputs, 
-                                                f90_atoms_data_pointer *atoms, 
-                                                f90_restart_objects_pointer *rst);
+                                                f90_atoms_data_pointer *atoms);
 /* run_objects_init_from_files src/initialization.f90:81 */
 /* Fortran header:
 subroutine run_objects_init_from_files(runObj, radical, posinp)

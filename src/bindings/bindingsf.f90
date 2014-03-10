@@ -1428,34 +1428,6 @@ subroutine optloop_bcast(optloop, iproc)
   end if
 END SUBROUTINE optloop_bcast
 
-subroutine rst_new(self, rst)
-  use module_types
-  implicit none
-  integer(kind = 8), intent(in) :: self
-  type(restart_objects), pointer :: rst
-
-  allocate(rst)
-  !rst%c_obj = self
-END SUBROUTINE rst_new
-subroutine rst_free(rst)
-  use module_types
-  implicit none
-  type(restart_objects), pointer :: rst
-
-  call free_restart_objects(rst,"rst_free")
-  deallocate(rst)
-END SUBROUTINE rst_free
-subroutine rst_init(rst, iproc, atoms, inputs)
-  use module_types
-  implicit none
-  type(restart_objects), intent(out) :: rst
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(in) :: atoms
-  type(input_variables), intent(in) :: inputs
-  
-  call init_restart_objects(iproc, inputs, atoms, rst, "rst_init")
-end subroutine rst_init
-
 subroutine run_objects_new(runObj)
   use module_types
   implicit none
@@ -1466,6 +1438,10 @@ subroutine run_objects_new(runObj)
   allocate(intern)
   call run_objects_nullify(intern)
   runObj => intern
+
+  ! Allocate persistent structures.
+  allocate(runObj%rst)
+  call restart_objects_new(runObj%rst)
 END SUBROUTINE run_objects_new
 subroutine run_objects_destroy(runObj)
   use module_types
@@ -1474,35 +1450,23 @@ subroutine run_objects_destroy(runObj)
   implicit none
   type(run_objects), pointer :: runObj
 
-  ! We don't do it here, we just destroy the container,
-  !  The caller is responsible to free public attributes.
-  !call run_objects_free(runObj)
-  call run_objects_free_container(runObj)
+  ! The caller is responsible to nullify attributes he wants to keep.
+  call run_objects_free(runObj)
   deallocate(runObj)
 end subroutine run_objects_destroy
-subroutine run_objects_get(runObj, inputs, atoms, rst)
+subroutine run_objects_get(runObj, dict, inputs, atoms)
   use module_types
+  use dictionaries
   implicit none
   type(run_objects), intent(in) :: runObj
+  type(dictionary), pointer :: dict
   type(input_variables), pointer :: inputs
   type(atoms_data), pointer :: atoms
-  type(restart_objects), pointer :: rst
 
+  dict => runObj%user_inputs
   inputs => runObj%inputs
   atoms => runObj%atoms
-  rst => runObj%rst
 END SUBROUTINE run_objects_get
-subroutine run_objects_association(runObj, inputs, atoms, rst)
-  use module_types
-  use module_interfaces, only: run_objects_associate
-  implicit none
-  type(run_objects), intent(out) :: runObj
-  type(input_variables), intent(in), target :: inputs
-  type(atoms_data), intent(in), target :: atoms
-  type(restart_objects), intent(in), target :: rst
-
-  call run_objects_associate(runObj, inputs, atoms, rst)
-END SUBROUTINE run_objects_association
 subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
   use dictionaries, only: dictionary
   use module_input_keys, only: input_keys_dump
@@ -1547,7 +1511,7 @@ subroutine run_objects_set_dict(runObj, dict)
   type(dictionary), pointer :: dict
 
   ! Warning, taking ownership here. Use run_objects_nullify_dict()
-! to release this ownership without freeing dict.
+  ! to release this ownership without freeing dict.
   runObj%user_inputs => dict
 END SUBROUTINE run_objects_set_dict
 subroutine run_objects_nullify_dict(runObj)
@@ -1557,6 +1521,14 @@ subroutine run_objects_nullify_dict(runObj)
 
   nullify(runObj%user_inputs)
 END SUBROUTINE run_objects_nullify_dict
+subroutine run_objects_nullify_volatile(runObj)
+  use module_types, only: run_objects
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+
+  nullify(runObj%inputs)
+  nullify(runObj%atoms)
+END SUBROUTINE run_objects_nullify_volatile
 
 subroutine mem_new(mem)
   use module_types, only: memory_estimation
@@ -1728,3 +1700,17 @@ subroutine dict_size(dict, ln)
 
   ln = wrapper(dict)
 END SUBROUTINE dict_size
+subroutine dict_copy(dict, ref)
+  use dictionaries, only: dictionary, wrapper => dict_copy
+  implicit none
+  type(dictionary), pointer :: dict, ref
+
+  call wrapper(dict, ref)
+END SUBROUTINE dict_copy
+subroutine dict_init(dict)
+  use dictionaries, only: dictionary, wrapper => dict_init
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call wrapper(dict)
+END SUBROUTINE dict_init

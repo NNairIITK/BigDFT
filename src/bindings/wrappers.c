@@ -225,7 +225,7 @@ BigDFT_Dict *bigdft_dict_new(BigDFT_DictIter *root)
   dict = g_malloc(sizeof(BigDFT_Dict));
   bigdft_dict_init(dict);
 #endif
-  FC_FUNC_(dict_new, DICT_NEW)(&dict->root);
+  FC_FUNC_(dict_init, DICT_INIT)(&dict->root);
   dict->current = dict->root;
 
   if (root)
@@ -258,6 +258,21 @@ BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf, BigDFT_DictIter *root)
       root->dict = dict;
       root->pointer = dict->root;
     }
+
+  return dict;
+}
+BigDFT_Dict *bigdft_dict_new_from_fortran(f90_dictionary_pointer dictf)
+{
+  BigDFT_Dict *dict;
+
+#ifdef HAVE_GLIB
+  dict = BIGDFT_DICT(g_object_new(BIGDFT_DICT_TYPE, NULL));
+#else
+  dict = g_malloc(sizeof(BigDFT_Dict));
+  bigdft_dict_init(dict);
+#endif
+  dict->root = dictf;
+  dict->current = dict->root;
 
   return dict;
 }

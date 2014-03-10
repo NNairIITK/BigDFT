@@ -500,14 +500,6 @@ contains
 end module dictionaries_base
 
 !> Routines for bindings only (external of module)
-subroutine dict_new(dict)
-  use dictionaries_base
-  implicit none
-  type(dictionary), pointer :: dict
-
-  call dict_init(dict)
-end subroutine dict_new
-
 subroutine dict_free(dict)
   use dictionaries_base, mod_dict_free => dict_free
   implicit none
