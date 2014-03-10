@@ -592,6 +592,37 @@ contains
   !> Retrieve the pointer to the item of the list.
   !! If the list does not exists, create it in the child chain.
   !! If the list is too short, create it in the next chain
+  subroutine item_ptr_find(dict,item,item_ptr)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict !hidden inout
+    integer, intent(in) :: item
+    type(dictionary), pointer :: item_ptr
+
+    item_ptr=>dict
+    find_item: do 
+       if (item_ptr%data%item == item) exit find_item
+       if (associated(item_ptr%next)) then
+          item_ptr=>item_ptr%next
+          cycle find_item
+       end if
+       if (no_key(item_ptr)) then
+          call set_item(item_ptr,item)
+       else
+          call dict_init(item_ptr%next)
+          call define_brother(item_ptr,item_ptr%next) !chain the list in both directions
+          if (associated(item_ptr%parent)) &
+               call define_parent(item_ptr%parent,item_ptr%next)
+          call set_item(item_ptr%next,item)
+          item_ptr=>item_ptr%next          
+       end if
+       exit find_item
+    end do find_item
+  end subroutine item_ptr_find
+
+
+  !> Retrieve the pointer to the item of the list.
+  !! If the list does not exists, create it in the child chain.
+  !! If the list is too short, create it in the next chain
   function get_list_ptr(dict,item) result (subd_ptr)
     implicit none
     type(dictionary), intent(in), pointer :: dict !hidden inout
@@ -606,7 +637,8 @@ contains
     call clean_subdict(dict)
     
     if (associated(dict%child)) then         
-       subd_ptr => get_item_ptr(dict%child,item)
+       !subd_ptr => get_item_ptr(dict%child,item)
+       call item_ptr_find(dict%child,item,subd_ptr)
     else
        call dict_init(dict%child)
        call define_parent(dict,dict%child)
