@@ -266,7 +266,7 @@ contains
     if (nfolder_size==0) then
        deallocate(dict)
     else
-       !free a space in the library and let the allocation lives
+       !free a space in the library and let the allocation live
        call deallocate_file(f_loc(dict))
     end if
 
