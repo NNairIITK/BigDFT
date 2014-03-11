@@ -348,11 +348,7 @@ contains
      type(dictionary), pointer :: dict_iter
 
      if (associated(dict)) then
-        if (associated(dict%parent)) then
-           dict_iter=>dict%child
-        else
-           dict_iter=>dict
-        end if
+        dict_iter=>dict%child
      else
         nullify(dict_iter)
      end if
