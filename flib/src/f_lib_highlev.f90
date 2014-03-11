@@ -80,7 +80,8 @@ end subroutine initialize_flib_errors
 
 subroutine initialize_flib_timing_categories()
   use time_profiling, only: f_timing_category,f_timing_category_group
-  use dynamic_memory, only: TCAT_INIT_TO_ZERO,TCAT_ARRAY_ALLOCATIONS
+  use dynamic_memory, only: TCAT_INIT_TO_ZERO,TCAT_ARRAY_ALLOCATIONS,&
+        TCAT_ROUTINE_PROFILING
   implicit none
   character(len=*), parameter :: flibgrp='Flib LowLevel' 
   !group of f_lib operations, separate category
@@ -92,6 +93,10 @@ subroutine initialize_flib_timing_categories()
   call f_timing_category('Array allocations',flibgrp,&
        'Heap storage allocation and associated profiling',&
        TCAT_ARRAY_ALLOCATIONS)
+  call f_timing_category('Routine Profiling',flibgrp,&
+       'Profiling performances for debugging',&
+       TCAT_ROUTINE_PROFILING)
+
 
 end subroutine initialize_flib_timing_categories
 
