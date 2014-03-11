@@ -95,7 +95,7 @@ program BigDFT2Wannier
 
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
-   call inputs_from_dict(input, atoms, user_inputs, .true.)
+   call inputs_from_dict(input, atoms, user_inputs)
    if (iproc == 0) then
       call print_general_parameters(input,atoms)
    end if
@@ -1198,7 +1198,10 @@ subroutine final_deallocations()
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms(atoms,subname)
 !  call free_input_variables(input)
-  call bigdft_free_input(input)
+  call free_input_variables(input)
+  call f_lib_finalize()
+  !free all yaml_streams active
+  call yaml_close_all_streams()
 
 END SUBROUTINE final_deallocations
 END PROGRAM BigDFT2Wannier

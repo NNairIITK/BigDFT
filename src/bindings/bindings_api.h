@@ -867,7 +867,7 @@ use yaml_output, only: yaml_dict_dump
 implicit none
 type(dictionary), pointer :: dict
 */
-void FC_FUNC_(dict_dump, DICT_DUMP)(f90_dictionary_pointer *dict);
+void FC_FUNC_(dict_dump, DICT_DUMP)(f90_dictionary_pointer *dict, gint *unit);
 /* dict_free  */
 /* dict_insert src/bindings/bindingsf.f90:1602 */
 /* Fortran header:
@@ -1484,7 +1484,8 @@ void FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(const f90_input_variables *in,
                                               int *davidson, 
                                               int *nvirt, 
                                               int *nplottedvirt, 
-                                              int *sym);
+                                              int *sym,
+                                              int *last_run);
 /* inputs_get_files src/bindings/bindingsf.f90:649 */
 /* Fortran header:
 subroutine inputs_get_files(in, files)
@@ -1575,8 +1576,10 @@ character(len = 100), intent(out) :: dir_output
 character(len = 500), intent(out) :: writing_directory
 */
 void FC_FUNC_(inputs_get_output, INPUTS_GET_OUTPUT)(const f90_input_variables *in, 
+                                                    char *run_name, 
                                                     char *dir_output, 
                                                     char *writing_directory, 
+                                                    int str_ln_0, 
                                                     int str_ln_1, 
                                                     int str_ln_2);
 /* inputs_get_perf src/bindings/bindingsf.f90:641 */
@@ -2678,8 +2681,7 @@ logical, intent(in) :: dump
 integer :: i_stat
 integer(kind = 8) :: dummy
 */
-void FC_FUNC_(run_objects_parse, RUN_OBJECTS_PARSE)(f90_run_objects *runObj, 
-                                                    const int *dump);
+void FC_FUNC_(run_objects_parse, RUN_OBJECTS_PARSE)(f90_run_objects *runObj);
 /* run_objects_set_dict src/bindings/bindingsf.f90:1542 */
 /* Fortran header:
 subroutine run_objects_set_dict(runObj, dict)

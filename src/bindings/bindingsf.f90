@@ -473,95 +473,27 @@ subroutine inputs_set_dict(in, level, val)
   ! This is a patch for Intel, to be corrected properly later.
   call input_set(in, level(1:len(level)), val%child)
 END SUBROUTINE inputs_set_dict
-
-subroutine inputs_set_from_file(dict, fname)
-  use dictionaries, only: dictionary
-  use module_interfaces, only: read_input_dict_from_files
-  use module_defs, only: bigdft_mpi
-  implicit none
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
-  nullify(dict)
-
-  call read_input_dict_from_files(fname, bigdft_mpi,dict)
-end subroutine inputs_set_from_file
-subroutine inputs_dump_to_file(iostat, dict, fname, userOnly)
-  use dictionaries, only: dictionary
-  use module_input_keys, only: input_keys_dump
-  use yaml_output
-  implicit none
-  integer, intent(out) :: iostat
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
-  logical, intent(in) :: userOnly
-
-  integer, parameter :: iunit = 756841 !< Hopefully being unique...
-  integer :: iunit_def
-
-  call yaml_get_default_stream(iunit_def)
-  if (iunit_def == iunit) then
-     iostat = 1
-     return
-  end if
-  
-  open(unit = iunit, file = fname(1:len(fname)), iostat = iostat)
-  if (iostat /= 0) return
-
-  call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)
-  if (iostat /= 0) return
-
-  call yaml_new_document(unit = iunit)
-  call input_keys_dump(dict, userOnly)
-
-  call yaml_close_stream(iunit, iostat)
-  if (iostat /= 0) return
-  close(unit = iunit)
-
-  call yaml_set_default_stream(iunit_def, iostat)
-end subroutine inputs_dump_to_file
-
-subroutine inputs_fill_all(inputs_values)
-  use module_input_keys
-  use dictionaries
-  implicit none
-  type(dictionary), pointer :: inputs_values
-  !local variable
-  type(dictionary), pointer :: input_minimal
-
-  call input_keys_fill_all(inputs_values,input_minimal)
-
-  if (associated(input_minimal)) call dict_free(input_minimal)
-end subroutine inputs_fill_all
-subroutine inputs_get_naming(in, run_name, file_occnum, file_igpop, file_lin)
+subroutine inputs_get_output(in, run_name, dir_output, writing_directory)
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  character(len = 100), intent(out) :: run_name, file_occnum, file_igpop, file_lin
-
-  run_name = in%run_name
-  file_occnum = in%file_occnum
-  file_igpop = in%file_igpop
-  file_lin = in%file_lin
-END SUBROUTINE inputs_get_naming
-subroutine inputs_get_output(in, dir_output, writing_directory)
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-  character(len = 100), intent(out) :: dir_output
+  character(len = 100), intent(out) :: dir_output, run_name
   character(len = 500), intent(out) :: writing_directory
 
+  run_name = in%run_name
   dir_output = in%dir_output
   writing_directory = in%writing_directory
 END SUBROUTINE inputs_get_output
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
-     & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym)
+     & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym, last_run)
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
   real(gp), intent(out) :: hx, hy, hz, crmult, frmult, efield(3), gnrm, rbuf
   integer, intent(out) :: ixc, chg, nspin, mpol, itermax, nrepmax, ncong, idsx, &
-       & dispcorr, inpsi, outpsi, outgrid, ncongt, davidson, nvirt, nplottedvirt, sym
+       & dispcorr, inpsi, outpsi, outgrid, ncongt, davidson, nvirt, nplottedvirt, &
+       & sym, last_run
   
   hx = in%hx
   hy = in%hy
@@ -592,6 +524,7 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspi
   else
      sym = 0
   end if
+  last_run = in%last_run
 END SUBROUTINE inputs_get_dft
 subroutine inputs_get_mix(in, iscf, itrpmax, norbsempty, occopt, alphamix, rpnrm_cv, &
      & gnrm_startmix, Tel, alphadiis)
@@ -682,14 +615,7 @@ subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, 
   
   call input_check_psi_id(inputpsi, input_wf_format, trim(dir_output), orbs, lorbs, iproc, nproc,0, frag_dir, ref_frags)
 END SUBROUTINE inputs_check_psi_id
-subroutine inputs_set_restart(in, id)
-  use module_types
-  implicit none
-  type(input_variables), intent(inout) :: in
-  integer, intent(in) :: id
 
-  in%inputPsiId = id
-end subroutine inputs_set_restart
 
 subroutine orbs_new(orbs)
   use module_types
@@ -1616,13 +1542,18 @@ subroutine dict_put(dict, val)
   ! This is a patch for Intel, to be corrected properly later.
   call set(dict, val(1:len(val)))
 END SUBROUTINE dict_put
-subroutine dict_dump(dict)
+subroutine dict_dump(dict, unit)
   use dictionaries, only: dictionary
   use yaml_output, only: yaml_dict_dump
   implicit none
   type(dictionary), pointer :: dict
+  integer, intent(in) :: unit
 
-  call yaml_dict_dump(dict)
+  if (unit < 0) then
+     call yaml_dict_dump(dict)
+  else
+     call yaml_dict_dump(dict, unit = unit)
+  end if
 END SUBROUTINE dict_dump
 subroutine dict_parse(dict, buf)
   use dictionaries, only: dictionary, operator(//)

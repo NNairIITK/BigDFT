@@ -534,8 +534,8 @@ guint bigdft_dict_len(BigDFT_Dict *dict)
     return (guint)ln;
   return 1;
 }
-void bigdft_dict_dump(BigDFT_Dict *dict)
+void bigdft_dict_dump(BigDFT_Dict *dict, gint unit)
 {
-  FC_FUNC_(dict_dump, DICT_DUMP)(&dict->root);
+  FC_FUNC_(dict_dump, DICT_DUMP)(&dict->root, &unit);
 }
 /*********************************/

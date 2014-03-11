@@ -93,7 +93,7 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
 
   ! Generate input dictionary and parse it.
   call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
-  call run_objects_parse(runObj, .true.)
+  call run_objects_parse(runObj)
 
   ! Start the signaling loop in a thread if necessary.
   if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
@@ -103,58 +103,43 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
   end if
 END SUBROUTINE run_objects_init_from_files
 
-subroutine run_objects_update(runObj, dict, dump)
+subroutine run_objects_update(runObj, dict)
   use module_types
-  use dictionaries, only: dictionary, dict_update
-  use dynamic_memory
+  use dictionaries, only: dictionary, dict_update, max_field_length, dict_value
+  use yaml_output
   implicit none
   type(run_objects), intent(inout) :: runObj
   type(dictionary), pointer :: dict
-  logical, intent(in) :: dump
 
   ! We merge the previous dictionnary with new entries.
   call dict_update(runObj%user_inputs, dict)
   
-  ! Free changing data structures.
+  ! Parse new dictionnary.
+  call run_objects_parse(runObj)
+END SUBROUTINE run_objects_update
+
+subroutine run_objects_parse(runObj)
+  use module_types
+  use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
+  use dynamic_memory
+  use dictionaries
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+
+  ! Free potential previous inputs and atoms.
   if (associated(runObj%atoms)) then
      call deallocate_atoms(runObj%atoms, "run_objects_update") 
      deallocate(runObj%atoms)
   end if
+  call atoms_new(runObj%atoms)
   if (associated(runObj%inputs)) then
      call free_input_variables(runObj%inputs)
      deallocate(runObj%inputs)
   end if
-  if (associated(runObj%radii_cf)) then
-     call f_free_ptr(runObj%radii_cf)
-  end if
-  if (associated(runObj%rst)) then
-     call release_material_acceleration(runObj%rst%GPU)
-  end if
-
-  ! Parse new dictionnary.
-  call run_objects_parse(runObj, dump)
-END SUBROUTINE run_objects_update
-
-subroutine run_objects_parse(runObj, dump)
-  use module_types
-  use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict
-  use dynamic_memory
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  logical, intent(in) :: dump
-
-  call atoms_new(runObj%atoms)
   call inputs_new(runObj%inputs)
-  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs, dump)
 
-  ! Generate the description of input variables.
-  !if (bigdft_mpi%iproc == 0) then
-  !   call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
-  !end if
-
-  if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(runObj%inputs,runObj%atoms)
-  end if
+  ! Regenerate inputs and atoms.
+  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs, 70)
 
   ! Number of atoms should not change.
   if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
@@ -163,8 +148,15 @@ subroutine run_objects_parse(runObj, dump)
      call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_parse")
   end if
   call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
+  if (associated(runObj%rst)) then
+     call release_material_acceleration(runObj%rst%GPU)
+  end if
   call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
 
+  ! Generate radii
+  if (associated(runObj%radii_cf)) then
+     call f_free_ptr(runObj%radii_cf)
+  end if
   runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), "run_objects_parse")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
@@ -236,20 +228,6 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
   call nullify_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
 END SUBROUTINE run_objects_system_setup
-
-!> De-allocate the variable of type input_variables
-subroutine bigdft_free_input(in)
-  use module_base
-  use module_types
-  use yaml_output
-  type(input_variables), intent(inout) :: in
-  
-  call free_input_variables(in)
-  call f_lib_finalize()
-  !free all yaml_streams active
-  call yaml_close_all_streams()
-
-end subroutine bigdft_free_input
 
 !> Read the options in the command line using get_command statement
 subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
@@ -496,58 +474,72 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   call f_release_routine()
 END SUBROUTINE processor_id_per_node
 
-subroutine create_log_file(iproc,inputs)
+subroutine create_log_file(dict, writing_directory, dir_output, run_name)
 
   use module_base
   use module_types
   use module_input
   use yaml_strings
   use yaml_output
-
+  use dictionaries
   implicit none
-  integer, intent(in) :: iproc
-  type(input_variables), intent(inout) :: inputs
+  type(dictionary), pointer :: dict
+  character(len = max_field_length), intent(out) :: writing_directory, dir_output, run_name
   !local variables
-  integer :: ierr,ierror,lgt
+  integer :: ierr,ierror,lgt,unit_log
   logical :: exists
   character(len=500) :: logfile,logfile_old,logfile_dir
+  integer :: iproc_node, nproc_node
+
+  writing_directory = "."
+  if (has_key(dict, "perf")) then
+     if (has_key(dict // "perf", "outdir")) then
+        writing_directory = dict_value(dict // "perf" // "outdir")
+     end if
+  end if
+  run_name   = "input"
+  dir_output = "data" // trim(bigdft_run_id_toa())
+  if (has_key(dict, "radical")) then
+     run_name   = dict // "radical"
+     dir_output = "data-"//trim(run_name)
+  end if
 
   logfile=repeat(' ',len(logfile))
   logfile_old=repeat(' ',len(logfile_old))
   logfile_dir=repeat(' ',len(logfile_dir))
   !open the logfile if needed, and set stdout
-  !if (trim(in%writing_directory) /= '.') then
-  if (.true.) then
+  if (trim(writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
      !add the output directory in the directory name
-     if (iproc == 0 .and. trim(inputs%writing_directory) /= '.') then
-        call getdir(inputs%writing_directory,&
-             len_trim(inputs%writing_directory),logfile,len(logfile),ierr)
+     if (bigdft_mpi%iproc == 0 .and. trim(writing_directory) /= '.') then
+        call getdir(writing_directory,&
+             len_trim(writing_directory),logfile,len(logfile),ierr)
         if (ierr /= 0) then
            write(*,*) "ERROR: cannot create writing directory '"&
-                //trim(inputs%writing_directory) // "'."
+                //trim(writing_directory) // "'."
            call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
      call MPI_BCAST(logfile,len(logfile),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
-     lgt=min(len(inputs%writing_directory),len(logfile))
-     inputs%writing_directory(1:lgt)=logfile(1:lgt)
+     lgt=min(len(writing_directory),len(logfile))
+     writing_directory(1:lgt)=logfile(1:lgt)
      lgt=0
-     call buffer_string(inputs%dir_output,len(inputs%dir_output),&
-          trim(logfile),lgt,back=.true.)
-     if (iproc ==0) then
+     if (dir_output(1:1) /= '/') &
+          & call buffer_string(dir_output,len(dir_output),&
+          & trim(logfile),lgt,back=.true.)
+     if (bigdft_mpi%iproc ==0) then
         logfile=repeat(' ',len(logfile))
-        if (len_trim(inputs%run_name) >0) then
-!           logfile='log-'//trim(inputs%run_name)//trim(bigdft_run_id_toa())//'.yaml'
-           logfile='log-'//trim(inputs%run_name)//'.yaml'
+        if (len_trim(run_name) >0) then
+!           logfile='log-'//trim(run_name)//trim(bigdft_run_id_toa())//'.yaml'
+           logfile='log-'//trim(run_name)//'.yaml'
         else
            logfile='log'//trim(bigdft_run_id_toa())//'.yaml'
         end if
         !inquire for the existence of a logfile
         call yaml_map('<BigDFT> log of the run will be written in logfile',&
-             trim(inputs%writing_directory)//trim(logfile),unit=6)
-        inquire(file=trim(inputs%writing_directory)//trim(logfile),exist=exists)
+             trim(writing_directory)//trim(logfile),unit=6)
+        inquire(file=trim(writing_directory)//trim(logfile),exist=exists)
         if (exists) then
-           logfile_old=trim(inputs%writing_directory)//'logfiles'
+           logfile_old=trim(writing_directory)//'logfiles'
            call getdir(logfile_old,&
                 len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
            if (ierr /= 0) then
@@ -555,7 +547,7 @@ subroutine create_log_file(iproc,inputs)
               call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
            end if
            logfile_old=trim(logfile_dir)//trim(logfile)
-           logfile=trim(inputs%writing_directory)//trim(logfile)
+           logfile=trim(writing_directory)//trim(logfile)
            !change the name of the existing logfile
            lgt=index(logfile_old,'.yaml')
            call buffer_string(logfile_old,len(logfile_old),&
@@ -570,19 +562,20 @@ subroutine create_log_file(iproc,inputs)
                 trim(logfile_old),unit=6)
 
         else
-           logfile=trim(inputs%writing_directory)//trim(logfile)
+           logfile=trim(writing_directory)//trim(logfile)
         end if
         !Create stream and logfile
-        call yaml_set_stream(unit=70,filename=trim(logfile),record_length=92,istat=ierr)
+        call yaml_set_stream(filename=trim(logfile),record_length=92,istat=ierr)
         !create that only if the stream is not already present, otherwise print a warning
         if (ierr == 0) then
-           call input_set_stdout(unit=70)
-           if (len_trim(inputs%run_name) == 0) then
-              call f_malloc_set_status(unit=70, &
+           call yaml_get_default_stream(unit_log)
+           call input_set_stdout(unit=unit_log)
+           if (len_trim(run_name) == 0) then
+              call f_malloc_set_status(unit=unit_log, &
                    & logfile_name='malloc' // trim(bigdft_run_id_toa()) // '.prc')
            else
-              call f_malloc_set_status(unit=70, &
-                   & logfile_name='malloc-' // trim(inputs%run_name) // '.prc')
+              call f_malloc_set_status(unit=unit_log, &
+                   & logfile_name='malloc-' // trim(run_name) // '.prc')
            end if
            !call memocc_set_stdout(unit=70)
         else
@@ -591,7 +584,20 @@ subroutine create_log_file(iproc,inputs)
      end if
   else
      !use stdout, do not crash if unit is present
-     if (iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
+     if (bigdft_mpi%iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
   end if
     
+  if (bigdft_mpi%iproc==0) then
+     !start writing on logfile
+     call yaml_new_document()
+     !welcome screen
+     call print_logo()
+  end if
+
+  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+
+  if (bigdft_mpi%iproc==0) then
+     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
+     call print_configure_options()
+  end if
 END SUBROUTINE create_log_file

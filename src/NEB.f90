@@ -211,7 +211,7 @@ MODULE NEB_routines
          call astruct_merge_to_dict(dict // "posinp", astruct, astruct%rxyz)
          call atoms_file_merge_to_dict(dict)
 
-         call inputs_from_dict(ins(i), atoms(i), dict, .true.)
+         call inputs_from_dict(ins(i), atoms(i), dict)
 
          call dict_free(dict)
          call deallocate_atomic_structure(astruct, "NEB")

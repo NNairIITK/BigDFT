@@ -89,7 +89,7 @@ gchar* bigdft_dict_key           (BigDFT_Dict *dict);
 gchar* bigdft_dict_value         (BigDFT_Dict *dict);
 guint bigdft_dict_len            (BigDFT_Dict *dict);
 void  bigdft_dict_unref          (BigDFT_Dict *dict);
-void  bigdft_dict_dump           (BigDFT_Dict *dict);
+void  bigdft_dict_dump           (BigDFT_Dict *dict, gint unit);
 /*********************************/
 
 /********************************/
@@ -204,8 +204,6 @@ typedef struct _BigDFT_Inputs BigDFT_Inputs;
 struct _BigDFT_Inputs
 {
   /* TODO: bindings to values... */
-  int files;
-  gchar *file_occnum, *file_igpop, *file_lin;
   gchar *dir_output, *writing_directory;
   gchar *run_name;
   
@@ -213,6 +211,7 @@ struct _BigDFT_Inputs
   int ixc, ncharge, nspin, mpol, ncong,
     dispersion, inputPsiId, output_wf_format, output_grid, ncongt, norbv, nvirt,
     nplot, disableSym;
+  int last_run;
   guint itermax, nrepmax, idsx;
   double crmult, frmult, gnrm_cv, rbuf;
   double h[3], elecfield[3];
@@ -236,7 +235,6 @@ struct _BigDFT_Inputs
   /* Private. */
   guint refCount;
   f90_input_variables_pointer data;
-  f90_dictionary_pointer input_values;
 };
 /*********************************/
 #ifdef GLIB_MAJOR_VERSION
@@ -245,13 +243,10 @@ GType          bigdft_inputs_get_type         (void);
 BigDFT_Inputs* bigdft_inputs_ref              (BigDFT_Inputs *in);
 void           bigdft_inputs_unref            (BigDFT_Inputs *in);
 void           bigdft_inputs_free             (BigDFT_Inputs *in);
-BigDFT_Inputs* bigdft_inputs_new              (const gchar *naming);
-BigDFT_Inputs* bigdft_inputs_new_from_files   (const gchar *naming, guint iproc);
 void           bigdft_inputs_set              (BigDFT_Inputs *in, const gchar *level,
                                                const gchar *id, const gchar *value);
 void           bigdft_inputs_set_array        (BigDFT_Inputs *in, const gchar *level,
                                                const gchar *id, const gchar **value);
-void           bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc);
 /*********************************/
 
 /*********************************/
@@ -364,9 +359,9 @@ struct _BigDFT_Run
 /*********************************/
 BigDFT_Run*     bigdft_run_new();
 BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
-BigDFT_Run*     bigdft_run_new_from_dict   (BigDFT_Dict *dict, gboolean dump);
-void            bigdft_run_update          (BigDFT_Run *run,
-                                            BigDFT_Dict *dict, gboolean dump);
+BigDFT_Run*     bigdft_run_new_from_dict   (BigDFT_Dict *dict);
+void            bigdft_run_unref           (BigDFT_Run *run);
+void            bigdft_run_update          (BigDFT_Run *run, BigDFT_Dict *dict);
 gboolean        bigdft_run_dump            (BigDFT_Run *run, const gchar *filename,
                                             gboolean full);
 BigDFT_Memory*  bigdft_run_memoryEstimation(BigDFT_Run *run, guint iproc, guint nproc);
@@ -374,7 +369,6 @@ BigDFT_Goutput* bigdft_run_calculate       (BigDFT_Run *run, guint iproc, guint 
 BigDFT_Dict*    bigdft_run_get_dict        (BigDFT_Run *run);
 BigDFT_Atoms*   bigdft_run_get_atoms       (BigDFT_Run *run);
 BigDFT_Inputs*  bigdft_run_get_inputs      (BigDFT_Run *run);
-void            bigdft_run_unref           (BigDFT_Run *run);
 /*********************************/
 
 /*******************************/

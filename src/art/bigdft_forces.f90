@@ -164,7 +164,7 @@ module bigdft_forces
       call atoms_file_merge_to_dict(dict)
 
       call standard_inputfile_names(runObj%inputs,'input')
-      call inputs_from_dict(runObj%inputs, runObj%atoms, dict, .true.)
+      call inputs_from_dict(runObj%inputs, runObj%atoms, dict)
 
       call dict_free(dict)
       

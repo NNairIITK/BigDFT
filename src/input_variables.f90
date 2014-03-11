@@ -144,7 +144,7 @@ end subroutine merge_input_file_to_dict
 !> Fill the input_variables structure with the information
 !! contained in the dictionary dict
 !! the dictionary should be completes to fill all the information
-subroutine inputs_from_dict(in, atoms, dict, dump)
+subroutine inputs_from_dict(in, atoms, dict)
   use module_types
   use module_defs
   use yaml_output
@@ -159,14 +159,16 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   type(input_variables), intent(out) :: in
   type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
-  logical, intent(in) :: dump
 
   !type(dictionary), pointer :: profs
   integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max
+  character(len = max_field_length) :: writing_dir, output_dir, run_name
   type(dictionary), pointer :: dict_minimal, var
-  character(max_field_length) :: radical
 
   call f_routine(id='inputs_from_dict')
+
+  ! Open log as soon as possible.
+  call create_log_file(dict, writing_dir, output_dir, run_name)
 
   ! Atoms case.
   atoms = atoms_null()
@@ -176,17 +178,25 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   ! Input variables case.
   call default_input_variables(in)
 
-  ! Setup radical for output dir.
-  write(radical, "(A)") "input"
-  if (has_key(dict, "radical")) radical = dict // "radical"
-  call standard_inputfile_names(in,trim(radical))
-  ! To avoid race conditions where procs create the default file and other test its
-  ! presence, we put a barrier here.
-  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
-
   ! Analyse the input dictionary and transfer it to in.
   ! extract also the minimal dictionary which is necessary to do this run
   call input_keys_fill_all(dict,dict_minimal)
+  if (bigdft_mpi%iproc == 0) then
+     if (associated(dict_minimal)) then
+        call yaml_set_stream(unit=99971,filename=trim(writing_dir)//'/input_minimal.yaml',&
+             record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
+        if (ierr==0) then
+           call yaml_comment('Minimal input file',hfill='-',unit=99971)
+           call yaml_comment('This file indicates the minimal set of input variables which has to be given '//&
+                'to perform the run. The code would produce the same output if this file is used as input.',unit=99971)
+           call yaml_dict_dump(dict_minimal,unit=99971)
+           call yaml_close_stream(unit=99971)
+        else
+           call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
+        end if
+     end if
+  end if
+  if (associated(dict_minimal)) call dict_free(dict_minimal)
 
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
@@ -229,27 +239,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      call ab7_memocc_set_state(0)
      call f_malloc_set_status(output_level=0)
   end if
-  !here the logfile should be opened in the usual way, differentiating between 
-  ! logfiles in case of multiple taskgroups
-  if (trim(in%writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
-     call create_log_file(bigdft_mpi%iproc,in)
-  else
-     !use stdout, do not crash if unit is present
-     if (bigdft_mpi%iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
-  end if
-
-  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-  if (bigdft_mpi%iproc==0 .and. dump) then
-     !start writing on logfile
-     call yaml_new_document()
-     !welcome screen
-     call print_logo()
-  end if
-  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
-  if (bigdft_mpi%iproc ==0 .and. dump) then
-     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
-     call print_configure_options()
-  end if
 
   ! Cross check values of input_variables.
   call input_analyze(in)
@@ -288,24 +277,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
        & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
   in%gen_norb = in%gen_norbu + in%gen_norbd
   
-  if (bigdft_mpi%iproc == 0 .and. dump) then
-     call input_keys_dump(dict)
-     if (associated(dict_minimal)) then
-        call yaml_set_stream(unit=71,filename=trim(in%writing_directory)//'/input_minimal.yaml',&
-             record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
-        if (ierr==0) then
-           call yaml_comment('Minimal input file',hfill='-',unit=71)
-           call yaml_comment('This file indicates the minimal set of input variables which has to be given '//&
-                'to perform the run. The code would produce the same output if this file is used as input.',unit=71)
-           call yaml_dict_dump(dict_minimal,unit=71)
-           call yaml_close_stream(unit=71)
-        else
-           call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
-        end if
-     end if
-  end if
-  if (associated(dict_minimal)) call dict_free(dict_minimal)
-
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
      if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
@@ -330,15 +301,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
-  ! Linear scaling (if given)
-  !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
-  call lin_input_variables_new(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
-
-  ! Fragment information (if given)
-  call fragment_input_variables(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,trim(in%file_frag),in,atoms)
-
 !!$  ! Stop code for unproper input variables combination.
 !!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
 !!$     if (bigdft_mpi%iproc==0) then
@@ -354,13 +316,33 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 !!$     call dict_free(profs)
 !!$  end if
 
-  !check whether a directory name should be associated for the data storage
-  call check_for_data_writing_directory(bigdft_mpi%iproc,in)
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
   
   !check if an error has been found and raise an exception to be handled
   if (f_err_check()) then
      call f_err_throw('Error in reading input variables from dictionary',&
           err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+  end if
+
+  in%run_name          = run_name
+  in%writing_directory = writing_dir
+  in%dir_output        = output_dir
+  call input_variables_from_old_text_format(in, atoms, trim(in%run_name))
+
+  if (bigdft_mpi%iproc==0) then
+     call input_keys_dump(dict)
+  end if
+
+  !check whether a directory name should be associated for the data storage
+  call check_for_data_writing_directory(bigdft_mpi%iproc,in)
+
+  ! Generate the description of input variables.
+  !if (bigdft_mpi%iproc == 0) then
+  !   call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
+  !end if
+
+  if (bigdft_mpi%iproc == 0) then
+     call print_general_parameters(in,atoms)
   end if
 
   call f_release_routine()

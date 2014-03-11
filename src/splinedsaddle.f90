@@ -335,7 +335,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     call atoms_file_merge_to_dict(dict)
     call atomic_data_file_merge_to_dict(dict, "Atomic occupation", "input.occup")
     ! We parse the dictionary.
-    call inputs_from_dict(ll_inputs, ll_atoms, dict, .true.)
+    call inputs_from_dict(ll_inputs, ll_atoms, dict)
     call dict_free(dict)
     call deallocate_atoms(ll_atoms, "givemesaddle")
     

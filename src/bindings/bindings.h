@@ -88,7 +88,6 @@ BigDFT_Goutput* bigdft_goutput_new_from_fortran(f90_DFT_global_output_pointer ob
 
 /* Additional private methods. */
 void _inputs_sync(BigDFT_Inputs *in);
-void _inputs_sync_add(BigDFT_Inputs *in);
 
 /*  Generic tools. */
 gchar* _get_c_string(const gchar *fstr, guint len);

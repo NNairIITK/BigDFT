@@ -217,7 +217,14 @@ module module_interfaces
         type(dictionary), pointer :: dict
       end subroutine read_input_dict_from_files
 
-      subroutine inputs_from_dict(in, atoms, dict, dump)
+      subroutine create_log_file(dict, writing_directory, dir_output, run_name)
+        use dictionaries
+        implicit none
+        type(dictionary), pointer :: dict
+        character(len = max_field_length), intent(out) :: writing_directory, dir_output, run_name
+      end subroutine create_log_file
+
+      subroutine inputs_from_dict(in, atoms, dict)
         use module_types
         use module_defs
         use dictionaries
@@ -225,7 +232,6 @@ module module_interfaces
         type(input_variables), intent(out) :: in
         type(atoms_data), intent(out) :: atoms
         type(dictionary), pointer :: dict
-        logical, intent(in) :: dump
       end subroutine inputs_from_dict
 
       subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
