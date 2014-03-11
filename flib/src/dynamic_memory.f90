@@ -43,12 +43,16 @@ module dynamic_memory
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
 
   !error codes
-  integer :: ERR_ALLOCATE
-  integer :: ERR_DEALLOCATE
-  integer :: ERR_MEMLIMIT
-  integer :: ERR_INVALID_MALLOC
-  integer :: ERR_INVALID_RANK
-  integer :: ERR_MALLOC_INTERNAL
+  integer, save :: ERR_ALLOCATE
+  integer, save :: ERR_DEALLOCATE
+  integer, save :: ERR_MEMLIMIT
+  integer, save :: ERR_INVALID_MALLOC
+  integer, save :: ERR_INVALID_RANK
+  integer, save :: ERR_MALLOC_INTERNAL
+
+  !timing categories
+  integer, public, save :: TCAT_ARRAY_ALLOCATIONS
+  integer, public, save :: TCAT_INIT_TO_ZERO
 
   !> control structure of flib library. 
   !Contains all global variables of interest in a separate instance of f_lib
@@ -66,7 +70,7 @@ module dynamic_memory
   
   !>global variable controlling the different instances of the calls
   !the 0 component is supposed to be unused, it is allocated to avoid segfaults
-  ! if the library routines are called without initialization
+  !if the library routines are called without initialization
   type(mem_ctrl), dimension(0:max_ctrl) :: mems
 
   !> Structure needed to allocate an allocatable array
@@ -180,6 +184,14 @@ module dynamic_memory
 !     module procedure c1_ptr_free
 !  end interface f_free_str_ptr
 
+  !> initialize to zero an array (should be called f_memset)
+  interface to_zero
+     module procedure put_to_zero_simple, &
+           put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
+           put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5, &
+           put_to_zero_double_6, put_to_zero_double_7, &
+           put_to_zero_integer
+  end interface
 
   interface f_malloc
      module procedure f_malloc,f_malloc_simple
@@ -239,7 +251,7 @@ module dynamic_memory
   public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
-  public :: f_time
+  public :: f_time,to_zero
   public :: assignment(=),operator(.to.)
 
   !for internal f_lib usage
@@ -263,6 +275,157 @@ contains
     bounds%nlow=nlow
     bounds%nhigh=nhigh
   end function bounds
+
+  subroutine put_to_zero_simple(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=4), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_simple(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_simple
+
+  subroutine put_to_zero_double(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_double
+
+  subroutine put_to_zero_double_1(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_double_1
+
+  subroutine put_to_zero_double_2(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_double_2
+
+ subroutine put_to_zero_double_3(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_3
+
+  subroutine put_to_zero_double_4(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_4
+
+  subroutine put_to_zero_double_5(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_5
+
+  subroutine put_to_zero_double_6(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_6
+
+  subroutine put_to_zero_double_7(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_7
+
+  subroutine put_to_zero_integer(n,da)
+    implicit none
+    integer, intent(in) :: n
+    integer, intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integer(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_integer
+
 
   pure function mem_ctrl_null() result(mem)
     type(mem_ctrl) :: mem
@@ -342,6 +505,7 @@ contains
     !local variables
     integer :: lgt,ncalls
     integer(kind=8) :: itime
+
 
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_routine): the routine f_malloc_initialize has not been called',&
@@ -564,10 +728,10 @@ contains
     implicit none
     
     call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
+         err_action='Control the order of the allocation or if the memory limit has been reached',&
          callback=f_malloc_callback)
     call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Deallocation error',err_id=ERR_DEALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
+         err_action='Control the order of the allocation or if the memory limit has been reached',&
          callback=f_malloc_callback)
     call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&
          err_action='Control the size of the arrays needed for this run with bigdft-tool program',&

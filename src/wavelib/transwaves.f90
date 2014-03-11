@@ -23,7 +23,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   allocate(tpsit(nvctrp,orbs%nspinor,orbs%norb,orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,tpsit,'tpsit',subname)
   if(forward) then
-     !we can use dcopy here
+     !we can use vcopy here
      do ikpts=1,orbs%nkpts
         do iorb=1,orbs%norb
            do isp=1,orbs%nspinor
@@ -77,7 +77,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
         end do
      end if
 
-     !here we can use dcopy
+     !here we can use vcopy
      do ikpts=1,orbs%nkpts
         do iorb=1,orbs%norb
            do isp=1,orbs%nspinor
@@ -177,7 +177,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
            sum(comms%ncntt(0:nproc-1)))
      allocate(workarr(Gdim+ndebug),stat=i_stat)
      call memocc(i_stat,workarr,'workarr',subname)
-     call razero(Gdim,workarr)
+     call to_zero(Gdim,workarr)
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
@@ -343,7 +343,7 @@ subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
            sum(comms%ncntt(0:nproc-1)))
      allocate(workarr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
      call memocc(i_stat,workarr,'workarr',subname)
-     call razero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
+     call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor

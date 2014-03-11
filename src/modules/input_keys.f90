@@ -130,6 +130,49 @@ module module_input_keys
   character(len = *), parameter, public :: EXPLICIT_LOCREGCENTERS = "explicit_locregcenters"
   character(len = *), parameter, public :: CALCULATE_KS_RESIDUE = "calculate_KS_residue"
   character(len = *), parameter, public :: INTERMEDIATE_FORCES = "intermediate_forces"
+  character(len = *), parameter, public :: KAPPA_CONV = "kappa_conv"
+  character(len = *), parameter, public :: EVBOUNDS_NSATUR = "evbounds_nsatur"
+  character(len = *), parameter, public :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
+  character(len = *), parameter, public :: METHOD_UPDATEKERNEL = "method_updatekernel"
+
+  !keys for linear input variables
+  !level keys
+  character(len=*), parameter, public :: LIN_GENERAL     ='lin_general'
+  character(len=*), parameter, public :: LIN_BASIS       ='lin_basis'
+  character(len=*), parameter, public :: LIN_KERNEL      ='lin_kernel'
+  character(len=*), parameter, public :: LIN_BASIS_PARAMS='lin_basis_params'
+  character(len=*), parameter, public :: HYBRID          ='hybrid'
+  character(len=*), parameter, public :: LINEAR_METHOD   ='method'
+  character(len=*), parameter, public :: MIXING_METHOD   ='mixing_method'
+  character(len=*), parameter, public :: NIT             ='nit'
+  character(len=*), parameter, public :: NSTEP           ='nstep'
+  character(len=*), parameter, public :: IDSX_COEFF      ='idsx_coeff'
+  character(len=*), parameter, public :: GNRM_CV_COEFF   ='gnrm_cv_coeff'
+  character(len=*), parameter, public :: DELTAE_CV       ='deltae_cv'
+  character(len=*), parameter, public :: GNRM_DYN        ='gnrm_dyn'
+  character(len=*), parameter, public :: CONF_DAMPING    ='conf_damping'
+  character(len=*), parameter, public :: TAYLOR_ORDER    ='taylor_order'
+  character(len=*), parameter, public :: CALC_DIPOLE     ='calc_dipole'
+  character(len=*), parameter, public :: CALC_PULAY      ='calc_pulay'
+  character(len=*), parameter, public :: CALC_KS         ='calc_ks'
+  character(len=*), parameter, public :: ALPHA_DIIS      ='alpha_diis'
+  character(len=*), parameter, public :: ALPHA_SD        ='alpha_sd'
+  character(len=*), parameter, public :: ALPHA_SD_COEFF  ='alpha_sd_coeff'
+  character(len=*), parameter, public :: ALPHA_FIT_COEFF ='alpha_fit_coeff'
+  character(len=*), parameter, public :: NSTEP_PREC      ='nstep_prec'
+  character(len=*), parameter, public :: EVAL_RANGE_FOE  ='eval_range_foe'
+  character(len=*), parameter, public :: FSCALE_FOE      ='fscale_foe'
+  character(len=*), parameter, public :: BASIS_PARAMS    ='basis_params'
+  character(len=*), parameter, public :: AO_CONFINEMENT  ='ao_confinement'
+  character(len=*), parameter, public :: CONFINEMENT     ='confinement'
+  character(len=*), parameter, public :: RLOC            ='rloc'
+  character(len=*), parameter, public :: RLOC_KERNEL     ='rloc_kernel'
+  character(len=*), parameter, public :: RLOC_KERNEL_FOE ='rloc_kernel_foe'
+  character(len=*), parameter, public :: NBASIS          ='nbasis'
+  character(len=*), parameter, public :: TRANSFER_INTEGRALS='transfer_integrals'
+  character(len=*), parameter, public :: CONSTRAINED_DFT  ='constrained_dft'
+
+
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0

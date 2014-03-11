@@ -200,6 +200,7 @@ MODULE NEB_routines
       do i = 1, num_of_images
          call astruct_nullify(astruct)
          call read_atomic_file(trim(arr_posinp(i)), bigdft_mpi%iproc, astruct, status = ierr)
+!!!!print *,'i,num_of_images',i,num_of_images,ierr
          if (ierr /= 0) then
             if (i == 1 .or. i == num_of_images) stop "Missing images"
             ! we read the last valid image instead.

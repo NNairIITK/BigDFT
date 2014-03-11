@@ -388,7 +388,6 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
 
 END SUBROUTINE init_material_acceleration
 
-
 subroutine release_material_acceleration(GPU)
   use module_base
   use module_types

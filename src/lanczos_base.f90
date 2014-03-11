@@ -788,16 +788,16 @@ module lanczos_base
          zinout(2,1:2*Nbar,1) = cfftimag(:)
 
 
-         call dcopy(2*Nbar,cfftreal(0),1,zinout(1,1,1),2)
-         call dcopy(2*Nbar,cfftimag(0),1,zinout(2,1,1),2)
+         call vcopy(2*Nbar,cfftreal(0),1,zinout(1,1,1),2)
+         call vcopy(2*Nbar,cfftimag(0),1,zinout(2,1,1),2)
          !zinout(1,1:2*Nbar,1) = cfftreal(:)
          !zinout(2,1:2*Nbar,1) = cfftimag(:)
 
 
          call fft_1d_ctoc(1 ,1, 2*Nbar ,zinout(1,1,1) ,inzee)
 
-         call dcopy(2*Nbar,zinout(1,1,inzee),2,cfftreal(0),1)
-         call dcopy(2*Nbar,zinout(2,1,inzee),2,cfftimag(0),1)
+         call vcopy(2*Nbar,zinout(1,1,inzee),2,cfftreal(0),1)
+         call vcopy(2*Nbar,zinout(2,1,inzee),2,cfftimag(0),1)
          !cfftreal(:)  =   zinout(1,1:2*Nbar,inzee)   
          !cfftimag(:)  =   zinout(2,1:2*Nbar,inzee)    
 

@@ -167,36 +167,51 @@ contains
     end if
   end function allocate_file
 
-  !free the space from the library
   recursive subroutine deallocate_file(file)
     implicit none
     integer(kind=8), intent(in) :: file !< the target is already inside
-    !local variables
-    integer :: ifolder
-    
-    !find the file in the registry
-    !then search in the present library the first free place
-    ifolder=0
-    find_place: do
-       ifolder=ifolder+1
-       if (ifolder > nfolder_size) exit find_place
-       if (library%registry(ifolder) == file) exit find_place
-    end do find_place
-    !if no place has been found go back to the previous library
-    if (ifolder > nfolder_size) then 
-       if (associated(library%previous)) then
-          library=>library%previous
-          call deallocate_file(file)
-       else
-          stop 'dictionary has not been allocated by pull'
-       end if
-    else 
-       !if the place has been found the dictionary can be identified
-       !the registry is freed and the dictionary nullified
-       library%registry(ifolder)=int(0,kind=8)
-       call dictionary_nullify(library%files(ifolder))
+
+    !first, find last library
+    if (associated(library%next)) then
+       library=>library%next
+       call deallocate_file(file)
+    else
+       call deallocate_file_(file)
+       !then search the file to destroy
     end if
 
+  contains
+    !free the space from the library
+    recursive subroutine deallocate_file_(file)
+      implicit none
+      integer(kind=8), intent(in) :: file !< the target is already inside
+      !local variables
+      integer :: ifolder
+      !find the file in the registry
+      !then search in the present library the first free place
+      ifolder=0
+      find_place: do
+         ifolder=ifolder+1
+         if (ifolder > nfolder_size) exit find_place
+         if (library%registry(ifolder) == file) exit find_place
+      end do find_place
+      !if no place has been found go back to the previous library
+      if (ifolder > nfolder_size) then 
+         if (associated(library%previous)) then
+            library=>library%previous
+            call deallocate_file_(file)
+         else
+          !this might also mean that a variable has not been found
+          stop 'dictionary has not been allocated by pool'
+         end if
+      else 
+         !if the place has been found the dictionary can be identified
+         !the registry is freed and the dictionary nullified
+         library%registry(ifolder)=int(0,kind=8)
+         call dictionary_nullify(library%files(ifolder))
+      end if
+
+    end subroutine deallocate_file_
   end subroutine deallocate_file
 
   !terminate the library and free all memory space
@@ -251,7 +266,7 @@ contains
     if (nfolder_size==0) then
        deallocate(dict)
     else
-       !free a space in the library and let the allocation lives
+       !free a space in the library and let the allocation live
        call deallocate_file(f_loc(dict))
     end if
 
@@ -577,6 +592,37 @@ contains
   !> Retrieve the pointer to the item of the list.
   !! If the list does not exists, create it in the child chain.
   !! If the list is too short, create it in the next chain
+  subroutine item_ptr_find(dict,item,item_ptr)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict !hidden inout
+    integer, intent(in) :: item
+    type(dictionary), pointer :: item_ptr
+
+    item_ptr=>dict
+    find_item: do 
+       if (item_ptr%data%item == item) exit find_item
+       if (associated(item_ptr%next)) then
+          item_ptr=>item_ptr%next
+          cycle find_item
+       end if
+       if (no_key(item_ptr)) then
+          call set_item(item_ptr,item)
+       else
+          call dict_init(item_ptr%next)
+          call define_brother(item_ptr,item_ptr%next) !chain the list in both directions
+          if (associated(item_ptr%parent)) &
+               call define_parent(item_ptr%parent,item_ptr%next)
+          call set_item(item_ptr%next,item)
+          item_ptr=>item_ptr%next          
+       end if
+       exit find_item
+    end do find_item
+  end subroutine item_ptr_find
+
+
+  !> Retrieve the pointer to the item of the list.
+  !! If the list does not exists, create it in the child chain.
+  !! If the list is too short, create it in the next chain
   function get_list_ptr(dict,item) result (subd_ptr)
     implicit none
     type(dictionary), intent(in), pointer :: dict !hidden inout
@@ -591,7 +637,8 @@ contains
     call clean_subdict(dict)
     
     if (associated(dict%child)) then         
-       subd_ptr => get_item_ptr(dict%child,item)
+       !subd_ptr => get_item_ptr(dict%child,item)
+       call item_ptr_find(dict%child,item,subd_ptr)
     else
        call dict_init(dict%child)
        call define_parent(dict,dict%child)

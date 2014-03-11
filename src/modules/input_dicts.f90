@@ -125,6 +125,7 @@ contains
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
+    !consider to move the reading of the atomic position at first place
     if (.not. has_key(dict, "posinp")) then
        !Add old posinp formats
        call astruct_file_merge_to_dict(dict, "posinp", trim(posinp))

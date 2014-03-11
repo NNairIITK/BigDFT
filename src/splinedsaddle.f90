@@ -4511,6 +4511,7 @@ end subroutine sdminimum
 
 
 subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
+    use module_base
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::n,nr,nwork,i,info,id,jd,iproc
@@ -4532,7 +4533,7 @@ subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
             write(*           ,*) 'DIVERGENCE in DIIS, switch back to SD',parmin%itdiis
         endif
         parmin%diisdivergence=.true.
-        call dcopy(nr,work((3*parmin%idsx+2)*nr+1),1,x,1)
+        call vcopy(nr,work((3*parmin%idsx+2)*nr+1),1,x(1),1)
         !call sdminimum(0,n,n,x,fnrmtol,f,epot,sdconverged)
         !parmin%emin=1.d100;parmin%fnrmlowest=1.d100;parmin%ld=0;parmin%nd=0;parmin%epotitm1=epot
         parmin%sdsaturated=.false.
@@ -4541,13 +4542,13 @@ subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
     endif
     parmin%nd=min(parmin%nd+1,parmin%idsx)
     parmin%ld=mod(parmin%ld,parmin%idsx)+1
-    !call dcopy(n,x,1,xh(1,parmin%ld),1)
-    call dcopy(nr,x,1,work(parmin%ld*nr+1),1)
+    !call vcopy(n,x,1,xh(1,parmin%ld),1)
+    call vcopy(nr,x(1),1,work(parmin%ld*nr+1),1)
     if(epot<parmin%emin) then 
         parmin%emin=epot;parmin%fnrmlowest=fnrm
-        call dcopy(nr,x,1,work((3*parmin%idsx+2)*nr+1),1)
+        call vcopy(nr,x(1),1,work((3*parmin%idsx+2)*nr+1),1)
     endif
-    call dcopy(nr,f,1,work((parmin%idsx+1)*nr+parmin%ld*nr+1),1)
+    call vcopy(nr,f(1),1,work((parmin%idsx+1)*nr+parmin%ld*nr+1),1)
     fmax=calmaxforcecomponent(nr,f)
     if(iproc==0) then
         write(parmin%ifile,frt1) 'DIISMIN   ',parmin%itdiis,epot,epot-parmin%epotitm1,fnrm,fmax
@@ -4568,7 +4569,7 @@ subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
     !    parmin%converged=.true.
     !    return
     !endif
-    call dcopy(nr,f,1,work((2*parmin%idsx+2)*nr+(parmin%ld-1)*nr+1),1)
+    call vcopy(nr,f(1),1,work((2*parmin%idsx+2)*nr+(parmin%ld-1)*nr+1),1)
     !set up DIIS matrix (upper triangle)
     if(parmin%itdiis>parmin%idsx-1) then !shift left up matrix
         do i=1,parmin%idsx-1;parmin%a(1:i,i,1)=parmin%a(2:i+1,i+1,1);enddo

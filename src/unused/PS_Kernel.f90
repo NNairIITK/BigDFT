@@ -310,7 +310,7 @@ subroutine copyreal(n1,nk1,nfft,halfft,kernelfour)
   
   do ifft=1,nfft
      !if (ifft==39) write(130,'(1pe24.17)')halfft(1,:,ifft)
-    call dcopy(nk1,halfft(1,1,ifft),2,kernelfour(1,ifft),1)  
+    call vcopy(nk1,halfft(1,1,ifft),2,kernelfour(1,ifft),1)  
   enddo
 END SUBROUTINE copyreal
 

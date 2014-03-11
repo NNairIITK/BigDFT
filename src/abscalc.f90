@@ -431,7 +431,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call print_dft_parameters(in,atoms)
    end if
    !time initialization
-   call timing(nproc,trim(in%dir_output)//'time.prc','IN')
+   !call timing(nproc,trim(in%dir_output)//'time.prc','IN')
+   call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0)
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max)
  
@@ -1388,7 +1389,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       !end of wavefunction minimisation
       call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-      call timing(bigdft_mpi%mpi_comm,'              ','RE')
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
       call cpu_time(tcpu1)
       call system_clock(ncount1,ncount_rate,ncount_max)
       tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1697,7 +1698,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(rho_descriptors),intent(in) :: rhod
    type(denspot_distribution), intent(in) :: dpcom
    type(orbitals_data), intent(inout) :: orbs
-   type(DFT_PSP_projectors), intent(in) :: nlpsp
+   type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
    type(communications_arrays), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
@@ -1854,7 +1855,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised
      if (nspin == 2) then
-        call dcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2),rhopot(1),1,&
+        call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2),rhopot(1),1,&
              rhopot(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2)+1),1)
      end if
      !spin up and down together with the XC part

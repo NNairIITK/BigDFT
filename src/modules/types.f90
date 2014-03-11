@@ -116,6 +116,10 @@ module module_types
   integer, parameter :: LINEAR_MIXDENS_SIMPLE=101
   integer, parameter :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter :: LINEAR_FOE=103
+
+  !> How to update the density kernel during teh support function optimization
+  integer, parameter :: UPDATE_BY_PURIFICATION = 0
+  integer, parameter :: UPDATE_BY_FOE = 1
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -178,7 +182,8 @@ module module_types
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
     real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
     real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
-    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff_FOE
+    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, kernel_cutoff_FOE
+    real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
     real(kind=8) :: early_stop, gnrm_dynamic
@@ -352,6 +357,18 @@ module module_types
      
      !> linear scaling: calculate intermediate forces
      logical :: intermediate_forces
+
+     !> linear scaling: exit kappa for extended input guess (experimental mode)
+     real(kind=8) :: kappa_conv
+
+     !> linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+     integer :: evbounds_nsatur
+
+     !> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+     integer :: evboundsshrink_nsatur
+
+     !> linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+     integer :: method_updatekernel
   end type input_variables
 
   !> Contains all energy terms
@@ -550,6 +567,7 @@ module module_types
     real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
     real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
     real(kind=8) :: charge !total charge of the system
+    integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
 !!$  type, public :: sparseMatrix_metadata
@@ -592,6 +610,8 @@ module module_types
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
     integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
+    integer :: ncomms_repartitionrho, window
+    integer,dimension(:,:),pointer :: commarr_repartitionrho
   end type collective_comms
 
 
@@ -1005,6 +1025,166 @@ module module_types
           & input_set_int_array, input_set_dbl_array, input_set_bool_array, &
           & input_set_dict
   end interface input_set
+
+  !>timing categories
+  character(len=*), parameter, private :: tgrp_pot='Potential'
+  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
+  integer, parameter, private :: ncls_max=6,ncat_bigdft=138   ! define timimg categories and classes
+  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
+       'Communications'    ,  &
+       'Convolutions  '    ,  &
+       'Linear Algebra'    ,  &
+       'Other         '    ,  &
+!       'Potential     '    ,  &
+       'Initialization'    ,  &
+       'Finalization  '    /)
+  character(len=14), dimension(3,ncat_bigdft), parameter, private :: cats = reshape((/ &
+                                !       Name           Class       Operation Kind
+       'ReformatWaves ','Initialization' ,'Small Convol  ' ,  &  !< Reformatting of input waves
+       'CrtDescriptors','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of descriptor arrays
+       'CrtLocPot     ','Initialization' ,'Miscellaneous ' ,  &  !< Calculation of local potential
+       'CrtProjectors ','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of projectors
+       'CrtPcProjects ','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of preconditioning projectors
+       'CrtPawProjects','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of abscalc-pawprojectors
+       'ApplyLocPotKin','Convolutions  ' ,'OpenCL ported ' ,  &  !< Application of PSP, kinetic energy
+       'ApplyProj     ','Other         ' ,'RMA pattern   ' ,  &  !< Application of nonlocal PSP
+       'Precondition  ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Precondtioning
+       'Rho_comput    ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Calculation of charge density (sumrho) computation
+       'Rho_commun    ','Communications' ,'AllReduce grid' ,  &  !< Calculation of charge density (sumrho) communication
+       'Pot_commun    ','Communications' ,'AllGathrv grid' ,  &  !< Communication of potential
+       'Pot_comm start','Communications' ,'MPI_types/_get' ,  &  !< Communication of potential
+       'Un-TransSwitch','Other         ' ,'RMA pattern   ' ,  &  !< Transposition of wavefunction, computation
+       'Un-TransComm  ','Communications' ,'ALLtoALLV     ' ,  &  !< Transposition of wavefunction, communication
+       'GramS_comput  ','Linear Algebra' ,'DPOTRF        ' ,  &  !< Gram Schmidt computation        
+       'GramS_commun  ','Communications' ,'ALLReduce orbs' ,  &  !< Gram Schmidt communication
+       'LagrM_comput  ','Linear Algebra' ,'DGEMM         ' ,  &  !< Lagrange Multipliers computation
+       'LagrM_commun  ','Communications' ,'ALLReduce orbs' ,  &  !< Lagrange Multipliers communication
+       'Diis          ','Other         ' ,'Other         ' ,  &  
+       !       'PSolv_comput  ','Potential     ' ,'3D FFT        ' ,  &  
+       !       'PSolv_commun  ','Communications' ,'ALLtoALL      ' ,  &  
+       !       'PSolvKernel   ','Initialization' ,'Miscellaneous ' ,  &  
+!       'Exchangecorr  ','Potential     ' ,'Miscellaneous ' ,  &  
+       'Forces        ','Finalization  ' ,'Miscellaneous ' ,  &  
+       'Tail          ','Finalization  ' ,'Miscellaneous ' ,  &
+       'Loewdin_comput','Linear Algebra' ,'              ' ,  &
+       'Loewdin_commun','Communications' ,'ALLReduce orbs' ,  &
+       'Chol_commun   ','Communications' ,'              ' ,  &
+       'Chol_comput   ','Linear Algebra' ,'ALLReduce orbs' ,  &
+       'GS/Chol_comput','Linear Algebra' ,'              ' ,  &
+       'GS/Chol_commun','Communications' ,'ALLReduce orbs' ,  &
+       'Input_comput  ','Initialization' ,'Miscellaneous ' ,  &
+       'Input_commun  ','Communications' ,'ALLtoALL+Reduc' ,  &
+       'Davidson      ','Finalization  ' ,'Complete SCF  ' ,  &
+       'check_IG      ','Initialization' ,'Linear Scaling' ,  &
+       'constrc_locreg','Initialization' ,'Miscellaneous ' ,  &
+       'wavefunction  ','Initialization' ,'Miscellaneous ' ,  &
+       'create_nlpspd ','Initialization' ,'RMA pattern   ' ,  &
+       'p2pOrtho_post ','Communications' ,'irecv / irsend' ,  &
+       'p2pOrtho_wait ','Communications' ,'mpi_waitany   ' ,  &
+       'lovrlp_comm   ','Communications' ,'mpi_allgatherv' ,  &
+       'lovrlp_comp   ','Linear Algebra' ,'many ddots    ' ,  &
+       'lovrlp_compr  ','Other         ' ,'cut out zeros ' ,  &
+       'lovrlp_uncompr','Other         ' ,'insert zeros  ' ,  &
+       'extract_orbs  ','Other         ' ,'copy to sendb ' ,  &
+       'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2old','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2com','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2par','Linear Algebra' ,'exact or appr ' ,  &
+       'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
+       'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
+       'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
+       'sumrho_TMB    ','Other         ' ,'port to GPU?  ' ,  &
+       'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
+       'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
+       'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
+       'lovrlp^-1     ','Linear Algebra' ,'exact or appr ' ,  &
+       'lagmat_orthoco','Linear Algebra' ,'dgemm seq/par ' ,  &
+       'optimize_DIIS ','Other         ' ,'Other         ' ,  &
+       'optimize_SD   ','Other         ' ,'Other         ' ,  &
+       'mix_linear    ','Other         ' ,'Other         ' ,  &
+       'mix_DIIS      ','Other         ' ,'Other         ' ,  &
+       'ig_matric_comm','Communications' ,'mpi p2p       ' ,  &
+       'wf_signals    ','Communications' ,'Socket transf.' ,  &
+       'energs_signals','Communications' ,'Socket transf.' ,  &
+       'rhov_signals  ','Communications' ,'Socket transf.' ,  &
+       'init_locregs  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commSumro','Initialization' ,'Miscellaneous ' ,  &
+       'init_commPot  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commOrtho','Initialization' ,'Miscellaneous ' ,  &
+       'init_inguess  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_matrCompr','Initialization' ,'Miscellaneous ' ,  &
+       'init_collcomm ','Initialization' ,'Miscellaneous ' ,  &
+       'init_collco_sr','Initialization' ,'Miscellaneous ' ,  &
+       'init_orbs_lin ','Initialization' ,'Miscellaneous ' ,  &
+       'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
+       'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
+       'Pot_after_comm','Other         ' ,'global_to_loca' ,  & 
+       !       'Init to Zero  ','Other         ' ,'Memset        ' ,  &
+       'calc_kernel   ','Other         ' ,'Miscellaneous ' ,  &
+       'commun_kernel ','Communications' ,'mpi_allgatherv' ,  &
+       'getlocbasinit ','Other         ' ,'Miscellaneous ' ,  &
+       'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
+       'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
+       'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
+       'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
+       'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
+       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
+       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
+       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
+       'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
+       'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
+       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
+       'sumrho_allred ','Communications' ,'mpiallred     ' ,  &
+       'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
+       'large2small   ','Other         ' ,'Miscellaneous ' ,  &
+       'small2large   ','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefCom1','Linear Algebra' ,'Miscellaneous ' ,  &
+       'renormCoefCom2','Linear Algebra' ,'Miscellaneous ' ,  &
+       'renormCoefComm','Communications' ,'Miscellaneous ' ,  &
+       'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
+       'UnBlockPot    ','Other         ' ,'Overlap comms ' ,  &
+       'UnBlockDen    ','Other         ' ,'Overlap comms ' ,  &
+       'global_local  ','Initialization' ,'Unknown       ' ,  &
+       'wfd_creation  ','Other         ' ,'Miscellaneous ' ,  & 
+       'comm_llr      ','Communications' ,'Miscellaneous ' ,  &
+       !       'AllocationProf','Other         ' ,'Allocate arrs ' ,  &
+       'dirmin_lagmat1','Linear Algebra' ,'grad calc     ' ,  &
+       'dirmin_lagmat2','Linear Algebra' ,'allgatherv    ' ,  &
+       'dirmin_dgesv  ','Linear Algebra' ,'dgesv/pdgesv  ' ,  &
+       'dirmin_sddiis ','Linear Algebra' ,'Miscellaneous ' ,  &
+       'dirmin_allgat ','Linear Algebra' ,'allgatherv    ' ,  &
+       'dirmin_sdfit  ','Linear Algebra' ,'allgatherv etc' ,  &
+       'chebyshev_comp','Linear Algebra' ,'matmul/matadd ' ,  &
+       'chebyshev_comm','Communications' ,'allreduce     ' ,  &
+       'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
+       'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
+       'FOE_init      ','Other         ' ,'Miscellaneous ' ,  &
+       'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
+       'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
+       'misc          ','Other         ' ,'Miscellaneous ' ,  &
+       'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
+       'constraineddft','Other         ' ,'Miscellaneous ' ,  &
+       'transfer_int  ','Other         ' ,'Miscellaneous ' ,  &
+       'Reformatting  ','Initialization' ,'Interpolation ' ,  &
+       'restart_wvl   ','Initialization' ,'inguess    rst' ,  &
+       'restart_rsp   ','Initialization' ,'inguess    rst' ,  &
+       'check_sumrho  ','Initialization' ,'unitary check ' ,  &
+       'check_pot     ','Initialization' ,'unitary check ' ,  &
+       'ApplyLocPot   ','Convolutions  ' ,'OpenCL ported ' ,  &
+       'ApplyLocKin   ','Convolutions  ' ,'OpenCL ported ' ,  &
+       'kernel_init   ','Other         ' ,'Fragment calc ' ,  &
+       'calc_energy   ','Linear Algebra' ,'allred etc    ' ,  &
+       'new_pulay_corr','Other         ' ,'Pulay forces  ' ,  &
+       'dev_from_unity','Other         ' ,'Miscellaneous ' ,  &
+       'ks_residue    ','Linear Algebra' ,'Miscellaneous ' ,  &
+       'weightanalysis','Linear Algebra' ,'Fragment calc ' ,  &
+       'tmbrestart    ','Initialization' ,'Miscellaneous ' ,  &
+       'readtmbfiles  ','Initialization' ,'Miscellaneous ' ,  &
+       'readisffiles  ','Initialization' ,'Miscellaneous ' ,  &
+       'purify_kernel ','Linear Algebra' ,'dgemm         ' ,  &
+       'potential_dims','Other         ' ,'auxiliary     ' ,  &
+       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
+  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
 contains
 
@@ -2073,6 +2253,69 @@ subroutine bigdft_init_errors()
   call f_err_severe_override(bigdft_severe_abort)
 end subroutine bigdft_init_errors
 
+!> initialize the timing categories for BigDFT runs.
+!! It is of course assumed that f_lib_initialize has already been called
+subroutine bigdft_init_timing_categories()
+  use Poisson_Solver, only: PS_initialize_timing_categories
+  implicit none
+  !local variables
+  integer :: icls,icat
+
+  !initialize categories for the Poisson Solver
+  call PS_initialize_timing_categories()
+
+  !initialize groups
+  call f_timing_category_group(tgrp_pot,'Operations for local potential construction (mainly XC)')
+
+  do icls=2,ncls_max
+     call f_timing_category_group(trim(clss(icls)),'Empty description for the moment')
+  end do
+
+  !define the timing categories for exchange and correlation
+  call f_timing_category('Exchange-Correlation',tgrp_pot,&
+       'Operations needed to construct local XC potential',&
+       TCAT_EXCHANGECORR)
+
+
+  !! little by little, these categories should be transformed in the 
+  !! new scheme dictated by f_timing API in time_profiling module of f_lib.
+
+  !initialize categories
+  do icat=1,ncat_bigdft
+     call f_timing_category(trim(cats(1,icat)),trim(cats(2,icat)),trim(cats(3,icat)),&
+          cat_ids(icat))
+  end do
+
+end subroutine bigdft_init_timing_categories
+
+!> routine to convert timing categories from the old scheme to the API of f_lib
+!! as soon as the timing categories are identified with their ID, this routine should disappear
+subroutine find_category(category,cat_id)
+  use yaml_output, only: yaml_warning
+  implicit none
+  character(len=*), intent(in) :: category
+  integer, intent(out) :: cat_id !< id of the found category
+  !local variables
+  integer :: i
+  !controls if the category exists
+  cat_id=0
+  do i=1,ncat_bigdft
+     if (trim(category) == trim(cats(1,i))) then
+        cat_id=cat_ids(i)
+        exit
+     endif
+  enddo
+  if (cat_id==0) then
+     call f_err_throw('Timing routine error,'//&
+          ' the category '//trim(category)//' requested has not been found',&
+          err_id=TIMING_INVALID)
+!!$     if (bigdft_mpi%iproc==0) &
+!!$          call yaml_warning('Requested timing category '//trim(category)//&
+!!$          ' has not been found')
+     cat_id=TIMING_UNINITIALIZED
+  end if
+end subroutine find_category
+
 
 !!integer function matrixindex_in_compressed(this, iorb, jorb)
 !!  implicit none
@@ -2474,15 +2717,27 @@ end subroutine bigdft_init_errors
        case (WRITE_ORBITALS)
           ! linear scaling: write KS orbitals for cubic restart
           in%write_orbitals = val
-    case (EXPLICIT_LOCREGCENTERS)
-       ! linear scaling: explicitely specify localization centers
-       in%explicit_locregcenters = val
-    case (CALCULATE_KS_RESIDUE)
-       ! linear scaling: calculate Kohn-Sham residue
-       in%calculate_KS_residue = val
-    case (INTERMEDIATE_FORCES)
-       ! linear scaling: calculate intermediate forces
-       in%intermediate_forces = val
+       case (EXPLICIT_LOCREGCENTERS)
+          ! linear scaling: explicitely specify localization centers
+          in%explicit_locregcenters = val
+       case (CALCULATE_KS_RESIDUE)
+          ! linear scaling: calculate Kohn-Sham residue
+          in%calculate_KS_residue = val
+       case (INTERMEDIATE_FORCES)
+          ! linear scaling: calculate intermediate forces
+          in%intermediate_forces = val
+       case (KAPPA_CONV)
+          ! linear scaling: exit kappa for extended input guess (experimental mode)
+          in%kappa_conv = val
+       case (EVBOUNDS_NSATUR)
+           ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+           in%evbounds_nsatur = val
+       case(EVBOUNDSSHRINK_NSATUR)
+           ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+           in%evboundsshrink_nsatur = val
+       case (METHOD_UPDATEKERNEL)
+           ! linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+           in%method_updatekernel = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2579,10 +2834,47 @@ end subroutine bigdft_init_errors
           in%tddft_approach = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
-       end select
+       end select      
     case DEFAULT
        call yaml_warning("unknown level '" // trim(level) //"'")
     end select
   END SUBROUTINE input_set_dict
+
+  subroutine basis_params_set_dict(dict_basis,lin,jtype)
+    use module_input_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: jtype !< local type of which we are filling the values
+    type(dictionary), pointer :: dict_basis
+    type(linearInputParameters),intent(inout) :: lin
+    !local variables
+    real(gp), dimension(2) :: dummy_darr
+    !-- default parameters for the basis set of linear scaling
+
+    !then update the values of each parameter if present
+    select case(trim(dict_key(dict_basis)))
+    case(NBASIS)
+       lin%norbsPerType(jtype)=dict_basis !npt
+    case(AO_CONFINEMENT)
+       lin%potentialPrefac_ao(jtype)=dict_basis !ppao
+    case(CONFINEMENT)
+       dummy_darr=dict_basis
+       lin%potentialPrefac_lowaccuracy(jtype)=dummy_darr(1)!ppl
+       lin%potentialPrefac_highaccuracy(jtype)=dummy_darr(2)!pph
+    case(RLOC)
+       dummy_darr=dict_basis
+       !locradType(jtype)=dummy_darr(1) !lrl
+       lin%locrad_type(jtype,1)=dummy_darr(1) !lrl
+       lin%locrad_type(jtype,2)=dummy_darr(2) !lrh
+       !locradType_lowaccur(jtype)=dummy_darr(1) !lrl
+       !locradType_highaccur(jtype)=dummy_darr(2) !lrh
+       !atoms%rloc(jtype,:)=locradType(jtype)
+    case(RLOC_KERNEL) 
+         lin%kernel_cutoff(jtype)=dict_basis !kco
+    case(RLOC_KERNEL_FOE) 
+       lin%kernel_cutoff_FOE(jtype)=dict_basis !kco_FOE
+    end select
+    
+  end subroutine basis_params_set_dict
 
 end module module_types

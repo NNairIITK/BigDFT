@@ -226,7 +226,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
         allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
         call memocc(i_stat,psigold,'psigold',subname)
 
-        call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+        call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
         ! coarse part
         do iseg=1,wfd_old%nseg_c
@@ -1707,7 +1707,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      allocate(psigold(0:n_old(1),2,0:n_old(2),2,0:n_old(3),2+ndebug),stat=i_stat)
      call memocc(i_stat,psigold,'psigold',subname)
 
-     call razero(8*(n_old(1)+1)*(n_old(2)+1)*(n_old(3)+1),psigold)
+     call to_zero(8*(n_old(1)+1)*(n_old(2)+1)*(n_old(3)+1),psigold)
      do iel=1,nvctr_c_old
         if (useFormattedInput) then
            read(unitwf,*) i1,i2,i3,tt
@@ -3257,7 +3257,7 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   ! local variables
   integer :: iseg, jj, j0, j1, i, ii, i0, i1, i2, i3
 
-  call razero(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig(0,1,0,1,0,1))
+  call to_zero(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig(0,1,0,1,0,1))
 
   ! coarse part
   do iseg=1,nseg_c

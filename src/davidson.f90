@@ -638,7 +638,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
    call timing(iproc,'Davidson      ','ON')
    !Timing excludes transposition, hamilton application and preconditioning
-   call razero(orbsv%norb*2*orbsv%nkpts,e)
+   call to_zero(orbsv%norb*2*orbsv%nkpts,e)
    ! Rayleigh quotients.
 
    !probably this loop can be rewritten using GEMMs
@@ -721,7 +721,7 @@ subroutine davidson(iproc,nproc,in,at,&
    call memocc(i_stat,hamovr,'hamovr',subname)
 
    !put to zero all the k-points which are not needed
-   call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+   call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
 
    if (orbsv%nspinor > 1) then
       ncplx=2
@@ -748,9 +748,9 @@ subroutine davidson(iproc,nproc,in,at,&
       allocate(g(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,g,'g',subname)
 
-      call dcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv,1,g,1)! don't overwrite hv
+      call vcopy(max(orbsv%npsidim_orbs,orbsv%npsidim_comp),hv(1),1,g(1),1)! don't overwrite hv
 
-      call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
+      call to_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
       !also these operations are presumably GEMMs
       !here we should add the ncomp term for non-collinear case
       ispsi=1
@@ -834,7 +834,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
       if(msg) then
-         call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
+         call to_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
          call yaml_open_sequence('squared norm of all gradients after projection')
          !write(*,'(1x,a)')"squared norm of all gradients after projection"
          ispsi=1
@@ -951,7 +951,7 @@ subroutine davidson(iproc,nproc,in,at,&
       !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
       if(msg) then
-         call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
+         call to_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
          write(*,'(1x,a)')"Norm of all preconditioned gradients"
          ispsi=1
          do ikptp=1,orbsv%nkptsp
@@ -990,7 +990,7 @@ subroutine davidson(iproc,nproc,in,at,&
       ! hamovr(i,j,1)=                               ;  hamovr(i,j,2)=  
       !                 <gi-n | hvj>  <gi-n | hgj-n>                   <gi-n | vj>  <gi-n | gj-n>
       !put to zero all the k-points which are not needed
-      call razero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
+      call to_zero(8*ndimovrlp(nspin,orbsv%nkpts),hamovr)
 
 
       ! store upper triangular part of these matrices only
@@ -1121,7 +1121,7 @@ subroutine davidson(iproc,nproc,in,at,&
             !!$        nvctrp=commsv%nvctr_par(iproc,ikptp)
             !!$
             !!$        do jorb=1,orbsv%norb! v to update
-            !!$           call razero(nvctrp,hv(ispsi+nvctrp*(jorb-1)))
+            !!$           call to_zero(nvctrp,hv(ispsi+nvctrp*(jorb-1)))
             !!$           do iorb=1,orbsv%norb ! sum over v and g
             !!$              tt=hamovr(iorb,jorb,ikpt,1)
             !!$              call axpy(nvctrp,tt,v(ispsi+nvctrp*(iorb-1)),1,&
@@ -1132,7 +1132,7 @@ subroutine davidson(iproc,nproc,in,at,&
             !!$           enddo
             !!$        enddo
             !!$
-            !!$        call dcopy(nvctrp*orbsv%norb,hv(ispsi),1,v(ispsi),1)
+            !!$        call vcopy(nvctrp*orbsv%norb,hv(ispsi),1,v(ispsi),1)
             !!$
             !!$        ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
             !!$     end do
@@ -1472,7 +1472,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
    !Note: The previous data layout allowed level 3 BLAS
    !call DGEMM('N','N',nvctrp,nvirte,n2virt,1.d0,v(1,1),nvctrp,hamovr(1,1,1),n2virt,0.d0,hv(1,1),nvctrp)
    !    dimensions    =m      =n   =k          m,k        k,n                   m,n             
-   !call DCOPY(nvctrp*nvirte,hv(1,1),1,v(1,1),1)
+   !call vcopy(nvctrp*nvirte,hv(1,1),1,v(1,1),1)
 
    if(nspinor==1) then
       call gemm('N','N',nvctrp,norb,norb,1.0_wp,v(1),&
@@ -1491,7 +1491,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
          &   work(1),ncomp*nvctrp)
    end if
 
-   call dcopy(nspinor*nvctrp*norb,work(1),1,v(1),1)
+   call vcopy(nspinor*nvctrp*norb,work(1),1,v(1),1)
 
 END SUBROUTINE update_psivirt
 
@@ -1537,7 +1537,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    randinp =.true.!.false.!lr%geocode /= 'F'
 
    if (randinp) then
-      call razero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+      call to_zero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
       if (G%ncoeff >= orbs%norb) then
          do icoeff=1,G%ncoeff
             !choose the orbital which correspond to this coefficient
@@ -1639,13 +1639,13 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
       !!$  end if
 
       !copy the eigenvectors to the matrix
-      call razero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+      call to_zero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
       if (orbs%norb > G%ncoeff) stop 'wrong gaussian basis'
       jorb=mod(orbs%isorb,orbs%norb)
       do iorb=1,orbs%norbp
          jorb=jorb+1
          if (jorb == orbs%norb+1) jorb=1 !for k-points calculation
-         call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,1,iorb),orbs%nspinor)
+         call vcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,1,iorb),orbs%nspinor)
       end do
 
 
@@ -1679,7 +1679,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
 
    !add random background to the wavefunctions
    if (randinp .and. G%ncoeff >= orbs%norb) then
-      !call razero(orbs%npsidim,psivirt)
+      !call to_zero(orbs%npsidim,psivirt)
       do iorb=1,orbs%norbp
          jorb=iorb+orbs%isorb
          do ispinor=1,orbs%nspinor
@@ -2069,7 +2069,7 @@ subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rx
    call ext_buffers(perz,nbl3,nbr3)
 
    !calculate the center of the molecule
-   call razero(3,cxyz)
+   call to_zero(3,cxyz)
    do iat=1,nat
       do i=1,3
          cxyz(i)=cxyz(i)+rxyz(i,iat)

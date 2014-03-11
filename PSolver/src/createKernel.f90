@@ -171,6 +171,7 @@ end subroutine pkernel_free
 subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   use yaml_output
   use dynamic_memory
+  use time_profiling, only: f_timing
   implicit none
   !Arguments
   logical, intent(in) :: wrtmsg
@@ -186,7 +187,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   integer :: n3pr1,n3pr2
   integer,dimension(3) :: n
 
-  call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
+  !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
+  call f_timing(TCAT_PSOLV_KERNEL,'ON')
 
   dump=wrtmsg .and. kernel%mpi_env%iproc+kernel%mpi_env%igroup==0
 
@@ -605,7 +607,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
   if (dump) call yaml_close_map() !kernel
 
-  call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
+  call f_timing(TCAT_PSOLV_KERNEL,'OF')
+  !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
 
 END SUBROUTINE pkernel_set
 

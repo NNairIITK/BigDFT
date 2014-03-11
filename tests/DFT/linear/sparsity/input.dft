@@ -1,4 +1,4 @@
-0.45 0.45 0.45   hx,hy,hz: grid spacing in the three directions
+0.42 0.42 0.42   hx,hy,hz: grid spacing in the three directions
 4.0  5.0         crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom
 1                ixc: exchange-correlation parameter (LDA=1,PBE=11)
 0 0.0 0.0 0.0    ncharge: charge of the system, Electric field

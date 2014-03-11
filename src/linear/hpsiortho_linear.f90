@@ -90,9 +90,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      target_function==TARGET_FUNCTION_IS_HYBRID) then
 
       if(sum(tmb%ham_descr%collcom%nrecvcounts_c)>0) &
-          call dcopy(sum(tmb%ham_descr%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
+          call vcopy(sum(tmb%ham_descr%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(sum(tmb%ham_descr%collcom%nrecvcounts_f)>0) &
-          call dcopy(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+          call vcopy(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call timing(iproc,'eglincomms','ON')
@@ -500,7 +500,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  if (present(hpsi_noprecond)) call dcopy(tmb%npsidim_orbs, hpsi_small, 1, hpsi_noprecond, 1)
+  if (present(hpsi_noprecond)) call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_noprecond(1), 1)
 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
@@ -623,7 +623,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
 
-  call dcopy(tmb%orbs%norb, fnrmArr(1), 1, fnrmOldArr(1), 1)
+  call vcopy(tmb%orbs%norb, fnrmArr(1), 1, fnrmOldArr(1), 1)
 
   iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
   deallocate(fnrmOvrlpArr, stat=istat)
@@ -641,7 +641,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
-  call dcopy(tmb%npsidim_orbs, hpsi_small, 1, lhphiold, 1)
+  call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
   call timing(iproc,'eglincomms','OF')
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
@@ -984,7 +984,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   end if
 
   ! Improve the orbitals, depending on the choice made above.
-  if (present(psidiff)) call dcopy(tmb%npsidim_orbs, tmb%psi, 1, psidiff, 1)
+  if (present(psidiff)) call vcopy(tmb%npsidim_orbs, tmb%psi(1), 1, psidiff(1), 1)
   if(.not.ldiis%switchSD) then
       call improveOrbitals(iproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
   else
@@ -1040,8 +1040,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
 !!!!
 !!!!  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
 !!!!       tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
-!!!!  call dcopy(sum(tmb%ham_descr%collcom%nrecvcounts_c), tmb%ham_descr%psit_c, 1, psittmp_c, 1)
-!!!!  call dcopy(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), tmb%ham_descr%psit_f, 1, psittmp_f, 1)
+!!!!  call vcopy(sum(tmb%ham_descr%collcom%nrecvcounts_c), tmb%ham_descr%psit_c, 1, psittmp_c, 1)
+!!!!  call vcopy(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), tmb%ham_descr%psit_f, 1, psittmp_f, 1)
 !!!!  !tmb%linmat%denskern%matrix_compr=1.d0
 !!!!  write(*,*) 'iproc, ddot trans c', iproc, &
 !!!!      ddot(sum(tmb%ham_descr%collcom%nrecvcounts_c), tmb%ham_descr%psit_c, 1, psittmp_c, 1)

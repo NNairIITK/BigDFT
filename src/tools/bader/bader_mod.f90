@@ -1974,8 +1974,6 @@ MODULE bader_mod
       is_vol_neighbor = .FALSE.
 
       ! only find neighbors, not points in the volume
-      ! @todo understand if this section in bader is meaningful: it seems
-      !! that the pt variable is uninitialized
       IF (bdr%volnum(pt(1),pt(2),pt(3)) == vol) RETURN
 
       neighborloop: DO d1 = -1,1

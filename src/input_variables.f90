@@ -524,6 +524,7 @@ subroutine allocateInputFragArrays(input_frag)
   allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
+  !f_malloc0_str_ptr should be used here
   allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
@@ -740,6 +741,7 @@ subroutine input_analyze(in)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
+  !@todo also the inputguess variable should be checked if BC are nonFree
 
   ! the DFT variables ------------------------------------------------------
   in%SIC%ixc = in%ixc

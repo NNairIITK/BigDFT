@@ -30,7 +30,7 @@ program BigDFT2Wannier
    type(workarr_sumrho) :: w
    type(communications_arrays), target :: comms, commsp,commsv,commsb
    integer, parameter :: WF_FORMAT_CUBE = 4
-   integer :: iproc, nproc, nproctiming, i_stat, ind, ierr, npsidim, npsidim2
+   integer :: iproc, nproc, i_stat, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat,info
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3,shft,wshft,lwork
    real :: tcpu0,tcpu1
@@ -101,13 +101,17 @@ program BigDFT2Wannier
    end if
    call dict_free(user_inputs)
 
-   if (input%verbosity > 2) then
-      nproctiming=-nproc !timing in debug mode                                                                                                                                                                  
-   else
-      nproctiming=nproc
-   end if
+!!$   if (input%verbosity > 2) then
+!!$      nproctiming=-nproc !timing in debug mode
+!!$   else
+!!$      nproctiming=nproc
+!!$   end if
 
-   call timing(nproctiming,'b2w_time.prc','IN')
+   !call timing(nproctiming,'b2w_time.prc','IN')
+   call f_timing_reset(filename=trim(in%dir_output)//'b2w_time.yaml',&
+        master=iproc==0,&
+        debug_mode=input%verbosity>2)
+
 
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max) 
@@ -416,7 +420,7 @@ program BigDFT2Wannier
          !print *,'inverse overlap_proj',overlap_proj
 
          ! Scalar product of amnk=<sph_daub|psi> in parallel.
-         call razero(orbsp%norb*orbsv%norb,amnk)
+         call to_zero(orbsp%norb*orbsv%norb,amnk)
          nvctrp=commsv%nvctr_par(iproc,1)
          call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsfv(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
@@ -541,7 +545,7 @@ program BigDFT2Wannier
       if(associated(orbs%eval)) nullify(orbs%eval)
       allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
       call memocc(i_stat,orbs%eval,'orbs%eval',subname)
-      call razero(orbs%norb*orbs%nkpts,orbs%eval)
+      call to_zero(orbs%norb*orbs%nkpts,orbs%eval)
       if(orbs%norbp > 0) then
             filename=trim(input%dir_output) // 'wavefunction'
             call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
@@ -582,7 +586,7 @@ program BigDFT2Wannier
       if(associated(orbsv%eval)) nullify(orbsv%eval)
       allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
       call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
-      call razero(orbsv%norb*orbsv%nkpts,orbsv%eval)
+      call to_zero(orbsv%norb*orbsv%nkpts,orbsv%eval)
       if(orbsv%norbp > 0 .and. .not. residentity) then
          filename=trim(input%dir_output) // 'virtuals'
             call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
@@ -731,7 +735,7 @@ program BigDFT2Wannier
          npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
          allocate(psi_etsf2(npsidim),stat=i_stat) !!doing this because psi_etsfv does not incorporate enough space for transpose
          call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
-         call razero(npsidim,psi_etsf2)
+         call to_zero(npsidim,psi_etsf2)
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
@@ -740,14 +744,14 @@ program BigDFT2Wannier
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
          else
-            call dcopy(orbsb%norb*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
+            call vcopy(orbsb%norb*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
          end if
       else
          ! Tranposition of the distribution of the BigDFT occupied wavefunctions : orbitals -> components.
          npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
          allocate(psi_etsf2(npsidim),stat=i_stat) 
          call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
-         call razero(npsidim,psi_etsf2)
+         call to_zero(npsidim,psi_etsf2)
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
@@ -756,7 +760,7 @@ program BigDFT2Wannier
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
          else
-            call dcopy(orbsb%norb*orbs%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
+            call vcopy(orbsb%norb*orbs%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
          end if
 
          ! Scalar product of amnk=<sph_daub|occ> in parallel.
@@ -775,7 +779,7 @@ program BigDFT2Wannier
          shft  = nvctrp*orbs%norb
          do np=1, orbsp%norb
             !np=npp+orbsp%isorb 
-            call dcopy(nvctrp,sph_daub(1+pshft),1,psi_etsf2(1+shft),1)
+            call vcopy(nvctrp,sph_daub(1+pshft),1,psi_etsf2(1+shft),1)
             wshft = 0
             do nb = 1,orbs%norb*orbs%nspinor    !Should be on all occupied bands
                do j=1,nvctrp
@@ -796,7 +800,7 @@ program BigDFT2Wannier
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
          else
-            call dcopy(orbsb%norb*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf2(1),1,psi_etsf(1,1),1)
+            call vcopy(orbsb%norb*orbsb%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),psi_etsf2(1),1,psi_etsf(1,1),1)
          end if
          ! Should write the symmetrized projectors to file
          if(write_resid .and. orbsv%norbp > 0)then
@@ -850,7 +854,7 @@ program BigDFT2Wannier
       !!pshft = 0
       !!do npp=1, orbsp%norbp
       !!   np=npp+orbsp%isorb 
-      !!   call dcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,sph_daub(1+pshft),1,pvirt(1+pshft),1)
+      !!   call vcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,sph_daub(1+pshft),1,pvirt(1+pshft),1)
       !!   do i = 1,orbsb%norbp*orbsb%nspinor    !Should be on all bands
       !!      nb = i + orbsb%isorb
       !!      !print *,'amnk(nb,np)',nb,np,amnk(nb,np),ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi_etsf(1,i),1,psi_etsf(1,i),1)
@@ -1009,7 +1013,7 @@ program BigDFT2Wannier
       call timing(iproc,'Input_comput  ','OF')
 
 
-call timing(bigdft_mpi%mpi_comm,'             ','RE')
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)    
 
 call cpu_time(tcpu1)
 call system_clock(ncount1,ncount_rate,ncount_max)

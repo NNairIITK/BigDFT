@@ -114,19 +114,19 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
   allocate(dipoles(3,ndipoles+ndebug),stat=i_stat)
   call memocc(i_stat,dipoles,'dipoles',subname)
-  call razero(3*ndipoles,dipoles)
+  call to_zero(3*ndipoles,dipoles)
 
   !allocate coupling matrix elements
   allocate(K(nmulti,nmulti+ndebug),stat=i_stat)
   call memocc(i_stat,K,'K',subname)
 
-  call razero((nmulti)**2,K)
+  call to_zero((nmulti)**2,K)
 
   !for nspin==1, define an auxiliary matrix for spin-off-diagonal terms (fxc part)
   if (nspin==1) then
      allocate(Kaux(nmulti,nmulti+ndebug),stat=i_stat)
      call memocc(i_stat,Kaux,'Kaux',subname)
-     call razero((nmulti)**2,Kaux)
+     call to_zero((nmulti)**2,Kaux)
   end if
 
 
@@ -181,7 +181,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      end do
      if (.not. onlyfxc) then
         !copy the partial density onto the partial potential space to pass it to PSolver
-        call dcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
+        call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
         !partial potential term for each partial density
 !        if (iproc == 0 .and. verbose > 1) then
 !           write(*,*)'Poisson Solver application: orbitals (virt,occ):',iorba,iorbi
@@ -271,7 +271,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
   if (nspin==1) then
      !copy the values of the dipoles in the second part of the array
-     call dcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
+     call vcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
      call dscal(3*ndipoles,hxh*hyh*hzh,dipoles(1,1),1)
   end if
 
@@ -338,7 +338,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         allocate(Kbig(2*nmulti,2*nmulti+ndebug),stat=i_stat)
         call memocc(i_stat,Kbig,'Kbig',subname)
 
-        call razero(4*nmulti**2,Kbig)
+        call to_zero(4*nmulti**2,Kbig)
         do ik=1,nmulti
            do jk=1,nmulti
               Kbig(ik,jk)=K(ik,jk)

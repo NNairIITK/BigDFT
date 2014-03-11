@@ -31,8 +31,9 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
 
   allocate(lin%potentialPrefac_highaccuracy(ntypes), stat=istat)
   call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
-
-  allocate(lin%locrad_type(ntypes),stat=istat)
+  
+  !added a second dimension to include the low and high accuracy values
+  allocate(lin%locrad_type(ntypes,2),stat=istat)
   call memocc(istat,lin%locrad_type,'lin%locrad_type',subname)
 
   allocate(lin%kernel_cutoff_FOE(ntypes), stat=istat)
@@ -250,6 +251,10 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
      do iorb=1,orbs_KS%norb
           foe_obj%charge=foe_obj%charge+orbs_KS%occup(iorb)
      end do
+     foe_obj%evbounds_isatur=0
+     foe_obj%evboundsshrink_isatur=0
+     foe_obj%evbounds_nsatur=input%evbounds_nsatur
+     foe_obj%evboundsshrink_nsatur=input%evboundsshrink_nsatur
   end if
 
   call nullify_foe(foe_obj)
@@ -513,6 +518,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
         ityp = atoms%astruct%iatype(iat)
         call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),rcov=rcov)
         locrad(iat) =  rcov * 10.0_gp ! atoms%rloc(ityp,1)
+        !locrad(iat)=18.d0
      end do  
      call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
@@ -869,7 +875,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
 
   call init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
-      call init_collective_comms_sumro(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
+      call init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
   end if
 
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
@@ -1360,7 +1366,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call memocc(istat, iall, 'tmb%psi', subname)
      allocate(tmb%psi(tmb%npsidim_orbs), stat=istat)
      call memocc(istat, tmb%psi, 'tmb%psi', subname)
-     call dcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
+     call vcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
      iall=-product(shape(lphilarge))*kind(lphilarge)
      deallocate(lphilarge, stat=istat)
      call memocc(istat, iall, 'lphilarge', subname) 
@@ -1474,7 +1480,7 @@ subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_conve
 
   if(lowaccur_converged) then
      if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimpot, mixdiis)
+        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimrhopot, mixdiis)
      else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
         call deallocateMixrhopotDIIS(mixdiis)
      end if

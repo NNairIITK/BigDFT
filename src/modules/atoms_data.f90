@@ -49,7 +49,7 @@ module module_atoms
      integer, dimension(:), pointer :: nzatom
      real(gp), dimension(:,:), pointer :: radii_cf  !< user defined radii_cf, overridden in sysprop.f90
      real(gp), dimension(:), pointer :: amu         !< amu(ntypes)  Atomic Mass Unit for each type of atoms
-     real(gp), dimension(:,:), pointer :: rloc !< localization regions for parameters of linear, to be moved somewhere else
+     !real(gp), dimension(:,:), pointer :: rloc !< localization regions for parameters of linear, to be moved somewhere else
      real(gp), dimension(:,:,:), pointer :: psppar  !< pseudopotential parameters (HGH SR section)
      logical :: donlcc                              !< activate non-linear core correction treatment
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
@@ -127,7 +127,7 @@ module module_atoms
       nullify(at%radii_cf)
       nullify(at%amu)
       !     nullify(at%aocc)
-      nullify(at%rloc)
+      !nullify(at%rloc)
       nullify(at%psppar)
       nullify(at%nlcc_ngv)
       nullify(at%nlcc_ngc)
@@ -252,9 +252,9 @@ module module_atoms
          deallocate(atoms%radii_cf,stat=i_stat)
          call memocc(i_stat,i_all,'atoms%radii_cf',subname)
          ! Parameters for Linear input guess
-         i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
-         deallocate(atoms%rloc,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%rloc',subname)
+         !i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
+         !deallocate(atoms%rloc,stat=i_stat)
+         !call memocc(i_stat,i_all,'atoms%rloc',subname)
          i_all=-product(shape(atoms%amu))*kind(atoms%amu)
          deallocate(atoms%amu,stat=i_stat)
          call memocc(i_stat,i_all,'atoms%amu',subname)
@@ -389,7 +389,7 @@ module module_atoms
                   call kpoints_get_irreductible_zone(irrzon, phnons, n1i, 1, n3i, &
                        & nspin, nspin, sym%symObj, i_stat)
                   sym%irrzon(:,:,i_third:i_third) = irrzon
-                  call dcopy(2*n1i*n3i, phnons, 1, sym%phnons(1,1,i_third), 1)
+                  call vcopy(2*n1i*n3i, phnons(1,1,1), 1, sym%phnons(1,1,i_third), 1)
                end do
                call f_free(irrzon)
                call f_free(phnons)
@@ -984,8 +984,8 @@ subroutine allocate_atoms_ntypes(atoms)
   allocate(atoms%nlcc_ngc(atoms%astruct%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
   ! Parameters for Linear input guess
-  allocate(atoms%rloc(atoms%astruct%ntypes,3),stat=i_stat)
-  call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
+  !allocate(atoms%rloc(atoms%astruct%ntypes,3),stat=i_stat)
+  !call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
 END SUBROUTINE allocate_atoms_ntypes
 
 

@@ -7,15 +7,20 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-  !      call timing(0,'AllocationProf','IR') 
+  !call timing(0,'AllocationProf','IR') 
+  !the following action is the deallocation
+  call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
 
   !here the size should be corrected with ndebug (or maybe not)
   ilsize=int(product(shape(array))*kind(array),kind=8)
   !fortran deallocation
   deallocate(array,stat=ierror)
 
-  if (f_err_raise(ierror/=0,&
-       'Deallocation problem, error code '//trim(yaml_toa(ierror)),ERR_DEALLOCATE)) return
+  if (ierror/=0) then
+     call f_err_throw('Deallocation problem, error code '//trim(yaml_toa(ierror)),&
+          ERR_DEALLOCATE)
+     return
+  end if
 
   !profile address, in case of profiling activated
 !  if (m%profile) then 
@@ -36,6 +41,7 @@ if (track_origins) then
         dict_add=>find_key(mems(ictrl)%dict_global,trim(address))
         if (f_err_raise(.not. associated(dict_add),'address '//trim(address)//&
              ' not present in dictionary',ERR_INVALID_MALLOC)) then
+           call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
            return
         else
            use_global=.true.
@@ -47,10 +53,13 @@ if (track_origins) then
      array_id=dict_add//arrayid
      routine_id=dict_add//routineid
      jlsize=dict_add//sizeid
-     if (f_err_raise(ilsize /= jlsize,'Size of array '//trim(array_id)//&
+     if (ilsize /= jlsize) then
+        call f_err_throw('Size of array '//trim(array_id)//&
           ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
-          trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)) return
-
+          trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
+        call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+        return
+     end if
      if (use_global) then
         !call yaml_dict_dump(dict_global)
         call pop(mems(ictrl)%dict_global,trim(address))
@@ -64,4 +73,5 @@ if (track_origins) then
 
   call memocc(ierror,-int(ilsize),trim(array_id),trim(routine_id))
 
-  !      call timing(0,'AllocationProf','RS') 
+  !call timing(0,'AllocationProf','RS') 
+  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS

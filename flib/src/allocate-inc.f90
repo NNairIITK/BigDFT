@@ -9,10 +9,13 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!  call timing(0,'Init to Zero  ','IR') 
+!  call timing(0,'AllocationProf','IR') 
   !then perform all the checks and profile the allocation procedure
-  if (f_err_raise(ierror/=0,&
-       'Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)) return
+  if (ierror/=0) then
+     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
+     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+     return
+  end if
   if (size(shape(array))==m%rank) then
      call pad_array(array,m%put_to_zero,m%shape,ndebug)
      !also fill the array with the values of the source if the address is identified in the source
@@ -26,9 +29,11 @@
      call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
           ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
           ERR_INVALID_MALLOC)
+     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      return
   end if
-!  call timing(0,'Init to Zero  ','RS') 
+  !call timing(0,'AllocationProf','RS') 
+  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
 
 contains 
 

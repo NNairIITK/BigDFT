@@ -562,7 +562,7 @@ module overlap_point_to_point
                nelems_to_send=OP2P%nvctr_par(OP2P%communication_schedule(3,istep,igroup,iproc),OP2P%igrpr(igroup,iproc),2) !results
 
                !copy data before sending (to be performed in case the previous send has not finished)
-               call dcopy(nelems_to_send,restemp_buffer(1,3,igroup),1,&
+               call vcopy(nelems_to_send,restemp_buffer(1,3,igroup),1,&
                   &   restemp_buffer(1,isnow_results,igroup),1) !is this copy unavoidable? unfortunately yes...
 
                if (present(send_op)) then
