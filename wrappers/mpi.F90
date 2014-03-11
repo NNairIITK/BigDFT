@@ -453,14 +453,21 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     integer, intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
     !case with MPI_IN_PLACE
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_INTEGER,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     integer :: i_all,i_stat
     integer, dimension(:), allocatable :: copybuf
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
 
     !case without mpi_in_place
 !   allocate(copybuf(ntot+ndebug),stat=i_stat)
@@ -469,9 +476,10 @@ end subroutine create_group_comm1
     !not appropriate for integers, to be seen if it works
     call scopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_INTEGER,mpi_op,mpi_comm,ierr)
-
+    call f_timer_resume()
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
     call f_free(copybuf)
@@ -485,10 +493,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     real(kind=4), intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_REAL,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -501,9 +514,12 @@ end subroutine create_group_comm1
 
     call scopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_REAL,mpi_op,mpi_comm,ierr)
-
+    call f_timer_resume()
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
     call f_free(copybuf)
@@ -517,10 +533,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     real(kind=8), intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -533,8 +554,12 @@ end subroutine create_group_comm1
 
     call dcopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
@@ -548,10 +573,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     real(kind=8), dimension(:), intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -564,8 +594,12 @@ end subroutine create_group_comm1
 
     call dcopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
@@ -579,10 +613,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     real(kind=8), dimension(:,:), intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -595,8 +634,12 @@ end subroutine create_group_comm1
 
     call dcopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
@@ -610,10 +653,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     logical, intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -627,8 +675,12 @@ end subroutine create_group_comm1
     !not appropriate for logical, to be seen if it works
     call scopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)

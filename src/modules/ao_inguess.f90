@@ -320,7 +320,8 @@ contains
 
   !> retrieve the information from the atom.
   !! different information can be obtained according to the usage which is needed
-  subroutine atomic_info(zatom,zion,symbol,elconf,amu,rcov,rprb,ehomo,nsccode,maxpol,maxchg)
+  subroutine atomic_info(zatom,zion,symbol,elconf,amu,&
+       rcov,rprb,ehomo,nsccode,maxpol,maxchg)
     use yaml_output, only: yaml_toa
     implicit none
     ! Arguments

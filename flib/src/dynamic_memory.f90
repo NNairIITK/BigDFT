@@ -53,6 +53,7 @@ module dynamic_memory
   !timing categories
   integer, public, save :: TCAT_ARRAY_ALLOCATIONS
   integer, public, save :: TCAT_INIT_TO_ZERO
+  integer, public, save :: TCAT_ROUTINE_PROFILING
 
   !> control structure of flib library. 
   !Contains all global variables of interest in a separate instance of f_lib
@@ -516,6 +517,9 @@ contains
     !take the time
     itime=f_time()
 
+    !profile the profiling
+    call f_timer_interrupt(TCAT_ROUTINE_PROFILING)
+
     !desactivate profile_routine if the mother routine has desactivated it
     if (present(profile)) mems(ictrl)%profile_routine=mems(ictrl)%profile_routine .and. profile
 
@@ -573,6 +577,7 @@ contains
        mems(ictrl)%present_routine(1:lgt)=id(1:lgt)
 
     end if
+    call f_timer_resume()
   end subroutine f_routine
 
   !> Close a previously opened routine
@@ -583,6 +588,9 @@ contains
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_release_routine): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
+
+    !profile the profiling
+    call f_timer_interrupt(TCAT_ROUTINE_PROFILING)
 
     if (associated(mems(ictrl)%dict_routine)) then
        call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
@@ -596,29 +604,37 @@ contains
 !!$       call yaml_warning('ERROR found!')
 !!$       call f_dump_last_error()
 !!$       call yaml_comment('End of ERROR')
+       call f_timer_resume()
        return
     end if
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     !the main program is opened until there is a subprograms keyword
-    if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),'parent not associated(A)',&
-         ERR_MALLOC_INTERNAL)) return
-
-    if (dict_key(mems(ictrl)%dict_codepoint%parent) == subprograms) then
-    
+    if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),&
+         'parent not associated(A)',&
+         ERR_MALLOC_INTERNAL)) then
+       call f_timer_resume()
+       return
+    end if
+    if (dict_key(mems(ictrl)%dict_codepoint%parent) == subprograms) then    
        mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint%parent
-
-       if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),'parent not associated(B)',&
-            ERR_MALLOC_INTERNAL)) return
+       if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),&
+            'parent not associated(B)',&
+            ERR_MALLOC_INTERNAL)) then
+          call f_timer_resume()
+          return
+       end if
        mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint%parent
     else !back in the main program
        mems(ictrl)%routine_opened=.false.
     end if
 
-    mems(ictrl)%present_routine(1:len(mems(ictrl)%present_routine))=trim(dict_key(mems(ictrl)%dict_codepoint))
+    mems(ictrl)%present_routine(1:len(mems(ictrl)%present_routine))=&
+         trim(dict_key(mems(ictrl)%dict_codepoint))
     if (.not. has_key(mems(ictrl)%dict_codepoint,prof_enabled)) then
        call yaml_dict_dump(mems(ictrl)%dict_codepoint)
        call f_err_throw('The key '//prof_enabled//' is not present in the codepoint',&
             err_id=ERR_MALLOC_INTERNAL)
+       call f_timer_resume()
        return
     end if
 
@@ -631,6 +647,7 @@ contains
 !!$    call yaml_close_map()
 !!$    call yaml_comment('End of release routine',hfill='=')
     !end debug
+    call f_timer_resume()
   end subroutine f_release_routine
 
   !>create the id of a new routine in the codepoint and points to it.

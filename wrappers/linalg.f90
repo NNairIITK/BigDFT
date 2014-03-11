@@ -18,6 +18,8 @@ module wrapper_linalg
 
   !>timing categories of the module
   integer, save, private :: TCAT_COPY_ARRAYS=TIMING_UNINITIALIZED
+  integer, save, private :: TCAT_BLAS_GEMM  =TIMING_UNINITIALIZED
+  integer, save, private :: TCAT_LAPACK_EV  =TIMING_UNINITIALIZED
 
   !> interfaces for LAPACK routines
   interface potrf
@@ -103,13 +105,23 @@ module wrapper_linalg
 contains
 
   subroutine linalg_initialize_timing_categories()
-    use time_profiling, only: f_timing_category
+    use time_profiling, only: f_timing_category,f_timing_category_group
     implicit none
     character(len=*), parameter :: flibgrp='Flib LowLevel' !<this will be moved
+    character(len=*), parameter :: linalgrp='BLAS-LAPACK' !<this will be moved
 
     call f_timing_category('Vector copy',flibgrp,&
          'Memory copy of arrays (excluded allocations)',&
          TCAT_COPY_ARRAYS)
+    call f_timing_category_group(linalgrp,&
+         'Basic Linear Algebra and Matrix Manupulation Subprograms (external lib)')
+    call f_timing_category('Blas (d-s-c-z)GeMM',linalgrp,&
+         'Blas General Matrix-Matrix multiplications of any float type',&
+         TCAT_BLAS_GEMM)
+    call f_timing_category('Lapack (dsy-ssy-che-zhe)eev',linalgrp,&
+         'Lapack Eigenvalue Problem',&
+         TCAT_LAPACK_EV)
+
 
   end subroutine linalg_initialize_timing_categories
 
@@ -207,8 +219,10 @@ contains
     integer, intent(out) :: info
     real(kind=4), intent(inout) :: a,work
     real(kind=4), intent(out) :: w
+    call f_timer_interrupt(TCAT_LAPACK_EV)
     !call to LAPACK routine
     call ssyev(jobz,uplo,n,a,lda,w,work,lwork,info)
+    call f_timer_resume()
   end subroutine syev_simple
 
   subroutine syev_double(jobz,uplo,n,a,lda,w,work,lwork,info)
@@ -218,8 +232,10 @@ contains
     integer, intent(out) :: info
     real(kind=8), intent(inout) :: a,work
     real(kind=8), intent(out) :: w
+    call f_timer_interrupt(TCAT_LAPACK_EV)
     !call to LAPACK routine
     call dsyev(jobz,uplo,n,a,lda,w,work,lwork,info)
+    call f_timer_resume()
   end subroutine syev_double
 
   subroutine heev_simple(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
@@ -229,8 +245,10 @@ contains
     integer, intent(out) :: info
     real(kind=4), intent(inout) :: a,work,rwork
     real(kind=4), intent(out) :: w
+    call f_timer_interrupt(TCAT_LAPACK_EV)
     !call to LAPACK routine
     call cheev(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
+    call f_timer_resume()
   end subroutine heev_simple
 
   subroutine heev_double(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
@@ -240,8 +258,10 @@ contains
     integer, intent(out) :: info
     real(kind=8), intent(inout) :: a,work,rwork
     real(kind=8), intent(out) :: w
+    call f_timer_interrupt(TCAT_LAPACK_EV)
     !call to LAPACK routine
     call zheev(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
+    call f_timer_resume()
   end subroutine heev_double
 
   subroutine sygv_simple(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,info)
@@ -685,6 +705,7 @@ contains
     real(kind=4), intent(in) :: a
     real(kind=4), intent(in) :: b
     real(kind=4), intent(inout) :: c
+    call f_timer_interrupt(TCAT_BLAS_GEMM) 
     if (GPUblas) then
        !call to CUBLAS routine
        call cublas_SGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -692,6 +713,7 @@ contains
        !call to BLAS routine
        call SGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
     end if
+    call f_timer_resume()
   end subroutine gemm_simple
 
   subroutine gemm_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -702,12 +724,14 @@ contains
     real(kind=8), intent(in) :: a
     real(kind=8), intent(in) :: b
     real(kind=8), intent(inout) :: c
+    call f_timer_interrupt(TCAT_BLAS_GEMM)
     !call to BLAS routine
     if (GPUblas) then
        call cublas_DGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
     else
        call DGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
     end if
+    call f_timer_resume()
   end subroutine gemm_double
 
   subroutine gemmsy_double_wrap(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -730,6 +754,7 @@ contains
     real(kind=4), intent(in) :: a
     real(kind=4), intent(in) :: b
     real(kind=4), intent(inout) :: c
+    call f_timer_interrupt(TCAT_BLAS_GEMM)
     if (GPUblas) then
        !call to CUBLAS routine
        call cublas_CGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -737,6 +762,7 @@ contains
        !call to BLAS routine
        call CGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
     end if
+    call f_timer_resume()
   end subroutine c_gemm_simple
 
   subroutine c_gemm_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -748,7 +774,9 @@ contains
     real(kind=8), intent(in) :: b
     real(kind=8), intent(inout) :: c
     !call to BLAS routine
+    call f_timer_interrupt(TCAT_BLAS_GEMM)
     call ZGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
+    call f_timer_resume()
   end subroutine c_gemm_double
 
   !SYmmetric Rank K operation

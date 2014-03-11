@@ -295,7 +295,39 @@ contains
     recursive subroutine dict_free_(dict)
       implicit none
       type(dictionary), pointer :: dict
+      !local variables
+      type(dictionary), pointer :: dict_it0,dict_it,dict_it2,dict_tmp
 
+!!$      !find last brother
+!!$      dict_it0=>dict
+!!$      general_loop: do while(associated(dict_it0))
+!!$         !find last children
+!!$         dict_it2=>dict_it0
+!!$         find_grandson: do while(associated(dict_it2%child))
+!!$            !if dictionary has brothers go next
+!!$            dict_it=>dict_it2
+!!$            find_benjamin: do while(associated(dict_it%next))
+!!$               !if the dictionary has children cycle loop
+!!$               if (associated(dict_it%child)) then
+!!$                  dict_it2=>dict_it
+!!$                  cycle find_grandson
+!!$               end if
+!!$               !The dictionary does not have children, it can be destroyed
+!!$               dict_tmp=>dict_it%next
+!!$               call dict_destroy(dict_it)
+!!$               !then continue with the next brother
+!!$               dict_it=>dict_tmp
+!!$            end do find_benjamin
+!!$            !here the dictionary does not have children or brothers anymore
+!!$            !it can be destroyed
+!!$            dict_tmp=>dict_it2%child
+!!$            call dict_destroy(dict_it2)
+!!$            !then continue with the next child
+!!$            dict_it2=>dict_tmp
+!!$         end do find_grandson
+!!$         dict_it0=>dict_it0%next
+!!$      end do general_loop
+!!$
       !first destroy the children
       if (associated(dict%child)) then
          call dict_free_(dict%child)
