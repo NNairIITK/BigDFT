@@ -139,7 +139,7 @@ subroutine run_objects_parse(runObj)
   call inputs_new(runObj%inputs)
 
   ! Regenerate inputs and atoms.
-  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs, 70)
+  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
 
   ! Number of atoms should not change.
   if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
@@ -206,7 +206,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
 !!$  call memocc(i_stat,rxyz,'rxyz',subname)
   call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz(1,1), 1)
 
-  call system_initialization(iproc, nproc, .false., inputpsi, input_wf_format, .true., &
+  call system_initialization(iproc, nproc, .true., inputpsi, input_wf_format, .true., &
        & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
        & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
