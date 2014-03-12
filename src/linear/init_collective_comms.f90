@@ -12,7 +12,7 @@ subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_collective_comms
-  use communications, only: allocate_MPI_communication_arrays
+  use communications, only: allocate_MPI_communication_arrays, allocate_local_communications_arrays
   implicit none
   
   ! Calling arguments
@@ -147,39 +147,47 @@ t1=mpi_wtime()
       ilr=orbs%inwhichlocreg(iiorb)
       collcom%ndimpsi_c=collcom%ndimpsi_c+lzd%llr(ilr)%wfd%nvctr_c
   end do
-  allocate(collcom%irecvbuf_c(collcom%ndimpsi_c), stat=istat)
-  call memocc(istat, collcom%irecvbuf_c, 'collcom%irecvbuf_c', subname)
-  allocate(collcom%indexrecvorbital_c(collcom%ndimind_c), stat=istat)
-  call memocc(istat, collcom%indexrecvorbital_c, 'collcom%indexrecvorbital_c', subname)
-  allocate(collcom%iextract_c(collcom%ndimind_c), stat=istat)
-  call memocc(istat, collcom%iextract_c, 'collcom%iextract_c', subname)
-  allocate(collcom%iexpand_c(collcom%ndimind_c), stat=istat)
-  call memocc(istat, collcom%iexpand_c, 'collcom%iexpand_c', subname)
-  allocate(collcom%isendbuf_c(collcom%ndimpsi_c), stat=istat)
-  call memocc(istat, collcom%isendbuf_c, 'collcom%isendbuf_c', subname)
-
   collcom%ndimpsi_f=0
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inwhichlocreg(iiorb)
       collcom%ndimpsi_f=collcom%ndimpsi_f+lzd%llr(ilr)%wfd%nvctr_f
   end do
-  allocate(collcom%irecvbuf_f(collcom%ndimpsi_f), stat=istat)
-  call memocc(istat, collcom%irecvbuf_f, 'collcom%irecvbuf_f', subname)
-  allocate(collcom%indexrecvorbital_f(collcom%ndimind_f), stat=istat)
-  call memocc(istat, collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
-  allocate(collcom%iextract_f(collcom%ndimind_f), stat=istat)
-  call memocc(istat, collcom%iextract_f, 'collcom%iextract_f', subname)
-  allocate(collcom%iexpand_f(collcom%ndimind_f), stat=istat)
-  call memocc(istat, collcom%iexpand_f, 'collcom%iexpand_f', subname)
-  allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
-  call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
 
-  ! Allocate the keys
-  allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
-  call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
-  allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
-  call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
+  call allocate_local_communications_arrays(collcom)
+
+  !!allocate(collcom%irecvbuf_c(collcom%ndimpsi_c), stat=istat)
+  !!call memocc(istat, collcom%irecvbuf_c, 'collcom%irecvbuf_c', subname)
+  !!allocate(collcom%indexrecvorbital_c(collcom%ndimind_c), stat=istat)
+  !!call memocc(istat, collcom%indexrecvorbital_c, 'collcom%indexrecvorbital_c', subname)
+  !!allocate(collcom%iextract_c(collcom%ndimind_c), stat=istat)
+  !!call memocc(istat, collcom%iextract_c, 'collcom%iextract_c', subname)
+  !!allocate(collcom%iexpand_c(collcom%ndimind_c), stat=istat)
+  !!call memocc(istat, collcom%iexpand_c, 'collcom%iexpand_c', subname)
+  !!allocate(collcom%isendbuf_c(collcom%ndimpsi_c), stat=istat)
+  !!call memocc(istat, collcom%isendbuf_c, 'collcom%isendbuf_c', subname)
+
+  !!allocate(collcom%irecvbuf_f(collcom%ndimpsi_f), stat=istat)
+  !!call memocc(istat, collcom%irecvbuf_f, 'collcom%irecvbuf_f', subname)
+  !!allocate(collcom%indexrecvorbital_f(collcom%ndimind_f), stat=istat)
+  !!call memocc(istat, collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
+  !!allocate(collcom%iextract_f(collcom%ndimind_f), stat=istat)
+  !!call memocc(istat, collcom%iextract_f, 'collcom%iextract_f', subname)
+  !!allocate(collcom%iexpand_f(collcom%ndimind_f), stat=istat)
+  !!call memocc(istat, collcom%iexpand_f, 'collcom%iexpand_f', subname)
+  !!allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
+  !!call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
+
+  !!allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
+  !!call memocc(istat, collcom%isptsp_c, 'collcom%isptsp_c', subname)
+  !!allocate(collcom%isptsp_f(max(collcom%nptsp_f,1)), stat=istat)
+  !!call memocc(istat, collcom%isptsp_f, 'collcom%isptsp_f', subname)
+
+  !!! Allocate the keys
+  !!allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
+  !!call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
+  !!allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
+  !!call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
   call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
        istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
@@ -204,10 +212,6 @@ t1=mpi_wtime()
 
 
   ! These variables are used in various subroutines to speed up the code
-  allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
-  call memocc(istat, collcom%isptsp_c, 'collcom%isptsp_c', subname)
-  allocate(collcom%isptsp_f(max(collcom%nptsp_f,1)), stat=istat)
-  call memocc(istat, collcom%isptsp_f, 'collcom%isptsp_f', subname)
   collcom%isptsp_c(1) = 0
   do ipt=2,collcom%nptsp_c
         collcom%isptsp_c(ipt) = collcom%isptsp_c(ipt-1) + collcom%norb_per_gridpoint_c(ipt-1)

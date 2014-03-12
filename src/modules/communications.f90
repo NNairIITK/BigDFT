@@ -7,7 +7,7 @@ module communications
 
 
   public :: collective_comms_null
-  public :: allocate_MPI_communication_arrays
+  public :: allocate_MPI_communication_arrays, allocate_local_communications_arrays
 
   contains
 
@@ -76,6 +76,47 @@ module communications
       allocate(comms%nrecvdspls_f(0:nproc-1), stat=istat)
       call memocc(istat, comms%nrecvdspls_f, 'comms%nrecvdspls_f', subname)
     end subroutine allocate_MPI_communication_arrays
+
+
+    subroutine allocate_local_communications_arrays(comms)
+      implicit none
+      type(collective_comms),intent(inout) :: comms
+      integer :: istat
+      character(len=*),parameter :: subname='allocate_MPI_communication_arrays'
+
+      allocate(comms%irecvbuf_c(comms%ndimpsi_c), stat=istat)
+      call memocc(istat, comms%irecvbuf_c, 'comms%irecvbuf_c', subname)
+      allocate(comms%indexrecvorbital_c(comms%ndimind_c), stat=istat)
+      call memocc(istat, comms%indexrecvorbital_c, 'comms%indexrecvorbital_c', subname)
+      allocate(comms%iextract_c(comms%ndimind_c), stat=istat)
+      call memocc(istat, comms%iextract_c, 'comms%iextract_c', subname)
+      allocate(comms%iexpand_c(comms%ndimind_c), stat=istat)
+      call memocc(istat, comms%iexpand_c, 'comms%iexpand_c', subname)
+      allocate(comms%isendbuf_c(comms%ndimpsi_c), stat=istat)
+      call memocc(istat, comms%isendbuf_c, 'comms%isendbuf_c', subname)
+
+      allocate(comms%irecvbuf_f(comms%ndimpsi_f), stat=istat)
+      call memocc(istat, comms%irecvbuf_f, 'comms%irecvbuf_f', subname)
+      allocate(comms%indexrecvorbital_f(comms%ndimind_f), stat=istat)
+      call memocc(istat, comms%indexrecvorbital_f, 'comms%indexrecvorbital_f', subname)
+      allocate(comms%iextract_f(comms%ndimind_f), stat=istat)
+      call memocc(istat, comms%iextract_f, 'comms%iextract_f', subname)
+      allocate(comms%iexpand_f(comms%ndimind_f), stat=istat)
+      call memocc(istat, comms%iexpand_f, 'comms%iexpand_f', subname)
+      allocate(comms%isendbuf_f(comms%ndimpsi_f), stat=istat)
+      call memocc(istat, comms%isendbuf_f, 'comms%isendbuf_f', subname)
+
+      allocate(comms%isptsp_c(max(comms%nptsp_c,1)), stat=istat)
+      call memocc(istat, comms%isptsp_c, 'comms%isptsp_c', subname)
+      allocate(comms%isptsp_f(max(comms%nptsp_f,1)), stat=istat)
+      call memocc(istat, comms%isptsp_f, 'comms%isptsp_f', subname)
+
+      allocate(comms%norb_per_gridpoint_c(comms%nptsp_c), stat=istat)
+      call memocc(istat, comms%norb_per_gridpoint_c, 'comms%norb_per_gridpoint_c', subname)
+      allocate(comms%norb_per_gridpoint_f(comms%nptsp_f), stat=istat)
+      call memocc(istat, comms%norb_per_gridpoint_f, 'comms%norb_per_gridpoint_f', subname)
+
+    end subroutine allocate_local_communications_arrays
 
 
 end module communications
