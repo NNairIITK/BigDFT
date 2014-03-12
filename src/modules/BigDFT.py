@@ -73,6 +73,17 @@ class DictAccessor:
       raise TypeError("Not a list")
     self.dict.update(v, self.dict.append())
 
+  def items(self):
+    self.dict.move_to(self.position)
+    if not(self.dict.value() == "__dict__") and self.dict.len() > 0:
+      raise TypeError("Not a dictionary")
+    ret = []
+    (valid, current) = self.dict.iter()
+    while (valid):
+      ret.append((self.dict.key(), DictAccessor(self.dict, current)))
+      (valid, current) = self.dict.next()
+    return ret
+
   def map(self, func):
     self.dict.move_to(self.position)
     val = self.dict.value()
@@ -93,6 +104,17 @@ class DictAccessor:
       val = func(val)
     return val
 
+  def float(self):
+    return numpy.array(self.map(float))
+
+  def __float__(self):
+    self.dict.move_to(self.position)
+    val = self.dict.value()
+    if not(val == "__list__") and not(val == "__dict__"):
+      return float(val)
+    else:
+      raise TypeError("%s is not a float" % val)
+
   def __str__(self):
     return str(self.map(str))
 
@@ -107,6 +129,25 @@ class DictAccessor:
   def __len__(self):
     self.dict.move_to(self.position)
     return int(self.dict.len())
+
+  def __contains__(self, obj):
+    self.dict.move_to(self.position)
+    val = self.dict.value()
+    if val == "__list__":
+      for ele in self:
+        if ele == obj:
+          return True
+    elif val == "__dict__":
+      (valid, current) = self.dict.iter()
+      while (valid):
+        # the func() call may move the current pointer of dict.
+        k = self.dict.key()
+        if k == obj:
+          return True
+        (valid, current) = self.dict.next()
+    else:
+      return val == obj
+    return False
 
 class Dict(BigDFT.Dict):
   def __new__(cls, args = (), kwargs = {}):
@@ -135,6 +176,17 @@ class Dict(BigDFT.Dict):
     elif isinstance(add, dict):
       # dictionary case
       self.__dict_add__(add, it)
+    elif isinstance(add, Dict):
+      # Fortran dictionary case
+      add.move_to(None)
+      self.set_dict(None, add)
+    elif isinstance(add, DictAccessor):
+      # sub-Fortran dictionary case
+      add.dict.move_to(add.position)
+      self.set_dict(None, add.dict)
+    elif hasattr(add, "merge_to_dict"):
+      # BigDFT types that can be merged to dict.
+      add.merge_to_dict(it)
     elif hasattr(add, "__iter__"):
       # List case
       self.__list_add__(add, it)

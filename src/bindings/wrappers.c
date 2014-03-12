@@ -467,6 +467,24 @@ void  bigdft_dict_set_array(BigDFT_Dict *dict, const gchar *id, const gchar **va
     }
   dict->current = root;
 }
+/**
+ * bigdft_dict_set_dict:
+ * @dict: 
+ * @id: (allow-none):
+ * @value:
+ *
+ * 
+ **/
+void  bigdft_dict_set_dict(BigDFT_Dict *dict, const gchar *id, const BigDFT_Dict *value)
+{
+  f90_dictionary_pointer root;
+  
+  root = dict->current;
+  if (id)
+    FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
+  FC_FUNC_(dict_update, DICT_UPDATE)(&dict->current, &value->current);
+  dict->current = root;
+}
 gboolean bigdft_dict_pop(BigDFT_Dict *dict, const gchar *key)
 {
   int exists;
