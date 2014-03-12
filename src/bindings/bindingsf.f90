@@ -1506,7 +1506,7 @@ subroutine dict_move_to_key(dict, exists, key)
 
   exists = has_key(dict, key(1:len(key)))
   if (exists) dict => dict // key(1:len(key))
-end subroutine dict_move_to_key
+END SUBROUTINE dict_move_to_key
 subroutine dict_move_to_item(dict, exists, id)
   use dictionaries, only: dictionary, operator(//), dict_len
   implicit none
@@ -1516,7 +1516,7 @@ subroutine dict_move_to_item(dict, exists, id)
 
   exists = (id < dict_len(dict) .and. id >= 0)
   if (exists) dict => dict // id
-end subroutine dict_move_to_item
+END SUBROUTINE dict_move_to_item
 subroutine dict_insert(dict, key)
   use dictionaries, only: dictionary, operator(//)
   implicit none
@@ -1638,6 +1638,13 @@ subroutine dict_copy(dict, ref)
 
   call wrapper(dict, ref)
 END SUBROUTINE dict_copy
+subroutine dict_update(dict, ref)
+  use dictionaries, only: dictionary, wrapper => dict_update
+  implicit none
+  type(dictionary), pointer :: dict, ref
+
+  call wrapper(dict, ref)
+END SUBROUTINE dict_update
 subroutine dict_init(dict)
   use dictionaries, only: dictionary, wrapper => dict_init
   implicit none

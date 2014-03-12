@@ -179,12 +179,23 @@ void bigdft_goutput_emit_energs(BigDFT_Goutput *outs, guint istep, BigDFT_Energs
 #endif  
 }
 
-static BigDFT_Memory* memory_ref(BigDFT_Memory *boxed)
+/**
+ * bigdft_memory_ref:
+ * @boxed: (transfer full):
+ *
+ * returns: (transfer full):
+ */
+BigDFT_Memory* bigdft_memory_ref(BigDFT_Memory *boxed)
 {
   boxed->ref += 1;
   return boxed;
 }
-static void memory_unref(BigDFT_Memory *boxed)
+/**
+ * bigdft_memory_unref:
+ * @boxed: (transfer full):
+ *
+ */
+void bigdft_memory_unref(BigDFT_Memory *boxed)
 {
   boxed->ref -= 1;
   if (!boxed->ref)
@@ -207,11 +218,16 @@ GType bigdft_memory_get_type(void)
 
   if (g_define_type_id == 0)
     g_define_type_id = g_boxed_type_register_static("BigDFT_Memory", 
-                                                    (GBoxedCopyFunc)memory_ref,
-                                                    (GBoxedFreeFunc)memory_unref);
+                                                    (GBoxedCopyFunc)bigdft_memory_ref,
+                                                    (GBoxedFreeFunc)bigdft_memory_unref);
   return g_define_type_id;
 }
 #endif
+void bigdft_memory_dump(BigDFT_Memory *mem)
+{
+  FC_FUNC_(print_memory_estimation, PRINT_MEMORY_ESTIMATION)(F_TYPE(mem->data));
+
+}
 
 /*****************************/
 /* BigDFT_Run data structure */

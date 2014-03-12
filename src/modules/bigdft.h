@@ -84,6 +84,7 @@ void  bigdft_dict_insert         (BigDFT_Dict *dict, const gchar *key,
 void  bigdft_dict_append         (BigDFT_Dict *dict, BigDFT_DictIter *iter);
 void  bigdft_dict_set            (BigDFT_Dict *dict, const gchar *id, const gchar *value);
 void  bigdft_dict_set_array      (BigDFT_Dict *dict, const gchar *id, const gchar **value);
+void  bigdft_dict_set_dict       (BigDFT_Dict *dict, const gchar *id, const BigDFT_Dict *value);
 gboolean bigdft_dict_pop         (BigDFT_Dict *dict, const gchar *key);
 gchar* bigdft_dict_key           (BigDFT_Dict *dict);
 gchar* bigdft_dict_value         (BigDFT_Dict *dict);
@@ -321,6 +322,9 @@ struct _BigDFT_Memory
   guint ref;
   f90_memory_estimation_pointer data;
 };
+BigDFT_Memory* bigdft_memory_ref(BigDFT_Memory *boxed);
+void bigdft_memory_unref(BigDFT_Memory *boxed);
+void bigdft_memory_dump(BigDFT_Memory *mem);
 #ifdef GLIB_MAJOR_VERSION
 GType bigdft_memory_get_type(void);
 #endif
