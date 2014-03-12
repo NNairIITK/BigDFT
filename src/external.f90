@@ -31,8 +31,6 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   call bigdft_mpi_init(ierr)
   if (ierr /= MPI_SUCCESS) return
 
-  call bigdft_init_errors()
-
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
 
   call bigdft_init_mpi_env(mpi_info, mpi_groupsize, ierr)
@@ -55,6 +53,19 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
      end if
   end if
 end subroutine bigdft_init
+
+subroutine bigdft_mpi_init(ierr)
+  use wrapper_mpi, only: wmpi_init_thread,MPI_SUCCESS
+  use module_types, only: bigdft_init_errors,bigdft_init_timing_categories
+  implicit none
+  integer, intent(out) :: ierr
+
+  call wmpi_init_thread(ierr)
+  if (ierr == MPI_SUCCESS) then
+     call bigdft_init_errors()
+     call bigdft_init_timing_categories()
+  end if
+end subroutine bigdft_mpi_init
 
 subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   use BigDFT_API

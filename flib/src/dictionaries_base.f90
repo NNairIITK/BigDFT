@@ -201,7 +201,8 @@ contains
             library=>library%previous
             call deallocate_file_(file)
          else
-            stop 'dictionary has not been allocated by pull'
+          !this might also mean that a variable has not been found
+          stop 'dictionary has not been allocated by pool'
          end if
       else 
          !if the place has been found the dictionary can be identified
@@ -265,7 +266,7 @@ contains
     if (nfolder_size==0) then
        deallocate(dict)
     else
-       !free a space in the library and let the allocation lives
+       !free a space in the library and let the allocation live
        call deallocate_file(f_loc(dict))
     end if
 
@@ -294,7 +295,39 @@ contains
     recursive subroutine dict_free_(dict)
       implicit none
       type(dictionary), pointer :: dict
+      !local variables
+      type(dictionary), pointer :: dict_it0,dict_it,dict_it2,dict_tmp
 
+!!$      !find last brother
+!!$      dict_it0=>dict
+!!$      general_loop: do while(associated(dict_it0))
+!!$         !find last children
+!!$         dict_it2=>dict_it0
+!!$         find_grandson: do while(associated(dict_it2%child))
+!!$            !if dictionary has brothers go next
+!!$            dict_it=>dict_it2
+!!$            find_benjamin: do while(associated(dict_it%next))
+!!$               !if the dictionary has children cycle loop
+!!$               if (associated(dict_it%child)) then
+!!$                  dict_it2=>dict_it
+!!$                  cycle find_grandson
+!!$               end if
+!!$               !The dictionary does not have children, it can be destroyed
+!!$               dict_tmp=>dict_it%next
+!!$               call dict_destroy(dict_it)
+!!$               !then continue with the next brother
+!!$               dict_it=>dict_tmp
+!!$            end do find_benjamin
+!!$            !here the dictionary does not have children or brothers anymore
+!!$            !it can be destroyed
+!!$            dict_tmp=>dict_it2%child
+!!$            call dict_destroy(dict_it2)
+!!$            !then continue with the next child
+!!$            dict_it2=>dict_tmp
+!!$         end do find_grandson
+!!$         dict_it0=>dict_it0%next
+!!$      end do general_loop
+!!$
       !first destroy the children
       if (associated(dict%child)) then
          call dict_free_(dict%child)
@@ -591,6 +624,37 @@ contains
   !> Retrieve the pointer to the item of the list.
   !! If the list does not exists, create it in the child chain.
   !! If the list is too short, create it in the next chain
+  subroutine item_ptr_find(dict,item,item_ptr)
+    implicit none
+    type(dictionary), intent(in), pointer :: dict !hidden inout
+    integer, intent(in) :: item
+    type(dictionary), pointer :: item_ptr
+
+    item_ptr=>dict
+    find_item: do 
+       if (item_ptr%data%item == item) exit find_item
+       if (associated(item_ptr%next)) then
+          item_ptr=>item_ptr%next
+          cycle find_item
+       end if
+       if (no_key(item_ptr)) then
+          call set_item(item_ptr,item)
+       else
+          call dict_init(item_ptr%next)
+          call define_brother(item_ptr,item_ptr%next) !chain the list in both directions
+          if (associated(item_ptr%parent)) &
+               call define_parent(item_ptr%parent,item_ptr%next)
+          call set_item(item_ptr%next,item)
+          item_ptr=>item_ptr%next          
+       end if
+       exit find_item
+    end do find_item
+  end subroutine item_ptr_find
+
+
+  !> Retrieve the pointer to the item of the list.
+  !! If the list does not exists, create it in the child chain.
+  !! If the list is too short, create it in the next chain
   function get_list_ptr(dict,item) result (subd_ptr)
     implicit none
     type(dictionary), intent(in), pointer :: dict !hidden inout
@@ -605,7 +669,8 @@ contains
     call clean_subdict(dict)
     
     if (associated(dict%child)) then         
-       subd_ptr => get_item_ptr(dict%child,item)
+       !subd_ptr => get_item_ptr(dict%child,item)
+       call item_ptr_find(dict%child,item,subd_ptr)
     else
        call dict_init(dict%child)
        call define_parent(dict,dict%child)

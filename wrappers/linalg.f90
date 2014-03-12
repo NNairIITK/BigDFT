@@ -10,22 +10,16 @@
 
 !> Modules which defines wrappers for the linear alegra.
 module wrapper_linalg
-  !!@todo MOVE ME TO F_MALLOC
-  ! MOVE ME TO F_MALLOC
-  !> initialize to zero an array
-  interface to_zero
-     module procedure put_to_zero_simple, &
-          & put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
-          & put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5, &
-          & put_to_zero_double_6, put_to_zero_double_7, &
-          & put_to_zero_integer
-  end interface
-  ! MOVE ME TO F_MALLOC
-
+  use time_profiling, only: TIMING_UNINITIALIZED
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
   logical :: GPUblas=.false.
+
+  !>timing categories of the module
+  integer, save, private :: TCAT_COPY_ARRAYS=TIMING_UNINITIALIZED
+  integer, save, private :: TCAT_BLAS_GEMM  =TIMING_UNINITIALIZED
+  integer, save, private :: TCAT_LAPACK_EV  =TIMING_UNINITIALIZED
 
   !> interfaces for LAPACK routines
   interface potrf
@@ -109,6 +103,27 @@ module wrapper_linalg
   end interface c_axpy
 
 contains
+
+  subroutine linalg_initialize_timing_categories()
+    use time_profiling, only: f_timing_category,f_timing_category_group
+    implicit none
+    character(len=*), parameter :: flibgrp='Flib LowLevel' !<this will be moved
+    character(len=*), parameter :: linalgrp='BLAS-LAPACK' !<this will be moved
+
+    call f_timing_category('Vector copy',flibgrp,&
+         'Memory copy of arrays (excluded allocations)',&
+         TCAT_COPY_ARRAYS)
+    call f_timing_category_group(linalgrp,&
+         'Basic Linear Algebra and Matrix Manupulation Subprograms (external lib)')
+    call f_timing_category('Blas (d-s-c-z)GeMM',linalgrp,&
+         'Blas General Matrix-Matrix multiplications of any float type',&
+         TCAT_BLAS_GEMM)
+    call f_timing_category('Lapack (dsy-ssy-che-zhe)eev',linalgrp,&
+         'Lapack Eigenvalue Problem',&
+         TCAT_LAPACK_EV)
+
+
+  end subroutine linalg_initialize_timing_categories
 
   !> Interfaces for LAPACK routines
   !! @warning
@@ -204,8 +219,10 @@ contains
     integer, intent(out) :: info
     real(kind=4), intent(inout) :: a,work
     real(kind=4), intent(out) :: w
+    call f_timer_interrupt(TCAT_LAPACK_EV)
     !call to LAPACK routine
     call ssyev(jobz,uplo,n,a,lda,w,work,lwork,info)
+    call f_timer_resume()
   end subroutine syev_simple
 
   subroutine syev_double(jobz,uplo,n,a,lda,w,work,lwork,info)
@@ -215,8 +232,10 @@ contains
     integer, intent(out) :: info
     real(kind=8), intent(inout) :: a,work
     real(kind=8), intent(out) :: w
+    call f_timer_interrupt(TCAT_LAPACK_EV)
     !call to LAPACK routine
     call dsyev(jobz,uplo,n,a,lda,w,work,lwork,info)
+    call f_timer_resume()
   end subroutine syev_double
 
   subroutine heev_simple(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
@@ -226,8 +245,10 @@ contains
     integer, intent(out) :: info
     real(kind=4), intent(inout) :: a,work,rwork
     real(kind=4), intent(out) :: w
+    call f_timer_interrupt(TCAT_LAPACK_EV)
     !call to LAPACK routine
     call cheev(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
+    call f_timer_resume()
   end subroutine heev_simple
 
   subroutine heev_double(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
@@ -237,8 +258,10 @@ contains
     integer, intent(out) :: info
     real(kind=8), intent(inout) :: a,work,rwork
     real(kind=8), intent(out) :: w
+    call f_timer_interrupt(TCAT_LAPACK_EV)
     !call to LAPACK routine
     call zheev(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
+    call f_timer_resume()
   end subroutine heev_double
 
   subroutine sygv_simple(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,info)
@@ -385,9 +408,9 @@ contains
     within_openmp=.false.
     !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
-    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call SCOPY(n,dx,incx,dy,incy)
-    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_complex_real_simple
 
   subroutine copy_complex_real_double(n,dx,incx,dy,incy)
@@ -400,9 +423,9 @@ contains
     within_openmp=.false.
     !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
-    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call DCOPY(n,dx,incx,dy,incy)
-    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_complex_real_double
 
   subroutine copy_integer(n,dx,incx,dy,incy)
@@ -415,9 +438,9 @@ contains
     within_openmp=.false.
     !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !custom blas routine
-    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call icopy(n,dx,incx,dy,incy)
-    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_integer
 
   subroutine copy_simple(n,dx,incx,dy,incy)
@@ -430,9 +453,9 @@ contains
     within_openmp=.false.
     !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
-    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call SCOPY(n,dx,incx,dy,incy)
-    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_simple
 
   subroutine copy_double(n,dx,incx,dy,incy)
@@ -445,9 +468,9 @@ contains
     within_openmp=.false.
     !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to BLAS routine
-    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call DCOPY(n,dx,incx,dy,incy)
-    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_double
 
   subroutine copy_double_to_simple(n,dx,incx,dy,incy)
@@ -460,9 +483,9 @@ contains
     within_openmp=.false.
     !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
     !call to custom routine
-    if (.not. within_openmp) call timing(0,'vcopy         ','IR') 
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_COPY_ARRAYS) 
     call dscopy(n,dx,incx,dy,incy)
-    if (.not. within_openmp) call timing(0,'vcopy         ','RS') 
+    if (.not. within_openmp) call f_timer_resume() 
   end subroutine copy_double_to_simple
 
   subroutine trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
@@ -682,6 +705,7 @@ contains
     real(kind=4), intent(in) :: a
     real(kind=4), intent(in) :: b
     real(kind=4), intent(inout) :: c
+    call f_timer_interrupt(TCAT_BLAS_GEMM) 
     if (GPUblas) then
        !call to CUBLAS routine
        call cublas_SGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -689,6 +713,7 @@ contains
        !call to BLAS routine
        call SGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
     end if
+    call f_timer_resume()
   end subroutine gemm_simple
 
   subroutine gemm_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -699,12 +724,14 @@ contains
     real(kind=8), intent(in) :: a
     real(kind=8), intent(in) :: b
     real(kind=8), intent(inout) :: c
+    call f_timer_interrupt(TCAT_BLAS_GEMM)
     !call to BLAS routine
     if (GPUblas) then
        call cublas_DGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
     else
        call DGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
     end if
+    call f_timer_resume()
   end subroutine gemm_double
 
   subroutine gemmsy_double_wrap(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -727,6 +754,7 @@ contains
     real(kind=4), intent(in) :: a
     real(kind=4), intent(in) :: b
     real(kind=4), intent(inout) :: c
+    call f_timer_interrupt(TCAT_BLAS_GEMM)
     if (GPUblas) then
        !call to CUBLAS routine
        call cublas_CGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -734,6 +762,7 @@ contains
        !call to BLAS routine
        call CGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
     end if
+    call f_timer_resume()
   end subroutine c_gemm_simple
 
   subroutine c_gemm_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -745,7 +774,9 @@ contains
     real(kind=8), intent(in) :: b
     real(kind=8), intent(inout) :: c
     !call to BLAS routine
+    call f_timer_interrupt(TCAT_BLAS_GEMM)
     call ZGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
+    call f_timer_resume()
   end subroutine c_gemm_double
 
   !SYmmetric Rank K operation
@@ -808,156 +839,5 @@ contains
     !call to BLAS routine
     call ZHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
   end subroutine herk_double
-
-  subroutine put_to_zero_simple(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=4), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero_simple(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_simple
-
-  !!@todo To remove this routine which is not conformed to the Fortran standard (TD)
-  subroutine put_to_zero_double(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double
-
-  subroutine put_to_zero_double_1(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double_1
-
-  subroutine put_to_zero_double_2(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double_2
-
-  subroutine put_to_zero_double_3(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double_3
-
-  subroutine put_to_zero_double_4(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double_4
-
-  subroutine put_to_zero_double_5(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double_5
-
-  subroutine put_to_zero_double_6(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double_6
-
-  subroutine put_to_zero_double_7(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_double_7
-
-  subroutine put_to_zero_integer(n,da)
-    implicit none
-    integer, intent(in) :: n
-    integer, intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','IR') 
-    call razero_integer(n,da)
-    if (.not. within_openmp) call timing(0,'Init to Zero  ','RS') 
-  end subroutine put_to_zero_integer
 
 end module wrapper_linalg

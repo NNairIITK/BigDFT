@@ -657,7 +657,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
                 if(nspinor==1) then
 
-           call syev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,&
+                   call syev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,&
                         orbs%eval(isorb+(ikpt-1)*orbs%norb),work_lp(1),n_lp,info)
                    if (info /= 0) write(*,*) 'SYEV ERROR',info
 

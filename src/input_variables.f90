@@ -741,6 +741,7 @@ subroutine input_analyze(in)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
+  !@todo also the inputguess variable should be checked if BC are nonFree
 
   ! the DFT variables ------------------------------------------------------
   in%SIC%ixc = in%ixc

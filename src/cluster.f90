@@ -338,7 +338,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   else
      nproctiming=nproc
   end if
-  call timing(nproctiming,trim(in%dir_output)//'time.yaml','IN')
+  !call timing(nproctiming,trim(in%dir_output)//'time.yaml','IN')
+  call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0,&
+       verbose_mode=verbose>2 .and. nproc>1)
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -1409,7 +1411,7 @@ contains
 
     !end of wavefunction minimisation
     call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-    call timing(bigdft_mpi%mpi_comm,'              ','RE')
+    call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)    
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)

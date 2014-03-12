@@ -521,8 +521,8 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
      rcov=2.50d0
      rprb=5.00d0
      ehomo=-0.197978d0
-     neleconf(3,2)=8
-     neleconf(4,0)=1.d-18
+     neleconf(3,2)=6
+     neleconf(4,0)=2!1.d-18
      neleconf(4,1)=1.d-18
      neleconf(4,2)=1.d-18
      amu=55.847d0
