@@ -369,6 +369,9 @@ module module_types
 
      !> linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
      integer :: method_updatekernel
+
+     !> linear scaling: quick return in purification
+     logical :: purification_quickreturn
   end type input_variables
 
   !> Contains all energy terms
@@ -2738,6 +2741,9 @@ end subroutine find_category
        case (METHOD_UPDATEKERNEL)
            ! linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
            in%method_updatekernel = val
+       case (PURIFICATION_QUICKRETURN)
+           ! linear scaling: quick return in purification
+           in%purification_quickreturn = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

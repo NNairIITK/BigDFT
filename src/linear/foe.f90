@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, tmprtr, &
-           ebs, itout, it_scc, order_taylor, &
+           ebs, itout, it_scc, order_taylor, purification_quickreturn, &
            tmb)
   use module_base
   use module_types
@@ -22,6 +22,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer,intent(in) :: iproc, nproc,itout,it_scc, order_taylor
   real(kind=8),intent(in) :: tmprtr
   real(kind=8),intent(out) :: ebs
+  logical,intent(in) :: purification_quickreturn
   type(DFT_wavefunction),intent(inout) :: tmb
 
   ! Local variables
@@ -769,7 +770,7 @@ subroutine foe(iproc, nproc, tmprtr, &
       else
           it_shift=1
       end if
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor)
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
       if (iproc==0) then
           call yaml_close_sequence()
       end if

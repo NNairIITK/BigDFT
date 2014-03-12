@@ -1587,7 +1587,8 @@ module module_interfaces
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-          gnrm_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel)
+          gnrm_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
+          purification_quickreturn)
         use module_base
         use module_types
         implicit none
@@ -1614,7 +1615,7 @@ module module_interfaces
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
         real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, kappa_conv
-        logical,intent(in) :: experimental_mode
+        logical,intent(in) :: experimental_mode, purification_quickreturn
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
       end subroutine getLocalizedBasis
@@ -1662,7 +1663,8 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,calculate_KS_residue,&
+        calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn,&
+        calculate_KS_residue,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
@@ -1683,7 +1685,7 @@ module module_interfaces
       type(DFT_PSP_projectors),intent(inout) :: nlpsp
       type(SIC_data),intent(in) :: SIC
       type(DFT_wavefunction),intent(inout) :: tmb
-      logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
+      logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
       logical,intent(in) :: calculate_ham, calculate_KS_residue
       type(sparseMatrix), intent(inout) :: ham_small ! for foe only
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
@@ -3914,7 +3916,7 @@ module module_interfaces
         end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, tmprtr, &
-                   ebs, itout, it_scc, order_taylor, &
+                   ebs, itout, it_scc, order_taylor, purification_quickreturn, &
                    tmb)
           use module_base
           use module_types
@@ -3922,6 +3924,7 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
           real(kind=8),intent(in) :: tmprtr
           real(kind=8),intent(out) :: ebs
+          logical,intent(in) :: purification_quickreturn
           type(DFT_wavefunction),intent(inout) :: tmb
         end subroutine foe
 
@@ -4415,7 +4418,7 @@ module module_interfaces
           integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
-        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor)
+        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, purification_quickreturn)
           use module_base
           use module_types
           implicit none
@@ -4423,6 +4426,7 @@ module module_interfaces
           type(DFT_wavefunction),intent(inout):: tmb
           logical,intent(inout):: overlap_calculated
           integer,intent(in) :: it_shift, it_opt
+          logical,intent(in) :: purification_quickreturn
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &

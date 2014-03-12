@@ -10,7 +10,8 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,calculate_KS_residue,&
+    calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn, &
+    calculate_KS_residue,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
   use module_types
@@ -34,7 +35,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_PSP_projectors),intent(inout) :: nlpsp
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
-  logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho
+  logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
   logical,intent(in) :: calculate_ham, calculate_KS_residue
   type(sparseMatrix), intent(inout) :: ham_small ! for foe only
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
@@ -339,7 +340,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
-           energs%ebs, itout,it_scc, order_taylor, &
+           energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, &
            tmb)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
@@ -375,7 +376,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-    gnrm_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel)
+    gnrm_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
+    purification_quickreturn)
   !
   ! Purpose:
   ! ========
@@ -412,7 +414,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer, intent(in) :: extra_states
   integer,intent(in) :: itout
   real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, kappa_conv
-  logical,intent(in) :: experimental_mode
+  logical,intent(in) :: experimental_mode, purification_quickreturn
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
  
@@ -499,7 +501,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       overlap_calculated=.true.
       !tmb%can_use_transposed=.false.
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor)
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
       if (iproc==0) call yaml_close_map()
   end if
 
@@ -644,7 +646,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                    tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
               call foe(iproc, nproc, 0.d0, &
-                   energs%ebs, -1, -10, order_taylor, tmb)
+                   energs%ebs, -1, -10, order_taylor, purification_quickreturn, tmb)
               if (.not.associated_psit_c) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
                   deallocate(tmb%psit_c, stat=istat)
@@ -1022,7 +1024,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                       call yaml_map('purify kernel',.true.)
                       call yaml_newline()
                   end if
-                  call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor)
+                  call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   if (iproc==0) then
                       call yaml_map('purify kernel',.false.)
@@ -2118,7 +2120,7 @@ end subroutine estimate_energy_change
 
 
 
-subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor)
+subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, purification_quickreturn)
   use module_base
   use module_types
   use yaml_output
@@ -2130,6 +2132,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   type(DFT_wavefunction),intent(inout):: tmb
   logical,intent(inout):: overlap_calculated
   integer,intent(in) :: it_shift, it_opt
+  logical,intent(in) :: purification_quickreturn
 
   ! Local variables
   integer :: istat, iall, it, lwork, info, iorb, jorb, ierr, jsegstart, jsegend, jseg, jjorb, iiorb
@@ -2144,6 +2147,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   logical,dimension(2) :: bisec_bounds_ok
   real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
 
+  if (purification_quickreturn) then
+      if (iproc==0) call yaml_warning('quick return in purification')
+      return
+  end if
 
   call f_routine(id='purify_kernel')
 

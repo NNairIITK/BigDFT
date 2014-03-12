@@ -1856,6 +1856,9 @@ contains
     call input_var("method_updatekernel", 0, (/0,1/), "kernel update during the sup. fun. opt. (0: purific., 1: FOE)", dummy_int)
     call set(dict // METHOD_UPDATEKERNEL, dummy_int)
 
+    call input_var("purification_quickreturn", .false., "linear scaling: quick return in purification", dummy_bool)
+    call set(dict // PURIFICATION_QUICKRETURN, dummy_bool)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format
