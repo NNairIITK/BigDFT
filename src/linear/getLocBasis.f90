@@ -1562,6 +1562,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   use module_base
   use module_types
   use module_interfaces, except_this_one => communicate_basis_for_density_collective
+  use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
   implicit none
   
   ! Calling arguments

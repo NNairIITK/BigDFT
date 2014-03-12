@@ -2937,27 +2937,6 @@ module module_interfaces
          integer,dimension(:,:),pointer,intent(out):: op_overlaps
        end subroutine determine_overlap_from_descriptors
 
-       !!subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: iproc, nproc
-       !!  type(orbitals_data),intent(in):: orbs
-       !!  type(local_zone_descriptors),intent(in):: lzd
-       !!  real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(out):: weight_c, weight_f
-       !!  real(8),intent(out):: weight_c_tot, weight_f_tot
-       !!end subroutine get_weights
-
-       !!subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: iproc, nproc, npsidim_orbs
-       !!  type(orbitals_data),intent(in):: orbs
-       !!  type(local_zone_descriptors),intent(in):: lzd
-       !!  type(collective_comms),intent(inout):: collcom
-       !!end subroutine init_collective_comms
-
        subroutine deallocate_collective_comms(collcom, subname)
          use module_base
          use module_types
@@ -2965,23 +2944,6 @@ module module_interfaces
          type(collective_comms),intent(inout):: collcom
          character(len=*),intent(in):: subname
        end subroutine deallocate_collective_comms
-
-       !!subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
-       !!           istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-       !!           weightp_c, weightp_f, nptsp_c, nptsp_f, nvalp_c, nvalp_f)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: iproc, nproc
-       !!  type(local_zone_descriptors),intent(in):: lzd
-       !!  real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: weight_c, weight_f
-       !!  real(8),intent(in):: weight_tot_c, weight_tot_f
-       !!  integer,dimension(2,0:nproc-1),intent(out):: istartend_c, istartend_f
-       !!  integer,intent(out):: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
-       !!  real(8),intent(out):: weightp_c, weightp_f
-       !!  integer,intent(out):: nptsp_c, nptsp_f
-       !!  integer,intent(out) :: nvalp_c, nvalp_f
-       !!end subroutine assign_weight_to_process
 
        subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
                   istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
@@ -2998,46 +2960,6 @@ module module_interfaces
          integer,dimension(nptsp_c),intent(out):: norb_per_gridpoint_c
          integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
        end subroutine determine_num_orbs_per_gridpoint
-
-       !!subroutine get_switch_indices(iproc, nproc, orbs, lzd, ndimpsi_c, ndimpsi_f, istartend_c, istartend_f, &
-       !!           nsendcounts_c, nsenddspls_c, ndimind_c, nrecvcounts_c, nrecvdspls_c, &
-       !!           nsendcounts_f, nsenddspls_f, ndimind_f, nrecvcounts_f, nrecvdspls_f, &
-       !!           index_in_global_c, index_in_global_f, &
-       !!           weightp_c, weightp_f,  isendbuf_c, irecvbuf_c, isendbuf_f, irecvbuf_f, &
-       !!           indexrecvorbital_c, iextract_c, iexpand_c, indexrecvorbital_f, iextract_f, iexpand_f)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: iproc, nproc, ndimpsi_c, ndimpsi_f, ndimind_c, ndimind_f
-       !!  type(orbitals_data),intent(in):: orbs
-       !!  type(local_zone_descriptors),intent(in):: lzd
-       !!  integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
-       !!  integer,dimension(0:nproc-1),intent(in):: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
-       !!  integer,dimension(0:nproc-1),intent(in):: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
-       !!  integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: index_in_global_c, index_in_global_f
-       !!  real(8),intent(in):: weightp_c, weightp_f
-       !!  integer,dimension(ndimpsi_c),intent(out):: isendbuf_c, irecvbuf_c
-       !!  integer,dimension(ndimpsi_f),intent(out):: isendbuf_f, irecvbuf_f
-       !!  integer,dimension(ndimind_c),intent(out):: indexrecvorbital_c, iextract_c, iexpand_c
-       !!  integer,dimension(ndimind_f),intent(out):: indexrecvorbital_f, iextract_f, iexpand_f
-       !!end subroutine get_switch_indices
-
-       !!subroutine determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, &
-       !!           istartend_c, istartend_f, index_in_global_c, index_in_global_f, &
-       !!           nvalp_c, nvalp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
-       !!           nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: iproc, nproc, npsidim_orbs
-       !!  type(orbitals_data),intent(in):: orbs
-       !!  type(local_zone_descriptors),intent(in):: lzd
-       !!  integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
-       !!  integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: index_in_global_c, index_in_global_f
-       !!  integer,intent(in) :: nvalp_c, nvalp_f
-       !!  integer,dimension(0:nproc-1),intent(out):: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
-       !!  integer,dimension(0:nproc-1),intent(out):: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
-       !!end subroutine determine_communication_arrays
 
        subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
                   npts_par_c, npts_par_f, &
@@ -3056,104 +2978,6 @@ module module_interfaces
          real(8),intent(out):: weightp_c, weightp_f
          integer,intent(out):: nptsp_c, nptsp_f
        end subroutine assign_weight_to_process2
-
-       !!subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer, intent(in) :: npsidim_orbs
-       !!  type(orbitals_Data),intent(in):: orbs
-       !!  type(collective_comms),intent(in):: collcom
-       !!  real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
-       !!  real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
-       !!  real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
-       !!  type(local_zone_descriptors),intent(in),optional:: lzd
-       !!end subroutine transpose_switch_psi
-
-       !!subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: iproc, nproc
-       !!  type(collective_comms),intent(in):: collcom
-       !!  real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
-       !!  real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
-       !!  real(8),dimension(collcom%ndimind_c),intent(out):: psitwork_c
-       !!  real(8),dimension(collcom%ndimind_f),intent(out):: psitwork_f
-       !!end subroutine transpose_communicate_psi
-
-       !!subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  type(collective_comms),intent(in):: collcom
-       !!  real(8),dimension(collcom%ndimind_c),intent(in):: psitwork_c
-       !!  real(8),dimension(7*collcom%ndimind_f),intent(in):: psitwork_f
-       !!  real(8),dimension(collcom%ndimind_c),intent(out):: psit_c
-       !!  real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
-       !!end subroutine transpose_unswitch_psit
-
-       !!subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  type(collective_comms),intent(in):: collcom
-       !!  real(8),dimension(collcom%ndimind_c),intent(in):: psit_c
-       !!  real(8),dimension(7*collcom%ndimind_f),intent(in):: psit_f
-       !!  real(8),dimension(collcom%ndimind_c),intent(out):: psitwork_c
-       !!  real(8),dimension(7*collcom%ndimind_f),intent(out):: psitwork_f
-       !!end subroutine transpose_switch_psit
-
-       !!subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: iproc, nproc
-       !!  type(collective_comms),intent(in):: collcom
-       !!  real(8),dimension(collcom%ndimind_c),intent(in):: psitwork_c
-       !!  real(8),dimension(7*collcom%ndimind_f),intent(in):: psitwork_f
-       !!  real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
-       !!  real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
-       !!end subroutine transpose_communicate_psit
-
-       !!subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer, intent(in) :: npsidim_orbs
-       !!  type(orbitals_data),intent(in):: orbs
-       !!  type(collective_comms),intent(in):: collcom
-       !!  real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
-       !!  real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
-       !!  real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
-       !!  type(local_zone_descriptors),intent(in),optional:: lzd
-       !!end subroutine transpose_unswitch_psi
-
-       !!subroutine transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: iproc, nproc, npsidim_orbs
-       !!  type(orbitals_data),intent(in):: orbs
-       !!  type(collective_comms),intent(in):: collcom
-       !!  real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
-       !!  real(8),dimension(collcom%ndimind_c),intent(out):: psit_c
-       !!  real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
-       !!  type(local_zone_descriptors),optional,intent(in):: lzd
-       !!end subroutine transpose_localized
-
-       !!subroutine untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: iproc, nproc, npsidim_orbs
-       !!  type(orbitals_data),intent(in):: orbs
-       !!  type(collective_comms),intent(in):: collcom
-       !!  real(8),dimension(collcom%ndimind_c),intent(in):: psit_c
-       !!  real(8),dimension(7*collcom%ndimind_f),intent(in):: psit_f
-       !!  real(8),dimension(npsidim_orbs),intent(out):: psi
-       !!  type(local_zone_descriptors),optional,intent(in):: lzd
-       !!end subroutine untranspose_localized
 
        subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,Lzd,&
               iformat,dir_output,filename,ref_frags,orblist)
@@ -3804,16 +3628,16 @@ module module_interfaces
           type(collective_comms),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
 
-        subroutine init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(orbitals_data),intent(in) :: orbs
-          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-          type(collective_comms),intent(inout) :: collcom_sr
-        end subroutine init_collective_comms_sumrho
+        !!subroutine init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer,intent(in) :: iproc, nproc
+        !!  type(local_zone_descriptors),intent(in) :: lzd
+        !!  type(orbitals_data),intent(in) :: orbs
+        !!  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+        !!  type(collective_comms),intent(inout) :: collcom_sr
+        !!end subroutine init_collective_comms_sumrho
 
         subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
           use module_base
@@ -3827,93 +3651,93 @@ module module_interfaces
           logical,intent(in),optional :: print_results
         end subroutine sumrho_for_TMBs
 
-        subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
-                   weight_tot, weight_ideal, weights_per_slice, weights_per_zpoint)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(orbitals_data),intent(in) :: orbs
-          type(local_zone_descriptors),intent(in) :: lzd
-          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-          real(kind=8),intent(out) :: weight_tot, weight_ideal
-          real(kind=8),dimension(0:nproc-1),intent(out) :: weights_per_slice
-          real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
-        end subroutine get_weights_sumrho
+        !!subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
+        !!           weight_tot, weight_ideal, weights_per_slice, weights_per_zpoint)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer,intent(in) :: iproc, nproc
+        !!  type(orbitals_data),intent(in) :: orbs
+        !!  type(local_zone_descriptors),intent(in) :: lzd
+        !!  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+        !!  real(kind=8),intent(out) :: weight_tot, weight_ideal
+        !!  real(kind=8),dimension(0:nproc-1),intent(out) :: weights_per_slice
+        !!  real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
+        !!end subroutine get_weights_sumrho
 
-        subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
-                   lzd, orbs, nscatterarr, istartend, nptsp)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          real(kind=8),intent(in) :: weight_tot, weight_ideal
-          real(kind=8),dimension(0:nproc-1),intent(in) :: weights_per_slice
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(orbitals_data),intent(in) :: orbs
-          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-          integer,dimension(2,0:nproc-1),intent(out) :: istartend
-          integer,intent(out) :: nptsp
-        end subroutine assign_weight_to_process_sumrho
+        !!subroutine assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
+        !!           lzd, orbs, nscatterarr, istartend, nptsp)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer,intent(in) :: iproc, nproc
+        !!  real(kind=8),intent(in) :: weight_tot, weight_ideal
+        !!  real(kind=8),dimension(0:nproc-1),intent(in) :: weights_per_slice
+        !!  type(local_zone_descriptors),intent(in) :: lzd
+        !!  type(orbitals_data),intent(in) :: orbs
+        !!  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+        !!  integer,dimension(2,0:nproc-1),intent(out) :: istartend
+        !!  integer,intent(out) :: nptsp
+        !!end subroutine assign_weight_to_process_sumrho
 
-        subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orbs, &
-                   istartend, weight_tot, weights_per_zpoint, norb_per_gridpoint)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc, nptsp
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(orbitals_data),intent(in) :: orbs
-          integer,dimension(2,0:nproc-1),intent(in) :: istartend
-          real(kind=8),intent(in) :: weight_tot
-          real(kind=8),dimension(lzd%glr%d%n3i),intent(in) :: weights_per_zpoint
-          integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
-        end subroutine determine_num_orbs_per_gridpoint_sumrho
+        !!subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orbs, &
+        !!           istartend, weight_tot, weights_per_zpoint, norb_per_gridpoint)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer,intent(in) :: iproc, nproc, nptsp
+        !!  type(local_zone_descriptors),intent(in) :: lzd
+        !!  type(orbitals_data),intent(in) :: orbs
+        !!  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+        !!  real(kind=8),intent(in) :: weight_tot
+        !!  real(kind=8),dimension(lzd%glr%d%n3i),intent(in) :: weights_per_zpoint
+        !!  integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
+        !!end subroutine determine_num_orbs_per_gridpoint_sumrho
 
-        subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, &
-                   istartend, norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, &
-                   nrecvdspls, ndimpsi, ndimind)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc, nptsp
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(orbitals_data),intent(in) :: orbs
-          integer,dimension(2,0:nproc-1),intent(in) :: istartend
-          integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
-          integer,dimension(0:nproc-1),intent(out) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
-          integer,intent(out) :: ndimpsi, ndimind
-        end subroutine determine_communication_arrays_sumrho
+        !!subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, &
+        !!           istartend, norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, &
+        !!           nrecvdspls, ndimpsi, ndimind)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer,intent(in) :: iproc, nproc, nptsp
+        !!  type(local_zone_descriptors),intent(in) :: lzd
+        !!  type(orbitals_data),intent(in) :: orbs
+        !!  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+        !!  integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
+        !!  integer,dimension(0:nproc-1),intent(out) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+        !!  integer,intent(out) :: ndimpsi, ndimind
+        !!end subroutine determine_communication_arrays_sumrho
 
-        subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd, orbs, istartend, &
-                   norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, &
-                   isendbuf, irecvbuf, iextract, iexpand, indexrecvorbital)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc, nptsp, ndimpsi, ndimind
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(orbitals_data),intent(in) :: orbs
-          integer,dimension(2,0:nproc-1),intent(in) :: istartend
-          integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
-          integer,dimension(0:nproc-1),intent(in) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
-          integer,dimension(ndimpsi),intent(out) :: isendbuf, irecvbuf
-          integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
-        end subroutine get_switch_indices_sumrho
+        !!subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd, orbs, istartend, &
+        !!           norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, &
+        !!           isendbuf, irecvbuf, iextract, iexpand, indexrecvorbital)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer,intent(in) :: iproc, nproc, nptsp, ndimpsi, ndimind
+        !!  type(local_zone_descriptors),intent(in) :: lzd
+        !!  type(orbitals_data),intent(in) :: orbs
+        !!  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+        !!  integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
+        !!  integer,dimension(0:nproc-1),intent(in) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+        !!  integer,dimension(ndimpsi),intent(out) :: isendbuf, irecvbuf
+        !!  integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
+        !!end subroutine get_switch_indices_sumrho
 
-        subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
-                   nsendcounts_repartitionrho, nsenddspls_repartitionrho, &
-                   nrecvcounts_repartitionrho, nrecvdspls_repartitionrho)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(local_zone_descriptors),intent(in) :: lzd
-          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-          integer,dimension(2,0:nproc-1),intent(in) :: istartend
-          integer,dimension(0:nproc-1),intent(out) :: nsendcounts_repartitionrho, nsenddspls_repartitionrho
-          integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
-        end subroutine communication_arrays_repartitionrho
+        !!subroutine communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
+        !!           nsendcounts_repartitionrho, nsenddspls_repartitionrho, &
+        !!           nrecvcounts_repartitionrho, nrecvdspls_repartitionrho)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer,intent(in) :: iproc, nproc
+        !!  type(local_zone_descriptors),intent(in) :: lzd
+        !!  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+        !!  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+        !!  integer,dimension(0:nproc-1),intent(out) :: nsendcounts_repartitionrho, nsenddspls_repartitionrho
+        !!  integer,dimension(0:nproc-1),intent(out) :: nrecvcounts_repartitionrho, nrecvdspls_repartitionrho
+        !!end subroutine communication_arrays_repartitionrho
 
         subroutine foe(iproc, nproc, tmprtr, &
                    ebs, itout, it_scc, order_taylor, purification_quickreturn, &
@@ -4576,18 +4400,18 @@ module module_interfaces
           type(sparseMatrix),intent(inout) :: inv_ovrlp_half
         end subroutine diagonalize_localized
 
-        subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatterarr, istartend, &
-                   ncomms_repartitionrho, commarr_repartitionrho)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(local_zone_descriptors),intent(in) :: lzd
-          integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-          integer,dimension(2,0:nproc-1),intent(in) :: istartend
-          integer,intent(out) :: ncomms_repartitionrho
-          integer,dimension(:,:),pointer,intent(out) :: commarr_repartitionrho
-        end subroutine communication_arrays_repartitionrho_general
+        !!subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatterarr, istartend, &
+        !!           ncomms_repartitionrho, commarr_repartitionrho)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer,intent(in) :: iproc, nproc
+        !!  type(local_zone_descriptors),intent(in) :: lzd
+        !!  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+        !!  integer,dimension(2,0:nproc-1),intent(in) :: istartend
+        !!  integer,intent(out) :: ncomms_repartitionrho
+        !!  integer,dimension(:,:),pointer,intent(out) :: commarr_repartitionrho
+        !!end subroutine communication_arrays_repartitionrho_general
   
   end interface
 END MODULE module_interfaces

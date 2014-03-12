@@ -12,7 +12,6 @@
 subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs,npsidim_comp)
    use module_base
    use module_types
-   use module_interfaces
    use yaml_output
    use communications, only: transpose_localized, untranspose_localized
    implicit none
