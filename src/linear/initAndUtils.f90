@@ -801,6 +801,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
+  use communications, only: collective_comms_null
   implicit none
   
   ! Calling arguments
@@ -828,9 +829,11 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
 
   call timing(iproc,'updatelocreg1','ON') 
   if (present(lfoe)) call nullify_foe(lfoe)
-  call nullify_collective_comms(lbcollcom)
+  !call nullify_collective_comms(lbcollcom)
+  lbcollcom=collective_comms_null()
   if (present(lbcollcom_sr)) then
-      call nullify_collective_comms(lbcollcom_sr)
+      !call nullify_collective_comms(lbcollcom_sr)
+      lbcollcom_sr=collective_comms_null()
   end if
   call nullify_p2pComms(lbcomgp)
   call nullify_local_zone_descriptors(lzd)

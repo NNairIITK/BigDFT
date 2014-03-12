@@ -1073,6 +1073,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
+  use communications, only: collective_comms_null
   implicit none
 
   ! Calling arguments
@@ -1223,7 +1224,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
      call copy_locreg_descriptors(tmb%lzd%llr(ilr_tmp), lzd_tmp%llr(i1))
   end do
 
-  call nullify_collective_comms(collcom_tmp)
+  !call nullify_collective_comms(collcom_tmp)
+  collcom_tmp=collective_comms_null()
   call init_collective_comms(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
 
   allocate(psit_c_tmp(sum(collcom_tmp%nrecvcounts_c)), stat=i_stat)
@@ -1270,6 +1272,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
+  use communications, only: collective_comms_null
   implicit none
 
   ! Calling arguments
@@ -1496,7 +1499,8 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
      call copy_locreg_descriptors(tmb%lzd%llr(jlr), lzd_tmp%llr(i1))
   end do
 
-  call nullify_collective_comms(collcom_tmp)
+  !call nullify_collective_comms(collcom_tmp)
+  collcom_tmp=collective_comms_null()
   call init_collective_comms(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
 
   allocate(psit_c_tmp(sum(collcom_tmp%nrecvcounts_c)), stat=i_stat)

@@ -45,6 +45,7 @@ libmodules_a_SOURCES = base.f90 \
 	diis_module.f90 \
 	ao_inguess.f90 \
 	atoms_data.f90 \
+	communications.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -72,7 +73,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@ \
 	AO_INGUESS.@MODULE_EXT@ \
-	MODULE_ATOMS.@MODULE_EXT@
+	MODULE_ATOMS.@MODULE_EXT@ \
+	COMMUNICATIONS.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -94,7 +96,9 @@ modules = module_base.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@ \
 	ao_inguess.@MODULE_EXT@ \
-	module_atoms.@MODULE_EXT@
+	module_atoms.@MODULE_EXT@ \
+	communications.@MODULE_EXT@
+
 
 endif
 
@@ -140,6 +144,7 @@ psp_projectors.o: locregs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o
+communications.o: base.o types.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

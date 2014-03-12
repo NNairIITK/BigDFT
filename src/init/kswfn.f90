@@ -120,6 +120,7 @@ END SUBROUTINE kswfn_mpi_copy
 subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
+  use communications, only: collective_comms_null
   implicit none
   integer, intent(in) :: iproc, nproc
   type(DFT_wavefunction), intent(inout) :: wfn
@@ -139,8 +140,10 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, wfn%lzd, wfn%comgp)
 
-  call nullify_collective_comms(wfn%collcom)
-  call nullify_collective_comms(wfn%collcom_sr)
+  !call nullify_collective_comms(wfn%collcom)
+  !call nullify_collective_comms(wfn%collcom_sr)
+  wfn%collcom=collective_comms_null()
+  wfn%collcom_sr=collective_comms_null()
 
   call init_collective_comms(iproc, nproc, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, wfn%collcom)
   call init_collective_comms_sumrho(iproc, nproc, wfn%lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)

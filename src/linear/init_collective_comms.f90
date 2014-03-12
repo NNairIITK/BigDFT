@@ -12,6 +12,7 @@ subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_collective_comms
+  use communications, only: allocate_MPI_communication_arrays
   implicit none
   
   ! Calling arguments
@@ -85,48 +86,49 @@ t1=mpi_wtime()
   end if
   if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_collective_comms: wrong partition of fine grid points'
 
-  ! Allocate the keys
-  allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
-  call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
-  allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
-  call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t1=mpi_wtime()
-  call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
-       istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-       weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
-       collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
+  ! Moved this part down
+  !!! Allocate the keys
+  !!allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
+  !!call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
+  !!allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
+  !!call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
+  !!t1=mpi_wtime()
+  !!call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
+  !!     istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+  !!     weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
+  !!     collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
 
 
 
-  iall=-product(shape(weight_c))*kind(weight_c)
-  deallocate(weight_c, stat=istat)
-  call memocc(istat, iall, 'weight_c', subname)
-  iall=-product(shape(weight_f))*kind(weight_f)
-  deallocate(weight_f, stat=istat)
-  call memocc(istat, iall, 'weight_f', subname)
+  ! Moved this part down
+  !!iall=-product(shape(weight_c))*kind(weight_c)
+  !!deallocate(weight_c, stat=istat)
+  !!call memocc(istat, iall, 'weight_c', subname)
+  !!iall=-product(shape(weight_f))*kind(weight_f)
+  !!deallocate(weight_f, stat=istat)
+  !!call memocc(istat, iall, 'weight_f', subname)
 
   ! Determine values for mpi_alltoallv
-  allocate(collcom%nsendcounts_c(0:nproc-1), stat=istat)
-  call memocc(istat, collcom%nsendcounts_c, 'collcom%nsendcounts_c', subname)
-  allocate(collcom%nsenddspls_c(0:nproc-1), stat=istat)
-  call memocc(istat, collcom%nsenddspls_c, 'collcom%nsenddspls_c', subname)
-  allocate(collcom%nrecvcounts_c(0:nproc-1), stat=istat)
-  call memocc(istat, collcom%nrecvcounts_c, 'collcom%nrecvcounts_c', subname)
-  allocate(collcom%nrecvdspls_c(0:nproc-1), stat=istat)
-  call memocc(istat, collcom%nrecvdspls_c, 'collcom%nrecvdspls_c', subname)
-  allocate(collcom%nsendcounts_f(0:nproc-1), stat=istat)
-  call memocc(istat, collcom%nsendcounts_f, 'collcom%nsendcounts_f', subname)
-  allocate(collcom%nsenddspls_f(0:nproc-1), stat=istat)
-  call memocc(istat, collcom%nsenddspls_f, 'collcom%nsenddspls_f', subname)
-  allocate(collcom%nrecvcounts_f(0:nproc-1), stat=istat)
-  call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
-  allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
-  call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
+  call allocate_MPI_communication_arrays(nproc, collcom)
+  !!allocate(collcom%nsendcounts_c(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%nsendcounts_c, 'collcom%nsendcounts_c', subname)
+  !!allocate(collcom%nsenddspls_c(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%nsenddspls_c, 'collcom%nsenddspls_c', subname)
+  !!allocate(collcom%nrecvcounts_c(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%nrecvcounts_c, 'collcom%nrecvcounts_c', subname)
+  !!allocate(collcom%nrecvdspls_c(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%nrecvdspls_c, 'collcom%nrecvdspls_c', subname)
+  !!allocate(collcom%nsendcounts_f(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%nsendcounts_f, 'collcom%nsendcounts_f', subname)
+  !!allocate(collcom%nsenddspls_f(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%nsenddspls_f, 'collcom%nsenddspls_f', subname)
+  !!allocate(collcom%nrecvcounts_f(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
+  !!allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
   call determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, istartend_c, istartend_f, &
        index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
@@ -172,6 +174,24 @@ t1=mpi_wtime()
   call memocc(istat, collcom%iexpand_f, 'collcom%iexpand_f', subname)
   allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
   call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
+
+  ! Allocate the keys
+  allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
+  call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
+  allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
+  call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
+  call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
+       istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+       weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
+       collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
+
+
+  iall=-product(shape(weight_c))*kind(weight_c)
+  deallocate(weight_c, stat=istat)
+  call memocc(istat, iall, 'weight_c', subname)
+  iall=-product(shape(weight_f))*kind(weight_f)
+  deallocate(weight_f, stat=istat)
+  call memocc(istat, iall, 'weight_f', subname)
 
 
   call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
