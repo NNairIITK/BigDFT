@@ -579,7 +579,12 @@ contains
     do while (associated(iter))
        funt = iter
        if (funt == unt) then
-          call pop(stream_files, dict_key(iter))
+          if (dict_size(stream_files) == 1) then
+             call pop(stream_files, dict_key(iter))
+             call dict_init(stream_files)
+          else
+             call pop(stream_files, dict_key(iter))
+          end if
           exit
        end if
        iter => dict_next(iter)
