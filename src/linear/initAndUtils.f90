@@ -801,7 +801,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
-  use communications, only: collective_comms_null
+  use communications, only: collective_comms_null, init_collective_comms
   implicit none
   
   ! Calling arguments

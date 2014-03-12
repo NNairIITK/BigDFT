@@ -8,246 +8,126 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => init_collective_comms
-  use communications, only: allocate_MPI_communication_arrays, allocate_local_communications_arrays
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npsidim_orbs
-  type(orbitals_data),intent(in) :: orbs
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(collective_comms),intent(inout) :: collcom
-  
-  ! Local variables
-  integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
-  integer :: ipt, nvalp_c, nvalp_f
-  real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
-  real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt, t1, t2
-  integer,dimension(:,:),allocatable :: istartend_c, istartend_f
-  integer,dimension(:,:,:),allocatable :: index_in_global_c, index_in_global_f
-  integer,dimension(:),allocatable :: npts_par_c, npts_par_f
-  character(len=*),parameter :: subname='init_collective_comms'
-  
-  call timing(iproc,'init_collcomm ','ON')
-  
-  allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
-  call memocc(istat, weight_c, 'weight_c', subname)
-  allocate(weight_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
-  call memocc(istat, weight_f, 'weight_f', subname)
-  allocate(index_in_global_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
-  call memocc(istat, index_in_global_c, 'index_in_global_c', subname)
-  allocate(index_in_global_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
-  call memocc(istat, index_in_global_f, 'index_in_global_f', subname)
-
-
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t1=mpi_wtime()
-call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 1:',t2-t1
-t1=mpi_wtime()
-  ! Assign the grid points to the processes such that the work is equally dsitributed
-  allocate(istartend_c(2,0:nproc-1), stat=istat)
-  call memocc(istat, istartend_c, 'istartend_c', subname)
-  allocate(istartend_f(2,0:nproc-1), stat=istat)
-  call memocc(istat, istartend_f, 'istartend_f', subname)
-  call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
-       istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-       weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
-
-
-  ! some checks
-  if(nproc>1) then
-      call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  else
-      tt=weightp_c
-  end if
-  if(tt/=weight_c_tot) stop 'wrong partition of coarse weights'
-  if(nproc>1) then
-      call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  else
-      tt=weightp_f
-  end if     
-  if(tt/=weight_f_tot) stop 'wrong partition of fine weights'
-  if(nproc>1) then
-      call mpi_allreduce(collcom%nptsp_c, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  else
-      ii=collcom%nptsp_c
-  end if
-  if(ii/=lzd%glr%wfd%nvctr_c) stop 'wrong partition of coarse grid points'
-  if(nproc>1) then
-      call mpi_allreduce(collcom%nptsp_f, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  else
-      ii=collcom%nptsp_f
-  end if
-  if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_collective_comms: wrong partition of fine grid points'
-
-  ! Moved this part down
-  !!! Allocate the keys
-  !!allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
-  !!call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
-  !!allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
-  !!call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
-  !!t1=mpi_wtime()
-  !!call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
-  !!     istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-  !!     weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
-  !!     collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-
-  ! Determine the index of a grid point i1,i2,i3 in the compressed array
-  call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
-
-
-
-  ! Moved this part down
-  !!iall=-product(shape(weight_c))*kind(weight_c)
-  !!deallocate(weight_c, stat=istat)
-  !!call memocc(istat, iall, 'weight_c', subname)
-  !!iall=-product(shape(weight_f))*kind(weight_f)
-  !!deallocate(weight_f, stat=istat)
-  !!call memocc(istat, iall, 'weight_f', subname)
-
-  ! Determine values for mpi_alltoallv
-  call allocate_MPI_communication_arrays(nproc, collcom)
-  !!allocate(collcom%nsendcounts_c(0:nproc-1), stat=istat)
-  !!call memocc(istat, collcom%nsendcounts_c, 'collcom%nsendcounts_c', subname)
-  !!allocate(collcom%nsenddspls_c(0:nproc-1), stat=istat)
-  !!call memocc(istat, collcom%nsenddspls_c, 'collcom%nsenddspls_c', subname)
-  !!allocate(collcom%nrecvcounts_c(0:nproc-1), stat=istat)
-  !!call memocc(istat, collcom%nrecvcounts_c, 'collcom%nrecvcounts_c', subname)
-  !!allocate(collcom%nrecvdspls_c(0:nproc-1), stat=istat)
-  !!call memocc(istat, collcom%nrecvdspls_c, 'collcom%nrecvdspls_c', subname)
-  !!allocate(collcom%nsendcounts_f(0:nproc-1), stat=istat)
-  !!call memocc(istat, collcom%nsendcounts_f, 'collcom%nsendcounts_f', subname)
-  !!allocate(collcom%nsenddspls_f(0:nproc-1), stat=istat)
-  !!call memocc(istat, collcom%nsenddspls_f, 'collcom%nsenddspls_f', subname)
-  !!allocate(collcom%nrecvcounts_f(0:nproc-1), stat=istat)
-  !!call memocc(istat, collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
-  !!allocate(collcom%nrecvdspls_f(0:nproc-1), stat=istat)
-  !!call memocc(istat, collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
-  call determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, istartend_c, istartend_f, &
-       index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
-       collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
-       collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
-
-
-
-  !Now set some integers in the collcomm structure
-  collcom%ndimind_c = sum(collcom%nrecvcounts_c)
-  collcom%ndimind_f = sum(collcom%nrecvcounts_f)
-
-  ! Now rearrange the data on the process to communicate them
-  collcom%ndimpsi_c=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      collcom%ndimpsi_c=collcom%ndimpsi_c+lzd%llr(ilr)%wfd%nvctr_c
-  end do
-  collcom%ndimpsi_f=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      ilr=orbs%inwhichlocreg(iiorb)
-      collcom%ndimpsi_f=collcom%ndimpsi_f+lzd%llr(ilr)%wfd%nvctr_f
-  end do
-
-  call allocate_local_communications_arrays(collcom)
-
-  !!allocate(collcom%irecvbuf_c(collcom%ndimpsi_c), stat=istat)
-  !!call memocc(istat, collcom%irecvbuf_c, 'collcom%irecvbuf_c', subname)
-  !!allocate(collcom%indexrecvorbital_c(collcom%ndimind_c), stat=istat)
-  !!call memocc(istat, collcom%indexrecvorbital_c, 'collcom%indexrecvorbital_c', subname)
-  !!allocate(collcom%iextract_c(collcom%ndimind_c), stat=istat)
-  !!call memocc(istat, collcom%iextract_c, 'collcom%iextract_c', subname)
-  !!allocate(collcom%iexpand_c(collcom%ndimind_c), stat=istat)
-  !!call memocc(istat, collcom%iexpand_c, 'collcom%iexpand_c', subname)
-  !!allocate(collcom%isendbuf_c(collcom%ndimpsi_c), stat=istat)
-  !!call memocc(istat, collcom%isendbuf_c, 'collcom%isendbuf_c', subname)
-
-  !!allocate(collcom%irecvbuf_f(collcom%ndimpsi_f), stat=istat)
-  !!call memocc(istat, collcom%irecvbuf_f, 'collcom%irecvbuf_f', subname)
-  !!allocate(collcom%indexrecvorbital_f(collcom%ndimind_f), stat=istat)
-  !!call memocc(istat, collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
-  !!allocate(collcom%iextract_f(collcom%ndimind_f), stat=istat)
-  !!call memocc(istat, collcom%iextract_f, 'collcom%iextract_f', subname)
-  !!allocate(collcom%iexpand_f(collcom%ndimind_f), stat=istat)
-  !!call memocc(istat, collcom%iexpand_f, 'collcom%iexpand_f', subname)
-  !!allocate(collcom%isendbuf_f(collcom%ndimpsi_f), stat=istat)
-  !!call memocc(istat, collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
-
-  !!allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
-  !!call memocc(istat, collcom%isptsp_c, 'collcom%isptsp_c', subname)
-  !!allocate(collcom%isptsp_f(max(collcom%nptsp_f,1)), stat=istat)
-  !!call memocc(istat, collcom%isptsp_f, 'collcom%isptsp_f', subname)
-
-  !!! Allocate the keys
-  !!allocate(collcom%norb_per_gridpoint_c(collcom%nptsp_c), stat=istat)
-  !!call memocc(istat, collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
-  !!allocate(collcom%norb_per_gridpoint_f(collcom%nptsp_f), stat=istat)
-  !!call memocc(istat, collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
-  call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
-       istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-       weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
-       collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-
-
-  iall=-product(shape(weight_c))*kind(weight_c)
-  deallocate(weight_c, stat=istat)
-  call memocc(istat, iall, 'weight_c', subname)
-  iall=-product(shape(weight_f))*kind(weight_f)
-  deallocate(weight_f, stat=istat)
-  call memocc(istat, iall, 'weight_f', subname)
-
-
-  call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
-       collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
-       collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
-       index_in_global_c, index_in_global_f, &
-       weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
-       collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
-       collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
-
-
-  ! These variables are used in various subroutines to speed up the code
-  collcom%isptsp_c(1) = 0
-  do ipt=2,collcom%nptsp_c
-        collcom%isptsp_c(ipt) = collcom%isptsp_c(ipt-1) + collcom%norb_per_gridpoint_c(ipt-1)
-  end do
-  if (maxval(collcom%isptsp_c)>collcom%ndimind_c) stop 'maxval(collcom%isptsp_c)>collcom%ndimind_c'
-
-  collcom%isptsp_f(1) = 0
-  do ipt=2,collcom%nptsp_f
-        collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
-  end do
-  if (maxval(collcom%isptsp_f)>collcom%ndimind_f) stop 'maxval(collcom%isptsp_f)>collcom%ndimind_f'
-
-
-  ! Not used any more, so deallocate...
-  iall=-product(shape(istartend_c))*kind(istartend_c)
-  deallocate(istartend_c, stat=istat)
-  call memocc(istat, iall, 'istartend_c', subname)
-
-  iall=-product(shape(istartend_f))*kind(istartend_f)
-  deallocate(istartend_f, stat=istat)
-  call memocc(istat, iall, 'istartend_f', subname)
-
-  iall=-product(shape(index_in_global_c))*kind(index_in_global_c)
-  deallocate(index_in_global_c, stat=istat)
-  call memocc(istat, iall, 'index_in_global_c', subname)
-
-  iall=-product(shape(index_in_global_f))*kind(index_in_global_f)
-  deallocate(index_in_global_f, stat=istat)
-  call memocc(istat, iall, 'index_in_global_f', subname)
-
-  
-call timing(iproc,'init_collcomm ','OF')
-
-
-  
-end subroutine init_collective_comms
+!!subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces, except_this_one => init_collective_comms
+!!  use communications, only: allocate_MPI_communication_arrays, allocate_local_communications_arrays
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc, npsidim_orbs
+!!  type(orbitals_data),intent(in) :: orbs
+!!  type(local_zone_descriptors),intent(in) :: lzd
+!!  type(collective_comms),intent(inout) :: collcom
+!!  
+!!  ! Local variables
+!!  integer :: ii, iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
+!!  integer :: ipt, nvalp_c, nvalp_f
+!!  real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
+!!  real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f
+!!  integer,dimension(:,:),allocatable :: istartend_c, istartend_f
+!!  integer,dimension(:,:,:),allocatable :: index_in_global_c, index_in_global_f
+!!  integer,dimension(:),allocatable :: npts_par_c, npts_par_f
+!!  
+!!  call timing(iproc,'init_collcomm ','ON')
+!!
+!!  call f_routine('init_collective_comms')
+!!
+!!  weight_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
+!!  weight_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
+!!  index_in_global_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
+!!  index_in_global_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
+!!  
+!!
+!!  call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
+!!
+!!  ! Assign the grid points to the processes such that the work is equally dsitributed
+!!  istartend_c=f_malloc((/1.to.2,0.to.nproc-1/))
+!!  istartend_f=f_malloc((/1.to.2,0.to.nproc-1/))
+!!  call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
+!!       istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+!!       weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
+!!
+!!
+!!  ! Determine the index of a grid point i1,i2,i3 in the compressed array
+!!  call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
+!!
+!!
+!!  ! Determine values for mpi_alltoallv
+!!  call allocate_MPI_communication_arrays(nproc, collcom)
+!!  call determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, istartend_c, istartend_f, &
+!!       index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
+!!       collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
+!!       collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
+!!
+!!
+!!
+!!  !Now set some integers in the collcomm structure
+!!  collcom%ndimind_c = sum(collcom%nrecvcounts_c)
+!!  collcom%ndimind_f = sum(collcom%nrecvcounts_f)
+!!
+!!  ! Now rearrange the data on the process to communicate them
+!!  collcom%ndimpsi_c=0
+!!  do iorb=1,orbs%norbp
+!!      iiorb=orbs%isorb+iorb
+!!      ilr=orbs%inwhichlocreg(iiorb)
+!!      collcom%ndimpsi_c=collcom%ndimpsi_c+lzd%llr(ilr)%wfd%nvctr_c
+!!  end do
+!!  collcom%ndimpsi_f=0
+!!  do iorb=1,orbs%norbp
+!!      iiorb=orbs%isorb+iorb
+!!      ilr=orbs%inwhichlocreg(iiorb)
+!!      collcom%ndimpsi_f=collcom%ndimpsi_f+lzd%llr(ilr)%wfd%nvctr_f
+!!  end do
+!!
+!!  call allocate_local_communications_arrays(collcom)
+!!
+!!  call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
+!!       istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+!!       weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
+!!       collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
+!!
+!!  call f_free(weight_c)
+!!  call f_free(weight_f)
+!!
+!!
+!!  call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
+!!       collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
+!!       collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
+!!       index_in_global_c, index_in_global_f, &
+!!       weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
+!!       collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
+!!       collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
+!!
+!!
+!!  ! These variables are used in various subroutines to speed up the code
+!!  collcom%isptsp_c(1) = 0
+!!  do ipt=2,collcom%nptsp_c
+!!        collcom%isptsp_c(ipt) = collcom%isptsp_c(ipt-1) + collcom%norb_per_gridpoint_c(ipt-1)
+!!  end do
+!!  if (maxval(collcom%isptsp_c)>collcom%ndimind_c) stop 'maxval(collcom%isptsp_c)>collcom%ndimind_c'
+!!
+!!  collcom%isptsp_f(1) = 0
+!!  do ipt=2,collcom%nptsp_f
+!!        collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
+!!  end do
+!!  if (maxval(collcom%isptsp_f)>collcom%ndimind_f) stop 'maxval(collcom%isptsp_f)>collcom%ndimind_f'
+!!
+!!
+!!  ! Not used any more, so deallocate...
+!!  call f_free(istartend_c)
+!!  call f_free(istartend_f)
+!!
+!!  call f_free(index_in_global_c)
+!!  call f_free(index_in_global_f)
+!!  
+!!
+!!  call f_release_routine()
+!!  
+!!  call timing(iproc,'init_collcomm ','OF')
+!!  
+!!end subroutine init_collective_comms
 
 
 
@@ -622,6 +502,33 @@ call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
      write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
      stop
   end if
+
+
+  ! some checks
+  if(nproc>1) then
+      call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  else
+      tt=weightp_c
+  end if
+  if(tt/=weight_tot_c) stop 'wrong partition of coarse weights'
+  if(nproc>1) then
+      call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  else
+      tt=weightp_f
+  end if     
+  if(tt/=weight_tot_f) stop 'wrong partition of fine weights'
+  if(nproc>1) then
+      call mpi_allreduce(nptsp_c, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  else
+      ii=nptsp_c
+  end if
+  if(ii/=lzd%glr%wfd%nvctr_c) stop 'wrong partition of coarse grid points'
+  if(nproc>1) then
+      call mpi_allreduce(nptsp_f, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  else
+      ii=nptsp_f
+  end if
+  if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_collective_comms: wrong partition of fine grid points'
   
  
 

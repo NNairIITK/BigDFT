@@ -7,7 +7,10 @@ module communications
 
 
   public :: collective_comms_null
-  public :: allocate_MPI_communication_arrays, allocate_local_communications_arrays
+  public :: allocate_MPI_communication_arrays
+  public :: allocate_local_communications_arrays
+  public :: allocate_MPI_communications_arrays_repartition
+  public :: init_collective_comms
 
   contains
 
@@ -82,7 +85,7 @@ module communications
       implicit none
       type(collective_comms),intent(inout) :: comms
       integer :: istat
-      character(len=*),parameter :: subname='allocate_MPI_communication_arrays'
+      character(len=*),parameter :: subname='allocate_local_communications_arrays'
 
       allocate(comms%irecvbuf_c(comms%ndimpsi_c), stat=istat)
       call memocc(istat, comms%irecvbuf_c, 'comms%irecvbuf_c', subname)
@@ -118,5 +121,142 @@ module communications
 
     end subroutine allocate_local_communications_arrays
 
+
+    subroutine allocate_MPI_communications_arrays_repartition(nproc, comms)
+      implicit none
+      integer,intent(in) :: nproc
+      type(collective_comms),intent(inout) :: comms
+      integer :: istat
+      character(len=*),parameter :: subname='allocate_MPI_communications_arrays_repartition'
+      allocate(comms%nsendcounts_repartitionrho(0:nproc-1), stat=istat)
+      call memocc(istat, comms%nsendcounts_repartitionrho, 'comms%nsendcounts_repartitionrho', subname)
+      allocate(comms%nrecvcounts_repartitionrho(0:nproc-1), stat=istat)
+      call memocc(istat, comms%nrecvcounts_repartitionrho, 'comms%nrecvcounts_repartitionrho', subname)
+      allocate(comms%nsenddspls_repartitionrho(0:nproc-1), stat=istat)
+      call memocc(istat, comms%nsenddspls_repartitionrho, 'comms%nsenddspls_repartitionrho', subname)
+      allocate(comms%nrecvdspls_repartitionrho(0:nproc-1), stat=istat)
+      call memocc(istat, comms%nrecvdspls_repartitionrho, 'comms%nrecvdspls_repartitionrho', subname)
+    end subroutine allocate_MPI_communications_arrays_repartition
+
+
+    subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
+      use module_base
+      use module_types
+      use module_interfaces, except_this_one => init_collective_comms
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, npsidim_orbs
+      type(orbitals_data),intent(in) :: orbs
+      type(local_zone_descriptors),intent(in) :: lzd
+      type(collective_comms),intent(inout) :: collcom
+      
+      ! Local variables
+      integer :: ii, iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
+      integer :: ipt, nvalp_c, nvalp_f
+      real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
+      real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f
+      integer,dimension(:,:),allocatable :: istartend_c, istartend_f
+      integer,dimension(:,:,:),allocatable :: index_in_global_c, index_in_global_f
+      integer,dimension(:),allocatable :: npts_par_c, npts_par_f
+      
+      call timing(iproc,'init_collcomm ','ON')
+    
+      call f_routine('init_collective_comms')
+    
+      weight_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
+      weight_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
+      index_in_global_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
+      index_in_global_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
+      
+    
+      call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
+    
+      ! Assign the grid points to the processes such that the work is equally dsitributed
+      istartend_c=f_malloc((/1.to.2,0.to.nproc-1/))
+      istartend_f=f_malloc((/1.to.2,0.to.nproc-1/))
+      call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
+           istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+           weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
+    
+    
+      ! Determine the index of a grid point i1,i2,i3 in the compressed array
+      call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
+    
+    
+      ! Determine values for mpi_alltoallv
+      call allocate_MPI_communication_arrays(nproc, collcom)
+      call determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, istartend_c, istartend_f, &
+           index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
+           collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
+           collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
+    
+    
+    
+      !Now set some integers in the collcomm structure
+      collcom%ndimind_c = sum(collcom%nrecvcounts_c)
+      collcom%ndimind_f = sum(collcom%nrecvcounts_f)
+    
+      ! Now rearrange the data on the process to communicate them
+      collcom%ndimpsi_c=0
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          collcom%ndimpsi_c=collcom%ndimpsi_c+lzd%llr(ilr)%wfd%nvctr_c
+      end do
+      collcom%ndimpsi_f=0
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          collcom%ndimpsi_f=collcom%ndimpsi_f+lzd%llr(ilr)%wfd%nvctr_f
+      end do
+    
+      call allocate_local_communications_arrays(collcom)
+    
+      call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
+           istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+           weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
+           collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
+    
+      call f_free(weight_c)
+      call f_free(weight_f)
+    
+    
+      call get_switch_indices(iproc, nproc, orbs, lzd, collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
+           collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
+           collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
+           index_in_global_c, index_in_global_f, &
+           weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
+           collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
+           collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
+    
+    
+      ! These variables are used in various subroutines to speed up the code
+      collcom%isptsp_c(1) = 0
+      do ipt=2,collcom%nptsp_c
+            collcom%isptsp_c(ipt) = collcom%isptsp_c(ipt-1) + collcom%norb_per_gridpoint_c(ipt-1)
+      end do
+      if (maxval(collcom%isptsp_c)>collcom%ndimind_c) stop 'maxval(collcom%isptsp_c)>collcom%ndimind_c'
+    
+      collcom%isptsp_f(1) = 0
+      do ipt=2,collcom%nptsp_f
+            collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
+      end do
+      if (maxval(collcom%isptsp_f)>collcom%ndimind_f) stop 'maxval(collcom%isptsp_f)>collcom%ndimind_f'
+    
+    
+      ! Not used any more, so deallocate...
+      call f_free(istartend_c)
+      call f_free(istartend_f)
+    
+      call f_free(index_in_global_c)
+      call f_free(index_in_global_f)
+      
+    
+      call f_release_routine()
+      
+      call timing(iproc,'init_collcomm ','OF')
+      
+    end subroutine init_collective_comms
 
 end module communications

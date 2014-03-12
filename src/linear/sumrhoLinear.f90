@@ -635,6 +635,7 @@ subroutine init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, co
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_collective_comms_sumrho
+  use communications, only: allocate_MPI_communications_arrays_repartition
   implicit none
 
   ! Calling arguments
@@ -724,14 +725,15 @@ subroutine init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, co
         collcom_sr%isptsp_c(ipt) = collcom_sr%isptsp_c(ipt-1) + collcom_sr%norb_per_gridpoint_c(ipt-1)
   end do
 
-  allocate(collcom_sr%nsendcounts_repartitionrho(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nsendcounts_repartitionrho, 'collcom_sr%nsendcounts_repartitionrho', subname)
-  allocate(collcom_sr%nrecvcounts_repartitionrho(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nrecvcounts_repartitionrho, 'collcom_sr%nrecvcounts_repartitionrho', subname)
-  allocate(collcom_sr%nsenddspls_repartitionrho(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nsenddspls_repartitionrho, 'collcom_sr%nsenddspls_repartitionrho', subname)
-  allocate(collcom_sr%nrecvdspls_repartitionrho(0:nproc-1), stat=istat)
-  call memocc(istat, collcom_sr%nrecvdspls_repartitionrho, 'collcom_sr%nrecvdspls_repartitionrho', subname)
+  call allocate_MPI_communications_arrays_repartition(nproc, collcom_sr)
+  !!allocate(collcom_sr%nsendcounts_repartitionrho(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom_sr%nsendcounts_repartitionrho, 'collcom_sr%nsendcounts_repartitionrho', subname)
+  !!allocate(collcom_sr%nrecvcounts_repartitionrho(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom_sr%nrecvcounts_repartitionrho, 'collcom_sr%nrecvcounts_repartitionrho', subname)
+  !!allocate(collcom_sr%nsenddspls_repartitionrho(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom_sr%nsenddspls_repartitionrho, 'collcom_sr%nsenddspls_repartitionrho', subname)
+  !!allocate(collcom_sr%nrecvdspls_repartitionrho(0:nproc-1), stat=istat)
+  !!call memocc(istat, collcom_sr%nrecvdspls_repartitionrho, 'collcom_sr%nrecvdspls_repartitionrho', subname)
 
   call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
        collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &

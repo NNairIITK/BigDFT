@@ -120,7 +120,7 @@ END SUBROUTINE kswfn_mpi_copy
 subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
-  use communications, only: collective_comms_null
+  use communications, only: collective_comms_null, init_collective_comms
   implicit none
   integer, intent(in) :: iproc, nproc
   type(DFT_wavefunction), intent(inout) :: wfn
