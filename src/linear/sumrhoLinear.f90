@@ -1169,6 +1169,7 @@ subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd,
            isendbuf, irecvbuf, iextract, iexpand, indexrecvorbital)
   use module_base
   use module_types
+  use communications, only: get_reverse_indices
   implicit none
 
   ! Calling arguments
