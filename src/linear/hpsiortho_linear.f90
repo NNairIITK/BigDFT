@@ -17,6 +17,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
+  use communications, only: transpose_localized
   implicit none
 
   ! Calling arguments
@@ -937,6 +938,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => hpsitopsi_linear
+  use communications, only: transpose_localized, untranspose_localized
   implicit none
   
   ! Calling arguments

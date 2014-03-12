@@ -3057,103 +3057,103 @@ module module_interfaces
          integer,intent(out):: nptsp_c, nptsp_f
        end subroutine assign_weight_to_process2
 
-       subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
-         use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: npsidim_orbs
-         type(orbitals_Data),intent(in):: orbs
-         type(collective_comms),intent(in):: collcom
-         real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
-         real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
-         real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
-         type(local_zone_descriptors),intent(in),optional:: lzd
-       end subroutine transpose_switch_psi
+       !!subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer, intent(in) :: npsidim_orbs
+       !!  type(orbitals_Data),intent(in):: orbs
+       !!  type(collective_comms),intent(in):: collcom
+       !!  real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
+       !!  real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
+       !!  real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
+       !!  type(local_zone_descriptors),intent(in),optional:: lzd
+       !!end subroutine transpose_switch_psi
 
-       subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc
-         type(collective_comms),intent(in):: collcom
-         real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
-         real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
-         real(8),dimension(collcom%ndimind_c),intent(out):: psitwork_c
-         real(8),dimension(collcom%ndimind_f),intent(out):: psitwork_f
-       end subroutine transpose_communicate_psi
+       !!subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: iproc, nproc
+       !!  type(collective_comms),intent(in):: collcom
+       !!  real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
+       !!  real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
+       !!  real(8),dimension(collcom%ndimind_c),intent(out):: psitwork_c
+       !!  real(8),dimension(collcom%ndimind_f),intent(out):: psitwork_f
+       !!end subroutine transpose_communicate_psi
 
-       subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
-         use module_base
-         use module_types
-         implicit none
-         type(collective_comms),intent(in):: collcom
-         real(8),dimension(collcom%ndimind_c),intent(in):: psitwork_c
-         real(8),dimension(7*collcom%ndimind_f),intent(in):: psitwork_f
-         real(8),dimension(collcom%ndimind_c),intent(out):: psit_c
-         real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
-       end subroutine transpose_unswitch_psit
+       !!subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  type(collective_comms),intent(in):: collcom
+       !!  real(8),dimension(collcom%ndimind_c),intent(in):: psitwork_c
+       !!  real(8),dimension(7*collcom%ndimind_f),intent(in):: psitwork_f
+       !!  real(8),dimension(collcom%ndimind_c),intent(out):: psit_c
+       !!  real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
+       !!end subroutine transpose_unswitch_psit
 
-       subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
-         use module_base
-         use module_types
-         implicit none
-         type(collective_comms),intent(in):: collcom
-         real(8),dimension(collcom%ndimind_c),intent(in):: psit_c
-         real(8),dimension(7*collcom%ndimind_f),intent(in):: psit_f
-         real(8),dimension(collcom%ndimind_c),intent(out):: psitwork_c
-         real(8),dimension(7*collcom%ndimind_f),intent(out):: psitwork_f
-       end subroutine transpose_switch_psit
+       !!subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  type(collective_comms),intent(in):: collcom
+       !!  real(8),dimension(collcom%ndimind_c),intent(in):: psit_c
+       !!  real(8),dimension(7*collcom%ndimind_f),intent(in):: psit_f
+       !!  real(8),dimension(collcom%ndimind_c),intent(out):: psitwork_c
+       !!  real(8),dimension(7*collcom%ndimind_f),intent(out):: psitwork_f
+       !!end subroutine transpose_switch_psit
 
-       subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc
-         type(collective_comms),intent(in):: collcom
-         real(8),dimension(collcom%ndimind_c),intent(in):: psitwork_c
-         real(8),dimension(7*collcom%ndimind_f),intent(in):: psitwork_f
-         real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
-         real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
-       end subroutine transpose_communicate_psit
+       !!subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: iproc, nproc
+       !!  type(collective_comms),intent(in):: collcom
+       !!  real(8),dimension(collcom%ndimind_c),intent(in):: psitwork_c
+       !!  real(8),dimension(7*collcom%ndimind_f),intent(in):: psitwork_f
+       !!  real(8),dimension(collcom%ndimpsi_c),intent(out):: psiwork_c
+       !!  real(8),dimension(7*collcom%ndimpsi_f),intent(out):: psiwork_f
+       !!end subroutine transpose_communicate_psit
 
-       subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
-         use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: npsidim_orbs
-         type(orbitals_data),intent(in):: orbs
-         type(collective_comms),intent(in):: collcom
-         real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
-         real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
-         real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
-         type(local_zone_descriptors),intent(in),optional:: lzd
-       end subroutine transpose_unswitch_psi
+       !!subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer, intent(in) :: npsidim_orbs
+       !!  type(orbitals_data),intent(in):: orbs
+       !!  type(collective_comms),intent(in):: collcom
+       !!  real(8),dimension(collcom%ndimpsi_c),intent(in):: psiwork_c
+       !!  real(8),dimension(7*collcom%ndimpsi_f),intent(in):: psiwork_f
+       !!  real(8),dimension(orbs%npsidim_orbs),intent(out):: psi
+       !!  type(local_zone_descriptors),intent(in),optional:: lzd
+       !!end subroutine transpose_unswitch_psi
 
-       subroutine transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc, npsidim_orbs
-         type(orbitals_data),intent(in):: orbs
-         type(collective_comms),intent(in):: collcom
-         real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
-         real(8),dimension(collcom%ndimind_c),intent(out):: psit_c
-         real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
-         type(local_zone_descriptors),optional,intent(in):: lzd
-       end subroutine transpose_localized
+       !!subroutine transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: iproc, nproc, npsidim_orbs
+       !!  type(orbitals_data),intent(in):: orbs
+       !!  type(collective_comms),intent(in):: collcom
+       !!  real(8),dimension(orbs%npsidim_orbs),intent(in):: psi
+       !!  real(8),dimension(collcom%ndimind_c),intent(out):: psit_c
+       !!  real(8),dimension(7*collcom%ndimind_f),intent(out):: psit_f
+       !!  type(local_zone_descriptors),optional,intent(in):: lzd
+       !!end subroutine transpose_localized
 
-       subroutine untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc, npsidim_orbs
-         type(orbitals_data),intent(in):: orbs
-         type(collective_comms),intent(in):: collcom
-         real(8),dimension(collcom%ndimind_c),intent(in):: psit_c
-         real(8),dimension(7*collcom%ndimind_f),intent(in):: psit_f
-         real(8),dimension(npsidim_orbs),intent(out):: psi
-         type(local_zone_descriptors),optional,intent(in):: lzd
-       end subroutine untranspose_localized
+       !!subroutine untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: iproc, nproc, npsidim_orbs
+       !!  type(orbitals_data),intent(in):: orbs
+       !!  type(collective_comms),intent(in):: collcom
+       !!  real(8),dimension(collcom%ndimind_c),intent(in):: psit_c
+       !!  real(8),dimension(7*collcom%ndimind_f),intent(in):: psit_f
+       !!  real(8),dimension(npsidim_orbs),intent(out):: psi
+       !!  type(local_zone_descriptors),optional,intent(in):: lzd
+       !!end subroutine untranspose_localized
 
        subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,Lzd,&
               iformat,dir_output,filename,ref_frags,orblist)

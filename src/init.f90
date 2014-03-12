@@ -696,6 +696,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_interfaces, except_this_one => input_memory_linear
   use module_fragments
   use yaml_output
+  use communications, only: transpose_localized, untranspose_localized
   implicit none
 
   ! Calling arguments
@@ -1526,6 +1527,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use dynamic_memory
   use yaml_output
   use gaussians, only:gaussian_basis
+  use communications, only: transpose_localized, untranspose_localized
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format

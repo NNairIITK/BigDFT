@@ -3,6 +3,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_types
   use module_interfaces, except_this_one => pulay_correction_new
   use yaml_output
+  use communications, only: transpose_localized
   implicit none
 
   ! Calling arguments
@@ -427,6 +428,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use module_types
   use module_interfaces, except_this_one => pulay_correction
   use yaml_output
+  use communications, only: transpose_localized
   implicit none
 
   ! Calling arguments

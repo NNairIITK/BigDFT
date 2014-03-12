@@ -13,6 +13,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
+  use communications, only: transpose_localized, untranspose_localized
   implicit none
 
   ! Calling arguments
@@ -132,6 +133,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   use yaml_output
+  use communications, only: transpose_localized, untranspose_localized
   implicit none
 
   ! Calling arguments
@@ -1341,6 +1343,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalize_subset
+  use communications, only: transpose_localized, untranspose_localized
   implicit none
 
   ! Calling arguments
@@ -1537,6 +1540,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => gramschmidt_subset
+  use communications, only: transpose_localized, untranspose_localized
   implicit none
 
   ! Calling arguments
