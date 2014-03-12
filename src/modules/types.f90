@@ -1395,6 +1395,9 @@ subroutine deallocate_orbs(orbs,subname)
 
     !Nullify LZD for cubic version (new input guess)
     call nullify_local_zone_descriptors(rst%tmb%lzd)
+
+    !Nullify GPU data
+    rst%GPU%OCLconv=.false.
   END SUBROUTINE restart_objects_new
 
   subroutine restart_objects_set_mode(rst, inputpsiid)
