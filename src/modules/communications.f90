@@ -8,7 +8,6 @@ module communications
 
   public :: collective_comms_null
   public :: init_collective_comms
-  public :: get_reverse_indices
   public :: transpose_localized
   public :: untranspose_localized
   public :: init_collective_comms_sumrho
