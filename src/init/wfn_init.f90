@@ -215,6 +215,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use module_types
   use module_interfaces, except_this_one => LDiagHam
   use yaml_output
+  use communications, only: transpose_v2, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
   real(gp), intent(in) :: Tel
@@ -528,7 +529,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   !this untranspose also the wavefunctions 
   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
-       psit,work=hpsi,outadd=psi(1))
+       psit,work=hpsi,outadd=psi)
 
 !!$!here the checksum of the wavefunction can be extracted
 !!$do jproc=0,bigdft_mpi%nproc-1

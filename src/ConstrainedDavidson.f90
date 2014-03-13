@@ -55,6 +55,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   use module_interfaces, except_this_one => constrained_davidson
   use module_xc
   use yaml_output
+  use communications, only: transpose_v, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nvirt

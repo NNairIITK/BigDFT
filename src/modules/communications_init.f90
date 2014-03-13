@@ -802,7 +802,8 @@ module communications_init
       iiorb_c=0
       iipt=0
     
-      !$omp parallel default(private) shared(lzd,iproc,istartend_c,istartend_f,istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f) &
+      !$omp parallel default(private) &
+      !$omp shared(lzd,iproc,istartend_c,istartend_f,istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f) &
       !$omp shared(nptsp_c, weight_c,norb_per_gridpoint_c,weightp_c,nptsp_f, weight_f,norb_per_gridpoint_f,weightp_f) &
       !$omp shared(icheck_f,iiorb_f,icheck_c,iiorb_c)
     

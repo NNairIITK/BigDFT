@@ -17,6 +17,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    use module_interfaces, except_this_one => direct_minimization
    use module_xc
    use yaml_output
+   use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc,nvirt
    type(input_variables), intent(in) :: in
@@ -181,7 +182,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       allocate(VTwfn%psit(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,VTwfn%psit,'VTwfn%psit',subname)
       !transpose the psivirt 
-      call transpose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd%Glr%wfd,VTwfn%comms,VTwfn%psi,work=psiw,outadd=VTwfn%psit(1))
+      call transpose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd%Glr%wfd,VTwfn%comms,VTwfn%psi,work=psiw,outadd=VTwfn%psit)
    else
       nullify(VTwfn%psit)
    end if
@@ -307,7 +308,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
          call orthogonalize(iproc,nproc,VTwfn%orbs,VTwfn%comms,VTwfn%psit,in%orthpar)
          !retranspose the psivirt
          call untranspose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd%Glr%wfd,VTwfn%comms,VTwfn%psit,&
-            &   work=psiw,outadd=VTwfn%psi(1))
+            &   work=psiw,outadd=VTwfn%psi)
       end if
 
    end do wfn_loop
@@ -411,6 +412,7 @@ subroutine davidson(iproc,nproc,in,at,&
    use module_interfaces, except_this_one => davidson
    use module_xc
    use yaml_output
+   use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
    integer, intent(in) :: nvirt
@@ -1501,6 +1503,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use module_types
    use module_interfaces
    use gaussians
+   use communications, only: transpose_v
    implicit none
    integer, intent(in) :: iproc,nproc,nspin
    real(gp), intent(in) :: hx,hy,hz

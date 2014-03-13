@@ -17,6 +17,7 @@ program BigDFT2Wannier
    use yaml_output
    use module_input_dicts
    use communications_init, only: orbitals_communicators
+   use communications, only: transpose_v, untranspose_v
    implicit none
    character :: filetype*4
    !etsf

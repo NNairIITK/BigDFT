@@ -963,6 +963,7 @@ END SUBROUTINE input_memory_linear
            use yaml_output
            use gaussians
            use communications_init, only: orbitals_communicators
+           use communications, only: transpose_v2
            implicit none
            !Arguments
            integer, intent(in) :: iproc,nproc,ixc
