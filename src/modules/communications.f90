@@ -13,6 +13,58 @@ module communications
   public :: transpose_unswitch_psirt
   public :: start_onesided_communication
   public :: synchronize_onesided_communication
+  public :: communicate_locreg_descriptors_basics
+  public :: communicate_locreg_descriptors_keys
+  public :: transpose_v
+  public :: transpose_v2
+  public :: untranspose_v
+
+
+  interface
+
+    !!subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
+    !!       &   work,outadd) !optional
+    !!  !n(c) use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  integer, intent(in) :: iproc,nproc
+    !!  type(orbitals_data), intent(in) :: orbs
+    !!  type(wavefunctions_descriptors), intent(in) :: wfd
+    !!  type(communications_arrays), intent(in) :: comms
+    !!  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
+    !!  real(wp), dimension(:), pointer, optional :: work
+    !!  real(wp), intent(out), optional :: outadd
+    !!END SUBROUTINE transpose_v
+
+    !!subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+    !!     work,outadd) !optional
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  integer, intent(in) :: iproc,nproc
+    !!  type(orbitals_data), intent(in) :: orbs
+    !!  type(local_zone_descriptors), intent(in) :: Lzd
+    !!  type(communications_arrays), intent(in) :: comms
+    !!  real(wp), dimension(:), pointer :: psi
+    !!  real(wp), dimension(:), pointer, optional :: work
+    !!  real(wp), dimension(*), intent(out), optional :: outadd
+    !!end subroutine
+
+    !!subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
+    !!     &   work,outadd) !optional
+    !!  !n(c) use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  integer, intent(in) :: iproc,nproc
+    !!  type(orbitals_data), intent(in) :: orbs
+    !!  type(wavefunctions_descriptors), intent(in) :: wfd
+    !!  type(communications_arrays), intent(in) :: comms
+    !!  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
+    !!  real(wp), dimension(:), pointer, optional :: work
+    !!  real(wp), intent(out), optional :: outadd
+    !!END SUBROUTINE untranspose_v
+
+  end interface
 
 
   contains
@@ -1038,5 +1090,928 @@ module communications
       comm%communication_complete=.true.
     
     end subroutine synchronize_onesided_communication
+
+
+    !> Locreg communication
+    subroutine communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
+      use module_base
+      use module_types
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nlr
+      integer,dimension(nlr),intent(in) :: rootarr
+      type(orbitals_data),intent(in) :: orbs
+      type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
+    
+      ! Local variables
+      integer:: ierr, istat, iall, ilr, iilr
+      character(len=1),dimension(:),allocatable :: worksend_char, workrecv_char
+      logical,dimension(:),allocatable :: worksend_log, workrecv_log
+      integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
+      real(8),dimension(:,:),allocatable :: worksend_dbl, workrecv_dbl
+      character(len=*),parameter :: subname='communicate_locreg_descriptors_basics'
+    
+      allocate(worksend_char(orbs%norbp), stat=istat)
+      call memocc(istat, worksend_char, 'worksend_char', subname)
+      allocate(worksend_log(orbs%norbp), stat=istat)
+      call memocc(istat, worksend_log, 'worksend_log', subname)
+      allocate(worksend_int(11,orbs%norbp), stat=istat)
+      call memocc(istat, worksend_int, 'worksend_int', subname)
+      allocate(worksend_dbl(5,orbs%norbp), stat=istat)
+      call memocc(istat, worksend_dbl, 'worksend_dbl', subname)
+    
+      allocate(workrecv_char(orbs%norb), stat=istat)
+      call memocc(istat, workrecv_char, 'workrecv_char', subname)
+      allocate(workrecv_log(orbs%norb), stat=istat)
+      call memocc(istat, workrecv_log, 'workrecv_log', subname)
+      allocate(workrecv_int(11,orbs%norb), stat=istat)
+      call memocc(istat, workrecv_int, 'workrecv_int', subname)
+      allocate(workrecv_dbl(5,orbs%norb), stat=istat)
+      call memocc(istat, workrecv_dbl, 'workrecv_dbl', subname)
+    
+    
+      iilr=0
+      do ilr=1,nlr
+          if (iproc==rootarr(ilr)) then
+              iilr=iilr+1
+              worksend_char(iilr)=llr(ilr)%geocode
+              worksend_log(iilr)=llr(ilr)%hybrid_on
+              worksend_int(1,iilr)=llr(ilr)%ns1
+              worksend_int(2,iilr)=llr(ilr)%ns2
+              worksend_int(3,iilr)=llr(ilr)%ns3
+              worksend_int(4,iilr)=llr(ilr)%nsi1
+              worksend_int(5,iilr)=llr(ilr)%nsi2
+              worksend_int(6,iilr)=llr(ilr)%nsi3
+              worksend_int(7,iilr)=llr(ilr)%localnorb
+              worksend_int(8:10,iilr)=llr(ilr)%outofzone(1:3)
+              worksend_int(11,iilr)=ilr
+              worksend_dbl(1:3,iilr)=llr(ilr)%locregCenter(1:3)
+              worksend_dbl(4,iilr)=llr(ilr)%locrad
+              worksend_dbl(5,iilr)=llr(ilr)%locrad_kernel
+          end if
+      end do
+    
+      call mpi_allgatherv(worksend_char, orbs%norbp, mpi_character, workrecv_char, orbs%norb_par(:,0), &
+           orbs%isorb_par, mpi_character, bigdft_mpi%mpi_comm, ierr)
+      call mpi_allgatherv(worksend_log, orbs%norbp, mpi_logical, workrecv_log, orbs%norb_par(:,0), &
+           orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
+      call mpi_allgatherv(worksend_int, 11*orbs%norbp, mpi_integer, workrecv_int, 11*orbs%norb_par(:,0), &
+           11*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+      call mpi_allgatherv(worksend_dbl, 5*orbs%norbp, mpi_double_precision, workrecv_dbl, 5*orbs%norb_par(:,0), &
+           5*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+    
+      do ilr=1,nlr
+          iilr=workrecv_int(11,ilr)
+          llr(iilr)%geocode=workrecv_char(ilr)
+          llr(iilr)%hybrid_on= workrecv_log(ilr)
+          llr(iilr)%ns1=workrecv_int(1,ilr)
+          llr(iilr)%ns2=workrecv_int(2,ilr)
+          llr(iilr)%ns3=workrecv_int(3,ilr)
+          llr(iilr)%nsi1=workrecv_int(4,ilr)
+          llr(iilr)%nsi2=workrecv_int(5,ilr)
+          llr(iilr)%nsi3=workrecv_int(6,ilr)
+          llr(iilr)%localnorb=workrecv_int(7,ilr)
+          llr(iilr)%outofzone(1:3)=workrecv_int(8:10,ilr)
+          llr(iilr)%locregCenter(1:3)=workrecv_dbl(1:3,ilr)
+          llr(iilr)%locrad=workrecv_dbl(4,ilr)
+          llr(iilr)%locrad_kernel=workrecv_dbl(5,ilr)
+      end do
+    
+    
+      iall=-product(shape(worksend_int))*kind(worksend_int)
+      deallocate(worksend_int,stat=istat)
+      call memocc(istat, iall, 'worksend_int', subname)
+      iall=-product(shape(workrecv_int))*kind(workrecv_int)
+      deallocate(workrecv_int,stat=istat)
+      call memocc(istat, iall, 'workrecv_int', subname)
+      allocate(worksend_int(13,orbs%norbp), stat=istat)
+      call memocc(istat, worksend_int, 'worksend_int', subname)
+      allocate(workrecv_int(13,orbs%norb), stat=istat)
+      call memocc(istat, workrecv_int, 'workrecv_int', subname)
+    
+    
+      iilr=0
+      do ilr=1,nlr
+          if (iproc==rootarr(ilr)) then
+              iilr=iilr+1
+              worksend_int(1,iilr)=llr(ilr)%d%n1
+              worksend_int(2,iilr)=llr(ilr)%d%n2
+              worksend_int(3,iilr)=llr(ilr)%d%n3
+              worksend_int(4,iilr)=llr(ilr)%d%nfl1
+              worksend_int(5,iilr)=llr(ilr)%d%nfu1
+              worksend_int(6,iilr)=llr(ilr)%d%nfl2
+              worksend_int(7,iilr)=llr(ilr)%d%nfu2
+              worksend_int(8,iilr)=llr(ilr)%d%nfl3
+              worksend_int(9,iilr)=llr(ilr)%d%nfu3
+              worksend_int(10,iilr)=llr(ilr)%d%n1i
+              worksend_int(11,iilr)=llr(ilr)%d%n2i
+              worksend_int(12,iilr)=llr(ilr)%d%n3i
+              worksend_int(13,iilr)=ilr
+          end if
+      end do
+    
+      call mpi_allgatherv(worksend_int, 13*orbs%norbp, mpi_integer, workrecv_int, 13*orbs%norb_par(:,0), &
+           13*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+    
+      do ilr=1,nlr
+          iilr=workrecv_int(13,ilr)
+          llr(iilr)%d%n1=workrecv_int(1,ilr)
+          llr(iilr)%d%n2=workrecv_int(2,ilr)
+          llr(iilr)%d%n3=workrecv_int(3,ilr)
+          llr(iilr)%d%nfl1=workrecv_int(4,ilr)
+          llr(iilr)%d%nfu1=workrecv_int(5,ilr)
+          llr(iilr)%d%nfl2=workrecv_int(6,ilr)
+          llr(iilr)%d%nfu2=workrecv_int(7,ilr)
+          llr(iilr)%d%nfl3=workrecv_int(8,ilr)
+          llr(iilr)%d%nfu3=workrecv_int(9,ilr)
+          llr(iilr)%d%n1i=workrecv_int(10,ilr)
+          llr(iilr)%d%n2i=workrecv_int(11,ilr)
+          llr(iilr)%d%n3i=workrecv_int(12,ilr)
+      end do
+    
+    
+      iall=-product(shape(worksend_char))*kind(worksend_char)
+      deallocate(worksend_char,stat=istat)
+      call memocc(istat, iall, 'worksend_char', subname)
+      iall=-product(shape(worksend_log))*kind(worksend_log)
+      deallocate(worksend_log,stat=istat)
+      call memocc(istat, iall, 'worksend_log', subname)
+      iall=-product(shape(worksend_int))*kind(worksend_int)
+      deallocate(worksend_int,stat=istat)
+      call memocc(istat, iall, 'worksend_int', subname)
+      iall=-product(shape(worksend_dbl))*kind(worksend_dbl)
+      deallocate(worksend_dbl,stat=istat)
+      call memocc(istat, iall, 'worksend_dbl', subname)
+    
+      iall=-product(shape(workrecv_char))*kind(workrecv_char)
+      deallocate(workrecv_char,stat=istat)
+      call memocc(istat, iall, 'workrecv_char', subname)
+      iall=-product(shape(workrecv_log))*kind(workrecv_log)
+      deallocate(workrecv_log,stat=istat)
+      call memocc(istat, iall, 'workrecv_log', subname)
+      iall=-product(shape(workrecv_int))*kind(workrecv_int)
+      deallocate(workrecv_int,stat=istat)
+      call memocc(istat, iall, 'workrecv_int', subname)
+      iall=-product(shape(workrecv_dbl))*kind(workrecv_dbl)
+      deallocate(workrecv_dbl,stat=istat)
+      call memocc(istat, iall, 'workrecv_dbl', subname)
+    
+    end subroutine communicate_locreg_descriptors_basics
+    
+    
+    subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
+       use module_base
+       use module_types
+       use yaml_output
+       implicit none
+    
+       ! Calling arguments
+       integer,intent(in):: iproc, nproc, nlr
+       type(locreg_descriptors),intent(in) :: glr
+       type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
+       type(orbitals_data),intent(in) :: orbs
+       integer,dimension(nlr),intent(in) :: rootarr
+       integer,dimension(orbs%norb),intent(in) :: onwhichmpi
+    
+       ! Local variables
+       integer:: ierr, istat, iall, jorb, ilr, jlr, itask, jtask, root, icomm, nrecv, nalloc, max_sim_comms
+       integer :: maxrecvdim, maxsenddim, nsend
+       logical :: isoverlap
+       character(len=*),parameter:: subname='communicate_wavefunctions_descriptors2'
+       integer,dimension(:),allocatable :: requests
+       integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
+       logical,dimension(:,:),allocatable :: covered
+       !integer :: total_sent, total_recv
+    
+       ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
+       jorb = maxval(orbs%norb_par(:,0))
+       allocate(requests(8*nproc*jorb), stat=istat)
+       call memocc(istat, requests, 'requests', subname)
+    
+       allocate(covered(nlr,0:nproc-1), stat=istat)
+       call memocc(istat, covered, 'covered', subname)
+    
+       allocate(worksend_int(4,nlr), stat=istat)
+       call memocc(istat, worksend_int, 'worksend_int', subname)
+    
+       allocate(workrecv_int(4,nlr), stat=istat)
+       call memocc(istat, workrecv_int, 'workrecv_int', subname)
+    
+       nrecv=0
+       !nsend=0
+       icomm=0
+       maxsenddim=0
+       do ilr=1,nlr
+           root=rootarr(ilr)
+           covered(ilr,:)=.false.
+           do jorb=1,orbs%norb
+               jlr=orbs%inwhichlocreg(jorb)
+               jtask=onwhichmpi(jorb)
+               ! check we're on a sending or receiving proc
+               if (iproc /= root .and. iproc /= jtask) cycle
+               ! don't communicate to ourselves, or if we've already sent this locreg
+               if (jtask == root .or. covered(ilr,jtask)) cycle
+               call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+               if (isoverlap) then         
+                   covered(ilr,jtask)=.true.
+                   if (iproc == root) then
+                      !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
+                      !    jtask,' with tags ',4*ilr+0,'-',4*ilr+3
+                      worksend_int(1,ilr)=llr(ilr)%wfd%nvctr_c
+                      worksend_int(2,ilr)=llr(ilr)%wfd%nvctr_f
+                      worksend_int(3,ilr)=llr(ilr)%wfd%nseg_c
+                      worksend_int(4,ilr)=llr(ilr)%wfd%nseg_f
+                      icomm=icomm+1
+                      call mpi_isend(worksend_int(1,ilr), 4, mpi_integer, jtask,&
+                           itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                      maxsenddim=max(maxsenddim,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+                      !nsend=nsend+1
+                   else if (iproc == jtask) then
+                      !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
+                      !    root,' with tags ',4*ilr+0,'-',4*ilr+3
+                      icomm=icomm+1
+                      call mpi_irecv(workrecv_int(1,ilr), 4, mpi_integer, root,&
+                           itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                      nrecv=nrecv+1
+                   end if
+               end if
+           end do
+       end do
+      
+       call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+       call mpi_barrier(mpi_comm_world,ierr)
+    
+       iall=-product(shape(worksend_int))*kind(worksend_int)
+       deallocate(worksend_int,stat=istat)
+       call memocc(istat, iall, 'worksend_int', subname)
+    
+       nalloc=0
+       maxrecvdim=0
+       do jlr=1,nlr 
+          if (covered(jlr,iproc)) then
+             llr(jlr)%wfd%nvctr_c=workrecv_int(1,jlr)
+             llr(jlr)%wfd%nvctr_f=workrecv_int(2,jlr)
+             llr(jlr)%wfd%nseg_c=workrecv_int(3,jlr)
+             llr(jlr)%wfd%nseg_f=workrecv_int(4,jlr)
+    !         call allocate_wfd(llr(jlr)%wfd,subname)
+             nalloc=nalloc+1
+             maxrecvdim=max(maxrecvdim,llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
+          end if
+       end do
+       if (f_err_raise(nalloc /= nrecv,'problem in communicate locregs: mismatch in receives '//&
+            trim(yaml_toa(nrecv))//' and allocates '//trim(yaml_toa(nalloc))//' for process '//trim(yaml_toa(iproc)),&
+            err_name='BIGDFT_RUNTIME_ERROR')) return
+    
+       iall=-product(shape(workrecv_int))*kind(workrecv_int)
+       deallocate(workrecv_int,stat=istat)
+       call memocc(istat, iall, 'workrecv_int', subname)
+    
+       !should reduce memory by not allocating for all llr
+       allocate(workrecv_int(6*maxrecvdim,nlr), stat=istat)
+       call memocc(istat, workrecv_int, 'workrecv_int', subname)
+       allocate(worksend_int(6*maxsenddim,nlr), stat=istat)
+       call memocc(istat, worksend_int, 'worksend_int', subname)
+    
+       ! divide communications into chunks to avoid problems with memory (too many communications)
+       ! set maximum number of simultaneous communications
+       !total_sent=0
+       !total_recv=0
+       max_sim_comms=10000
+       icomm=0
+       do ilr=1,nlr
+          root=rootarr(ilr)
+          do jtask=0,nproc-1
+             if (.not. covered(ilr,jtask)) cycle
+             if (iproc == root) then
+               !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
+               !     jtask,' with tags ',4*ilr+0,'-',4*ilr+3
+               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyglob(1,1),1,worksend_int(1,ilr),1)
+               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keygloc(1,1),1,&
+                    worksend_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvloc(1),1,&
+                    worksend_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvglob(1),1,&
+                    worksend_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+               icomm=icomm+1
+               call mpi_isend(worksend_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                    jtask, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+             else if (iproc == jtask) then
+                !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
+                !    root,' with tags ',4*ilr+0,'-',4*ilr+3
+                icomm=icomm+1
+                call mpi_irecv(workrecv_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+                     root, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+             end if
+          end do
+          if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+             do jlr=max(ilr-max_sim_comms+1,1),ilr
+                if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
+             end do
+             call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+             if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
+                  trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
+                  err_name='BIGDFT_RUNTIME_ERROR')) return
+             call mpi_barrier(mpi_comm_world,ierr)
+             icomm=0
+          end if
+       end do
+    
+       iall=-product(shape(worksend_int))*kind(worksend_int)
+       deallocate(worksend_int,stat=istat)
+       call memocc(istat, iall, 'worksend_int', subname)
+    
+       do ilr=1,nlr 
+          if (covered(ilr,iproc)) then
+             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),workrecv_int(1,ilr),1,llr(ilr)%wfd%keyglob(1,1),1)
+             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+                  workrecv_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keygloc(1,1),1)
+             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+                  workrecv_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvloc(1),1)
+             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+                  workrecv_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvglob(1),1)
+          end if
+       end do
+    
+       iall=-product(shape(workrecv_int))*kind(workrecv_int)
+       deallocate(workrecv_int,stat=istat)
+       call memocc(istat, iall, 'workrecv_int', subname)
+    
+       !print*,'iproc,sent,received,num sent,num received',iproc,total_sent,total_recv,nsend,nrecv
+       iall=-product(shape(requests))*kind(requests)
+       deallocate(requests,stat=istat)
+       call memocc(istat, iall, 'requests', subname)
+    
+       iall=-product(shape(covered))*kind(covered)
+       deallocate(covered,stat=istat)
+       call memocc(istat, iall, 'covered', subname)
+    
+    contains
+    
+     pure function itag(ilr,recv)
+     implicit none
+     integer, intent(in) :: ilr,recv
+     integer :: itag
+    
+     itag=ilr+recv*nlr
+    
+     end function itag
+    
+    END SUBROUTINE communicate_locreg_descriptors_keys
+
+
+
+
+
+    !> The cubic routines
+    subroutine psitransspi(nvctrp,orbs,psi,forward)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: nvctrp
+      logical, intent(in) :: forward
+      type(orbitals_data), intent(in) :: orbs
+      real(wp), dimension(orbs%nspinor*nvctrp,orbs%norb,orbs%nkpts), intent(inout) :: psi
+      !local variables
+      character(len=*), parameter :: subname='psitransspi'
+      integer :: i,iorb,isp,i_all,i_stat,ikpts
+      real(wp), dimension(:,:,:,:), allocatable :: tpsit
+    
+      allocate(tpsit(nvctrp,orbs%nspinor,orbs%norb,orbs%nkpts+ndebug),stat=i_stat)
+      call memocc(i_stat,tpsit,'tpsit',subname)
+      if(forward) then
+         !we can use vcopy here
+         do ikpts=1,orbs%nkpts
+            do iorb=1,orbs%norb
+               do isp=1,orbs%nspinor
+                  do i=1,nvctrp
+                     tpsit(i,isp,iorb,ikpts)=psi(i+(isp-1)*nvctrp,iorb,ikpts)
+                  enddo
+               enddo
+            enddo
+         end do
+         if (orbs%nspinor == 2) then
+            do ikpts=1,orbs%nkpts
+               do iorb=1,orbs%norb
+                  do i=1,nvctrp
+                     psi(2*i-1,iorb,ikpts)=tpsit(i,1,iorb,ikpts)
+                     psi(2*i,iorb,ikpts)=tpsit(i,2,iorb,ikpts)
+                  enddo
+               enddo
+            end do
+         else if (orbs%nspinor == 4) then
+            do ikpts=1,orbs%nkpts
+               do iorb=1,orbs%norb
+                  do i=1,nvctrp
+                     psi(2*i-1,iorb,ikpts)=tpsit(i,1,iorb,ikpts)
+                     psi(2*i,iorb,ikpts)=tpsit(i,2,iorb,ikpts)
+                     psi(2*i+2*nvctrp-1,iorb,ikpts)=tpsit(i,3,iorb,ikpts)
+                     psi(2*i+2*nvctrp,iorb,ikpts)=tpsit(i,4,iorb,ikpts)
+                  enddo
+               enddo
+            end do
+         end if
+      else
+         if (orbs%nspinor == 2) then
+            do ikpts=1,orbs%nkpts
+               do iorb=1,orbs%norb
+                  do i=1,nvctrp
+                     tpsit(i,1,iorb,ikpts)=psi(2*i-1,iorb,ikpts)
+                     tpsit(i,2,iorb,ikpts)=psi(2*i,iorb,ikpts)
+                  enddo
+               enddo
+            end do
+         else if (orbs%nspinor == 4) then
+            do ikpts=1,orbs%nkpts
+               do iorb=1,orbs%norb
+                  do i=1,nvctrp
+                     tpsit(i,1,iorb,ikpts)=psi(2*i-1,iorb,ikpts)
+                     tpsit(i,2,iorb,ikpts)=psi(2*i,iorb,ikpts)
+                     tpsit(i,3,iorb,ikpts)=psi(2*i-1+2*nvctrp,iorb,ikpts)
+                     tpsit(i,4,iorb,ikpts)=psi(2*i+2*nvctrp,iorb,ikpts)
+                  enddo
+               enddo
+            end do
+         end if
+    
+         !here we can use vcopy
+         do ikpts=1,orbs%nkpts
+            do iorb=1,orbs%norb
+               do isp=1,orbs%nspinor
+                  do i=1,nvctrp
+                     psi(i+(isp-1)*nvctrp,iorb,ikpts)=tpsit(i,isp,iorb,ikpts)
+                  enddo
+               enddo
+            enddo
+         end do
+      end if
+    
+      i_all=-product(shape(tpsit))*kind(tpsit)
+      deallocate(tpsit,stat=i_stat)
+      call memocc(i_stat,i_all,'tpsit',subname)
+    END SUBROUTINE psitransspi
+    
+    
+    !> Transposition of the arrays, variable version (non homogeneous)
+    subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
+         work,outadd) !optional
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(wavefunctions_descriptors), intent(in) :: wfd
+      type(communications_arrays), intent(in) :: comms
+      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
+      real(wp), dimension(:), pointer, optional :: work
+      real(wp), dimension(*), intent(out), optional :: outadd
+      !local variables
+      integer :: ierr
+    
+      call timing(iproc,'Un-TransSwitch','ON')
+    
+      if (nproc > 1) then
+         !control check
+         if (.not. present(work) .or. .not. associated(work)) then 
+            if(iproc == 0) write(*,'(1x,a)')&
+                 "ERROR: Unproper work array for transposing in parallel"
+            stop
+         end if
+      
+         !!call switch_waves_v(nproc,orbs,&
+         !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
+         call switch_waves_v(nproc,orbs,&
+              wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,psi,work)
+    
+    
+         call timing(iproc,'Un-TransSwitch','OF')
+         call timing(iproc,'Un-TransComm  ','ON')
+         if (present(outadd)) then
+            call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+                 outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+         else
+            call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+                 psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+         end if
+         call timing(iproc,'Un-TransComm  ','OF')
+         call timing(iproc,'Un-TransSwitch','ON')
+      else
+         if(orbs%nspinor /= 1) then
+            !for only one processor there is no need to transform this
+            call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.true.)
+         end if
+      end if
+    
+      call timing(iproc,'Un-TransSwitch','OF')
+    
+    END SUBROUTINE transpose_v
+    
+    !> Transposition of the arrays, variable version (non homogeneous)
+    subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+         work,outadd) !optional
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(local_zone_descriptors), intent(in) :: Lzd
+      type(communications_arrays), intent(in) :: comms
+      real(wp), dimension(:), pointer :: psi
+      real(wp), dimension(:), pointer, optional :: work
+      real(wp), dimension(*), intent(out), optional :: outadd
+      !local variables
+      character(len=*), parameter :: subname='transpose_v2'
+      integer :: ierr,i_all,i_stat
+      integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
+      real(wp), dimension(:), pointer :: workarr
+    
+      call timing(iproc,'Un-TransSwitch','ON')
+    
+      !for linear scaling must project the wavefunctions to whole simulation box
+      if(Lzd%linear) then
+    !     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
+         psishift1 = 1
+         totshift = 1
+         Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+               sum(comms%ncntt(0:nproc-1)))
+         allocate(workarr(Gdim+ndebug),stat=i_stat)
+         call memocc(i_stat,workarr,'workarr',subname)
+         call to_zero(Gdim,workarr)
+         do iorb=1,orbs%norbp
+            ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+            ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+    
+            !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
+            !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
+            call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
+                 orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1), workarr(totshift))
+            psishift1 = psishift1 + ldim
+            totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
+         end do
+    
+         !reallocate psi to the global dimensions
+         i_all=-product(shape(psi))*kind(psi)
+         deallocate(psi,stat=i_stat)
+         call memocc(i_stat,i_all,'psi',subname)
+         allocate(psi(Gdim+ndebug),stat=i_stat)
+         call memocc(i_stat,psi,'psi',subname)
+         call vcopy(Gdim,workarr(1),1,psi(1),1) !psi=work
+         i_all=-product(shape(workarr))*kind(workarr)
+         deallocate(workarr,stat=i_stat)
+         call memocc(i_stat,i_all,'workarr',subname)
+      end if
+    
+      if (nproc > 1) then
+         !control check
+         if (.not. present(work) .or. .not. associated(work)) then
+            if(iproc == 0) write(*,'(1x,a)')&
+                 "ERROR: Unproper work array for transposing in parallel"
+            stop
+         end if
+    
+    
+         !!call switch_waves_v(nproc,orbs,&
+         !!     Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
+         call switch_waves_v(nproc,orbs,&
+              Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,psi,work)
+    
+         call timing(iproc,'Un-TransSwitch','OF')
+         call timing(iproc,'Un-TransComm  ','ON')
+         if (present(outadd)) then
+            call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+                 outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+         else
+            call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+                 psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+         end if
+    
+         call timing(iproc,'Un-TransComm  ','OF')
+         call timing(iproc,'Un-TransSwitch','ON')
+      else
+         if(orbs%nspinor /= 1) then
+            !for only one processor there is no need to transform this
+            call psitransspi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs,psi,.true.)
+         end if
+      end if
+    
+      call timing(iproc,'Un-TransSwitch','OF')
+    
+    END SUBROUTINE transpose_v2
+    
+    
+    
+    subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
+         work,outadd) !optional
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(wavefunctions_descriptors), intent(in) :: wfd
+      type(communications_arrays), intent(in) :: comms
+      real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
+      real(wp), dimension(:), pointer, optional :: work
+      real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
+      !local variables
+      integer :: ierr
+    
+    
+      call timing(iproc,'Un-TransSwitch','ON')
+    
+      if (nproc > 1) then
+         !control check
+         if (.not. present(work) .or. .not. associated(work)) then
+            !if(iproc == 0) 
+                 write(*,'(1x,a)')&
+                 "ERROR: Unproper work array for untransposing in parallel"
+            stop
+         end if
+         call timing(iproc,'Un-TransSwitch','OF')
+         call timing(iproc,'Un-TransComm  ','ON')
+         call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
+              work,comms%ncntd,comms%ndspld,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+         call timing(iproc,'Un-TransComm  ','OF')
+         call timing(iproc,'Un-TransSwitch','ON')
+         if (present(outadd)) then
+            !!call unswitch_waves_v(nproc,orbs,&
+            !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,outadd)
+            call unswitch_waves_v(nproc,orbs,&
+                 wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,outadd)
+         else
+            !!call unswitch_waves_v(nproc,orbs,&
+            !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,psi)
+            call unswitch_waves_v(nproc,orbs,&
+                 wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,psi)
+         end if
+      else
+         if(orbs%nspinor /= 1) then
+            call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.false.)
+         end if
+      end if
+    
+      call timing(iproc,'Un-TransSwitch','OF')
+    END SUBROUTINE untranspose_v
+    
+    subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+         work,outadd) !optional
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(local_zone_descriptors), intent(in) :: Lzd
+      type(communications_arrays), intent(in) :: comms
+      real(wp), dimension(:), pointer :: psi !< Input psi should always be in global region, while output psi is in locregs
+      real(wp), dimension(:), pointer, optional :: work
+      real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
+      !local variables
+      character(len=*), parameter :: subname='untranspose_v2'
+      integer :: ierr,i_all,i_stat
+      integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
+      real(wp), dimension(:), pointer :: workarr
+    
+      ! Input psi should always be in global region !
+      call timing(iproc,'Un-TransSwitch','ON')
+    
+      if (nproc > 1) then
+         !control check
+         if (.not. present(work) .or. .not. associated(work)) then
+            !if(iproc == 0) 
+                 write(*,'(1x,a)')&
+                 "ERROR: Unproper work array for untransposing in parallel"
+            stop
+         end if
+         call timing(iproc,'Un-TransSwitch','OF')
+         call timing(iproc,'Un-TransComm  ','ON')
+         call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
+              work,comms%ncntd,comms%ndspld,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+         call timing(iproc,'Un-TransComm  ','OF')
+         call timing(iproc,'Un-TransSwitch','ON')
+         if (present(outadd)) then
+            !!call unswitch_waves_v(nproc,orbs,&
+            !!     Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),work,outadd)
+            call unswitch_waves_v(nproc,orbs,&
+                 Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,work,outadd)
+         else
+            !!call unswitch_waves_v(nproc,orbs,&
+            !!     Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),work,psi)
+            call unswitch_waves_v(nproc,orbs,&
+                 Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,work,psi)
+         end if
+      else
+         if(orbs%nspinor /= 1) then
+            call psitransspi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs,psi,.false.)
+         end if
+      end if
+    
+      !for linear scaling must project the wavefunctions back into the locregs
+      if(Lzd%linear) then
+         psishift1 = 1 
+         totshift = 0
+         Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+               sum(comms%ncntt(0:nproc-1)))
+         allocate(workarr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
+         call memocc(i_stat,workarr,'workarr',subname)
+         call to_zero(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr)
+         do iorb=1,orbs%norbp
+            ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+            ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+            if(present(outadd)) then
+                call psi_to_locreg2(iproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), outadd(psishift1))
+            else
+                call psi_to_locreg2(iproc, ldim, Gdim, Lzd%Llr(ilr), Lzd%Glr, psi(totshift), workarr(psishift1))
+            end if
+            psishift1 = psishift1 + ldim
+            totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
+         end do
+         !reallocate psi to the locreg dimensions
+         i_all=-product(shape(psi))*kind(psi)
+         deallocate(psi,stat=i_stat)
+         call memocc(i_stat,i_all,'psi',subname)
+         allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
+         call memocc(i_stat,psi,'psi',subname)
+         call vcopy(max(orbs%npsidim_orbs,orbs%npsidim_comp),workarr(1),1,psi(1),1) !psi=work
+         i_all=-product(shape(workarr))*kind(workarr)
+         deallocate(workarr,stat=i_stat)
+         call memocc(i_stat,i_all,'workarr',subname)
+      end if
+    
+      call timing(iproc,'Un-TransSwitch','OF')
+    END SUBROUTINE untranspose_v2
+    
+    subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
+      !n(c) use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: nproc,nvctr
+      type(orbitals_data), intent(in) :: orbs
+      integer, dimension(nproc,orbs%nkpts), intent(in) :: nvctr_par
+      real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(in) :: psi
+      real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(out) :: psiw
+      !local variables
+      integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
+      integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
+    
+    
+      isorb=orbs%isorb+1
+      isorbp=0
+      ispsi=0
+      do ikptsp =1,orbs%nkptsp
+         ikpt=orbs%iskpts+ikptsp !orbs%ikptsp(ikptsp)
+         !if (ikpt < orbs%iokpt(1) .or. ikpt > orbs%iokpt(orbs%norbp)) cycle
+    
+         !calculate the number of orbitals belonging to k-point ikptstp
+         !calculate to which k-point it belongs
+         norbp_kpt=min(orbs%norb*ikpt,orbs%isorb+orbs%norbp)-isorb+1
+    
+         if(orbs%nspinor==1) then
+            do iorb=1,norbp_kpt
+               ij=1
+               ijproc=0
+               do j=1,nproc
+                  ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
+                       ispsi
+                  do i=1,nvctr_par(j,ikpt)
+                     it=ind+i
+                     psiw(it)=psi(ij,1,iorb+isorbp)
+                     ij=ij+1
+                  enddo
+                  ijproc=ijproc+nvctr_par(j,ikpt)
+               enddo
+            enddo
+         else if (orbs%nspinor == 2) then
+            do iorb=1,norbp_kpt
+               ij=1
+               ijproc=0
+               do j=1,nproc
+                  ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
+                       ispsi
+                  do i=1,nvctr_par(j,ikpt)
+                     it1=ind+2*i-1
+                     it2=ind+2*i
+                     psiw(it1)=psi(ij,1,iorb+isorbp)
+                     psiw(it2)=psi(ij,2,iorb+isorbp)
+                     ij=ij+1
+                  enddo
+                  ijproc=ijproc+nvctr_par(j,ikpt)
+               enddo
+            enddo
+         else if (orbs%nspinor == 4) then
+            do iorb=1,norbp_kpt
+               ij=1
+               ijproc=0
+               do j=1,nproc
+                  ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
+                       ispsi
+                  do i=1,nvctr_par(j,ikpt)
+                     it1=ind+2*i-1
+                     it2=ind+2*i
+                     it3=ind+2*i+2*nvctr_par(j,ikpt)-1
+                     it4=ind+2*i+2*nvctr_par(j,ikpt)
+                     psiw(it1)=psi(ij,1,iorb+isorbp)
+                     psiw(it2)=psi(ij,2,iorb+isorbp)
+                     psiw(it3)=psi(ij,3,iorb+isorbp)
+                     psiw(it4)=psi(ij,4,iorb+isorbp)
+                     ij=ij+1
+                  enddo
+                  ijproc=ijproc+nvctr_par(j,ikpt)
+               enddo
+            enddo
+         end if
+         !update starting orbitals
+         isorb=isorb+norbp_kpt
+         isorbp=isorbp+norbp_kpt
+         !and starting point for psi
+         ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
+      end do
+    END SUBROUTINE switch_waves_v
+    
+    
+    subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
+      !n(c) use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: nproc,nvctr
+      type(orbitals_data), intent(in) :: orbs
+      integer, dimension(nproc,orbs%nkpts), intent(in) :: nvctr_par
+      real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(in) :: psiw
+      real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(out) :: psi
+      !local variables
+      integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
+      integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
+    
+      isorb=orbs%isorb+1
+      isorbp=0
+      ispsi=0
+      do ikptsp=1,orbs%nkptsp
+         ikpt=orbs%iskpts+ikptsp !orbs%ikptsp(ikptsp)
+         !if (ikpt < orbs%iokpt(1) .or. ikpt > orbs%iokpt(orbs%norbp)) cycle
+    
+         !calculate the number of orbitals belonging to k-point ikptstp
+         !calculate to which k-point it belongs
+         norbp_kpt=min(orbs%norb*ikpt,orbs%isorb+orbs%norbp)-isorb+1
+    
+         if(orbs%nspinor==1) then
+            do iorb=1,norbp_kpt
+               ij=1
+               ijproc=0
+               do j=1,nproc
+                  ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
+                       ispsi
+                  do i=1,nvctr_par(j,ikpt)
+                     it=ind+i
+                     psi(ij,orbs%nspinor,iorb+isorbp)=psiw(it)
+                     ij=ij+1
+                  end do
+                  ijproc=ijproc+nvctr_par(j,ikpt)
+               end do
+            end do
+         else if (orbs%nspinor == 2) then
+            do iorb=1,norbp_kpt
+               ij=1
+               ijproc=0
+               do j=1,nproc
+                  ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
+                       ispsi
+                  do i=1,nvctr_par(j,ikpt)
+                     it1=ind+2*i-1
+                     it2=ind+2*i
+                     psi(ij,1,iorb+isorbp)=psiw(it1)
+                     psi(ij,2,iorb+isorbp)=psiw(it2)
+                     ij=ij+1
+                  end do
+                  ijproc=ijproc+nvctr_par(j,ikpt)
+               end do
+            end do
+         else if (orbs%nspinor == 4) then
+            do iorb=1,norbp_kpt
+               ij=1
+               ijproc=0
+               do j=1,nproc
+                  ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikpt)+ijproc*orbs%nspinor*norbp_kpt+&
+                       ispsi
+                  do i=1,nvctr_par(j,ikpt)
+                     it1=ind+2*i-1
+                     it2=ind+2*i
+                     it3=ind+2*i+2*nvctr_par(j,ikpt)-1
+                     it4=ind+2*i+2*nvctr_par(j,ikpt)
+                     psi(ij,1,iorb+isorbp)=psiw(it1)
+                     psi(ij,2,iorb+isorbp)=psiw(it2)
+                     psi(ij,3,iorb+isorbp)=psiw(it3)
+                     psi(ij,4,iorb+isorbp)=psiw(it4)
+                     ij=ij+1
+                  end do
+                  ijproc=ijproc+nvctr_par(j,ikpt)
+               end do
+            end do
+         end if
+         !update starting orbitals
+         isorb=isorb+norbp_kpt
+         isorbp=isorbp+norbp_kpt
+         !and starting point for psi
+         ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
+      end do
+      
+    END SUBROUTINE unswitch_waves_v
 
 end module communications

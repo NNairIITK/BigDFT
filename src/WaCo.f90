@@ -18,6 +18,7 @@ program WaCo
    use yaml_output
    use module_input_dicts
    use module_atoms, only: deallocate_atoms_data
+   use communications_init, only: orbitals_communicators
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr

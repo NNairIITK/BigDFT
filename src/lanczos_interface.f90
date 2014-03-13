@@ -501,6 +501,7 @@ nullify(Qvect,dumQvect)
 
   subroutine  EP_copia_per_prova(psi)
      use module_interfaces
+     use communications, only: transpose_v
      !Arguments
      real(wp), dimension(*), target :: psi ! per testare happlication
      !Local variables
@@ -508,7 +509,7 @@ nullify(Qvect,dumQvect)
 
      if( ha%nproc/=1) then
         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-           &   psi(1),work=wrk,outadd=Qvect(1,0))  
+           &   psi(1),work=wrk,outadd=Qvect)  
      else
         do i=1, EP_dim_tot
            Qvect(i,0)= psi(i)
@@ -519,6 +520,7 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_initialize_start()
      use module_interfaces
+     use communications, only: transpose_v
      !Local variables
      integer :: i
 
@@ -563,7 +565,7 @@ nullify(Qvect,dumQvect)
 
      if( ha%nproc/=1) then
         call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-           &   Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
+           &   Qvect_tmp,work=wrk,outadd=Qvect)
      else
         do i=1, EP_dim_tot
            Qvect(i,0)= Qvect_tmp(i)
@@ -860,6 +862,7 @@ nullify(Qvect,dumQvect)
   subroutine EP_precondition(p,i, ene, gamma)
      use module_interfaces
      use module_base
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -896,10 +899,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp )  
         endif
      else
         if(i>=0) then
@@ -986,7 +989,7 @@ nullify(Qvect,dumQvect)
      if(p<0) then
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+              &   wrk , work= Qvect_tmp ,outadd=dumQvect(:,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -995,7 +998,7 @@ nullify(Qvect,dumQvect)
      else
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+              &   wrk , work= Qvect_tmp ,outadd=Qvect(:,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1011,6 +1014,7 @@ nullify(Qvect,dumQvect)
   subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
      use module_interfaces
      use gaussians, only: gaussian_basis
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1022,10 +1026,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp )  
         endif
      else
 
@@ -1061,7 +1065,7 @@ nullify(Qvect,dumQvect)
      if(p<0) then
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+              &   wrk , work= Qvect_tmp ,outadd=dumQvect(:,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1082,7 +1086,7 @@ nullify(Qvect,dumQvect)
      else
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+              &   wrk , work= Qvect_tmp ,outadd=Qvect(:,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1106,6 +1110,7 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_Moltiplica(p,i)
      use module_interfaces
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1116,10 +1121,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp )  
         endif
      else
         if(i>=0) then
@@ -1182,7 +1187,7 @@ nullify(Qvect,dumQvect)
      if(p<0) then
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+              &   wrk , work= Qvect_tmp ,outadd=dumQvect(:,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1191,7 +1196,7 @@ nullify(Qvect,dumQvect)
      else
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+              &   wrk , work= Qvect_tmp ,outadd=Qvect(:,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1203,6 +1208,7 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_ApplySinv(p,i)
      use module_interfaces
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1212,10 +1218,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp )  
         endif
      else
         if(i>=0) then
@@ -1246,7 +1252,7 @@ nullify(Qvect,dumQvect)
      if(p<0) then
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+              &   wrk , work= Qvect_tmp ,outadd=dumQvect(:,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1255,7 +1261,7 @@ nullify(Qvect,dumQvect)
      else
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+              &   wrk , work= Qvect_tmp ,outadd=Qvect(:,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1270,6 +1276,7 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_ApplyS(p,i)
      use module_interfaces
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1279,10 +1286,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp )  
         endif
      else
         if(i>=0) then
@@ -1311,7 +1318,7 @@ nullify(Qvect,dumQvect)
      if(p<0) then
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+              &   wrk , work= Qvect_tmp ,outadd=dumQvect(:,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1320,7 +1327,7 @@ nullify(Qvect,dumQvect)
      else
         if(  ha%nproc/=1) then
            call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+              &   wrk , work= Qvect_tmp ,outadd=Qvect(:,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1646,6 +1653,7 @@ nullify(Qvect,dumQvect)
     use module_types
     use lanczos_base
     use module_interfaces
+    use communications_init, only: orbitals_communicators
     implicit none
     integer, intent(in) :: iproc,nproc,nspin
     real(gp), intent(in) :: hx,hy,hz
@@ -1805,6 +1813,7 @@ nullify(Qvect,dumQvect)
     use lanczos_base
     ! per togliere il bug 
     use module_interfaces
+    use communications_init, only: orbitals_communicators
 
     implicit none
     integer  :: iproc,nproc,nspin
@@ -2048,6 +2057,7 @@ nullify(Qvect,dumQvect)
     use lanczos_base
     ! per togliere il bug 
     use module_interfaces
+    use communications_init, only: orbitals_communicators
 
     implicit none
 

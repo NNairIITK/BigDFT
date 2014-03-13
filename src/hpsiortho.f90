@@ -1380,6 +1380,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient
   use yaml_output
+  use communications, only: transpose_v, transpose_v2, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
   type(energy_terms), intent(inout) :: energs
@@ -1619,6 +1620,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    use module_interfaces, except_this_one_A => hpsitopsi
    use yaml_output
    use gaussians, only: gaussian_basis
+   use communications, only: transpose_v, untranspose_v
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,idsx,iter
@@ -1677,7 +1679,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    if(any(at%npspcode == 7)) then
      !retranspose psit
      call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
-        &   wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
+        &   wfn%psit,work=wfn%hpsi,outadd=wfn%psi)
 
      !Calculate  hpsi,spsi and cprj with new psi
      if (wfn%orbs%npsidim_orbs >0) then 
@@ -1721,7 +1723,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    end if
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
-        wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
+        wfn%psit,work=wfn%hpsi,outadd=wfn%psi)
 
    if (nproc == 1) then
       nullify(wfn%psit)
@@ -1884,6 +1886,7 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
    use module_base
    use module_types
    use module_interfaces, except_this_one => select_active_space
+   use communications_init, only: orbitals_communicators
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
@@ -1976,6 +1979,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    use module_base
    use module_types
    use module_interfaces, except_this_one_B => first_orthon
+   use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
@@ -2010,7 +2014,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
 
    !to be substituted, must pass the wavefunction descriptors to the routine
    call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
-      &   work=hpsi,outadd=psit(1))
+      &   work=hpsi,outadd=psit)
 
    if(usepaw==1) then
      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
@@ -2021,7 +2025,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
    call untranspose_v(iproc,nproc,orbs,wfd,comms,psit,&
-      &   work=hpsi,outadd=psi(1))
+      &   work=hpsi,outadd=psi)
 
    if (nproc == 1) then
       nullify(psit)
@@ -2038,6 +2042,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    use module_base
    use module_types
    use module_interfaces, fake_name => last_orthon
+   use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc,iter
    real(wp), intent(out) :: evsum
@@ -2065,7 +2070,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    !here we should preserve hpsi and transpose it if we are in ensemble mimimization scheme
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
-        wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
+        wfn%psit,work=wfn%hpsi,outadd=wfn%psi)
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then
       call kswfn_emit_psi(wfn, iter, 0, iproc, nproc)
@@ -2519,6 +2524,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    use module_types
    use module_interfaces, except_this_one => check_communications
    use yaml_output
+   use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs

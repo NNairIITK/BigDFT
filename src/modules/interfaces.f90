@@ -204,17 +204,6 @@ module module_interfaces
          integer, dimension(0:nproc-1), intent(in), optional :: basedist 
       END SUBROUTINE orbitals_descriptors
 
-      subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
-         use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc,nproc
-         type(locreg_descriptors), intent(in) :: lr
-         type(orbitals_data), intent(inout) :: orbs
-         type(communications_arrays), intent(out) :: comms
-         integer, dimension(0:nproc-1,orbs%nkpts), intent(in), optional :: basedist
-      END SUBROUTINE orbitals_communicators
-
      subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
        use module_base
        use module_types
@@ -811,48 +800,6 @@ module module_interfaces
         real(wp), dimension(npsidim), intent(inout) :: hpsi
         type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
       end subroutine preconditionall2
-
-      subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
-            &   work,outadd) !optional
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc,nproc
-         type(orbitals_data), intent(in) :: orbs
-         type(wavefunctions_descriptors), intent(in) :: wfd
-         type(communications_arrays), intent(in) :: comms
-         real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
-         real(wp), dimension(:), pointer, optional :: work
-         real(wp), intent(out), optional :: outadd
-      END SUBROUTINE transpose_v
-
-     subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
-          work,outadd) !optional
-       use module_base
-       use module_types
-       implicit none
-       integer, intent(in) :: iproc,nproc
-       type(orbitals_data), intent(in) :: orbs
-       type(local_zone_descriptors), intent(in) :: Lzd
-       type(communications_arrays), intent(in) :: comms
-       real(wp), dimension(:), pointer :: psi
-       real(wp), dimension(:), pointer, optional :: work
-       real(wp), dimension(*), intent(out), optional :: outadd
-     end subroutine
-
-      subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
-            &   work,outadd) !optional
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc,nproc
-         type(orbitals_data), intent(in) :: orbs
-         type(wavefunctions_descriptors), intent(in) :: wfd
-         type(communications_arrays), intent(in) :: comms
-         real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
-         real(wp), dimension(:), pointer, optional :: work
-         real(wp), intent(out), optional :: outadd
-      END SUBROUTINE untranspose_v
 
       subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
             &   hfac,nscatterarr,spinsgn,psir,rho_p,ibyyzz_r) !ex-optional argument
@@ -3550,18 +3497,6 @@ module module_interfaces
           type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel
-
-        subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
-           use module_base
-           use module_types
-           implicit none
-           integer,intent(in):: iproc, nproc, nlr
-           type(locreg_descriptors),intent(in) :: glr
-           type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
-           type(orbitals_data),intent(in) :: orbs
-           integer,dimension(orbs%norb),intent(in) :: rootarr
-           integer,dimension(orbs%norb),intent(in) :: onwhichmpi
-        end subroutine communicate_locreg_descriptors_keys
 
         subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
           use module_base
