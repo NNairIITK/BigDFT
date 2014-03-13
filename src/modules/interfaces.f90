@@ -2937,13 +2937,6 @@ module module_interfaces
          integer,dimension(:,:),pointer,intent(out):: op_overlaps
        end subroutine determine_overlap_from_descriptors
 
-       !!subroutine deallocate_collective_comms(collcom, subname)
-       !!  use module_base
-       !!  use module_types
-       !!  implicit none
-       !!  type(collective_comms),intent(inout):: collcom
-       !!  character(len=*),intent(in):: subname
-       !!end subroutine deallocate_collective_comms
 
        subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
                   istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
@@ -3119,18 +3112,6 @@ module module_interfaces
           integer, optional, intent(in) :: nat
           real(gp), dimension(:,:), optional, intent(out) :: rxyz_old
         end subroutine read_coeff_minbasis
-
-
-        subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, comgp)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in):: iproc, nproc
-          integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-          type(orbitals_data),intent(in):: orbs
-          type(local_zone_descriptors),intent(in):: lzd
-          type(p2pComms),intent(out):: comgp
-        end subroutine initialize_communication_potential
 
         subroutine local_potential_dimensions(iproc,Lzd,orbs,ndimfirstproc)
           use module_base

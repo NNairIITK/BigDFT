@@ -121,7 +121,8 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
   use communications_base, only: collective_comms_null
-  use communications_init, only: init_collective_comms, init_collective_comms_sumrho
+  use communications_init, only: init_collective_comms, init_collective_comms_sumrho, &
+                                 initialize_communication_potential
   implicit none
   integer, intent(in) :: iproc, nproc
   type(DFT_wavefunction), intent(inout) :: wfn
