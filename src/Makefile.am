@@ -180,7 +180,6 @@ low_level = \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
-	linear/communicatetypes.f90 \
 	linear/misc.f90 \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \

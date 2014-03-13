@@ -3551,18 +3551,6 @@ module module_interfaces
           logical,dimension(nlr),intent(in) :: calculateBounds
         end subroutine determine_locregSphere_parallel
 
-        subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
-           use module_base
-           use module_types
-           implicit none
-           integer,intent(in):: iproc, nproc, nlr
-           type(locreg_descriptors),intent(in) :: glr
-           type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
-           type(orbitals_data),intent(in) :: orbs
-           integer,dimension(orbs%norb),intent(in) :: rootarr
-           integer,dimension(orbs%norb),intent(in) :: onwhichmpi
-        end subroutine communicate_locreg_descriptors_keys
-
         subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
           use module_base
           use module_types
