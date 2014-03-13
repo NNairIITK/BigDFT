@@ -25,7 +25,7 @@ program sandbox
 !!  type(orbitals_data) :: orbs
 !!  type(locreg_descriptors) :: Glr
 !!  type(nonlocal_psp_descriptors) :: nlpspd
-!!  type(communications_arrays) :: comms
+!!  type(comms_cubic) :: comms
 !!  type(GPU_pointers) :: GPU
 !!  type(diis_objects) :: diis
 !!  character(len=4) :: itername

@@ -1,6 +1,6 @@
 module communications
   use module_base
-  use communications_base, only: comms_linear, communications_arrays
+  use communications_base, only: comms_linear, comms_cubic
   implicit none
 
   private
@@ -30,7 +30,7 @@ module communications
     !!  integer, intent(in) :: iproc,nproc
     !!  type(orbitals_data), intent(in) :: orbs
     !!  type(wavefunctions_descriptors), intent(in) :: wfd
-    !!  type(communications_arrays), intent(in) :: comms
+    !!  type(comms_cubic), intent(in) :: comms
     !!  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
     !!  real(wp), dimension(:), pointer, optional :: work
     !!  real(wp), intent(out), optional :: outadd
@@ -44,7 +44,7 @@ module communications
     !!  integer, intent(in) :: iproc,nproc
     !!  type(orbitals_data), intent(in) :: orbs
     !!  type(local_zone_descriptors), intent(in) :: Lzd
-    !!  type(communications_arrays), intent(in) :: comms
+    !!  type(comms_cubic), intent(in) :: comms
     !!  real(wp), dimension(:), pointer :: psi
     !!  real(wp), dimension(:), pointer, optional :: work
     !!  real(wp), dimension(*), intent(out), optional :: outadd
@@ -58,7 +58,7 @@ module communications
     !!  integer, intent(in) :: iproc,nproc
     !!  type(orbitals_data), intent(in) :: orbs
     !!  type(wavefunctions_descriptors), intent(in) :: wfd
-    !!  type(communications_arrays), intent(in) :: comms
+    !!  type(comms_cubic), intent(in) :: comms
     !!  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
     !!  real(wp), dimension(:), pointer, optional :: work
     !!  real(wp), intent(out), optional :: outadd
@@ -1561,7 +1561,7 @@ module communications
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
       type(wavefunctions_descriptors), intent(in) :: wfd
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
       real(wp), dimension(:), pointer, optional :: work
       real(wp), dimension(*), intent(out), optional :: outadd
@@ -1615,7 +1615,7 @@ module communications
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
       type(local_zone_descriptors), intent(in) :: Lzd
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       real(wp), dimension(:), pointer :: psi
       real(wp), dimension(:), pointer, optional :: work
       real(wp), dimension(*), intent(out), optional :: outadd
@@ -1708,7 +1708,7 @@ module communications
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
       type(wavefunctions_descriptors), intent(in) :: wfd
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
       real(wp), dimension(:), pointer, optional :: work
       real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
@@ -1760,7 +1760,7 @@ module communications
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
       type(local_zone_descriptors), intent(in) :: Lzd
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       real(wp), dimension(:), pointer :: psi !< Input psi should always be in global region, while output psi is in locregs
       real(wp), dimension(:), pointer, optional :: work
       real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument

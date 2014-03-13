@@ -962,7 +962,7 @@ END SUBROUTINE input_memory_linear
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
            use yaml_output
            use gaussians
-           use communications_base, only: communications_arrays
+           use communications_base, only: comms_cubic
            use communications_init, only: orbitals_communicators
            use communications, only: transpose_v2
            implicit none
@@ -973,7 +973,7 @@ END SUBROUTINE input_memory_linear
            type(atoms_data), intent(in) :: at
            type(DFT_PSP_projectors), intent(inout) :: nlpsp
            type(local_zone_descriptors), intent(inout) :: Lzd
-           type(communications_arrays), intent(in) :: comms
+           type(comms_cubic), intent(in) :: comms
            type(energy_terms), intent(inout) :: energs
            type(orbitals_data), intent(inout) :: orbs
            type(DFT_local_fields), intent(inout) :: denspot
@@ -992,7 +992,7 @@ END SUBROUTINE input_memory_linear
            integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin,ikpt
            real(gp) :: hxh,hyh,hzh,etol,accurex,eks
            type(orbitals_data) :: orbse
-           type(communications_arrays) :: commse
+           type(comms_cubic) :: commse
            integer, dimension(:,:), allocatable :: norbsc_arr
            real(wp), dimension(:), allocatable :: passmat
            !real(wp), dimension(:,:,:), allocatable :: mom_vec

@@ -63,7 +63,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms, commsv
+  type(comms_cubic), intent(in) :: comms, commsv
   type(denspot_distribution), intent(in) :: dpcom
   real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz

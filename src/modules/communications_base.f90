@@ -7,10 +7,10 @@ module communications_base
 
   !> Contains the information needed for communicating the wavefunctions
   !! between processors for the transposition
-  type, public :: communications_arrays
+  type, public :: comms_cubic
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
-  end type communications_arrays
+  end type comms_cubic
 
 
   type,public:: comms_linear
@@ -33,13 +33,13 @@ module communications_base
   !> Public routines
   public :: comms_linear_null
   public :: allocate_MPI_communication_arrays
-  public :: allocate_local_communications_arrays
-  public :: allocate_MPI_communications_arrays_repartition
-  public :: allocate_MPI_communications_arrays_repartitionp2p
+  public :: allocate_local_comms_cubic
+  public :: allocate_MPI_comms_cubic_repartition
+  public :: allocate_MPI_comms_cubic_repartitionp2p
   public :: deallocate_comms_linear
   public :: deallocate_MPI_communication_arrays
-  public :: deallocate_MPI_communications_arrays_repartition
-  public :: deallocate_MPI_communications_arrays_repartitionp2p
+  public :: deallocate_MPI_comms_cubic_repartition
+  public :: deallocate_MPI_comms_cubic_repartitionp2p
 
   contains
 
@@ -109,7 +109,7 @@ module communications_base
     end subroutine allocate_MPI_communication_arrays
 
 
-    subroutine allocate_local_communications_arrays(comms, only_coarse)
+    subroutine allocate_local_comms_cubic(comms, only_coarse)
       implicit none
       type(comms_linear),intent(inout) :: comms
       logical,intent(in),optional :: only_coarse
@@ -135,10 +135,10 @@ module communications_base
           comms%isptsp_f=f_malloc_ptr(max(comms%nptsp_f,1),id='comms%isptsp_f')
           comms%norb_per_gridpoint_f=f_malloc_ptr(comms%nptsp_f,id='comms%norb_per_gridpoint_f')
       end if
-    end subroutine allocate_local_communications_arrays
+    end subroutine allocate_local_comms_cubic
 
 
-    subroutine allocate_MPI_communications_arrays_repartition(nproc, comms)
+    subroutine allocate_MPI_comms_cubic_repartition(nproc, comms)
       implicit none
       integer,intent(in) :: nproc
       type(comms_linear),intent(inout) :: comms
@@ -146,26 +146,26 @@ module communications_base
       comms%nrecvcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvcounts_repartitionrho')
       comms%nsenddspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsenddspls_repartitionrho')
       comms%nrecvdspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvdspls_repartitionrho')
-    end subroutine allocate_MPI_communications_arrays_repartition
+    end subroutine allocate_MPI_comms_cubic_repartition
 
 
-    subroutine allocate_MPI_communications_arrays_repartitionp2p(ncommunications, commarr_repartitionrho)
+    subroutine allocate_MPI_comms_cubic_repartitionp2p(ncommunications, commarr_repartitionrho)
       implicit none
       integer,intent(in) :: ncommunications
       integer,dimension(:,:),pointer,intent(inout) :: commarr_repartitionrho
       commarr_repartitionrho=f_malloc_ptr((/4,ncommunications/),id='commarr_repartitionrho')
-    end subroutine allocate_MPI_communications_arrays_repartitionp2p
+    end subroutine allocate_MPI_comms_cubic_repartitionp2p
 
 
     subroutine deallocate_comms_linear(comms)
       implicit none
       type(comms_linear),intent(inout) :: comms
       call deallocate_MPI_communication_arrays(comms)
-      call deallocate_local_communications_arrays(comms)
-      call deallocate_MPI_communications_arrays_repartition(comms)
+      call deallocate_local_comms_cubic(comms)
+      call deallocate_MPI_comms_cubic_repartition(comms)
       if (associated(comms%psit_c)) call f_free_ptr(comms%psit_c)
       if (associated(comms%psit_f)) call f_free_ptr(comms%psit_f)
-      call deallocate_MPI_communications_arrays_repartitionp2p(comms%commarr_repartitionrho)
+      call deallocate_MPI_comms_cubic_repartitionp2p(comms%commarr_repartitionrho)
     end subroutine deallocate_comms_linear
 
 
@@ -182,7 +182,7 @@ module communications_base
       if (associated(comms%nrecvdspls_f)) call f_free_ptr(comms%nrecvdspls_f)
     end subroutine deallocate_MPI_communication_arrays
 
-    subroutine deallocate_local_communications_arrays(comms)
+    subroutine deallocate_local_comms_cubic(comms)
       implicit none
       type(comms_linear),intent(inout) :: comms
       if (associated(comms%irecvbuf_c)) call f_free_ptr(comms%irecvbuf_c)
@@ -199,23 +199,23 @@ module communications_base
       if (associated(comms%isptsp_f)) call f_free_ptr(comms%isptsp_f)
       if (associated(comms%norb_per_gridpoint_c)) call f_free_ptr(comms%norb_per_gridpoint_c)
       if (associated(comms%norb_per_gridpoint_f)) call f_free_ptr(comms%norb_per_gridpoint_f)
-    end subroutine deallocate_local_communications_arrays
+    end subroutine deallocate_local_comms_cubic
 
-    subroutine deallocate_MPI_communications_arrays_repartition(comms)
+    subroutine deallocate_MPI_comms_cubic_repartition(comms)
       implicit none
       type(comms_linear),intent(inout) :: comms
       if (associated(comms%nsendcounts_repartitionrho)) call f_free_ptr(comms%nsendcounts_repartitionrho)
       if (associated(comms%nrecvcounts_repartitionrho)) call f_free_ptr(comms%nrecvcounts_repartitionrho)
       if (associated(comms%nsenddspls_repartitionrho)) call f_free_ptr(comms%nsenddspls_repartitionrho)
       if (associated(comms%nrecvdspls_repartitionrho)) call f_free_ptr(comms%nrecvdspls_repartitionrho)
-    end subroutine deallocate_MPI_communications_arrays_repartition
+    end subroutine deallocate_MPI_comms_cubic_repartition
 
 
-    subroutine deallocate_MPI_communications_arrays_repartitionp2p(commarr_repartitionrho)
+    subroutine deallocate_MPI_comms_cubic_repartitionp2p(commarr_repartitionrho)
       implicit none
       integer,dimension(:,:),pointer,intent(inout) :: commarr_repartitionrho
       call f_free_ptr(commarr_repartitionrho)
-    end subroutine deallocate_MPI_communications_arrays_repartitionp2p
+    end subroutine deallocate_MPI_comms_cubic_repartitionp2p
 
 
 

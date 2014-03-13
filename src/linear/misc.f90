@@ -858,7 +858,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => build_ks_orbitals
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
   implicit none
@@ -878,7 +878,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
 
   ! Local variables
   type(orbitals_data) :: orbs
-  type(communications_arrays) :: comms
+  type(comms_cubic) :: comms
   type(sparseMatrix) :: ham_small ! for FOE
   real(gp) :: fnrm
   integer :: infoCoeff, nvctrp, npsidim_global
@@ -984,7 +984,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
        at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
 
    call deallocate_orbitals_data(orbs, subname)
-   call deallocate_communications_arrays(comms, subname)
+   call deallocate_comms_cubic(comms, subname)
 
   ! To get consistent values of the energy and the Kohn-Sham residue with those
   ! which will be calculated by the cubic restart.

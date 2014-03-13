@@ -21,7 +21,7 @@ module module_types
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
-  use communications_base, only: comms_linear, communications_arrays
+  use communications_base, only: comms_linear, comms_cubic
 
   implicit none
 
@@ -733,7 +733,7 @@ module module_types
      !data properties
      logical :: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
-     type(communications_arrays) :: comms !< communication objects for the cubic approach
+     type(comms_cubic) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
@@ -1280,12 +1280,12 @@ contains
   end subroutine old_wavefunction_free
    
 
-!> De-Allocate communications_arrays
+!> De-Allocate comms_cubic
   subroutine deallocate_comms(comms,subname)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(communications_arrays), intent(inout) :: comms
+    type(comms_cubic), intent(inout) :: comms
     !local variables
     integer :: i_all,i_stat
 

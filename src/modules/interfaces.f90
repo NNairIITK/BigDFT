@@ -381,7 +381,7 @@ module module_interfaces
          use module_base
          use module_types
          use gaussians
-         use communications_base, only: communications_arrays
+         use communications_base, only: comms_cubic
          implicit none
          !Arguments
          integer, intent(in) :: iproc,nproc,ixc
@@ -390,7 +390,7 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          type(DFT_PSP_projectors), intent(inout) :: nlpsp
          type(local_zone_descriptors), intent(in) :: Lzd
-         type(communications_arrays), intent(in) :: comms
+         type(comms_cubic), intent(in) :: comms
          type(orbitals_data), intent(inout) :: orbs
          type(energy_terms), intent(inout) :: energs
          type(DFT_local_fields), intent(inout) :: denspot
@@ -455,12 +455,12 @@ module module_interfaces
       subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
          !n(c) use module_base
          use module_types
-         use communications_base, only: communications_arrays
+         use communications_base, only: comms_cubic
          implicit none
          integer, intent(in) :: iproc,nproc
          type(orbitals_data), intent(in) :: orbs
          type(wavefunctions_descriptors), intent(in) :: wfd
-         type(communications_arrays), intent(in) :: comms
+         type(comms_cubic), intent(in) :: comms
          type(orthon_data):: orthpar
          type(paw_objects),optional,intent(inout)::paw
          real(wp), dimension(:) , pointer :: psi,hpsi,psit
@@ -747,7 +747,7 @@ module module_interfaces
            rxyz,rhopot,nlpsp,pkernel,psi,v,dpbox,GPU)
         use module_base
         use module_types
-        use communications_base, only: communications_arrays
+        use communications_base, only: comms_cubic
         implicit none
         integer, intent(in) :: iproc,nproc
         integer, intent(in) :: nvirt
@@ -756,7 +756,7 @@ module module_interfaces
         type(DFT_PSP_projectors), intent(inout) :: nlpsp
         type(local_zone_descriptors), intent(inout) :: Lzd
         type(orbitals_data), intent(inout) :: orbs
-        type(communications_arrays), intent(in) :: comms, commsv
+        type(comms_cubic), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpbox
         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
         type(coulomb_operator), intent(in) :: pkernel
@@ -988,7 +988,7 @@ module module_interfaces
       !       integer, intent(in) :: iproc,nproc,ids,mids,idsx
       !       real(gp), intent(in) :: energy,energy_old
       !       type(orbitals_data), intent(in) :: orbs
-      !       type(communications_arrays), intent(in) :: comms
+      !       type(comms_cubic), intent(in) :: comms
       !       real(gp), intent(inout) :: alpha
       !       real(wp), dimension(:), pointer :: psit,hpsit,psidst
       !       real(sp), dimension(:), pointer :: hpsidst_sp
@@ -1292,16 +1292,16 @@ module module_interfaces
       subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
          !n(c) use module_base
          use module_types
-         use communications_base, only: communications_arrays
+         use communications_base, only: comms_cubic
          implicit none
          integer, intent(in) :: iproc,nproc
          type(orbitals_data), intent(in) :: orbs
          type(locreg_descriptors), intent(in) :: Glr
-         type(communications_arrays), intent(in) :: comms
+         type(comms_cubic), intent(in) :: comms
          logical, dimension(orbs%norb*orbs%nkpts), intent(in) :: mask_array
          real(wp), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(in) :: psi
          type(orbitals_data), intent(out) :: orbs_as
-         type(communications_arrays), intent(out) :: comms_as
+         type(comms_cubic), intent(out) :: comms_as
          real(wp), dimension(:), pointer :: psi_as
       END SUBROUTINE select_active_space
 
@@ -1322,12 +1322,12 @@ module module_interfaces
             psi,hpsi,scprsum,spsi) !n(c) wfd (arg:5)
         use module_base
         use module_types
-        use communications_base, only: communications_arrays
+        use communications_base, only: comms_cubic
         implicit none
         logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
         integer, intent(in) :: iproc,nproc
         type(orbitals_data), intent(in) :: orbs
-        type(communications_arrays), intent(in) :: comms
+        type(comms_cubic), intent(in) :: comms
         !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
         real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
         real(wp), dimension(orbs%npsidim_comp), intent(inout) :: hpsi
@@ -1341,7 +1341,7 @@ module module_interfaces
            hx,hy,hz,rxyz,rhopot,psi,v,dpbox,GPU)
         use module_base
         use module_types
-        use communications_base, only: communications_arrays
+        use communications_base, only: comms_cubic
         implicit none
         integer, intent(in) :: iproc,nproc
         integer, intent(in) :: nvirt
@@ -1349,7 +1349,7 @@ module module_interfaces
         type(atoms_data), intent(in) :: at
         type(local_zone_descriptors), intent(in) :: Lzd
         type(orbitals_data), intent(in) :: orbs
-        type(communications_arrays), intent(in) :: comms, commsv
+        type(comms_cubic), intent(in) :: comms, commsv
         type(denspot_distribution), intent(in) :: dpbox
         real(gp), intent(in) :: hx,hy,hz
         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
@@ -1579,7 +1579,7 @@ module module_interfaces
          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
       use module_base
       use module_types
-      use communications_base, only: communications_arrays
+      use communications_base, only: comms_cubic
       implicit none
       integer, intent(in) :: iproc,nproc,ixc,symObj
       integer, intent(inout) :: nspin,nvirt
@@ -1588,7 +1588,7 @@ module module_interfaces
       type(orbitals_data), intent(inout) :: orbs
       type(DFT_PSP_projectors), intent(inout) :: nlpsp
       type(locreg_descriptors), intent(in) :: Glr
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       type(GPU_pointers), intent(inout) :: GPU
       type(input_variables):: input
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
@@ -1607,11 +1607,11 @@ module module_interfaces
     subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
       use module_base
       use module_types
-      use communications_base, only: communications_arrays
+      use communications_base, only: comms_cubic
       implicit none
       integer, intent(in) :: iproc,nproc,ndim_psi
       type(orbitals_data), intent(in) :: orbs
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       type(diis_objects), intent(inout) :: diis
       real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
     end subroutine psimix
@@ -1876,20 +1876,20 @@ module module_interfaces
           orbse,commse,etol,norbsc_arr) !optional
        use module_base
        use module_types
-       use communications_base, only: communications_arrays
+       use communications_base, only: comms_cubic
        implicit none
        integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
        real(gp), intent(in) :: Tel
        type(local_zone_descriptors) :: Lzd        !< Information about the locregs after LIG
        type(local_zone_descriptors) :: Lzde       !< Information about the locregs for LIG
-       type(communications_arrays), intent(in) :: comms
+       type(comms_cubic), intent(in) :: comms
        type(orbitals_data), intent(inout) :: orbs
        type(orthon_data), intent(in):: orthpar 
        real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
        real(wp), dimension(:), pointer :: psi,hpsi,psit
        real(gp), intent(in) :: etol
        type(orbitals_data), intent(inout) :: orbse
-       type(communications_arrays), intent(in) :: commse
+       type(comms_cubic), intent(in) :: commse
        integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
      end subroutine LDiagHam
 
@@ -2071,15 +2071,15 @@ module module_interfaces
       character(len=*),intent(in):: subname
     end subroutine deallocate_orbitals_data
 
-    subroutine deallocate_communications_arrays(comms, subname)
+    subroutine deallocate_comms_cubic(comms, subname)
       use module_base
       use module_types
-      use communications_base, only: communications_arrays
+      use communications_base, only: comms_cubic
       !use deallocatePointers
       implicit none
-      type(communications_arrays),intent(inout):: comms
+      type(comms_cubic),intent(inout):: comms
       character(len=*),intent(in):: subname
-    end subroutine deallocate_communications_arrays
+    end subroutine deallocate_comms_cubic
 
 !    subroutine nullify_overlapParameters(op)
 !      use module_base
@@ -2130,13 +2130,13 @@ module module_interfaces
       type(orbitals_data),intent(out):: orbs
     end subroutine nullify_orbitals_data
     
-    subroutine nullify_communications_arrays(comms)
+    subroutine nullify_comms_cubic(comms)
       use module_base
       use module_types
-      use communications_base, only: communications_arrays
+      use communications_base, only: comms_cubic
       implicit none
-      type(communications_arrays),intent(out):: comms
-    end subroutine nullify_communications_arrays
+      type(comms_cubic),intent(out):: comms
+    end subroutine nullify_comms_cubic
         
     subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
       use module_base
@@ -2518,7 +2518,7 @@ module module_interfaces
          use module_base
          use module_types
          use module_fragments
-         use communications_base, only: communications_arrays
+         use communications_base, only: comms_cubic
          implicit none
          integer, intent(in) :: iproc,nproc
          integer, intent(out) :: inputpsi,input_wf_format,lnpsidim_orbs,lnpsidim_comp
@@ -2529,7 +2529,7 @@ module module_interfaces
          type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
          type(DFT_local_fields), intent(out), optional :: denspot
          type(DFT_PSP_projectors), intent(out) :: nlpsp
-         type(communications_arrays), intent(out) :: comms
+         type(comms_cubic), intent(out) :: comms
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
          real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
          type(system_fragment), dimension(:), pointer :: ref_frags
@@ -2567,7 +2567,7 @@ module module_interfaces
             nspin,potshortcut,symObj,GPU,input)
          use module_base
          use module_types
-         use communications_base, only: communications_arrays
+         use communications_base, only: comms_cubic
          implicit none
          !Arguments
          integer, intent(in) :: iproc,nproc,ixc
@@ -2579,7 +2579,7 @@ module module_interfaces
          type(orbitals_data), intent(inout) :: orbs
          type(DFT_PSP_projectors), intent(inout) :: nlpsp
          type(local_zone_descriptors), intent(inout) :: Lzd
-         type(communications_arrays), intent(in) :: comms
+         type(comms_cubic), intent(in) :: comms
          type(GPU_pointers), intent(inout) :: GPU
          type(input_variables):: input
          type(symmetry_data), intent(in) :: symObj
@@ -3111,12 +3111,12 @@ module module_interfaces
         subroutine check_communications(iproc,nproc,orbs,lr,comms)
           use module_base
           use module_types
-          use communications_base, only: communications_arrays
+          use communications_base, only: comms_cubic
           implicit none
           integer, intent(in) :: iproc,nproc
           type(orbitals_data), intent(in) :: orbs
           type(locreg_descriptors), intent(in) :: lr
-          type(communications_arrays), intent(in) :: comms
+          type(comms_cubic), intent(in) :: comms
         end subroutine check_communications
 
         subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
@@ -3203,12 +3203,12 @@ module module_interfaces
           ispinIn, paw)
           use module_base
           use module_types
-          use communications_base, only: communications_arrays
+          use communications_base, only: comms_cubic
           implicit none
           
           integer:: iproc,nvctrp,norbIn, nspin, block1, ispinIn
           type(orbitals_data):: orbs
-          type(communications_arrays):: comms
+          type(comms_cubic):: comms
           real(kind=8),dimension(orbs%npsidim_comp),intent(in out):: psi
           integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
           real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts),1):: ovrlp
@@ -3220,12 +3220,12 @@ module module_interfaces
           orbs, nspin,ndim_ovrlp,norbArr,comms,paw)
           use module_base
           use module_types
-          use communications_base, only: communications_arrays
+          use communications_base, only: comms_cubic
           implicit none
           integer, intent(in) :: iproc, nproc, nspinor,nspin
           type(orthon_data), intent(in):: orthpar
           type(orbitals_data):: orbs
-          type(communications_arrays), intent(in) :: comms
+          type(comms_cubic), intent(in) :: comms
           integer, dimension(nspin), intent(in) :: norbArr
           integer, dimension(nspin,0:orbs%nkpts), intent(in) :: ndim_ovrlp
           real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psi
@@ -3236,11 +3236,11 @@ module module_interfaces
           orbs, comms, nspin, psit, ovrlp, ndim_ovrlp, norbTot, paw)
           use module_base
           use module_types
-          use communications_base, only: communications_arrays
+          use communications_base, only: comms_cubic
           implicit none
           integer,intent(in):: iproc,norbIn, nspinor, nspin, block1, ispinIn
           type(orbitals_data),intent(in):: orbs
-          type(communications_arrays),intent(in):: comms
+          type(comms_cubic),intent(in):: comms
           real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
           integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
           real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
@@ -3252,11 +3252,11 @@ module module_interfaces
           nspinor, comms, norbTot, block1, block2, ispinIn,paw)
           use module_base
           use module_types
-          use communications_base, only: communications_arrays
+          use communications_base, only: comms_cubic
           implicit none
           integer,intent(in):: iproc, norbIn, nspin, nspinor, block1, block2, ispinIn
           type(orbitals_data):: orbs
-          type(communications_arrays), intent(in) :: comms
+          type(comms_cubic), intent(in) :: comms
           type(paw_objects),optional,intent(inout)::paw
           real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psit
           integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
@@ -3267,11 +3267,11 @@ module module_interfaces
         subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
           use module_base
           use module_types
-          use communications_base, only: communications_arrays
+          use communications_base, only: comms_cubic
           implicit none
           integer, intent(in) :: iproc,nproc
           type(orbitals_data), intent(in) :: orbs
-          type(communications_arrays), intent(in) :: comms
+          type(comms_cubic), intent(in) :: comms
           type(orthon_data), intent(in) :: orthpar
           real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
           type(paw_objects),optional,intent(inout) :: paw

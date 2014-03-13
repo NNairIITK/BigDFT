@@ -723,10 +723,10 @@ END SUBROUTINE orbs_empty
 subroutine orbs_comm_new(comms)
   use module_base
   use module_types
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
 !  use module_interfaces
   implicit none
-  type(communications_arrays), pointer :: comms
+  type(comms_cubic), pointer :: comms
 
   allocate(comms)
   nullify(comms%nvctr_par)
@@ -734,33 +734,33 @@ end subroutine orbs_comm_new
 subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
   use module_base
   use module_types
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
   implicit none
   integer, intent(in) :: iproc,nproc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(inout) :: orbs
-  type(communications_arrays), intent(inout) :: comms
+  type(comms_cubic), intent(inout) :: comms
 
   call orbitals_communicators(iproc,nproc,lr,orbs,comms)
 end subroutine orbs_comm_init
 subroutine orbs_comm_free(comms)
   use module_base
   use module_types
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
 !  use module_interfaces
   implicit none
-  type(communications_arrays), pointer :: comms
+  type(comms_cubic), pointer :: comms
 
   deallocate(comms)
 end subroutine orbs_comm_free
 subroutine orbs_comm_empty(comms)
   use module_base
   use module_types
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
 !  use module_interfaces
   implicit none
-  type(communications_arrays), intent(inout) :: comms
+  type(comms_cubic), intent(inout) :: comms
 
   if (associated(comms%nvctr_par)) then
      call deallocate_comms(comms,"orbs_comm_empty")
@@ -1065,12 +1065,12 @@ END SUBROUTINE gpu_free
 
 subroutine wf_new(self, wf, orbs, comm, lzd)
   use module_types
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
   implicit none
   integer(kind = 8), intent(in) :: self
   type(DFT_wavefunction), pointer :: wf
   type(orbitals_data), pointer :: orbs
-  type(communications_arrays), pointer :: comm
+  type(comms_cubic), pointer :: comm
   type(local_zone_descriptors), pointer :: lzd
 
   allocate(wf)
@@ -1095,11 +1095,11 @@ subroutine wf_init(wf)
 end subroutine wf_init
 subroutine wf_get_data(wf, orbs, comm, lzd)
   use module_types
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
   implicit none
   type(DFT_wavefunction), target, intent(in) :: wf
   type(orbitals_data), pointer :: orbs
-  type(communications_arrays), pointer :: comm
+  type(comms_cubic), pointer :: comm
   type(local_zone_descriptors), pointer :: lzd
 
   orbs => wf%orbs

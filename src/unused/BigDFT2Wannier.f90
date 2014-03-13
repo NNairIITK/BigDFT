@@ -755,7 +755,7 @@
 !!   type(input_variables),intent(in) :: input
 !!   type(locreg_descriptors), intent(in) :: Glr
 !!   type(orbitals_data), intent(inout) :: orbsv,orbsp
-!!   type(communications_arrays), target :: commsv,commsp
+!!   type(comms_cubic), target :: commsv,commsp
 !!   type(atoms_data), intent(in) :: atoms
 !!   type(workarr_sumrho), intent(in) :: w
 !!   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz

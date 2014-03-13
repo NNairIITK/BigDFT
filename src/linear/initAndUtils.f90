@@ -1032,7 +1032,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp_large, subname)
 
   call deallocate_orbitals_data(wfn%orbs, subname)
-  !call deallocate_communications_arrays(wfn%comms, subname)
+  !call deallocate_comms_cubic(wfn%comms, subname)
   call deallocate_comms_linear(wfn%collcom)
   call deallocate_comms_linear(wfn%collcom_sr)
   call deallocate_local_zone_descriptors(wfn%lzd, subname)

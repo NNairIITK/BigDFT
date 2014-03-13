@@ -82,7 +82,7 @@ module communications_init
           collcom%ndimpsi_f=collcom%ndimpsi_f+lzd%llr(ilr)%wfd%nvctr_f
       end do
     
-      call allocate_local_communications_arrays(collcom)
+      call allocate_local_comms_cubic(collcom)
     
       call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
            istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
@@ -1441,7 +1441,7 @@ module communications_init
       !Now set some integers in the collcomm structure
       collcom_sr%ndimind_c = sum(collcom_sr%nrecvcounts_c)
 
-      call allocate_local_communications_arrays(collcom_sr, only_coarse=.true.)
+      call allocate_local_comms_cubic(collcom_sr, only_coarse=.true.)
     
       call determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, &
            istartend, weight_tot, weights_per_zpoint, collcom_sr%norb_per_gridpoint_c)
@@ -1464,7 +1464,7 @@ module communications_init
             collcom_sr%isptsp_c(ipt) = collcom_sr%isptsp_c(ipt-1) + collcom_sr%norb_per_gridpoint_c(ipt-1)
       end do
     
-      call allocate_MPI_communications_arrays_repartition(nproc, collcom_sr)
+      call allocate_MPI_comms_cubic_repartition(nproc, collcom_sr)
     
       call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
            collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
@@ -2244,7 +2244,7 @@ module communications_init
           end do
         
         
-          call allocate_MPI_communications_arrays_repartitionp2p(ncomms_repartitionrho, commarr_repartitionrho)
+          call allocate_MPI_comms_cubic_repartitionp2p(ncomms_repartitionrho, commarr_repartitionrho)
         
         
           ! First process from which iproc has to receive data
@@ -2314,7 +2314,7 @@ module communications_init
     
       else
           ncomms_repartitionrho=0
-          call allocate_MPI_communications_arrays_repartitionp2p(1, commarr_repartitionrho)
+          call allocate_MPI_comms_cubic_repartitionp2p(1, commarr_repartitionrho)
     
       end if
     
@@ -2601,7 +2601,7 @@ module communications_init
       integer, intent(in) :: iproc,nproc
       type(locreg_descriptors), intent(in) :: lr
       type(orbitals_data), intent(inout) :: orbs
-      type(communications_arrays), intent(out) :: comms
+      type(comms_cubic), intent(out) :: comms
       integer, dimension(0:nproc-1,orbs%nkpts), intent(in), optional :: basedist
       !local variables
       character(len=*), parameter :: subname='orbitals_communicators'

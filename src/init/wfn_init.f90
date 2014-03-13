@@ -215,21 +215,21 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use module_types
   use module_interfaces, except_this_one => LDiagHam
   use yaml_output
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
   use communications, only: transpose_v2, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
   real(gp), intent(in) :: Tel
   type(local_zone_descriptors) :: Lzd        !< Information about the locregs after LIG
   type(local_zone_descriptors) :: Lzde       !< Information about the locregs for LIG
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   type(orbitals_data), intent(inout) :: orbs
   type(orthon_data), intent(in):: orthpar 
   real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   real(gp), intent(in) :: etol
   type(orbitals_data), intent(inout) :: orbse
-  type(communications_arrays), intent(in) :: commse
+  type(comms_cubic), intent(in) :: commse
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   !local variables
   character(len=*), parameter :: subname='LDiagHam'
@@ -1042,7 +1042,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    use module_base
    use module_types
    use yaml_output
-   use communications_base, only: communications_arrays
+   use communications_base, only: comms_cubic
    implicit none
 
    ! Calling arguments
@@ -1054,7 +1054,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    real(kind=8),dimension(sizePsi),intent(in):: psi
    real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psiGuessWavelet
    type(orthon_data),intent(in):: orthpar
-   type(communications_arrays), intent(in):: comms
+   type(comms_cubic), intent(in):: comms
 
    ! Local variables
    integer :: i, j, iorb, jorb, ispin, ii, jj, kk, norbtot, norbtotPad, iter, ierr, itermax

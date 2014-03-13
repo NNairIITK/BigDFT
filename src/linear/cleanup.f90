@@ -729,14 +729,14 @@ end module deallocatePointers
 !!$      character(len=*),intent(in):: subname
 !!$    end subroutine deallocate_orbitals_data
 !!$    
-!!$    subroutine deallocate_communications_arrays(comms, subname)
+!!$    subroutine deallocate_comms_cubic(comms, subname)
 !!$      
 !!$      use module_types
 !!$      use deallocatePointers
 !!$      implicit none
-!!$      type(communications_arrays),intent(inout):: comms
+!!$      type(comms_cubic),intent(inout):: comms
 !!$      character(len=*),intent(in):: subname
-!!$    end subroutine deallocate_communications_arrays
+!!$    end subroutine deallocate_comms_cubic
 !!$    
 !!$  end interface
 !!$
@@ -822,13 +822,13 @@ subroutine deallocate_orbitals_data(orbs, subname)
 end subroutine deallocate_orbitals_data
 
 
-subroutine deallocate_communications_arrays(comms, subname)
-  use communications_base, only: communications_arrays
+subroutine deallocate_comms_cubic(comms, subname)
+  use communications_base, only: comms_cubic
   use deallocatePointers
   implicit none
   
   ! Calling arguments
-  type(communications_arrays),intent(inout):: comms
+  type(comms_cubic),intent(inout):: comms
   character(len=*),intent(in):: subname
   
   call checkAndDeallocatePointer(comms%ncntd, 'comms%ncntd', subname)
@@ -837,7 +837,7 @@ subroutine deallocate_communications_arrays(comms, subname)
   call checkAndDeallocatePointer(comms%ndsplt, 'comms%ndsplt', subname)
   call checkAndDeallocatePointer(comms%nvctr_par, 'comms%nvctr_par', subname)
   
-end subroutine deallocate_communications_arrays
+end subroutine deallocate_comms_cubic
 
 
 subroutine deallocate_convolutions_bounds(bounds, subname)

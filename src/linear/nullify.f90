@@ -106,13 +106,13 @@ subroutine nullify_orbitals_data(orbs)
 end subroutine nullify_orbitals_data
 
 
-subroutine nullify_communications_arrays(comms)
+subroutine nullify_comms_cubic(comms)
   use module_base
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
-  type(communications_arrays),intent(out):: comms
+  type(comms_cubic),intent(out):: comms
 
   nullify(comms%ncntd)
   nullify(comms%ncntt)
@@ -120,7 +120,7 @@ subroutine nullify_communications_arrays(comms)
   nullify(comms%ndsplt)
   nullify(comms%nvctr_par)
   
-end subroutine nullify_communications_arrays
+end subroutine nullify_comms_cubic
 
 
 

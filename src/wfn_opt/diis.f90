@@ -24,7 +24,7 @@
 !!    integer, intent(in) :: iproc,nproc,ncong,iscf,iter,nspin,ixc
 !!    real(gp), intent(in) :: hx,hy,hz
 !!    type(orbitals_data), intent(inout) :: orbs
-!!    type(communications_arrays), intent(in) :: comms
+!!    type(comms_cubic), intent(in) :: comms
 !!    type(locreg_descriptors), intent(in) :: lr
 !!    type(GPU_pointers), intent(inout) :: GPU
 !!    type(orthon_data), intent(in) :: orthpar
@@ -523,11 +523,11 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_interfaces, except_this_one => psimix
   use yaml_output
   use diis_sd_optimization
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc,ndim_psi
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   type(diis_objects), intent(inout) :: diis
   real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
   !real(wp), dimension(:), pointer :: psit,hpsit
@@ -695,12 +695,12 @@ END SUBROUTINE diis_or_sd
 subroutine diisstp(iproc,nproc,orbs,comms,diis)
   use module_base
   use module_types
-  use communications_base, only: communications_arrays
+  use communications_base, only: comms_cubic
   implicit none
 ! Arguments
   integer, intent(in) :: nproc,iproc
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   type(diis_objects), intent(inout) :: diis
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
@@ -1065,7 +1065,7 @@ end function s2d_dot
 !!  implicit none
 !!  integer, intent(in) :: iproc,nproc
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(diis_objects), intent(inout) :: diis
 !!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
 !!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
@@ -1145,7 +1145,7 @@ end function s2d_dot
 !!! Arguments
 !!  integer, intent(in) :: nproc,iproc
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(diis_objects), intent(inout) :: diis
 !!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
 !!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit
