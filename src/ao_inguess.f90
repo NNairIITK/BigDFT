@@ -981,7 +981,7 @@ contains
        noncoll=1
     end if
 
-    call razero(nelecmax,occupIG)
+    call to_zero(nelecmax,occupIG)
     !call to_zero(nelecmax, occupIG(1))
 
     !here we should define the array of the occupation numbers

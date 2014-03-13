@@ -1472,7 +1472,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
    !Note: The previous data layout allowed level 3 BLAS
    !call DGEMM('N','N',nvctrp,nvirte,n2virt,1.d0,v(1,1),nvctrp,hamovr(1,1,1),n2virt,0.d0,hv(1,1),nvctrp)
    !    dimensions    =m      =n   =k          m,k        k,n                   m,n             
-   !call DCOPY(nvctrp*nvirte,hv(1,1),1,v(1,1),1)
+   !call vcopy(nvctrp*nvirte,hv(1,1),1,v(1,1),1)
 
    if(nspinor==1) then
       call gemm('N','N',nvctrp,norb,norb,1.0_wp,v(1),&

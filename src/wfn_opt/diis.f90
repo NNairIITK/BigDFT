@@ -782,7 +782,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
                    diis%hpsidst(ispsidst+ipsi_spin_sh+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
            end if
         end do
-        !copy the complex result in the rds array (DCOPY TO BE REDEFINED)
+        !copy the complex result in the rds array (vcopy TO BE REDEFINED)
         if (ncplx == 2) call vcopy(2,zdres,1,rds(1,i-ist+1,1,ikpt),1)
      end do
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx

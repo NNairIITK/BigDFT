@@ -17,6 +17,7 @@ program WaCo
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use yaml_output
    use module_input_dicts
+   use module_atoms, only: deallocate_atoms_data
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -1295,7 +1296,7 @@ program WaCo
   call deallocate_lr(Glr,subname)
   call deallocate_orbs(orbs,subname)
   !call deallocate_atoms_scf(atoms,subname)
-  call deallocate_atoms(atoms,subname)
+  call deallocate_atoms_data(atoms)
 !  call free_input_variables(input)
   call bigdft_free_input(input)
 

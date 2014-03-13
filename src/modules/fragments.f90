@@ -513,7 +513,7 @@ contains
     indr=1
 
     gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
-    call razero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+    call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
     call initialize_work_arrays_sumrho(tmb%lzd%glr, w)
     psir=f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i*frag%fbasis%forbs%norb,id='psir')
 
@@ -547,7 +547,7 @@ contains
     hzh=.5d0*tmb%lzd%hgrids(3)
     factor=1.d0/(hxh*hyh*hzh)
     total_charge=0.d0
-    !call razero(ndimrho,frag%fbasis%density)
+    !call to_zero(ndimrho,frag%fbasis%density)
     do ipt=1,ndimrho
        tt=1.e-20_dp
        do iiorb=1,frag%fbasis%forbs%norb
@@ -1131,14 +1131,14 @@ contains
     ! copy from coeff fragment to global coeffs - occupied states only
     isforb=0
     jsforb=0
-    call razero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
-    !*call razero(tmb%linmat%denskern%nvctr,kernel_final(1))
+    call to_zero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
+    !*call to_zero(tmb%linmat%denskern%nvctr,kernel_final(1))
     tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
     call uncompressMatrix(iproc,tmb%linmat%ovrlp)
     do ifrag=1,input%frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
-       call razero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
+       call to_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
        jstate_max=(ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp+num_extra_per_frag
        !jstate_max=ref_frags(ifrag_ref)%nelec/2.0_gp+num_extra_per_frag
@@ -1193,7 +1193,7 @@ contains
        !end do
        ! end debug
 
-       !call razero(tmb%linmat%denskern%nvctr,tmb%linmat%denskern%matrix_compr(1))
+       !call to_zero(tmb%linmat%denskern%nvctr,tmb%linmat%denskern%matrix_compr(1))
 
        ! should correct the occupation for kernel here, but as we replace the smaller kernel with the correct bigger kernel
        ! don't worry about this for now
@@ -1237,7 +1237,7 @@ contains
     end do
     call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
-    !*call dcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
+    !*call vcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
     call vcopy(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1),1,tmb%coeff(1,1),1)
 
     !*call f_free(kernel_final)
@@ -1351,17 +1351,17 @@ contains
        ! reorder ksorbs%norb states by energy - no longer taking charge as input
        call order_coeffs_by_energy(ksorbs%norb,tmb%orbs%norb,tmb%coeff(1,1),eval_tmp(1),ipiv(1))!,tmb%orbs%eval(1))
                !eval_tmp2=f_malloc(tmb%orbs%norb,id='eval_tmp2')
-               !call dcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,eval_tmp2(1),1)
+               !call vcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,eval_tmp2(1),1)
                !do itmb=1,ksorbs%norb
                !   tmb%orbs%occup(itmb)=eval_tmp2(ipiv(itmb))
                !end do
-               !call dcopy(tmb%orbs%norb,tmb%orbs%eval(1),1,eval_tmp2(1),1)
-               !call dcopy(tmb%orbs%norb,eval_tmp(1),1,tmb%orbs%eval(1),1)
+               !call vcopy(tmb%orbs%norb,tmb%orbs%eval(1),1,eval_tmp2(1),1)
+               !call vcopy(tmb%orbs%norb,eval_tmp(1),1,tmb%orbs%eval(1),1)
                !nullify(mom_vec_fake)
                !if (bigdft_mpi%iproc==0) then 
                !   call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
                !end if
-               !call dcopy(tmb%orbs%norb,eval_tmp2(1),1,tmb%orbs%eval(1),1)
+               !call vcopy(tmb%orbs%norb,eval_tmp2(1),1,tmb%orbs%eval(1),1)
                !call f_free(eval_tmp2)
        call vcopy(ksorbs%norb,tmb%orbs%eval(1),1,eval_tmp(1),1)
        do itmb=1,ksorbs%norb

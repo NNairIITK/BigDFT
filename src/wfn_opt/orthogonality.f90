@@ -716,7 +716,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
                         (0.0_wp,0.0_wp),psiw(1),max(1,ncomp*nvctrp))
                 end if
 
-                call DCOPY(nvctrp*norb*nspinor,psiw(1),1,psi(ispsi),1)
+                call vcopy(nvctrp*norb*nspinor,psiw(1),1,psi(ispsi),1)
 
                 !here we should add the same transformation for hpsi if required
 
@@ -1438,7 +1438,7 @@ subroutine loewe_p(iproc,norb,ndim,nvctrp,nvctr_tot,psit)
      ! new eigenvectors
      !   psitt(i,iorb)=psit(i,jorb)*ovrlp(jorb,iorb,3)
      call DGEMM('N','N',nvctrp,norb,norb,1.d0,psit,nvctrp,ovrlp(1,1,3),norb,0.d0,psitt,nvctrp)
-     call DCOPY(nvctrp*ndim,psitt,1,psit,1)
+     call vcopy(nvctrp*ndim,psitt(1,1),1,psit(1,1),1)
      i_all=-product(shape(psitt))*kind(psitt)
      deallocate(psitt,stat=i_stat)
      call memocc(i_stat,i_all,'psitt',subname)
@@ -1520,7 +1520,7 @@ subroutine loewe(norb,nvctrp,psi)
      call memocc(i_stat,tpsi,'tpsi',subname)
      !   tpsi(i,iorb)=psi(i,jorb)*ovrlp(jorb,iorb,3)
      call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi(1,1),nvctrp,ovrlp(1,1,3),norb,0.d0,tpsi,nvctrp)
-     call DCOPY(nvctrp*norb,tpsi,1,psi,1)
+     call vcopy(nvctrp*norb,tpsi(1,1),1,psi(1,1),1)
      i_all=-product(shape(tpsi))*kind(tpsi)
      deallocate(tpsi,stat=i_stat)
      call memocc(i_stat,i_all,'tpsi',subname)
@@ -1799,7 +1799,7 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
   deallocate(hamks,stat=i_stat)
   call memocc(i_stat,i_all,'hamks',subname)
 
-  call DCOPY(nvctrp*norb*nspinor,psitt,1,psit,1)
+  call vcopy(nvctrp*norb*nspinor,psitt(1,1),1,psit(1,1),1)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt',subname)
