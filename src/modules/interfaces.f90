@@ -204,17 +204,6 @@ module module_interfaces
          integer, dimension(0:nproc-1), intent(in), optional :: basedist 
       END SUBROUTINE orbitals_descriptors
 
-      subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
-         use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc,nproc
-         type(locreg_descriptors), intent(in) :: lr
-         type(orbitals_data), intent(inout) :: orbs
-         type(communications_arrays), intent(out) :: comms
-         integer, dimension(0:nproc-1,orbs%nkpts), intent(in), optional :: basedist
-      END SUBROUTINE orbitals_communicators
-
      subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
        use module_base
        use module_types

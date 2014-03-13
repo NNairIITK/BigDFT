@@ -858,6 +858,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => build_ks_orbitals
+  use communications_init, only: orbitals_communicators
   implicit none
   
   ! Calling arguments

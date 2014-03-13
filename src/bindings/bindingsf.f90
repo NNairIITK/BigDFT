@@ -733,7 +733,7 @@ end subroutine orbs_comm_new
 subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
   use module_base
   use module_types
-  use module_interfaces, only: orbitals_communicators
+  use communications_init, only: orbitals_communicators
   implicit none
   integer, intent(in) :: iproc,nproc
   type(locreg_descriptors), intent(in) :: lr

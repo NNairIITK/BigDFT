@@ -240,6 +240,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use constrained_dft
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
+  use communications_init, only: orbitals_communicators
 !  use vdwcorrection
   use yaml_output
   use gaussians, only: gaussian_basis

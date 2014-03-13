@@ -1884,6 +1884,7 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
    use module_base
    use module_types
    use module_interfaces, except_this_one => select_active_space
+   use communications_init, only: orbitals_communicators
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs

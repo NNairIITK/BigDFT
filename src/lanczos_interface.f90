@@ -1646,6 +1646,7 @@ nullify(Qvect,dumQvect)
     use module_types
     use lanczos_base
     use module_interfaces
+    use communications_init, only: orbitals_communicators
     implicit none
     integer, intent(in) :: iproc,nproc,nspin
     real(gp), intent(in) :: hx,hy,hz
@@ -1805,6 +1806,7 @@ nullify(Qvect,dumQvect)
     use lanczos_base
     ! per togliere il bug 
     use module_interfaces
+    use communications_init, only: orbitals_communicators
 
     implicit none
     integer  :: iproc,nproc,nspin
@@ -2048,6 +2050,7 @@ nullify(Qvect,dumQvect)
     use lanczos_base
     ! per togliere il bug 
     use module_interfaces
+    use communications_init, only: orbitals_communicators
 
     implicit none
 
