@@ -1853,7 +1853,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_interfaces, except_this_one => kswfn_post_treatments
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
-  use communications_base, only: deallocate_collective_comms
+  use communications_base, only: deallocate_comms_linear
   use communications, only: synchronize_onesided_communication
 
   implicit none
@@ -1969,9 +1969,9 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      imode = 1
      nsize_psi=1
      ! This is just to save memory, since calculate_forces will require quite a lot
-     call deallocate_collective_comms(tmb%collcom)
-     call deallocate_collective_comms(tmb%ham_descr%collcom)
-     call deallocate_collective_comms(tmb%collcom_sr)
+     call deallocate_comms_linear(tmb%collcom)
+     call deallocate_comms_linear(tmb%ham_descr%collcom)
+     call deallocate_comms_linear(tmb%collcom_sr)
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
@@ -1996,7 +1996,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
      call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
-     call deallocate_collective_comms(tmb%ham_descr%collcom)
+     call deallocate_comms_linear(tmb%ham_descr%collcom)
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 
 !!!! TEST ##################

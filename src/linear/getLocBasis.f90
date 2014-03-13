@@ -1570,7 +1570,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
   real(kind=8),dimension(npsidim),intent(in) :: lphi
-  type(collective_comms),intent(inout) :: collcom_sr
+  type(comms_linear),intent(inout) :: collcom_sr
   
   ! Local variables
   integer :: ist, istr, iorb, iiorb, ilr, istat, iall

@@ -4,14 +4,14 @@ module communications_init
 
   private
 
-  public :: init_collective_comms
-  public :: init_collective_comms_sumrho
+  public :: init_comms_linear
+  public :: init_comms_linear_sumrho
   public :: initialize_communication_potential
   public :: orbitals_communicators
 
   contains
 
-    subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
+    subroutine init_comms_linear(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
       use module_base
       use module_types
       implicit none
@@ -20,7 +20,7 @@ module communications_init
       integer,intent(in) :: iproc, nproc, npsidim_orbs
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
-      type(collective_comms),intent(inout) :: collcom
+      type(comms_linear),intent(inout) :: collcom
       
       ! Local variables
       integer :: ii, iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
@@ -33,7 +33,7 @@ module communications_init
       
       call timing(iproc,'init_collcomm ','ON')
     
-      call f_routine('init_collective_comms')
+      call f_routine('init_comms_linear')
     
       weight_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
       weight_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/))
@@ -128,7 +128,7 @@ module communications_init
       
       call timing(iproc,'init_collcomm ','OF')
       
-    end subroutine init_collective_comms
+    end subroutine init_comms_linear
 
 
     subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
@@ -528,7 +528,7 @@ module communications_init
       else
           ii=nptsp_f
       end if
-      if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_collective_comms: wrong partition of fine grid points'
+      if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_comms_linear: wrong partition of fine grid points'
       
      
     
@@ -1390,7 +1390,7 @@ module communications_init
 
     ! The sumrho routines
 
-    subroutine init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
+    subroutine init_comms_linear_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
       use module_base
       use module_types
       implicit none
@@ -1400,13 +1400,13 @@ module communications_init
       type(local_zone_descriptors),intent(in) :: lzd
       type(orbitals_data),intent(in) :: orbs
       integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      type(collective_comms),intent(inout) :: collcom_sr
+      type(comms_linear),intent(inout) :: collcom_sr
     
       ! Local variables
       integer :: ierr, istat, iall, ipt, ii
       real(kind=8) :: weight_tot, weight_ideal
       integer,dimension(:,:),allocatable :: istartend
-      character(len=*),parameter :: subname='init_collective_comms_sumrho'
+      character(len=*),parameter :: subname='init_comms_linear_sumrho'
       real(kind=8),dimension(:),allocatable :: weights_per_slice, weights_per_zpoint
     
       ! Note: all weights are double precision to avoid integer overflow
@@ -1483,7 +1483,7 @@ module communications_init
     
       call timing(iproc,'init_collco_sr','OF')
     
-    end subroutine init_collective_comms_sumrho
+    end subroutine init_comms_linear_sumrho
 
 
 

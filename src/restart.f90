@@ -1073,8 +1073,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
-  use communications_base, only: collective_comms_null, deallocate_collective_comms
-  use communications_init, only: init_collective_comms
+  use communications_base, only: comms_linear_null, deallocate_comms_linear
+  use communications_init, only: init_comms_linear
   use communications, only: transpose_localized
   implicit none
 
@@ -1094,7 +1094,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
   real(wp), dimension(:), pointer :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
   integer, dimension(0:6) :: reformat_reason
-  type(collective_comms) :: collcom_tmp
+  type(comms_linear) :: collcom_tmp
   type(local_zone_descriptors) :: lzd_tmp
   real(gp) :: tol
   character(len=*),parameter:: subname='tmb_overlap_onsite'
@@ -1226,9 +1226,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
      call copy_locreg_descriptors(tmb%lzd%llr(ilr_tmp), lzd_tmp%llr(i1))
   end do
 
-  !call nullify_collective_comms(collcom_tmp)
-  collcom_tmp=collective_comms_null()
-  call init_collective_comms(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
+  !call nullify_comms_linear(collcom_tmp)
+  collcom_tmp=comms_linear_null()
+  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
 
   allocate(psit_c_tmp(sum(collcom_tmp%nrecvcounts_c)), stat=i_stat)
   call memocc(i_stat, psit_c_tmp, 'psit_c_tmp', subname)
@@ -1250,7 +1250,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
        psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
 
-  call deallocate_collective_comms(collcom_tmp)
+  call deallocate_comms_linear(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
   i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)
@@ -1274,8 +1274,8 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
-  use communications_base, only: collective_comms_null, deallocate_collective_comms
-  use communications_init, only: init_collective_comms
+  use communications_base, only: comms_linear_null, deallocate_comms_linear
+  use communications_init, only: init_comms_linear
   use communications, only: transpose_localized
   implicit none
 
@@ -1295,7 +1295,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
   real(wp), dimension(:), pointer :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
   integer, dimension(0:6) :: reformat_reason
-  type(collective_comms) :: collcom_tmp
+  type(comms_linear) :: collcom_tmp
   type(local_zone_descriptors) :: lzd_tmp
   real(gp) :: tol
   character(len=*),parameter:: subname='tmb_overlap_onsite'
@@ -1503,9 +1503,9 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
      call copy_locreg_descriptors(tmb%lzd%llr(jlr), lzd_tmp%llr(i1))
   end do
 
-  !call nullify_collective_comms(collcom_tmp)
-  collcom_tmp=collective_comms_null()
-  call init_collective_comms(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
+  !call nullify_comms_linear(collcom_tmp)
+  collcom_tmp=comms_linear_null()
+  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
 
   allocate(psit_c_tmp(sum(collcom_tmp%nrecvcounts_c)), stat=i_stat)
   call memocc(i_stat, psit_c_tmp, 'psit_c_tmp', subname)
@@ -1527,7 +1527,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
        psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
 
-  call deallocate_collective_comms(collcom_tmp)
+  call deallocate_comms_linear(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
   i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)

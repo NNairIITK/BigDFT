@@ -644,7 +644,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, ndimrho
   real(kind=8),intent(in) :: hx, hy, hz
-  type(collective_comms),intent(in) :: collcom_sr
+  type(comms_linear),intent(in) :: collcom_sr
   type(sparseMatrix),intent(in) :: denskern
   real(kind=8),dimension(ndimrho),intent(out) :: rho
   logical,intent(in),optional :: print_results
@@ -965,7 +965,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   integer,intent(in) :: iproc, nproc
   type(local_zone_descriptors),intent(in) :: lzd
   type(orbitals_data),intent(in) :: orbs
-  type(collective_comms),intent(inout) :: collcom_sr
+  type(comms_linear),intent(inout) :: collcom_sr
   type(DFT_local_fields),intent(in) :: denspot
   type(sparseMatrix),intent(inout) :: denskern
   integer,intent(in) :: check_sumrho

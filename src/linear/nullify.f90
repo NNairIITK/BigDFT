@@ -145,13 +145,13 @@ end subroutine nullify_communications_arrays
 
 
 
-!subroutine nullify_collective_comms(collcom)
+!subroutine nullify_comms_linear(collcom)
 !  use module_base
 !  use module_types
 !  implicit none
 !  
 !  ! Calling arguments
-!  type(collective_comms),intent(inout):: collcom
+!  type(comms_linear),intent(inout):: collcom
 !
 !  ! Local variables
 !  nullify(collcom%nsendcounts_c)
@@ -184,4 +184,4 @@ end subroutine nullify_communications_arrays
 !  nullify(collcom%nrecvdspls_repartitionrho)
 !  nullify(collcom%commarr_repartitionrho)
 !
-!end subroutine nullify_collective_comms
+!end subroutine nullify_comms_linear

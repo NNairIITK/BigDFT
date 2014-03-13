@@ -21,7 +21,7 @@ module module_types
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
-  use communications_base, only: collective_comms, communications_arrays
+  use communications_base, only: comms_linear, communications_arrays
 
   implicit none
 
@@ -712,7 +712,7 @@ module module_types
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
-     type(collective_comms) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom ! describes collective communication
      type(p2pComms) :: comgp           !<describing p2p communications for distributing the potential
      real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
      logical :: can_use_transposed
@@ -740,8 +740,8 @@ module module_types
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      type(p2pComms) :: comgp !<describing p2p communications for distributing the potential
-     type(collective_comms) :: collcom ! describes collective communication
-     type(collective_comms) :: collcom_sr ! describes collective communication for the calculation of the charge density
+     type(comms_linear) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
      type(foe_data) :: foe_obj        !<describes the structure of the matrices for the linear method foe
      type(linear_matrices) :: linmat

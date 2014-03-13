@@ -22,7 +22,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   type(local_zone_descriptors),intent(in) :: lzd
   type(sparseMatrix),intent(inout) :: ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-  type(collective_comms),intent(in) :: collcom
+  type(comms_linear),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
@@ -141,7 +141,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   type(local_zone_descriptors),intent(in) :: lzd
   !type(orbitals_Data),intent(in) :: orbs
   type(orbitals_Data),intent(inout) :: orbs !temporary inout
-  type(collective_comms),intent(in) :: collcom
+  type(comms_linear),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   integer,intent(in) :: correction_orthoconstraint
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
@@ -1354,7 +1354,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   type(local_zone_descriptors),intent(in) :: lzd
   type(sparseMatrix),intent(inout) :: ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-  type(collective_comms),intent(in) :: collcom
+  type(comms_linear),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
@@ -1551,7 +1551,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   type(local_zone_descriptors),intent(in) :: lzd
   type(sparseMatrix),intent(inout) :: ovrlp
   type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-  type(collective_comms),intent(in) :: collcom
+  type(comms_linear),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f

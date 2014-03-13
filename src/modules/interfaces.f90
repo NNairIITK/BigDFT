@@ -1934,7 +1934,7 @@ module module_interfaces
        type(local_zone_descriptors),intent(in):: lzd
        type(sparseMatrix),intent(inout):: ovrlp
        type(sparseMatrix),intent(inout):: inv_ovrlp_half
-       type(collective_comms),intent(in):: collcom
+       type(comms_linear),intent(in):: collcom
        type(orthon_data),intent(in):: orthpar
        real(8),dimension(npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
@@ -2116,12 +2116,12 @@ module module_interfaces
       type(sparseMatrix),intent(out):: sparsemat
     end subroutine nullify_sparseMatrix
 
-    subroutine nullify_collective_comms(collcom)
+    subroutine nullify_comms_linear(collcom)
       use module_base
       use module_types
       implicit none
-      type(collective_comms),intent(inout):: collcom
-    end subroutine nullify_collective_comms
+      type(comms_linear),intent(inout):: collcom
+    end subroutine nullify_comms_linear
     
     subroutine nullify_orbitals_data(orbs)
       use module_base
@@ -2179,7 +2179,7 @@ module module_interfaces
        type(atoms_data),intent(inout) :: at
        type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
-       type(collective_comms),intent(in):: collcom_reference
+       type(comms_linear),intent(in):: collcom_reference
        type(locreg_descriptors),intent(in) :: Glr
        type(input_variables), intent(in) ::input
        type(linearInputParameters),intent(in):: lin
@@ -2244,7 +2244,7 @@ module module_interfaces
         integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
         type(local_zone_descriptors),intent(in) :: lzd
         type(orbitals_Data),intent(in) :: orbs
-        type(collective_comms),intent(in) :: collcom
+        type(comms_linear),intent(in) :: collcom
         type(orthon_data),intent(in) :: orthpar
         integer,intent(in) :: correction_orthoconstraint
         real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
@@ -2687,8 +2687,8 @@ module module_interfaces
          type(local_zone_descriptors),intent(inout):: lzd
          type(p2pComms),intent(inout):: lbcomgp
          type(foe_data),intent(inout),optional :: lfoe
-         type(collective_comms),intent(inout):: lbcollcom
-         type(collective_comms),intent(inout),optional :: lbcollcom_sr
+         type(comms_linear),intent(inout):: lbcollcom
+         type(comms_linear),intent(inout),optional :: lbcollcom_sr
        end subroutine update_locreg
 
        subroutine create_DFT_wavefunction(mode, nphi, lnorb, norb, norbp, input, wfn)
@@ -3496,7 +3496,7 @@ module module_interfaces
           implicit none
           integer,intent(in):: iproc, nproc
           type(orbitals_data),intent(in):: orbs
-          type(collective_comms),intent(in):: collcom
+          type(comms_linear),intent(in):: collcom
           real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
           real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
           real(8),dimension(orbs%norb),intent(out):: norm
@@ -3525,7 +3525,7 @@ module module_interfaces
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
           real(kind=8),dimension(npsidim),intent(in) :: lphi
-          type(collective_comms),intent(inout) :: collcom_sr
+          type(comms_linear),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
 
         subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
@@ -3534,7 +3534,7 @@ module module_interfaces
           implicit none
           integer,intent(in) :: iproc, nproc, ndimrho
           real(kind=8),intent(in) :: hx, hy, hz
-          type(collective_comms),intent(in) :: collcom_sr
+          type(comms_linear),intent(in) :: collcom_sr
           type(sparseMatrix),intent(in) :: denskern
           real(kind=8),dimension(ndimrho),intent(out) :: rho
           logical,intent(in),optional :: print_results
@@ -3571,7 +3571,7 @@ module module_interfaces
           implicit none
           type(atoms_data), intent(in) :: at
           type(local_zone_descriptors), intent(in) :: lzd
-          type(collective_comms),intent(in) :: collcom
+          type(comms_linear),intent(in) :: collcom
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           logical, intent(in) :: refill
           integer, intent(in) :: iproc, nproc, npsidim_orbs
@@ -3594,7 +3594,7 @@ module module_interfaces
           ! Calling arguments
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
-          type(collective_comms),intent(in) :: collcom
+          type(comms_linear),intent(in) :: collcom
           real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
           real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
           type(sparseMatrix),intent(inout) :: ovrlp
@@ -3608,7 +3608,7 @@ module module_interfaces
           
           ! Calling arguments
           type(sparseMatrix),intent(in) :: sparsemat
-          type(collective_comms),intent(in) :: collcom
+          type(comms_linear),intent(in) :: collcom
           real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
           real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
           logical,intent(in) :: reset
@@ -3891,7 +3891,7 @@ module module_interfaces
           type(local_zone_descriptors),intent(in) :: lzd
           type(sparseMatrix),intent(inout) :: ovrlp
           type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-          type(collective_comms),intent(in) :: collcom
+          type(comms_linear),intent(in) :: collcom
           type(orthon_data),intent(in) :: orthpar
           real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
           real(kind=8),dimension(:),pointer :: psit_c, psit_f
@@ -3911,7 +3911,7 @@ module module_interfaces
           type(local_zone_descriptors),intent(in) :: lzd
           type(sparseMatrix),intent(inout) :: ovrlp
           type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-          type(collective_comms),intent(in) :: collcom
+          type(comms_linear),intent(in) :: collcom
           type(orthon_data),intent(in) :: orthpar
           real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
           real(kind=8),dimension(:),pointer :: psit_c, psit_f
@@ -4003,7 +4003,7 @@ module module_interfaces
           implicit none
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
-          type(collective_comms),intent(in) :: collcom, collcom_shamop, collcom_sr
+          type(comms_linear),intent(in) :: collcom, collcom_shamop, collcom_sr
           type(sparseMatrix), intent(inout) :: sparsemat
         end subroutine init_matrixindex_in_compressed_fortransposed
 
@@ -4037,7 +4037,7 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
-          type(collective_comms),intent(in) :: collcom_sr
+          type(comms_linear),intent(in) :: collcom_sr
           type(DFT_local_fields),intent(in) :: denspot
           type(sparseMatrix),intent(inout) :: denskern
           integer,intent(in) :: check_sumrho
