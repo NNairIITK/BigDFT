@@ -17,7 +17,7 @@
 !!  real(wp),dimension(orbs%npsidim),intent(inout):: psit                 !> Eigenvectors
 !!  integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr !> semicore description
 !!  type(orbitals_data),intent(in),optional,target :: orbse                      !> description of orbitals for input guess
-!!  type(communications_arrays), optional, target, intent(in) :: commse   !> communicators
+!!  type(comms_cubic), optional, target, intent(in) :: commse   !> communicators
 !!  !Local variables
 !!  integer :: ilr,ilr2,ikptp,ikpt,ii,jj                       !> loop integers
 !!  integer :: i_stat,i_all                                    !> error handling for allocation/deallocation and memocc

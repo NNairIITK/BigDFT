@@ -4196,7 +4196,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: lzd
-  type(collective_comms),intent(in) :: collcom
+  type(comms_linear),intent(in) :: collcom
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   logical, intent(in) :: refill
   integer, intent(in) :: iproc, nproc, npsidim_orbs

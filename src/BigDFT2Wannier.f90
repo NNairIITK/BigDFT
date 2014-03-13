@@ -16,6 +16,7 @@ program BigDFT2Wannier
    use module_interfaces
    use yaml_output
    use module_input_dicts
+   use communications_base, only: comms_cubic
    use communications_init, only: orbitals_communicators
    use communications, only: transpose_v, untranspose_v
    implicit none
@@ -30,7 +31,7 @@ program BigDFT2Wannier
    type(atoms_data) :: atoms
    type(input_variables) :: input 
    type(workarr_sumrho) :: w
-   type(communications_arrays), target :: comms, commsp,commsv,commsb
+   type(comms_cubic), target :: comms, commsp,commsv,commsb
    integer, parameter :: WF_FORMAT_CUBE = 4
    integer :: iproc, nproc, i_stat, ind, ierr, npsidim, npsidim2
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat,info

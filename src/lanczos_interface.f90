@@ -13,6 +13,7 @@ module lanczos_interface
    use module_base
    use module_types
    use module_abscalc
+   use communications_base, only: comms_cubic
    implicit none
 
    private
@@ -26,7 +27,7 @@ module lanczos_interface
       !real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
       type(atoms_data), pointer :: at
       type(orbitals_data), pointer :: orbs
-      type(communications_arrays) :: comms
+      type(comms_cubic) :: comms
       type(DFT_PSP_projectors), pointer :: nlpsp
       type(local_zone_descriptors), pointer :: Lzd
       type(gaussian_basis), pointer :: Gabsorber    

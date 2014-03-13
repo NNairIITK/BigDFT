@@ -31,7 +31,7 @@ program oneatom
   type(locreg_descriptors) :: Glr
   type(local_zone_descriptors) :: Lzd
   type(nonlocal_psp_descriptors) :: nlpspd
-  type(communications_arrays) :: comms
+  type(comms_cubic) :: comms
   type(denspot_distribution) :: denspotd
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis

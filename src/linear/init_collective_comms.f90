@@ -18,7 +18,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: lzd
-   type(collective_comms), intent(in) :: collcom
+   type(comms_linear), intent(in) :: collcom
    integer, intent(in) :: npsidim_orbs, npsidim_comp
    !local variables
    character(len=*), parameter :: subname='check_communications'
@@ -303,7 +303,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
-  type(collective_comms),intent(in) :: collcom
+  type(comms_linear),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
   type(sparseMatrix),intent(inout) :: ovrlp
@@ -448,7 +448,7 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs1, orbs2
-  type(collective_comms),intent(in) :: collcom1, collcom2
+  type(comms_linear),intent(in) :: collcom1, collcom2
   real(kind=8),dimension(collcom1%ndimind_c),intent(in) :: psit_c1
   real(kind=8),dimension(collcom2%ndimind_c),intent(in) :: psit_c2
   real(kind=8),dimension(7*collcom1%ndimind_f),intent(in) :: psit_f1
@@ -525,7 +525,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, p
   
   ! Calling arguments
   type(sparseMatrix),intent(in) :: sparsemat
-  type(collective_comms),intent(in) :: collcom
+  type(comms_linear),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
   logical,intent(in) :: reset
@@ -703,7 +703,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   ! Calling arguments
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in):: orbs
-  type(collective_comms),intent(in):: collcom
+  type(comms_linear),intent(in):: collcom
   real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
   real(8),dimension(7*collcom%ndimind_f),intent(inout):: psit_f
   real(8),dimension(orbs%norb),intent(out):: norm
@@ -807,7 +807,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
-  type(collective_comms),intent(in) :: collcom, collcom_shamop, collcom_sr
+  type(comms_linear),intent(in) :: collcom, collcom_shamop, collcom_sr
   type(sparseMatrix), intent(inout) :: sparsemat
   
   ! Local variables

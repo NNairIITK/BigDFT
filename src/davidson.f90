@@ -412,6 +412,7 @@ subroutine davidson(iproc,nproc,in,at,&
    use module_interfaces, except_this_one => davidson
    use module_xc
    use yaml_output
+   use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
@@ -421,7 +422,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
    type(orbitals_data), intent(inout) :: orbs !<could be modify in calculate_HOMO_LUMO_gap
-   type(communications_arrays), intent(in) :: comms, commsv
+   type(comms_cubic), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    type(coulomb_operator), intent(in) :: pkernel
@@ -1503,6 +1504,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use module_types
    use module_interfaces
    use gaussians
+   use communications_base, only: comms_cubic
    use communications, only: transpose_v
    implicit none
    integer, intent(in) :: iproc,nproc,nspin
@@ -1510,7 +1512,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
-   type(communications_arrays), intent(in) :: comms
+   type(comms_cubic), intent(in) :: comms
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psivirt
    !local variables

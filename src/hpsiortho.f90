@@ -1886,16 +1886,17 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
    use module_base
    use module_types
    use module_interfaces, except_this_one => select_active_space
+   use communications_base, only: comms_cubic
    use communications_init, only: orbitals_communicators
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
    type(locreg_descriptors), intent(in) :: Glr
-   type(communications_arrays), intent(in) :: comms
+   type(comms_cubic), intent(in) :: comms
    logical, dimension(orbs%norb*orbs%nkpts), intent(in) :: mask_array
    real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
    type(orbitals_data), intent(out) :: orbs_as
-   type(communications_arrays), intent(out) :: comms_as
+   type(comms_cubic), intent(out) :: comms_as
    real(wp), dimension(:), pointer :: psi_as
    !local variables
    character(len=*), parameter :: subname='select_active_space'
@@ -1979,12 +1980,13 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    use module_base
    use module_types
    use module_interfaces, except_this_one_B => first_orthon
+   use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
    type(wavefunctions_descriptors), intent(in) :: wfd
-   type(communications_arrays), intent(in) :: comms
+   type(comms_cubic), intent(in) :: comms
    type(orthon_data):: orthpar
    real(wp), dimension(:) , pointer :: psi,hpsi,psit
    type(paw_objects),optional,intent(inout)::paw
@@ -2524,12 +2526,13 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    use module_types
    use module_interfaces, except_this_one => check_communications
    use yaml_output
+   use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
    type(locreg_descriptors), intent(in) :: lr
-   type(communications_arrays), intent(in) :: comms
+   type(comms_cubic), intent(in) :: comms
    !local variables
    character(len=*), parameter :: subname='check_communications'
    integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
@@ -2902,7 +2905,7 @@ END SUBROUTINE broadcast_kpt_objects
 !!  integer, intent(in) :: iproc,nproc
 !!  type(orbitals_data), intent(in) :: orbs
 !!  type(wavefunctions_descriptors),intent(in):: wfd
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(orthon_data), intent(in) :: orthpar
 !!  !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
 !!  !real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: hpsi

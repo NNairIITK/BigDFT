@@ -1,6 +1,6 @@
 module communications
   use module_base
-  use communications_base, only: collective_comms
+  use communications_base, only: comms_linear, comms_cubic
   implicit none
 
   private
@@ -30,7 +30,7 @@ module communications
     !!  integer, intent(in) :: iproc,nproc
     !!  type(orbitals_data), intent(in) :: orbs
     !!  type(wavefunctions_descriptors), intent(in) :: wfd
-    !!  type(communications_arrays), intent(in) :: comms
+    !!  type(comms_cubic), intent(in) :: comms
     !!  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
     !!  real(wp), dimension(:), pointer, optional :: work
     !!  real(wp), intent(out), optional :: outadd
@@ -44,7 +44,7 @@ module communications
     !!  integer, intent(in) :: iproc,nproc
     !!  type(orbitals_data), intent(in) :: orbs
     !!  type(local_zone_descriptors), intent(in) :: Lzd
-    !!  type(communications_arrays), intent(in) :: comms
+    !!  type(comms_cubic), intent(in) :: comms
     !!  real(wp), dimension(:), pointer :: psi
     !!  real(wp), dimension(:), pointer, optional :: work
     !!  real(wp), dimension(*), intent(out), optional :: outadd
@@ -58,7 +58,7 @@ module communications
     !!  integer, intent(in) :: iproc,nproc
     !!  type(orbitals_data), intent(in) :: orbs
     !!  type(wavefunctions_descriptors), intent(in) :: wfd
-    !!  type(communications_arrays), intent(in) :: comms
+    !!  type(comms_cubic), intent(in) :: comms
     !!  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
     !!  real(wp), dimension(:), pointer, optional :: work
     !!  real(wp), intent(out), optional :: outadd
@@ -77,7 +77,7 @@ module communications
       ! Calling arguments
       integer, intent(in) :: npsidim_orbs
       type(orbitals_Data),intent(in) :: orbs
-      type(collective_comms),intent(in) :: collcom
+      type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
       real(kind=8),dimension(collcom%ndimpsi_c),intent(out) :: psiwork_c
       real(kind=8),dimension(7*collcom%ndimpsi_f),intent(out) :: psiwork_f
@@ -183,7 +183,7 @@ module communications
       
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      type(collective_comms),intent(in) :: collcom
+      type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimpsi_c),intent(in) :: psiwork_c
       real(kind=8),dimension(7*collcom%ndimpsi_f),intent(in) :: psiwork_f
       !real(kind=8),dimension(sum(collcom%nrecvcounts_c)),intent(out) :: psitwork_c
@@ -291,7 +291,7 @@ module communications
       implicit none
       
       ! Calling arguments
-      type(collective_comms),intent(in) :: collcom
+      type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
       real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psit_c
@@ -357,7 +357,7 @@ module communications
       implicit none
     
       ! Calling arguments
-      type(collective_comms),intent(in) :: collcom
+      type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f
       real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psitwork_c
@@ -422,7 +422,7 @@ module communications
     
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      type(collective_comms),intent(in) :: collcom
+      type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
       real(kind=8),dimension(collcom%ndimpsi_c),intent(out) :: psiwork_c
@@ -525,7 +525,7 @@ module communications
       ! Caling arguments
       integer, intent(in) :: npsidim_orbs
       type(orbitals_data),intent(in) :: orbs
-      type(collective_comms),intent(in) :: collcom
+      type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimpsi_c),intent(in) :: psiwork_c
       real(kind=8),dimension(7*collcom%ndimpsi_f),intent(in) :: psiwork_f
       real(kind=8),dimension(npsidim_orbs),intent(out) :: psi
@@ -633,7 +633,7 @@ module communications
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, npsidim_orbs
       type(orbitals_data),intent(in) :: orbs
-      type(collective_comms),intent(in) :: collcom
+      type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
       real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psit_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psit_f
@@ -700,7 +700,7 @@ module communications
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, npsidim_orbs
       type(orbitals_data),intent(in) :: orbs
-      type(collective_comms),intent(in) :: collcom
+      type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f
       real(kind=8),dimension(npsidim_orbs),intent(out) :: psi
@@ -767,7 +767,7 @@ module communications
       implicit none
     
       ! Calling arguments
-      type(collective_comms),intent(in) :: collcom_sr
+      type(comms_linear),intent(in) :: collcom_sr
       real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(in) :: psir
       real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(out) :: psirwork
     
@@ -807,7 +807,7 @@ module communications
     
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      type(collective_comms),intent(in) :: collcom_sr
+      type(comms_linear),intent(in) :: collcom_sr
       real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(in) :: psirwork
       real(kind=8),dimension(collcom_sr%ndimind_c),intent(out) :: psirtwork
     
@@ -831,7 +831,7 @@ module communications
       implicit none
     
       ! Calling arguments
-      type(collective_comms),intent(in) :: collcom_sr
+      type(comms_linear),intent(in) :: collcom_sr
       real(kind=8),dimension(collcom_sr%ndimind_c),intent(in) :: psirtwork
       real(kind=8),dimension(collcom_sr%ndimind_c),intent(out) :: psirt
     
@@ -873,7 +873,7 @@ module communications
       implicit none
     
       ! Calling arguments
-      type(collective_comms),intent(in) :: collcom_sr
+      type(comms_linear),intent(in) :: collcom_sr
       real(kind=8),dimension(collcom_sr%ndimind_c),intent(in) :: psirt
       real(kind=8),dimension(collcom_sr%ndimind_c),intent(out) :: psirtwork
     
@@ -917,7 +917,7 @@ module communications
     
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      type(collective_comms),intent(in) :: collcom_sr
+      type(comms_linear),intent(in) :: collcom_sr
       real(kind=8),dimension(collcom_sr%ndimind_c),intent(in) :: psirtwork
       real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(out) :: psirwork
     
@@ -939,7 +939,7 @@ module communications
       implicit none
     
       ! Caling arguments
-      type(collective_comms),intent(in) :: collcom_sr
+      type(comms_linear),intent(in) :: collcom_sr
       real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(in) :: psirwork
       real(kind=8),dimension(collcom_sr%ndimpsi_c),intent(out) :: psir
     
@@ -1561,7 +1561,7 @@ module communications
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
       type(wavefunctions_descriptors), intent(in) :: wfd
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
       real(wp), dimension(:), pointer, optional :: work
       real(wp), dimension(*), intent(out), optional :: outadd
@@ -1615,7 +1615,7 @@ module communications
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
       type(local_zone_descriptors), intent(in) :: Lzd
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       real(wp), dimension(:), pointer :: psi
       real(wp), dimension(:), pointer, optional :: work
       real(wp), dimension(*), intent(out), optional :: outadd
@@ -1708,7 +1708,7 @@ module communications
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
       type(wavefunctions_descriptors), intent(in) :: wfd
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
       real(wp), dimension(:), pointer, optional :: work
       real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
@@ -1760,7 +1760,7 @@ module communications
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
       type(local_zone_descriptors), intent(in) :: Lzd
-      type(communications_arrays), intent(in) :: comms
+      type(comms_cubic), intent(in) :: comms
       real(wp), dimension(:), pointer :: psi !< Input psi should always be in global region, while output psi is in locregs
       real(wp), dimension(:), pointer, optional :: work
       real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument

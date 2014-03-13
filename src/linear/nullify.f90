@@ -106,13 +106,13 @@ subroutine nullify_orbitals_data(orbs)
 end subroutine nullify_orbitals_data
 
 
-subroutine nullify_communications_arrays(comms)
+subroutine nullify_comms_cubic(comms)
   use module_base
-  use module_types
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
-  type(communications_arrays),intent(out):: comms
+  type(comms_cubic),intent(out):: comms
 
   nullify(comms%ncntd)
   nullify(comms%ncntt)
@@ -120,7 +120,7 @@ subroutine nullify_communications_arrays(comms)
   nullify(comms%ndsplt)
   nullify(comms%nvctr_par)
   
-end subroutine nullify_communications_arrays
+end subroutine nullify_comms_cubic
 
 
 
@@ -145,13 +145,13 @@ end subroutine nullify_communications_arrays
 
 
 
-!subroutine nullify_collective_comms(collcom)
+!subroutine nullify_comms_linear(collcom)
 !  use module_base
 !  use module_types
 !  implicit none
 !  
 !  ! Calling arguments
-!  type(collective_comms),intent(inout):: collcom
+!  type(comms_linear),intent(inout):: collcom
 !
 !  ! Local variables
 !  nullify(collcom%nsendcounts_c)
@@ -184,4 +184,4 @@ end subroutine nullify_communications_arrays
 !  nullify(collcom%nrecvdspls_repartitionrho)
 !  nullify(collcom%commarr_repartitionrho)
 !
-!end subroutine nullify_collective_comms
+!end subroutine nullify_comms_linear

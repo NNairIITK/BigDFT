@@ -21,7 +21,7 @@ module module_types
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
-  use communications_base, only: collective_comms
+  use communications_base, only: comms_linear, comms_cubic
 
   implicit none
 
@@ -471,13 +471,6 @@ module module_types
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type orbitals_data
 
-  !> Contains the information needed for communicating the wavefunctions
-  !! between processors for the transposition
-  type, public :: communications_arrays
-     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
-     integer, dimension(:,:), pointer :: nvctr_par
-  end type communications_arrays
-
 
   !> Contains the pointers to be handled to control GPU information
   !! Given that they are pointers on GPU address, they are C pointers
@@ -719,7 +712,7 @@ module module_types
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
-     type(collective_comms) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom ! describes collective communication
      type(p2pComms) :: comgp           !<describing p2p communications for distributing the potential
      real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
      logical :: can_use_transposed
@@ -740,15 +733,15 @@ module module_types
      !data properties
      logical :: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
-     type(communications_arrays) :: comms !< communication objects for the cubic approach
+     type(comms_cubic) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      type(p2pComms) :: comgp !<describing p2p communications for distributing the potential
-     type(collective_comms) :: collcom ! describes collective communication
-     type(collective_comms) :: collcom_sr ! describes collective communication for the calculation of the charge density
+     type(comms_linear) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
      type(foe_data) :: foe_obj        !<describes the structure of the matrices for the linear method foe
      type(linear_matrices) :: linmat
@@ -1287,12 +1280,12 @@ contains
   end subroutine old_wavefunction_free
    
 
-!> De-Allocate communications_arrays
+!> De-Allocate comms_cubic
   subroutine deallocate_comms(comms,subname)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(communications_arrays), intent(inout) :: comms
+    type(comms_cubic), intent(inout) :: comms
     !local variables
     integer :: i_all,i_stat
 
