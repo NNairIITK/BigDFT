@@ -1,6 +1,6 @@
 module communications
   use module_base
-  use communications_base, only: collective_comms
+  use communications_base, only: collective_comms, communications_arrays
   implicit none
 
   private

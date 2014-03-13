@@ -13,6 +13,7 @@ module lanczos_interface
    use module_base
    use module_types
    use module_abscalc
+   use communications_base, only: communications_arrays
    implicit none
 
    private

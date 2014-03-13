@@ -21,7 +21,7 @@ module module_types
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
-  use communications_base, only: collective_comms
+  use communications_base, only: collective_comms, communications_arrays
 
   implicit none
 
@@ -470,13 +470,6 @@ module module_types
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type orbitals_data
-
-  !> Contains the information needed for communicating the wavefunctions
-  !! between processors for the transposition
-  type, public :: communications_arrays
-     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
-     integer, dimension(:,:), pointer :: nvctr_par
-  end type communications_arrays
 
 
   !> Contains the pointers to be handled to control GPU information

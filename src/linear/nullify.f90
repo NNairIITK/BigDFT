@@ -108,7 +108,7 @@ end subroutine nullify_orbitals_data
 
 subroutine nullify_communications_arrays(comms)
   use module_base
-  use module_types
+  use communications_base, only: communications_arrays
   implicit none
 
   ! Calling arguments

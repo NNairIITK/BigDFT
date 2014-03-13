@@ -14,6 +14,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => orthogonalize
+  use communications_base, only: communications_arrays
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs
@@ -208,6 +209,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   use module_base
   use module_types
   use module_interfaces, except_this_one => orthoconstraint
+  use communications_base, only: communications_arrays
   implicit none
           logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
           integer, intent(in) :: iproc,nproc
@@ -460,6 +462,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   use module_base
   use module_types
   use yaml_output
+  use communications_base, only: communications_arrays
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs !eval is updated
@@ -760,6 +763,7 @@ END SUBROUTINE subspace_diagonalisation
 subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_virt,msg)
           use module_base
           use module_types
+          use communications_base, only: communications_arrays
           implicit none
           logical, intent(in) :: msg
           integer, intent(in) :: iproc,nproc
@@ -952,6 +956,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
         subroutine orbitals_and_components(iproc,ikpt,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
           use module_base
           use module_types
+          use communications_base, only: communications_arrays
           implicit none
           integer, intent(in) :: iproc,ikpt,ispin
           type(orbitals_data), intent(in) :: orbs
@@ -1829,6 +1834,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => gsChol
+  use communications_base, only: communications_arrays
   implicit none
 
   ! Calling arguments
@@ -1992,6 +1998,7 @@ subroutine gramschmidt(iproc, norbIn, psit, ndim_ovrlp, ovrlp, orbs, nspin,&
      nspinor, comms, norbTot, block1, block2, ispinIn, paw)
 use module_base
 use module_types
+use communications_base, only: communications_arrays
 implicit none
 
 ! Calling arguments
@@ -2139,6 +2146,7 @@ subroutine cholesky(iproc,nspin, norbIn, psi, orbs, comms, ndim_ovrlp, ovrlp, no
 
 use module_base
 use module_types
+use communications_base, only: communications_arrays
 implicit none
 
 ! Calling arguments
@@ -2277,6 +2285,7 @@ subroutine loewdin(iproc, norbIn, nspinor, block1, ispinIn, orbs, comms, nspin, 
 
 use module_base
 use module_types
+use communications_base, only: communications_arrays
 implicit none
 
 ! Calling arguments
@@ -2485,6 +2494,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   use module_base
   use module_types
+  use communications_base, only: communications_arrays
   implicit none
 
   ! Calling arguments
@@ -2590,6 +2600,7 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   use module_base
   use module_types
+  use communications_base, only: communications_arrays
   implicit none
 
   ! Calling arguments
@@ -2715,6 +2726,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
 
   use module_base
   use module_types
+  use communications_base, only: communications_arrays
   implicit none
 
   ! Calling arguments
@@ -2823,6 +2835,7 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
 
   use module_base
   use module_types
+  use communications_base, only: communications_arrays
   implicit none
 
   ! Calling arguments

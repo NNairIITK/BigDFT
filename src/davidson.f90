@@ -412,6 +412,7 @@ subroutine davidson(iproc,nproc,in,at,&
    use module_interfaces, except_this_one => davidson
    use module_xc
    use yaml_output
+   use communications_base, only: communications_arrays
    use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
@@ -1503,6 +1504,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use module_types
    use module_interfaces
    use gaussians
+   use communications_base, only: communications_arrays
    use communications, only: transpose_v
    implicit none
    integer, intent(in) :: iproc,nproc,nspin

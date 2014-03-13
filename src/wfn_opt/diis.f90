@@ -523,6 +523,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_interfaces, except_this_one => psimix
   use yaml_output
   use diis_sd_optimization
+  use communications_base, only: communications_arrays
   implicit none
   integer, intent(in) :: iproc,nproc,ndim_psi
   type(orbitals_data), intent(in) :: orbs
@@ -694,6 +695,7 @@ END SUBROUTINE diis_or_sd
 subroutine diisstp(iproc,nproc,orbs,comms,diis)
   use module_base
   use module_types
+  use communications_base, only: communications_arrays
   implicit none
 ! Arguments
   integer, intent(in) :: nproc,iproc

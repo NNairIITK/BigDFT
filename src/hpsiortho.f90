@@ -1886,6 +1886,7 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
    use module_base
    use module_types
    use module_interfaces, except_this_one => select_active_space
+   use communications_base, only: communications_arrays
    use communications_init, only: orbitals_communicators
    implicit none
    integer, intent(in) :: iproc,nproc
@@ -1979,6 +1980,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    use module_base
    use module_types
    use module_interfaces, except_this_one_B => first_orthon
+   use communications_base, only: communications_arrays
    use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
@@ -2524,6 +2526,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    use module_types
    use module_interfaces, except_this_one => check_communications
    use yaml_output
+   use communications_base, only: communications_arrays
    use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc

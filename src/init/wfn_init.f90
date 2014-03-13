@@ -215,6 +215,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use module_types
   use module_interfaces, except_this_one => LDiagHam
   use yaml_output
+  use communications_base, only: communications_arrays
   use communications, only: transpose_v2, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
@@ -1040,7 +1041,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       &   psiGuessWavelet, orthpar, nspin, nspinor, sizePsi, comms, natsc, ndim_hamovr, norbsc)
    use module_base
    use module_types
-  use yaml_output
+   use yaml_output
+   use communications_base, only: communications_arrays
    implicit none
 
    ! Calling arguments

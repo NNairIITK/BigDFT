@@ -723,6 +723,7 @@ END SUBROUTINE orbs_empty
 subroutine orbs_comm_new(comms)
   use module_base
   use module_types
+  use communications_base, only: communications_arrays
 !  use module_interfaces
   implicit none
   type(communications_arrays), pointer :: comms
@@ -733,6 +734,7 @@ end subroutine orbs_comm_new
 subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
   use module_base
   use module_types
+  use communications_base, only: communications_arrays
   use communications_init, only: orbitals_communicators
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -745,6 +747,7 @@ end subroutine orbs_comm_init
 subroutine orbs_comm_free(comms)
   use module_base
   use module_types
+  use communications_base, only: communications_arrays
 !  use module_interfaces
   implicit none
   type(communications_arrays), pointer :: comms
@@ -754,6 +757,7 @@ end subroutine orbs_comm_free
 subroutine orbs_comm_empty(comms)
   use module_base
   use module_types
+  use communications_base, only: communications_arrays
 !  use module_interfaces
   implicit none
   type(communications_arrays), intent(inout) :: comms
@@ -1061,6 +1065,7 @@ END SUBROUTINE gpu_free
 
 subroutine wf_new(self, wf, orbs, comm, lzd)
   use module_types
+  use communications_base, only: communications_arrays
   implicit none
   integer(kind = 8), intent(in) :: self
   type(DFT_wavefunction), pointer :: wf
@@ -1090,6 +1095,7 @@ subroutine wf_init(wf)
 end subroutine wf_init
 subroutine wf_get_data(wf, orbs, comm, lzd)
   use module_types
+  use communications_base, only: communications_arrays
   implicit none
   type(DFT_wavefunction), target, intent(in) :: wf
   type(orbitals_data), pointer :: orbs

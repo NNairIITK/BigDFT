@@ -22,6 +22,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use vdwcorrection
   use yaml_output
   use module_atoms, only: set_symmetry_data
+  use communications_base, only: communications_arrays
   use communications_init, only: orbitals_communicators
   implicit none
   integer, intent(in) :: iproc,nproc 

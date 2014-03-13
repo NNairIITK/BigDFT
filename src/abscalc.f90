@@ -277,6 +277,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use lanczos_interface, only: xabs_lanczos,xabs_cg,xabs_chebychev
    use esatto, only: binary_search
    use module_atoms, only: set_symmetry_data,atoms_data
+   use communications_base, only: communications_arrays
    use communications_init, only: orbitals_communicators
    implicit none
    integer, intent(in) :: nproc,iproc
@@ -1690,6 +1691,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use module_interfaces, except_this_one => extract_potential_for_spectra
    use module_types
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use communications_base, only: communications_arrays
    use communications_init, only: orbitals_communicators
    implicit none
    !Arguments

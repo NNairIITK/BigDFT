@@ -962,6 +962,7 @@ END SUBROUTINE input_memory_linear
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
            use yaml_output
            use gaussians
+           use communications_base, only: communications_arrays
            use communications_init, only: orbitals_communicators
            use communications, only: transpose_v2
            implicit none

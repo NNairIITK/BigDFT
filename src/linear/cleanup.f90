@@ -823,8 +823,7 @@ end subroutine deallocate_orbitals_data
 
 
 subroutine deallocate_communications_arrays(comms, subname)
-  
-  use module_types
+  use communications_base, only: communications_arrays
   use deallocatePointers
   implicit none
   

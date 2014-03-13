@@ -4,6 +4,15 @@ module communications_base
 
   private
 
+
+  !> Contains the information needed for communicating the wavefunctions
+  !! between processors for the transposition
+  type, public :: communications_arrays
+     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
+     integer, dimension(:,:), pointer :: nvctr_par
+  end type communications_arrays
+
+
   type,public:: collective_comms
     integer :: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
     integer,dimension(:),pointer :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c

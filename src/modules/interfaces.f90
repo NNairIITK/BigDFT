@@ -381,6 +381,7 @@ module module_interfaces
          use module_base
          use module_types
          use gaussians
+         use communications_base, only: communications_arrays
          implicit none
          !Arguments
          integer, intent(in) :: iproc,nproc,ixc
@@ -454,6 +455,7 @@ module module_interfaces
       subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
          !n(c) use module_base
          use module_types
+         use communications_base, only: communications_arrays
          implicit none
          integer, intent(in) :: iproc,nproc
          type(orbitals_data), intent(in) :: orbs
@@ -745,6 +747,7 @@ module module_interfaces
            rxyz,rhopot,nlpsp,pkernel,psi,v,dpbox,GPU)
         use module_base
         use module_types
+        use communications_base, only: communications_arrays
         implicit none
         integer, intent(in) :: iproc,nproc
         integer, intent(in) :: nvirt
@@ -1289,6 +1292,7 @@ module module_interfaces
       subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
          !n(c) use module_base
          use module_types
+         use communications_base, only: communications_arrays
          implicit none
          integer, intent(in) :: iproc,nproc
          type(orbitals_data), intent(in) :: orbs
@@ -1318,6 +1322,7 @@ module module_interfaces
             psi,hpsi,scprsum,spsi) !n(c) wfd (arg:5)
         use module_base
         use module_types
+        use communications_base, only: communications_arrays
         implicit none
         logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
         integer, intent(in) :: iproc,nproc
@@ -1336,6 +1341,7 @@ module module_interfaces
            hx,hy,hz,rxyz,rhopot,psi,v,dpbox,GPU)
         use module_base
         use module_types
+        use communications_base, only: communications_arrays
         implicit none
         integer, intent(in) :: iproc,nproc
         integer, intent(in) :: nvirt
@@ -1573,6 +1579,7 @@ module module_interfaces
          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
       use module_base
       use module_types
+      use communications_base, only: communications_arrays
       implicit none
       integer, intent(in) :: iproc,nproc,ixc,symObj
       integer, intent(inout) :: nspin,nvirt
@@ -1600,6 +1607,7 @@ module module_interfaces
     subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
       use module_base
       use module_types
+      use communications_base, only: communications_arrays
       implicit none
       integer, intent(in) :: iproc,nproc,ndim_psi
       type(orbitals_data), intent(in) :: orbs
@@ -1868,6 +1876,7 @@ module module_interfaces
           orbse,commse,etol,norbsc_arr) !optional
        use module_base
        use module_types
+       use communications_base, only: communications_arrays
        implicit none
        integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
        real(gp), intent(in) :: Tel
@@ -2065,6 +2074,7 @@ module module_interfaces
     subroutine deallocate_communications_arrays(comms, subname)
       use module_base
       use module_types
+      use communications_base, only: communications_arrays
       !use deallocatePointers
       implicit none
       type(communications_arrays),intent(inout):: comms
@@ -2123,6 +2133,7 @@ module module_interfaces
     subroutine nullify_communications_arrays(comms)
       use module_base
       use module_types
+      use communications_base, only: communications_arrays
       implicit none
       type(communications_arrays),intent(out):: comms
     end subroutine nullify_communications_arrays
@@ -2507,6 +2518,7 @@ module module_interfaces
          use module_base
          use module_types
          use module_fragments
+         use communications_base, only: communications_arrays
          implicit none
          integer, intent(in) :: iproc,nproc
          integer, intent(out) :: inputpsi,input_wf_format,lnpsidim_orbs,lnpsidim_comp
@@ -2555,6 +2567,7 @@ module module_interfaces
             nspin,potshortcut,symObj,GPU,input)
          use module_base
          use module_types
+         use communications_base, only: communications_arrays
          implicit none
          !Arguments
          integer, intent(in) :: iproc,nproc,ixc
@@ -3098,6 +3111,7 @@ module module_interfaces
         subroutine check_communications(iproc,nproc,orbs,lr,comms)
           use module_base
           use module_types
+          use communications_base, only: communications_arrays
           implicit none
           integer, intent(in) :: iproc,nproc
           type(orbitals_data), intent(in) :: orbs
@@ -3189,6 +3203,7 @@ module module_interfaces
           ispinIn, paw)
           use module_base
           use module_types
+          use communications_base, only: communications_arrays
           implicit none
           
           integer:: iproc,nvctrp,norbIn, nspin, block1, ispinIn
@@ -3205,6 +3220,7 @@ module module_interfaces
           orbs, nspin,ndim_ovrlp,norbArr,comms,paw)
           use module_base
           use module_types
+          use communications_base, only: communications_arrays
           implicit none
           integer, intent(in) :: iproc, nproc, nspinor,nspin
           type(orthon_data), intent(in):: orthpar
@@ -3220,6 +3236,7 @@ module module_interfaces
           orbs, comms, nspin, psit, ovrlp, ndim_ovrlp, norbTot, paw)
           use module_base
           use module_types
+          use communications_base, only: communications_arrays
           implicit none
           integer,intent(in):: iproc,norbIn, nspinor, nspin, block1, ispinIn
           type(orbitals_data),intent(in):: orbs
@@ -3235,6 +3252,7 @@ module module_interfaces
           nspinor, comms, norbTot, block1, block2, ispinIn,paw)
           use module_base
           use module_types
+          use communications_base, only: communications_arrays
           implicit none
           integer,intent(in):: iproc, norbIn, nspin, nspinor, block1, block2, ispinIn
           type(orbitals_data):: orbs
@@ -3249,6 +3267,7 @@ module module_interfaces
         subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
           use module_base
           use module_types
+          use communications_base, only: communications_arrays
           implicit none
           integer, intent(in) :: iproc,nproc
           type(orbitals_data), intent(in) :: orbs
