@@ -1852,7 +1852,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_interfaces, except_this_one => kswfn_post_treatments
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
-  use communications, only: deallocate_collective_comms
+  use communications_base, only: deallocate_collective_comms
 
   implicit none
 

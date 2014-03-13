@@ -1073,8 +1073,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
-  use communications, only: collective_comms_null, init_collective_comms, &
-                            transpose_localized, deallocate_collective_comms
+  use communications_base, only: collective_comms_null, deallocate_collective_comms
+  use communications_init, only: init_collective_comms
+  use communications, only: transpose_localized
   implicit none
 
   ! Calling arguments
@@ -1273,8 +1274,9 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
-  use communications, only: collective_comms_null, init_collective_comms, &
-                            transpose_localized, deallocate_collective_comms
+  use communications_base, only: collective_comms_null, deallocate_collective_comms
+  use communications_init, only: init_collective_comms
+  use communications, only: transpose_localized
   implicit none
 
   ! Calling arguments
