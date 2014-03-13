@@ -973,6 +973,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   use module_types
   use module_interfaces, except_this_one => destroy_new_locregs
   use communications_base, only: deallocate_collective_comms
+  use communications, only: synchronize_onesided_communication
   implicit none
 
   ! Calling arguments
@@ -1270,6 +1271,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
   use yaml_output
   use communications_base, only: deallocate_collective_comms
+  use communications, only: synchronize_onesided_communication
   implicit none
   
   ! Calling argument

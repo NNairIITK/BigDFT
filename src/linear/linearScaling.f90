@@ -20,6 +20,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use constrained_dft
   use diis_sd_optimization
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use communications, only: synchronize_onesided_communication
   implicit none
 
   ! Calling arguments

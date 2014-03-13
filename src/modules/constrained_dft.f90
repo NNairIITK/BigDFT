@@ -232,7 +232,7 @@ contains
   !! for the moment putting densities in global box and ignoring parallelization
   subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
     use module_fragments
-    use communications, only: transpose_localized
+    use communications, only: transpose_localized, start_onesided_communication
     implicit none
     integer,intent(in) :: iproc
     type(cdft_data), intent(inout) :: cdft

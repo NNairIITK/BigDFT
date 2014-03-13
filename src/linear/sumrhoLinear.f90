@@ -835,6 +835,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   use module_interfaces
   use yaml_output
   use dictionaries, only:f_err_throw
+  use communications, only: start_onesided_communication
   implicit none
   integer,intent(in) :: iproc
   type(DFT_wavefunction), intent(inout) :: tmb
