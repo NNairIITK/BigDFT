@@ -1,9 +1,26 @@
 module communications
   use module_base
-  use module_types
+  use communications_type
   implicit none
 
   private
+
+  !!type,public:: collective_comms
+  !!  integer :: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
+  !!  integer,dimension(:),pointer :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
+  !!  integer,dimension(:),pointer :: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
+  !!  integer,dimension(:),pointer :: norb_per_gridpoint_c, indexrecvorbital_c
+  !!  integer,dimension(:),pointer :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
+  !!  integer,dimension(:),pointer :: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
+  !!  integer,dimension(:),pointer :: norb_per_gridpoint_f, indexrecvorbital_f
+  !!  integer,dimension(:),pointer :: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
+  !!  real(kind=8),dimension(:),pointer :: psit_c, psit_f
+  !!  integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
+  !!  integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
+  !!  integer :: ncomms_repartitionrho, window
+  !!  integer,dimension(:,:),pointer :: commarr_repartitionrho
+  !!end type collective_comms
+
 
 
   public :: collective_comms_null
@@ -3118,9 +3135,6 @@ module communications
         
         
           call allocate_MPI_communications_arrays_repartitionp2p(ncomms_repartitionrho, commarr_repartitionrho)
-          !commarr_repartitionrho=f_malloc_ptr((/4,ncomms_repartitionrho/),id='commarr_repartitionrho')
-          !!allocate(commarr_repartitionrho(4,ncomms_repartitionrho),stat=istat)
-          !!call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
         
         
           ! First process from which iproc has to receive data
@@ -3191,9 +3205,6 @@ module communications
       else
           ncomms_repartitionrho=0
           call allocate_MPI_communications_arrays_repartitionp2p(1, commarr_repartitionrho)
-          !commarr_repartitionrho=f_malloc_ptr((/1,1/),id='commarr_repartitionrho')
-          !!allocate(commarr_repartitionrho(1,1),stat=istat)
-          !!call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
     
       end if
     
