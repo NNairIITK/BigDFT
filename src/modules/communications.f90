@@ -14,6 +14,7 @@ module communications
   public :: transpose_switch_psir
   public :: transpose_communicate_psir
   public :: transpose_unswitch_psirt
+  public :: deallocate_collective_comms
 
   contains
 
@@ -59,69 +60,56 @@ module communications
       nullify(comms%commarr_repartitionrho)
     end subroutine nullify_collective_comms
 
-    subroutine allocate_MPI_communication_arrays(nproc, comms)
+    subroutine allocate_MPI_communication_arrays(nproc, comms, only_coarse)
       implicit none
       integer,intent(in) :: nproc
       type(collective_comms),intent(inout) :: comms
-      integer :: istat
-      character(len=*),parameter :: subname='allocate_MPI_communication_arrays'
-      allocate(comms%nsendcounts_c(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nsendcounts_c, 'comms%nsendcounts_c', subname)
-      allocate(comms%nsenddspls_c(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nsenddspls_c, 'comms%nsenddspls_c', subname)
-      allocate(comms%nrecvcounts_c(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nrecvcounts_c, 'comms%nrecvcounts_c', subname)
-      allocate(comms%nrecvdspls_c(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nrecvdspls_c, 'comms%nrecvdspls_c', subname)
-      allocate(comms%nsendcounts_f(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nsendcounts_f, 'comms%nsendcounts_f', subname)
-      allocate(comms%nsenddspls_f(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nsenddspls_f, 'comms%nsenddspls_f', subname)
-      allocate(comms%nrecvcounts_f(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nrecvcounts_f, 'comms%nrecvcounts_f', subname)
-      allocate(comms%nrecvdspls_f(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nrecvdspls_f, 'comms%nrecvdspls_f', subname)
+      logical,intent(in),optional :: only_coarse
+      logical :: allocate_fine
+      if (present(only_coarse)) then
+          allocate_fine=.not.only_coarse
+      else
+          allocate_fine=.true.
+      end if
+      comms%nsendcounts_c=f_malloc_ptr(0.to.nproc-1,id='comms%nsendcounts_c')
+      comms%nsenddspls_c=f_malloc_ptr(0.to.nproc-1,id='comms%nsenddspls_c')
+      comms%nrecvcounts_c=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvcounts_c')
+      comms%nrecvdspls_c=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvdspls_c')
+      if (allocate_fine) then
+          comms%nsendcounts_f=f_malloc_ptr(0.to.nproc-1,id='comms%nsendcounts_f')
+          comms%nsenddspls_f=f_malloc_ptr(0.to.nproc-1,id='comms%nsenddspls_f')
+          comms%nrecvcounts_f=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvcounts_f')
+          comms%nrecvdspls_f=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvdspls_f')
+      end if
     end subroutine allocate_MPI_communication_arrays
 
 
-    subroutine allocate_local_communications_arrays(comms)
+    subroutine allocate_local_communications_arrays(comms, only_coarse)
       implicit none
       type(collective_comms),intent(inout) :: comms
-      integer :: istat
-      character(len=*),parameter :: subname='allocate_local_communications_arrays'
-
-      allocate(comms%irecvbuf_c(comms%ndimpsi_c), stat=istat)
-      call memocc(istat, comms%irecvbuf_c, 'comms%irecvbuf_c', subname)
-      allocate(comms%indexrecvorbital_c(comms%ndimind_c), stat=istat)
-      call memocc(istat, comms%indexrecvorbital_c, 'comms%indexrecvorbital_c', subname)
-      allocate(comms%iextract_c(comms%ndimind_c), stat=istat)
-      call memocc(istat, comms%iextract_c, 'comms%iextract_c', subname)
-      allocate(comms%iexpand_c(comms%ndimind_c), stat=istat)
-      call memocc(istat, comms%iexpand_c, 'comms%iexpand_c', subname)
-      allocate(comms%isendbuf_c(comms%ndimpsi_c), stat=istat)
-      call memocc(istat, comms%isendbuf_c, 'comms%isendbuf_c', subname)
-
-      allocate(comms%irecvbuf_f(comms%ndimpsi_f), stat=istat)
-      call memocc(istat, comms%irecvbuf_f, 'comms%irecvbuf_f', subname)
-      allocate(comms%indexrecvorbital_f(comms%ndimind_f), stat=istat)
-      call memocc(istat, comms%indexrecvorbital_f, 'comms%indexrecvorbital_f', subname)
-      allocate(comms%iextract_f(comms%ndimind_f), stat=istat)
-      call memocc(istat, comms%iextract_f, 'comms%iextract_f', subname)
-      allocate(comms%iexpand_f(comms%ndimind_f), stat=istat)
-      call memocc(istat, comms%iexpand_f, 'comms%iexpand_f', subname)
-      allocate(comms%isendbuf_f(comms%ndimpsi_f), stat=istat)
-      call memocc(istat, comms%isendbuf_f, 'comms%isendbuf_f', subname)
-
-      allocate(comms%isptsp_c(max(comms%nptsp_c,1)), stat=istat)
-      call memocc(istat, comms%isptsp_c, 'comms%isptsp_c', subname)
-      allocate(comms%isptsp_f(max(comms%nptsp_f,1)), stat=istat)
-      call memocc(istat, comms%isptsp_f, 'comms%isptsp_f', subname)
-
-      allocate(comms%norb_per_gridpoint_c(comms%nptsp_c), stat=istat)
-      call memocc(istat, comms%norb_per_gridpoint_c, 'comms%norb_per_gridpoint_c', subname)
-      allocate(comms%norb_per_gridpoint_f(comms%nptsp_f), stat=istat)
-      call memocc(istat, comms%norb_per_gridpoint_f, 'comms%norb_per_gridpoint_f', subname)
-
+      logical,intent(in),optional :: only_coarse
+      logical :: allocate_fine
+      if (present(only_coarse)) then
+          allocate_fine=.not.only_coarse
+      else
+          allocate_fine=.true.
+      end if
+      comms%irecvbuf_c=f_malloc_ptr(comms%ndimpsi_c,id='comms%irecvbuf_c')
+      comms%indexrecvorbital_c=f_malloc_ptr(comms%ndimind_c,id='comms%indexrecvorbital_c')
+      comms%iextract_c=f_malloc_ptr(comms%ndimind_c,id='comms%iextract_c')
+      comms%iexpand_c=f_malloc_ptr(comms%ndimind_c,id='comms%iexpand_c')
+      comms%isendbuf_c=f_malloc_ptr(comms%ndimpsi_c,id='comms%isendbuf_c')
+      comms%isptsp_c=f_malloc_ptr(max(comms%nptsp_c,1),id='comms%isptsp_c')
+      comms%norb_per_gridpoint_c=f_malloc_ptr(comms%nptsp_c,id='comms%norb_per_gridpoint_c')
+      if (allocate_fine) then
+          comms%irecvbuf_f=f_malloc_ptr(comms%ndimpsi_f,id='comms%irecvbuf_f')
+          comms%indexrecvorbital_f=f_malloc_ptr(comms%ndimind_f,id='comms%indexrecvorbital_f')
+          comms%iextract_f=f_malloc_ptr(comms%ndimind_f,id='comms%iextract_f')
+          comms%iexpand_f=f_malloc_ptr(comms%ndimind_f,id='comms%iexpand_f')
+          comms%isendbuf_f=f_malloc_ptr(comms%ndimpsi_f,id='comms%isendbuf_f')
+          comms%isptsp_f=f_malloc_ptr(max(comms%nptsp_f,1),id='comms%isptsp_f')
+          comms%norb_per_gridpoint_f=f_malloc_ptr(comms%nptsp_f,id='comms%norb_per_gridpoint_f')
+      end if
     end subroutine allocate_local_communications_arrays
 
 
@@ -129,17 +117,81 @@ module communications
       implicit none
       integer,intent(in) :: nproc
       type(collective_comms),intent(inout) :: comms
-      integer :: istat
-      character(len=*),parameter :: subname='allocate_MPI_communications_arrays_repartition'
-      allocate(comms%nsendcounts_repartitionrho(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nsendcounts_repartitionrho, 'comms%nsendcounts_repartitionrho', subname)
-      allocate(comms%nrecvcounts_repartitionrho(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nrecvcounts_repartitionrho, 'comms%nrecvcounts_repartitionrho', subname)
-      allocate(comms%nsenddspls_repartitionrho(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nsenddspls_repartitionrho, 'comms%nsenddspls_repartitionrho', subname)
-      allocate(comms%nrecvdspls_repartitionrho(0:nproc-1), stat=istat)
-      call memocc(istat, comms%nrecvdspls_repartitionrho, 'comms%nrecvdspls_repartitionrho', subname)
+      comms%nsendcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsendcounts_repartitionrho')
+      comms%nrecvcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvcounts_repartitionrho')
+      comms%nsenddspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsenddspls_repartitionrho')
+      comms%nrecvdspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvdspls_repartitionrho')
     end subroutine allocate_MPI_communications_arrays_repartition
+
+
+    subroutine allocate_MPI_communications_arrays_repartitionp2p(ncommunications, commarr_repartitionrho)
+      implicit none
+      integer,intent(in) :: ncommunications
+      integer,dimension(:,:),pointer,intent(inout) :: commarr_repartitionrho
+      commarr_repartitionrho=f_malloc_ptr((/4,ncommunications/),id='commarr_repartitionrho')
+    end subroutine allocate_MPI_communications_arrays_repartitionp2p
+
+
+    subroutine deallocate_collective_comms(comms)
+      implicit none
+      type(collective_comms),intent(inout) :: comms
+      call deallocate_MPI_communication_arrays(comms)
+      call deallocate_local_communications_arrays(comms)
+      call deallocate_MPI_communications_arrays_repartition(comms)
+      if (associated(comms%psit_c)) call f_free_ptr(comms%psit_c)
+      if (associated(comms%psit_f)) call f_free_ptr(comms%psit_f)
+      call deallocate_MPI_communications_arrays_repartitionp2p(comms%commarr_repartitionrho)
+    end subroutine deallocate_collective_comms
+
+
+    subroutine deallocate_MPI_communication_arrays(comms)
+      implicit none
+      type(collective_comms),intent(inout) :: comms
+      if (associated(comms%nsendcounts_c)) call f_free_ptr(comms%nsendcounts_c)
+      if (associated(comms%nsenddspls_c)) call f_free_ptr(comms%nsenddspls_c)
+      if (associated(comms%nrecvcounts_c)) call f_free_ptr(comms%nrecvcounts_c)
+      if (associated(comms%nrecvdspls_c)) call f_free_ptr(comms%nrecvdspls_c)
+      if (associated(comms%nsendcounts_f)) call f_free_ptr(comms%nsendcounts_f)
+      if (associated(comms%nsenddspls_f)) call f_free_ptr(comms%nsenddspls_f)
+      if (associated(comms%nrecvcounts_f)) call f_free_ptr(comms%nrecvcounts_f)
+      if (associated(comms%nrecvdspls_f)) call f_free_ptr(comms%nrecvdspls_f)
+    end subroutine deallocate_MPI_communication_arrays
+
+    subroutine deallocate_local_communications_arrays(comms)
+      implicit none
+      type(collective_comms),intent(inout) :: comms
+      if (associated(comms%irecvbuf_c)) call f_free_ptr(comms%irecvbuf_c)
+      if (associated(comms%indexrecvorbital_c)) call f_free_ptr(comms%indexrecvorbital_c)
+      if (associated(comms%iextract_c)) call f_free_ptr(comms%iextract_c)
+      if (associated(comms%iexpand_c)) call f_free_ptr(comms%iexpand_c)
+      if (associated(comms%isendbuf_c)) call f_free_ptr(comms%isendbuf_c)
+      if (associated(comms%irecvbuf_f)) call f_free_ptr(comms%irecvbuf_f)
+      if (associated(comms%indexrecvorbital_f)) call f_free_ptr(comms%indexrecvorbital_f)
+      if (associated(comms%iextract_f)) call f_free_ptr(comms%iextract_f)
+      if (associated(comms%iexpand_f)) call f_free_ptr(comms%iexpand_f)
+      if (associated(comms%isendbuf_f)) call f_free_ptr(comms%isendbuf_f)
+      if (associated(comms%isptsp_c)) call f_free_ptr(comms%isptsp_c)
+      if (associated(comms%isptsp_f)) call f_free_ptr(comms%isptsp_f)
+      if (associated(comms%norb_per_gridpoint_c)) call f_free_ptr(comms%norb_per_gridpoint_c)
+      if (associated(comms%norb_per_gridpoint_f)) call f_free_ptr(comms%norb_per_gridpoint_f)
+    end subroutine deallocate_local_communications_arrays
+
+    subroutine deallocate_MPI_communications_arrays_repartition(comms)
+      implicit none
+      type(collective_comms),intent(inout) :: comms
+      if (associated(comms%nsendcounts_repartitionrho)) call f_free_ptr(comms%nsendcounts_repartitionrho)
+      if (associated(comms%nrecvcounts_repartitionrho)) call f_free_ptr(comms%nrecvcounts_repartitionrho)
+      if (associated(comms%nsenddspls_repartitionrho)) call f_free_ptr(comms%nsenddspls_repartitionrho)
+      if (associated(comms%nrecvdspls_repartitionrho)) call f_free_ptr(comms%nrecvdspls_repartitionrho)
+    end subroutine deallocate_MPI_communications_arrays_repartition
+
+
+    subroutine deallocate_MPI_communications_arrays_repartitionp2p(commarr_repartitionrho)
+      implicit none
+      integer,dimension(:,:),pointer,intent(inout) :: commarr_repartitionrho
+      call f_free_ptr(commarr_repartitionrho)
+    end subroutine deallocate_MPI_communications_arrays_repartitionp2p
+
 
 
     subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
@@ -2224,7 +2276,7 @@ module communications
       type(collective_comms),intent(inout) :: collcom_sr
     
       ! Local variables
-      integer :: ierr, istat, iall, ipt
+      integer :: ierr, istat, iall, ipt, ii
       real(kind=8) :: weight_tot, weight_ideal
       integer,dimension(:,:),allocatable :: istartend
       character(len=*),parameter :: subname='init_collective_comms_sumrho'
@@ -2244,74 +2296,48 @@ module communications
     
       call get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal, &
            weights_per_slice, weights_per_zpoint)
-      call mpi_barrier(mpi_comm_world, ierr)
     
       call assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
            lzd, orbs, nscatterarr, istartend, collcom_sr%nptsp_c)
-      call mpi_barrier(mpi_comm_world, ierr)
     
       iall = -product(shape(weights_per_slice))*kind(weights_per_slice)
       deallocate(weights_per_slice,stat=istat)
       call memocc(istat, iall, 'weights_per_slice', subname)
     
-      allocate(collcom_sr%norb_per_gridpoint_c(collcom_sr%nptsp_c), stat=istat)
-      call memocc(istat, collcom_sr%norb_per_gridpoint_c, 'collcom_sr%norb_per_gridpoint_c', subname)
+
+      call allocate_MPI_communication_arrays(nproc, collcom_sr, only_coarse=.true.)
+
+      call determine_communication_arrays_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, istartend, &
+           collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
+           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%ndimpsi_c)
+
+      !Now set some integers in the collcomm structure
+      collcom_sr%ndimind_c = sum(collcom_sr%nrecvcounts_c)
+
+      call allocate_local_communications_arrays(collcom_sr, only_coarse=.true.)
     
       call determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, &
            istartend, weight_tot, weights_per_zpoint, collcom_sr%norb_per_gridpoint_c)
-      call mpi_barrier(mpi_comm_world, ierr)
     
-      allocate(collcom_sr%nsendcounts_c(0:nproc-1), stat=istat)
-      call memocc(istat, collcom_sr%nsendcounts_c, 'collcom_sr%nsendcounts_c', subname)
-      allocate(collcom_sr%nsenddspls_c(0:nproc-1), stat=istat)
-      call memocc(istat, collcom_sr%nsenddspls_c, 'collcom_sr%nsenddspls_c', subname)
-      allocate(collcom_sr%nrecvcounts_c(0:nproc-1), stat=istat)
-      call memocc(istat, collcom_sr%nrecvcounts_c, 'collcom_sr%nrecvcounts_c', subname)
-      allocate(collcom_sr%nrecvdspls_c(0:nproc-1), stat=istat)
-      call memocc(istat, collcom_sr%nrecvdspls_c, 'collcom_sr%nrecvdspls_c', subname)
+      ! Some check
+      ii=sum(collcom_sr%norb_per_gridpoint_c)
+      if (ii/=collcom_sr%ndimind_c) stop 'ii/=collcom_sr%ndimind_c'
     
-      call determine_communication_arrays_sumrho(iproc, nproc, collcom_sr%nptsp_c, lzd, orbs, istartend, &
-           collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
-           collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c)
-      call mpi_barrier(mpi_comm_world, ierr)
     
-      allocate(collcom_sr%psit_c(collcom_sr%ndimind_c), stat=istat)
-      call memocc(istat, collcom_sr%psit_c, 'collcom_sr%psit_c', subname)
-    
-      allocate(collcom_sr%isendbuf_c(collcom_sr%ndimpsi_c), stat=istat)
-      call memocc(istat, collcom_sr%isendbuf_c, 'collcom_sr%isendbuf_c', subname)
-      allocate(collcom_sr%irecvbuf_c(collcom_sr%ndimpsi_c), stat=istat)
-      call memocc(istat, collcom_sr%irecvbuf_c, 'collcom_sr%irecvbuf_c', subname)
-      allocate(collcom_sr%indexrecvorbital_c(collcom_sr%ndimind_c), stat=istat)
-      call memocc(istat, collcom_sr%indexrecvorbital_c, 'collcom_sr%indexrecvorbital_c', subname)
-      allocate(collcom_sr%iextract_c(collcom_sr%ndimind_c), stat=istat)
-      call memocc(istat, collcom_sr%iextract_c, 'collcom_sr%iextract_c', subname)
-      allocate(collcom_sr%iexpand_c(collcom_sr%ndimind_c), stat=istat)
-      call memocc(istat, collcom_sr%iexpand_c, 'collcom_sr%iexpand_c', subname)
+      collcom_sr%psit_c=f_malloc_ptr(collcom_sr%ndimind_c,id='collcom_sr%psit_c')
     
       call get_switch_indices_sumrho(iproc, nproc, collcom_sr%nptsp_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c, lzd, &
            orbs, istartend, collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
            collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%isendbuf_c, collcom_sr%irecvbuf_c, &
            collcom_sr%iextract_c, collcom_sr%iexpand_c, collcom_sr%indexrecvorbital_c)
-      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
     
       ! These variables are used in various subroutines to speed up the code
-      allocate(collcom_sr%isptsp_c(max(collcom_sr%nptsp_c,1)), stat=istat)
-      call memocc(istat, collcom_sr%isptsp_c, 'collcom_sr%isptsp_c', subname)
       collcom_sr%isptsp_c(1) = 0
       do ipt=2,collcom_sr%nptsp_c
             collcom_sr%isptsp_c(ipt) = collcom_sr%isptsp_c(ipt-1) + collcom_sr%norb_per_gridpoint_c(ipt-1)
       end do
     
       call allocate_MPI_communications_arrays_repartition(nproc, collcom_sr)
-      !!allocate(collcom_sr%nsendcounts_repartitionrho(0:nproc-1), stat=istat)
-      !!call memocc(istat, collcom_sr%nsendcounts_repartitionrho, 'collcom_sr%nsendcounts_repartitionrho', subname)
-      !!allocate(collcom_sr%nrecvcounts_repartitionrho(0:nproc-1), stat=istat)
-      !!call memocc(istat, collcom_sr%nrecvcounts_repartitionrho, 'collcom_sr%nrecvcounts_repartitionrho', subname)
-      !!allocate(collcom_sr%nsenddspls_repartitionrho(0:nproc-1), stat=istat)
-      !!call memocc(istat, collcom_sr%nsenddspls_repartitionrho, 'collcom_sr%nsenddspls_repartitionrho', subname)
-      !!allocate(collcom_sr%nrecvdspls_repartitionrho(0:nproc-1), stat=istat)
-      !!call memocc(istat, collcom_sr%nrecvdspls_repartitionrho, 'collcom_sr%nrecvdspls_repartitionrho', subname)
     
       call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
            collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
@@ -2622,8 +2648,8 @@ module communications
 
 
     subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, &
-               istartend, norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, &
-               nrecvdspls, ndimpsi, ndimind)
+               istartend, nsendcounts, nsenddspls, nrecvcounts, &
+               nrecvdspls, ndimpsi)
       use module_base
       use module_types
       implicit none
@@ -2633,9 +2659,8 @@ module communications
       type(local_zone_descriptors),intent(in) :: lzd
       type(orbitals_data),intent(in) :: orbs
       integer,dimension(2,0:nproc-1),intent(in) :: istartend
-      integer,dimension(nptsp),intent(in) :: norb_per_gridpoint
       integer,dimension(0:nproc-1),intent(out) :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
-      integer,intent(out) :: ndimpsi, ndimind
+      integer,intent(out) :: ndimpsi
     
       ! Local variables
       integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, istat, iall, ierr, ii0
@@ -2734,11 +2759,11 @@ module communications
       deallocate(nrecvdspls_tmp, stat=istat)
       call memocc(istat, iall, 'nrecvdspls_tmp', subname)
     
-      ndimind = sum(nrecvcounts)
+      !!ndimind = sum(nrecvcounts)
     
-      ! Some check
-      ii=sum(norb_per_gridpoint)
-      if (ii/=ndimind) stop 'ii/=sum(nrecvcounts)'
+      !!! Some check
+      !!ii=sum(norb_per_gridpoint)
+      !!if (ii/=ndimind) stop 'ii/=sum(nrecvcounts)'
     
       nrecvdspls(0)=0
       do jproc=1,nproc-1
@@ -3092,8 +3117,10 @@ module communications
           end do
         
         
-          allocate(commarr_repartitionrho(4,ncomms_repartitionrho),stat=istat)
-          call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
+          call allocate_MPI_communications_arrays_repartitionp2p(ncomms_repartitionrho, commarr_repartitionrho)
+          !commarr_repartitionrho=f_malloc_ptr((/4,ncomms_repartitionrho/),id='commarr_repartitionrho')
+          !!allocate(commarr_repartitionrho(4,ncomms_repartitionrho),stat=istat)
+          !!call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
         
         
           ! First process from which iproc has to receive data
@@ -3163,8 +3190,10 @@ module communications
     
       else
           ncomms_repartitionrho=0
-          allocate(commarr_repartitionrho(1,1),stat=istat)
-          call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
+          call allocate_MPI_communications_arrays_repartitionp2p(1, commarr_repartitionrho)
+          !commarr_repartitionrho=f_malloc_ptr((/1,1/),id='commarr_repartitionrho')
+          !!allocate(commarr_repartitionrho(1,1),stat=istat)
+          !!call memocc(istat, commarr_repartitionrho, 'commarr_repartitionrho', subname)
     
       end if
     

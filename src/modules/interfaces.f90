@@ -2937,13 +2937,13 @@ module module_interfaces
          integer,dimension(:,:),pointer,intent(out):: op_overlaps
        end subroutine determine_overlap_from_descriptors
 
-       subroutine deallocate_collective_comms(collcom, subname)
-         use module_base
-         use module_types
-         implicit none
-         type(collective_comms),intent(inout):: collcom
-         character(len=*),intent(in):: subname
-       end subroutine deallocate_collective_comms
+       !!subroutine deallocate_collective_comms(collcom, subname)
+       !!  use module_base
+       !!  use module_types
+       !!  implicit none
+       !!  type(collective_comms),intent(inout):: collcom
+       !!  character(len=*),intent(in):: subname
+       !!end subroutine deallocate_collective_comms
 
        subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
                   istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &

@@ -1073,7 +1073,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
-  use communications, only: collective_comms_null, init_collective_comms, transpose_localized
+  use communications, only: collective_comms_null, init_collective_comms, &
+                            transpose_localized, deallocate_collective_comms
   implicit none
 
   ! Calling arguments
@@ -1248,7 +1249,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
        psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
 
-  call deallocate_collective_comms(collcom_tmp, subname)
+  call deallocate_collective_comms(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
   i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)
@@ -1272,7 +1273,8 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
-  use communications, only: collective_comms_null, init_collective_comms, transpose_localized
+  use communications, only: collective_comms_null, init_collective_comms, &
+                            transpose_localized, deallocate_collective_comms
   implicit none
 
   ! Calling arguments
@@ -1523,7 +1525,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
        psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
 
-  call deallocate_collective_comms(collcom_tmp, subname)
+  call deallocate_collective_comms(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
   i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)
