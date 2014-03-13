@@ -20,7 +20,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use constrained_dft
   use diis_sd_optimization
   use yaml_output
-  use communications, only: transpose_localized
+  use communications, only: transpose_localized, start_onesided_communication
   implicit none
 
   ! Calling arguments
@@ -389,7 +389,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
-  use communications, only: transpose_localized
+  use communications, only: transpose_localized, start_onesided_communication
   !  use Poisson_Solver
   !use allocModule
   implicit none

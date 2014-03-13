@@ -1059,6 +1059,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    use module_base
    use module_types
    use module_xc
+   use communications, only: synchronize_onesided_communication
    implicit none
    integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid
    !integer, intent(in) :: ndimrhopot,i3rho_add

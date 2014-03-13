@@ -428,7 +428,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use module_types
   use module_interfaces, except_this_one => pulay_correction
   use yaml_output
-  use communications, only: transpose_localized
+  use communications, only: transpose_localized, start_onesided_communication
   implicit none
 
   ! Calling arguments
