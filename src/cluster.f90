@@ -338,7 +338,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   else
      nproctiming=nproc
   end if
-  call timing(nproctiming,trim(in%dir_output)//'time.yaml','IN')
+  !call timing(nproctiming,trim(in%dir_output)//'time.yaml','IN')
+  call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0,&
+       verbose_mode=verbose>2 .and. nproc>1)
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -1409,7 +1411,7 @@ contains
 
     !end of wavefunction minimisation
     call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-    call timing(bigdft_mpi%mpi_comm,'              ','RE')
+    call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)    
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1850,6 +1852,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_interfaces, except_this_one => kswfn_post_treatments
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
+  use communications_base, only: deallocate_collective_comms
 
   implicit none
 
@@ -1964,9 +1967,9 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      imode = 1
      nsize_psi=1
      ! This is just to save memory, since calculate_forces will require quite a lot
-     call deallocate_collective_comms(tmb%collcom, subname)
-     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
-     call deallocate_collective_comms(tmb%collcom_sr, subname)
+     call deallocate_collective_comms(tmb%collcom)
+     call deallocate_collective_comms(tmb%ham_descr%collcom)
+     call deallocate_collective_comms(tmb%collcom_sr)
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
@@ -1991,7 +1994,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
      call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
-     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
+     call deallocate_collective_comms(tmb%ham_descr%collcom)
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 
 !!!! TEST ##################

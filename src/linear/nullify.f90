@@ -145,43 +145,43 @@ end subroutine nullify_communications_arrays
 
 
 
-subroutine nullify_collective_comms(collcom)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(collective_comms),intent(inout):: collcom
-
-  ! Local variables
-  nullify(collcom%nsendcounts_c)
-  nullify(collcom%nsenddspls_c)
-  nullify(collcom%nrecvcounts_c)
-  nullify(collcom%nrecvdspls_c)
-  nullify(collcom%isendbuf_c)
-  nullify(collcom%iextract_c)
-  nullify(collcom%iexpand_c)
-  nullify(collcom%irecvbuf_c)
-  nullify(collcom%norb_per_gridpoint_c)
-  nullify(collcom%indexrecvorbital_c)
-  nullify(collcom%isptsp_c)
-  nullify(collcom%psit_c)
-  nullify(collcom%nsendcounts_f)
-  nullify(collcom%nsenddspls_f)
-  nullify(collcom%nrecvcounts_f)
-  nullify(collcom%nrecvdspls_f)
-  nullify(collcom%isendbuf_f)
-  nullify(collcom%iextract_f)
-  nullify(collcom%iexpand_f)
-  nullify(collcom%irecvbuf_f)
-  nullify(collcom%norb_per_gridpoint_f)
-  nullify(collcom%indexrecvorbital_f)
-  nullify(collcom%isptsp_f)
-  nullify(collcom%psit_f)
-  nullify(collcom%nsendcounts_repartitionrho)
-  nullify(collcom%nrecvcounts_repartitionrho)
-  nullify(collcom%nsenddspls_repartitionrho)
-  nullify(collcom%nrecvdspls_repartitionrho)
-  nullify(collcom%commarr_repartitionrho)
-
-end subroutine nullify_collective_comms
+!subroutine nullify_collective_comms(collcom)
+!  use module_base
+!  use module_types
+!  implicit none
+!  
+!  ! Calling arguments
+!  type(collective_comms),intent(inout):: collcom
+!
+!  ! Local variables
+!  nullify(collcom%nsendcounts_c)
+!  nullify(collcom%nsenddspls_c)
+!  nullify(collcom%nrecvcounts_c)
+!  nullify(collcom%nrecvdspls_c)
+!  nullify(collcom%isendbuf_c)
+!  nullify(collcom%iextract_c)
+!  nullify(collcom%iexpand_c)
+!  nullify(collcom%irecvbuf_c)
+!  nullify(collcom%norb_per_gridpoint_c)
+!  nullify(collcom%indexrecvorbital_c)
+!  nullify(collcom%isptsp_c)
+!  nullify(collcom%psit_c)
+!  nullify(collcom%nsendcounts_f)
+!  nullify(collcom%nsenddspls_f)
+!  nullify(collcom%nrecvcounts_f)
+!  nullify(collcom%nrecvdspls_f)
+!  nullify(collcom%isendbuf_f)
+!  nullify(collcom%iextract_f)
+!  nullify(collcom%iexpand_f)
+!  nullify(collcom%irecvbuf_f)
+!  nullify(collcom%norb_per_gridpoint_f)
+!  nullify(collcom%indexrecvorbital_f)
+!  nullify(collcom%isptsp_f)
+!  nullify(collcom%psit_f)
+!  nullify(collcom%nsendcounts_repartitionrho)
+!  nullify(collcom%nrecvcounts_repartitionrho)
+!  nullify(collcom%nsenddspls_repartitionrho)
+!  nullify(collcom%nrecvdspls_repartitionrho)
+!  nullify(collcom%commarr_repartitionrho)
+!
+!end subroutine nullify_collective_comms

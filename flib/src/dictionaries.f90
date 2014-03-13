@@ -46,6 +46,10 @@ module dictionaries
    interface operator(.is.)
       module procedure dict_cont_new_with_value, dict_cont_new_with_dict
    end interface 
+   interface operator(.in.)
+      module procedure key_in_dictionary
+   end interface operator(.in.)
+
    interface operator(==)
       module procedure dicts_are_equal
    end interface
@@ -87,7 +91,7 @@ module dictionaries
    public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_iter,has_key,dict_keys
    public :: dict_new,list_new
    !> Public elements of dictionary_base
-   public :: operator(.is.),operator(.item.),operator(==),operator(/=)
+   public :: operator(.is.),operator(.item.),operator(==),operator(/=),operator(.in.)
    public :: dictionary,max_field_length,dict_get_num
 
    !header of error handling part
@@ -608,6 +612,15 @@ contains
      !end if
 
    end function dict_keys
+
+   function key_in_dictionary(key,dict)
+     implicit none
+     type(dictionary), intent(in), pointer :: dict 
+     character(len=*), intent(in) :: key
+     logical :: key_in_dictionary
+     
+     key_in_dictionary=has_key(dict,key)
+   end function key_in_dictionary
 
    !> Search in the dictionary if some of the child has the given
    !! If the key does not exists, search for it in the next chain 

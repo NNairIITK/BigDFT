@@ -277,9 +277,9 @@ contains
     REAL (gp)                            :: invLx, invLy, invLz
     INTEGER                                    :: i, dim
 
-    invLx = 1.D0 / Lx
-    invLy = 1.D0 / Ly
-    invLz = 1.D0 / Lz
+    if (Lx /= 0._gp) invLx = 1.D0 / Lx
+    if (Ly /= 0._gp) invLy = 1.D0 / Ly
+    if (Lz /= 0._gp) invLz = 1.D0 / Lz
 
     dim = size(vect)
     DO i = 1, dim
@@ -297,6 +297,7 @@ contains
 
   subroutine image_init(img, inputs, atoms, rst, algorithm)
     use module_interfaces, only: run_objects_associate
+    use dynamic_memory, only: to_zero
     implicit none
     type(run_image), intent(out) :: img
     type(input_variables), intent(in) :: inputs
@@ -810,6 +811,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
      & km1, kp1, optimization, climbing, neb)
   use Minimization_routines
   use module_images
+  use dynamic_memory, only: to_zero
   implicit none
   type(run_image), intent(inout) :: img
   integer, intent(in) :: iteration

@@ -560,7 +560,7 @@
      COMMENT: input guess to be used during the optimization
      EXCLUSIVE:
        0: wavelet input guess
-       1: real space input guess
+       1: real space input guess (Free BC only)
      default: 0
    store_index:
      COMMENT: store indices or recalculate them for linear scaling
@@ -639,3 +639,6 @@
    method_updatekernel:
      COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE)
      default: 0
+   purification_quickreturn:
+     COMMENT: linear scaling quick return in purification
+     default: No

@@ -336,14 +336,14 @@ experimentalmode:
  D: 1.1e-04
  Epsilon: 8.e-10
  Ekin: 1.9e-06
- Enl: 2.6e-07
- Omega: 1.4e-05
+ Enl: 2.7e-07
+ Omega: 1.5e-05
  EH: 2.5e-04
- Epot: 2.2e-04
- EXC: 3.5e-05
- EvXC: 4.6e-05
- energy: 7.6e-07
- multiplicator for the confinement: 4.4e-07
+ Epot: 2.3e-04
+ EXC: 3.6e-05
+ EvXC: 4.8e-05
+ energy: 7.8e-07
+ multiplicator for the confinement: 4.5e-07
  Atomic Forces (Ha/Bohr): 1.3e-07
  Raw forces norm (Ha/Bohr): 1.1e-7
  Clean forces norm (Ha/Bohr): 1.1e-07
@@ -872,17 +872,17 @@ PBE_potmixlin:
   - found warnings
 
 PBE_potmixdiis:
- Atomic Forces (Ha/Bohr): 8.2e-10
- Clean forces norm (Ha/Bohr): 6.4e-10
+ Atomic Forces (Ha/Bohr): 6.3e-8
+ Clean forces norm (Ha/Bohr): 6.3e-8
  Raw forces norm (Ha/Bohr): 2.6e-8
- Average noise forces: 6.4e-10
- Orbitals: 5.5e-9
+ Average noise forces: 3.0e-8
+ Orbitals: 6.3e-8
  energy: 4.8e-8
  EXC: 2.0e-8
  EvXC: 2.7e-8
  Omega: 6.4e-10
  Epot: 6.2e-8
- EH: 3.3e-8
+ EH: 6.3e-8
  Ekin: 1.2e-8
  Enl: 2.2e-9
 

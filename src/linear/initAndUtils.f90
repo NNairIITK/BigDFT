@@ -801,6 +801,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
+  use communications_base, only: collective_comms_null
+  use communications_init, only: init_collective_comms, init_collective_comms_sumrho
   implicit none
   
   ! Calling arguments
@@ -828,9 +830,11 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
 
   call timing(iproc,'updatelocreg1','ON') 
   if (present(lfoe)) call nullify_foe(lfoe)
-  call nullify_collective_comms(lbcollcom)
+  !call nullify_collective_comms(lbcollcom)
+  lbcollcom=collective_comms_null()
   if (present(lbcollcom_sr)) then
-      call nullify_collective_comms(lbcollcom_sr)
+      !call nullify_collective_comms(lbcollcom_sr)
+      lbcollcom_sr=collective_comms_null()
   end if
   call nullify_p2pComms(lbcomgp)
   call nullify_local_zone_descriptors(lzd)
@@ -967,6 +971,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_new_locregs
+  use communications_base, only: deallocate_collective_comms
   implicit none
 
   ! Calling arguments
@@ -988,8 +993,8 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   !call deallocate_sparseMatrix(tmb%linmat%ham, subname)
   !call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
 
-  call deallocate_collective_comms(tmb%collcom, subname)
-  call deallocate_collective_comms(tmb%collcom_sr, subname)
+  call deallocate_collective_comms(tmb%collcom)
+  call deallocate_collective_comms(tmb%collcom_sr)
 
 end subroutine destroy_new_locregs
 
@@ -999,6 +1004,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_types
   use module_interfaces, except_this_one => destroy_DFT_wavefunction
   use deallocatePointers
+  use communications_base, only: deallocate_collective_comms
   implicit none
   
   ! Calling arguments
@@ -1025,8 +1031,8 @@ subroutine destroy_DFT_wavefunction(wfn)
 
   call deallocate_orbitals_data(wfn%orbs, subname)
   !call deallocate_communications_arrays(wfn%comms, subname)
-  call deallocate_collective_comms(wfn%collcom, subname)
-  call deallocate_collective_comms(wfn%collcom_sr, subname)
+  call deallocate_collective_comms(wfn%collcom)
+  call deallocate_collective_comms(wfn%collcom_sr)
   call deallocate_local_zone_descriptors(wfn%lzd, subname)
 
   if (associated(wfn%coeff)) then
@@ -1262,6 +1268,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
   use yaml_output
+  use communications_base, only: deallocate_collective_comms
   implicit none
   
   ! Calling argument
@@ -1309,8 +1316,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
      call deallocate_p2pComms(tmb%comgp, subname)
 
-     call deallocate_collective_comms(tmb%collcom, subname)
-     call deallocate_collective_comms(tmb%collcom_sr, subname)
+     call deallocate_collective_comms(tmb%collcom)
+     call deallocate_collective_comms(tmb%collcom_sr)
 
      call nullify_local_zone_descriptors(lzd_tmp)
      call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
@@ -1385,7 +1392,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
      call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
-     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
+     call deallocate_collective_comms(tmb%ham_descr%collcom)
 
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
      if(tmb%ham_descr%can_use_transposed) then

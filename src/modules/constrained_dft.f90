@@ -124,6 +124,7 @@ contains
   subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
        calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
     use module_fragments
+    use communications, only: transpose_localized
     implicit none
     type(sparseMatrix), intent(inout) :: weight_matrix
     type(input_variables),intent(in) :: input
@@ -231,6 +232,7 @@ contains
   !! for the moment putting densities in global box and ignoring parallelization
   subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
     use module_fragments
+    use communications, only: transpose_localized
     implicit none
     integer,intent(in) :: iproc
     type(cdft_data), intent(inout) :: cdft

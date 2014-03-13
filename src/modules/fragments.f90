@@ -999,6 +999,7 @@ contains
     nstates_max,cdft)
     use yaml_output
     use module_base
+    use communications, only: transpose_localized
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
     type(input_variables), intent(in) :: input

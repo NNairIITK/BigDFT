@@ -134,6 +134,7 @@ module module_input_keys
   character(len = *), parameter, public :: EVBOUNDS_NSATUR = "evbounds_nsatur"
   character(len = *), parameter, public :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
   character(len = *), parameter, public :: METHOD_UPDATEKERNEL = "method_updatekernel"
+  character(len = *), parameter, public :: PURIFICATION_QUICKRETURN = "purification_quickreturn"
 
   !keys for linear input variables
   !level keys

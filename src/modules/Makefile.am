@@ -45,6 +45,9 @@ libmodules_a_SOURCES = base.f90 \
 	diis_module.f90 \
 	ao_inguess.f90 \
 	atoms_data.f90 \
+	communications_base.f90 \
+	communications_init.f90 \
+	communications.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -72,7 +75,10 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@ \
 	AO_INGUESS.@MODULE_EXT@ \
-	MODULE_ATOMS.@MODULE_EXT@
+	MODULE_ATOMS.@MODULE_EXT@ \
+	COMMUNICATIONS_TYPE.@MODULE_EXT@ \
+	COMMUNICATIONS_BASE.@MODULE_EXT@ \
+	COMMUNICATIONS.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -94,7 +100,11 @@ modules = module_base.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@ \
 	ao_inguess.@MODULE_EXT@ \
-	module_atoms.@MODULE_EXT@
+	module_atoms.@MODULE_EXT@ \
+	communications_base.@MODULE_EXT@ \
+	communications_init.@MODULE_EXT@ \
+	communications.@MODULE_EXT@
+
 
 endif
 
@@ -125,7 +135,7 @@ endif
 $(modules): $(libmodules_a_OBJECTS)
 input_keys.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o base.o
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
-types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o
+types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o
 input.o: base.o types.o input_keys.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o
 gaussians.o: base.o
@@ -133,13 +143,16 @@ op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
-fragments.o diis_module.o: base.o types.o
+fragments.o diis_module.o: base.o types.o communications.o
 constrained_dft.o: base.o types.o fragments.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o
 psp_projectors.o: locregs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o
+communications_base.o: base.o
+communications_init.o: base.o types.o
+communications.o: base.o types.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

@@ -266,7 +266,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vexcuLOC=0.0_dp
   end if
 
-  call timing(iproc,'Exchangecorr  ','OF')
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
   if(geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
@@ -292,9 +291,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !here the case ncplx/= 1 should be added
   call G_PoissonSolver(iproc,nproc,bigdft_mpi%mpi_comm,0,MPI_COMM_NULL,geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
        scal,hx,hy,hz,offset,strten)
-  
-  call timing(iproc,'PSolv_comput  ','ON')
-  
+    
   !the value of the shift depends on the distributed i/o or not
   if (datacode=='G') then
      i3xcsh=istart !beware on the fact that this is not what represents its name!!!
@@ -404,13 +401,11 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   deallocate(zfionxc,stat=i_stat)
   call memocc(i_stat,i_all,'zfionxc',subname)
 
-  call timing(iproc,'PSolv_comput  ','OF')
-
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
 
-     call timing(iproc,'PSolv_commun  ','ON')
+     !this part should be passed to mpi wrapper
      allocate(energies_mpi(6+ndebug),stat=i_stat)
      call memocc(i_stat,energies_mpi,'energies_mpi',subname)
 
@@ -425,13 +420,11 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      i_all=-product(shape(energies_mpi))*kind(energies_mpi)
      deallocate(energies_mpi,stat=i_stat)
      call memocc(i_stat,i_all,'energies_mpi',subname)
-     call timing(iproc,'PSolv_commun  ','OF')
 
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
         !and the array of the displacement
 
-        call timing(iproc,'PSolv_comput  ','ON')
         allocate(gather_arr(0:nproc-1,2+ndebug),stat=i_stat)
         call memocc(i_stat,gather_arr,'gather_arr',subname)
         do jproc=0,nproc-1
@@ -444,8 +437,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         !gather all the results in the same rhopot array
         istart=min(iproc*(md2/nproc),m2-1)
 
-        call timing(iproc,'PSolv_comput  ','OF')
-        call timing(iproc,'PSolv_commun  ','ON')
         istden=1+n01*n02*istart
         istglo=1
         do ispin=1,nspin
@@ -471,14 +462,10 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
            end if
         end do
-        call timing(iproc,'PSolv_commun  ','OF')
-        call timing(iproc,'PSolv_comput  ','ON')
 
         i_all=-product(shape(gather_arr))*kind(gather_arr)
         deallocate(gather_arr,stat=i_stat)
         call memocc(i_stat,i_all,'gather_arr',subname)
-
-        call timing(iproc,'PSolv_comput  ','OF')
 
      end if
 
@@ -490,7 +477,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
   !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
-
+  call timing(iproc,'Exchangecorr  ','OF')
 contains
 
   subroutine PSolver_yaml(code,n01,n02,n03,nproc,ixc)
