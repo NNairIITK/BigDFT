@@ -1274,6 +1274,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use communications_base, only: deallocate_comms_linear
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_init, only: initSparseMatrix
   implicit none
   
   ! Calling argument

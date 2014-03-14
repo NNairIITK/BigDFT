@@ -72,6 +72,7 @@ module sparsematrix_base
       sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
     end subroutine allocate_sparsematrix_basic
 
+
     subroutine allocate_sparsematrix_keys(sparsemat)
       implicit none
       type(sparseMatrix),intent(inout) :: sparsemat

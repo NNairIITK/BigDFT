@@ -246,6 +246,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use gaussians, only: gaussian_basis
   use psp_projectors
   use sparsematrix_base, only: sparsematrix_null
+  use sparsematrix_init, only: initSparseMatrix
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old

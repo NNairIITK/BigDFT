@@ -49,6 +49,7 @@ libmodules_a_SOURCES = base.f90 \
 	communications_init.f90 \
 	communications.f90 \
 	sparsematrix_base.f90 \
+	sparsematrix_init.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -80,7 +81,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	COMMUNICATIONS_BASE.@MODULE_EXT@ \
 	COMMUNICATIONS_INIT.@MODULE_EXT@ \
 	COMMUNICATIONS.@MODULE_EXT@ \
-	SPARSEMATRIX_BASE.@MODULE_EXT@
+	SPARSEMATRIX_BASE.@MODULE_EXT@ \
+	SPARSEMATRIX_INIT.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -106,7 +108,8 @@ modules = module_base.@MODULE_EXT@ \
 	communications_base.@MODULE_EXT@ \
 	communications_init.@MODULE_EXT@ \
 	communications.@MODULE_EXT@ \
-	sparsematrix_base.@MODULE_EXT@
+	sparsematrix_base.@MODULE_EXT@ \
+	sparsematrix_init.@MODULE_EXT@
 
 
 endif
@@ -154,9 +157,10 @@ locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o
 communications_base.o: base.o
-communications_init.o: base.o types.o
-communications.o: base.o types.o
+communications_init.o: base.o types.o communications_base.o
+communications.o: base.o types.o communications_base.o
 sparsematrix_base.o: base.o
+sparsematrix_init.o: base.o sparsematrix_base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
