@@ -411,6 +411,7 @@ contains
   end subroutine nullify_cdft_data
 
   subroutine cdft_data_free(cdft)
+    use sparsematrix_base, only: deallocate_sparseMatrix
     implicit none
     type(cdft_data), intent(inout) :: cdft
 
@@ -433,8 +434,9 @@ contains
     call f_routine(id='cdft_data_allocate')
     call sparse_copy_pattern(ham, cdft%weight_matrix, bigdft_mpi%iproc, subname)
     !cdft%weight_matrix%matrix_compr=f_malloc_ptr(cdft%weight_matrix%nvctr,id='cdft%weight_matrix%matrix_compr')
-    allocate(cdft%weight_matrix%matrix_compr(cdft%weight_matrix%nvctr), stat=istat)
-    call memocc(istat, cdft%weight_matrix%matrix_compr, 'cdft%weight_matrix%matrix_compr', subname)
+    !!allocate(cdft%weight_matrix%matrix_compr(cdft%weight_matrix%nvctr), stat=istat)
+    !!call memocc(istat, cdft%weight_matrix%matrix_compr, 'cdft%weight_matrix%matrix_compr', subname)
+    cdft%weight_matrix%matrix_compr=f_malloc_ptr(cdft%weight_matrix%nvctr,id='cdft%weight_matrix%matrix_compr')
     call f_release_routine()
 
   end subroutine cdft_data_allocate

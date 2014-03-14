@@ -136,8 +136,10 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
   allocate(homo_ovrlp(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
   call memocc(i_stat, homo_ovrlp, 'homo_ovrlp', subname)
 
-  allocate(ham%matrix(ham%nfvctr,ham%nfvctr), stat=i_stat)
-  call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
+  !!allocate(ham%matrix(ham%nfvctr,ham%nfvctr), stat=i_stat)
+  !!call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
+  ham%matrix=f_malloc_ptr((/ham%nfvctr,ham%nfvctr/),id='ham%matrix')
+  
   call uncompressMatrix(iproc,ham)
 
   !DGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
@@ -157,12 +159,14 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
       call mpiallred(homo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  i_all=-product(shape(ham%matrix))*kind(ham%matrix)
-  deallocate(ham%matrix, stat=i_stat)
-  call memocc(i_stat, i_all, 'ham%matrix', subname)
+  !!i_all=-product(shape(ham%matrix))*kind(ham%matrix)
+  !!deallocate(ham%matrix, stat=i_stat)
+  !!call memocc(i_stat, i_all, 'ham%matrix', subname)
+  call f_free_ptr(ham%matrix)
 
-  allocate(ovrlp%matrix(ovrlp%nfvctr,ovrlp%nfvctr), stat=i_stat)
-  call memocc(i_stat, ovrlp%matrix, 'ovrlp%matrix', subname)
+  !!allocate(ovrlp%matrix(ovrlp%nfvctr,ovrlp%nfvctr), stat=i_stat)
+  !!call memocc(i_stat, ovrlp%matrix, 'ovrlp%matrix', subname)
+  ovrlp%matrix=f_malloc_ptr((/ovrlp%nfvctr,ovrlp%nfvctr/),id='ovrlp%matrix')
   call uncompressMatrix(iproc,ovrlp)
 
   call to_zero(input_frag%nfrag**2, homo_ovrlp(1,1))
@@ -177,9 +181,10 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
       call mpiallred(homo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
-  deallocate(ovrlp%matrix, stat=i_stat)
-  call memocc(i_stat, i_all, 'ovrlp%matrix', subname)
+  !!i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
+  !!deallocate(ovrlp%matrix, stat=i_stat)
+  !!call memocc(i_stat, i_all, 'ovrlp%matrix', subname)
+  call f_free_ptr(ovrlp%matrix)
 
   i_all = -product(shape(coeff_tmp))*kind(coeff_tmp)
   deallocate(coeff_tmp,stat=i_stat)

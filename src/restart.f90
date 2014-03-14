@@ -946,8 +946,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
+     !!allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
+     tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr/),&
+         id='tmb%linmat%ham%matrix')
 
      call uncompressMatrix(iproc,tmb%linmat%ham)
 
@@ -963,9 +965,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         end do
      end do
 
-     i_all = -product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
-     deallocate(tmb%linmat%ham%matrix,stat=i_stat)
-     call memocc(i_stat,i_all,'tmb%linmat%ham%matrix',subname)
+     !!i_all = -product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
+     !!deallocate(tmb%linmat%ham%matrix,stat=i_stat)
+     !!call memocc(i_stat,i_all,'tmb%linmat%ham%matrix',subname)
+     call f_free_ptr(tmb%linmat%ham%matrix)
 
      close(99)
 
@@ -975,8 +978,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+     !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+     tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr/),&
+         id='tmb%linmat%ovrlp%matrix')
 
      call uncompressMatrix(iproc,tmb%linmat%ovrlp)
 
@@ -992,9 +997,11 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         end do
      end do
 
-     i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-     deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-     call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
+     !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+     !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
+     !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
+     call f_free_ptr(tmb%linmat%ovrlp%matrix)
+
 
      close(99)
 
@@ -1004,8 +1011,11 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%denskern_large%matrix(tmb%linmat%denskern_large%nfvctr,tmb%linmat%denskern_large%nfvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
+     !!allocate(tmb%linmat%denskern_large%matrix(tmb%linmat%denskern_large%nfvctr,tmb%linmat%denskern_large%nfvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
+     tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%linmat%denskern_large%nfvctr,tmb%linmat%denskern_large%nfvctr/),&
+         id='tmb%linmat%denskern_large%matrix')
+
 
      call uncompressMatrix(iproc,tmb%linmat%denskern_large)
 
@@ -1021,9 +1031,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         end do
      end do
 
-     i_all = -product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
-     deallocate(tmb%linmat%denskern_large%matrix,stat=i_stat)
-     call memocc(i_stat,i_all,'tmb%linmat%denskern_large%matrix',subname)
+     !!i_all = -product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
+     !!deallocate(tmb%linmat%denskern_large%matrix,stat=i_stat)
+     !!call memocc(i_stat,i_all,'tmb%linmat%denskern_large%matrix',subname)
+     call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
      close(99)
 
@@ -1031,8 +1042,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 
   ! calculate 'onsite' overlap matrix as well - needs double checking
 
-  allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
-  call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+  !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
+  !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr/),&
+      id='tmb%linmat%ovrlp%matrix')
 
   call tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   !call tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
@@ -1060,9 +1073,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 
   close(99)
 
-  i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-  deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-  call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
+  !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+  !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
+  !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
+  call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
 end subroutine write_linear_matrices
 

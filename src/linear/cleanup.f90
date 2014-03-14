@@ -971,33 +971,33 @@ subroutine deallocate_foe(foe_obj, subname)
 
 end subroutine deallocate_foe
 
-subroutine deallocate_sparseMatrix(sparsemat, subname)
-  use module_base 
-  use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_sparseMatrix
-  use sparsematrix_base, only: sparseMatrix
-  implicit none
-  
-  ! Calling arguments
-  type(sparseMatrix),intent(inout):: sparsemat
-  character(len=*),intent(in):: subname
-
-  call checkAndDeallocatePointer(sparseMat%keyg, 'sparseMat%keyg', subname)
-  call checkAndDeallocatePointer(sparseMat%keyv, 'sparseMat%keyv', subname)
-  call checkAndDeallocatePointer(sparseMat%nsegline, 'sparseMat%nsegline', subname)
-  call checkAndDeallocatePointer(sparseMat%istsegline, 'sparseMat%istsegline', subname)
-  call checkAndDeallocatePointer(sparseMat%matrix_compr, 'sparseMat%matrix_compr', subname)
-  call checkAndDeallocatePointer(sparseMat%matrix, 'sparseMat%matrix', subname)
-  !call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
-  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_arr, 'sparseMat%matrixindex_in_compressed_arr', subname)
-  call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
-  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_fortransposed, &
-       'sparseMat%matrixindex_in_compressed_fortransposed', subname)
-  call f_free_ptr(sparseMat%isvctr_par)
-  call f_free_ptr(sparseMat%nvctr_par)
-  call f_free_ptr(sparseMat%isfvctr_par)
-  call f_free_ptr(sparseMat%nfvctr_par)
-  call f_free_ptr(sparseMat%matrixp)
-  call f_free_ptr(sparseMat%matrix_comprp)
-
-end subroutine deallocate_sparseMatrix
+!!subroutine deallocate_sparseMatrix(sparsemat, subname)
+!!  use module_base 
+!!  use deallocatePointers
+!!  use module_interfaces, exceptThisOne => deallocate_sparseMatrix
+!!  use sparsematrix_base, only: sparseMatrix
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  type(sparseMatrix),intent(inout):: sparsemat
+!!  character(len=*),intent(in):: subname
+!!
+!!  call checkAndDeallocatePointer(sparseMat%keyg, 'sparseMat%keyg', subname)
+!!  call checkAndDeallocatePointer(sparseMat%keyv, 'sparseMat%keyv', subname)
+!!  call checkAndDeallocatePointer(sparseMat%nsegline, 'sparseMat%nsegline', subname)
+!!  call checkAndDeallocatePointer(sparseMat%istsegline, 'sparseMat%istsegline', subname)
+!!  call checkAndDeallocatePointer(sparseMat%matrix_compr, 'sparseMat%matrix_compr', subname)
+!!  call checkAndDeallocatePointer(sparseMat%matrix, 'sparseMat%matrix', subname)
+!!  !call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
+!!  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_arr, 'sparseMat%matrixindex_in_compressed_arr', subname)
+!!  call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
+!!  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_fortransposed, &
+!!       'sparseMat%matrixindex_in_compressed_fortransposed', subname)
+!!  call f_free_ptr(sparseMat%isvctr_par)
+!!  call f_free_ptr(sparseMat%nvctr_par)
+!!  call f_free_ptr(sparseMat%isfvctr_par)
+!!  call f_free_ptr(sparseMat%nfvctr_par)
+!!  call f_free_ptr(sparseMat%matrixp)
+!!  call f_free_ptr(sparseMat%matrix_comprp)
+!!
+!!end subroutine deallocate_sparseMatrix

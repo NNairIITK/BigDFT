@@ -43,8 +43,9 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
   !call nullify_sparsematrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
-  allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
-  call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
+  !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
   do it=1,orthpar%nItOrtho
 
@@ -118,9 +119,10 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   end do
 
   !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
-  iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
-  deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
-  call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
+  !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
+  !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
 end subroutine orthonormalizeLocalized
 
@@ -225,7 +227,7 @@ call timing(iproc,'misc','ON')
       ! WARNING: it is mandatory that the overlap matrix has been calculated before
       !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
       if (iproc==0) write(*,*) 'correction orthoconstraint'
-      allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb))
+      linmat%ovrlp%matrix=f_malloc_ptr((/orbs%norb,orbs%norb/),id='linmat%ovrlp%matrix')
       call uncompressMatrix(iproc,linmat%ovrlp)
       allocate(tmp_mat(orbs%norb,orbs%norb))
       allocate(tmp_mat2(orbs%norb,orbs%norb))
@@ -267,7 +269,7 @@ call timing(iproc,'misc','ON')
          !!                                          jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)
          tmp_mat_compr(jj)=tmp_mat2(irow,jcol)
       end do
-      deallocate(linmat%ovrlp%matrix)
+      call f_free_ptr(linmat%ovrlp%matrix)
       deallocate(tmp_mat)
       deallocate(tmp_mat2)
       deallocate(ipiv)
@@ -1379,8 +1381,9 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   !call nullify_sparsematrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
-  allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
-  call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
+  !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
   do it=1,orthpar%nItOrtho
 
@@ -1531,9 +1534,10 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   end do
 
   !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
-  iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
-  deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
-  call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
+  !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
+  !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
 end subroutine orthonormalize_subset
 
@@ -1575,8 +1579,9 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   !call nullify_sparsematrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
-  allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
-  call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
+  !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
   do it=1,orthpar%nItOrtho
 
@@ -1734,9 +1739,10 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   end do
 
   !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
-  iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
-  deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
-  call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
+  !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
+  !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
 end subroutine gramschmidt_subset
 

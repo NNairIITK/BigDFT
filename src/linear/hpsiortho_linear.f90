@@ -18,6 +18,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use yaml_output
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
   use communications, only: transpose_localized
+  use sparsematrix_base, only: deallocate_sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -819,7 +820,7 @@ end subroutine calculate_energy_and_gradient_linear
 subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null
+  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -862,8 +863,9 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !call nullify_sparsematrix(grad_ovrlp)
   grad_ovrlp=sparsematrix_null()
   call sparse_copy_pattern(tmb%linmat%ham, grad_ovrlp, iproc, subname)
-  allocate(grad_ovrlp%matrix_compr(grad_ovrlp%nvctr), stat=istat)
-  call memocc(istat, grad_ovrlp%matrix_compr, 'grad_ovrlp%matrix_compr', subname)
+  !!allocate(grad_ovrlp%matrix_compr(grad_ovrlp%nvctr), stat=istat)
+  !!call memocc(istat, grad_ovrlp%matrix_compr, 'grad_ovrlp%matrix_compr', subname)
+  grad_ovrlp%matrix_compr=f_malloc_ptr(grad_ovrlp%nvctr,id='grad_ovrlp%matrix_compr')
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, hpsit_c, hpsit_c, &
        hpsit_f, hpsit_f, grad_ovrlp)
 
@@ -873,8 +875,9 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   allocate(coeff_tmp(tmb%orbs%norbp,max(tmb%orbs%norb,1)), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
 
-  allocate(grad_ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, grad_ovrlp%matrix, 'grad_ovrlp%matrix', subname)
+  !!allocate(grad_ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+  !!call memocc(istat, grad_ovrlp%matrix, 'grad_ovrlp%matrix', subname)
+  grad_ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_ovrlp%matrix')
   call uncompressMatrix(iproc,grad_ovrlp)
 
   ! can change this so only go up to ksorbs%norb...

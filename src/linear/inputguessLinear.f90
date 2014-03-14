@@ -20,7 +20,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null
+  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -691,8 +691,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%lin%scf_mode==LINEAR_FOE) then
 
       call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
-      allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-      call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+      !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
+      !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+      ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
 
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&

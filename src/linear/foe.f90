@@ -51,8 +51,10 @@ subroutine foe(iproc, nproc, tmprtr, &
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked
 
 
-  allocate(tmb%linmat%inv_ovrlp_large%matrix_compr(tmb%linmat%inv_ovrlp_large%nvctr), stat=istat)
-  call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix_compr, 'tmb%linmat%inv_ovrlp_large%matrix_compr', subname)
+  !!allocate(tmb%linmat%inv_ovrlp_large%matrix_compr(tmb%linmat%inv_ovrlp_large%nvctr), stat=istat)
+  !!call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix_compr, 'tmb%linmat%inv_ovrlp_large%matrix_compr', subname)
+  tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr,&
+      id='tmb%linmat%inv_ovrlp_large%matrix_compr')
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -713,16 +715,20 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
     
-      allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix, 'tmb%linmat%inv_ovrlp_large%matrix', subname)
+      !!allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+      !!call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix, 'tmb%linmat%inv_ovrlp_large%matrix', subname)
+      tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
+          id='tmb%linmat%inv_ovrlp_large%matrix')
     
       allocate(workmat(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
       call memocc(istat, workmat, 'workmat', subname)
     
       call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
     
-      allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
-      call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
+      !!allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
+      !!call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
+      tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
+          id='tmb%linmat%denskern_large%matrix')
       call uncompressMatrix(iproc,tmb%linmat%denskern_large)
     
       if (tmb%orbs%norbp>0) then
@@ -856,8 +862,10 @@ subroutine foe(iproc, nproc, tmprtr, &
           call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
           call uncompressMatrix(iproc,tmb%linmat%ovrlp)
 
-          allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-          call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+          !!allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
+          !!call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+          tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
+              id='tmb%linmat%inv_ovrlp_large%matrix')
 
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, &
                tmb%linmat%ovrlp%matrix, tmb%linmat%inv_ovrlp_large%matrix, error, tmb%orbs, check_accur=.true.)
