@@ -21,7 +21,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use diis_sd_optimization
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use communications, only: synchronize_onesided_communication
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null
+  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -151,8 +151,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! allocate ham_small
      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
-     allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-     call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+     !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
+     !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+     ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
   end if
 
   ! Allocate the communication arrays for the calculation of the charge density.
@@ -387,8 +388,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              !call nullify_sparsematrix(ham_small)
              ham_small=sparsematrix_null()
              call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
-             allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-             call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+             !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
+             !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+             ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
           end if
 
           ! is this really necessary if the locrads haven't changed?  we should check this!

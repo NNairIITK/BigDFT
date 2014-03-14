@@ -197,9 +197,6 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
       sparsemat%store_index=.true.
 
       !!! initialize sparsemat%matrixindex_in_compressed
-      !!allocate(sparsemat%matrixindex_in_compressed_arr(orbs%norb,orbs%norb), stat=istat)
-      !!call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
-
       do iorb=1,orbs%norb
          do jorb=1,orbs%norb
             sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
@@ -212,8 +209,8 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
       !!nullify(sparsemat%matrixindex_in_compressed_arr)
   end if
 
-  allocate(sparsemat%orb_from_index(2,sparsemat%nvctr), stat=istat)
-  call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
+  !!allocate(sparsemat%orb_from_index(2,sparsemat%nvctr), stat=istat)
+  !!call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
 
   ind = 0
   do iseg = 1, sparsemat%nseg
@@ -227,8 +224,6 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   end do
 
   ! parallelization of matrices, following same idea as norb/norbp/isorb
-  !sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
-  !sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
 
   !most equal distribution, but want corresponding to norbp for second column
   !call kpts_to_procs_via_obj(nproc,1,sparsemat%nvctr,sparsemat%nvctr_par)
@@ -778,11 +773,14 @@ subroutine check_matrix_compression(iproc,sparsemat)
   real(kind=8), parameter :: tol=1.e-10
 
 
-  allocate(sparsemat%matrix(sparsemat%nfvctr,sparsemat%nfvctr),stat=i_stat)
-  call memocc(i_stat,sparsemat%matrix,'sparsemat%matrix',subname)
+  !!allocate(sparsemat%matrix(sparsemat%nfvctr,sparsemat%nfvctr),stat=i_stat)
+  !!call memocc(i_stat,sparsemat%matrix,'sparsemat%matrix',subname)
 
-  allocate(sparsemat%matrix_compr(sparsemat%nvctr),stat=i_stat)
-  call memocc(i_stat,sparsemat%matrix_compr,'sparsemat%matrix_compr',subname)
+  !!allocate(sparsemat%matrix_compr(sparsemat%nvctr),stat=i_stat)
+  !!call memocc(i_stat,sparsemat%matrix_compr,'sparsemat%matrix_compr',subname)
+
+  sparsemat%matrix=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctr/),id='sparsemat%matrix')
+  sparsemat%matrix_compr=f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
 
   call to_zero(sparsemat%nfvctr**2,sparsemat%matrix(1,1))
   do iseg = 1, sparsemat%nseg
@@ -834,13 +832,14 @@ subroutine check_matrix_compression(iproc,sparsemat)
     end if
   end if
 
-  i_all = -product(shape(sparsemat%matrix))*kind(sparsemat%matrix)
-  deallocate(sparsemat%matrix,stat=i_stat)
-  call memocc(i_stat,i_all,'sparsemat%matrix',subname)
-
-  i_all = -product(shape(sparsemat%matrix_compr))*kind(sparsemat%matrix_compr)
-  deallocate(sparsemat%matrix_compr,stat=i_stat)
-  call memocc(i_stat,i_all,'sparsemat%matrix_compr',subname)
+  !!i_all = -product(shape(sparsemat%matrix))*kind(sparsemat%matrix)
+  !!deallocate(sparsemat%matrix,stat=i_stat)
+  !!call memocc(i_stat,i_all,'sparsemat%matrix',subname)
+  !!i_all = -product(shape(sparsemat%matrix_compr))*kind(sparsemat%matrix_compr)
+  !!deallocate(sparsemat%matrix_compr,stat=i_stat)
+  !!call memocc(i_stat,i_all,'sparsemat%matrix_compr',subname)
+  call f_free_ptr(sparsemat%matrix)
+  call f_free_ptr(sparsemat%matrix_compr)
 
 contains
    !> define a value for the wavefunction which is dependent of the indices
@@ -964,12 +963,12 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
   call vcopy(nproc,orbs%isorb_par(0),1,sparsemat%isfvctr_par(0),1)
   call vcopy(nproc,orbs%norb_par(0,0),1,sparsemat%nfvctr_par(0),1)
 
-  allocate(sparsemat%nsegline(orbs%norb),stat=istat)
-  call memocc(istat, sparsemat%nsegline, 'sparsemat%nsegline', subname)
-  !sparsemat%nsegline=f_malloc_ptr(orbs%norb,id='sparsemat%nsegline')
-  allocate(sparsemat%istsegline(orbs%norb),stat=istat)
-  call memocc(istat, sparsemat%istsegline, 'sparsemat%istsegline', subname)
-  !sparsemat%istsegline=f_malloc_ptr(orbs%norb,id='sparsemat%istsegline')
+  !allocate(sparsemat%nsegline(orbs%norb),stat=istat)
+  !call memocc(istat, sparsemat%nsegline, 'sparsemat%nsegline', subname)
+  sparsemat%nsegline=f_malloc_ptr(orbs%norb,id='sparsemat%nsegline')
+  !allocate(sparsemat%istsegline(orbs%norb),stat=istat)
+  !call memocc(istat, sparsemat%istsegline, 'sparsemat%istsegline', subname)
+  sparsemat%istsegline=f_malloc_ptr(orbs%norb,id='sparsemat%istsegline')
 
   sparsemat%nseg=0
   sparsemat%nvctr=0
@@ -1008,12 +1007,12 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
   end if
 
 
-  allocate(sparsemat%keyv(sparsemat%nseg),stat=istat)
-  call memocc(istat, sparsemat%keyv, 'sparsemat%keyv', subname)
-  !sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
-  allocate(sparsemat%keyg(2,sparsemat%nseg),stat=istat)
-  call memocc(istat, sparsemat%keyg, 'sparsemat%keyg', subname)
-  !sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
+  !allocate(sparsemat%keyv(sparsemat%nseg),stat=istat)
+  !call memocc(istat, sparsemat%keyv, 'sparsemat%keyv', subname)
+  sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
+  !allocate(sparsemat%keyg(2,sparsemat%nseg),stat=istat)
+  !call memocc(istat, sparsemat%keyg, 'sparsemat%keyg', subname)
+  sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
 
 
   iseg=0
@@ -1118,9 +1117,9 @@ subroutine init_indices_in_compressed(store_index, norb, sparsemat)
       sparsemat%store_index=.true.
 
       ! initialize sparsemat%matrixindex_in_compressed
-      allocate(sparsemat%matrixindex_in_compressed_arr(norb,norb),stat=istat)
-      call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
-      !sparsemat%matrixindex_in_compressed_arr=f_malloc_ptr((/norb,norb/),id='sparsemat%matrixindex_in_compressed_arr')
+      !allocate(sparsemat%matrixindex_in_compressed_arr(norb,norb),stat=istat)
+      !call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
+      sparsemat%matrixindex_in_compressed_arr=f_malloc_ptr((/norb,norb/),id='sparsemat%matrixindex_in_compressed_arr')
 
       do iorb=1,norb
          do jorb=1,norb
@@ -1151,9 +1150,9 @@ subroutine init_orbs_from_index(sparsemat)
   integer :: ind, iseg, segn, iorb, jorb, istat
   character(len=*),parameter :: subname='init_orbs_from_index'
 
-  allocate(sparsemat%orb_from_index(2,sparsemat%nvctr),stat=istat)
-  call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
-  !sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
+  !allocate(sparsemat%orb_from_index(2,sparsemat%nvctr),stat=istat)
+  !call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
+  sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
 
   ind = 0
   do iseg = 1, sparsemat%nseg

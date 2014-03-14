@@ -321,7 +321,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use module_fragments
   use constrained_dft
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null
+  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -344,8 +344,9 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   !call nullify_sparsematrix(weight_matrix)
   weight_matrix=sparsematrix_null()
   call sparse_copy_pattern(tmb%linmat%ham, weight_matrix, iproc, subname)
-  allocate(weight_matrix%matrix_compr(weight_matrix%nvctr), stat=istat)
-  call memocc(istat, weight_matrix%matrix_compr, 'weight_matrix%matrix_compr', subname)
+  !!allocate(weight_matrix%matrix_compr(weight_matrix%nvctr), stat=istat)
+  !!call memocc(istat, weight_matrix%matrix_compr, 'weight_matrix%matrix_compr', subname)
+  weight_matrix%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
 
   !weight_coeff=f_malloc((/ksorbs%norb,ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')

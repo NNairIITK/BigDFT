@@ -833,9 +833,10 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   imax=max(imax,maxval(collcom_shamop%indexrecvorbital_f))
   imax=max(imax,maxval(collcom_sr%indexrecvorbital_c))
 
-  allocate(sparsemat%matrixindex_in_compressed_fortransposed(imin:imax,imin:imax), stat=istat)
-  call memocc(istat, sparsemat%matrixindex_in_compressed_fortransposed, &
-      'sparsemat%matrixindex_in_compressed_fortransposed', subname)
+  !!allocate(sparsemat%matrixindex_in_compressed_fortransposed(imin:imax,imin:imax), stat=istat)
+  !!call memocc(istat, sparsemat%matrixindex_in_compressed_fortransposed, &
+  sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/imin.to.imax,imin.to.imax/),&
+      id='sparsemat%matrixindex_in_compressed_fortransposed')
 
 
   do iorb=imin,imax

@@ -2164,14 +2164,14 @@ module module_interfaces
       character(len=*),intent(in):: subname
     end subroutine deallocate_foe
 
-    subroutine deallocate_sparseMatrix(sparsemat, subname)
-      use module_base
-      use module_types
-      use sparsematrix_base, only: sparseMatrix
-      implicit none
-      type(sparseMatrix),intent(inout):: sparsemat
-      character(len=*),intent(in):: subname
-    end subroutine deallocate_sparseMatrix
+    !!subroutine deallocate_sparseMatrix(sparsemat, subname)
+    !!  use module_base
+    !!  use module_types
+    !!  use sparsematrix_base, only: sparseMatrix
+    !!  implicit none
+    !!  type(sparseMatrix),intent(inout):: sparsemat
+    !!  character(len=*),intent(in):: subname
+    !!end subroutine deallocate_sparseMatrix
 
      subroutine initInputguessConfinement(iproc, nproc, at, lzd, orbs, collcom_reference, &
                 Glr, input, hx, hy, hz, lin, tmb, rxyz, nscatterarr)
