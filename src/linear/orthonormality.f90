@@ -14,6 +14,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
   use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -362,6 +363,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   
   ! Calling arguments
@@ -611,6 +613,7 @@ end subroutine matrix_minus_identity_dense
 subroutine first_order_taylor_sparse(power,ovrlp,inv_ovrlp)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   integer, intent(in) :: power
   type(sparseMatrix),intent(in) :: ovrlp
@@ -1177,6 +1180,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   use module_base
   use module_types
   use module_interfaces
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -1344,6 +1348,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use module_types
   use module_interfaces, exceptThisOne => orthonormalize_subset
   use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -1541,6 +1546,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use module_types
   use module_interfaces, exceptThisOne => gramschmidt_subset
   use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -1741,6 +1747,7 @@ end subroutine gramschmidt_subset
 subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments

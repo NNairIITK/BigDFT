@@ -53,32 +53,6 @@ subroutine nullify_foe(foe_obj)
 end subroutine nullify_foe
 
 
-pure subroutine nullify_sparsematrix(sparsemat)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_sparseMatrix
-  implicit none
-
-  ! Calling argument
-  type(sparseMatrix),intent(out):: sparsemat
-
-  nullify(sparsemat%keyv)
-  nullify(sparsemat%nsegline)
-  nullify(sparsemat%keyg)
-  nullify(sparsemat%istsegline)
-  nullify(sparsemat%matrix)
-  nullify(sparsemat%matrix_compr)
-  nullify(sparsemat%matrixp)
-  nullify(sparsemat%matrix_comprp)
-  nullify(sparsemat%matrixindex_in_compressed_arr)
-  nullify(sparsemat%orb_from_index)
-  nullify(sparsemat%matrixindex_in_compressed_fortransposed)
-  nullify(sparsemat%nvctr_par)
-  nullify(sparsemat%isvctr_par)
-  nullify(sparsemat%nfvctr_par)
-  nullify(sparsemat%isfvctr_par)
-
-end subroutine nullify_sparsematrix
 
 subroutine nullify_orbitals_data(orbs)
   use module_base

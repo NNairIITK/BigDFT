@@ -1272,6 +1272,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use yaml_output
   use communications_base, only: deallocate_comms_linear
   use communications, only: synchronize_onesided_communication
+  use sparsematrix_base, only: sparsematrix_null
   implicit none
   
   ! Calling argument
@@ -1432,7 +1433,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      !call nullify_sparsematrix(tmb%linmat%ovrlp_large)
      !call nullify_sparsematrix(tmb%linmat%ham_large)
-     call nullify_sparsematrix(tmb%linmat%inv_ovrlp_large)
+     !call nullify_sparsematrix(tmb%linmat%inv_ovrlp_large)
+     tmb%linmat%inv_ovrlp_large=sparsematrix_null()
      !call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ovrlp_large, iproc, subname)
      !call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ham_large, iproc, subname)
      call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)

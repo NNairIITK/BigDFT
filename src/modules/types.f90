@@ -22,6 +22,7 @@ module module_types
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic
+  use sparsematrix_base, only: sparseMatrix
 
   implicit none
 
@@ -576,20 +577,20 @@ module module_types
 !!$     integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
 !!$  end type sparseMatrix_metadata
 
-  type,public :: sparseMatrix
-      integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
-      integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
-      integer,dimension(:,:),pointer :: keyg
-      !type(sparseMatrix_metadata), pointer :: pattern
-      real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
-      real(kind=8),dimension(:,:),pointer :: matrix,matrixp
-      !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
-      logical :: store_index, can_use_dense
-      !!contains
-      !!  procedure,pass :: matrixindex_in_compressed
-  end type sparseMatrix
+  !!type,public :: sparseMatrix
+  !!    integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
+  !!    integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
+  !!    integer,dimension(:,:),pointer :: keyg
+  !!    !type(sparseMatrix_metadata), pointer :: pattern
+  !!    real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
+  !!    real(kind=8),dimension(:,:),pointer :: matrix,matrixp
+  !!    !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
+  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
+  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
+  !!    logical :: store_index, can_use_dense
+  !!    !!contains
+  !!    !!  procedure,pass :: matrixindex_in_compressed
+  !!end type sparseMatrix
 
   type,public :: linear_matrices !may not keep
       type(sparseMatrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large

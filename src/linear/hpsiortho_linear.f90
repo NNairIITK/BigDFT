@@ -49,7 +49,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr, work
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
-  !type(sparseMatrix) :: lagmat
   real(kind=8), dimension(:), allocatable :: prefac
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
@@ -820,6 +819,7 @@ end subroutine calculate_energy_and_gradient_linear
 subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix, sparsematrix_null
   implicit none
 
   ! Calling arguments
@@ -859,7 +859,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !     tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
   !!can_use_transposed=.true.
 
-  call nullify_sparsematrix(grad_ovrlp)
+  !call nullify_sparsematrix(grad_ovrlp)
+  grad_ovrlp=sparsematrix_null()
   call sparse_copy_pattern(tmb%linmat%ham, grad_ovrlp, iproc, subname)
   allocate(grad_ovrlp%matrix_compr(grad_ovrlp%nvctr), stat=istat)
   call memocc(istat, grad_ovrlp%matrix_compr, 'grad_ovrlp%matrix_compr', subname)

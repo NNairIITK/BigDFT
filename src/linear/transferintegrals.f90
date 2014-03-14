@@ -6,6 +6,7 @@ subroutine calc_transfer_integrals_old(iproc,nproc,input_frag,ref_frags,orbs,ham
   use module_fragments
   use internal_io
   use module_interfaces
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   integer, intent(in) :: iproc, nproc
@@ -109,6 +110,7 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
   use module_fragments
   use internal_io
   use module_interfaces
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   integer, intent(in) :: iproc, nproc
@@ -265,6 +267,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   use module_fragments
   use internal_io
   use module_interfaces
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   integer, intent(in) :: iproc, nproc, nstates
@@ -338,6 +341,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   use module_fragments
   use internal_io
   use module_interfaces
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   integer, intent(in) :: iproc, nproc, meth_overlap

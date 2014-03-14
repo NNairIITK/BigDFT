@@ -1627,6 +1627,7 @@ module module_interfaces
       use constrained_dft
       use diis_sd_optimization
       use yaml_output
+      use sparsematrix_base, only: sparseMatrix
       implicit none
       integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft, order_taylor
       type(orbitals_data),intent(inout) :: orbs
@@ -1928,6 +1929,7 @@ module module_interfaces
                 orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
        use module_base
        use module_types
+       use sparsematrix_base, only: sparseMatrix
        implicit none
        integer,intent(in):: iproc,nproc,methTransformOverlap,npsidim_orbs
        type(orbitals_data),intent(in):: orbs
@@ -2112,6 +2114,7 @@ module module_interfaces
     subroutine nullify_sparseMatrix(sparsemat)
       use module_base
       use module_types
+      use sparsematrix_base, only: sparseMatrix
       implicit none
       type(sparseMatrix),intent(out):: sparsemat
     end subroutine nullify_sparseMatrix
@@ -2164,6 +2167,7 @@ module module_interfaces
     subroutine deallocate_sparseMatrix(sparsemat, subname)
       use module_base
       use module_types
+      use sparsematrix_base, only: sparseMatrix
       implicit none
       type(sparseMatrix),intent(inout):: sparsemat
       character(len=*),intent(in):: subname
@@ -2332,6 +2336,7 @@ module module_interfaces
        subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
          use module_base
          use module_types
+         use sparsematrix_base, only: sparseMatrix
          implicit none
          integer,intent(in):: iproc, nproc
          type(local_zone_descriptors),intent(in) :: lzd
@@ -3280,6 +3285,7 @@ module module_interfaces
         subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in):: iproc, nproc
           logical, intent(in) :: isKernel
@@ -3302,6 +3308,7 @@ module module_interfaces
                    basis_overlap, coeff, orbs)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer, intent(in) :: iproc, nproc, norb
           integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
@@ -3531,6 +3538,7 @@ module module_interfaces
         subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: iproc, nproc, ndimrho
           real(kind=8),intent(in) :: hx, hy, hz
@@ -3589,6 +3597,7 @@ module module_interfaces
                    psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           
           ! Calling arguments
@@ -3604,6 +3613,7 @@ module module_interfaces
              reset, psit_c, psit_f, iproc)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           
           ! Calling arguments
@@ -3667,6 +3677,7 @@ module module_interfaces
                    emergency_stop)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: iproc, nproc, npl, nsize_polynomial
           real(8),dimension(npl,3),intent(in) :: cc
@@ -3685,6 +3696,7 @@ module module_interfaces
         subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
         
           ! Calling arguments
@@ -3848,6 +3860,7 @@ module module_interfaces
         subroutine determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: norbp, isorb, norb
           type(foe_data),intent(in) :: foe_obj
@@ -3859,6 +3872,7 @@ module module_interfaces
                    istindexarr, ivectorindex)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
           type(foe_data),intent(in) :: foe_obj
@@ -3870,6 +3884,7 @@ module module_interfaces
         subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, nseq, nmaxsegk, nmaxvalk, a_seq)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
           type(foe_data),intent(in) :: foe_obj
@@ -3883,6 +3898,7 @@ module module_interfaces
                    lphi, psit_c, psit_f, can_use_transposed)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
           type(orbitals_data),intent(in) :: orbs
@@ -3903,6 +3919,7 @@ module module_interfaces
                    lphi, psit_c, psit_f, can_use_transposed)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
           type(orbitals_data),intent(in) :: orbs
@@ -3922,6 +3939,7 @@ module module_interfaces
              orbs, ovrlp_smat, inv_ovrlp_smat, check_accur)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
   
           ! Calling arguments
@@ -4000,6 +4018,7 @@ module module_interfaces
                    collcom_sr, sparsemat)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
@@ -4010,6 +4029,7 @@ module module_interfaces
         subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector, vector_compressed)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: iproc, nsize_polynomial
           type(orbitals_data),intent(in) :: orbs
@@ -4021,6 +4041,7 @@ module module_interfaces
         subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector_compressed, vector)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: iproc, nsize_polynomial
           type(orbitals_data),intent(in) :: orbs
@@ -4033,6 +4054,7 @@ module module_interfaces
           use module_base
           use module_types
           use yaml_output
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: iproc, nproc
           type(local_zone_descriptors),intent(in) :: lzd
@@ -4166,6 +4188,7 @@ module module_interfaces
         subroutine compress_matrix_for_allreduce(iproc,sparsemat)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer, intent(in) :: iproc
           type(sparseMatrix),intent(inout) :: sparsemat
@@ -4174,6 +4197,7 @@ module module_interfaces
         subroutine uncompressMatrix(iproc,sparsemat)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer, intent(in) :: iproc
           type(sparseMatrix), intent(inout) :: sparsemat
@@ -4194,6 +4218,7 @@ module module_interfaces
         subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
           use module_base
           use module_types
+          use sparsematrix_base, only: sparseMatrix
           implicit none
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs

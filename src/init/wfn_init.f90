@@ -216,7 +216,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use module_interfaces, except_this_one => LDiagHam
   use yaml_output
   use communications_base, only: comms_cubic
-  use communications, only: transpose_v2, untranspose_v
+  use communications, only: transpose_v, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
   real(gp), intent(in) :: Tel
@@ -260,8 +260,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   end if
 
   !transpose all the wavefunctions for having a piece of all the orbitals
-  call transpose_v2(iproc,nproc,orbse,Lzde,commse,psi,work=psiw)
-  call transpose_v2(iproc,nproc,orbse,Lzde,commse,hpsi,work=psiw)
+  call transpose_v(iproc,nproc,orbse,Lzde%Glr%wfd,commse,psi(1),psiw(1))
+  call transpose_v(iproc,nproc,orbse,Lzde%Glr%wfd,commse,hpsi(1),psiw(1))
 
   if(nproc > 1.or. Lzde%linear) then
      i_all=-product(shape(psiw))*kind(psiw)
@@ -530,7 +530,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   !this untranspose also the wavefunctions 
   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
-       psit,work=hpsi,outadd=psi)
+       psit(1),hpsi(1),out_add=psi(1))
 
 !!$!here the checksum of the wavefunction can be extracted
 !!$do jproc=0,bigdft_mpi%nproc-1
