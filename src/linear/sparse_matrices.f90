@@ -14,6 +14,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   use module_types
   use module_interfaces, fake_name => initSparseMatrix
   use yaml_output
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   
   ! Calling arguments
@@ -616,6 +617,7 @@ end subroutine determine_overlap_from_descriptors
 function compressed_index(irow, jcol, norb, sparsemat)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -652,6 +654,7 @@ end function compressed_index
 subroutine compress_matrix_for_allreduce(iproc,sparsemat)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   
   ! Calling arguments
@@ -706,6 +709,7 @@ end subroutine compress_matrix_for_allreduce
 subroutine uncompressMatrix(iproc,sparsemat)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   
   ! Calling arguments
@@ -766,6 +770,7 @@ subroutine check_matrix_compression(iproc,sparsemat)
   use module_types
   use module_interfaces
   use yaml_output
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   integer,intent(in) :: iproc
   type(sparseMatrix),intent(inout) :: sparsemat
@@ -868,6 +873,7 @@ end subroutine check_matrix_compression
 integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -1096,6 +1102,7 @@ end subroutine init_sparsity_from_distance
 subroutine init_indices_in_compressed(store_index, norb, sparsemat)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -1135,6 +1142,7 @@ end subroutine init_indices_in_compressed
 subroutine init_orbs_from_index(sparsemat)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments

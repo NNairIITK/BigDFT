@@ -321,6 +321,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use module_fragments
   use constrained_dft
   use yaml_output
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -399,6 +400,7 @@ subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs,
   use module_base
   use module_types
   use module_interfaces
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -648,6 +650,7 @@ subroutine reordering_coeffs(iproc, nproc, num_extra, ksorbs, basis_orbs, ham, o
   use module_base
   use module_types
   use module_interfaces
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -888,6 +891,7 @@ end subroutine find_alpha_sd
 subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orbs,tmb_orbs,calculate_kernel)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   integer, intent(in) :: iproc, nproc
   type(sparseMatrix), intent(in) :: ham

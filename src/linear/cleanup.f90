@@ -972,10 +972,10 @@ subroutine deallocate_foe(foe_obj, subname)
 end subroutine deallocate_foe
 
 subroutine deallocate_sparseMatrix(sparsemat, subname)
-  
-  use module_types
+  use module_base 
   use deallocatePointers
   use module_interfaces, exceptThisOne => deallocate_sparseMatrix
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   
   ! Calling arguments

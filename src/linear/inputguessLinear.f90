@@ -20,6 +20,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc

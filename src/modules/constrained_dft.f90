@@ -54,6 +54,7 @@ module constrained_dft
             orbs, ovrlp_smat, inv_ovrlp_smat, check_accur)
          use module_base
          use module_types
+         use sparsematrix_base, only: sparseMatrix
          implicit none
   
          ! Calling arguments
@@ -125,6 +126,7 @@ contains
        calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
     use module_fragments
     use communications, only: transpose_localized
+    use sparsematrix_base, only: sparseMatrix
     implicit none
     type(sparseMatrix), intent(inout) :: weight_matrix
     type(input_variables),intent(in) :: input
@@ -418,6 +420,7 @@ contains
   end subroutine cdft_data_free
 
   subroutine cdft_data_allocate(cdft,ham)
+    use sparsematrix_base, only: sparseMatrix
     implicit none
     type(cdft_data), intent(inout) :: cdft
     type(sparseMatrix), intent(in) :: ham

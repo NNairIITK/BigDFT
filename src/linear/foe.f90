@@ -1330,6 +1330,7 @@ end function determinant
 subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector, vector_compressed)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -1373,6 +1374,7 @@ end subroutine compress_polynomial_vector
 subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector_compressed, vector)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments
@@ -1419,6 +1421,7 @@ end subroutine uncompress_polynomial_vector
 function trace_sparse(iproc, nproc, orbs, amat, bmat)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling arguments

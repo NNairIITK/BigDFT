@@ -23,6 +23,7 @@ module module_fragments
                  basis_overlap, coeff, orbs)
         use module_base
         use module_types
+        use sparsematrix_base, only: sparseMatrix
         implicit none
         integer, intent(in) :: iproc, nproc, norb
         integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method

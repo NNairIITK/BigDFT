@@ -298,6 +298,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
            psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   
   ! Calling arguments
@@ -521,6 +522,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, p
      reset, psit_c, psit_f, iproc)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   
   ! Calling arguments
@@ -802,6 +804,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_matrixindex_in_compressed_fortransposed
+  use sparsematrix_base, only: sparseMatrix
   implicit none
   
   ! Calling arguments

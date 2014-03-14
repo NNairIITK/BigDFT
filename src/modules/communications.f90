@@ -20,53 +20,6 @@ module communications
   public :: untranspose_v
 
 
-  interface
-
-    !!subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
-    !!       &   work,outadd) !optional
-    !!  !n(c) use module_base
-    !!  use module_types
-    !!  implicit none
-    !!  integer, intent(in) :: iproc,nproc
-    !!  type(orbitals_data), intent(in) :: orbs
-    !!  type(wavefunctions_descriptors), intent(in) :: wfd
-    !!  type(comms_cubic), intent(in) :: comms
-    !!  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
-    !!  real(wp), dimension(:), pointer, optional :: work
-    !!  real(wp), intent(out), optional :: outadd
-    !!END SUBROUTINE transpose_v
-
-    !!subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
-    !!     work,outadd) !optional
-    !!  use module_base
-    !!  use module_types
-    !!  implicit none
-    !!  integer, intent(in) :: iproc,nproc
-    !!  type(orbitals_data), intent(in) :: orbs
-    !!  type(local_zone_descriptors), intent(in) :: Lzd
-    !!  type(comms_cubic), intent(in) :: comms
-    !!  real(wp), dimension(:), pointer :: psi
-    !!  real(wp), dimension(:), pointer, optional :: work
-    !!  real(wp), dimension(*), intent(out), optional :: outadd
-    !!end subroutine
-
-    !!subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
-    !!     &   work,outadd) !optional
-    !!  !n(c) use module_base
-    !!  use module_types
-    !!  implicit none
-    !!  integer, intent(in) :: iproc,nproc
-    !!  type(orbitals_data), intent(in) :: orbs
-    !!  type(wavefunctions_descriptors), intent(in) :: wfd
-    !!  type(comms_cubic), intent(in) :: comms
-    !!  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
-    !!  real(wp), dimension(:), pointer, optional :: work
-    !!  real(wp), intent(out), optional :: outadd
-    !!END SUBROUTINE untranspose_v
-
-  end interface
-
-
   contains
 
     subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)

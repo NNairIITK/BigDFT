@@ -57,6 +57,7 @@ pure subroutine nullify_sparsematrix(sparsemat)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => nullify_sparseMatrix
+  use sparsematrix_base, only: sparseMatrix
   implicit none
 
   ! Calling argument
