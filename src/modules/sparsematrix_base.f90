@@ -18,6 +18,8 @@ module sparsematrix_base
 
   !> Public routines
   public :: sparsematrix_null
+  public :: allocate_sparsematrix_keys
+  public :: allocate_sparsematrix_basic
 
 
   contains
@@ -51,6 +53,37 @@ module sparsematrix_base
       nullify(sparsemat%isfvctr_par)
     
     end subroutine nullify_sparsematrix
+
+
+    subroutine allocate_sparsematrix_basic(store_index, norb, sparsemat)
+      implicit none
+      logical,intent(in) :: store_index
+      integer,intent(in) :: norb
+      type(sparseMatrix),intent(inout) :: sparsemat
+      integer :: istat
+      character(len=*),parameter :: subname='allocate_sparsematrix_basic'
+      allocate(sparsemat%nsegline(norb), stat=istat)
+      call memocc(istat, sparsemat%nsegline, 'sparsemat%nsegline', subname)
+      allocate(sparsemat%istsegline(norb), stat=istat)
+      call memocc(istat, sparsemat%istsegline, 'sparsemat%istsegline', subname)
+      if (store_index) then
+          allocate(sparsemat%matrixindex_in_compressed_arr(norb,norb), stat=istat)
+          call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
+      end if
+      sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
+      sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
+    end subroutine allocate_sparsematrix_basic
+
+    subroutine allocate_sparsematrix_keys(sparsemat)
+      implicit none
+      type(sparseMatrix),intent(inout) :: sparsemat
+      integer :: istat
+      character(len=*),parameter :: subname='allocate_sparsematrix_keys'
+      allocate(sparsemat%keyv(sparsemat%nseg), stat=istat)
+      call memocc(istat, sparsemat%keyv, 'sparsemat%keyv', subname)
+      allocate(sparsemat%keyg(2,sparsemat%nseg), stat=istat)
+      call memocc(istat, sparsemat%keyg, 'sparsemat%keyg', subname)
+    end subroutine allocate_sparsematrix_keys
 
 
     !!subroutine deallocate_sparseMatrix(sparsemat, subname)

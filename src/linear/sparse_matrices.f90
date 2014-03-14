@@ -14,7 +14,8 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   use module_types
   use module_interfaces, fake_name => initSparseMatrix
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null
+  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, &
+                               allocate_sparsematrix_keys, allocate_sparsematrix_basic
   implicit none
   
   ! Calling arguments
@@ -53,10 +54,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   sparsemat%nvctr=0
   jjorbold=-1
   irowold=0
-  allocate(sparsemat%nsegline(orbs%norb), stat=istat)
-  call memocc(istat, sparsemat%nsegline, 'sparsemat%nsegline', subname)
-  allocate(sparsemat%istsegline(orbs%norb), stat=istat)
-  call memocc(istat, sparsemat%istsegline, 'sparsemat%istsegline', subname)
+  call allocate_sparsematrix_basic(input%store_index, orbs%norb, sparsemat)
   sparsemat%nsegline=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc,0)
@@ -113,10 +111,8 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
       end if
   end do
 
-  allocate(sparsemat%keyv(sparsemat%nseg), stat=istat)
-  call memocc(istat, sparsemat%keyv, 'sparsemat%keyv', subname)
-  allocate(sparsemat%keyg(2,sparsemat%nseg), stat=istat)
-  call memocc(istat, sparsemat%keyg, 'sparsemat%keyg', subname)
+  call allocate_sparsematrix_keys(sparsemat)
+
   allocate(keygline(2,nseglinemax,orbs%norb), stat=istat)
   call memocc(istat, keygline, 'keygline', subname)
 
@@ -200,9 +196,9 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
       ! store the indices of the matrices in the sparse format
       sparsemat%store_index=.true.
 
-      ! initialize sparsemat%matrixindex_in_compressed
-      allocate(sparsemat%matrixindex_in_compressed_arr(orbs%norb,orbs%norb), stat=istat)
-      call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
+      !!! initialize sparsemat%matrixindex_in_compressed
+      !!allocate(sparsemat%matrixindex_in_compressed_arr(orbs%norb,orbs%norb), stat=istat)
+      !!call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
 
       do iorb=1,orbs%norb
          do jorb=1,orbs%norb
@@ -213,7 +209,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   else
       ! Otherwise alwyas calculate them on-the-fly
       sparsemat%store_index=.false.
-      nullify(sparsemat%matrixindex_in_compressed_arr)
+      !!nullify(sparsemat%matrixindex_in_compressed_arr)
   end if
 
   allocate(sparsemat%orb_from_index(2,sparsemat%nvctr), stat=istat)
@@ -231,8 +227,8 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   end do
 
   ! parallelization of matrices, following same idea as norb/norbp/isorb
-  sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
-  sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
+  !sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
+  !sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
 
   !most equal distribution, but want corresponding to norbp for second column
   !call kpts_to_procs_via_obj(nproc,1,sparsemat%nvctr,sparsemat%nvctr_par)
