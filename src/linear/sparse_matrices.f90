@@ -54,7 +54,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   sparsemat%nvctr=0
   jjorbold=-1
   irowold=0
-  call allocate_sparsematrix_basic(input%store_index, orbs%norb, sparsemat)
+  call allocate_sparsematrix_basic(input%store_index, orbs%norb, nproc, sparsemat)
   sparsemat%nsegline=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc,0)

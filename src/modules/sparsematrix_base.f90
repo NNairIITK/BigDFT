@@ -55,10 +55,10 @@ module sparsematrix_base
     end subroutine nullify_sparsematrix
 
 
-    subroutine allocate_sparsematrix_basic(store_index, norb, sparsemat)
+    subroutine allocate_sparsematrix_basic(store_index, norb, nproc, sparsemat)
       implicit none
       logical,intent(in) :: store_index
-      integer,intent(in) :: norb
+      integer,intent(in) :: norb, nproc
       type(sparseMatrix),intent(inout) :: sparsemat
       integer :: istat
       character(len=*),parameter :: subname='allocate_sparsematrix_basic'

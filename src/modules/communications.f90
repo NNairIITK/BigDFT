@@ -16,8 +16,45 @@ module communications
   public :: communicate_locreg_descriptors_basics
   public :: communicate_locreg_descriptors_keys
   public :: transpose_v
-  public :: transpose_v2
   public :: untranspose_v
+
+  public :: switch_waves_v
+  public :: psitransspi
+  public :: unswitch_waves_v
+
+
+
+  interface
+
+    subroutine transpose_v_eff(iproc,nproc,orbs,wfd,comms,psi,work,&
+               outadd) !optional
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(wavefunctions_descriptors), intent(in) :: wfd
+      type(comms_cubic), intent(in) :: comms
+      real(wp), intent(inout) :: psi
+      real(wp), intent(inout) :: work
+      real(wp), intent(out), optional :: outadd !< Optional argument
+    END SUBROUTINE transpose_v_eff
+    
+    subroutine untranspose_v_eff(iproc,nproc,orbs,wfd,comms,psi,work,&
+               outadd) !optional
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(wavefunctions_descriptors), intent(in) :: wfd
+      type(comms_cubic), intent(in) :: comms
+      real(wp), intent(inout) :: psi
+      real(wp), intent(inout) :: work
+      real(wp), intent(out), optional :: outadd !< Optional argument
+    END SUBROUTINE untranspose_v_eff
+
+  end interface
 
 
   contains
@@ -1506,8 +1543,8 @@ module communications
     
     
     !> Transposition of the arrays, variable version (non homogeneous)
-    subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
-         work,outadd) !optional
+    subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi_add,&
+         work_add,out_add) !optional
       use module_base
       use module_types
       implicit none
@@ -1515,47 +1552,62 @@ module communications
       type(orbitals_data), intent(in) :: orbs
       type(wavefunctions_descriptors), intent(in) :: wfd
       type(comms_cubic), intent(in) :: comms
-      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: psi
-      real(wp), dimension(:), pointer, optional :: work
-      real(wp), dimension(*), intent(out), optional :: outadd
+      !>address of the wavefunction elements (choice)
+      !if out_add is absent, it is used for transpose
+      real(wp),intent(inout) :: psi_add
+      real(wp),intent(inout) :: work_add
+      !> size of the buffers, optional.
+      real(wp),intent(out),optional :: out_add
       !local variables
       integer :: ierr
-    
-      call timing(iproc,'Un-TransSwitch','ON')
-    
-      if (nproc > 1) then
-         !control check
-         if (.not. present(work) .or. .not. associated(work)) then 
-            if(iproc == 0) write(*,'(1x,a)')&
-                 "ERROR: Unproper work array for transposing in parallel"
-            stop
-         end if
-      
-         !!call switch_waves_v(nproc,orbs,&
-         !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
-         call switch_waves_v(nproc,orbs,&
-              wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,psi,work)
-    
-    
-         call timing(iproc,'Un-TransSwitch','OF')
-         call timing(iproc,'Un-TransComm  ','ON')
-         if (present(outadd)) then
-            call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-                 outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
-         else
-            call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-                 psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
-         end if
-         call timing(iproc,'Un-TransComm  ','OF')
-         call timing(iproc,'Un-TransSwitch','ON')
+
+      if (present(out_add)) then
+          call transpose_v_eff(iproc,nproc,orbs,wfd,comms,psi_add,work_add,out_add)
       else
-         if(orbs%nspinor /= 1) then
-            !for only one processor there is no need to transform this
-            call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.true.)
-         end if
+          call transpose_v_eff(iproc,nproc,orbs,wfd,comms,psi_add,work_add)
       end if
     
-      call timing(iproc,'Un-TransSwitch','OF')
+      !!call timing(iproc,'Un-TransSwitch','ON')
+    
+      !!if (nproc > 1) then
+      !!   !control check
+      !!   !!if (.not. present(work) .or. .not. associated(work)) then 
+      !!   !!   if(iproc == 0) write(*,'(1x,a)')&
+      !!   !!        "ERROR: Unproper work array for transposing in parallel"
+      !!   !!   stop
+      !!   !!end if
+      !!   if (present(psi_size)) then
+      !!      if (psi_size <  (wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp) then
+      !!          call f_err_throw('The size of the array psi ('//trim(yaml_toa(psi_size))//') is not enough for switch',&
+      !!              err_name='BIGDFT_RUNTIME_ERROR')
+      !!          return
+      !!      end if
+      !!  end if
+      !!   !!call switch_waves_v(nproc,orbs,&
+      !!   !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
+      !!   call switch_waves_v(nproc,orbs,&
+      !!        wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,psi_add,work_add)
+    
+    
+      !!   call timing(iproc,'Un-TransSwitch','OF')
+      !!   call timing(iproc,'Un-TransComm  ','ON')
+      !!   if (present(outadd)) then
+      !!      call MPI_ALLTOALLV(work_add,comms%ncntd,comms%ndspld,mpidtypw, &
+      !!           out_add,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+      !!   else
+      !!      call MPI_ALLTOALLV(work_add,comms%ncntd,comms%ndspld,mpidtypw, &
+      !!           psi_add,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+      !!   end if
+      !!   call timing(iproc,'Un-TransComm  ','OF')
+      !!   call timing(iproc,'Un-TransSwitch','ON')
+      !!else
+      !!   if(orbs%nspinor /= 1) then
+      !!      !for only one processor there is no need to transform this
+      !!      call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi_add,.true.)
+      !!   end if
+      !!end if
+    
+      !!call timing(iproc,'Un-TransSwitch','OF')
     
     END SUBROUTINE transpose_v
     
@@ -1653,8 +1705,8 @@ module communications
     
     
     
-    subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
-         work,outadd) !optional
+    subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi_add,&
+         work_add,out_add) !optional
       use module_base
       use module_types
       implicit none
@@ -1662,47 +1714,53 @@ module communications
       type(orbitals_data), intent(in) :: orbs
       type(wavefunctions_descriptors), intent(in) :: wfd
       type(comms_cubic), intent(in) :: comms
-      real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
-      real(wp), dimension(:), pointer, optional :: work
-      real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
+      !real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
+      real(wp),intent(inout) :: psi_add
+      real(wp),intent(inout) :: work_add
+      real(wp),intent(out),optional :: out_add !< Optional argument
       !local variables
       integer :: ierr
     
-    
-      call timing(iproc,'Un-TransSwitch','ON')
-    
-      if (nproc > 1) then
-         !control check
-         if (.not. present(work) .or. .not. associated(work)) then
-            !if(iproc == 0) 
-                 write(*,'(1x,a)')&
-                 "ERROR: Unproper work array for untransposing in parallel"
-            stop
-         end if
-         call timing(iproc,'Un-TransSwitch','OF')
-         call timing(iproc,'Un-TransComm  ','ON')
-         call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
-              work,comms%ncntd,comms%ndspld,mpidtypw,bigdft_mpi%mpi_comm,ierr)
-         call timing(iproc,'Un-TransComm  ','OF')
-         call timing(iproc,'Un-TransSwitch','ON')
-         if (present(outadd)) then
-            !!call unswitch_waves_v(nproc,orbs,&
-            !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,outadd)
-            call unswitch_waves_v(nproc,orbs,&
-                 wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,outadd)
-         else
-            !!call unswitch_waves_v(nproc,orbs,&
-            !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,psi)
-            call unswitch_waves_v(nproc,orbs,&
-                 wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,psi)
-         end if
+      if (present(out_add)) then
+          call untranspose_v_eff(iproc,nproc,orbs,wfd,comms,psi_add,work_add,out_add)
       else
-         if(orbs%nspinor /= 1) then
-            call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.false.)
-         end if
+          call untranspose_v_eff(iproc,nproc,orbs,wfd,comms,psi_add,work_add)
       end if
     
-      call timing(iproc,'Un-TransSwitch','OF')
+      !!call timing(iproc,'Un-TransSwitch','ON')
+    
+      !!if (nproc > 1) then
+      !!   !control check
+      !!   if (.not. present(work) .or. .not. associated(work)) then
+      !!      !if(iproc == 0) 
+      !!           write(*,'(1x,a)')&
+      !!           "ERROR: Unproper work array for untransposing in parallel"
+      !!      stop
+      !!   end if
+      !!   call timing(iproc,'Un-TransSwitch','OF')
+      !!   call timing(iproc,'Un-TransComm  ','ON')
+      !!   call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
+      !!        work,comms%ncntd,comms%ndspld,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+      !!   call timing(iproc,'Un-TransComm  ','OF')
+      !!   call timing(iproc,'Un-TransSwitch','ON')
+      !!   if (present(outadd)) then
+      !!      !!call unswitch_waves_v(nproc,orbs,&
+      !!      !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,outadd)
+      !!      call unswitch_waves_v(nproc,orbs,&
+      !!           wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,outadd)
+      !!   else
+      !!      !!call unswitch_waves_v(nproc,orbs,&
+      !!      !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,psi)
+      !!      call unswitch_waves_v(nproc,orbs,&
+      !!           wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,psi)
+      !!   end if
+      !!else
+      !!   if(orbs%nspinor /= 1) then
+      !!      call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.false.)
+      !!   end if
+      !!end if
+    
+      !!call timing(iproc,'Un-TransSwitch','OF')
     END SUBROUTINE untranspose_v
     
     subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
@@ -1968,3 +2026,114 @@ module communications
     END SUBROUTINE unswitch_waves_v
 
 end module communications
+
+
+
+subroutine transpose_v_eff(iproc,nproc,orbs,wfd,comms,psi,&
+     work,outadd) !optional
+  use module_base
+  use module_types
+  use communications, only: switch_waves_v, psitransspi
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(comms_cubic), intent(in) :: comms
+  real(wp), dimension(*), intent(inout) :: psi
+  real(wp), dimension(*), intent(inout) :: work
+  real(wp), dimension(*), intent(out), optional :: outadd
+  !local variables
+  integer :: ierr
+
+  call timing(iproc,'Un-TransSwitch','ON')
+
+  if (nproc > 1) then
+     !!!control check
+     !!if (.not. present(work) .or. .not. associated(work)) then
+     !!   if(iproc == 0) write(*,'(1x,a)')&
+     !!        "ERROR: Unproper work array for transposing in parallel"
+     !!   stop
+     !!end if
+
+     !!call switch_waves_v(nproc,orbs,&
+     !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
+     call switch_waves_v(nproc,orbs,&
+          wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,psi,work)
+
+
+     call timing(iproc,'Un-TransSwitch','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     if (present(outadd)) then
+        call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+             outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+     else
+        call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+             psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+     end if
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
+  else
+     if(orbs%nspinor /= 1) then
+        !for only one processor there is no need to transform this
+        call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.true.)
+     end if
+  end if
+
+  call timing(iproc,'Un-TransSwitch','OF')
+
+END SUBROUTINE transpose_v_eff
+
+
+
+subroutine untranspose_v_eff(iproc,nproc,orbs,wfd,comms,psi,&
+     work,outadd) !optional
+  use module_base
+  use module_types
+  use communications, only: unswitch_waves_v, psitransspi
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(comms_cubic), intent(in) :: comms
+  real(wp), dimension(*), intent(inout) :: psi
+  real(wp), dimension(*), intent(inout) :: work
+  real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
+  !local variables
+  integer :: ierr
+
+
+  call timing(iproc,'Un-TransSwitch','ON')
+
+  if (nproc > 1) then
+     !!!control check
+     !!if (.not. present(work) .or. .not. associated(work)) then
+     !!   !if(iproc == 0) 
+     !!        write(*,'(1x,a)')&
+     !!        "ERROR: Unproper work array for untransposing in parallel"
+     !!   stop
+     !!end if
+     call timing(iproc,'Un-TransSwitch','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
+          work,comms%ncntd,comms%ndspld,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
+     if (present(outadd)) then
+        !!call unswitch_waves_v(nproc,orbs,&
+        !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,outadd)
+        call unswitch_waves_v(nproc,orbs,&
+             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,outadd)
+     else
+        !!call unswitch_waves_v(nproc,orbs,&
+        !!     wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),work,psi)
+        call unswitch_waves_v(nproc,orbs,&
+             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,psi)
+     end if
+  else
+     if(orbs%nspinor /= 1) then
+        call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi,.false.)
+     end if
+  end if
+
+  call timing(iproc,'Un-TransSwitch','OF')
+END SUBROUTINE untranspose_v_eff

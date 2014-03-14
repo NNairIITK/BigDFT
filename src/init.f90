@@ -964,7 +964,7 @@ END SUBROUTINE input_memory_linear
            use gaussians
            use communications_base, only: comms_cubic
            use communications_init, only: orbitals_communicators
-           use communications, only: transpose_v2
+           use communications, only: transpose_v
            implicit none
            !Arguments
            integer, intent(in) :: iproc,nproc,ixc
@@ -1163,7 +1163,7 @@ END SUBROUTINE input_memory_linear
     end if
 
     !transpose the psi wavefunction
-    call transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,work=hpsi,outadd=psit)
+    call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi(1),hpsi(1),out_add=psit(1))
 
     nullify(G%rxyz)
 
