@@ -2464,7 +2464,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use module_base
   use module_types
   use module_interfaces, except_this_one => get_KS_residue
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparseMatrix, sparsematrix_null
   implicit none
 
   ! Calling arguments
@@ -2484,7 +2484,8 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
 
   call f_routine(id='get_KS_residue')
  
-  call nullify_sparsematrix(gradmat)
+  !call nullify_sparsematrix(gradmat)
+  gradmat=sparsematrix_null()
   call sparse_copy_pattern(tmb%linmat%ham, gradmat, iproc, subname)
   gradmat%matrix_compr=f_malloc_ptr(gradmat%nvctr,id='gradmat%matrix_compr')
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &

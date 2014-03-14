@@ -429,7 +429,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use module_interfaces, except_this_one => pulay_correction
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparseMatrix, sparsematrix_null
   implicit none
 
   ! Calling arguments
@@ -518,8 +518,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   ! DOVRLP AND DHAM SHOULD HAVE DIFFERENT SPARSITIES, BUT TO MAKE LIFE EASIER KEEPING THEM THE SAME FOR NOW
   ! also array of structure a bit inelegant at the moment
   do jdir = 1, 3
-    call nullify_sparsematrix(dovrlp(jdir))
-    call nullify_sparsematrix(dham(jdir))
+    !call nullify_sparsematrix(dovrlp(jdir))
+    !call nullify_sparsematrix(dham(jdir))
+    dovrlp(jdir)=sparsematrix_null()
+    dham(jdir)=sparsematrix_null()
     call sparse_copy_pattern(tmb%linmat%ham,dovrlp(jdir),iproc,subname) 
     call sparse_copy_pattern(tmb%linmat%ham,dham(jdir),iproc,subname)
     allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)

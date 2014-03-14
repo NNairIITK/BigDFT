@@ -14,7 +14,7 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   use module_types
   use module_interfaces, fake_name => initSparseMatrix
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparseMatrix, sparsematrix_null
   implicit none
   
   ! Calling arguments
@@ -37,7 +37,8 @@ subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
   
   call timing(iproc,'init_matrCompr','ON')
 
-  call nullify_sparsematrix(sparsemat)
+  !call nullify_sparsematrix(sparsemat)
+  sparsemat=sparsematrix_null()
   call initCommsOrtho(iproc, nproc, lzd, orbs, 's', noverlaps, overlaps)
 
   sparsemat%nfvctr=orbs%norb
@@ -934,6 +935,7 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
   use module_base
   use module_types
   use yaml_output
+  use sparsematrix_base, only: sparsematrix_null
   implicit none
 
   ! Calling arguments
@@ -949,7 +951,8 @@ subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat
   character(len=*),parameter :: subname='init_sparsity_from_distance'
 
 
-  call nullify_sparsematrix(sparsemat)
+  !call nullify_sparsematrix(sparsemat)
+  sparsemat=sparsematrix_null()
 
   sparsemat%nfvctr=orbs%norb
   sparsemat%nfvctrp=orbs%norbp
