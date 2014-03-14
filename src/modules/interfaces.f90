@@ -3101,14 +3101,14 @@ module module_interfaces
           type(diis_objects), intent(inout) :: diis
         end subroutine allocate_diis_objects
 
-        subroutine check_communications(iproc,nproc,orbs,lr,comms)
+        subroutine check_communications(iproc,nproc,orbs,lzd,comms)
           use module_base
           use module_types
           use communications_base, only: comms_cubic
           implicit none
           integer, intent(in) :: iproc,nproc
           type(orbitals_data), intent(in) :: orbs
-          type(locreg_descriptors), intent(in) :: lr
+          type(local_zone_descriptors), intent(in) :: lzd
           type(comms_cubic), intent(in) :: comms
         end subroutine check_communications
 
@@ -4213,6 +4213,21 @@ module module_interfaces
           type(sparseMatrix),intent(in) :: ovrlp
           type(sparseMatrix),intent(inout) :: inv_ovrlp_half
         end subroutine diagonalize_localized
+
+        subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+             work,outadd) !optional
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc
+          type(orbitals_data), intent(in) :: orbs
+          type(local_zone_descriptors), intent(in) :: Lzd
+          type(comms_cubic), intent(in) :: comms
+          real(wp), dimension(:), pointer :: psi
+          real(wp), dimension(:), pointer, optional :: work
+          real(wp), dimension(*), intent(out), optional :: outadd
+        end subroutine
+
   
   end interface
 END MODULE module_interfaces
