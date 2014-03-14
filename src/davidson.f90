@@ -127,7 +127,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       endif
 
       !transpose the wavefunction psi 
-      call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
+      call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
       if (nproc > 1) then
          i_all=-product(shape(psiw))*kind(psiw)
@@ -182,7 +182,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       allocate(VTwfn%psit(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,VTwfn%psit,'VTwfn%psit',subname)
       !transpose the psivirt 
-      call transpose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd%Glr%wfd,VTwfn%comms,VTwfn%psi(1),psiw(1),out_add=VTwfn%psit(1))
+      call transpose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd,VTwfn%comms,VTwfn%psi(1),psiw(1),out_add=VTwfn%psit(1))
    else
       nullify(VTwfn%psit)
    end if
@@ -539,7 +539,7 @@ subroutine davidson(iproc,nproc,in,at,&
       endif
 
       !transpose the wavefunction psi 
-      call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi(1),psiw(1))
+      call transpose_v(iproc,nproc,orbs,Lzd,comms,psi(1),psiw(1))
 
       if (nproc > 1) then
          i_all=-product(shape(psiw))*kind(psiw)
@@ -636,8 +636,8 @@ subroutine davidson(iproc,nproc,in,at,&
    call memocc(i_stat,e,'e',subname)
 
    !transpose  v and hv
-   call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
-   call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,hv(1),psiw(1))
+   call transpose_v(iproc,nproc,orbsv,Lzd,commsv,v(1),psiw(1))
+   call transpose_v(iproc,nproc,orbsv,Lzd,commsv,hv(1),psiw(1))
 
    call timing(iproc,'Davidson      ','ON')
    !Timing excludes transposition, hamilton application and preconditioning
@@ -929,7 +929,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if (occorbs) then
          !transpose  g 
-         call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g(1),psiw(1))
+         call transpose_v(iproc,nproc,orbsv,Lzd,commsv,g(1),psiw(1))
          !project g such that they are orthogonal to all occupied psi
          call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,g,msg)
          !retranspose the gradient g
@@ -947,8 +947,8 @@ subroutine davidson(iproc,nproc,in,at,&
            pkernel,orbs,psirocc)
 
       !transpose  g and hg
-      call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g(1),psiw(1))
-      call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,hg(1),psiw(1))
+      call transpose_v(iproc,nproc,orbsv,Lzd,commsv,g(1),psiw(1))
+      call transpose_v(iproc,nproc,orbsv,Lzd,commsv,hg(1),psiw(1))
 
       call timing(iproc,'Davidson      ','ON')
       !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -1220,8 +1220,8 @@ subroutine davidson(iproc,nproc,in,at,&
            pkernel,orbs,psirocc)
 
       !transpose  v and hv
-      call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
-      call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,hv(1),psiw(1))
+      call transpose_v(iproc,nproc,orbsv,Lzd,commsv,v(1),psiw(1))
+      call transpose_v(iproc,nproc,orbsv,Lzd,commsv,hv(1),psiw(1))
 
       !if(iproc==0 .and. verbose > 1) write(*,'(1x,a)')"done. "
       call timing(iproc,'Davidson      ','ON')
@@ -1733,7 +1733,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    end if
 
    !transpose the wavefunction in wavelet basis
-   call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psivirt(1),psiw(1))
+   call transpose_v(iproc,nproc,orbs,Lzd,comms,psivirt(1),psiw(1))
 
    !here one has to decide whether leave things like that or
    !multiply the transposed wavefunctions by the matrix of the coefficients

@@ -1449,14 +1449,15 @@ module communications
     
     
     !> Transposition of the arrays, variable version (non homogeneous)
-    subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi_add,&
+    subroutine transpose_v(iproc,nproc,orbs,lzd,comms,psi_add,&
          work_add,out_add) !optional
       use module_base
       use module_types
       implicit none
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
-      type(wavefunctions_descriptors), intent(in) :: wfd
+      !type(wavefunctions_descriptors), intent(in) :: wfd
+      type(local_zone_descriptors),intent(in) :: lzd
       type(comms_cubic), intent(in) :: comms
       !>address of the wavefunction elements (choice)
       !if out_add is absent, it is used for transpose
@@ -1465,15 +1466,61 @@ module communications
       !> size of the buffers, optional.
       real(wp), optional :: out_add
       !local variables
-      integer :: ierr
+      integer :: ierr, i_all, i_stat
+      integer :: psishift1,totshift,iorb,ilr,ldim,Gdim,ldimtot
+      real(wp), dimension(:), pointer :: workarr
+      logical :: to_global
+      character(len=*), parameter :: subname='transpose_v'
       external :: switch_waves_v,psitransspi,MPI_ALLTOALLV
 
     
       call timing(iproc,'Un-TransSwitch','ON')
+
+
+      !for linear scaling must project the wavefunctions to whole simulation box
+      if(Lzd%linear) then
+         !!psishift1 = 1
+         !!totshift = 1
+         Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+               sum(comms%ncntt(0:nproc-1)))
+         allocate(workarr(Gdim+ndebug),stat=i_stat)
+         call memocc(i_stat,workarr,'workarr',subname)
+         !!call to_zero(Gdim,workarr)
+         ldimtot=0
+         do iorb=1,orbs%norbp
+            ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+            ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+            ldimtot=ldimtot+ldim
+         !!   !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
+         !!   !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
+         !!   call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
+         !!        orbs%nspin, lzd%glr, lzd%llr(ilr), psi_add(psishift1), workarr(totshift))
+         !!   psishift1 = psishift1 + ldim
+         !!   totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
+         end do
+
+         ! can use with lzdlarge=lzd since we transform to the global box
+         to_global=.true.
+         call small_to_large_locreg(iproc, ldimtot, &
+              (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor, &
+              lzd, lzd, &
+              orbs, psi_add, workarr(1), to_global)
+    
+         !reallocate psi to the global dimensions
+         i_all=-product(shape(psi))*kind(psi)
+         deallocate(psi,stat=i_stat)
+         call memocc(i_stat,i_all,'psi',subname)
+         allocate(psi(Gdim+ndebug),stat=i_stat)
+         call memocc(i_stat,psi,'psi',subname)
+         call vcopy(Gdim,workarr(1),1,psi(1),1) !psi=work
+         i_all=-product(shape(workarr))*kind(workarr)
+         deallocate(workarr,stat=i_stat)
+         call memocc(i_stat,i_all,'workarr',subname)
+      end if
     
       if (nproc > 1) then
          call switch_waves_v(nproc,orbs,&
-              wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par(0,1),psi_add,work_add)
+              lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f,comms%nvctr_par(0,1),psi_add,work_add)
     
          call timing(iproc,'Un-TransSwitch','OF')
          call timing(iproc,'Un-TransComm  ','ON')
@@ -1489,7 +1536,7 @@ module communications
       else
          if(orbs%nspinor /= 1) then
             !for only one processor there is no need to transform this
-            call psitransspi(wfd%nvctr_c+7*wfd%nvctr_f,orbs,psi_add,.true.)
+            call psitransspi(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f,orbs,psi_add,.true.)
          end if
       end if
     

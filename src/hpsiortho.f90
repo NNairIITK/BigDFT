@@ -1427,19 +1427,19 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   
 
   !transpose the hpsi wavefunction
-   call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi(1),wfn%psi(1))
+   call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%hpsi(1),wfn%psi(1))
   
   !PAW:
   !transpose the spsi wavefunction
   if(present(paw)) then
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi(1),wfn%psi(1))
+     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi(1),wfn%psi(1))
   end if
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
      wfn%psit => wfn%psi
      ! work array not used for nproc==1, so pass the same address
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%psit(1),wfn%psit(1))
+     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%psit(1),wfn%psit(1))
   end if
 
 !!$  if (iproc==0 .and. verbose > 0) then
@@ -1664,7 +1664,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    wfn%diis%energy_min=min(wfn%diis%energy_min,wfn%diis%energy)
 
    !transpose the hpsi wavefunction
-   call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
+   call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,&
         wfn%hpsi(1),wfn%psi(1))
    
    !!experimental, orthogonalize the preconditioned gradient wrt wavefunction
@@ -1691,7 +1691,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
           wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,eproj_sum,proj_G,paw)
 
 !    Transpose spsi:     
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi(1),wfn%hpsi(1))
+     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi(1),wfn%hpsi(1))
 !    Gather cprj:
      call gather_cprj()
    end if
@@ -1977,7 +1977,7 @@ END SUBROUTINE select_active_space
 
 
 !>   First orthonormalisation
-subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
+subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    use module_base
    use module_types
    use module_interfaces, except_this_one_B => first_orthon
@@ -1986,7 +1986,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
-   type(wavefunctions_descriptors), intent(in) :: wfd
+   type(local_zone_descriptors),intent(in) :: lzd
    type(comms_cubic), intent(in) :: comms
    type(orthon_data):: orthpar
    real(wp), dimension(:) , pointer :: psi,hpsi,psit
@@ -2017,11 +2017,11 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
 
    !to be substituted, must pass the wavefunction descriptors to the routine
    if (nproc>1) then
-       call transpose_v(iproc,nproc,orbs,wfd,comms,psi(1),&
+       call transpose_v(iproc,nproc,orbs,lzd,comms,psi(1),&
           &   hpsi(1),out_add=psit(1))
    else
        ! work array not nedded for nproc==1, so pass the same address
-       call transpose_v(iproc,nproc,orbs,wfd,comms,psi(1),&
+       call transpose_v(iproc,nproc,orbs,lzd,comms,psi(1),&
           &   psi(1),out_add=psit(1))
    end if
 
@@ -2034,11 +2034,11 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
    if (nproc>1) then
-       call untranspose_v(iproc,nproc,orbs,wfd,comms,psit(1),&
+       call untranspose_v(iproc,nproc,orbs,lzd,comms,psit(1),&
           &   hpsi(1),out_add=psi(1))
    else
        ! work array not nedded for nproc==1, so pass the same address
-       call untranspose_v(iproc,nproc,orbs,wfd,comms,psit(1),&
+       call untranspose_v(iproc,nproc,orbs,lzd,comms,psit(1),&
           &   psit(1),out_add=psi(1))
    end if
 

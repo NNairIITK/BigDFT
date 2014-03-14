@@ -1164,7 +1164,7 @@ END SUBROUTINE input_memory_linear
     end if
 
     !transpose the psi wavefunction
-    call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi(1),hpsi(1),out_add=psit(1))
+    call transpose_v(iproc,nproc,orbs,Lzd,comms,psi(1),hpsi(1),out_add=psit(1))
 
     nullify(G%rxyz)
 
@@ -2100,7 +2100,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
     
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,&
+     call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,KSwfn%comms,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 

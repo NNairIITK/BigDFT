@@ -452,14 +452,14 @@ module module_interfaces
       END SUBROUTINE reformatmywaves
 
 
-      subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
+      subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
          !n(c) use module_base
          use module_types
          use communications_base, only: comms_cubic
          implicit none
          integer, intent(in) :: iproc,nproc
          type(orbitals_data), intent(in) :: orbs
-         type(wavefunctions_descriptors), intent(in) :: wfd
+         type(local_zone_descriptors),intent(in) :: lzd
          type(comms_cubic), intent(in) :: comms
          type(orthon_data):: orthpar
          type(paw_objects),optional,intent(inout)::paw

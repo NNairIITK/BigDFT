@@ -160,7 +160,7 @@ communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
 communications.o: base.o types.o communications_base.o
 sparsematrix_base.o: base.o
-sparsematrix_init.o: base.o sparsematrix_base.o
+sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
