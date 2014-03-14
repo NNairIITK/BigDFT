@@ -1561,6 +1561,7 @@ module communications
       !local variables
       integer :: ierr
 
+
       if (present(out_add)) then
           call transpose_v_eff(iproc,nproc,orbs,wfd,comms,psi_add,work_add,out_add)
       else
@@ -1862,7 +1863,8 @@ module communications
       !local variables
       integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
       integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
-    
+
+      write(*,'(a,100i8)') 'switch, nvctr_par(:,0)', nvctr_par(:,0)
     
       isorb=orbs%isorb+1
       isorbp=0
@@ -2044,6 +2046,8 @@ subroutine transpose_v_eff(iproc,nproc,orbs,wfd,comms,psi,&
   real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
   integer :: ierr
+
+  write(*,'(a,100i8)') 'eff, comms%nvctr_par(:,0)', comms%nvctr_par(:,0)
 
   call timing(iproc,'Un-TransSwitch','ON')
 

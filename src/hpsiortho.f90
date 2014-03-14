@@ -2016,8 +2016,14 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    end if
 
    !to be substituted, must pass the wavefunction descriptors to the routine
-   call transpose_v(iproc,nproc,orbs,wfd,comms,psi(1),&
-      &   hpsi(1),out_add=psit(1))
+   if (nproc>1) then
+       call transpose_v(iproc,nproc,orbs,wfd,comms,psi(1),&
+          &   hpsi(1),out_add=psit(1))
+   else
+       ! work array not nedded for nproc==1, so pass the same address
+       call transpose_v(iproc,nproc,orbs,wfd,comms,psi(1),&
+          &   psi(1),out_add=psit(1))
+   end if
 
    if(usepaw==1) then
      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
@@ -2027,8 +2033,14 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
 
    !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
-   call untranspose_v(iproc,nproc,orbs,wfd,comms,psit(1),&
-      &   hpsi(1),out_add=psi(1))
+   if (nproc>1) then
+       call untranspose_v(iproc,nproc,orbs,wfd,comms,psit(1),&
+          &   hpsi(1),out_add=psi(1))
+   else
+       ! work array not nedded for nproc==1, so pass the same address
+       call untranspose_v(iproc,nproc,orbs,wfd,comms,psit(1),&
+          &   psit(1),out_add=psi(1))
+   end if
 
    if (nproc == 1) then
       nullify(psit)
