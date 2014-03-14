@@ -452,14 +452,14 @@ module module_interfaces
       END SUBROUTINE reformatmywaves
 
 
-      subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
+      subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
          !n(c) use module_base
          use module_types
          use communications_base, only: comms_cubic
          implicit none
          integer, intent(in) :: iproc,nproc
          type(orbitals_data), intent(in) :: orbs
-         type(wavefunctions_descriptors), intent(in) :: wfd
+         type(local_zone_descriptors),intent(in) :: lzd
          type(comms_cubic), intent(in) :: comms
          type(orthon_data):: orthpar
          type(paw_objects),optional,intent(inout)::paw
@@ -2333,18 +2333,6 @@ module module_interfaces
          logical, intent(in) :: reset
        end subroutine init_foe
 
-       subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
-         use module_base
-         use module_types
-         use sparsematrix_base, only: sparseMatrix
-         implicit none
-         integer,intent(in):: iproc, nproc
-         type(local_zone_descriptors),intent(in) :: lzd
-         type(orbitals_data),intent(in):: orbs
-         type(input_variables),intent(in) :: input
-         type(sparseMatrix),intent(out):: sparsemat
-       end subroutine initSparseMatrix
-
       subroutine allocate_workarrays_quartic_convolutions(lr, subname, work)
         use module_base
         use module_types
@@ -3113,14 +3101,14 @@ module module_interfaces
           type(diis_objects), intent(inout) :: diis
         end subroutine allocate_diis_objects
 
-        subroutine check_communications(iproc,nproc,orbs,lr,comms)
+        subroutine check_communications(iproc,nproc,orbs,lzd,comms)
           use module_base
           use module_types
           use communications_base, only: comms_cubic
           implicit none
           integer, intent(in) :: iproc,nproc
           type(orbitals_data), intent(in) :: orbs
-          type(locreg_descriptors), intent(in) :: lr
+          type(local_zone_descriptors), intent(in) :: lzd
           type(comms_cubic), intent(in) :: comms
         end subroutine check_communications
 
@@ -4225,6 +4213,21 @@ module module_interfaces
           type(sparseMatrix),intent(in) :: ovrlp
           type(sparseMatrix),intent(inout) :: inv_ovrlp_half
         end subroutine diagonalize_localized
+
+        subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+             work,outadd) !optional
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iproc,nproc
+          type(orbitals_data), intent(in) :: orbs
+          type(local_zone_descriptors), intent(in) :: Lzd
+          type(comms_cubic), intent(in) :: comms
+          real(wp), dimension(:), pointer :: psi
+          real(wp), dimension(:), pointer, optional :: work
+          real(wp), dimension(*), intent(out), optional :: outadd
+        end subroutine
+
   
   end interface
 END MODULE module_interfaces
