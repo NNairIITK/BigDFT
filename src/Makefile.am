@@ -206,8 +206,7 @@ low_level = \
 	linear/foe.f90 \
 	linear/chebyshev.f90 \
 	linear/pulay.f90 \
-	linear/transferintegrals.f90 \
-	linear/sparse_matrices.f90
+	linear/transferintegrals.f90
 
 # C objects
 c_level = posfiles.c \
