@@ -942,7 +942,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
        tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
        KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
-  call transpose_v(iproc, nproc, orbs, tmb%lzd, comms, phi_global(1), phiwork_global(1))
+  call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global(1), phiwork_global(1))
 
 
   ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS

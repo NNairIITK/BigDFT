@@ -208,7 +208,7 @@ type(comms_cubic) :: gcomms
       ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
 
   end do
-  call transpose_v(iproc, nproc, gorbs, lzd%Glr%wfd, gcomms, phi, work=phiWork)
+  call transpose_v(iproc, nproc, gorbs, lzd%glr%wfd%Glr%wfd, gcomms, phi, work=phiWork)
 
   if(iproc==0) then
       write(*,'(1x,a)', advance='no') '------------------------------------- Building linear combinations... '

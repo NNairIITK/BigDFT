@@ -2199,7 +2199,7 @@
 !      ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
 !      ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
 !  end do
-!  call transpose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, phi, work=phiWork)
+!  call transpose_v(iproc, nproc, orbs, lzd%glr%wfd%Glr%wfd, comms, phi, work=phiWork)
 !
 !
 !  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
@@ -2315,7 +2315,7 @@
 !!      ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
 !!      ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
 !!  end do
-!!  call transpose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, phi, work=phiWork)
+!!  call transpose_v(iproc, nproc, orbs, lzd%glr%wfd%Glr%wfd, comms, phi, work=phiWork)
 !!
 !!
 !!  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
@@ -2339,7 +2339,7 @@
 !!      ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
 !!      ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
 !!  end do
-!!  call transpose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, hphi, work=phiWork)
+!!  call transpose_v(iproc, nproc, orbs, lzd%glr%wfd%Glr%wfd, comms, hphi, work=phiWork)
 !!
 !!  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
 !!  call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi, nvctrp, hphi, nvctrp, 0.d0, lagmat, orbs%norb)

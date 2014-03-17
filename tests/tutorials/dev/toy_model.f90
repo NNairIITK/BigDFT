@@ -151,7 +151,7 @@ program wvl
   !---------------------------!
   allocate(w(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   ! Transpose the psi wavefunction
-  call transpose_v(iproc,nproc,orbs,Lzd,comms,psi(1),work_add=w(1))
+  call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work_add=w(1))
   !write(*,*) "Proc", iproc, " treats ", comms%nvctr_par(iproc, 0) * orbs%norb, "components of all orbitals."
   call yaml_comment("Proc" // trim(yaml_toa(iproc)) // " treats " // &
                    & trim(yaml_toa(comms%nvctr_par(iproc, 0) * orbs%norb)) // "components of all orbitals.")
