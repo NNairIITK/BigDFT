@@ -4,7 +4,7 @@ module sparsematrix_base
 
   private
 
-  type,public :: sparseMatrix
+  type,public :: sparse_matrix
       integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
       integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
       integer,dimension(:,:),pointer :: keyg
@@ -13,7 +13,7 @@ module sparsematrix_base
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index, can_use_dense
-  end type sparseMatrix
+  end type sparse_matrix
 
 
   !> Public routines
@@ -29,14 +29,14 @@ module sparsematrix_base
 
     pure function sparsematrix_null() result(sparsemat)
       implicit none
-      type(sparseMatrix) :: sparsemat
+      type(sparse_matrix) :: sparsemat
       call nullify_sparsematrix(sparsemat)
     end function sparsematrix_null
 
 
     pure subroutine nullify_sparsematrix(sparsemat)
       implicit none
-      type(sparseMatrix),intent(out):: sparsemat
+      type(sparse_matrix),intent(out):: sparsemat
       nullify(sparsemat%keyv)
       nullify(sparsemat%nsegline)
       nullify(sparsemat%keyg)
@@ -60,7 +60,7 @@ module sparsematrix_base
       implicit none
       logical,intent(in) :: store_index
       integer,intent(in) :: norb, nproc
-      type(sparseMatrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(inout) :: sparsemat
       integer :: istat
       character(len=*),parameter :: subname='allocate_sparsematrix_basic'
       sparsemat%nsegline=f_malloc_ptr(norb,id='sparsemat%nsegline')
@@ -75,7 +75,7 @@ module sparsematrix_base
 
     subroutine allocate_sparsematrix_keys(sparsemat)
       implicit none
-      type(sparseMatrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(inout) :: sparsemat
       integer :: istat
       character(len=*),parameter :: subname='allocate_sparsematrix_keys'
       sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
@@ -88,7 +88,7 @@ module sparsematrix_base
       use module_base 
       implicit none
       ! Calling arguments
-      type(sparseMatrix),intent(inout):: sparsemat
+      type(sparse_matrix),intent(inout):: sparsemat
       character(len=*),intent(in):: subname
     
       if (associated(sparseMat%keyg)) call f_free_ptr(sparseMat%keyg)

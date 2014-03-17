@@ -307,7 +307,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   type(comms_linear),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
-  type(sparseMatrix),intent(inout) :: ovrlp
+  type(sparse_matrix),intent(inout) :: ovrlp
 
   ! Local variables
   integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, m, tid, norb, nthreads
@@ -526,7 +526,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, p
   implicit none
   
   ! Calling arguments
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   type(comms_linear),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
@@ -812,7 +812,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   integer,intent(in) :: iproc, nproc
   type(orbitals_data),intent(in) :: orbs
   type(comms_linear),intent(in) :: collcom, collcom_shamop, collcom_sr
-  type(sparseMatrix), intent(inout) :: sparsemat
+  type(sparse_matrix), intent(inout) :: sparsemat
   
   ! Local variables
   integer :: iorb, jorb, istat, imin, imax

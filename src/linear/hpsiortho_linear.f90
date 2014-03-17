@@ -822,6 +822,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   use module_base
   use module_types
   use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix, only: uncompressMatrix
   implicit none
 
   ! Calling arguments
@@ -834,7 +835,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   real(kind=8) :: ksres_sum
   real(kind=8), dimension(:), allocatable :: ksres
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, grad_coeff
-  type(sparseMatrix) :: grad_ovrlp
+  type(sparse_matrix) :: grad_ovrlp
   character(len=256) :: subname='calculate_residue_ks'
 
 

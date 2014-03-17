@@ -17,6 +17,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_interfaces, except_this_one => foe
   use yaml_output
   use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: compress_matrix_for_allreduce, uncompressMatrix
   implicit none
 
   ! Calling arguments
@@ -1345,7 +1346,7 @@ subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vect
   ! Calling arguments
   integer,intent(in) :: iproc, nsize_polynomial
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: fermi
+  type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(in) :: vector
   real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
 
@@ -1389,7 +1390,7 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
   ! Calling arguments
   integer,intent(in) :: iproc, nsize_polynomial
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: fermi
+  type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
 
@@ -1437,7 +1438,7 @@ function trace_sparse(iproc, nproc, orbs, amat, bmat)
   ! Calling arguments
   integer,intent(in) :: iproc,  nproc
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: amat, bmat
+  type(sparse_matrix),intent(in) :: amat, bmat
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge

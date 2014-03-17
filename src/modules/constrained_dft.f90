@@ -63,14 +63,14 @@ module constrained_dft
          real(kind=8),dimension(:,:),pointer :: inv_ovrlp
          real(kind=8),intent(out) :: error
          type(orbitals_data), optional, intent(in) :: orbs
-         type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+         type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
          logical,intent(in),optional :: check_accur
        end subroutine overlapPowerGeneral
   end interface
 
   type, public :: cdft_data
      real(wp), dimension(:), pointer :: weight_function ! the weight function defining the constraint
-     type(sparseMatrix) :: weight_matrix ! matrix elements of the weight function between tmbs
+     type(sparse_matrix) :: weight_matrix ! matrix elements of the weight function between tmbs
      integer :: ndim_dens ! the dimension of the weight function
      real(gp) :: charge ! defines the value of the charge which is to be constrained
      real(gp) :: lag_mult ! the Lagrange multiplier used to enforce the constraint
@@ -127,8 +127,9 @@ contains
     use module_fragments
     use communications, only: transpose_localized
     use sparsematrix_base, only: sparseMatrix
+    use sparsematrix, only: compress_matrix_for_allreduce, uncompressMatrix
     implicit none
-    type(sparseMatrix), intent(inout) :: weight_matrix
+    type(sparse_matrix), intent(inout) :: weight_matrix
     type(input_variables),intent(in) :: input
     type(dft_wavefunction), intent(inout) :: tmb
     logical, intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
@@ -426,7 +427,7 @@ contains
     use sparsematrix_base, only: sparseMatrix
     implicit none
     type(cdft_data), intent(inout) :: cdft
-    type(sparseMatrix), intent(in) :: ham
+    type(sparse_matrix), intent(in) :: ham
 
     character(len=200), parameter :: subname='cdft_data_allocate'
     integer :: istat

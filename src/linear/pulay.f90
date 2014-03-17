@@ -4,6 +4,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_interfaces, except_this_one => pulay_correction_new
   use yaml_output
   use communications, only: transpose_localized
+  use sparsematrix, only: compress_matrix_for_allreduce, uncompressMatrix
   implicit none
 
   ! Calling arguments
@@ -451,7 +452,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   !!integer :: ialpha, iat, iiorb
   real(kind=8) :: kernel, ekernel
   real(kind=8),dimension(:),allocatable :: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
-  type(sparseMatrix) :: dovrlp(3), dham(3)
+  type(sparse_matrix) :: dovrlp(3), dham(3)
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   character(len=*),parameter :: subname='pulay_correction'

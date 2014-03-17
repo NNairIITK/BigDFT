@@ -50,6 +50,7 @@ libmodules_a_SOURCES = base.f90 \
 	communications.f90 \
 	sparsematrix_base.f90 \
 	sparsematrix_init.f90 \
+	sparsematrix.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -82,7 +83,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	COMMUNICATIONS_INIT.@MODULE_EXT@ \
 	COMMUNICATIONS.@MODULE_EXT@ \
 	SPARSEMATRIX_BASE.@MODULE_EXT@ \
-	SPARSEMATRIX_INIT.@MODULE_EXT@
+	SPARSEMATRIX_INIT.@MODULE_EXT@ \
+	SPARSEMATRIX.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -109,7 +111,8 @@ modules = module_base.@MODULE_EXT@ \
 	communications_init.@MODULE_EXT@ \
 	communications.@MODULE_EXT@ \
 	sparsematrix_base.@MODULE_EXT@ \
-	sparsematrix_init.@MODULE_EXT@
+	sparsematrix_init.@MODULE_EXT@ \
+	sparsematrix.@MODULE_EXT@
 
 
 endif
@@ -149,8 +152,8 @@ op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
-fragments.o diis_module.o: base.o types.o communications.o sparsematrix_base.o
-constrained_dft.o: base.o types.o fragments.o sparsematrix_base.o
+fragments.o diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
+constrained_dft.o: base.o types.o fragments.o sparsematrix_base.o sparsematrix.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o
 psp_projectors.o: locregs.o
 locregs.o: base.o
@@ -161,6 +164,7 @@ communications_init.o: base.o types.o communications_base.o
 communications.o: base.o types.o communications_base.o
 sparsematrix_base.o: base.o
 sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o
+sparsematrix.o: base.o types.o sparsematrix_base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

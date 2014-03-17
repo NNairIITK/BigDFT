@@ -593,7 +593,7 @@ module module_types
   !!end type sparseMatrix
 
   type,public :: linear_matrices !may not keep
-      type(sparseMatrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
+      type(sparse_matrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
   end type linear_matrices
 
   type,public:: workarrays_quartic_convolutions
@@ -2325,7 +2325,7 @@ end subroutine find_category
 !!    
 !!      ! Calling arguments
 !!      integer,intent(in) :: irow, jcol, norb
-!!      type(sparseMatrix),intent(in) :: sparsemat
+!!      type(sparse_matrix),intent(in) :: sparsemat
 !!    
 !!      ! Local variables
 !!      integer :: ii, iseg

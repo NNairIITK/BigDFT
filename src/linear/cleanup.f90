@@ -979,7 +979,7 @@ end subroutine deallocate_foe
 !!  implicit none
 !!  
 !!  ! Calling arguments
-!!  type(sparseMatrix),intent(inout):: sparsemat
+!!  type(sparse_matrix),intent(inout):: sparsemat
 !!  character(len=*),intent(in):: subname
 !!
 !!  call checkAndDeallocatePointer(sparseMat%keyg, 'sparseMat%keyg', subname)

@@ -825,8 +825,8 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   implicit none
 
   ! Calling arguments
-  type(sparseMatrix),intent(in):: sparseMat_in
-  type(sparseMatrix),intent(inout):: sparseMat_out
+  type(sparse_matrix),intent(in):: sparseMat_in
+  type(sparse_matrix),intent(inout):: sparseMat_out
   integer, intent(in) :: iproc
   character(len=*),intent(in):: subname
 

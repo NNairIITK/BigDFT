@@ -29,7 +29,7 @@ module sparsematrix_init
       type(local_zone_descriptors),intent(in) :: lzd
       type(orbitals_data),intent(in) :: orbs
       type(input_variables),intent(in) :: input
-      type(sparseMatrix), intent(out) :: sparsemat
+      type(sparse_matrix), intent(out) :: sparsemat
       
       ! Local variables
       character(len=*), parameter :: subname='initSparseMatrix'
@@ -543,7 +543,7 @@ module sparsematrix_init
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       type(input_variables),intent(in) :: input
-      type(sparsematrix),intent(out) :: sparsemat
+      type(sparse_matrix),intent(out) :: sparsemat
     
       ! Local variables
       integer :: iorb, jorb, isegline, iseg, ivctr, ijorb, istat
@@ -708,7 +708,7 @@ module sparsematrix_init
     
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      type(sparseMatrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(inout) :: sparsemat
     
       ! Local variables
       integer :: jproc, jorbs, jorbold, ii, jorb, istat
@@ -777,7 +777,7 @@ module sparsematrix_init
       ! Calling arguments
       logical,intent(in) :: store_index
       integer,intent(in) :: norb
-      type(sparseMatrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(inout) :: sparsemat
     
       ! Local variables
       !integer :: iorb, jorb, compressed_index, istat
@@ -817,7 +817,7 @@ module sparsematrix_init
     
       ! Calling arguments
       integer,intent(in) :: irow, jcol, norb
-      type(sparseMatrix),intent(in) :: sparsemat
+      type(sparse_matrix),intent(in) :: sparsemat
       integer :: compressed_index
     
       ! Local variables
@@ -853,7 +853,7 @@ module sparsematrix_init
       implicit none
     
       ! Calling arguments
-      type(sparseMatrix),intent(in) :: sparsemat
+      type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(in) :: iorb, jorb
     
       ! Local variables
@@ -873,7 +873,7 @@ module sparsematrix_init
         
           ! Calling arguments
           integer,intent(in) :: irow, jcol, norb
-          type(sparseMatrix),intent(in) :: sparsemat
+          type(sparse_matrix),intent(in) :: sparsemat
         
           ! Local variables
           integer :: ii, iseg
@@ -909,7 +909,7 @@ module sparsematrix_init
       implicit none
     
       ! Calling arguments
-      type(sparseMatrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(inout) :: sparsemat
     
       ! local variables
       integer :: ind, iseg, segn, iorb, jorb, istat

@@ -322,6 +322,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use constrained_dft
   use yaml_output
   use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix, only: uncompressMatrix
   implicit none
 
   ! Calling arguments
@@ -337,7 +338,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   real(kind=8), dimension(:,:), allocatable :: weight_coeff_diag
   real(kind=8), dimension(:,:), pointer :: ovrlp_half
   real(kind=8) :: error
-  type(sparseMatrix) :: weight_matrix
+  type(sparse_matrix) :: weight_matrix
   character(len=256) :: subname='coeff_weight_analysis'
 
   call timing(iproc,'weightanalysis','ON')
@@ -408,7 +409,7 @@ subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs,
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, meth_overlap
   type(orbitals_data), intent(in) :: basis_orbs, ksorbs
-  type(sparseMatrix),intent(in) :: ham, ovrlp
+  type(sparse_matrix),intent(in) :: ham, ovrlp
   real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
   real(kind=8),dimension(ksorbs%norb),intent(inout) :: eval
   logical, intent(in) :: diag, calc_overlap
@@ -658,7 +659,7 @@ subroutine reordering_coeffs(iproc, nproc, num_extra, ksorbs, basis_orbs, ham, o
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, num_extra
   type(orbitals_data), intent(in) :: basis_orbs, ksorbs
-  type(sparseMatrix),intent(in) :: ham, ovrlp
+  type(sparse_matrix),intent(in) :: ham, ovrlp
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   logical, intent(in) :: reorder
 
@@ -897,8 +898,8 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   integer, intent(in) :: iproc, nproc
-  type(sparseMatrix), intent(in) :: ham
-  type(sparseMatrix), intent(inout) :: denskern
+  type(sparse_matrix), intent(in) :: ham
+  type(sparse_matrix), intent(inout) :: denskern
   logical, intent(in) :: calculate_kernel
   real(kind=gp), intent(out) :: energy
   type(orbitals_data), intent(in) :: orbs, tmb_orbs

@@ -294,6 +294,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   use module_types
   use yaml_output
   use sparsematrix_base, only: sparseMatrix
+  use sparsematrix, only: compress_matrix_for_allreduce
   implicit none
 
   ! Calling arguments
@@ -301,7 +302,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   type(orbitals_data),intent(in) :: orbs, orbs_tmb
   logical, intent(in) :: isKernel
   real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
-  type(sparseMatrix), intent(inout) :: denskern
+  type(sparse_matrix), intent(inout) :: denskern
 
   ! Local variables
   integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
@@ -647,7 +648,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   integer,intent(in) :: iproc, nproc, ndimrho
   real(kind=8),intent(in) :: hx, hy, hz
   type(comms_linear),intent(in) :: collcom_sr
-  type(sparseMatrix),intent(in) :: denskern
+  type(sparse_matrix),intent(in) :: denskern
   real(kind=8),dimension(ndimrho),intent(out) :: rho
   logical,intent(in),optional :: print_results
 
@@ -971,7 +972,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   type(orbitals_data),intent(in) :: orbs
   type(comms_linear),intent(inout) :: collcom_sr
   type(DFT_local_fields),intent(in) :: denspot
-  type(sparseMatrix),intent(inout) :: denskern
+  type(sparse_matrix),intent(inout) :: denskern
   integer,intent(in) :: check_sumrho
 
   ! Local variables
