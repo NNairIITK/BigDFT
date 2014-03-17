@@ -1,4 +1,5 @@
 module sparsematrix
+  use module_base
   use sparsematrix_base
   implicit none
 
@@ -11,9 +12,6 @@ module sparsematrix
   contains
 
     subroutine compress_matrix_for_allreduce(iproc,sparsemat)
-      use module_base
-      use module_types
-      use sparsematrix_base, only: sparse_matrix
       implicit none
       
       ! Calling arguments
@@ -66,9 +64,6 @@ module sparsematrix
 
 
     subroutine uncompressMatrix(iproc,sparsemat)
-      use module_base
-      use module_types
-      use sparsematrix_base, only: sparse_matrix
       implicit none
       
       ! Calling arguments
@@ -125,12 +120,7 @@ module sparsematrix
 
 
     subroutine check_matrix_compression(iproc,sparsemat)
-      use module_base
-      use module_types
-      use module_interfaces
       use yaml_output
-      use sparsematrix_base, only: sparse_matrix
-      use sparsematrix, only: compress_matrix_for_allreduce, uncompressMatrix
       implicit none
       integer,intent(in) :: iproc
       type(sparse_matrix),intent(inout) :: sparsemat
@@ -153,7 +143,7 @@ module sparsematrix
       call to_zero(sparsemat%nfvctr**2,sparsemat%matrix(1,1))
       do iseg = 1, sparsemat%nseg
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            call get_indecies(jorb,irow,icol)
+            call get_indices(jorb,irow,icol)
             !print *,'irow,icol',irow, icol,test_value_matrix(sparsemat%nfvctr, irow, icol)
             sparsemat%matrix(irow,icol) = test_value_matrix(sparsemat%nfvctr, irow, icol)
          end do
@@ -165,7 +155,7 @@ module sparsematrix
       do iseg = 1, sparsemat%nseg
          ii=0
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            call get_indecies(jorb,irow,icol)
+            call get_indices(jorb,irow,icol)
             maxdiff = max(abs(sparsemat%matrix_compr(sparsemat%keyv(iseg)+ii)&
                  -test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff)
             ii=ii+1
@@ -187,7 +177,7 @@ module sparsematrix
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            call get_indecies(jorb,irow,icol)
+            call get_indices(jorb,irow,icol)
             maxdiff = max(abs(sparsemat%matrix(irow,icol)-test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff) 
          end do
       end do
@@ -221,7 +211,7 @@ module sparsematrix
           !print *,iorb,jorb,test_value_matrix
        END FUNCTION test_value_matrix
     
-       subroutine get_indecies(ind,irow,icol)
+       subroutine get_indices(ind,irow,icol)
          implicit none
          integer, intent(in) :: ind
          integer, intent(out) :: irow, icol
@@ -229,7 +219,7 @@ module sparsematrix
          icol = (ind - 1) / sparsemat%nfvctr + 1
          irow = ind - (icol-1)*sparsemat%nfvctr
          !print *,'irow,icol',irow,icol
-       END SUBROUTINE get_indecies 
+       END SUBROUTINE get_indices 
     end subroutine check_matrix_compression
 
 
