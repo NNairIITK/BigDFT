@@ -2166,7 +2166,7 @@
 !! Calling arguments
 !integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm
 !type(orbitals_data),intent(in):: orbs, gorbs
-!type(communications_arrays),intent(in):: comms
+!type(comms_cubic),intent(in):: comms
 !type(local_zone_descriptors),intent(in):: lzd
 !type(input_variables),intent(in):: input
 !type(matrixDescriptors),intent(in):: mad
@@ -2270,7 +2270,7 @@
 !!! Calling arguments
 !!integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
 !!type(orbitals_data),intent(in):: orbs, gorbs
-!!type(communications_arrays),intent(in):: comms
+!!type(comms_cubic),intent(in):: comms
 !!type(local_zone_descriptors),intent(in):: lzd
 !!type(input_variables),intent(in):: input
 !!type(overlapParameters),intent(in):: op

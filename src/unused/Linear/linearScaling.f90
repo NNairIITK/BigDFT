@@ -168,7 +168,7 @@ implicit none
 integer,intent(in) :: iproc, nproc
 type(local_zone_descriptors),intent(in) :: lzd
 type(orbitals_data),intent(in) :: lorbs, orbs
-type(communications_arrays) :: comms
+type(comms_cubic) :: comms
 type(input_variables),intent(in) :: input
 real(8),dimension(lorbs%norb,orbs%norb),intent(in) :: coeff
 real(8),dimension(max(lorbs%npsidim_orbs,lorbs%npsidim_comp)),intent(inout) :: lphi
@@ -181,7 +181,7 @@ real(8),dimension(:),pointer :: phiWork
 real(8),dimension(:),allocatable :: phi
 character(len=*),parameter :: subname='transformToGlobal'
 type(orbitals_data) :: gorbs
-type(communications_arrays) :: gcomms
+type(comms_cubic) :: gcomms
 
   call nullify_orbitals_data(gorbs)
   call copy_orbitals_data(lorbs, gorbs, subname)
@@ -241,7 +241,7 @@ type(communications_arrays) :: gcomms
   call memocc(istat, iall, 'phiWork', subname)
 
   call deallocate_orbitals_data(gorbs, subname)
-  call deallocate_communications_arrays(gcomms, subname)
+  call deallocate_comms_cubic(gcomms, subname)
 
 
 end subroutine transformToGlobal

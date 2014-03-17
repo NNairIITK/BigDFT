@@ -25,7 +25,7 @@ program wvl
 
   type(local_zone_descriptors)          :: Lzd
   type(orbitals_data)               :: orbs
-  type(communications_arrays)       :: comms
+  type(comms_cubic)       :: comms
   type(workarr_sumrho)              :: wisf
   real(wp), dimension(:), pointer   :: psi, psir
 
