@@ -9,6 +9,7 @@ module sparsematrix_init
   !> Public routines
   public :: initSparseMatrix
   public :: init_sparsity_from_distance
+  public :: compressed_index
 
   contains
 
@@ -32,7 +33,8 @@ module sparsematrix_init
       character(len=*), parameter :: subname='initSparseMatrix'
       integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
       integer :: nseglinemax, iall, ierr, jorbe, jorbs, jorbold, ii
-      integer :: compressed_index, matrixindex_in_compressed
+      !integer :: compressed_index, matrixindex_in_compressed
+      integer :: matrixindex_in_compressed
       integer, dimension(:,:,:), pointer :: keygline
       integer, dimension(:), pointer :: noverlaps
       integer, dimension(:,:), pointer :: overlaps
@@ -763,6 +765,83 @@ module sparsematrix_init
     
     end subroutine init_matrix_parallelization
 
+
+    subroutine init_indices_in_compressed(store_index, norb, sparsemat)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparseMatrix
+      implicit none
+    
+      ! Calling arguments
+      logical,intent(in) :: store_index
+      integer,intent(in) :: norb
+      type(sparseMatrix),intent(inout) :: sparsemat
+    
+      ! Local variables
+      !integer :: iorb, jorb, compressed_index, istat
+      integer :: iorb, jorb, istat
+      character(len=*),parameter :: subname='init_indices_in_compressed'
+    
+      if (store_index) then
+          ! store the indices of the matrices in the sparse format
+          sparsemat%store_index=.true.
+    
+          ! initialize sparsemat%matrixindex_in_compressed
+          !allocate(sparsemat%matrixindex_in_compressed_arr(norb,norb),stat=istat)
+          !call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
+          sparsemat%matrixindex_in_compressed_arr=f_malloc_ptr((/norb,norb/),id='sparsemat%matrixindex_in_compressed_arr')
+    
+          do iorb=1,norb
+             do jorb=1,norb
+                sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norb,sparsemat)
+             end do
+          end do
+    
+      else
+          ! otherwise alwyas calculate them on-the-fly
+          sparsemat%store_index=.false.
+          nullify(sparsemat%matrixindex_in_compressed_arr)
+      end if
+    
+    end subroutine init_indices_in_compressed
+
+
+    !> Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+    function compressed_index(irow, jcol, norb, sparsemat)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparseMatrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: irow, jcol, norb
+      type(sparseMatrix),intent(in) :: sparsemat
+      integer :: compressed_index
+    
+      ! Local variables
+      integer :: ii, iseg
+    
+      ii=(jcol-1)*norb+irow
+    
+      iseg=sparsemat%istsegline(jcol)
+      do
+          if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
+              ! The matrix element is in this segment
+               compressed_index = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
+              return
+          end if
+          iseg=iseg+1
+          if (iseg>sparsemat%nseg) exit
+          if (ii<sparsemat%keyg(1,iseg)) then
+              compressed_index=0
+              return
+          end if
+      end do
+    
+      ! Not found
+      compressed_index=0
+    
+    end function compressed_index
 
 
 end module sparsematrix_init

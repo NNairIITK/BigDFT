@@ -805,6 +805,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   use module_types
   use module_interfaces, except_this_one => init_matrixindex_in_compressed_fortransposed
   use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_init, only: compressed_index
   implicit none
   
   ! Calling arguments
@@ -816,7 +817,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   ! Local variables
   integer :: iorb, jorb, istat, imin, imax
   !integer :: kproc,jproc,jjorbold,jjorb,isend,irecv,ilr,ijorb,iiorb,ind,ierr, irow, irowold, iseg
-  integer :: compressed_index
+  !integer :: compressed_index
 !  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
   character(len=*),parameter :: subname='initSparseMatrix'
 
