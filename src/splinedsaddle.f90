@@ -1280,46 +1280,6 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
 end subroutine neb
 
 
-subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
-    use module_types
-    implicit none
-    type(atoms_data), intent(inout) :: atoms
-    integer::n,nr,i,iat,ixyz,ir
-    real(kind=8)::x(n),xa(nr)
-    logical::move_this_coordinate
-    ir=0
-    do i=1,3*atoms%astruct%nat
-        iat=(i-1)/3+1
-        ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
-            ir=ir+1
-            xa(ir)=x(i)
-        endif
-    enddo
-    if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_forward
-
-
-subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
-    use module_types
-    implicit none
-    type(atoms_data), intent(inout) :: atoms
-    integer::n,nr,i,iat,ixyz,ir
-    real(kind=8)::x(n),xa(nr)
-    logical::move_this_coordinate
-    ir=0
-    do i=1,3*atoms%astruct%nat
-        iat=(i-1)/3+1
-        ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
-            ir=ir+1
-            x(i)=xa(ir)
-        endif
-    enddo
-    if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_backward
-
-
 subroutine calmaxforcecomponentsub(atoms,f,fnrm,fspmax)
     use module_types
     implicit none
