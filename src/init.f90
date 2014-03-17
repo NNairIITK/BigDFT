@@ -1164,7 +1164,7 @@ END SUBROUTINE input_memory_linear
     end if
 
     !transpose the psi wavefunction
-    call transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,hpsi,outadd=psit)
+    call toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,hpsi,outadd=psit)
 
     nullify(G%rxyz)
 

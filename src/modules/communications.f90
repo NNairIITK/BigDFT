@@ -1559,7 +1559,7 @@ module communications
     END SUBROUTINE untranspose_v
     
 
-    subroutine untranspose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+    subroutine untoglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
          work,outadd) !optional
       use module_base
       use module_types
@@ -1572,7 +1572,7 @@ module communications
       real(wp), dimension(:), pointer, optional :: work
       real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
       !local variables
-      character(len=*), parameter :: subname='untranspose_v2'
+      character(len=*), parameter :: subname='untoglobal_and_transpose'
       integer :: ierr,i_all,i_stat
       integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
       real(wp), dimension(:), pointer :: workarr
@@ -1644,7 +1644,7 @@ module communications
       end if
     
       call timing(iproc,'Un-TransSwitch','OF')
-    END SUBROUTINE untranspose_v2
+    END SUBROUTINE untoglobal_and_transpose
     
     
     
@@ -1921,7 +1921,7 @@ END SUBROUTINE psitransspi
 
 
 !> Transposition of the arrays, variable version (non homogeneous)
-subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
      work,outadd) !optional
   use module_base
   use module_types
@@ -1935,7 +1935,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
   real(wp), dimension(:), pointer, optional :: work
   real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
-  character(len=*), parameter :: subname='transpose_v2'
+  character(len=*), parameter :: subname='toglobal_and_transpose'
   integer :: ierr,i_all,i_stat
   integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
   real(wp), dimension(:), pointer :: workarr
@@ -2018,4 +2018,4 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
 
   !!call timing(iproc,'Un-TransSwitch','OF')
 
-END SUBROUTINE transpose_v2
+END SUBROUTINE toglobal_and_transpose

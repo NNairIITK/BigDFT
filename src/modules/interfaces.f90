@@ -4189,7 +4189,7 @@ module module_interfaces
           type(sparseMatrix),intent(inout) :: inv_ovrlp_half
         end subroutine diagonalize_localized
 
-        subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+        subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
              work,outadd) !optional
           use module_base
           use module_types

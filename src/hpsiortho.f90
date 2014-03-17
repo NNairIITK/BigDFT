@@ -1427,12 +1427,12 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   
 
   !transpose the hpsi wavefunction
-   call transpose_v2(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%hpsi,wfn%psi)
+   call toglobal_and_transpose(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%hpsi,wfn%psi)
   
   !PAW:
   !transpose the spsi wavefunction
   if(present(paw)) then
-     call transpose_v2(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi,wfn%psi)
+     call toglobal_and_transpose(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi,wfn%psi)
   end if
 
   if (nproc == 1) then
