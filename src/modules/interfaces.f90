@@ -1904,19 +1904,6 @@ module module_interfaces
        real(8),intent(out):: ehart, eexcu, vexcu
      end subroutine updatePotential
      
-     subroutine initCommsOrtho(iproc, nproc, lzd, orbs, &
-                locregShape, noverlaps, overlaps)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       type(local_zone_descriptors),intent(in):: lzd
-       type(orbitals_data),intent(in):: orbs
-       character(len=1),intent(in):: locregShape
-       integer,dimension(:),pointer,intent(out):: noverlaps
-       integer,dimension(:,:),pointer,intent(out):: overlaps
-     end subroutine initCommsOrtho
-     
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
        use module_base
        use module_types
@@ -2878,18 +2865,6 @@ module module_interfaces
          real(kind=8), dimension(nlr), intent(out) :: locrad
          integer, intent(out) :: target_function, nit_basis
        end subroutine set_optimization_variables
-
-       subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op_noverlaps, op_overlaps)
-         use module_base
-         use module_types
-         implicit none
-         integer,intent(in):: iproc, nproc
-         type(orbitals_data),intent(in):: orbs, orbsig
-         type(local_zone_descriptors),intent(in):: lzd, lzdig
-         integer,dimension(orbs%norb),intent(out):: op_noverlaps
-         integer,dimension(:,:),pointer,intent(out):: op_overlaps
-       end subroutine determine_overlap_from_descriptors
-
 
        subroutine determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
                   istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &

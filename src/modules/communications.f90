@@ -18,42 +18,6 @@ module communications
   public :: transpose_v
   public :: untranspose_v
 
-!  public :: switch_waves_v
-!  public :: psitransspi
-!  public :: unswitch_waves_v
-
-!!$  interface
-
-!!$    subroutine transpose_v_eff(iproc,nproc,orbs,wfd,comms,psi,work,&
-!!$               outadd) !optional
-!!$      use module_base
-!!$      use module_types
-!!$      implicit none
-!!$      integer, intent(in) :: iproc,nproc
-!!$      type(orbitals_data), intent(in) :: orbs
-!!$      type(wavefunctions_descriptors), intent(in) :: wfd
-!!$      type(comms_cubic), intent(in) :: comms
-!!$      real(wp), intent(inout) :: psi
-!!$      real(wp), intent(inout) :: work
-!!$      real(wp), intent(out), optional :: outadd !< Optional argument
-!!$    END SUBROUTINE transpose_v_eff
-!!$    
-!!$    subroutine untranspose_v_eff(iproc,nproc,orbs,wfd,comms,psi,work,&
-!!$               outadd) !optional
-!!$      use module_base
-!!$      use module_types
-!!$      implicit none
-!!$      integer, intent(in) :: iproc,nproc
-!!$      type(orbitals_data), intent(in) :: orbs
-!!$      type(wavefunctions_descriptors), intent(in) :: wfd
-!!$      type(comms_cubic), intent(in) :: comms
-!!$      real(wp), intent(inout) :: psi
-!!$      real(wp), intent(inout) :: work
-!!$      real(wp), intent(out), optional :: outadd !< Optional argument
-!!$    END SUBROUTINE untranspose_v_eff
-!!$
-!!$  end interface
-
 
   contains
 

@@ -18,6 +18,8 @@ program wvl
   use module_input_dicts
   use module_interfaces, only: inputs_from_dict
   use module_atoms, only: deallocate_atoms_data
+  use communications_init, only: orbitals_communicators
+  use communications, only: transpose_v, untranspose_v
   implicit none
 
   type(input_variables)             :: inputs
@@ -149,7 +151,7 @@ program wvl
   !---------------------------!
   allocate(w(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   ! Transpose the psi wavefunction
-  call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
+  call transpose_v(iproc,nproc,orbs,Lzd,comms,psi(1),work_add=w(1))
   !write(*,*) "Proc", iproc, " treats ", comms%nvctr_par(iproc, 0) * orbs%norb, "components of all orbitals."
   call yaml_comment("Proc" // trim(yaml_toa(iproc)) // " treats " // &
                    & trim(yaml_toa(comms%nvctr_par(iproc, 0) * orbs%norb)) // "components of all orbitals.")
@@ -188,7 +190,7 @@ program wvl
   deallocate(ovrlp)
 
   ! Retranspose the psi wavefunction
-  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
+  call untranspose_v(iproc,nproc,orbs,Lzd%glr%wfd,comms,psi(1),work_add=w(1))
   deallocate(w)
 
   call bigdft_utils_flush(unit=6)
