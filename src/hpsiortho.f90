@@ -1427,19 +1427,19 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   
 
   !transpose the hpsi wavefunction
-   call transpose_v2(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%hpsi,wfn%psi)
+   call toglobal_and_transpose(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%hpsi,wfn%psi)
   
   !PAW:
   !transpose the spsi wavefunction
   if(present(paw)) then
-     call transpose_v2(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi,wfn%psi)
+     call toglobal_and_transpose(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi,wfn%psi)
   end if
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
      wfn%psit => wfn%psi
      ! work array not used for nproc==1, so pass the same address
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%psit(1),wfn%psit(1))
+     call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%psit(1),wfn%psit(1))
   end if
 
 !!$  if (iproc==0 .and. verbose > 0) then
@@ -1664,7 +1664,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    wfn%diis%energy_min=min(wfn%diis%energy_min,wfn%diis%energy)
 
    !transpose the hpsi wavefunction
-   call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,&
+   call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,&
         wfn%hpsi(1),wfn%psi(1))
    
    !!experimental, orthogonalize the preconditioned gradient wrt wavefunction
@@ -1691,7 +1691,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
           wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,eproj_sum,proj_G,paw)
 
 !    Transpose spsi:     
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi(1),wfn%hpsi(1))
+     call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,paw%spsi(1),wfn%hpsi(1))
 !    Gather cprj:
      call gather_cprj()
    end if
@@ -2017,11 +2017,11 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
 
    !to be substituted, must pass the wavefunction descriptors to the routine
    if (nproc>1) then
-       call transpose_v(iproc,nproc,orbs,lzd,comms,psi(1),&
+       call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
           &   hpsi(1),out_add=psit(1))
    else
        ! work array not nedded for nproc==1, so pass the same address
-       call transpose_v(iproc,nproc,orbs,lzd,comms,psi(1),&
+       call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
           &   psi(1),out_add=psit(1))
    end if
 
@@ -2074,11 +2074,11 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
       keeppsit=.false.
    end if
 
-   call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%hpsi(1),wfn%psi(1))
+   call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%hpsi(1),wfn%psi(1))
    if (nproc==1) then
       wfn%psit => wfn%psi
       ! workarray not used for nporc==1, so pass the sa,e address
-      call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%psit(1),wfn%psit(1))
+      call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%psit(1),wfn%psit(1))
    end if
 
    call subspace_diagonalisation(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%hpsi,evsum)
@@ -2581,7 +2581,7 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    end do
 
    !transpose the hpsi wavefunction
-   call transpose_v(iproc,nproc,orbs,lzd,comms,psi_add=psi(1),work_add=pwork(1))
+   call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi_add=psi(1),work_add=pwork(1))
 
    !check the results of the transposed wavefunction
    maxdiff=0.0_wp

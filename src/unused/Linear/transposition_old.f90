@@ -30,7 +30,7 @@
 !!! Calling arguments
 !!integer,intent(in):: iproc, lproc, uproc, newComm
 !!type(orbitals_data),intent(in):: orbs
-!!type(communications_arrays),intent(in):: comms
+!!type(comms_cubic),intent(in):: comms
 !!real(8),dimension(orbs%npsidim), intent(in out):: psi
 !!real(wp),dimension(:),pointer,optional:: work
 !!real(wp),dimension(*),intent(out),optional:: outadd
@@ -112,7 +112,7 @@
 !!! Calling arguments
 !!integer,intent(in):: iproc,lproc, uproc, newComm
 !!type(orbitals_data),intent(in):: orbs
-!!type(communications_arrays),intent(in):: comms
+!!type(comms_cubic),intent(in):: comms
 !!real(8),dimension(orbs%npsidim),intent(in out):: psi
 !!real(wp),dimension(:),pointer,optional :: work
 !!real(wp),dimension(*),intent(out),optional :: outadd
@@ -204,7 +204,7 @@
 !!
 !!! Calling arguments
 !!integer,intent(in):: iproc, lproc, uproc
-!!type(communications_arrays), intent(in) :: comms
+!!type(comms_cubic), intent(in) :: comms
 !!type(orbitals_data),intent(in):: orbs
 !!real(wp),dimension(orbs%npsidim),intent(in):: psi
 !!real(wp),dimension(orbs%npsidim),intent(out):: psiw
@@ -314,7 +314,7 @@
 !!! Calling arguments
 !!integer,intent(in):: iproc, lproc, uproc
 !!type(orbitals_data),intent(in) :: orbs
-!!type(communications_arrays),intent(in) :: comms
+!!type(comms_cubic),intent(in) :: comms
 !!real(wp),dimension(orbs%npsidim),intent(in):: psiw
 !!real(wp),dimension(orbs%npsidim),intent(out):: psi
 !!

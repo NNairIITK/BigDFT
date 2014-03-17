@@ -260,8 +260,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   end if
 
   !transpose all the wavefunctions for having a piece of all the orbitals
-  call transpose_v2(iproc,nproc,orbse,Lzde,commse,psi,psiw)
-  call transpose_v2(iproc,nproc,orbse,Lzde,commse,hpsi,psiw)
+  call toglobal_and_transpose(iproc,nproc,orbse,Lzde,commse,psi,psiw)
+  call toglobal_and_transpose(iproc,nproc,orbse,Lzde,commse,hpsi,psiw)
 
   if(nproc > 1.or. Lzde%linear) then
      i_all=-product(shape(psiw))*kind(psiw)

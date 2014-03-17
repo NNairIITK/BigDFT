@@ -180,7 +180,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   
   !transpose the wavefunction psi if any 
   if (occorbs) then
-     call transpose_v(iproc,nproc,orbs,Lzd,comms,psi(1),psiw(1))
+     call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),psiw(1))
   end if
 
 
@@ -298,8 +298,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   ! 
   !transpose  v and hv
   !
-  call transpose_v(iproc,nproc,orbsv,Lzd,commsv,v(1),psiw(1))
-  call transpose_v(iproc,nproc,orbsv,Lzd,commsv,hv(1),psiw(1))
+  call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,v(1),psiw(1))
+  call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hv(1),psiw(1))
   !
   ! reset e 
   !
@@ -495,7 +495,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! transpose gradients for orthogonalization and norm computation
      !
-     call transpose_v(iproc,nproc,orbsv,Lzd,commsv,g(1),psiw(1))
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,g(1),psiw(1))
      !
      ! orthogonalize with respect to occupied states again
      !
@@ -587,8 +587,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! transpose  g and hg and Pg (v, hv and Pv are aLzd%Glready transposed)
      !
-     call transpose_v(iproc,nproc,orbsv,Lzd,commsv,g(1),psiw(1))
-     call transpose_v(iproc,nproc,orbsv,Lzd,commsv,hg(1),psiw(1))
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,g(1),psiw(1))
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hg(1),psiw(1))
      !
      ! reset expanded hamiltonian/overlap matrices
      !
@@ -844,8 +844,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! 
      !transpose  v and hv
      !
-     call transpose_v(iproc,nproc,orbsv,Lzd,commsv,v(1),psiw(1))
-     call transpose_v(iproc,nproc,orbsv,Lzd,commsv,hv(1),psiw(1))
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,v(1),psiw(1))
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hv(1),psiw(1))
      !
      ! compute rayleigh quotients. 
      !
