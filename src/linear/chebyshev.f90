@@ -15,7 +15,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -444,7 +444,7 @@ end subroutine axpy_kernel_vectors
 subroutine determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -482,7 +482,7 @@ end subroutine determine_sequential_length
 subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -538,7 +538,7 @@ subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsema
            istindexarr, ivectorindex)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -577,7 +577,7 @@ end subroutine get_arrays_for_sequential_acces
 subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, nseq, nmaxsegk, nmaxvalk, a_seq)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -615,7 +615,7 @@ end subroutine sequential_acces_matrix
 subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, kernelp)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments

@@ -321,7 +321,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use module_fragments
   use constrained_dft
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
   use sparsematrix, only: uncompressMatrix
   implicit none
 
@@ -342,8 +342,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   character(len=256) :: subname='coeff_weight_analysis'
 
   call timing(iproc,'weightanalysis','ON')
-  !call nullify_sparsematrix(weight_matrix)
-  weight_matrix=sparsematrix_null()
+  !call nullify_sparse_matrix(weight_matrix)
+  weight_matrix=sparse_matrix_null()
   call sparse_copy_pattern(tmb%linmat%ham, weight_matrix, iproc, subname)
   !!allocate(weight_matrix%matrix_compr(weight_matrix%nvctr), stat=istat)
   !!call memocc(istat, weight_matrix%matrix_compr, 'weight_matrix%matrix_compr', subname)
@@ -389,7 +389,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   end do
   if (iproc==0) call yaml_close_sequence()
 
-  call deallocate_sparseMatrix(weight_matrix, subname)
+  call deallocate_sparse_matrix(weight_matrix, subname)
   call f_free(weight_coeff_diag)
   !call f_free(weight_coeff)
   call timing(iproc,'weightanalysis','OF')
@@ -403,7 +403,7 @@ subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs,
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -653,7 +653,7 @@ subroutine reordering_coeffs(iproc, nproc, num_extra, ksorbs, basis_orbs, ham, o
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -894,7 +894,7 @@ end subroutine find_alpha_sd
 subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orbs,tmb_orbs,calculate_kernel)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   integer, intent(in) :: iproc, nproc

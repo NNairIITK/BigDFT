@@ -861,7 +861,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
   
   ! Calling arguments

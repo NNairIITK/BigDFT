@@ -821,7 +821,7 @@ end subroutine copy_local_zone_descriptors
 subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments

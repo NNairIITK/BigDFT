@@ -298,7 +298,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
            psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
   
   ! Calling arguments
@@ -522,7 +522,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, p
      reset, psit_c, psit_f, iproc)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
   
   ! Calling arguments
@@ -804,7 +804,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_matrixindex_in_compressed_fortransposed
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: compressed_index
   implicit none
   
@@ -819,7 +819,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   !integer :: kproc,jproc,jjorbold,jjorb,isend,irecv,ilr,ijorb,iiorb,ind,ierr, irow, irowold, iseg
   !integer :: compressed_index
 !  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
-  character(len=*),parameter :: subname='initSparseMatrix'
+  character(len=*),parameter :: subname='init_sparse_matrix'
 
 
   ! for the calculation of overlaps and the charge density

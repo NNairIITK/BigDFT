@@ -21,7 +21,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use diis_sd_optimization
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use communications, only: synchronize_onesided_communication
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -146,8 +146,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   cut=maxval(tmb%lzd%llr(:)%locrad)
 
-  !call nullify_sparsematrix(ham_small) ! nullify anyway
-  ham_small=sparsematrix_null()
+  !call nullify_sparse_matrix(ham_small) ! nullify anyway
+  ham_small=sparse_matrix_null()
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! allocate ham_small
      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
@@ -384,9 +384,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           orthonormalization_on=.true.
 
           if (locreg_increased .and. input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-             call deallocate_sparsematrix(ham_small,subname)
-             !call nullify_sparsematrix(ham_small)
-             ham_small=sparsematrix_null()
+             call deallocate_sparse_matrix(ham_small,subname)
+             !call nullify_sparse_matrix(ham_small)
+             ham_small=sparse_matrix_null()
              call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
              !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
              !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
@@ -1152,7 +1152,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-     call deallocate_sparsematrix(ham_small,subname)
+     call deallocate_sparse_matrix(ham_small,subname)
   end if
 
   if (input%lin%constrained_dft) then

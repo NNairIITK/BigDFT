@@ -14,7 +14,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -41,7 +41,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
-  !call nullify_sparsematrix(inv_ovrlp_half)
+  !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
   !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
   !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
@@ -118,7 +118,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       call memocc(istat, iall, 'psittemp_f', subname)
   end do
 
-  !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
+  !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
   !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
   !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
   !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
@@ -192,7 +192,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
 
-  !call nullify_sparseMatrix(tmp_mat)
+  !call nullify_sparse_matrix(tmp_mat)
   !call sparse_copy_pattern(lagmat,tmp_mat,iproc,subname)
   !allocate(tmp_mat%matrix_compr(tmp_mat%nvctr), stat=istat)
   !call memocc(istat, tmp_mat%matrix_compr, 'tmp_mat%matrix_compr', subname)
@@ -313,7 +313,7 @@ call timing(iproc,'misc','OF')
   deallocate(lagmat_tmp_compr, stat=istat)
   call memocc(istat, iall, 'lagmat_tmp_compr', subname)
 
-  !call deallocate_sparseMatrix(tmp_mat, subname)
+  !call deallocate_sparse_matrix(tmp_mat, subname)
 
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
@@ -367,8 +367,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
-  use sparsematrix_base, only: sparseMatrix
-  use sparsematrix, only: compress_matrix_for_allreduce
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: compress_matrix_for_allreduce, uncompressmatrix
   implicit none
   
   ! Calling arguments
@@ -618,7 +618,7 @@ end subroutine matrix_minus_identity_dense
 subroutine first_order_taylor_sparse(power,ovrlp,inv_ovrlp)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   integer, intent(in) :: power
@@ -1186,7 +1186,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
@@ -1355,7 +1355,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use module_types
   use module_interfaces, exceptThisOne => orthonormalize_subset
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
@@ -1385,7 +1385,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
-  !call nullify_sparsematrix(inv_ovrlp_half)
+  !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
   !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
   !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
@@ -1539,7 +1539,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       call memocc(istat, iall, 'psittemp_f', subname)
   end do
 
-  !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
+  !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
   !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
   !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
   !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
@@ -1556,7 +1556,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use module_types
   use module_interfaces, exceptThisOne => gramschmidt_subset
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
@@ -1584,7 +1584,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
-  !call nullify_sparsematrix(inv_ovrlp_half)
+  !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
   !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
   !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
@@ -1745,7 +1745,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       call memocc(istat, iall, 'psittemp_f', subname)
   end do
 
-  !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
+  !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
   !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
   !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
   !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
@@ -1760,7 +1760,7 @@ end subroutine gramschmidt_subset
 subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 

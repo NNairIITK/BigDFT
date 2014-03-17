@@ -54,7 +54,7 @@ module constrained_dft
             orbs, ovrlp_smat, inv_ovrlp_smat, check_accur)
          use module_base
          use module_types
-         use sparsematrix_base, only: sparseMatrix
+         use sparsematrix_base, only: sparse_matrix
          implicit none
   
          ! Calling arguments
@@ -126,7 +126,7 @@ contains
        calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
     use module_fragments
     use communications, only: transpose_localized
-    use sparsematrix_base, only: sparseMatrix
+    use sparsematrix_base, only: sparse_matrix
     use sparsematrix, only: compress_matrix_for_allreduce, uncompressMatrix
     implicit none
     type(sparse_matrix), intent(inout) :: weight_matrix
@@ -400,31 +400,31 @@ contains
   end subroutine calculate_weight_function
 
   subroutine nullify_cdft_data(cdft)
-    use sparsematrix_base, only: sparsematrix_null
+    use sparsematrix_base, only: sparse_matrix_null
     implicit none
     type(cdft_data), intent(out) :: cdft
     cdft%charge=0
     cdft%lag_mult=0.0_gp
     cdft%ndim_dens=0
     nullify(cdft%weight_function)
-    !call nullify_sparsematrix(cdft%weight_matrix)
-    cdft%weight_matrix=sparsematrix_null()
+    !call nullify_sparse_matrix(cdft%weight_matrix)
+    cdft%weight_matrix=sparse_matrix_null()
   end subroutine nullify_cdft_data
 
   subroutine cdft_data_free(cdft)
-    use sparsematrix_base, only: deallocate_sparseMatrix
+    use sparsematrix_base, only: deallocate_sparse_matrix
     implicit none
     type(cdft_data), intent(inout) :: cdft
 
     character(len=200), parameter :: subname='cdft_data_free'
 
     !if (associated(cdft%weight_function)) call f_free_ptr(cdft%weight_function)
-    call deallocate_sparseMatrix(cdft%weight_matrix, subname)
+    call deallocate_sparse_matrix(cdft%weight_matrix, subname)
     call nullify_cdft_data(cdft)
   end subroutine cdft_data_free
 
   subroutine cdft_data_allocate(cdft,ham)
-    use sparsematrix_base, only: sparseMatrix
+    use sparsematrix_base, only: sparse_matrix
     implicit none
     type(cdft_data), intent(inout) :: cdft
     type(sparse_matrix), intent(in) :: ham

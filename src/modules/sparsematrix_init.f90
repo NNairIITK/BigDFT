@@ -7,7 +7,7 @@ module sparsematrix_init
 
 
   !> Public routines
-  public :: initSparseMatrix
+  public :: init_sparse_matrix
   public :: init_sparsity_from_distance
   public :: compressed_index
   public :: matrixindex_in_compressed
@@ -17,7 +17,7 @@ module sparsematrix_init
 
 
     !> Currently assuming square matrices
-    subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
+    subroutine init_sparse_matrix(iproc, nproc, lzd, orbs, input, sparsemat)
       use module_base
       use module_types
       use module_interfaces
@@ -32,7 +32,7 @@ module sparsematrix_init
       type(sparse_matrix), intent(out) :: sparsemat
       
       ! Local variables
-      character(len=*), parameter :: subname='initSparseMatrix'
+      character(len=*), parameter :: subname='init_sparse_matrix'
       integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
       integer :: nseglinemax, iall, ierr, jorbe, jorbs, jorbold, ii
       !integer :: compressed_index, matrixindex_in_compressed
@@ -45,7 +45,7 @@ module sparsematrix_init
       
       call timing(iproc,'init_matrCompr','ON')
     
-      sparsemat=sparsematrix_null()
+      sparsemat=sparse_matrix_null()
       call determine_overlaps(iproc, nproc, lzd, orbs, 's', noverlaps, overlaps)
     
       sparsemat%nfvctr=orbs%norb
@@ -60,7 +60,7 @@ module sparsematrix_init
       sparsemat%nvctr=0
       jjorbold=-1
       irowold=0
-      call allocate_sparsematrix_basic(input%store_index, orbs%norb, nproc, sparsemat)
+      call allocate_sparse_matrix_basic(input%store_index, orbs%norb, nproc, sparsemat)
       sparsemat%nsegline=0
       do jproc=0,nproc-1
           do iorb=1,orbs%norb_par(jproc,0)
@@ -117,7 +117,7 @@ module sparsematrix_init
           end if
       end do
     
-      call allocate_sparsematrix_keys(sparsemat)
+      call allocate_sparse_matrix_keys(sparsemat)
     
       allocate(keygline(2,nseglinemax,orbs%norb), stat=istat)
       call memocc(istat, keygline, 'keygline', subname)
@@ -278,7 +278,7 @@ module sparsematrix_init
       call timing(iproc,'init_matrCompr','OF')
     
     
-    end subroutine initSparseMatrix
+    end subroutine init_sparse_matrix
 
 
 
@@ -551,8 +551,8 @@ module sparsematrix_init
       character(len=*),parameter :: subname='init_sparsity_from_distance'
     
     
-      !call nullify_sparsematrix(sparsemat)
-      sparsemat=sparsematrix_null()
+      !call nullify_sparse_matrix(sparsemat)
+      sparsemat=sparse_matrix_null()
     
       sparsemat%nfvctr=orbs%norb
       sparsemat%nfvctrp=orbs%norbp
@@ -771,7 +771,7 @@ module sparsematrix_init
     subroutine init_indices_in_compressed(store_index, norb, sparsemat)
       use module_base
       use module_types
-      use sparsematrix_base, only: sparseMatrix
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -812,7 +812,7 @@ module sparsematrix_init
     function compressed_index(irow, jcol, norb, sparsemat)
       use module_base
       use module_types
-      use sparsematrix_base, only: sparseMatrix
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -849,7 +849,7 @@ module sparsematrix_init
     integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
       use module_base
       use module_types
-      use sparsematrix_base, only: sparseMatrix
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -905,7 +905,7 @@ module sparsematrix_init
     subroutine init_orbs_from_index(sparsemat)
       use module_base
       use module_types
-      use sparsematrix_base, only: sparseMatrix
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments

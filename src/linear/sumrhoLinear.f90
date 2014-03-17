@@ -293,7 +293,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   use module_base
   use module_types
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix, only: compress_matrix_for_allreduce
   implicit none
 
@@ -641,7 +641,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   use module_base
   use module_types
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -962,7 +962,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   use module_interfaces, except_this_one => check_communication_sumrho
   use yaml_output
   use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 

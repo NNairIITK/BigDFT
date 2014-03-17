@@ -12,7 +12,7 @@ subroutine check_matrix_compression(iproc,sparsemat)
   use module_types
   use module_interfaces
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   use sparsematrix, only: compress_matrix_for_allreduce, uncompressMatrix
   implicit none
   integer,intent(in) :: iproc

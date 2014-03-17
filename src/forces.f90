@@ -4192,7 +4192,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
      orbs,nlpsp,lzd,collcom,phi,denskern,fsep,refill,strten)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
