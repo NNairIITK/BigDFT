@@ -137,6 +137,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   use yaml_output
   use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -156,7 +157,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   logical,intent(in) :: experimental_mode
 
   ! Local variables
-  integer :: istat, iall, iorb, jorb, ii, ii_trans, matrixindex_in_compressed, irow, jcol, info, lwork, jj
+  integer :: istat, iall, iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj
   !type(SparseMatrix) :: tmp_mat
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, lagmat_tmp_compr, work
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
@@ -616,12 +617,13 @@ subroutine first_order_taylor_sparse(power,ovrlp,inv_ovrlp)
   use module_base
   use module_types
   use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   integer, intent(in) :: power
   type(sparseMatrix),intent(in) :: ovrlp
   type(sparseMatrix),intent(out) :: inv_ovrlp
 
-  integer :: ii,iii,iorb,jorb,ii_inv,matrixindex_in_compressed,ierr,iii_inv
+  integer :: ii,iii,iorb,jorb,ii_inv,ierr,iii_inv
 
   if (power/=1 .and. power/=2 .and. power/=-2) stop 'Error in first_order_taylor_sparse'
 
@@ -1183,6 +1185,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   use module_types
   use module_interfaces
   use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -1193,7 +1196,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 
   ! Local variables
   integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
-  integer :: iiorb, ierr, ii, iseg, ind, matrixindex_in_compressed
+  integer :: iiorb, ierr, ii, iseg, ind
   real(kind=8) :: error
   real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
   logical,dimension(:),allocatable :: in_neighborhood
@@ -1351,6 +1354,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use module_interfaces, exceptThisOne => orthonormalize_subset
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -1368,7 +1372,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, iorb, jorb, iat, jat, ii, matrixindex_in_compressed
+  integer :: it, istat, iall, iorb, jorb, iat, jat, ii
   logical :: iout, jout
   integer,dimension(:),allocatable :: icount_norb, jcount_norb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
@@ -1551,6 +1555,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use module_interfaces, exceptThisOne => gramschmidt_subset
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -1568,7 +1573,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, iorb, jorb, iat, jat, ii, matrixindex_in_compressed
+  integer :: it, istat, iall, iorb, jorb, iat, jat, ii
   logical :: iout, jout
   integer,dimension(:),allocatable :: icount_norb, jcount_norb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
@@ -1754,6 +1759,7 @@ subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
   use module_base
   use module_types
   use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -1764,7 +1770,7 @@ subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
 
   ! Local variables
   integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
-  integer :: iiorb, ierr, ii, iseg, ind, matrixindex_in_compressed, lwork
+  integer :: iiorb, ierr, ii, iseg, ind, lwork
   real(kind=8) :: error
   real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
   real(kind=8),dimension(:),allocatable :: eval, work

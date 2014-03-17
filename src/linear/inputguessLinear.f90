@@ -21,6 +21,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -40,7 +41,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,matrixindex_in_compressed
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0,tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad

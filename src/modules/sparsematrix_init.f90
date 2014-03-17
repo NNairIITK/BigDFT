@@ -10,6 +10,7 @@ module sparsematrix_init
   public :: initSparseMatrix
   public :: init_sparsity_from_distance
   public :: compressed_index
+  public :: matrixindex_in_compressed
 
   contains
 
@@ -842,6 +843,62 @@ module sparsematrix_init
       compressed_index=0
     
     end function compressed_index
+
+
+    integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparseMatrix
+      implicit none
+    
+      ! Calling arguments
+      type(sparseMatrix),intent(in) :: sparsemat
+      integer,intent(in) :: iorb, jorb
+    
+      ! Local variables
+    
+      if (sparsemat%store_index) then
+          ! Take the value from the array
+          matrixindex_in_compressed = sparsemat%matrixindex_in_compressed_arr(iorb,jorb)
+      else
+          ! Recalculate the value
+          matrixindex_in_compressed = compressed_index_fn(iorb, jorb, sparsemat%nfvctr, sparsemat)
+      end if
+    
+      contains
+        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+        integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+          implicit none
+        
+          ! Calling arguments
+          integer,intent(in) :: irow, jcol, norb
+          type(sparseMatrix),intent(in) :: sparsemat
+        
+          ! Local variables
+          integer :: ii, iseg
+        
+          ii=(jcol-1)*norb+irow
+        
+          iseg=sparsemat%istsegline(jcol)
+          do
+              if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
+                  ! The matrix element is in sparsemat segment
+                   compressed_index_fn = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
+                  return
+              end if
+              iseg=iseg+1
+              if (iseg>sparsemat%nseg) exit
+              if (ii<sparsemat%keyg(1,iseg)) then
+                  compressed_index_fn=0
+                  return
+              end if
+          end do
+        
+          ! Not found
+          compressed_index_fn=0
+        
+        end function compressed_index_fn
+    end function matrixindex_in_compressed
 
 
 end module sparsematrix_init

@@ -19,6 +19,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
   use communications, only: transpose_localized
   use sparsematrix_base, only: deallocate_sparseMatrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -42,7 +43,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i, jorb
-  integer :: matrixindex_in_compressed, lwork, info
+  integer :: lwork, info
   real(kind=8) :: ddot, tt, gnrmArr, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot
   !real(kind=8) :: eval_zero
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'

@@ -16,6 +16,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_types
   use module_interfaces, except_this_one => foe
   use yaml_output
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -47,7 +48,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8) :: trace_sparse
-  integer :: irow, icol, itemp, matrixindex_in_compressed, iflag
+  integer :: irow, icol, itemp, iflag
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked
 
 
@@ -1430,6 +1431,7 @@ function trace_sparse(iproc, nproc, orbs, amat, bmat)
   use module_base
   use module_types
   use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -1439,7 +1441,7 @@ function trace_sparse(iproc, nproc, orbs, amat, bmat)
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
-  integer :: matrixindex_in_compressed, ierr
+  integer :: ierr
   real(kind=8) :: sumn, trace_sparse
 
       sumn=0.d0

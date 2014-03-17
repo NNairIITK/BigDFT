@@ -894,6 +894,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
   use module_base
   use module_types
   use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   integer, intent(in) :: iproc, nproc
   type(sparseMatrix), intent(in) :: ham
@@ -904,7 +905,6 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
   real(kind=gp), dimension(tmb_orbs%norb,tmb_orbs%norb), intent(in) :: coeff
 
   integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp
-  integer :: matrixindex_in_compressed
 
   if (calculate_kernel) then 
      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern)
