@@ -70,7 +70,7 @@
 !!      allocate(SHS_seq_v(nseq_v), stat=istat)
 !!      call memocc(istat, SHS_seq_v, 'SHS_seq_v', subname)
 !!
-!!      !!call uncompressMatrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, matrix)
+!!      !!call uncompress_matrix(tmb%orbs%norb, tmb%mad, ovrlp_compr, matrix)
 !!      call to_zero(norb*norbp, matrix(1,1))
 !!      if (tmb%orbs%norbp>0) then
 !!          isegstart=tmb%mad%istsegline(tmb%orbs%isorb_par(iproc)+1)

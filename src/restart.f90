@@ -929,7 +929,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
-  use sparsematrix, only: uncompressmatrix
+  use sparsematrix, only: uncompress_matrix
   implicit none
   integer, intent(in) :: iproc,nproc,iformat
   character(len=*), intent(in) :: filename 
@@ -952,7 +952,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr/),&
          id='tmb%linmat%ham%matrix')
 
-     call uncompressMatrix(iproc,tmb%linmat%ham)
+     call uncompress_matrix(iproc,tmb%linmat%ham)
 
      do iorb=1,tmb%linmat%ham%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
@@ -984,7 +984,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr/),&
          id='tmb%linmat%ovrlp%matrix')
 
-     call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+     call uncompress_matrix(iproc,tmb%linmat%ovrlp)
 
      do iorb=1,tmb%linmat%ovrlp%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
@@ -1018,7 +1018,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
          id='tmb%linmat%denskern_large%matrix')
 
 
-     call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+     call uncompress_matrix(iproc,tmb%linmat%denskern_large)
 
      do iorb=1,tmb%linmat%denskern_large%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)

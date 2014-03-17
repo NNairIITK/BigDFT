@@ -178,13 +178,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   !!!!%%! invert overlap
   !!!!%%allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!!!%%call uncompressMatrix(iproc, tmb%linmat%ham)
+  !!!!%%call uncompress_matrix(iproc, tmb%linmat%ham)
   !!!!%%allocate(ipiv(tmb%orbs%norb))
   !!!!%%lwork=10*tmb%orbs%norb
   !!!!%%allocate(work(lwork))
   !!!!%%call dgetrf(tmb%orbs%norb, tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, info)
   !!!!%%call dgetri(tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, work, lwork, info)
-  !!!!%%call compress_matrix_for_allreduce(iproc,tmb%linmat%ham)
+  !!!!%%call compress_matrix(iproc,tmb%linmat%ham)
   !!!!%%deallocate(ipiv)
   !!!!%%deallocate(work)
   !!!!%%deallocate(tmb%linmat%ham%matrix)
@@ -271,11 +271,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!!!     tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ovrlp)
 
   !!allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!call uncompressMatrix(iproc,tmb%linmat%ham)
+  !!call uncompress_matrix(iproc,tmb%linmat%ham)
   !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!call uncompressMatrix(iproc,tmb%linmat%denskern)
+  !!call uncompress_matrix(iproc,tmb%linmat%denskern)
   !!allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+  !!call uncompress_matrix(iproc,tmb%linmat%ovrlp)
 
   !!allocate(SK(tmb%orbs%norb,tmb%orbs%norb))
   !!allocate(KS(tmb%orbs%norb,tmb%orbs%norb))
@@ -302,7 +302,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   !!! Store the matrix Q temporaily in tmb%linmat%ham
   !!tmb%linmat%ham%matrix=Q
-  !!call compress_matrix_for_allreduce(iproc,tmb%linmat%ham)
+  !!call compress_matrix(iproc,tmb%linmat%ham)
 
   !!call build_linear_combination_transposed(tmb%ham_descr%collcom, tmb%linmat%ham, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
   !!     .false., hpsit_c, hpsit_f, iproc)
@@ -822,7 +822,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
-  use sparsematrix, only: uncompressMatrix
+  use sparsematrix, only: uncompress_matrix
   implicit none
 
   ! Calling arguments
@@ -880,7 +880,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !!allocate(grad_ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   !!call memocc(istat, grad_ovrlp%matrix, 'grad_ovrlp%matrix', subname)
   grad_ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_ovrlp%matrix')
-  call uncompressMatrix(iproc,grad_ovrlp)
+  call uncompress_matrix(iproc,grad_ovrlp)
 
   ! can change this so only go up to ksorbs%norb...
   if (tmb%orbs%norbp>0) then

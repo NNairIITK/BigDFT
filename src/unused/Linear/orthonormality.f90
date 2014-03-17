@@ -1754,7 +1754,7 @@
 !!timecommuncoll=timecommuncoll+t2-t1     
 !!
 !!t1=mpi_wtime()
-!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
+!!call uncompress_matrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
 !!t2=mpi_wtime()
 !!timecompress=timecompress+t2-t1     
 !!
@@ -2051,7 +2051,7 @@
 !!timecommuncoll=timecommuncoll+t2-t1     
 !!
 !!t1=mpi_wtime()
-!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
+!!call uncompress_matrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
 !!t2=mpi_wtime()
 !!timecompress=timecompress+t2-t1     
 !!
@@ -3085,7 +3085,7 @@
 !!!!!!timecommuncoll=timecommuncoll+t2-t1     
 !!!!!!
 !!!!!!t1=mpi_wtime()
-!!!!!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
+!!!!!!call uncompress_matrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
 !!!!!!t2=mpi_wtime()
 !!!!!!timecompress=timecompress+t2-t1     
 !!!!!!
@@ -4254,7 +4254,7 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, nsendBuf, sendBuf, nr
   call timing(iproc,'lovrlp_comm   ','OF')
 
   call timing(iproc,'lovrlp_uncompr','ON')
-  call uncompressMatrix(orbs%norb, mad, ovrlpCompressed_receive, ovrlp)
+  call uncompress_matrix(orbs%norb, mad, ovrlpCompressed_receive, ovrlp)
   call timing(iproc,'lovrlp_uncompr','OF')
 
   iall=-product(shape(ovrlpCompressed_send))*kind(ovrlpCompressed_send)
@@ -4569,7 +4569,7 @@ subroutine overlapPowerPlusMinusOneHalf(iproc, nproc, comm, methTransformOrder, 
       allocate(ovrlp%matrix(norb,norb), stat=istat)
       call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
 
-      call uncompressMatrix(iproc,ovrlp)
+      call uncompress_matrix(iproc,ovrlp)
   
       allocate(inv_ovrlp_half%matrix(norb,norb), stat=istat)
       call memocc(istat, inv_ovrlp_half%matrix, 'inv_ovrlp_half%matrix', subname)
@@ -4665,7 +4665,7 @@ subroutine overlapPowerPlusMinusOneHalf(iproc, nproc, comm, methTransformOrder, 
       end if
       call dcopy(norb**2, tempArr(1,1,2), 1, inv_ovrlp_half%matrix(1,1), 1)
 
-      call compress_matrix_for_allreduce(iproc,inv_ovrlp_half)
+      call compress_matrix(iproc,inv_ovrlp_half)
 
       iall=-product(shape(eval))*kind(eval)
       deallocate(eval, stat=istat)

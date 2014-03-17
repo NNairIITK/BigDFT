@@ -5,13 +5,15 @@ module sparsematrix
 
   private
 
-  public :: compress_matrix_for_allreduce
-  public :: uncompressMatrix
+  !> Public routines
+  public :: compress_matrix
+  public :: uncompress_matrix
   public :: check_matrix_compression
 
   contains
 
-    subroutine compress_matrix_for_allreduce(iproc,sparsemat)
+    !> subroutine to compress the matrix to sparse form
+    subroutine compress_matrix(iproc,sparsemat)
       implicit none
       
       ! Calling arguments
@@ -59,11 +61,12 @@ module sparsematrix
     
       call timing(iproc,'compress_uncom','OF')
     
-    end subroutine compress_matrix_for_allreduce
+    end subroutine compress_matrix
 
 
 
-    subroutine uncompressMatrix(iproc,sparsemat)
+    !> subroutine to uncompress the matrix from sparse form
+    subroutine uncompress_matrix(iproc,sparsemat)
       implicit none
       
       ! Calling arguments
@@ -115,7 +118,7 @@ module sparsematrix
     
       call timing(iproc,'compress_uncom','OF')
     
-    end subroutine uncompressMatrix
+    end subroutine uncompress_matrix
 
 
 
@@ -149,7 +152,7 @@ module sparsematrix
          end do
       end do
       
-      call compress_matrix_for_allreduce(iproc,sparsemat)
+      call compress_matrix(iproc,sparsemat)
     
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg
@@ -172,7 +175,7 @@ module sparsematrix
         end if
       end if
     
-      call uncompressMatrix(iproc,sparsemat)
+      call uncompress_matrix(iproc,sparsemat)
     
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg

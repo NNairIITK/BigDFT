@@ -17,7 +17,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_interfaces, except_this_one => foe
   use yaml_output
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: compress_matrix_for_allreduce, uncompressMatrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
 
   ! Calling arguments
@@ -725,13 +725,13 @@ subroutine foe(iproc, nproc, tmprtr, &
       allocate(workmat(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
       call memocc(istat, workmat, 'workmat', subname)
     
-      call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
+      call uncompress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
     
       !!allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
       !!call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
       tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
           id='tmb%linmat%denskern_large%matrix')
-      call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+      call uncompress_matrix(iproc,tmb%linmat%denskern_large)
     
       if (tmb%orbs%norbp>0) then
           call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
@@ -750,7 +750,7 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
     
-      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+      call compress_matrix(iproc,tmb%linmat%denskern_large)
 
      iall=-product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
      deallocate(tmb%linmat%denskern_large%matrix,stat=istat)
@@ -862,7 +862,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Taylor approximation of S^-1/2 up to higher order
           allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
           call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-          call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+          call uncompress_matrix(iproc,tmb%linmat%ovrlp)
 
           !!allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
           !!call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix,'tmb%linmat%inv_ovrlp_large%matrix',subname)
@@ -874,7 +874,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
-          call compress_matrix_for_allreduce(iproc,tmb%linmat%inv_ovrlp_large)
+          call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
 
           iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix))*kind(tmb%linmat%inv_ovrlp_large%matrix)
           deallocate(tmb%linmat%inv_ovrlp_large%matrix,stat=istat)

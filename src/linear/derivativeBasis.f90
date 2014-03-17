@@ -386,8 +386,8 @@ end subroutine get_one_derivative_supportfunction
 !!  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%sparsemat, &
 !!       tmb%collcom, psit_c, phidr_c, psit_f, phidr_f, overlap_compr)
 !!
-!!  call uncompressMatrix(tmb%orbs%norb, tmb%sparsemat, matrix_compr, matrix)
-!!  call uncompressMatrix(tmb%orbs%norb, tmb%sparsemat, overlap_compr, overlap)
+!!  call uncompress_matrix(tmb%orbs%norb, tmb%sparsemat, matrix_compr, matrix)
+!!  call uncompress_matrix(tmb%orbs%norb, tmb%sparsemat, overlap_compr, overlap)
 !!
 !!  iall = -product(shape(matrix_compr))*kind(matrix_compr)
 !!  deallocate(matrix_compr,stat=istat)
