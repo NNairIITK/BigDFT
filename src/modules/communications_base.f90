@@ -221,5 +221,3 @@ module communications_base
 
 
 end module communications_base
-
-

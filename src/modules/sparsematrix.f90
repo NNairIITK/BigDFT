@@ -134,12 +134,6 @@ module sparsematrix
       real(kind=8), parameter :: tol=1.e-10
     
     
-      !!allocate(sparsemat%matrix(sparsemat%nfvctr,sparsemat%nfvctr),stat=i_stat)
-      !!call memocc(i_stat,sparsemat%matrix,'sparsemat%matrix',subname)
-    
-      !!allocate(sparsemat%matrix_compr(sparsemat%nvctr),stat=i_stat)
-      !!call memocc(i_stat,sparsemat%matrix_compr,'sparsemat%matrix_compr',subname)
-    
       sparsemat%matrix=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctr/),id='sparsemat%matrix')
       sparsemat%matrix_compr=f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
     
@@ -193,12 +187,6 @@ module sparsematrix
         end if
       end if
     
-      !!i_all = -product(shape(sparsemat%matrix))*kind(sparsemat%matrix)
-      !!deallocate(sparsemat%matrix,stat=i_stat)
-      !!call memocc(i_stat,i_all,'sparsemat%matrix',subname)
-      !!i_all = -product(shape(sparsemat%matrix_compr))*kind(sparsemat%matrix_compr)
-      !!deallocate(sparsemat%matrix_compr,stat=i_stat)
-      !!call memocc(i_stat,i_all,'sparsemat%matrix_compr',subname)
       call f_free_ptr(sparsemat%matrix)
       call f_free_ptr(sparsemat%matrix_compr)
     
