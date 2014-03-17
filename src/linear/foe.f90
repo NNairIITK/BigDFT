@@ -52,9 +52,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer :: irow, icol, itemp, iflag
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked
 
+  call f_routine(id='foe')
 
-  !!allocate(tmb%linmat%inv_ovrlp_large%matrix_compr(tmb%linmat%inv_ovrlp_large%nvctr), stat=istat)
-  !!call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix_compr, 'tmb%linmat%inv_ovrlp_large%matrix_compr', subname)
   tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr,&
       id='tmb%linmat%inv_ovrlp_large%matrix_compr')
 
@@ -717,8 +716,6 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
     
-      !!allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      !!call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix, 'tmb%linmat%inv_ovrlp_large%matrix', subname)
       tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
           id='tmb%linmat%inv_ovrlp_large%matrix')
     
@@ -752,17 +749,16 @@ subroutine foe(iproc, nproc, tmprtr, &
     
       call compress_matrix(iproc,tmb%linmat%denskern_large)
 
-     iall=-product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
-     deallocate(tmb%linmat%denskern_large%matrix,stat=istat)
-     call memocc(istat,iall,'tmb%linmat%denskern_large%matrix',subname)
+     !iall=-product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
+     !deallocate(tmb%linmat%denskern_large%matrix,stat=istat)
+     !call memocc(istat,iall,'tmb%linmat%denskern_large%matrix',subname)
+     call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
      iall=-product(shape(workmat))*kind(workmat)
      deallocate(workmat,stat=istat)
      call memocc(istat,iall,'workmat',subname)
 
-     iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix))*kind(tmb%linmat%inv_ovrlp_large%matrix)
-     deallocate(tmb%linmat%inv_ovrlp_large%matrix,stat=istat)
-     call memocc(istat,iall,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+     call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
     
   
       ! Purify the kernel
@@ -808,9 +804,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   end do temp_loop
 
 
-  iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix_compr))*kind(tmb%linmat%inv_ovrlp_large%matrix_compr)
-  deallocate(tmb%linmat%inv_ovrlp_large%matrix_compr,stat=istat)
-  call memocc(istat,iall,'tmb%linmat%inv_ovrlp_large%matrix_compr',subname)
+  call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
   
 
 
@@ -854,6 +848,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
 
+  call f_release_routine()
 
 
       contains
@@ -864,8 +859,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
           call uncompress_matrix(iproc,tmb%linmat%ovrlp)
 
-          !!allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-          !!call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix,'tmb%linmat%inv_ovrlp_large%matrix',subname)
           tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
               id='tmb%linmat%inv_ovrlp_large%matrix')
 
@@ -876,9 +869,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           end if
           call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
 
-          iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix))*kind(tmb%linmat%inv_ovrlp_large%matrix)
-          deallocate(tmb%linmat%inv_ovrlp_large%matrix,stat=istat)
-          call memocc(istat,iall,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+          call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
 
           iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
           deallocate(tmb%linmat%ovrlp%matrix,stat=istat)
