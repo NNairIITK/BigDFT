@@ -155,7 +155,17 @@ module communications_init
     
       !$omp parallel default(private) &
       !$omp shared(orbs,lzd,weight_c,weight_c_tot,weight_f,weight_f_tot,ilr,iiorb)
-    
+   
+!      orbs_it=>orbital_iterator(orbs)
+!      do while(associated(orbs_it))
+!        iorb=get_absolute_orbital(orbs_it)
+!        ilr=get_orbital_locreg(orbs_it)
+!        
+!        [....]
+!
+!        orbs_it=>orbital_next(orbs_it)
+!      end do
+
     
       ! Calculate the weights for the coarse part.
       do iorb=1,orbs%norbp
