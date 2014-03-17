@@ -23,13 +23,13 @@ module module_fragments
                  basis_overlap, coeff, orbs)
         use module_base
         use module_types
-        use sparsematrix_base, only: sparseMatrix
+        use sparsematrix_base, only: sparse_matrix
         implicit none
         integer, intent(in) :: iproc, nproc, norb
         integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
         type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
         type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
-        type(sparseMatrix),intent(in) :: basis_overlap
+        type(sparse_matrix),intent(in) :: basis_overlap
         real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
       end subroutine reorthonormalize_coeff
 
@@ -1001,6 +1001,7 @@ contains
     use yaml_output
     use module_base
     use communications, only: transpose_localized
+    use sparsematrix, only: uncompressMatrix
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
     type(input_variables), intent(in) :: input

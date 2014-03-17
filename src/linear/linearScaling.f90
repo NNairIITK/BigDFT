@@ -21,7 +21,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use diis_sd_optimization
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use communications, only: synchronize_onesided_communication
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -63,7 +63,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   logical :: lowaccur_converged, exit_outer_loop
   real(8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
-  type(sparseMatrix) :: ham_small
+  type(sparse_matrix) :: ham_small
   integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
   integer :: matrixindex_in_compressed
   
@@ -75,7 +75,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
   !!! EXPERIMENTAL ############################################
-  type(sparseMatrix) :: denskern_init
+  type(sparse_matrix) :: denskern_init
   real(8),dimension(:),allocatable :: rho_init, rho_init_old, philarge
   real(8) :: tt, ddot, tt_old, meanconf_der, weight_boundary, weight_tot
   integer :: idens_cons, ii, sdim, ldim, npsidim_large, ists, istl, nspin, unitname, ilr
@@ -146,8 +146,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   cut=maxval(tmb%lzd%llr(:)%locrad)
 
-  !call nullify_sparsematrix(ham_small) ! nullify anyway
-  ham_small=sparsematrix_null()
+  !call nullify_sparse_matrix(ham_small) ! nullify anyway
+  ham_small=sparse_matrix_null()
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! allocate ham_small
      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
@@ -384,9 +384,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           orthonormalization_on=.true.
 
           if (locreg_increased .and. input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-             call deallocate_sparsematrix(ham_small,subname)
-             !call nullify_sparsematrix(ham_small)
-             ham_small=sparsematrix_null()
+             call deallocate_sparse_matrix(ham_small,subname)
+             !call nullify_sparse_matrix(ham_small)
+             ham_small=sparse_matrix_null()
              call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
              !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
              !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
@@ -1152,7 +1152,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-     call deallocate_sparsematrix(ham_small,subname)
+     call deallocate_sparse_matrix(ham_small,subname)
   end if
 
   if (input%lin%constrained_dft) then

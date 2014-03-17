@@ -4,7 +4,7 @@ subroutine transform_sparse_matrix(smat, lmat, cmode)
   implicit none
 
   ! Calling arguments
-  type(sparseMatrix),intent(inout) :: smat, lmat
+  type(sparse_matrix),intent(inout) :: smat, lmat
   character(len=14),intent(in) :: cmode
 
   ! Local variables

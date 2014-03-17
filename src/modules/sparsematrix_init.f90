@@ -7,14 +7,17 @@ module sparsematrix_init
 
 
   !> Public routines
-  public :: initSparseMatrix
+  public :: init_sparse_matrix
   public :: init_sparsity_from_distance
+  public :: compressed_index
+  public :: matrixindex_in_compressed
+  public :: check_kernel_cutoff
 
   contains
 
 
     !> Currently assuming square matrices
-    subroutine initSparseMatrix(iproc, nproc, lzd, orbs, input, sparsemat)
+    subroutine init_sparse_matrix(iproc, nproc, lzd, orbs, input, sparsemat)
       use module_base
       use module_types
       use module_interfaces
@@ -26,13 +29,14 @@ module sparsematrix_init
       type(local_zone_descriptors),intent(in) :: lzd
       type(orbitals_data),intent(in) :: orbs
       type(input_variables),intent(in) :: input
-      type(sparseMatrix), intent(out) :: sparsemat
+      type(sparse_matrix), intent(out) :: sparsemat
       
       ! Local variables
-      character(len=*), parameter :: subname='initSparseMatrix'
+      character(len=*), parameter :: subname='init_sparse_matrix'
       integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
       integer :: nseglinemax, iall, ierr, jorbe, jorbs, jorbold, ii
-      integer :: compressed_index, matrixindex_in_compressed
+      !integer :: compressed_index, matrixindex_in_compressed
+      integer :: matrixindex_in_compressed
       integer, dimension(:,:,:), pointer :: keygline
       integer, dimension(:), pointer :: noverlaps
       integer, dimension(:,:), pointer :: overlaps
@@ -41,7 +45,7 @@ module sparsematrix_init
       
       call timing(iproc,'init_matrCompr','ON')
     
-      sparsemat=sparsematrix_null()
+      sparsemat=sparse_matrix_null()
       call determine_overlaps(iproc, nproc, lzd, orbs, 's', noverlaps, overlaps)
     
       sparsemat%nfvctr=orbs%norb
@@ -56,7 +60,7 @@ module sparsematrix_init
       sparsemat%nvctr=0
       jjorbold=-1
       irowold=0
-      call allocate_sparsematrix_basic(input%store_index, orbs%norb, nproc, sparsemat)
+      call allocate_sparse_matrix_basic(input%store_index, orbs%norb, nproc, sparsemat)
       sparsemat%nsegline=0
       do jproc=0,nproc-1
           do iorb=1,orbs%norb_par(jproc,0)
@@ -113,7 +117,7 @@ module sparsematrix_init
           end if
       end do
     
-      call allocate_sparsematrix_keys(sparsemat)
+      call allocate_sparse_matrix_keys(sparsemat)
     
       allocate(keygline(2,nseglinemax,orbs%norb), stat=istat)
       call memocc(istat, keygline, 'keygline', subname)
@@ -274,7 +278,7 @@ module sparsematrix_init
       call timing(iproc,'init_matrCompr','OF')
     
     
-    end subroutine initSparseMatrix
+    end subroutine init_sparse_matrix
 
 
 
@@ -539,7 +543,7 @@ module sparsematrix_init
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       type(input_variables),intent(in) :: input
-      type(sparsematrix),intent(out) :: sparsemat
+      type(sparse_matrix),intent(out) :: sparsemat
     
       ! Local variables
       integer :: iorb, jorb, isegline, iseg, ivctr, ijorb, istat
@@ -547,8 +551,8 @@ module sparsematrix_init
       character(len=*),parameter :: subname='init_sparsity_from_distance'
     
     
-      !call nullify_sparsematrix(sparsemat)
-      sparsemat=sparsematrix_null()
+      !call nullify_sparse_matrix(sparsemat)
+      sparsemat=sparse_matrix_null()
     
       sparsemat%nfvctr=orbs%norb
       sparsemat%nfvctrp=orbs%norbp
@@ -704,7 +708,7 @@ module sparsematrix_init
     
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      type(sparseMatrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(inout) :: sparsemat
     
       ! Local variables
       integer :: jproc, jorbs, jorbold, ii, jorb, istat
@@ -763,6 +767,250 @@ module sparsematrix_init
     
     end subroutine init_matrix_parallelization
 
+
+    subroutine init_indices_in_compressed(store_index, norb, sparsemat)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      logical,intent(in) :: store_index
+      integer,intent(in) :: norb
+      type(sparse_matrix),intent(inout) :: sparsemat
+    
+      ! Local variables
+      !integer :: iorb, jorb, compressed_index, istat
+      integer :: iorb, jorb, istat
+      character(len=*),parameter :: subname='init_indices_in_compressed'
+    
+      if (store_index) then
+          ! store the indices of the matrices in the sparse format
+          sparsemat%store_index=.true.
+    
+          ! initialize sparsemat%matrixindex_in_compressed
+          !allocate(sparsemat%matrixindex_in_compressed_arr(norb,norb),stat=istat)
+          !call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
+          sparsemat%matrixindex_in_compressed_arr=f_malloc_ptr((/norb,norb/),id='sparsemat%matrixindex_in_compressed_arr')
+    
+          do iorb=1,norb
+             do jorb=1,norb
+                sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norb,sparsemat)
+             end do
+          end do
+    
+      else
+          ! otherwise alwyas calculate them on-the-fly
+          sparsemat%store_index=.false.
+          nullify(sparsemat%matrixindex_in_compressed_arr)
+      end if
+    
+    end subroutine init_indices_in_compressed
+
+
+    !> Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+    function compressed_index(irow, jcol, norb, sparsemat)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: irow, jcol, norb
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer :: compressed_index
+    
+      ! Local variables
+      integer :: ii, iseg
+    
+      ii=(jcol-1)*norb+irow
+    
+      iseg=sparsemat%istsegline(jcol)
+      do
+          if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
+              ! The matrix element is in this segment
+               compressed_index = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
+              return
+          end if
+          iseg=iseg+1
+          if (iseg>sparsemat%nseg) exit
+          if (ii<sparsemat%keyg(1,iseg)) then
+              compressed_index=0
+              return
+          end if
+      end do
+    
+      ! Not found
+      compressed_index=0
+    
+    end function compressed_index
+
+
+    integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,intent(in) :: iorb, jorb
+    
+      ! Local variables
+    
+      if (sparsemat%store_index) then
+          ! Take the value from the array
+          matrixindex_in_compressed = sparsemat%matrixindex_in_compressed_arr(iorb,jorb)
+      else
+          ! Recalculate the value
+          matrixindex_in_compressed = compressed_index_fn(iorb, jorb, sparsemat%nfvctr, sparsemat)
+      end if
+    
+      contains
+        ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+        integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+          implicit none
+        
+          ! Calling arguments
+          integer,intent(in) :: irow, jcol, norb
+          type(sparse_matrix),intent(in) :: sparsemat
+        
+          ! Local variables
+          integer :: ii, iseg
+        
+          ii=(jcol-1)*norb+irow
+        
+          iseg=sparsemat%istsegline(jcol)
+          do
+              if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
+                  ! The matrix element is in sparsemat segment
+                   compressed_index_fn = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
+                  return
+              end if
+              iseg=iseg+1
+              if (iseg>sparsemat%nseg) exit
+              if (ii<sparsemat%keyg(1,iseg)) then
+                  compressed_index_fn=0
+                  return
+              end if
+          end do
+        
+          ! Not found
+          compressed_index_fn=0
+        
+        end function compressed_index_fn
+    end function matrixindex_in_compressed
+
+
+    subroutine init_orbs_from_index(sparsemat)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(inout) :: sparsemat
+    
+      ! local variables
+      integer :: ind, iseg, segn, iorb, jorb, istat
+      character(len=*),parameter :: subname='init_orbs_from_index'
+    
+      !allocate(sparsemat%orb_from_index(2,sparsemat%nvctr),stat=istat)
+      !call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
+      sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
+    
+      ind = 0
+      do iseg = 1, sparsemat%nseg
+         do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
+            ind=ind+1
+            iorb = (segn - 1) / sparsemat%nfvctr + 1
+            jorb = segn - (iorb-1)*sparsemat%nfvctr
+            sparsemat%orb_from_index(1,ind) = jorb
+            sparsemat%orb_from_index(2,ind) = iorb
+         end do
+      end do
+    
+    end subroutine init_orbs_from_index
+
+
+
+    subroutine check_kernel_cutoff(iproc, orbs, atoms, lzd)
+      use module_base
+      use module_types
+      use yaml_output
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc
+      type(orbitals_data),intent(in) :: orbs
+      type(atoms_data),intent(in) :: atoms
+      type(local_zone_descriptors),intent(inout) :: lzd
+    
+      ! Local variables
+      integer :: iorb, ilr, iat, iatype
+      real(kind=8) :: cutoff_sf, cutoff_kernel
+      character(len=20) :: atomname
+      logical :: write_data
+      logical,dimension(atoms%astruct%ntypes) :: write_atomtype
+    
+      write_atomtype=.true.
+    
+      if (iproc==0) then
+          call yaml_open_sequence('check of kernel cutoff radius')
+      end if
+    
+      do iorb=1,orbs%norb
+          ilr=orbs%inwhichlocreg(iorb)
+    
+          ! cutoff radius of the support function, including shamop region
+          cutoff_sf=lzd%llr(ilr)%locrad+8.d0*lzd%hgrids(1)
+    
+          ! cutoff of the density kernel
+          cutoff_kernel=lzd%llr(ilr)%locrad_kernel
+    
+          ! check whether the date for this atomtype has already shoudl been written
+          iat=orbs%onwhichatom(iorb)
+          iatype=atoms%astruct%iatype(iat)
+          if (write_atomtype(iatype)) then
+              if (iproc==0) then
+                  write_data=.true.
+              else
+                  write_data=.false.
+              end if
+              write_atomtype(iatype)=.false.
+          else
+              write_data=.false.
+          end if
+    
+          ! Adjust if necessary
+          if (write_data) then
+              call yaml_sequence(advance='no')
+              call yaml_open_map(flow=.true.)
+              atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
+              call yaml_map('atom type',atomname)
+          end if
+          if (cutoff_sf>cutoff_kernel) then
+              if (write_data) then
+                  call yaml_map('adjustment required',.true.)
+                  call yaml_map('new value',cutoff_sf,fmt='(f6.2)')
+              end if
+              lzd%llr(ilr)%locrad_kernel=cutoff_sf
+          else
+              if (write_data) then
+                  call yaml_map('adjustment required',.false.)
+              end if
+          end if
+          if (write_data) then
+              call yaml_close_map()
+          end if
+      end do
+    
+      if (iproc==0) then
+          call yaml_close_sequence
+      end if
+    
+    
+    end subroutine check_kernel_cutoff
 
 
 end module sparsematrix_init

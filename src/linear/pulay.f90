@@ -4,6 +4,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_interfaces, except_this_one => pulay_correction_new
   use yaml_output
   use communications, only: transpose_localized
+  use sparsematrix, only: compress_matrix_for_allreduce, uncompressMatrix
   implicit none
 
   ! Calling arguments
@@ -429,7 +430,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use module_interfaces, except_this_one => pulay_correction
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -451,7 +452,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   !!integer :: ialpha, iat, iiorb
   real(kind=8) :: kernel, ekernel
   real(kind=8),dimension(:),allocatable :: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
-  type(sparseMatrix) :: dovrlp(3), dham(3)
+  type(sparse_matrix) :: dovrlp(3), dham(3)
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   character(len=*),parameter :: subname='pulay_correction'
@@ -518,10 +519,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   ! DOVRLP AND DHAM SHOULD HAVE DIFFERENT SPARSITIES, BUT TO MAKE LIFE EASIER KEEPING THEM THE SAME FOR NOW
   ! also array of structure a bit inelegant at the moment
   do jdir = 1, 3
-    !call nullify_sparsematrix(dovrlp(jdir))
-    !call nullify_sparsematrix(dham(jdir))
-    dovrlp(jdir)=sparsematrix_null()
-    dham(jdir)=sparsematrix_null()
+    !call nullify_sparse_matrix(dovrlp(jdir))
+    !call nullify_sparse_matrix(dham(jdir))
+    dovrlp(jdir)=sparse_matrix_null()
+    dham(jdir)=sparse_matrix_null()
     call sparse_copy_pattern(tmb%linmat%ham,dovrlp(jdir),iproc,subname) 
     call sparse_copy_pattern(tmb%linmat%ham,dham(jdir),iproc,subname)
     !!allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
@@ -644,8 +645,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call memocc(istat, iall, 'denspot%pot_work', subname)
 
   do jdir=1,3
-     call deallocate_sparseMatrix(dovrlp(jdir),subname)
-     call deallocate_sparseMatrix(dham(jdir),subname)
+     call deallocate_sparse_matrix(dovrlp(jdir),subname)
+     call deallocate_sparse_matrix(dham(jdir),subname)
   end do
 
   !!if(iproc==0) write(*,'(1x,a)') 'done.'

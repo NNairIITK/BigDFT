@@ -321,7 +321,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use module_fragments
   use constrained_dft
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix, only: uncompressMatrix
   implicit none
 
   ! Calling arguments
@@ -337,12 +338,12 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   real(kind=8), dimension(:,:), allocatable :: weight_coeff_diag
   real(kind=8), dimension(:,:), pointer :: ovrlp_half
   real(kind=8) :: error
-  type(sparseMatrix) :: weight_matrix
+  type(sparse_matrix) :: weight_matrix
   character(len=256) :: subname='coeff_weight_analysis'
 
   call timing(iproc,'weightanalysis','ON')
-  !call nullify_sparsematrix(weight_matrix)
-  weight_matrix=sparsematrix_null()
+  !call nullify_sparse_matrix(weight_matrix)
+  weight_matrix=sparse_matrix_null()
   call sparse_copy_pattern(tmb%linmat%ham, weight_matrix, iproc, subname)
   !!allocate(weight_matrix%matrix_compr(weight_matrix%nvctr), stat=istat)
   !!call memocc(istat, weight_matrix%matrix_compr, 'weight_matrix%matrix_compr', subname)
@@ -388,7 +389,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   end do
   if (iproc==0) call yaml_close_sequence()
 
-  call deallocate_sparseMatrix(weight_matrix, subname)
+  call deallocate_sparse_matrix(weight_matrix, subname)
   call f_free(weight_coeff_diag)
   !call f_free(weight_coeff)
   call timing(iproc,'weightanalysis','OF')
@@ -402,13 +403,13 @@ subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs,
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, meth_overlap
   type(orbitals_data), intent(in) :: basis_orbs, ksorbs
-  type(sparseMatrix),intent(in) :: ham, ovrlp
+  type(sparse_matrix),intent(in) :: ham, ovrlp
   real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
   real(kind=8),dimension(ksorbs%norb),intent(inout) :: eval
   logical, intent(in) :: diag, calc_overlap
@@ -652,13 +653,13 @@ subroutine reordering_coeffs(iproc, nproc, num_extra, ksorbs, basis_orbs, ham, o
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, num_extra
   type(orbitals_data), intent(in) :: basis_orbs, ksorbs
-  type(sparseMatrix),intent(in) :: ham, ovrlp
+  type(sparse_matrix),intent(in) :: ham, ovrlp
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   logical, intent(in) :: reorder
 
@@ -893,18 +894,18 @@ end subroutine find_alpha_sd
 subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orbs,tmb_orbs,calculate_kernel)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   integer, intent(in) :: iproc, nproc
-  type(sparseMatrix), intent(in) :: ham
-  type(sparseMatrix), intent(inout) :: denskern
+  type(sparse_matrix), intent(in) :: ham
+  type(sparse_matrix), intent(inout) :: denskern
   logical, intent(in) :: calculate_kernel
   real(kind=gp), intent(out) :: energy
   type(orbitals_data), intent(in) :: orbs, tmb_orbs
   real(kind=gp), dimension(tmb_orbs%norb,tmb_orbs%norb), intent(in) :: coeff
 
   integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp
-  integer :: matrixindex_in_compressed
 
   if (calculate_kernel) then 
      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern)

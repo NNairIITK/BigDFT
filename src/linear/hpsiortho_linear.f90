@@ -18,7 +18,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use yaml_output
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
   use communications, only: transpose_localized
-  use sparsematrix_base, only: deallocate_sparseMatrix
+  use sparsematrix_base, only: deallocate_sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -42,7 +43,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i, jorb
-  integer :: matrixindex_in_compressed, lwork, info
+  integer :: lwork, info
   real(kind=8) :: ddot, tt, gnrmArr, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot
   !real(kind=8) :: eval_zero
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
@@ -334,7 +335,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   ! make lagmat a structure with same sparsity as h
-  !call nullify_sparsematrix(lagmat)
+  !call nullify_sparse_matrix(lagmat)
   !call sparse_copy_pattern(tmb%linmat%ham, lagmat, iproc, subname)
   !allocate(lagmat%matrix_compr(lagmat%nvctr), stat=istat)
   !call memocc(istat, lagmat%matrix_compr, 'lagmat%matrix_compr', subname)
@@ -512,7 +513,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham%matrix_compr(ii)
   end do
   call timing(iproc,'eglincomms','OF')
-  !call deallocate_sparseMatrix(lagmat,subname)
+  !call deallocate_sparse_matrix(lagmat,subname)
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
@@ -820,7 +821,8 @@ end subroutine calculate_energy_and_gradient_linear
 subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix, only: uncompressMatrix
   implicit none
 
   ! Calling arguments
@@ -833,7 +835,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   real(kind=8) :: ksres_sum
   real(kind=8), dimension(:), allocatable :: ksres
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, grad_coeff
-  type(sparseMatrix) :: grad_ovrlp
+  type(sparse_matrix) :: grad_ovrlp
   character(len=256) :: subname='calculate_residue_ks'
 
 
@@ -860,8 +862,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !     tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
   !!can_use_transposed=.true.
 
-  !call nullify_sparsematrix(grad_ovrlp)
-  grad_ovrlp=sparsematrix_null()
+  !call nullify_sparse_matrix(grad_ovrlp)
+  grad_ovrlp=sparse_matrix_null()
   call sparse_copy_pattern(tmb%linmat%ham, grad_ovrlp, iproc, subname)
   !!allocate(grad_ovrlp%matrix_compr(grad_ovrlp%nvctr), stat=istat)
   !!call memocc(istat, grad_ovrlp%matrix_compr, 'grad_ovrlp%matrix_compr', subname)
@@ -920,7 +922,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
   if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
 
-  call deallocate_sparseMatrix(grad_ovrlp, subname)
+  call deallocate_sparse_matrix(grad_ovrlp, subname)
 
   iall=-product(shape(grad_coeff))*kind(grad_coeff)
   deallocate(grad_coeff,stat=istat)

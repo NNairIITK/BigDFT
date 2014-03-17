@@ -971,15 +971,15 @@ subroutine deallocate_foe(foe_obj, subname)
 
 end subroutine deallocate_foe
 
-!!subroutine deallocate_sparseMatrix(sparsemat, subname)
+!!subroutine deallocate_sparse_matrix(sparsemat, subname)
 !!  use module_base 
 !!  use deallocatePointers
-!!  use module_interfaces, exceptThisOne => deallocate_sparseMatrix
-!!  use sparsematrix_base, only: sparseMatrix
+!!  use module_interfaces, exceptThisOne => deallocate_sparse_matrix
+!!  use sparsematrix_base, only: sparse_matrix
 !!  implicit none
 !!  
 !!  ! Calling arguments
-!!  type(sparseMatrix),intent(inout):: sparsemat
+!!  type(sparse_matrix),intent(inout):: sparsemat
 !!  character(len=*),intent(in):: subname
 !!
 !!  call checkAndDeallocatePointer(sparseMat%keyg, 'sparseMat%keyg', subname)
@@ -1000,4 +1000,4 @@ end subroutine deallocate_foe
 !!  call f_free_ptr(sparseMat%matrixp)
 !!  call f_free_ptr(sparseMat%matrix_comprp)
 !!
-!!end subroutine deallocate_sparseMatrix
+!!end subroutine deallocate_sparse_matrix

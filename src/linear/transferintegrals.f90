@@ -6,14 +6,14 @@ subroutine calc_transfer_integrals_old(iproc,nproc,input_frag,ref_frags,orbs,ham
   use module_fragments
   use internal_io
   use module_interfaces
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   integer, intent(in) :: iproc, nproc
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   type(orbitals_data), intent(in) :: orbs
-  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix), intent(inout) :: ham, ovrlp
   !Local variables
   character(len=*), parameter :: subname='calc_transfer_integrals'
   integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ifrag_ref, ierr, ih, jh
@@ -110,13 +110,14 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
   use module_fragments
   use internal_io
   use module_interfaces
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: uncompressMatrix
   implicit none
 
   integer, intent(in) :: iproc, nproc
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
-  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix), intent(inout) :: ham, ovrlp
   real(kind=gp), dimension(ovrlp%nfvctr,input_frag%nfrag), intent(in) :: homo_coeffs
   !Local variables
   character(len=*), parameter :: subname='calc_transfer_integral'
@@ -272,12 +273,12 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   use module_fragments
   use internal_io
   use module_interfaces
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   integer, intent(in) :: iproc, nproc, nstates
   type(orbitals_data), intent(in) :: orbs
-  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix), intent(inout) :: ham, ovrlp
   real(kind=gp), dimension(ovrlp%nfvctr,nstates), intent(in) :: homo_coeffs1, homo_coeffs2
   real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
 
@@ -346,13 +347,14 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   use module_fragments
   use internal_io
   use module_interfaces
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: uncompressmatrix
   implicit none
 
   integer, intent(in) :: iproc, nproc, meth_overlap
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
-  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix), intent(inout) :: ham, ovrlp
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
   integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, nstates, istate, ih, ifrag_ref

@@ -861,7 +861,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
   
   ! Calling arguments
@@ -880,7 +880,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   ! Local variables
   type(orbitals_data) :: orbs
   type(comms_cubic) :: comms
-  type(sparseMatrix) :: ham_small ! for FOE
+  type(sparse_matrix) :: ham_small ! for FOE
   real(gp) :: fnrm
   integer :: infoCoeff, nvctrp, npsidim_global
   real(kind=8),dimension(:),pointer :: phi_global, phiwork_global

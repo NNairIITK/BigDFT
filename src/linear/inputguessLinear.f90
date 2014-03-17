@@ -20,7 +20,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -40,7 +41,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,matrixindex_in_compressed
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0,tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
@@ -58,7 +59,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8) :: rcov,rprb,ehomo,amu,pnrm
   integer :: nsccode,mxpl,mxchg,inl
   type(mixrhopotDIISParameters) :: mixdiis
-  type(sparseMatrix) :: ham_small ! for FOE
+  type(sparse_matrix) :: ham_small ! for FOE
   logical :: finished, can_use_ham
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   real(kind=8),dimension(:),allocatable :: philarge
@@ -669,8 +670,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  end if
 
 
-  !call nullify_sparsematrix(ham_small) ! nullify anyway
-  ham_small=sparsematrix_null()
+  !call nullify_sparse_matrix(ham_small) ! nullify anyway
+  ham_small=sparse_matrix_null()
 
   !!if (iproc==0) then
   !!    call yaml_close_map()
@@ -700,7 +701,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            input%purification_quickreturn,input%calculate_KS_residue)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-         call deallocate_sparsematrix(ham_small,subname)
+         call deallocate_sparse_matrix(ham_small,subname)
       end if
 
   else

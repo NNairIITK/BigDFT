@@ -929,6 +929,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
+  use sparsematrix, only: uncompressmatrix
   implicit none
   integer, intent(in) :: iproc,nproc,iformat
   character(len=*), intent(in) :: filename 

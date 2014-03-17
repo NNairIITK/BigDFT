@@ -4541,8 +4541,8 @@ subroutine overlapPowerPlusMinusOneHalf(iproc, nproc, comm, methTransformOrder, 
   
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
-  type(sparseMatrix),intent(inout) :: ovrlp
-  type(sparseMatrix),intent(inout) :: inv_ovrlp_half
+  type(sparse_matrix),intent(inout) :: ovrlp
+  type(sparse_matrix),intent(inout) :: inv_ovrlp_half
   logical, intent(in) :: plusminus ! if true S^1/2, if false S^-1/2
 
   ! Local variables

@@ -15,13 +15,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => get_coeff, exceptThisOneA => writeonewave
+  use module_interfaces, exceptThisOne => get_coeff
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use constrained_dft
   use diis_sd_optimization
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: uncompressMatrix
   implicit none
 
   ! Calling arguments
@@ -39,7 +40,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
   logical,intent(in) :: calculate_ham, calculate_KS_residue
-  type(sparseMatrix), intent(inout) :: ham_small ! for foe only
+  type(sparse_matrix), intent(inout) :: ham_small ! for foe only
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -56,7 +57,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-  type(sparseMatrix) :: gradmat 
+  type(sparse_matrix) :: gradmat 
   logical :: update_kernel, overlap_calculated
 
   character(len=*),parameter :: subname='get_coeff'
@@ -1820,6 +1821,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
   use communications, only: transpose_localized
+  use sparsematrix, only: uncompressmatrix
   implicit none
 
   ! Calling arguments
@@ -1888,14 +1890,14 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use module_base
   use module_types
   use module_interfaces, except_this_one => reorthonormalize_coeff
-  use sparsematrix_base, only: sparseMatrix
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, norb
   integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-  type(sparseMatrix),intent(in) :: basis_overlap
+  type(sparse_matrix),intent(in) :: basis_overlap
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   ! Local variables
@@ -2138,6 +2140,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use yaml_output
   use module_interfaces, except_this_one => purify_kernel
   use communications, only: transpose_localized
+  use sparsematrix, only: compress_matrix_for_allreduce, uncompressmatrix
   implicit none
 
   ! Calling arguments
@@ -2475,7 +2478,8 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use module_base
   use module_types
   use module_interfaces, except_this_one => get_KS_residue
-  use sparsematrix_base, only: sparseMatrix, sparsematrix_null, deallocate_sparseMatrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix, only: uncompressmatrix
   implicit none
 
   ! Calling arguments
@@ -2489,14 +2493,14 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   ! Local variables
   integer :: iorb, istat, ierr,  jorb
   real(kind=8) :: norbtot, scale_factor
-  type(sparseMatrix) :: gradmat 
+  type(sparse_matrix) :: gradmat 
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
   character(len=*),parameter :: subname='get_KS_residue'
 
   call f_routine(id='get_KS_residue')
  
-  !call nullify_sparsematrix(gradmat)
-  gradmat=sparsematrix_null()
+  !call nullify_sparse_matrix(gradmat)
+  gradmat=sparse_matrix_null()
   call sparse_copy_pattern(tmb%linmat%ham, gradmat, iproc, subname)
   gradmat%matrix_compr=f_malloc_ptr(gradmat%nvctr,id='gradmat%matrix_compr')
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
@@ -2591,7 +2595,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call f_free_ptr(tmb%linmat%ham%matrix)
   call f_free_ptr(tmb%linmat%denskern_large%matrix)
   call f_free_ptr(gradmat%matrix_compr)
-  call deallocate_sparsematrix(gradmat, subname)
+  call deallocate_sparse_matrix(gradmat, subname)
 
   call f_free(KH)
   call f_free(KHKH)
