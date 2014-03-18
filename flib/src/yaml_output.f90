@@ -235,13 +235,17 @@ contains
     integer :: stream_next_free_unit
     type(dictionary), pointer :: iter
 
+    logical :: unit_is_open
+    integer :: ierr
+
     stream_next_free_unit = 75214
-    iter => dict_iter(stream_files)
-    do while (associated(iter))
-       stream_next_free_unit = iter
-       iter => dict_next(iter)
+    unit_is_open = .true.
+    do while (unit_is_open)
+       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
+       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+            YAML_INVALID)) return
+       stream_next_free_unit = stream_next_free_unit + 1
     end do
-    stream_next_free_unit = stream_next_free_unit + 1
   end function stream_next_free_unit
   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
