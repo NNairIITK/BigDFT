@@ -341,6 +341,25 @@
     call dict_init(dict_present_error)
   end subroutine f_err_clean
 
+  !> clean last error, if any and get message.
+  function f_err_pop(add_msg)
+    implicit none
+    character(len=*), intent(out), optional :: add_msg
+    integer :: f_err_pop
+    !local variables
+    integer :: ierr
+    ierr=dict_len(dict_present_error)-1
+    if (ierr >= 0) then
+       f_err_pop=dict_present_error//ierr//errid
+       if (present(add_msg)) add_msg=dict_present_error//ierr//'Additional Info'
+       call pop(dict_present_error, ierr)
+       if (.not.associated(dict_present_error)) call dict_init(dict_present_error)
+    else
+       f_err_pop=0
+       if (present(add_msg)) add_msg=repeat(' ',len(add_msg))
+    end if
+  end function f_err_pop
+
   !> activate the exception handling for all errors
   subroutine f_err_open_try()
     implicit none

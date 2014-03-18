@@ -107,7 +107,7 @@ module dictionaries
    type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
 
    public :: f_err_initialize,f_err_finalize,f_get_last_error,f_get_error_definitions
-   public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_get_error_dict,f_err_throw
+   public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_err_pop,f_get_error_dict,f_err_throw
 
    !public variables of the callback module
    public :: f_err_set_callback,f_err_unset_callback,f_err_open_try,f_err_close_try

@@ -178,7 +178,8 @@ contains
     integer :: ierr
     character(len = max_field_length) :: val
 
-    ierr = f_get_last_error(val)
+    ! Transform current error into a warning.
+    ierr = f_err_pop(val)
     call yaml_warning(trim(val))
   end subroutine warn_illegal
 
