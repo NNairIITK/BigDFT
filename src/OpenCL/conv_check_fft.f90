@@ -73,7 +73,7 @@ program conv_check_fft
   call customize_fft((/n1,n2,n3/))
   call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)
-  call init_event_list
+  call init_event_list(context)
 
   hx=0.1e0_gp
   !n(c) hy=0.1e0_gp
@@ -323,7 +323,7 @@ program conv_check_fft
    call pkernel_free(pkernel2,subname)
 
 
-  call print_event_list
+  call print_event_list(context)
   call ocl_clean_command_queue(queue)
   call ocl_clean(context)
 

@@ -65,20 +65,20 @@ inline void syn_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uin
     oclErrorCheck(ciErrNum,"Failed to enqueue synthesis kernel!");
 }
 
-cl_program anaProgram;
-cl_program synProgram;
+//cl_program anaProgram;
+//cl_program synProgram;
 
-void create_wavelet_kernels(struct bigdft_kernels * kernels) {
+void create_wavelet_kernels(bigdft_context * context, struct bigdft_kernels * kernels) {
     cl_int ciErrNum = CL_SUCCESS;
-    kernels->anashrink1d_kernel_d=clCreateKernel(anaProgram,"anashrink1dKernel_d",&ciErrNum);
+    kernels->anashrink1d_kernel_d=clCreateKernel((*context)->anaProgram,"anashrink1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create anashrink1dKernel_d kernel!");
-    kernels->ana1d_kernel_d=clCreateKernel(anaProgram,"ana1dKernel_d",&ciErrNum);
+    kernels->ana1d_kernel_d=clCreateKernel((*context)->anaProgram,"ana1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create ana1dKernel_d kernel!");
-    kernels->ana1d_block_kernel_d=clCreateKernel(anaProgram,"ana1d_blockKernel_d",&ciErrNum);
+    kernels->ana1d_block_kernel_d=clCreateKernel((*context)->anaProgram,"ana1d_blockKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create ana1d_blockKernel_d kernel!");
-    kernels->syngrow1d_kernel_d=clCreateKernel(synProgram,"syngrow1dKernel_d",&ciErrNum);
+    kernels->syngrow1d_kernel_d=clCreateKernel((*context)->synProgram,"syngrow1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create syngrow1dKernel_d kernel!");
-    kernels->syn1d_kernel_d=clCreateKernel(synProgram,"syn1dKernel_d",&ciErrNum);
+    kernels->syn1d_kernel_d=clCreateKernel((*context)->synProgram,"syn1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create syn1dKernel_d kernel!");
 }
 
@@ -87,28 +87,28 @@ void build_wavelet_programs(bigdft_context * context){
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum = CL_SUCCESS;
     char * code = generate_ana_program(&infos);
-    anaProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &code, NULL, &ciErrNum);
+    (*context)->anaProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(anaProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram((*context)->anaProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build ana program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(anaProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo((*context)->anaProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
     code = generate_syn_program(&infos);
-    synProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &code, NULL, &ciErrNum);
+    (*context)->synProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(synProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram((*context)->synProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build syn program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(synProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo((*context)->synProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
@@ -350,10 +350,10 @@ void clean_wavelet_kernels(struct bigdft_kernels * kernels){
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
 }
 
-void clean_wavelet_programs(){
+void clean_wavelet_programs(bigdft_context * context){
   cl_int ciErrNum;
-  ciErrNum = clReleaseProgram(anaProgram);
+  ciErrNum = clReleaseProgram((*context)->anaProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
-  ciErrNum = clReleaseProgram(synProgram);
+  ciErrNum = clReleaseProgram((*context)->synProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
 }

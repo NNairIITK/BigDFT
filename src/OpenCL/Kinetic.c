@@ -89,30 +89,30 @@ inline void kinetic_k_generic_2(cl_kernel kernel, cl_command_queue command_queue
 
 
 
-cl_program kineticProgram;
-cl_program kinetic_kProgram;
+//cl_program kineticProgram;
+//cl_program kinetic_kProgram;
 
-void create_kinetic_kernels(struct bigdft_kernels * kernels) {
+void create_kinetic_kernels(bigdft_context * context, struct bigdft_kernels * kernels) {
     cl_int ciErrNum=CL_SUCCESS;
-    kernels->kinetic1d_kernel_d=clCreateKernel(kineticProgram,"kinetic1dKernel_d",&ciErrNum);
+    kernels->kinetic1d_kernel_d=clCreateKernel((*context)->kineticProgram,"kinetic1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kinetic1dKernel_d kernel!");
-    kernels->kinetic1d_f_kernel_d=clCreateKernel(kineticProgram,"kinetic1d_fKernel_d",&ciErrNum);
+    kernels->kinetic1d_f_kernel_d=clCreateKernel((*context)->kineticProgram,"kinetic1d_fKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kinetic1d_fKernel_d kernel!");
-    kernels->kinetic_k1d_kernel_d=clCreateKernel(kinetic_kProgram,"kinetic_k1dKernel_d",&ciErrNum);
+    kernels->kinetic_k1d_kernel_d=clCreateKernel((*context)->kinetic_kProgram,"kinetic_k1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kinetic_k1dKernel_d kernel!");
-    kernels->kinetic_k1d_kernel_d_2=clCreateKernel(kinetic_kProgram,"kinetic_k1dKernel_d_2",&ciErrNum);
+    kernels->kinetic_k1d_kernel_d_2=clCreateKernel((*context)->kinetic_kProgram,"kinetic_k1dKernel_d_2",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kinetic_k1dKernel_d_2 kernel!");
-    kernels->kinetic_k1d_f_kernel_d_2=clCreateKernel(kinetic_kProgram,"kinetic_k1d_fKernel_d_2",&ciErrNum);
+    kernels->kinetic_k1d_f_kernel_d_2=clCreateKernel((*context)->kinetic_kProgram,"kinetic_k1d_fKernel_d_2",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kinetic_k1d_fKernel_d_2 kernel!");
 }
 
 /*static void print_program_binary(cl_program prog){
     cl_int ciErrNum;
     cl_uint dev_num;
-    ciErrNum = clGetProgramInfo(kinetic_kProgram, CL_PROGRAM_NUM_DEVICES, sizeof(cl_uint), &dev_num, NULL);
+    ciErrNum = clGetProgramInfo((*context)->kinetic_kProgram, CL_PROGRAM_NUM_DEVICES, sizeof(cl_uint), &dev_num, NULL);
     oclErrorCheck(ciErrNum,"Failed to get num devices!");
     size_t *prog_sizes=(size_t *)malloc(dev_num*sizeof(cl_uint));
-    ciErrNum = clGetProgramInfo(kinetic_kProgram, CL_PROGRAM_BINARY_SIZES , sizeof(size_t)*dev_num, prog_sizes, NULL);
+    ciErrNum = clGetProgramInfo((*context)->kinetic_kProgram, CL_PROGRAM_BINARY_SIZES , sizeof(size_t)*dev_num, prog_sizes, NULL);
     oclErrorCheck(ciErrNum,"Failed to get program binary sizes!");
     unsigned char ** binaries = (unsigned char **)malloc(dev_num * sizeof(unsigned char *));
     unsigned int i;
@@ -121,7 +121,7 @@ void create_kinetic_kernels(struct bigdft_kernels * kernels) {
       binaries[i] = (unsigned char *)malloc(prog_sizes[i]*sizeof(unsigned char));
       prog_sum_size += prog_sizes[i];
     }
-    ciErrNum = clGetProgramInfo(kinetic_kProgram, CL_PROGRAM_BINARIES , prog_sum_size, binaries, NULL);
+    ciErrNum = clGetProgramInfo((*context)->kinetic_kProgram, CL_PROGRAM_BINARIES , prog_sum_size, binaries, NULL);
     oclErrorCheck(ciErrNum,"Failed to get program binaries!");
     for(i=0; i<dev_num; i++){
       printf("%.*s\n",(int)prog_sizes[i],binaries[i]);
@@ -135,32 +135,32 @@ void build_kinetic_programs(bigdft_context * context){
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum=CL_SUCCESS;
     char * code = generate_kinetic_program(&infos);
-    kineticProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &code, NULL, &ciErrNum);
+    (*context)->kineticProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(kineticProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram((*context)->kineticProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build kinetic program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(kineticProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo((*context)->kineticProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
     code = generate_kinetic_k_program(&infos);
-    kinetic_kProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &code, NULL, &ciErrNum);
+    (*context)->kinetic_kProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(kinetic_kProgram, 0, NULL, "", NULL, NULL);
+    ciErrNum = clBuildProgram((*context)->kinetic_kProgram, 0, NULL, "", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build kinetic_k program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(kinetic_kProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo((*context)->kinetic_kProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
-//    print_program_binary(kinetic_kProgram);
+//    print_program_binary((*context)->kinetic_kProgram);
 }
 
 void FC_FUNC_(kinetic_k_d,KINETIC_K_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y, double * c_in,  double *k) {
@@ -306,10 +306,10 @@ void clean_kinetic_kernels(struct bigdft_kernels * kernels){
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
 }
 
-void clean_kinetic_programs(){
+void clean_kinetic_programs(bigdft_context * context){
   cl_int ciErrNum;
-  ciErrNum = clReleaseProgram(kineticProgram);
+  ciErrNum = clReleaseProgram((*context)->kineticProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
-  ciErrNum = clReleaseProgram(kinetic_kProgram);
+  ciErrNum = clReleaseProgram((*context)->kinetic_kProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
 }
