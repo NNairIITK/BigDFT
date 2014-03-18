@@ -497,7 +497,7 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
         writing_directory = dict_value(dict // "perf" // "outdir")
      end if
   end if
-  run_name   = "input"
+  run_name   = ""
   dir_output = "data" // trim(bigdft_run_id_toa())
   if (has_key(dict, "radical")) then
      run_name   = dict // "radical"
@@ -528,7 +528,7 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
           & trim(logfile),lgt,back=.true.)
      if (bigdft_mpi%iproc ==0) then
         logfile=repeat(' ',len(logfile))
-        if (len_trim(run_name) >0) then
+        if (len_trim(run_name) > 0) then
 !           logfile='log-'//trim(run_name)//trim(bigdft_run_id_toa())//'.yaml'
            logfile='log-'//trim(run_name)//'.yaml'
         else
