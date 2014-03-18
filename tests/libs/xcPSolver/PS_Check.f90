@@ -25,6 +25,7 @@ program PS_Check
    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot,extra_ref
    type(coulomb_operator) :: pkernel,pkernelseq
+   type(xc_info) :: xc
    real(kind=8) :: hx,hy,hz,offset
    real(kind=8) :: ehartree,eexcu,vexcu
    real(kind=8) :: tel
@@ -158,9 +159,9 @@ program PS_Check
 
    do ispden=1,2
       if (ixc < 0) then
-         call xc_init(ixc, XC_MIXED, ispden)
+         call xc_init(xc, ixc, XC_MIXED, ispden)
       else
-         call xc_init(ixc, XC_ABINIT, ispden)
+         call xc_init(xc, ixc, XC_ABINIT, ispden)
       end if
       if (iproc == 0) then
          call yaml_map('Number of Spins',ispden,advance='no')
@@ -180,7 +181,7 @@ program PS_Check
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
 !print *,'xc',iproc,pkernel%iproc,pkernel%mpi_env%nproc,pkernel%mpi_comm,MPI_COMM_WORLD
-      call XC_potential(geocode,'G',pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
+      call XC_potential(geocode,'G',pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
            rhopot,eexcu,vexcu,ispden,rhocore,xc_pot,xcstr)
 !      print *,'xcend',iproc
       !eexcu=0.0_gp
@@ -212,11 +213,11 @@ program PS_Check
 !!$      deallocate(rhopot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'rhopot',subname)
 
-      call compare_with_reference(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+      call compare_with_reference(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,xc,ispden,hx,hy,hz,&
       offset,ehartree,eexcu,vexcu,&
       density,potential,pot_ion,xc_pot,pkernel)
 
-      call compare_with_reference(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+      call compare_with_reference(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,xc,ispden,hx,hy,hz,&
       offset,ehartree,eexcu,vexcu,&
       density,potential,pot_ion,xc_pot,pkernel)
 
@@ -242,7 +243,7 @@ program PS_Check
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_close_map() !comparison
       if (ixc == 0) exit
 
-      call xc_end()
+      call xc_end(xc)
    end do
 
    if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_close_map() !MPI
@@ -272,9 +273,9 @@ program PS_Check
 
      do ispden = 1, 2 
        if (ixc < 0) then
-         call xc_init(ixc, XC_MIXED, ispden)
+         call xc_init(xc, ixc, XC_MIXED, ispden)
        else
-         call xc_init(ixc, XC_ABINIT, ispden)
+         call xc_init(xc, ixc, XC_ABINIT, ispden)
        end if
      
        call yaml_map('Number of Spins',ispden)
@@ -290,18 +291,18 @@ program PS_Check
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
        call yaml_open_map('Comparison with a reference run')
 
-       call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+       call compare_with_reference(0,1,geocode,'G',n01,n02,n03,xc,ispden,hx,hy,hz,&
          offset,ehartree,eexcu,vexcu,&
          density,potential,pot_ion,xc_pot,pkernelseq)
 
-       call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+       call compare_with_reference(0,1,geocode,'D',n01,n02,n03,xc,ispden,hx,hy,hz,&
          offset,ehartree,eexcu,vexcu,&
          density,potential,pot_ion,xc_pot,pkernelseq)
 
        call pkernel_free(pkernelseq,subname)
        call yaml_close_map() !comparison
        if (ixc == 0) exit
-       call xc_end()    
+       call xc_end(xc)    
      enddo
      call f_free(rhopot)
 !!$     i_all=-product(shape(rhopot))*kind(rhopot)
@@ -475,18 +476,19 @@ program PS_Check
    END SUBROUTINE compare_cplx_calculations
 
    subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,&
-      ixc,nspden,hx,hy,hz,offset,ehref,excref,vxcref,&
+      xc,nspden,hx,hy,hz,offset,ehref,excref,vxcref,&
       density,potential,pot_ion,xc_pot,pkernel)
       use Poisson_Solver
       implicit none
       character(len=1), intent(in) :: geocode,distcode
-      integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspden
+      integer, intent(in) :: iproc,nproc,n01,n02,n03,nspden
       real(kind=8), intent(in) :: hx,hy,hz,offset,ehref,excref,vxcref
       real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
       real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
       real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
       real(kind=8), dimension(n01*n02*n03*nspden), target, intent(in) :: xc_pot
       type(coulomb_operator), intent(in) :: pkernel
+      type(xc_info), intent(in) :: xc
       !local variables
       character(len=*), parameter :: subname='compare_with_reference'
       character(len=100) :: message
@@ -503,7 +505,7 @@ program PS_Check
 
       nullify(rhocore)
 
-      call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,xc_isgga(), (ixc /= 13),&
+      call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,xc_isgga(xc), (xc%ixc /= 13),&
       n3d,n3p,n3pi,i3xcsh,i3s)
 
       !starting point of the three-dimensional arrays
@@ -536,7 +538,7 @@ program PS_Check
 !!$      call memocc(i_stat,rhopot,'rhopot',subname)
     
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) &
-           write(message,'(1x,a,1x,i0,1x,a,1x,i0)') geocode,ixc,distcode,nspden
+           write(message,'(1x,a,1x,i0,1x,a,1x,i0)') geocode,xc%ixc,distcode,nspden
 
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup==0) then
          select case(distcode)
@@ -548,7 +550,7 @@ program PS_Check
       end if
 
 
-      if (ixc /= 0) then
+      if (xc%ixc /= 0) then
          if (nspden == 1) then
             test(1:n01*n02*n03)=&
             potential(1:n01*n02*n03)+pot_ion(1:n01*n02*n03)+xc_pot(1:n01*n02*n03)
@@ -598,7 +600,7 @@ program PS_Check
          istxc=istpot
       end if
 
-      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
+      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
       rhopot,eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
       call H_potential(distcode,pkernel,rhopot,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
       !compare the values of the analytic results (no dependence on spin)
@@ -614,7 +616,7 @@ program PS_Check
       !!$         'ANACOMPLET '//message)
 
       !compare also the xc_potential
-      if (ixc/=0) call compare(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,nproc,&
+      if (xc%ixc/=0) call compare(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,nproc,&
            pkernel%mpi_env%mpi_comm,n01,n02,nspden*n3p,1,xc_temp(istxc:),&
       test_xc(1),&
       'XCCOMPLETE ')!//message)
@@ -646,10 +648,10 @@ program PS_Check
 !!$         call memocc(i_stat,i_all,'xc_temp',subname)
       end if
 
-      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
+      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
       rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
 
-      call H_potential(distcode,pkernel,rhopot(1,1,1,1),pot_ion(istpoti),ehartree,offset,ixc /= 0,quiet='yes') !optional argument
+      call H_potential(distcode,pkernel,rhopot(1,1,1,1),pot_ion(istpoti),ehartree,offset,xc%ixc /= 0,quiet='yes') !optional argument
       !fill the other part, for spin, polarised
       if (nspden == 2) then
          !the starting point is not so simple
