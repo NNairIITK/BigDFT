@@ -336,7 +336,6 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
 /**
  * bigdft_run_new_from_dict:
  * @dict: 
- * @dump: 
  *
  * Pouet.
  *

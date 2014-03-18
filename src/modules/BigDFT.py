@@ -126,6 +126,14 @@ class DictAccessor:
     else:
       raise TypeError
 
+  def __add__(self, val):
+    if isinstance(val, int):
+      return numpy.array(self.map(int)) + val
+    elif isinstance(val, float):
+      return numpy.array(self.map(float)) + val
+    else:
+      raise TypeError
+
   def __len__(self):
     self.dict.move_to(self.position)
     return int(self.dict.len())
