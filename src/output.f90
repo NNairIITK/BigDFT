@@ -1730,7 +1730,7 @@ subroutine print_nlpsp(nlpsp)
   implicit none
   type(DFT_PSP_projectors), intent(in) :: nlpsp
   !local variables
-  integer :: iat,inl,sizemask,maxmask,totmask
+  integer :: iat,ilr,sizemask,maxmask,totmask
 
   call yaml_open_map('NonLocal PSP Projectors Descriptors')
   if (nlpsp%on_the_fly) then
@@ -1746,10 +1746,10 @@ subroutine print_nlpsp(nlpsp)
   totmask=0
   do iat=1,nlpsp%natoms
      sizemask=0
-     if (associated(pspd(iat)%tolr)) then
-        do ilr=1,pspd(iat)%nlr
+     if (associated(nlpsp%pspd(iat)%tolr)) then
+        do ilr=1,nlpsp%pspd(iat)%nlr
            sizemask=sizemask+&
-                pspd(iat)%tolr(ilr)%nmseg_c+pspd(iat)%tolr(ilr)%nmseg_f
+                nlpsp%pspd(iat)%tolr(ilr)%nmseg_c+nlpsp%pspd(iat)%tolr(ilr)%nmseg_f
         end do
      end if
      maxmask=max(maxmask,sizemask)
