@@ -134,15 +134,45 @@ struct _opencl_version {
   cl_uint major;
 }; 
 
-struct _bigdft_command_queue {
-  struct bigdft_kernels kernels;
-  struct bigdft_device_infos device_infos;
-  cl_command_queue command_queue;
-  struct _opencl_version PLATFORM_VERSION;
-};
+/** Structure associating an OpenCL event with a comment, for profiling purpose. */
+typedef struct {
+	cl_event e;
+	char *comment;
+} event;
 
 struct _bigdft_context {
   cl_context context;
+  struct _opencl_version PLATFORM_VERSION;
+  cl_program benchmarkProgram;
+  cl_program fftProgramd0;
+  cl_program fftProgramd1;
+  cl_program fftProgramd2;
+  cl_program initializeProgram;
+  cl_program kineticProgram;
+  cl_program kinetic_kProgram;
+  cl_program magicfilterProgram;
+  cl_program reductionProgram;
+  cl_program dgemmProgram;
+  cl_program uncompressProgram;
+  cl_program compressProgram;
+  cl_program anaProgram;
+  cl_program synProgram;
+  cl_mem cossind0;
+  cl_mem cossind1;
+  cl_mem cossind2;
+  cl_uint fft_size[3];
+  event * event_list;
+  size_t event_number;
+  size_t event_allocated;
+};
+
+typedef struct _bigdft_context * bigdft_context;
+
+struct _bigdft_command_queue {
+  bigdft_context context;
+  struct bigdft_kernels kernels;
+  struct bigdft_device_infos device_infos;
+  cl_command_queue command_queue;
   struct _opencl_version PLATFORM_VERSION;
 };
 
@@ -151,9 +181,8 @@ extern struct _opencl_version opencl_version_1_1;
 extern struct _opencl_version opencl_version_1_2;
 
 typedef struct _bigdft_command_queue * bigdft_command_queue;
-typedef struct _bigdft_context * bigdft_context;
 
-extern cl_uint fft_size[3];
+//extern cl_uint fft_size[3];
 void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(cl_uint *dimensions);
 
 cl_int compare_opencl_version(struct _opencl_version v1, struct _opencl_version v2);
@@ -161,16 +190,16 @@ cl_int compare_opencl_version(struct _opencl_version v1, struct _opencl_version 
 void get_context_devices_infos(bigdft_context * context, struct bigdft_device_infos * infos);
 void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos);
 /** Creates all bigdft kernels*/
-void create_kernels(struct bigdft_kernels *kernels);
+void create_kernels(bigdft_context * context, struct bigdft_kernels *kernels);
 /** Creates magicfilter kernels. to be called after building the magicfilter programs. */
-void create_magicfilter_kernels(struct bigdft_kernels * kernels);
-void create_benchmark_kernels(struct bigdft_kernels * kernels);
-void create_kinetic_kernels(struct bigdft_kernels * kernels);
-void create_wavelet_kernels(struct bigdft_kernels * kernels);
-void create_uncompress_kernels(struct bigdft_kernels * kernels);
-void create_initialize_kernels(struct bigdft_kernels * kernels);
-void create_reduction_kernels(struct bigdft_kernels * kernels);
-void create_fft_kernels(struct bigdft_kernels * kernels);
+void create_magicfilter_kernels(bigdft_context * context, struct bigdft_kernels * kernels);
+void create_benchmark_kernels(bigdft_context * context, struct bigdft_kernels * kernels);
+void create_kinetic_kernels(bigdft_context * context, struct bigdft_kernels * kernels);
+void create_wavelet_kernels(bigdft_context * context, struct bigdft_kernels * kernels);
+void create_uncompress_kernels(bigdft_context * context, struct bigdft_kernels * kernels);
+void create_initialize_kernels(bigdft_context * context, struct bigdft_kernels * kernels);
+void create_reduction_kernels(bigdft_context * context, struct bigdft_kernels * kernels);
+void create_fft_kernels(bigdft_context * context, struct bigdft_kernels * kernels);
 /** Compiles magicfilter programs in the given context. */
 void build_magicfilter_programs(bigdft_context * context);
 void build_reduction_programs(bigdft_context * context);
@@ -188,16 +217,16 @@ void clean_wavelet_kernels(struct bigdft_kernels * kernels);
 void clean_uncompress_kernels(struct bigdft_kernels * kernels);
 void clean_initialize_kernels(struct bigdft_kernels * kernels);
 void clean_reduction_kernels(struct bigdft_kernels * kernels);
-void clean_fft_kernels(struct bigdft_kernels * kernels);
+void clean_fft_kernels(bigdft_context * context, struct bigdft_kernels * kernels);
 /** Releases magicfilter programs. */
-void clean_magicfilter_programs();
-void clean_benchmark_programs();
-void clean_kinetic_programs();
-void clean_initialize_programs();
-void clean_wavelet_programs();
-void clean_uncompress_programs();
-void clean_reduction_programs();
-void clean_fft_programs();
+void clean_magicfilter_programs(bigdft_context * context);
+void clean_benchmark_programs(bigdft_context * context);
+void clean_kinetic_programs(bigdft_context * context);
+void clean_initialize_programs(bigdft_context * context);
+void clean_wavelet_programs(bigdft_context * context);
+void clean_uncompress_programs(bigdft_context * context);
+void clean_reduction_programs(bigdft_context * context);
+void clean_fft_programs(bigdft_context * context);
 
 /** Returns the first device available in a given context. */
 cl_device_id oclGetFirstDev(cl_context cxGPUContext);
@@ -205,18 +234,13 @@ cl_device_id oclGetFirstDev(cl_context cxGPUContext);
 /** Returns the next integer that is equal or greater than global_size and a multiple of group_size. */
 size_t shrRoundUp(size_t group_size, size_t global_size);
 
-/** Structure associating an OpenCL event with a comment, for profiling purpose. */
-typedef struct {
-	cl_event e;
-	char *comment;
-} event;
 
 /** Adds an event to the global event list. */
-int addToEventList (event ev);
-/** The global event list. */
-extern event * event_list;
-/** The number of event in the event_list. */
-extern size_t event_number;
+int addToEventList(bigdft_context * context, event ev);
+///** The global event list. */
+//extern event * event_list;
+///** The number of event in the event_list. */
+//extern size_t event_number;
 
 /** Reads the processor time stamp counter. */
 void FC_FUNC_(rdtsc,RDTSC)(cl_ulong * t);
@@ -224,9 +248,9 @@ void FC_FUNC_(rdtsc,RDTSC)(cl_ulong * t);
 void FC_FUNC_(nanosec,NANOSEC)(cl_ulong * t);
 
 /** Initializes the event list. For profiling purpose. */
-void FC_FUNC_(init_event_list,INIT_EVENT_LIST)();
+void FC_FUNC_(init_event_list,INIT_EVENT_LIST)(bigdft_context * context);
 /** Prints the event list. */
-void FC_FUNC_(print_event_list,PRINT_EVENT_LIST)();
+void FC_FUNC_(print_event_list,PRINT_EVENT_LIST)(bigdft_context * context);
 /** Buids and create the OpenCL kernel int the given context. */
 void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(bigdft_context * context);
 /** Creates a context containing devices of the type specified from the chosen platform*/

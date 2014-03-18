@@ -21,17 +21,17 @@
 #include "OpenCL_wrappers.h"
 #include "Benchmark_Generator.h"
 
-cl_program benchmarkProgram;
+//cl_program benchmarkProgram;
 
-void create_benchmark_kernels(struct bigdft_kernels * kernels){
+void create_benchmark_kernels(bigdft_context * context, struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    kernels->benchmark_mops_kernel_d=clCreateKernel(benchmarkProgram,"benchmark_mopsKernel_d",&ciErrNum);
+    kernels->benchmark_mops_kernel_d=clCreateKernel((*context)->benchmarkProgram,"benchmark_mopsKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create benchmark_mopsKernel_d kernel!");
-    kernels->benchmark_flops_kernel_d=clCreateKernel(benchmarkProgram,"benchmark_flopsKernel_d",&ciErrNum);
+    kernels->benchmark_flops_kernel_d=clCreateKernel((*context)->benchmarkProgram,"benchmark_flopsKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create benchmark_flopsKernel_d kernel!");
-    kernels->transpose_kernel_d=clCreateKernel(benchmarkProgram,"transposeKernel_d",&ciErrNum);
+    kernels->transpose_kernel_d=clCreateKernel((*context)->benchmarkProgram,"transposeKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create transposeKernel_d kernel!");
-    kernels->notranspose_kernel_d=clCreateKernel(benchmarkProgram,"notransposeKernel_d",&ciErrNum);
+    kernels->notranspose_kernel_d=clCreateKernel((*context)->benchmarkProgram,"notransposeKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create notransposeKernel_d kernel!");
 }
 
@@ -40,15 +40,15 @@ void build_benchmark_programs(bigdft_context * context){
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum=CL_SUCCESS;
     char * code = generate_benchmark_program(&infos);
-    benchmarkProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &code, NULL, &ciErrNum);
+    (*context)->benchmarkProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(benchmarkProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram((*context)->benchmarkProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to build benchmark program!\n",ciErrNum);
         char cBuildLog[10240];
-        clGetProgramBuildInfo(benchmarkProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo((*context)->benchmarkProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
@@ -114,8 +114,8 @@ void clean_benchmark_kernels(struct bigdft_kernels * kernels){
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
 }
 
-void clean_benchmark_programs(){
+void clean_benchmark_programs(bigdft_context * context){
   cl_int ciErrNum;
-  ciErrNum = clReleaseProgram(benchmarkProgram);
+  ciErrNum = clReleaseProgram((*context)->benchmarkProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
 }
