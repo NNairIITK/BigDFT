@@ -1817,7 +1817,7 @@ nullify(Qvect,dumQvect)
     type(DFT_PSP_projectors), target :: nlpsp
     type(local_zone_descriptors), target :: Lzd
     type(denspot_distribution), intent(in), target :: dpcom
-    type(xc_info), intent(in) :: xc
+    type(xc_info), intent(in), target :: xc
     real(gp), dimension(3,at%astruct%nat), target :: rxyz
     real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
     real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
@@ -1908,6 +1908,7 @@ nullify(Qvect,dumQvect)
     ha%PAWD=> PAWD
     ha%SIC=>in%SIC
     ha%orbs=>orbs
+    ha%xc=>xc
 
     call EP_inizializza(ha)  
 
