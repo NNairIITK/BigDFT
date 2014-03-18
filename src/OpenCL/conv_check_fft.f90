@@ -70,7 +70,7 @@ program conv_check_fft
   end if
 
   call ocl_create_gpu_context(context,device_number)
-  call customize_fft((/n1,n2,n3/))
+  call customize_fft(context, (/n1,n2,n3/))
   call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)
   call init_event_list(context)
