@@ -11,7 +11,7 @@
 !> Program test for the convolution in GPU
 program conv_check_fft
   use module_base
-  use Poisson_Solver, only: H_potential, coulomb_operator, pkernel_free, pkernel_init
+  use Poisson_Solver, only: H_potential, coulomb_operator, pkernel_free, pkernel_init, pkernel_set
   implicit none
   integer  :: n1,n2,n3 !n(c) n1bis,n2bis,n3bis
   real(gp) :: hx,r2,sigma2,x,y,z,maxdiff,arg !n(c) epot,hy,hz
@@ -56,6 +56,8 @@ program conv_check_fft
 !!!  read(unit=chain,fmt=*) n1
 !!!  call getarg(2,chain)
 !!!  read(unit=chain,fmt=*) n2*n3
+
+  call f_lib_initialize()
 
   read(unit=2,fmt=*,iostat=ierror) n1,n2,n3,ntimes
   if (ierror /= 0) then
@@ -263,6 +265,7 @@ program conv_check_fft
     write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
    !calculate the kernel in parallel for each processor
     pkernel = pkernel_init(.false., 0, 1, 0, 'P', (/ n1,n2,n3 /), (/ 0.2d0,0.2d0,0.2d0 /), 16)
+    call pkernel_set(pkernel,.false.)
 
    !call to_zero(size(pkernel),pkernel(1))
    !pkernel(1:size(pkernel))=1.0_dp
@@ -278,6 +281,7 @@ program conv_check_fft
    write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver, dimensions:',n1,n2,n3
 
    !transpose the kernel before copying
+   pkernel2 = pkernel_init(.false., 0, 1, 0, 'P', (/ n1,n2,n3 /), (/ 0.2d0,0.2d0,0.2d0 /), 16)
    call transpose_kernel_forGPU('P',n1,n2,n3,pkernel%kernel,pkernel2%kernel)
    !pkernel2(1:size(pkernel2))=1.0_dp
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
@@ -285,7 +289,7 @@ program conv_check_fft
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, work2_GPU)
    call ocl_create_read_write_buffer(context, n1*n2*n3*8, k_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, rhopot2)!v_cuda)!
-   call ocl_enqueue_write_buffer(queue, k_GPU, n1*n2*n3*8, pkernel2)!v_cuda)!
+   call ocl_enqueue_write_buffer(queue, k_GPU, n1*n2*n3*8, pkernel2%kernel)!v_cuda)!
 
    call nanosec(tsc0);
    do i=1,ntimes
@@ -322,6 +326,8 @@ program conv_check_fft
   call print_event_list
   call ocl_clean_command_queue(queue)
   call ocl_clean(context)
+
+    call f_lib_finalize()
 
 contains
 
