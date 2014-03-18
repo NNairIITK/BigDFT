@@ -709,8 +709,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
 
-  !quick return if no orbitals on this processo
   eproj_sum=0.0_gp
+  !quick return if no orbitals on this task
   if (orbs%norbp == 0) then
      return
   end if
@@ -766,12 +766,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
            do iat=1,at%astruct%nat
               iatype=at%astruct%iatype(iat)
 
-              ! Check if atom has projectors, if not cycle
-!!$              if(at%npspcode(iatype)==7) then
-!!$                 call numb_proj_paw_tr(iatype,at%astruct%ntypes,proj_G(iatype),mproj) 
-!!$              else
-!!$                 call numb_proj(iatype,at%astruct%ntypes,at%psppar,at%npspcode,mproj) 
-!!$              end if
               mproj=nl%pspd(iat)%mproj
               if(mproj == 0) cycle
 
@@ -836,9 +830,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               end if
            end do
 
-           !if (iproj /= nlpspd%nproj) stop &
-           !     'NonLocal HamiltonianApplication: incorrect number of projectors created'     
-           !for the moment, localization region method is not implemented with
+           !for the moment, localization region method is not tested with
            !once-and-for-all calculation
         else if (Lzd%nlr == 1) then
 
@@ -856,11 +848,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               do iat=1,at%astruct%nat
                  iatype=at%astruct%iatype(iat)
                  ! Check if atom has projectors, if not cycle
-!!$                 if(at%npspcode(iatype)==7) then
-!!$                    call numb_proj_paw_tr(iatype,at%astruct%ntypes,proj_G(iatype),mproj) 
-!!$                 else
-!!$                    call numb_proj(iatype,at%astruct%ntypes,at%psppar,at%npspcode,mproj) 
-!!$                 end if
                  mproj=nl%pspd(iat)%mproj
                  if(mproj == 0) cycle
                  !check if the atom intersect with the given localisation region
@@ -918,24 +905,24 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   call timing(iproc,'ApplyProj     ','OF')
 contains
 
-  !> count the number of projectors given a set of psppar
-  pure function nproj(psppar)
-    use module_base, only: gp
-    implicit none
-    real(gp), dimension(0:4,0:6), intent(in) :: psppar
-    integer :: nproj
-    !local variables
-    integer :: i,l,m
-    nproj = 0
-    !count over all the channels
-    do l=1,4
-       !loop over all the projectors of the channel
-       do i=1,3
-          !loop over all the components of the projector
-          if (psppar(l,i) /= 0.0_gp) nproj=nproj+2*l-1
-       end do
-    end do
-  end function nproj
+!!$  !> count the number of projectors given a set of psppar
+!!$  pure function nproj(psppar)
+!!$    use module_base, only: gp
+!!$    implicit none
+!!$    real(gp), dimension(0:4,0:6), intent(in) :: psppar
+!!$    integer :: nproj
+!!$    !local variables
+!!$    integer :: i,l,m
+!!$    nproj = 0
+!!$    !count over all the channels
+!!$    do l=1,4
+!!$       !loop over all the projectors of the channel
+!!$       do i=1,3
+!!$          !loop over all the components of the projector
+!!$          if (psppar(l,i) /= 0.0_gp) nproj=nproj+2*l-1
+!!$       end do
+!!$    end do
+!!$  end function nproj
 
   !>code factorization useful for routine restructuring
   subroutine nl_psp_application()

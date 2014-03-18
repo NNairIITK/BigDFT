@@ -1401,6 +1401,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      deallocate(tmb%confdatarr, stat=istat)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
+     !after that the locregs are (re-)created, update the mask arrays
+     !for the pseudopotential
+     
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)

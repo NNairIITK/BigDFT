@@ -265,8 +265,9 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj,nbseg_dim
   integer :: iat,i_stat,i_all,iseg
+  integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
   call f_routine(id=subname)
 
@@ -294,16 +295,24 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
 
   if (dry_run) then
      call f_free(logrid)
+     call f_release_routine()     
      return
   end if
 
   !here the allocation is possible
+  nbseg_dim=0
   do iat=1,nl%natoms
      !also the fact of allocating pointers with size zero has to be discussed
      !for the moments the bounds are not needed for projectors
      call allocate_wfd(nl%pspd(iat)%plr%wfd)
+     nbseg_dim=max(nbseg_dim,&
+          nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f)
   end do
   nl%proj=f_malloc0_ptr(nl%nprojel,id='proj')
+
+  !allocate the work arrays for building tolr array of structures
+  nbsegs_cf=f_malloc(nbseg_dim,id='nbsegs_cf')
+  keyg_lin=f_malloc(lr%wfd%nseg_c+lr%wfd%nseg_f,id='keyg_lin')
 
   ! After having determined the size of the projector descriptor arrays fill them
   do iat=1,at%astruct%nat
@@ -349,14 +358,20 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
                 nl%pspd(iat)%plr%wfd%keygloc(1,iseg)) 
         end if
      endif
+     !in the case of linear scaling this section has to be built again
+     call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
+          keyg_lin,nbsegs_cf,nl%pspd(iat)%tolr)
   enddo
 
   call f_free(logrid)
+  call f_free(keyg_lin)
+  call f_free(nbsegs_cf)
   !fill the projectors if the strategy is a distributed calculation
   if (.not. nl%on_the_fly) then
      !calculate the wavelet expansion of projectors
      call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nl,0)
   end if
+
 
   call f_release_routine()
 END SUBROUTINE createProjectorsArrays

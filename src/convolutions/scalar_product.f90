@@ -1,7 +1,7 @@
 subroutine NL_HGH_application(npspcode,psppar,ncplx_p,n_p,wfd_p,proj,&
      ncplx_w,n_w,wfd_w,psi,hpsi,eproj)
   use module_base
-  use module_types, only: wavefunctions_descriptors
+  use module_types, only: wavefunctions_descriptors,mask_sizes,init_mask
   implicit none
   integer, intent(in) :: npspcode
   integer, intent(in) :: ncplx_p,n_p,ncplx_w,n_w
@@ -29,41 +29,43 @@ subroutine NL_HGH_application(npspcode,psppar,ncplx_p,n_p,wfd_p,proj,&
 
   !allocate temporary workspace
   keyag_lin_cf=f_malloc(wfd_w%nseg_c+wfd_w%nseg_f,id='keyag_lin_cf')
-
-
-  nbsegs_cf=f_malloc0(wfd_p%nseg_c+wfd_p%nseg_f,id='nbsegs_cf')  
   !find the dimension for masking array, coarse case
   call vcopy(wfd_w%nseg_c+wfd_w%nseg_f,wfd_w%keyglob(1,1),2,keyag_lin_cf(1),1)
+  
+  nbsegs_cf=f_malloc0(wfd_p%nseg_c+wfd_p%nseg_f,id='nbsegs_cf')  
+  
+  call mask_sizes(wfd_w,wfd_p,keyag_lin_cf,nbsegs_cf,nmseg_c,nmseg_f)
 
-  call count_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,keyag_lin_cf(1),&
-       wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),nbsegs_cf(1))
-!  print *,'no of points',sum(nbsegs_cf),wfd_w%nseg_c,wfd_p%nseg_c
-  call integrate_nseg(wfd_p%nseg_c,nbsegs_cf(1),nmseg_c)
-!  print *,'no of points',nmseg_c
-
-  if (wfd_w%nseg_f >0 .and. wfd_p%nseg_f > 0 ) then
-     call count_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,keyag_lin_cf(wfd_w%nseg_c+1),&
-          wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
-          nbsegs_cf(wfd_p%nseg_c+1))
-     call integrate_nseg(wfd_p%nseg_f,nbsegs_cf(wfd_p%nseg_c+1),nmseg_f)
-  else
-     nmseg_f=0
-  end if
+!!$  call count_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,keyag_lin_cf(1),&
+!!$       wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),nbsegs_cf(1))
+!!$!  print *,'no of points',sum(nbsegs_cf),wfd_w%nseg_c,wfd_p%nseg_c
+!!$  call integrate_nseg(wfd_p%nseg_c,nbsegs_cf(1),nmseg_c)
+!!$!  print *,'no of points',nmseg_c
+!!$
+!!$  if (wfd_w%nseg_f >0 .and. wfd_p%nseg_f > 0 ) then
+!!$     call count_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,keyag_lin_cf(wfd_w%nseg_c+1),&
+!!$          wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
+!!$          nbsegs_cf(wfd_p%nseg_c+1))
+!!$     call integrate_nseg(wfd_p%nseg_f,nbsegs_cf(wfd_p%nseg_c+1),nmseg_f)
+!!$  else
+!!$     nmseg_f=0
+!!$  end if
   !the masking array can be allocated
 
   !print *,'no of points',nmseg_c,nmseg_f
   psi_mask=f_malloc0((/3,nmseg_c+nmseg_f/),id='psi_mask')
   !and filled
-  call fill_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,nmseg_c,&
-       nbsegs_cf(1),keyag_lin_cf(1),wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),&
-       wfd_w%keyvglob(1),wfd_p%keyvglob(1),psi_mask(1,1))
-  if (nmseg_f > 0) then
-     call fill_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,nmseg_f,&
-          nbsegs_cf(wfd_p%nseg_c+1),keyag_lin_cf(wfd_w%nseg_c+1),&
-          wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
-          wfd_w%keyvglob(wfd_w%nseg_c+1),wfd_p%keyvglob(wfd_p%nseg_c+1),&
-          psi_mask(1,nmseg_c+1))
-  end if
+  call init_mask(wfd_w,wfd_p,keyag_lin_cf,nbsegs_cf,nmseg_c,nmseg_f,psi_mask)
+!!$  call fill_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,nmseg_c,&
+!!$       nbsegs_cf(1),keyag_lin_cf(1),wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),&
+!!$       wfd_w%keyvglob(1),wfd_p%keyvglob(1),psi_mask(1,1))
+!!$  if (nmseg_f > 0) then
+!!$     call fill_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,nmseg_f,&
+!!$          nbsegs_cf(wfd_p%nseg_c+1),keyag_lin_cf(wfd_w%nseg_c+1),&
+!!$          wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
+!!$          wfd_w%keyvglob(wfd_w%nseg_c+1),wfd_p%keyvglob(wfd_p%nseg_c+1),&
+!!$          psi_mask(1,nmseg_c+1))
+!!$  end if
   call f_free(keyag_lin_cf,nbsegs_cf)
 
   !create other workspaces  
@@ -1558,23 +1560,6 @@ subroutine count_wblas_segs(maseg,mbseg,keyag_lin,keyag,keybg,nbsegs)
     include 'scalar_product-inc.f90'
 
 end subroutine count_wblas_segs
-
-!> count the total number of segments and define the integral array of displacements
-pure subroutine integrate_nseg(mseg,msegs,nseg_tot)
-  implicit none
-  integer, intent(in) :: mseg
-  integer, dimension(mseg), intent(inout) :: msegs
-  integer, intent(out) :: nseg_tot
-  !local variables
-  integer :: iseg,jseg
-
-  nseg_tot=0
-  do iseg=1,mseg
-     jseg=msegs(iseg)
-     msegs(iseg)=nseg_tot
-     nseg_tot=nseg_tot+jseg
-  end do
-end subroutine integrate_nseg
 
 !> find the number of chunks which are needed to perform blas operations among two compressed wavefunctions
 subroutine fill_wblas_segs(maseg,mbseg,mask_segs,isegs_offset,keyag_lin,keyag,keybg,keyav,keybv,amask)

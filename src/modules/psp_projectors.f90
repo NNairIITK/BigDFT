@@ -46,6 +46,8 @@ module psp_projectors
      real(gp) :: zerovol               !< Proportion of zero components.
      real(wp), dimension(:), pointer :: proj !<storage space of the projectors in wavelet basis
      type(nonlocal_psp_descriptors), dimension(:), pointer :: pspd !<descriptor per projector, of size natom
+     !most likely work arrays might go here
+     
   end type DFT_PSP_projectors
 
   contains
@@ -267,5 +269,211 @@ module psp_projectors
 
     END SUBROUTINE pregion_size
 
+    !> routine to update the PSP descriptors as soon as the localization regions
+    ! are modified
+    subroutine update_nlpsp(nl,nlr,lrs,Glr)
+      implicit none
+      integer, intent(in) :: nlr
+      type(locreg_descriptors), intent(in) :: Glr
+      type(locreg_descriptors), dimension(nlr), intent(in) :: lrs
+      type(DFT_PSP_projectors), intent(inout) :: nl
+      !local variables
+      integer :: nbseg_dim,nkeyg_dim,iat,ilr
+      integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
+
+      !find allocating dimensions for work arrays
+      nbseg_dim=0
+      do iat=1,nl%natoms
+         nbseg_dim=max(nbseg_dim,&
+              nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f)
+      end do
+      nkeyg_dim=0
+      do ilr=1,nlr
+         nkeyg_dim=max(nkeyg_dim,lrs(ilr)%wfd%nseg_c+lrs(ilr)%wfd%nseg_f)
+      end do
+
+      !allocate the work arrays for building tolr array of structures
+      nbsegs_cf=f_malloc(nbseg_dim,id='nbsegs_cf')
+      keyg_lin=f_malloc(nkeyg_dim,id='keyg_lin')
+
+      !reconstruct the projectors for any of the atoms
+      do iat=1,nl%natoms
+         
+         !free the pre-existing array of structures
+         if (associated(nl%pspd(iat)%tolr)) then
+            do ilr=1,nl%pspd(iat)%nlr
+               call deallocate_nlpsp_to_wfd(nl%pspd(iat)%tolr(ilr))
+               call nullify_nlpsp_to_wfd(nl%pspd(iat)%tolr(ilr))
+            end do
+            deallocate(nl%pspd(iat)%tolr)
+            nullify(nl%pspd(iat)%tolr)
+         end if
+         !then fill it again
+         nl%pspd(iat)%nlr=nlr
+         call set_nlpsp_to_wfd(Glr,nl%pspd(iat)%plr,&
+              keyg_lin,nbsegs_cf,nl%pspd(iat)%tolr,lrs)
+      end do
+
+      call f_free(keyg_lin)
+      call f_free(nbsegs_cf)
+
+    end subroutine update_nlpsp
+
+    !> initialize the information for matching the localisation region
+    !! of each projector to all the localisation regions of the system
+    subroutine set_nlpsp_to_wfd(Glr,plr,keyag_lin_cf,nbsegs_cf,tolr,lrs)
+      implicit none
+      type(locreg_descriptors), intent(in) :: Glr !<global simulation domain
+      type(locreg_descriptors), intent(in) :: plr !<locreg of the projector
+      !>work array: needed to build the mask array
+      integer, dimension(plr%wfd%nseg_c+plr%wfd%nseg_f), intent(inout) :: nbsegs_cf
+      !>work array: needed to put the unstrided keygloc of all locregs
+      !! the dimension has to be maxval(lrs(:)%nseg_c+lrs(:)%nseg_f)
+      integer, dimension(*), intent(inout) :: keyag_lin_cf
+      !>structures which have to be filled to prepare projector applications
+      type(nlpsp_to_wfd), dimension(:), pointer :: tolr 
+      !> descriptors of all the localization regions of the simulation domain
+      !! susceptible to interact with the projector
+      type(locreg_descriptors), dimension(:), optional, intent(in) :: lrs
+      !local variables
+      logical :: overlap
+      integer :: ilr,nlr
+
+      nlr=1
+      overlap=.true.
+      if (present(lrs)) nlr=size(lrs)
+
+      if (nlr <=0) return
+      !allocate the pointer with the good size
+      allocate(tolr(nlr))
+      !then for any of the localization regions check the strategy
+      !for applying the projectors
+      do ilr=1,nlr
+         !this will set to PSP_APPLY_SKIP the projector application
+         call nullify_nlpsp_to_wfd(tolr(ilr))
+         !now control if the projector overlaps with this locreg
+         if (present(lrs)) then
+            call check_overlap(lrs(ilr),plr,Glr,overlap)
+            !if there is overlap, activate the strategy for the application
+            if (overlap) then
+               !calculate the size of the mask array
+               call vcopy(lrs(ilr)%wfd%nseg_c+lrs(ilr)%wfd%nseg_f,&
+                    lrs(ilr)%wfd%keyglob(1,1),2,keyag_lin_cf(1),1)
+               call to_zero(plr%wfd%nseg_c+plr%wfd%nseg_f,nbsegs_cf(1))
+               call mask_sizes(lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
+                    tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f)
+               !then allocate and fill it
+               tolr(ilr)%mask=&
+                    f_malloc0_ptr((/3,tolr(ilr)%nmseg_c+tolr(ilr)%nmseg_f/),&
+                    id='mask')
+               !and filled
+               call init_mask(lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
+                    tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f,tolr(ilr)%mask)
+            end if
+         else
+            !calculate the size of the mask array
+            call vcopy(Glr%wfd%nseg_c+Glr%wfd%nseg_f,&
+                 Glr%wfd%keyglob(1,1),2,keyag_lin_cf(1),1)
+            call to_zero(plr%wfd%nseg_c+plr%wfd%nseg_f,nbsegs_cf(1))
+            call mask_sizes(Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
+                 tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f)
+            !then allocate and fill it
+            tolr(ilr)%mask=&
+                 f_malloc0_ptr((/3,tolr(ilr)%nmseg_c+tolr(ilr)%nmseg_f/),&
+                 id='mask')
+            !and filled
+            call init_mask(Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
+                 tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f,tolr(ilr)%mask)
+         end if
+            !then the best strategy can be decided according to total number of 
+            !common points
+            !complete stategy, the packing array is created after first projector
+         if (overlap) tolr(ilr)%strategy=PSP_APPLY_MASK_PACK
+            !masking is used but packing is not created, 
+            !useful when only one projector has to be applied
+            !tolr(ilr)%strategy=PSP_APPLY_MASK
+            !old scheme, even though mask arrays is created it is never used.
+            !most likely this scheme is useful for debugging purposes
+            !tolr(ilr)%strategy=PSP_APPLY_KEYS
+      end do
+
+    end subroutine set_nlpsp_to_wfd
+
+    !>find the size of the mask array for a given couple plr - llr
+    subroutine mask_sizes(wfd_w,wfd_p,keyag_lin_cf,nbsegs_cf,nmseg_c,nmseg_f)
+      
+      implicit none
+      type(wavefunctions_descriptors), intent(in) :: wfd_w,wfd_p
+      !> array of the unstrided keyglob starting points of wfd_w, pre-filled
+      integer, dimension(wfd_w%nseg_c+wfd_w%nseg_f), intent(in) :: keyag_lin_cf
+      !> number of common segments of the wfd_w for each of the segment of wfd_p.
+      !! should be initialized to zero at input
+      integer, dimension(wfd_p%nseg_c+wfd_p%nseg_f), intent(inout) :: nbsegs_cf
+      integer, intent(out) :: nmseg_c,nmseg_f
+
+      call count_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,keyag_lin_cf(1),&
+           wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),nbsegs_cf(1))
+      !  print *,'no of points',sum(nbsegs_cf),wfd_w%nseg_c,wfd_p%nseg_c
+      call integrate_nseg(wfd_p%nseg_c,nbsegs_cf(1),nmseg_c)
+      !  print *,'no of points',nmseg_c
+
+      if (wfd_w%nseg_f >0 .and. wfd_p%nseg_f > 0 ) then
+         call count_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,keyag_lin_cf(wfd_w%nseg_c+1),&
+              wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
+              nbsegs_cf(wfd_p%nseg_c+1))
+         call integrate_nseg(wfd_p%nseg_f,nbsegs_cf(wfd_p%nseg_c+1),nmseg_f)
+      else
+         nmseg_f=0
+      end if
+
+    contains
+
+      !> count the total number of segments and define the integral array of displacements
+      pure subroutine integrate_nseg(mseg,msegs,nseg_tot)
+        implicit none
+        integer, intent(in) :: mseg
+        integer, dimension(mseg), intent(inout) :: msegs
+        integer, intent(out) :: nseg_tot
+        !local variables
+        integer :: iseg,jseg
+
+        nseg_tot=0
+        do iseg=1,mseg
+           jseg=msegs(iseg)
+           msegs(iseg)=nseg_tot
+           nseg_tot=nseg_tot+jseg
+        end do
+      end subroutine integrate_nseg
+
+    end subroutine mask_sizes
+
+    !>fill the mask array which has been previoulsly allocated and cleaned
+    subroutine init_mask(wfd_w,wfd_p,keyag_lin_cf,nbsegs_cf,nmseg_c,nmseg_f,mask)
+      implicit none
+      integer, intent(in) :: nmseg_c,nmseg_f
+      type(wavefunctions_descriptors), intent(in) :: wfd_w,wfd_p
+      !> array of the unstrided keyglob starting points of wfd_w, pre-filled
+      integer, dimension(wfd_w%nseg_c+wfd_w%nseg_f), intent(in) :: keyag_lin_cf
+      !> number of common segments of the wfd_w for each of the segment of wfd_p.
+      !! should be created by mask_sizes routine
+      integer, dimension(wfd_p%nseg_c+wfd_p%nseg_f), intent(in) :: nbsegs_cf
+      !>masking array. On output, it indicates for any of the segments 
+      !which are common between the wavefunction and the projector
+      !the starting positions in the packed arrays of projectors and wavefunction
+      !respectively
+      integer, dimension(3,nmseg_c+nmseg_f), intent(inout) :: mask
+
+      call fill_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,nmseg_c,&
+           nbsegs_cf(1),keyag_lin_cf(1),wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),&
+           wfd_w%keyvglob(1),wfd_p%keyvglob(1),mask(1,1))
+      if (nmseg_f > 0) then
+         call fill_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,nmseg_f,&
+              nbsegs_cf(wfd_p%nseg_c+1),keyag_lin_cf(wfd_w%nseg_c+1),&
+              wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
+              wfd_w%keyvglob(wfd_w%nseg_c+1),wfd_p%keyvglob(wfd_p%nseg_c+1),&
+              mask(1,nmseg_c+1))
+      end if
+
+    end subroutine init_mask
 
   end module psp_projectors

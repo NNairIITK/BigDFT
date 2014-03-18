@@ -1943,9 +1943,7 @@ integer :: ii
 end subroutine get_coordinates
 
 subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
-use module_base
-use module_types
-use module_interfaces
+use locregs, only: locreg_descriptors
 implicit none
 
 ! Calling arguments
@@ -2079,20 +2077,8 @@ integer,dimension(3,8) :: astart,bstart,aend,bend
      if(Jlr%outofzone(ii) > 0) bzones = bzones * 2
   end do
 
-!allocate astart and aend
-!!  allocate(astart(3,azones),stat=i_stat)
-!!  call memocc(i_stat,astart,'astart',subname)
-!!  allocate(aend(3,azones),stat=i_stat)
-!!  call memocc(i_stat,aend,'aend',subname)
-
 !FRACTURE THE FIRST LOCALIZATION REGION
   call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
-
-!allocate bstart and bend
-!!  allocate(bstart(3,bzones),stat=i_stat)
-!!  call memocc(i_stat,bstart,'bstart',subname)
-!!  allocate(bend(3,bzones),stat=i_stat)
-!!  call memocc(i_stat,bend,'bend',subname)
 
 !FRACTURE SECOND LOCREG
   call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
@@ -2110,20 +2096,6 @@ integer,dimension(3,8) :: astart,bstart,aend,bend
       end if
     end do
   end do loop_izones
-
-! Deallocation block
-!!  i_all = -product(shape(astart))*kind(astart)
-!!  deallocate(astart,stat=i_stat)
-!!  call memocc(i_stat,i_all,'astart',subname)
-!!  i_all = -product(shape(aend))*kind(aend)
-!!  deallocate(aend,stat=i_stat)
-!!  call memocc(i_stat,i_all,'aend',subname)
-!!  i_all = -product(shape(bstart))*kind(bstart)
-!!  deallocate(bstart,stat=i_stat)
-!!  call memocc(i_stat,i_all,'bstart',subname)
-!!  i_all = -product(shape(bend))*kind(bend)
-!!  deallocate(bend,stat=i_stat)
-!!  call memocc(i_stat,i_all,'bend',subname)
 
 end subroutine check_overlap_cubic_periodic
 
