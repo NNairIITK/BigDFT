@@ -182,8 +182,7 @@ extern struct _opencl_version opencl_version_1_2;
 
 typedef struct _bigdft_command_queue * bigdft_command_queue;
 
-//extern cl_uint fft_size[3];
-void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(cl_uint *dimensions);
+void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(bigdft_context * context, cl_uint *dimensions);
 
 cl_int compare_opencl_version(struct _opencl_version v1, struct _opencl_version v2);
 /** Recovers device info used by BigDFT code generator. */
@@ -235,12 +234,8 @@ cl_device_id oclGetFirstDev(cl_context cxGPUContext);
 size_t shrRoundUp(size_t group_size, size_t global_size);
 
 
-/** Adds an event to the global event list. */
+/** Adds an event to the event list. */
 int addToEventList(bigdft_context * context, event ev);
-///** The global event list. */
-//extern event * event_list;
-///** The number of event in the event_list. */
-//extern size_t event_number;
 
 /** Reads the processor time stamp counter. */
 void FC_FUNC_(rdtsc,RDTSC)(cl_ulong * t);
