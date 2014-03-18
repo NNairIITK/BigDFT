@@ -21,7 +21,7 @@ if USE_LIBXC
 SUBDIRS += xc
 endif
 
-if HAVE_GLIB
+if BUILD_BINDINGS
 SUBDIRS += ftypes
 endif
 

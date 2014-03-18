@@ -68,7 +68,7 @@ int main(int argc, const char **argv)
 
   /* bigdft_dict_dump(dict); */
 
-  run = bigdft_run_new_from_dict(dict, TRUE);
+  run = bigdft_run_new_from_dict(dict);
   bigdft_dict_unref(dict);
 
   atoms = bigdft_run_get_atoms(run);
