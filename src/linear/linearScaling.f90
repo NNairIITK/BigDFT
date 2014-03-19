@@ -857,12 +857,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !!                                    sum(denspot%rhov), sum(denspot%mix%f_fftgr(:,:,denspot%mix%i_vrespc(1)))
                 !!write(*,'(a,2es16.9)') 'before mix: sum(denspot%rhov), sum(rhopotold)', &
                 !!                                    sum(denspot%rhov), sum(rhopotold(1:max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)))
-                !!call mix_main(iproc, nproc, input%lin%scf_mode, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
-                !!     denspot, mixdiis, rhopotold, pnrm)
-                call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
-                     denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-                     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
-                     pnrm,denspot%dpbox%nscatterarr)
+                !!if (it_scc==1) then
+                !!    call mix_main(iproc, nproc, input%lin%scf_mode, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
+                !!         denspot, mixdiis, rhopotold, pnrm)
+                !!else
+                    ! use it_scc+1 since we already have the density from the input guess as iteration 1
+                    call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
+                         denspot%rhov,it_scc,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                         at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+                         pnrm,denspot%dpbox%nscatterarr)
+                !!end if
                 !!write(*,'(a,2es16.9)') 'after mix: sum(denspot%rhov), sum(f_fftgr)', &
                 !!                                   sum(denspot%rhov), sum(denspot%mix%f_fftgr(:,:,denspot%mix%i_vrespc(1)))
                 !!write(*,'(a,2es16.9)') 'after mix: sum(denspot%rhov), sum(rhopotold)', &
@@ -914,7 +918,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !!call mix_main(iproc, nproc, input%lin%scf_mode, mix_hist, input, KSwfn%Lzd%Glr, alpha_mix, &
                 !!     denspot, mixdiis, rhopotold, pnrm)
                 call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
-                     denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                     denspot%rhov,it_scc,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
                 if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then

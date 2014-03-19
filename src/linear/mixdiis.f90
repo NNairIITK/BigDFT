@@ -256,6 +256,7 @@ isthist=max(1,mixdiis%is-mixdiis%isx+1)
 jj=0
 do j=isthist,mixdiis%is
     jj=jj+1
+    write(*,*) 'jj, rhs(jj)', jj, rhs(jj)
     mj=mod(j-1,mixdiis%isx)+1
     jjst=(mj-1)*ndimtot
     do k=1,ndimtot

@@ -749,15 +749,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      if (input%experimental_mode) then
          !if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
          if (iproc==0) call yaml_map('INFO mixing parameter for this step',1.d0)
-         call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, 1.d0, &
-              denspot, mixdiis, rhopotold, pnrm)
+         !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, 1.d0, &
+         !!     denspot, mixdiis, rhopotold, pnrm)
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
               denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
      else
-         call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
-              denspot, mixdiis, rhopotold, pnrm)
+         !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+         !!     denspot, mixdiis, rhopotold, pnrm)
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
               denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
@@ -778,8 +778,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if(iproc==0) call yaml_close_map()
   ! Mix the potential.
   if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-     call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
-          denspot, mixdiis, rhopotold, pnrm)
+     !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+     !!     denspot, mixdiis, rhopotold, pnrm)
      call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
           denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
           at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&

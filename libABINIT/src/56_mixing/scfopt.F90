@@ -372,6 +372,15 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    write(message,'(a,5(1x,g10.3))')' mixing of old trial potential : alpha(m:m-4)=',(alpha(ii),ii=niter,max(1,niter-4),-1)
    call wrtout(std_out,message,'COLL')
 
+   !!if (niter==2) then
+   !!    write(*,*) 'WARNING: MODIFY ALPHA:'
+   !!    alpha(1)=0.d0
+   !!    alpha(2)=1.d0
+   !!end if
+   do ii=niter,1,-1
+       write(*,*) 'ii, alpha(ii)',ii, alpha(ii)
+   end do
+
 !  Save latest trial potential and compute new trial potential
    do isp=1,nspden
      do ifft=1,cplex*nfft
