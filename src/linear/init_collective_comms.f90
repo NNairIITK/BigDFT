@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom, collcom_reference)
+subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_collective_comms
@@ -19,7 +19,6 @@ subroutine init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, collcom,
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   type(collective_comms),intent(inout) :: collcom
-  type(collective_comms),optional,intent(in) :: collcom_reference
   
   ! Local variables
   integer :: ii, istat, iorb, iiorb, ilr, iall, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
@@ -55,39 +54,10 @@ t1=mpi_wtime()
   call memocc(istat, istartend_c, 'istartend_c', subname)
   allocate(istartend_f(2,0:nproc-1), stat=istat)
   call memocc(istat, istartend_f, 'istartend_f', subname)
-  if(.not.present(collcom_reference)) then
-      call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
-           istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-           weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
-  else
-      stop 'THIS OPTION IS DEPRECTAED'
-      !!allocate(npts_par_c(0:nproc-1), stat=istat)
-      !! call memocc(istat, npts_par_c, 'npts_par_c', subname)
-      !!allocate(npts_par_f(0:nproc-1), stat=istat)
-      !! call memocc(istat, npts_par_f, 'npts_par_f', subname)
-      !!npts_par_c=0
-      !!npts_par_f=0
-      !!npts_par_c(iproc)=collcom_reference%nptsp_c
-      !!npts_par_f(iproc)=collcom_reference%nptsp_f
-      !!call mpiallred(npts_par_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!call mpiallred(npts_par_f(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      !!call assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
-      !!     npts_par_c, npts_par_f, &
-      !!     istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-      !!     weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f)
-      !!iall=-product(shape(npts_par_c))*kind(npts_par_c)
-      !!deallocate(npts_par_c, stat=istat)
-      !!call memocc(istat, iall, 'npts_par_c', subname)
-      !!iall=-product(shape(npts_par_f))*kind(npts_par_f)
-      !!deallocate(npts_par_f, stat=istat)
-      !!call memocc(istat, iall, 'npts_par_f', subname)
-  end if
+  call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
+       istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+       weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
 
-
-!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 2:',t2-t1
-t1=mpi_wtime()
 
   ! some checks
   if(nproc>1) then
@@ -123,26 +93,13 @@ t1=mpi_wtime()
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   t1=mpi_wtime()
-  !call determine_num_orbs_per_gridpoint(iproc, nproc, orbs, lzd, istartend_c, istartend_f, &
-  !     istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
-  !     weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
-  !     collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
   call determine_num_orbs_per_gridpoint_new(iproc, nproc, lzd, istartend_c, istartend_f, &
        istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
        weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, weight_c, weight_f, &
        collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 3:',t2-t1
-t1=mpi_wtime()
 
   ! Determine the index of a grid point i1,i2,i3 in the compressed array
   call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
-call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-t2=mpi_wtime()
-!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 4:',t2-t1
-t1=mpi_wtime()
-
 
 
 
@@ -175,11 +132,6 @@ t1=mpi_wtime()
        collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
        collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
 
-
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t2=mpi_wtime()
-!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 5:',t2-t1
-t1=mpi_wtime()
 
 
   !Now set some integers in the collcomm structure
@@ -230,10 +182,6 @@ t1=mpi_wtime()
        collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
        collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
 
-  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-  t2=mpi_wtime()
-!!if(iproc==0) write(*,'(a,es10.3)') 'time for part 6:',t2-t1
-t1=mpi_wtime()
 
   ! These variables are used in various subroutines to speed up the code
   allocate(collcom%isptsp_c(max(collcom%nptsp_c,1)), stat=istat)
@@ -1753,12 +1701,12 @@ subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psi
          iiorb=orbs%isorb+iorb
          ilr=orbs%inwhichlocreg(iiorb)
 
-         call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
+         call vcopy(lzd%llr(ilr)%wfd%nvctr_c,psi(i_tot+1),1,psi_c(i_c+1),1)
 
          i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
          i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
 
-         call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
+         call vcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi(i_tot+1),1,psi_f(i_f+1),1)
 
          i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
          i_tot = i_tot + 7*lzd%llr(ilr)%wfd%nvctr_f
@@ -1768,7 +1716,7 @@ subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psi
 
   else
       ! only coarse part is used...
-      call dcopy(collcom%ndimpsi_c, psi, 1, psi_c, 1)
+      call vcopy(collcom%ndimpsi_c, psi(1), 1, psi_c(1), 1)
   end if
 
   ! coarse part
@@ -1866,10 +1814,10 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   !!iisend=0
   !!iirecv=0
   !!do jproc=0,nproc-1
-  !!    if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
+  !!    if(collcom%nsendcounts_c(jproc)>0) call vcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
   !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
   !!    ist=ist+collcom%nsendcounts_c(jproc)
-  !!    if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
+  !!    if(collcom%nsendcounts_f(jproc)>0) call vcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
   !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
   !!    ist=ist+7*collcom%nsendcounts_f(jproc)
   !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
@@ -1899,10 +1847,10 @@ subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f
   !!ist_c=1
   !!ist_f=1
   !!do jproc=0,nproc-1
-  !!    if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
+  !!    if(collcom%nrecvcounts_c(jproc)>0) call vcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
   !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
   !!    ist=ist+collcom%nrecvcounts_c(jproc)
-  !!    if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
+  !!    if(collcom%nrecvcounts_f(jproc)>0) call vcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
   !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
   !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
   !!end do
@@ -2104,10 +2052,10 @@ subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwor
   !!iisend=0
   !!iirecv=0
   !!do jproc=0,nproc-1
-  !!    if(collcom%nrecvcounts_c(jproc)>0) call dcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
+  !!    if(collcom%nrecvcounts_c(jproc)>0) call vcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
   !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
   !!    ist=ist+collcom%nrecvcounts_c(jproc)
-  !!    if(collcom%nrecvcounts_f(jproc)>0) call dcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
+  !!    if(collcom%nrecvcounts_f(jproc)>0) call vcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
   !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
   !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
   !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
@@ -2133,10 +2081,10 @@ subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwor
   !!ist_c=1
   !!ist_f=1
   !!do jproc=0,nproc-1
-  !!    if(collcom%nsendcounts_c(jproc)>0) call dcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
+  !!    if(collcom%nsendcounts_c(jproc)>0) call vcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
   !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
   !!    ist=ist+collcom%nsendcounts_c(jproc)
-  !!    if(collcom%nsendcounts_f(jproc)>0) call dcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
+  !!    if(collcom%nsendcounts_f(jproc)>0) call vcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
   !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
   !!    ist=ist+7*collcom%nsendcounts_f(jproc)
   !!end do
@@ -2241,12 +2189,12 @@ subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwor
             iiorb=orbs%isorb+iorb
             ilr=orbs%inwhichlocreg(iiorb)
 
-            call dcopy(lzd%llr(ilr)%wfd%nvctr_c,psi_c(i_c+1),1,psi(i_tot+1),1)
+            call vcopy(lzd%llr(ilr)%wfd%nvctr_c,psi_c(i_c+1),1,psi(i_tot+1),1)
 
             i_c = i_c + lzd%llr(ilr)%wfd%nvctr_c
             i_tot = i_tot + lzd%llr(ilr)%wfd%nvctr_c
             
-            call dcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
+            call vcopy(7*lzd%llr(ilr)%wfd%nvctr_f,psi_f(i_f+1),1,psi(i_tot+1),1)
 
 
             i_f = i_f + 7*lzd%llr(ilr)%wfd%nvctr_f
@@ -2257,7 +2205,7 @@ subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwor
     !!$omp end parallel 
 
     else
-        call dcopy(collcom%ndimpsi_c, psi_c, 1, psi, 1)
+        call vcopy(collcom%ndimpsi_c, psi_c(1), 1, psi(1), 1)
     end if
   
   iall=-product(shape(psi_c))*kind(psi_c)
@@ -2827,6 +2775,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       call mpiallred(ovrlp%matrix_compr(1), ovrlp%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
+  ovrlp%can_use_dense=.false.
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 
 end subroutine calculate_overlap_transposed
@@ -3225,8 +3174,6 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   call memocc(istat, sparsemat%matrixindex_in_compressed_fortransposed, &
       'sparsemat%matrixindex_in_compressed_fortransposed', subname)
 
-!!  allocate(sendbuf(orbs%norbp,orbs%norb), stat=istat)
-!!  call memocc(istat, sendbuf, 'sendbuf', subname)
 
   do iorb=imin,imax
       do jorb=imin,imax
@@ -3235,76 +3182,5 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
           !sendbuf(iorb,jorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
       end do
   end do
-
-!!  do iorb=1,orbs%norbp
-!!      iiorb=orbs%isorb+iorb
-!!      do jorb=1,orbs%norb
-!!          !sendbuf(jorb,iorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
-!!          !sendbuf(jorb,iorb)=compressed_index(jorb,iiorb,orbs%norb,sparsemat)
-!!          sendbuf(iorb,jorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
-!!      end do
-!!  end do
-!!
-!!  allocate(iminmaxarr(2,0:nproc-1), stat=istat)
-!!  call memocc(istat, iminmaxarr, 'iminmaxarr', subname)
-!!  call to_zero(2*nproc, iminmaxarr(1,0))
-!!  iminmaxarr(1,iproc)=imin
-!!  iminmaxarr(2,iproc)=imax
-!!  call mpiallred(iminmaxarr(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-!!
-!!  allocate(requests(maxval(orbs%norb_par(:,0))*nproc,2), stat=istat)
-!!  call memocc(istat, requests, 'requests', subname)
-!!
-!!  if (nproc>1) then
-!!
-!!      isend=0
-!!      irecv=0
-!!      do jproc=0,nproc-1
-!!          do jorb=1,orbs%norb_par(jproc,0)
-!!              jjorb=jorb+orbs%isorb_par(jproc)
-!!              do kproc=0,nproc-1
-!!                  if (jjorb>=iminmaxarr(1,kproc) .and. jjorb<=iminmaxarr(2,kproc)) then
-!!                      ! send from jproc to kproc
-!!                      if (iproc==jproc) then
-!!                          isend=isend+1
-!!                          call mpi_isend(sendbuf(1,jorb), orbs%norb, &
-!!                               mpi_integer, kproc, jjorb, bigdft_mpi%mpi_comm, requests(isend,1), ierr)
-!!                      end if
-!!                      if (iproc==kproc) then
-!!                          irecv=irecv+1
-!!                          call mpi_irecv(collcom%matrixindex_in_compressed(1,jjorb), orbs%norb, &
-!!                               mpi_integer, jproc, jjorb, bigdft_mpi%mpi_comm, requests(irecv,2), ierr)
-!!                      end if
-!!                  end if
-!!              end do
-!!          end do
-!!      end do
-!!
-!!      call mpi_waitall(isend, requests(1,1), mpi_statuses_ignore, ierr)
-!!      call mpi_waitall(irecv, requests(1,2), mpi_statuses_ignore, ierr)
-!!
-!!  else
-!!      call vcopy(orbs%norb*orbs%norbp, sendbuf(1,1), 1, collcom%matrixindex_in_compressed(1,1), 1)
-!!  end if
-
-  !!do iorb=imin,imax
-  !!    do jorb=1,orbs%norb
-  !!        write(200+iproc,*) iorb,jorb,collcom%matrixindex_in_compressed(jorb,iorb)
-  !!    end do
-  !!end do
-
-
-!!  iall=-product(shape(iminmaxarr))*kind(iminmaxarr)
-!!  deallocate(iminmaxarr, stat=istat)
-!!  call memocc(istat, iall, 'iminmaxarr', subname)
-!!
-!!  iall=-product(shape(requests))*kind(requests)
-!!  deallocate(requests, stat=istat)
-!!  call memocc(istat, iall, 'requests', subname)
-!!
-!!  iall=-product(shape(sendbuf))*kind(sendbuf)
-!!  deallocate(sendbuf, stat=istat)
-!!  call memocc(istat, iall, 'sendbuf', subname)
-
 
 end subroutine init_matrixindex_in_compressed_fortransposed

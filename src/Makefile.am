@@ -62,7 +62,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies $(minima_hopping_sources) abscalc 
+binaries_sources = bigdft memguess splsad NEB frequencies $(minima_hopping_sources) abscalc
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -148,7 +148,6 @@ low_level = \
 	init/logrid_per.f90 \
 	init/inputguess.f90 \
 	init/gautowav.f90 \
-	init/eleconf.f90 \
 	init/pspconf.f90 \
 	init/locreg_init.f90 \
 	init/sysprop.f90 \

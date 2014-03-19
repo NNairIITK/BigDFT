@@ -17,6 +17,8 @@ module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   !use memory_profiling!, only: ndebug
   use dynamic_memory
+  use time_profiling, only: TIMING_UNINITIALIZED
+   
   ! TO BE REMOVED with f_malloc
 
   implicit none
@@ -33,7 +35,16 @@ module wrapper_MPI
 
   logical :: mpi_thread_funneled_is_supported=.false. !< Control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
 
-  !> Interface for MPI_ALLREDUCE routine
+  !timing categories for MPI wrapper
+  integer, parameter :: smallsize=128 !< limit for a communication with small size
+  character(len=*), parameter, public :: tgrp_mpi_name='Communications'
+  !timing categories
+  integer, public, save :: TCAT_ALLRED_SMALL=TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLRED_LARGE=TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLGATHERV  =TIMING_UNINITIALIZED
+  
+
+  !> Interface for MPI_ALLREDUCE routine, to be updated little by little
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real, &
           & mpiallred_double,mpiallred_double_1,mpiallred_double_2,&
@@ -103,7 +114,6 @@ contains
 
     call f_routine(id='mpi_environment_set')
     mpi_env=mpi_environment_null()
-
 !!$    mpi_env%igroup=0
 !!$    mpi_env%ngroup=1
 !!$    mpi_env%iproc=iproc
@@ -213,9 +223,6 @@ contains
 
   !> create communicators associated to the groups of size group_size
   subroutine create_group_comm(base_comm,group_size,group_list,group_comm)
-    use yaml_output
-    use dictionaries
-
     implicit none
     integer, intent(in) :: base_comm,group_size
     integer, dimension(group_size), intent(in) :: group_list !< list of id of the group identified by group_id in units of base_comm
@@ -225,24 +232,48 @@ contains
 
     !take the base group
     call MPI_COMM_GROUP(base_comm,base_grp,ierr)
-    if (f_err_raise(ierr/=0,'Problem in group creation, ierr:'//yaml_toa(ierr),&
-         err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'group creation')
+       return
+    end if
     !create the groups with the list
     call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
-    if (f_err_raise(ierr/=0,'Problem in group inclusion, ierr:'//yaml_toa(ierr),&
-         err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'group inclusion')
+       return
+    end if
     !free base group
     call MPI_GROUP_FREE(base_grp,ierr)
-    if (f_err_raise(ierr/=0,'Problem in base_group free, ierr:'//yaml_toa(ierr),&
-         err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'base_group free')
+       return
+    end if
     !create the communicator (the communicator can be also null)
     call MPI_COMM_CREATE(base_comm,grp,group_comm,ierr)
-    if (f_err_raise(ierr/=0,'Problem in communicator creator, ierr:'//yaml_toa(ierr),&
-         err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'communicator creator')
+       return
+    end if
     !free temporary group
     call MPI_GROUP_FREE(grp,ierr)
-    if (f_err_raise(ierr/=0,'Problem in new_group free, ierr:'//yaml_toa(ierr),&
-              err_name='BIGDFT_MPI_ERROR')) return
+    if (ierr /= 0) then
+       call check_ierr(ierr,'new_group free')
+       return
+    end if
+
+    contains
+      
+      subroutine check_ierr(ierr,message)
+        use yaml_output, only: yaml_toa
+        use dictionaries, only: f_err_throw
+        implicit none
+        integer, intent(in) :: ierr
+        character(len=*), intent(in) :: message
+        if (ierr /= 0) then
+           call f_err_throw('Problem in '//trim(message)//&
+                ', ierr:'//yaml_toa(ierr),err_name='BIGDFT_MPI_ERROR')
+        end if
+      end subroutine check_ierr
 
   end subroutine create_group_comm
 
@@ -337,33 +368,82 @@ end subroutine create_group_comm1
     call f_free(ids)
   END SUBROUTINE create_rank_comm
 
+  subroutine wmpi_init_thread(ierr)
+    implicit none
+    integer, intent(out) :: ierr
+#ifdef HAVE_MPI_INIT_THREAD
+    integer :: provided
+    call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
+    if (ierr /= MPI_SUCCESS) then
+       write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+    else if (provided < MPI_THREAD_FUNNELED) then
+       !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
+       !call MPI_INIT(ierr)
+    else
+       mpi_thread_funneled_is_supported=.true.
+    endif
+#else
+    call MPI_INIT(ierr)      
+    if (ierr /= MPI_SUCCESS) then
+       write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+    end if
+#endif
+  end subroutine wmpi_init_thread
+
+  subroutine mpi_initialize_timing_categories()
+    use time_profiling, only: f_timing_category_group,f_timing_category
+    use yaml_output, only: yaml_toa
+    implicit none
+
+    call f_timing_category_group(tgrp_mpi_name,&
+         'Operations between MPI tasks')
+
+    call f_timing_category('Allreduce, Small Size',tgrp_mpi_name,&
+         'Allreduce operations for less than'//&
+         trim(yaml_toa(smallsize))//' elements',&
+         TCAT_ALLRED_SMALL)
+    call f_timing_category('Allreduce, Large Size',tgrp_mpi_name,&
+         'Allreduce operations for more than'//&
+         trim(yaml_toa(smallsize))//' elements',&
+         TCAT_ALLRED_LARGE)
+    call f_timing_category('Allgatherv',tgrp_mpi_name,&
+         'Variable allgather operations',&
+         TCAT_ALLGATHERV)
+
+  end subroutine mpi_initialize_timing_categories
+
 
   !interface for MPI_ALLGATHERV operations
   subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
     implicit none
-    integer, dimension(0:), intent(in) :: counts, displs
+    integer, dimension(0:), intent(in) :: counts
+    integer, dimension(:), intent(in) :: displs
     integer, intent(in) :: mpi_comm, me
     real(kind=8), intent(inout) :: buffer
     integer, intent(out) :: ierr
 #ifdef HAVE_MPI2
+    call f_timer_interrupt(TCAT_ALLGATHERV)
     !case with MPI_IN_PLACE
     call MPI_ALLGATHERV(MPI_IN_PLACE,counts(me),MPI_DOUBLE_PRECISION,&
          buffer,counts,displs,MPI_DOUBLE_PRECISION,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     real(kind=8), dimension(:), allocatable :: copybuf
 
-    !Here we have a performence penalty by copying all buffer, instead of
+    !Here we have a performance penalty by copying all buffer, instead of
     !just the send part, but I don't see how to get buffer(displs(me))
     copybuf = f_malloc(sum(counts),id='copybuf')
 
     call dcopy(sum(counts),buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
-    call MPI_ALLGATHERV(copybuf(1+displs(me)),counts(me),MPI_DOUBLE_PRECISION,&
+    call f_timer_interrupt(TCAT_ALLGATHERV)
+    call MPI_ALLGATHERV(copybuf(1+displs(me+1)),counts(me),MPI_DOUBLE_PRECISION,&
          buffer,counts,displs,MPI_DOUBLE_PRECISION,mpi_comm,ierr)
-
+    call f_timer_resume()
     call f_free(copybuf)
 #endif
+
     if (ierr /=0) stop 'MPIALLGATHERV_DBL'
   end subroutine mpiallgatherv_double
 
@@ -373,15 +453,21 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     integer, intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
     !case with MPI_IN_PLACE
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_INTEGER,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
-    character(len=*), parameter :: subname='mpi_allred'
     integer :: i_all,i_stat
     integer, dimension(:), allocatable :: copybuf
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
 
     !case without mpi_in_place
 !   allocate(copybuf(ntot+ndebug),stat=i_stat)
@@ -390,9 +476,10 @@ end subroutine create_group_comm1
     !not appropriate for integers, to be seen if it works
     call scopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_INTEGER,mpi_op,mpi_comm,ierr)
-
+    call f_timer_resume()
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
     call f_free(copybuf)
@@ -406,10 +493,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     real(kind=4), intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_REAL,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -422,9 +514,12 @@ end subroutine create_group_comm1
 
     call scopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_REAL,mpi_op,mpi_comm,ierr)
-
+    call f_timer_resume()
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
     call f_free(copybuf)
@@ -438,10 +533,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     real(kind=8), intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -454,8 +554,12 @@ end subroutine create_group_comm1
 
     call dcopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
@@ -469,10 +573,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     real(kind=8), dimension(:), intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -485,8 +594,12 @@ end subroutine create_group_comm1
 
     call dcopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
@@ -500,10 +613,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     real(kind=8), dimension(:,:), intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -516,8 +634,12 @@ end subroutine create_group_comm1
 
     call dcopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
@@ -531,10 +653,15 @@ end subroutine create_group_comm1
     integer, intent(in) :: ntot,mpi_op,mpi_comm
     logical, intent(inout) :: buffer
     integer, intent(out) :: ierr
+    integer :: tcat
 #ifdef HAVE_MPI2
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
          MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 #else
     !local variables
     character(len=*), parameter :: subname='mpi_allred'
@@ -548,8 +675,12 @@ end subroutine create_group_comm1
     !not appropriate for logical, to be seen if it works
     call scopy(ntot,buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
+    tcat=TCAT_ALLRED_LARGE
+    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
+    call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
          MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+    call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
 !   deallocate(copybuf,stat=i_stat)
@@ -562,29 +693,6 @@ end subroutine create_group_comm1
   end subroutine mpiallred_log
 
 end module wrapper_MPI
-
-subroutine bigdft_mpi_init(ierr)
-  use wrapper_mpi
-  implicit none
-  integer, intent(out) :: ierr
-#ifdef HAVE_MPI_INIT_THREAD
-  integer :: provided
-  call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
-  if (ierr /= MPI_SUCCESS) then
-     write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
-  else if (provided < MPI_THREAD_FUNNELED) then
-     !write(*,*)'WARNING: MPI_THREAD_FUNNELED not supported!',provided,ierr
-     !call MPI_INIT(ierr)
-  else
-     mpi_thread_funneled_is_supported=.true.
-  endif
-#else
-  call MPI_INIT(ierr)      
-  if (ierr /= MPI_SUCCESS) then
-     write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
-  end if
-#endif
-end subroutine bigdft_mpi_init
 
 !> Activates the nesting for UNBLOCK_COMMS performance case
 subroutine bigdft_open_nesting(num_threads)

@@ -17,7 +17,7 @@ program wvl
   use yaml_output
   use module_input_dicts
   use module_interfaces, only: inputs_from_dict
-  
+  use module_atoms, only: deallocate_atoms_data
   implicit none
 
   type(input_variables)             :: inputs
@@ -232,7 +232,7 @@ program wvl
 !!$       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
 !!$       & atoms%astruct%rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
 !!$       & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
-  call local_potential_dimensions(Lzd,orbs,xc,dpcom%ngatherarr(0,1))
+  call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
 
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3d))
   allocate(irrzon(1,2,1))
@@ -299,7 +299,7 @@ program wvl
 
   call deallocate_orbs(orbs,"main")
 
-  call deallocate_atoms(atoms,"main") 
+  call deallocate_atoms_data(atoms) 
   call xc_end(xc)
   call dpbox_free(dpcom,'main')
   call pkernel_free(pkernel,'main')

@@ -15,6 +15,7 @@ program PS_Check
    use module_interfaces
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use yaml_output
+   use module_types, only: TCAT_EXCHANGECORR
 
    implicit none
    character(len=*), parameter :: subname='PS_Check'
@@ -46,16 +47,25 @@ program PS_Check
    call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+   !initialize categories for the Poisson Solver
+   call PS_initialize_timing_categories()
+   !add xc category
+   call f_timing_category('Exchange-Correlation','PS Computation',&
+        'Operations needed to construct local XC potential',&
+        TCAT_EXCHANGECORR)
+
+
    call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
    call f_routine(id='PS_Check')
 
    bigdft_mpi%mpi_comm=MPI_COMM_WORLD !workaround to be removed
 
    if (iproc ==0) then
-      call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
+      call yaml_set_stream(record_length=92,tabbing=30)
       call yaml_new_document()
 
-      call yaml_map('Reference Paper','The Journal of Chemical Physics 137, 134108 (2012)')
+      call yaml_map('Reference Paper',&
+           'The Journal of Chemical Physics 137, 134108 (2012)')
       call yaml_map('Version Number',package_version)
       call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
       call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
@@ -63,8 +73,7 @@ program PS_Check
    end if
 
    !initialize memory counting and timings
-   !call memocc(0,iproc,'count','start')
-   call timing(nproc,'time.prc','IN')
+   call f_timing_reset(filename='time.yaml',master=iproc==0)
 
    !Start global timing
    call cpu_time(tcpu0)
@@ -337,8 +346,8 @@ program PS_Check
 !!$   deallocate(extra_ref,stat=i_stat)
 !!$   call memocc(i_stat,i_all,'extra_ref',subname)
 
-
-   call timing(MPI_COMM_WORLD,'              ','RE')
+   call f_timing_stop(mpi_comm=MPI_COMM_WORLD)
+   !call timing(MPI_COMM_WORLD,'              ','RE')
 
    !Final timing
    call cpu_time(tcpu1)

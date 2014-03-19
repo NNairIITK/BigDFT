@@ -285,6 +285,8 @@ subroutine test_dictionaries1()
    call set(dictA//'Stack'//3,dictA2)
 
    call set(dictA//'Stack2',(/'1','2','3'/))
+   call set(dictA//'Stack3',(/'4 ','AQ','3g'/))
+   call set(dictA//'Stack4',12)
 
    call yaml_dict_dump(dictA)
 
@@ -651,3 +653,74 @@ subroutine test_dictionary_for_atoms()
     end function clean_zeroes
 
 end subroutine test_dictionary_for_atoms
+
+!> this routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
+!! and compares it to the usage of an array for doing similar things
+subroutine profile_dictionary_usage()
+  use dictionaries
+  use dynamic_memory, only : f_time
+  use yaml_output
+  implicit none
+  !local variables
+  integer :: nprof,ntry,nstep,iprof,jprof,itry,ival
+  integer(kind=8) :: t0,t1
+  double precision :: tel
+  type(dictionary), pointer :: dict
+  integer, dimension(:), allocatable :: itest !< used to simulate search with an array
+  
+
+!!$!$  !profiling
+  nprof=100001
+  ntry=100
+  nstep=10000
+  allocate(itest(nprof))
+  itest=0
+  do iprof=1,nprof,nstep
+
+     !call system_clock(ncount0,ncount_rate,ncount_max)
+     t0=f_time()
+     do itry=1,ntry
+        do jprof=1,nprof
+           itest(jprof)=itest(jprof)+iprof+itry
+        end do
+     end do
+     t1=f_time()
+     !call system_clock(ncount1,ncount_rate,ncount_max)
+     !tel=dble(ncount1-ncount0)/dble(ncount_rate)*(1d6/dble(ntry))
+     tel = dble(t1-t0)/dble(ntry)*1.d-3
+     call yaml_open_map('Timings for search',flow=.true.)
+     call yaml_map('No. of items',iprof)
+     call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
+     call yaml_close_map() 
+  end do
+  call yaml_map('Some value',itest(1)+itest(ntry))
+  deallocate(itest)
+
+  !profiling
+  nprof=20001
+  ntry=100
+  nstep=5000
+  call dict_init(dict)
+  do iprof=1,nprof,nstep
+     do jprof=0,nstep-1
+        call set(dict//'Test'//(jprof+iprof-1),jprof+iprof-1)
+     end do
+
+     !call system_clock(ncount0,ncount_rate,ncount_max)
+     t0=f_time()
+     do itry=1,ntry
+        ival=dict//'Test'//(iprof-1)
+     end do
+     t1=f_time()
+     !call system_clock(ncount1,ncount_rate,ncount_max)
+     !tel=dble(ncount1-ncount0)/dble(ncount_rate)*(1d6/dble(ntry))
+     tel=dble(t1-t0)/dble(ntry)*1.d-3
+     call yaml_open_map('Timings for search',flow=.true.)
+     call yaml_map('No. of items',iprof)
+     call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
+     call yaml_close_map() 
+  end do
+  call dict_free(dict)
+
+
+end subroutine profile_dictionary_usage

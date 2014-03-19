@@ -65,7 +65,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
        n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
        displ<= 1.d-2) then
      !if (iproc==0) write(*,*) iproc,' orbital just copied'
-     call dcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscfold(-nb1,-nb2,-nb3),1,&
+     call vcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscfold(-nb1,-nb2,-nb3),1,&
           psifscf(1),1)
 !!$     do i3=-nb3,2*n3+1+nb3
 !!$        do i2=-nb2,2*n2+1+nb2
@@ -102,7 +102,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
      hzh=.5_gp*hz
      hzh_old=.5_gp*hz_old
 
-     call razero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf)
+     call to_zero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf(1))
 
      do i3=-nb3,2*n3+1+nb3
         z=real(i3,gp)*hzh
@@ -546,7 +546,7 @@ contains
     lstat = .false.
     write(error, "(A)") "cannot read psig values."
 
-    call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+    call to_zero(8*(n1+1)*(n2+1)*(n3+1),psig(0,1,0,1,0,1))
     do iel=1,nvctr_c
        if (formatted) then
           read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
@@ -673,7 +673,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
      psigold = f_malloc((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
 
-     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+     call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold(0,1,0,1,0,1))
      do iel=1,nvctr_c_old
         if (useFormattedInput) then
            read(unitwf,*) i1,i2,i3,tt
@@ -1226,7 +1226,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
      call f_free(ww)
   else
      call initialize_work_arrays_sumrho(llr,w)
-     call razero(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f,psi)
+     call to_zero(llr%wfd%nvctr_c+7*llr%wfd%nvctr_f,psi)
      call isf_to_daub(llr,w,psir,psi)
      call deallocate_work_arrays_sumrho(w)
      call f_free_ptr(psir)
@@ -1798,7 +1798,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   work2=f_malloc(ndims_new(1)*ndims_new(2)*maxval(ndims_old),id='work2')
 
   m_isf=nrange_phi/2
-  shf=f_malloc(-m_isf .to. m_isf,id='shf')
+  !shf=f_malloc(-m_isf .to. m_isf,id='shf')
   !for each of the dimensions build the interpolating vector which is needed
 
   !identify the rotation matrix elements
@@ -1829,6 +1829,9 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
   !first step
   select case(irp(1))
   case(1) !xn is derived from xo 
+     !$omp parallel default(shared) private(k,j,i,dt,k1,ms,me,shf)
+     allocate(shf(-m_isf:m_isf))
+     !$omp do
      do k=1,ndims_old(3)
         do j=1,ndims_old(2)
            do i=1,ndims_new(1)
@@ -1843,7 +1846,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+     !$omp end do
+     deallocate(shf)
+     !$omp end parallel
   case(2) !xn is derived from yo
+     !$omp parallel default(shared) private(k,j,i,dt,k1,ms,me,shf)
+     allocate(shf(-m_isf:m_isf))
+     !$omp do
      do k=1,ndims_old(3)
         do j=1,ndims_old(1)
            do i=1,ndims_new(1)
@@ -1857,7 +1866,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+     !$omp end do
+     deallocate(shf)
+     !$omp end parallel
   case(3) !xn is derived from zo
+     !$omp parallel default(shared) private(k,j,i,dt,k1,ms,me,shf)
+     allocate(shf(-m_isf:m_isf))
+     !$omp do
      do k=1,ndims_old(2)
         do j=1,ndims_old(1)
            do i=1,ndims_new(1)
@@ -1871,10 +1886,16 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+     !$omp end do
+     deallocate(shf)
+     !$omp end parallel
   end select
   !second step
   select case(irp(1)*10+irp(2))
   case(21) !yp is derived from xo (and xp has been derived from y)
+     !$omp parallel default(shared) private(i,k,j,dt,k1,ms,me,shf)
+     allocate(shf(-m_isf:m_isf))
+     !$omp do
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
@@ -1887,7 +1908,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+     !$omp end do
+     deallocate(shf)
+     !$omp end parallel
   case(23) !yp is derived from zo (and xp has been derived from y)
+     !$omp parallel default(shared) private(i,k,j,dt,k1,ms,me,shf)
+     allocate(shf(-m_isf:m_isf))
+     !$omp do
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
@@ -1900,7 +1927,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+     !$omp end do
+     deallocate(shf)
+     !$omp end parallel
   case(12) !yp is derived from yo (and xp has been derived from x)
+     !$omp parallel default(shared) private(i,k,j,dt,k1,ms,me,shf)
+     allocate(shf(-m_isf:m_isf))
+     !$omp do
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
@@ -1914,7 +1947,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+     !$omp end do
+     deallocate(shf)
+     !$omp end parallel
   case(13) !yp is derived from zo (and xp has been derived from x)
+     !$omp parallel default(shared) private(i,k,j,dt,k1,ms,me,shf)
+     allocate(shf(-m_isf:m_isf))
+     !$omp do
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
@@ -1930,7 +1969,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+     !$omp end do
+     deallocate(shf)
+     !$omp end parallel
   case(32) !yp is derived from yo (and xp has been derived from z)
+     !$omp parallel default(shared) private(i,k,j,dt,k1,ms,me,shf)
+     allocate(shf(-m_isf:m_isf))
+     !$omp do
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
@@ -1944,7 +1989,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+     !$omp end do
+     deallocate(shf)
+     !$omp end parallel
   case(31) !yp is derived from xo (and xp has been derived from z)
+     !$omp parallel default(shared) private(i,k,j,dt,k1,ms,me,shf)
+     allocate(shf(-m_isf:m_isf))
+     !$omp do
      do i=1,ndims_new(1)
         do k=1,ndims_old(irp(3))
            do j=1,ndims_new(2)
@@ -1958,9 +2009,15 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
            end do
         end do
      end do
+     !$omp end do
+     deallocate(shf)
+     !$omp end parallel
   end select
 
   !third step
+  !$omp parallel default(shared) private(j,i,k,dt,k1,ms,me,shf)
+  allocate(shf(-m_isf:m_isf))
+  !$omp do
   do j=1,ndims_new(2)
      do i=1,ndims_new(1)
         do k=1,ndims_new(3)
@@ -1974,10 +2031,13 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
         end do
      end do
   end do
+  !$omp end do
+  deallocate(shf)
+  !$omp end parallel
 
   call f_free(work)
   call f_free(work2)
-  call f_free(shf)
+  !call f_free(shf)
   call f_release_routine()
 
   contains

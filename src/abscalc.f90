@@ -276,6 +276,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use m_ab6_kpoints
    use lanczos_interface, only: xabs_lanczos,xabs_cg,xabs_chebychev
    use esatto, only: binary_search
+   use module_atoms, only: set_symmetry_data,atoms_data
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -431,7 +432,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call print_dft_parameters(in,atoms)
    end if
    !time initialization
-   call timing(nproc,trim(in%dir_output)//'time.prc','IN')
+   !call timing(nproc,trim(in%dir_output)//'time.prc','IN')
+   call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0)
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max)
  
@@ -573,7 +575,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !     (verbose > 1))
 
    !calculate the irreductible zone for this region, if necessary.
-   call symmetry_set_irreductible_zone(atoms%astruct%sym,atoms%astruct%geocode,&
+   call set_symmetry_data(atoms%astruct%sym,atoms%astruct%geocode,&
         KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i, in%nspin)
 
 !!$   !calculate the irreductible zone for this region, if necessary.
@@ -671,19 +673,17 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       end if
 
       atoms_clone = atoms
-      nullify(atoms_clone%aocc)
-      nullify(atoms_clone%iasctype)
+      nullify(atoms_clone%aoig)
+      call allocate_atoms_nat(atoms_clone)
 
-
-      allocate(atoms_clone%aocc(lbound(atoms%aocc,1 ):ubound(atoms%aocc,1),&
-         &   lbound(atoms%aocc,2):ubound(atoms%aocc,2)),stat=i_stat)
-      call memocc(i_stat,atoms%aocc,'atoms_clone%aocc',subname)
-
-      allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
-      call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
-
-      atoms_clone%aocc=0.0_gp
-      atoms_clone%iasctype=0
+!!$      allocate(atoms_clone%aocc(lbound(atoms%aocc,1 ):ubound(atoms%aocc,1),&
+!!$         &   lbound(atoms%aocc,2):ubound(atoms%aocc,2)),stat=i_stat)
+!!$      call memocc(i_stat,atoms%aocc,'atoms_clone%aocc',subname)
+!!$
+!!$      allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
+!!$      call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
+!!$         atoms_clone%aoig%aocc=0.0_gp
+!!$         atoms_clone%aiasctype=0
 
       read(in%extraOrbital,*,iostat=ierr)iat
       !control the spin
@@ -711,7 +711,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       print *, "noccmax, nelecmax,lmax ", noccmax, nelecmax,lmax
 
       call read_eleconf(in%extraOrbital ,nsp,nspinor,noccmax, nelecmax,lmax, &
-         &   atoms_clone%aocc(1,iat), atoms_clone%iasctype(iat))
+         &   atoms_clone%aoig(iat)%aocc, atoms_clone%aoig(iat)%iasctype)
 
       nspin=in%nspin
       symObj%symObj = -1
@@ -774,14 +774,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       deallocate(KSwfn%psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
 
-      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
-      deallocate(atoms_clone%aocc,stat=i_stat)
-      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
-      nullify(atoms_clone%aocc)
-      i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
-      deallocate(atoms_clone%iasctype,stat=i_stat)
-      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
-      nullify(atoms_clone%iasctype)
+      deallocate(atoms_clone%aoig)
+      nullify(atoms_clone%aoig)
+!!$      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
+!!$      deallocate(atoms_clone%aocc,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
+!!$      nullify(atoms_clone%aocc)
+!!$      i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
+!!$      deallocate(atoms_clone%iasctype,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
+!!$      nullify(atoms_clone%iasctype)
 
    endif
 
@@ -1389,7 +1391,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       !end of wavefunction minimisation
       call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-      call timing(bigdft_mpi%mpi_comm,'              ','RE')
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
       call cpu_time(tcpu1)
       call system_clock(ncount1,ncount_rate,ncount_max)
       tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1699,7 +1701,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(rho_descriptors),intent(in) :: rhod
    type(denspot_distribution), intent(in) :: dpcom
    type(orbitals_data), intent(inout) :: orbs
-   type(DFT_PSP_projectors), intent(in) :: nlpsp
+   type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
    type(communications_arrays), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
@@ -1864,7 +1866,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised
      if (nspin == 2) then
-        call dcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2),rhopot(1),1,&
+        call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2),rhopot(1),1,&
              rhopot(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2)+1),1)
      end if
      !spin up and down together with the XC part

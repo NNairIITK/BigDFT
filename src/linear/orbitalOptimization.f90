@@ -65,8 +65,9 @@ do iorb=1,orbs%norbp
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     jst=jst+(ldiis%mis-1)*ncount
-    call dcopy(ncount, phi(ist), 1, ldiis%phiHist(jst), 1)
-    call dcopy(ncount, hphi(ist), 1, ldiis%hphiHist(jst), 1)
+    call vcopy(ncount, phi(ist), 1, ldiis%phiHist(jst), 1)
+    call vcopy(ncount, hphi(ist), 1, ldiis%hphiHist(jst), 1)
+    !!if (iproc==0 .and. iorb==1) write(*,*) 'copy to: jst, val', jst, ldiis%phiHist(jst)
 
 
     !ilr=onWhichAtom(iorb)
@@ -198,7 +199,7 @@ do iorb=1,orbs%norbp
     !ilr=onWhichAtom(iorb)
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    call razero(ncount, phi(ist))
+    call to_zero(ncount, phi(ist))
     isthist=max(1,ldiis%is-ldiis%isx+1)
     jj=0
     jst=0
@@ -293,6 +294,8 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+allocate(ldiis%energy_hist(isx), stat=istat)
+call memocc(istat, ldiis%energy_hist, 'ldiis%energy_hist', subname)
 
 end subroutine initializeDIIS
 
@@ -321,6 +324,10 @@ call memocc(istat, iall, 'ldiis%phiHist', subname)
 iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
 deallocate(ldiis%hphiHist, stat=istat)
 call memocc(istat, iall, 'ldiis%hphiHist', subname)
+
+iall=-product(shape(ldiis%energy_hist))*kind(ldiis%energy_hist)
+deallocate(ldiis%energy_hist, stat=istat)
+call memocc(istat, iall, 'ldiis%energy_hist', subname)
 
 end subroutine deallocateDIIS
 
@@ -428,8 +435,8 @@ end subroutine deallocateDIIS
 !!    !ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
 !!    ncount=matmin%mlr(ilr)%norbinlr
 !!    jst=jst+(ldiis%mis-1)*ncount
-!!    call dcopy(ncount, lcoeff(1,iorb), 1, ldiis%phiHist(jst), 1)
-!!    call dcopy(ncount, lgrad(1,iorb), 1, ldiis%hphiHist(jst), 1)
+!!    call vcopy(ncount, lcoeff(1,iorb), 1, ldiis%phiHist(jst), 1)
+!!    call vcopy(ncount, lgrad(1,iorb), 1, ldiis%hphiHist(jst), 1)
 !!
 !!
 !!    !ilr=onWhichAtom(iorb)
@@ -513,7 +520,7 @@ end subroutine deallocateDIIS
 !!    ilr=onWhichAtomp(iorb)
 !!    !ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
 !!    ncount=matmin%mlr(ilr)%norbinlr
-!!    call razero(ncount, lcoeff(1,iorb))
+!!    call to_zero(ncount, lcoeff(1,iorb))
 !!    isthist=max(1,ldiis%is-ldiis%isx+1)
 !!    jj=0
 !!    jst=0

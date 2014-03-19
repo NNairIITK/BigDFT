@@ -197,6 +197,78 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
 END SUBROUTINE convolut_magic_n_slab_self
 
 
+!>   A synthesis wavelet transformation where the size of the data is allowed to grow
+!!   The input array x is overwritten
+subroutine synthese_free_self(n1,n2,n3,x,y)
+  implicit none
+  integer,intent(in)::n1,n2,n3
+  real(kind=8),dimension((2*n1+16)*(2*n2+16)*(2*n3+16))::x,y
+  integer nt
+
+  ! i1,i2,i3 -> i2,i3,i1
+  nt=(2*n2+2)*(2*n3+2)
+  call  syn_rot_grow(n1,nt,x,y)
+  ! i2,i3,i1 -> i3,i1,I2
+  nt=(2*n3+2)*(2*n1+16)
+  call  syn_rot_grow(n2,nt,y,x)
+  ! i3,i1,I2  -> i1,I2,i3
+  nt=(2*n1+16)*(2*n2+16)
+  call  syn_rot_grow(n3,nt,x,y)
+
+END SUBROUTINE synthese_free_self
+
+
+!>   Applies the magic filter matrix in slabwise BC ( no transposition)
+!!   The input array x is overwritten
+!!   this routine is modified to accept the GPU convolution if it is the case
+subroutine convolut_magic_n_free_self(n1,n2,n3,x,y)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(wp), dimension(-7:n1+8,-7:n2+8,-7:n3+8), intent(inout) :: x
+  real(wp), dimension(-7:n1+8,-7:n2+8,-7:n3+8), intent(inout) :: y
+  !local variables
+  !n(c) character(len=*), parameter :: subname='convolut_magic_n_per'
+  !n(c) integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
+  integer :: ndat
+  !real(kind=4), dimension(:,:,:), allocatable :: wx,wy !these are used for copy in GPU case
+  !n(c) real(kind=4) filCUDA(lowfil:lupfil) !array of filters to be passed to CUDA interface
+  !n(c) data filCUDA / &
+  !n(c)      8.4334247333529341094733325815816e-7_4,&
+  !n(c)     -0.1290557201342060969516786758559028e-4_4,&
+  !n(c)     0.8762984476210559564689161894116397e-4_4,&
+  !n(c)     -0.30158038132690463167163703826169879e-3_4,&
+  !n(c)     0.174723713672993903449447812749852942e-2_4,&
+  !n(c)     -0.942047030201080385922711540948195075e-2_4,&
+  !n(c)     0.2373821463724942397566389712597274535e-1_4,&
+  !n(c)     0.612625895831207982195380597e-1_4,&
+  !n(c)     0.9940415697834003993178616713_4,&
+  !n(c)     -0.604895289196983516002834636e-1_4, &
+  !n(c)     -0.2103025160930381434955489412839065067e-1_4,&
+  !n(c)     0.1337263414854794752733423467013220997e-1_4,&
+  !n(c)     -0.344128144493493857280881509686821861e-2_4,&
+  !n(c)     0.49443227688689919192282259476750972e-3_4,&
+  !n(c)     -0.5185986881173432922848639136911487e-4_4,&
+  !n(c)     2.72734492911979659657715313017228e-6_4 /
+
+  if (.not. GPUconv) then !traditional CPU computation
+
+     !  (i1,i2*i3) -> (i2*i3,i1)
+     ndat=(n2+1)*(n3+1)
+     call convrot_grow(n1,ndat,x,y)
+     !  (i2,i3*i1) -> (i3*i1,I2)
+     ndat=(n3+1)*(n1+16)
+     call convrot_grow(n2,ndat,y,x)
+     !  (i3,i1*I2) -> (i1*I2,i3)
+     ndat=(n1+16)*(n2+16)
+     call convrot_grow(n3,ndat,x,y)
+
+  else
+     stop 'the GPU part is not yet written'
+  end if
+END SUBROUTINE convolut_magic_n_free_self
+
+
 !>   Applies the magic filter matrix in periodic BC ( no transposition)
 !!   The input array x is not overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case

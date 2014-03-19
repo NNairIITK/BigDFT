@@ -15,6 +15,7 @@ program MINHOP
   use module_input_dicts
   use m_ab6_symmetry
   use yaml_output
+  use module_atoms, only: deallocate_atoms_data
   implicit real(kind=8) (a-h,o-z)
   logical :: newmin,CPUcheck,occured,exist_poslocm
   character(len=20) :: unitsp,atmn
@@ -63,24 +64,6 @@ program MINHOP
    !actual value of iproc
    iproc=iproc+igroup*ngroups
    
-!!$  ! Start MPI version
-!!$  call bigdft_mpi_init(ierr)
-!!$  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-!!$  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
-!!$  if (iproc == 0 )then
-!!$     write(*,'(23x,a)')' NEW '
-!!$     write(*,'(23x,a)')'      __  __ _ _  _ _   _  __  ___ '
-!!$     write(*,'(23x,a)')'     |  \/  |_| \| | |_| |/  \| _ \ '
-!!$     write(*,'(23x,a)')'     | |\/| |-|    |  _  | <> |  _/ '
-!!$     write(*,'(23x,a)')'     |_|  |_|_|_|\_|_| |_|\__/|_|     WITH'
-!!$     write(*,'(23x,a)')''
-!!$     write(*,'(23x,a)')''
-!!$     write(*,'(23x,a)')''
-!!$     call print_logo()
-!!$     write(*,'(23x,a)')'----> you can grep this file for (MH) to compare with global.out'
-!!$     write(*,'(23x,a)')' (MH) NOTE: this version reads nspin, mpol from input.dat'
-!!$  end if
 
   !open(unit=67,file='global.out')
    if (iproc+igroup==0) call print_logo_MH()
@@ -124,7 +107,7 @@ program MINHOP
 
   !use only the atoms structure for the run
 !!$  call init_atomic_values((bigdft_mpi%iproc == 0),md_atoms,inputs_md%ixc)
-  call deallocate_atoms(md_atoms,subname) 
+  call deallocate_atoms_data(md_atoms) 
 
   !get number of atoms of the system, to allocate local arrays
   natoms=bigdft_get_number_of_atoms(atoms)
@@ -282,7 +265,8 @@ program MINHOP
         allocate(fphop(nid))
           call memocc(i_stat,fphop,'fphop',subname)
 
-  call fingerprint(bigdft_mpi%iproc,atoms%astruct%nat,nid,atoms%astruct%rxyz,rcov,fp)
+  call fingerprint(bigdft_mpi%iproc,atoms%astruct%nat,nid,atoms%astruct%rxyz,rcov,fp, & 
+                   atoms%astruct%geocode,atoms%astruct%cell_dim)
   if (bigdft_mpi%iproc == 0) then
      call yaml_map('(MH) INPUT(relaxed), e_pos ',outs%energy,fmt='(e17.10)')
   end if
@@ -461,7 +445,7 @@ program MINHOP
   escape=escape+1.d0
   e_pos = outs%energy
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, runObj, outs, &
-       bigdft_mpi%nproc,bigdft_mpi%iproc)
+                ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
 
      if (atoms%astruct%geocode == 'F') &
           & call fixfrag_posvel(bigdft_mpi%iproc,atoms%astruct%nat,rcov,atoms%astruct%rxyz,vxyz,1,occured)
@@ -525,7 +509,8 @@ program MINHOP
      call yaml_close_map()
   endif
 
-  call fingerprint(bigdft_mpi%iproc,atoms%astruct%nat,nid,atoms%astruct%rxyz,rcov,wfp)
+  call fingerprint(bigdft_mpi%iproc,atoms%astruct%nat,nid,atoms%astruct%rxyz,rcov,wfp, & 
+                   atoms%astruct%geocode,atoms%astruct%cell_dim)
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
      call fpdistance(nid,wfp,fp,d)
@@ -703,7 +688,7 @@ end do hopping_loop
   close(2) 
   !deallocations as in BigDFT
   call free_restart_objects(rst,subname)
-  call deallocate_atoms(atoms,subname)
+  call deallocate_atoms_data(atoms)
 
   ! deallocation of global's variables
 
@@ -774,7 +759,7 @@ contains
 
   !> Does a MD run with the atomic positiosn rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
-       runObj,outs,nproc,iproc)!  &
+       runObj,outs,ngeopt,nproc,iproc)!  &
     use module_base
     use module_types
     use module_interfaces
@@ -783,7 +768,7 @@ contains
     type(run_objects), intent(inout) :: runObj
     type(DFT_global_output), intent(inout) :: outs
     dimension gg(3,atoms%astruct%nat),vxyz(3,atoms%astruct%nat)
-    character(len=4) :: fn
+    character(len=4) :: fn4
     logical :: move_this_coordinate
     real(gp) :: e0
     !type(wavefunctions_descriptors), intent(inout) :: wfd
@@ -831,7 +816,7 @@ contains
   enddo
   ! normalize velocities to target ekinetic
     call velnorm(atoms%astruct%nat,atoms%astruct%rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
-    call razero(3*atoms%astruct%nat,gg)
+    call to_zero(3*atoms%astruct%nat,gg)
 
     if(iproc==0) call torque(atoms%astruct%nat,atoms%astruct%rxyz,vxyz)
 
@@ -860,13 +845,21 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
        call call_bigdft(runObj, outs, nproc,iproc,infocode)
 
        if (iproc == 0) then
-          write(fn,'(i4.4)') istep
-          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn,outs%energy,atoms%astruct%rxyz,atoms,'',forces=outs%fxyz)
+          write(fn4,'(i4.4)') istep
+          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn4,outs%energy,atoms%astruct%rxyz,atoms,'',forces=outs%fxyz)
        end if
 
        en0000=outs%energy-e0
        if (istep >= 3 .and. enmin1 > enmin2 .and. enmin1 > en0000)  nummax=nummax+1
        if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  nummin=nummin+1
+!  write configuration file for data base
+       if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  then
+          ngeopt=ngeopt+1
+          write(fn4,'(i4.4)') ngeopt
+          write(comment,'(a,i3)')'nummin= ',nummin
+          call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()), & 
+               outs%energy,atoms%astruct%rxyz,atoms,trim(comment),forces=outs%fxyz)
+       endif
        econs_max=max(econs_max,rkin+outs%energy)
        econs_min=min(econs_min,rkin+outs%energy)
        devcon=econs_max-econs_min
@@ -1888,7 +1881,7 @@ logical :: occured,niter
 real(8)::  dist, mindist, angle, vec(3), cmass(3), velcm(3), bondlength, bfactor,rnrmi,scpr
 real(8):: ekin,vcm1,vcm2,vcm3,ekin0,scale
 real(8), allocatable:: cm_frags(:,:), vel_frags(:,:)
-integer::iat, jat, nmax(1), imin(2),ifrag
+integer::iat, jat, natfragx(1), imin(2),ifrag
 integer, allocatable:: fragcount(:)
 integer, allocatable:: nat_frags(:)
 integer, dimension(nat):: fragarr
@@ -1970,17 +1963,17 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
             endif
          enddo
       enddo
-      nmax=maxloc(fragcount(:))
-      if(iproc==0) call yaml_map('(MH) The main Fragment index is', nmax(1))
+      natfragx=maxloc(fragcount(:))
+      if(iproc==0) call yaml_map('(MH) The main Fragment index is', natfragx(1))
 
       !Find the minimum distance between the clusters
       do ifrag=1,nfrag
          mindist=1.d100
-         if(ifrag.ne.nmax(1)) then
+         if(ifrag.ne.natfragx(1)) then
             do iat=1,nat
                if(fragarr(iat)==ifrag) then
                   do jat=1,nat
-                     if(fragarr(jat)==nmax(1)) then
+                     if(fragarr(jat)==natfragx(1)) then
                         dist=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
                         if(dist<mindist**2) then
                            mindist=sqrt(dist)
@@ -2006,7 +1999,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
             do iat=1,nat        !Move fragments back towards the main fragment 
                if(fragarr(iat)==ifrag) then
                   pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.5d0*bondlength)/mindist)
-                  fragarr(iat)=nmax(1)
+                  fragarr(iat)=natfragx(1)
                endif
             enddo
 
@@ -2716,63 +2709,200 @@ END subroutine hunt_orig
 
 
 
-       subroutine fingerprint(iproc,nat,nid,rxyz,rcov,fp)
-       implicit real*8 (a-h,o-z)
-       dimension rxyz(3,nat),fp(nid),rcov(nat)
-       real*8, allocatable, dimension(:,:) :: aa,work
-       allocate(aa(nat,nat),work(nat,nat))
-
-!! Gaussian interaction
-!       do iat=1,nat
-!         aa(iat,iat)=1.d0
-!         do jat=iat+1,nat
-!           d2=(rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+(rxyz(3,iat)-rxyz(3,jat))**2
-!           tt=exp(-.5d0*d2/(rcov(iat)+rcov(jat)**2))
-!           aa(iat,jat)=tt
-!           aa(jat,iat)=tt
-!         enddo
-!       enddo
-!       write(667,'(20(1x,e9.2))') (rcov(iat) ,iat=1,nat)
-!       do jat=1,nat
-!       write(667,'(20(1x,e9.2))') (aa(jat,iat) ,iat=1,jat)
-!       enddo
-
-
-! Gaussian overlap
-     do iat=1,nat
-      do jat=iat,nat
-        d2=(rxyz(1,iat)-rxyz(1,jat))**2 +(rxyz(2,iat)-rxyz(2,jat))**2+(rxyz(3,iat)-rxyz(3,jat))**2
-        r=.5d0/(rcov(iat)**2 + rcov(jat)**2) 
-        ! with normalized GTOs:
-        aa(jat,iat)=sqrt(2.d0*r*(2.d0*rcov(iat)*rcov(jat)))**3 * exp(-d2*r)
-        enddo
-      enddo
-
-!       write(666,'(20(1x,e9.2))') (rcov(iat) ,iat=1,nat)
-!       do jat=1,nat
-!       write(666,'(20(1x,e9.2))') (aa(jat,iat) ,iat=1,jat)
-!       enddo
-
-!! Check Gaussian overlap against Ali's formula
+!       subroutine fingerprint(iproc,nat,nid,rxyz,rcov,fp)
+!       implicit real*8 (a-h,o-z)
+!       dimension rxyz(3,nat),fp(nid),rcov(nat)
+!       real*8, allocatable, dimension(:,:) :: aa,work
+!       allocate(aa(nat,nat),work(nat,nat))
+!
+!! Gaussian overlap
 !     do iat=1,nat
-!         alphai=.5d0/rcov(iat)**2
 !      do jat=iat,nat
-!         alphaj=.5d0/rcov(jat)**2
 !        d2=(rxyz(1,iat)-rxyz(1,jat))**2 +(rxyz(2,iat)-rxyz(2,jat))**2+(rxyz(3,iat)-rxyz(3,jat))**2
-!        t1=alphai*alphaj 
-!        t2=alphai+alphaj 
+!        r=.5d0/(rcov(iat)**2 + rcov(jat)**2) 
 !        ! with normalized GTOs:
-!        write(777,*) iat,jat, aa(jat,iat),sqrt(2.d0*sqrt(t1)/t2)**3 * exp(-t1/t2*d2)
+!        aa(jat,iat)=sqrt(2.d0*r*(2.d0*rcov(iat)*rcov(jat)))**3 * exp(-d2*r)
 !        enddo
 !      enddo
+!
+!
+!       call DSYEV('N','L',nat,aa,nat,fp,work,nat**2,info)
+!       if (info.ne.0) stop 'info'
+!       if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fingerprint ',(fp(i),i=1,nid)
+!
+!       deallocate(aa,work)
+!       end subroutine fingerprint
 
 
-       call DSYEV('N','L',nat,aa,nat,fp,work,nat**2,info)
-       if (info.ne.0) stop 'info'
-       if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fingerprint ',(fp(i),i=1,nid)
 
-       deallocate(aa,work)
-       end subroutine fingerprint
+subroutine fingerprint(iproc,nat,nid,rxyz,rcov,fp,geocode,alat)
+! calculates an overlap matrix for atom centered GTO of the form:
+!    s-type: 1/norm_s  exp(-(1/2)*(r/rcov)**2)
+!   px type: 1/norm_p exp(-(1/2)*(r/rcov)**2) x/r  and analageously for py and pz
+implicit none !real*8 (a-h,o-z)
+integer  nat,nid ,iproc,  info
+real*8 :: rxyz(3,nat),fp(nid),rcov(nat),tau(3),alat(3)
+real*8, allocatable, dimension(:,:) :: om,work
+
+integer igto,jgto, iat, jat
+integer i1,i2,i3, n1, n2, n3  
+real*8  cutoff, d2, r
+real*8  sji, xi,yi,zi, xji, yji, zji   ,tt 
+real*8  sqrt8 ; parameter (sqrt8=sqrt(8.d0))
+character(len=1) :: geocode
+
+
+   ! WARNING! check convergence to ensure that the folloing cutoff is large enough
+   !! exp(-0.5*cutoff^2/rcov^2) = 1E-16  ==> cutoff^2 = 2*16*log(10)*rcov^2 ==> cutoff ~=8.5 rcov 
+   !cutoff=sqrt(2*16*log(10.d0)*maxval(rcov)**2)
+   cutoff=9*maxval(rcov)
+     !print*, cutoff; stop
+
+   !with these settings the fingerprints have about 9 correct decimal places
+     if (geocode == 'F') then       ! free boundary conditions
+         n1=0 ; n2=0 ; n3=0
+     else if (geocode == 'S') then  ! surface boundary conditions, non-periodic direction i s
+         n1=nint(cutoff/alat(1))
+         n2=0
+         n3=nint(cutoff/alat(3))
+     else if (geocode == 'P') then  ! periodic boundary conditions
+         n1=nint(cutoff/alat(1))
+         n2=nint(cutoff/alat(2))
+         n3=nint(cutoff/alat(3))
+     else
+     stop 'unrecognized BC in fingerprint'
+     endif
+     if (n1+n2+n3.gt.30) write(*,*) 'Warning n1,n2,n3 too big ',n1,n2,n3
+
+if(nid .ne. nat .and. nid .ne. 4*nat) stop ' nid should be either nat or  4*nat '
+
+
+allocate(om(nid,nid),work(nid,nid))
+om(:,:)=0.d0
+
+    do i1=-n1,n1
+    do i2=-n2,n2
+    do i3=-n3,n3
+    
+       tau(1)=alat(1)*i1
+       tau(2)=alat(2)*i2
+       tau(3)=alat(3)*i3
+    !   if (tau(1)*tau(1) + tau(2)*tau(2)+ tau(3)*tau(3)>cutoff*cutoff) cycle  ! to speedup
+    
+    ! Gaussian overlap
+         !  <sj|si>
+          do iat=1,nat
+           xi=rxyz(1,iat) + tau(1) 
+           yi=rxyz(2,iat) + tau(2)
+           zi=rxyz(3,iat) + tau(3)
+          
+           do jat=iat,nat
+             d2=(rxyz(1,jat) -xi)**2 +(rxyz(2,jat)-yi)**2+(rxyz(3,jat)-zi)**2
+             r=.5d0/(rcov(iat)**2 + rcov(jat)**2)
+             om(jat,iat)=om(jat,iat) + sqrt(4.d0*r*(rcov(iat)*rcov(jat)))**3 * exp(-d2*r)
+             enddo
+           enddo
+    
+    enddo !i3
+    enddo !i2
+    enddo !i1
+
+
+!!  so far only s-s have been calculated  
+if(nid == 4*nat) then  ! both s and p (nid = 4nat)
+
+    do i1=-n1,n1
+    do i2=-n2,n2
+    do i3=-n3,n3
+ 
+       tau(1)=alat(1)*i1
+       tau(2)=alat(2)*i2
+       tau(3)=alat(3)*i3
+
+    !  <s|p>
+    do iat=1,nat
+      xi=rxyz(1,iat) + tau(1)
+      yi=rxyz(2,iat) + tau(2)
+      zi=rxyz(3,iat) + tau(3)
+
+      do jat=1,nat   ! NOTE: do not use  jat=iat,nat becase all elements are on the same side of the diagonal
+
+        xji=rxyz(1,jat) - xi
+        yji=rxyz(2,jat) - yi 
+        zji=rxyz(3,jat) - zi
+
+        d2=xji*xji + yji*yji + zji*zji
+        r=.5d0/(rcov(jat)**2 + rcov(iat)**2)
+
+        sji= sqrt(4.d0*r*(rcov(jat)*rcov(iat)))**3 * exp(-d2*r)
+
+    !  <pj|si>
+        tt= sqrt8 *rcov(jat)*r * sji
+
+        om(1+nat + (jat-1)*3 ,iat )=  om(1+nat + (jat-1)*3 ,iat ) + tt * xji 
+        om(2+nat + (jat-1)*3 ,iat )=  om(2+nat + (jat-1)*3 ,iat ) + tt * yji 
+        om(3+nat + (jat-1)*3 ,iat )=  om(3+nat + (jat-1)*3 ,iat ) + tt * zji 
+
+   !! !  <sj|pi> no need, because they are on the other side of the diagonal of the symmetric matrix
+   !!     tt=-sqrt8 *rcov(iat)*r * sji
+
+   !!     om(jat, 1+nat + (iat-1)*3 )=  om(jat, 1+nat + (iat-1)*3 ) + tt * xji 
+   !!     om(jat, 2+nat + (iat-1)*3 )=  om(jat, 2+nat + (iat-1)*3 ) + tt * yji 
+   !!     om(jat, 3+nat + (iat-1)*3 )=  om(jat, 3+nat + (iat-1)*3 ) + tt * zji 
+
+enddo
+enddo
+
+
+    ! <pj|pi> 
+    do iat=1,nat
+      xi=rxyz(1,iat) + tau(1)
+      yi=rxyz(2,iat) + tau(2)
+      zi=rxyz(3,iat) + tau(3)
+
+      do jat=iat,nat
+
+        xji=rxyz(1,jat) - xi
+        yji=rxyz(2,jat) - yi 
+        zji=rxyz(3,jat) - zi
+
+        d2=xji*xji + yji*yji + zji*zji
+        r=.5d0/(rcov(jat)**2 + rcov(iat)**2)
+
+        sji= sqrt(4.d0*r*(rcov(jat)*rcov(iat)))**3 * exp(-d2*r)
+
+        igto=nat+1 +(iat-1)*3 
+        jgto=nat+1 +(jat-1)*3
+
+        tt = -8.d0*rcov(iat)*rcov(jat) * r*r * sji 
+
+        om(jgto   , igto  )=  om(jgto   , igto  ) + tt *(xji* xji - .5d0/r) 
+        om(jgto   , igto+1)=  om(jgto   , igto+1) + tt *(yji* xji         ) 
+        om(jgto   , igto+2)=  om(jgto   , igto+2) + tt *(zji* xji         ) 
+        om(jgto+1 , igto  )=  om(jgto+1 , igto  ) + tt *(xji* yji         ) 
+        om(jgto+1 , igto+1)=  om(jgto+1 , igto+1) + tt *(yji* yji - .5d0/r) 
+        om(jgto+1 , igto+2)=  om(jgto+1 , igto+2) + tt *(zji* yji         ) 
+        om(jgto+2 , igto  )=  om(jgto+2 , igto  ) + tt *(xji* zji         ) 
+        om(jgto+2 , igto+1)=  om(jgto+2 , igto+1) + tt *(yji* zji         ) 
+        om(jgto+2 , igto+2)=  om(jgto+2 , igto+2) + tt *(zji* zji - .5d0/r) 
+
+     enddo
+    enddo  
+
+enddo  ! i3 
+enddo  ! i2
+enddo  ! i1
+
+endif  ! both s and p 
+
+
+
+ call DSYEV('N','L',nid,om,nid,fp,work,nid**2,info)
+ if (info.ne.0) stop 'info'
+ if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fingerprint ',(fp(i1),i1=1,nid)
+
+deallocate(om,work)
+end subroutine fingerprint
 
 
        subroutine fpdistance(nid,fp1,fp2,d)

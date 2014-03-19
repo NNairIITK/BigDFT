@@ -1099,7 +1099,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
 
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
 
   call daub_to_isf(lr,w,psi,psir)

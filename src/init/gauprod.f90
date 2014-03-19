@@ -211,6 +211,7 @@ END SUBROUTINE write_gaussian_information
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes, &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
+  use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,count_atomic_shells
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => gaussian_pswf_basis
@@ -222,7 +223,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   type(gaussian_basis), intent(inout) :: G
   real(wp), dimension(:), pointer :: Gocc
 
-  !! the following arguments are used wheb building PPD : the preconditioner for CG spectra
+  !! the following arguments are used when building PPD : the preconditioner for CG spectra
   real(gp), pointer, optional :: gaenes(:)
   integer, pointer, optional :: iorbtolr(:)
   integer, pointer, optional :: iorbto_l(:)
@@ -249,6 +250,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   !! auxiliary variables used when creating optional arrays for PPD
   real(gp)  :: gaenes_aux(5*at%astruct%nat)
   integer :: last_aux, firstperityx(at%astruct%nat)
+  integer :: nspin_print !< to be removed, shouldpass in input variables
 
 
   !quick return if possible
@@ -273,6 +275,8 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   else
      noncoll=1
   end if
+
+  nspin_print=ao_nspin_ig(nspin,nspinor=nspinor)
 
   call readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
 
@@ -302,7 +306,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   G%nshltot=0
   count_shells: do iat=1,at%astruct%nat
      ityp=at%astruct%iatype(iat)
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
      G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
      G%nshltot=G%nshltot+G%nshell(iat)
      !check the occupation numbers and the atoms type
@@ -311,7 +315,8 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
         if (at%astruct%iatype(jat) == ityp) then
            occeq=.true.
            do i=1,nelecmax
-              occeq = occeq .and. (at%aocc(i,jat) == at%aocc(i,iat))
+              occeq = occeq .and. &
+                   (at%aoig(jat)%aocc(i) == at%aoig(iat)%aocc(i))
            end do
            !have found another similar atoms
            if (occeq) then
@@ -328,7 +333,6 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   call memocc(i_stat,G%ndoc,'G%ndoc',subname)
   allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
   call memocc(i_stat,G%nam,'G%nam',subname)
-
 
   !the default value for the gaussians is chosen to be 21
   allocate(xpt(ng,ntypesx+ndebug),stat=i_stat)
@@ -349,14 +353,12 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      ityp=at%astruct%iatype(iat)
      ityx=iatypex(iat)
      ishltmp=0
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
      if (ityx > ntypesx) then
         if (iproc == 0 .and. verbose > 1) then
            call yaml_map('Generation of input wavefunction data for atom ', trim(at%astruct%atomnames(ityp)))
-           !write(*,'(1x,a,a6,a)') 'Generation of input wavefunction data for atom ',&
-           !     & trim(at%astruct%atomnames(ityp)),':'
-           call print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,&
-                at%aocc(1,iat),at%iasctype(iat))
+           call print_eleconf(nspin_print,&
+                at%aoig(iat)%aocc,at%aoig(iat)%iasctype)
         end if
 
         firstperityx( ityx)=iat
@@ -368,19 +370,17 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 
 
         if( present(gaenes)) then
-           call iguess_generator_modified(at%nzatom(ityp),at%nelpsp(ityp),&
-                real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
-                at%npspcode(ityp),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
-                psiat(1,1,ityx),enlargerprb, gaenes_aux(1+5*( firstperityx( ityx)   -1))  )
+           call iguess_generator(at%nzatom(ityp),at%nelpsp(ityp),& !_modified
+                real(at%nelpsp(ityp),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ityp),&
+                at%npspcode(ityp),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
+                ng-1,xpt(1,ityx),psiat(1,1,ityx),enlargerprb, &
+                gaenes_aux=gaenes_aux(1+5*( firstperityx( ityx)-1))  )
         else
            call iguess_generator(at%nzatom(ityp),at%nelpsp(ityp),&
-                real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
-                at%npspcode(ityp),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
-                psiat(1,1,ityx),enlargerprb)
+                real(at%nelpsp(ityp),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ityp),&
+                at%npspcode(ityp),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
+                ng-1,xpt(1,ityx),psiat(1,1,ityx),enlargerprb)
         endif
-
 
         ntypesx=ntypesx+1
         !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
@@ -413,13 +413,13 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   !of the molecular orbitals
   allocate(Gocc(G%ncoeff+ndebug),stat=i_stat)
   call memocc(i_stat,Gocc,'Gocc',subname)
-  call razero(G%ncoeff,Gocc)
+  call to_zero(G%ncoeff,Gocc)
 
   if( present(gaenes)) then
 
      allocate(gaenes(G%ncoeff+ndebug),stat=i_stat)
      call memocc(i_stat,gaenes,'gaenes',subname)
-     call razero(G%ncoeff,gaenes)
+     call to_zero(G%ncoeff,gaenes)
 
 
      allocate(iorbtolr(G%ncoeff+ndebug),stat=i_stat)
@@ -453,12 +453,13 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      !print *, 'debug',iat,present(gaenes),nspin,noncoll
      ityp=at%astruct%iatype(iat)
      ityx=iatypex(iat)
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+     call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
+          at%aoig(iat)%aocc,occup,nl)
      ictotpsi=0
      iocc=0
      do l=1,4
         iocc=iocc+1
-        nlo=nint(at%aocc(iocc,iat)) !just to increase the counting 
+        nlo=nint(at%aoig(iat)%aocc(iocc)) !just to increase the counting 
         do i=1,nl(l)
            ishell=ishell+1
            ictotpsi=ictotpsi+1
@@ -475,7 +476,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                  !non-collinear case
                  do icoll=1,noncoll !non-trivial only for nspinor=4
                     iocc=iocc+1
-                    Gocc(icoeff)=Gocc(icoeff)+at%aocc(iocc,iat)
+                    Gocc(icoeff)=Gocc(icoeff)+at%aoig(iat)%aocc(iocc)
                     !print *,'test',iocc,icoeff,shape(at%aocc),'test2',shape(Gocc)
                     if( present(gaenes)) then
                         gaenes(icoeff)=gaenes_aux( ishell-last_aux+  5*(iat-1) )

@@ -70,7 +70,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
 
    allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
    call memocc(i_stat,thetaphi,'thetaphi',subname)
-   call razero(2*G%nat,thetaphi)
+   call to_zero(2*G%nat,thetaphi)
    allocate(allpsigau(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
    call memocc(i_stat,allpsigau,'allpsigau',subname)
 !print *,'there'
@@ -87,7 +87,9 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    !calculate dual coefficients
    allocate(dualcoeffs(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
    call memocc(i_stat,dualcoeffs,'dualcoeffs',subname)
-   call dcopy(G%ncoeff*orbs%nspinor*(orbs%norbp+norbpv),allpsigau,1,dualcoeffs,1)
+   if (G%ncoeff*orbs%nspinor*(orbs%norbp+norbpv)>0) then
+       call vcopy(G%ncoeff*orbs%nspinor*(orbs%norbp+norbpv),allpsigau(1,1),1,dualcoeffs(1,1),1)
+   end if
    !build dual coefficients
    call dual_gaussian_coefficients(orbs%nspinor*(orbs%norbp+norbpv),G,dualcoeffs)
 

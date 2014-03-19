@@ -324,7 +324,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   call memocc(i_stat,hamovr,'hamovr',subname)
 
   !initialise hamovr
-  call razero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr)
+  call to_zero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr(1,1,1))
 
   if (iproc == 0 .and. verbose > 1) call yaml_open_map('Input Guess Overlap Matrices',flow=.true.)
   !     'Overlap Matrix...'
@@ -895,7 +895,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
                &   (0.0_wp,0.0_wp),ppsit(1,iorbst2),max(1,ncomp*nvctrp))
          end if
          !store the values of the passage matrix in passmat array
-         call dcopy(ncplx*norbi**2,hamovr(imatrst),1,passmat(imatrst),1)
+         call vcopy(ncplx*norbi**2,hamovr(imatrst),1,passmat(imatrst),1)
 
          iorbst=iorbst+norbi
          iorbst2=iorbst2+norbi
@@ -920,7 +920,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
       end if
       !store the values of the passage matrix in passmat array
       !print *,'iproc,BBBB11111,',iproc,ispm,norbi,norbj
-      call dcopy(ncplx*norbi*norbj,hamovr(imatrst),1,passmat(ispm),1)
+      call vcopy(ncplx*norbi*norbj,hamovr(imatrst),1,passmat(ispm),1)
       ispm=ispm+ncplx*norbi*norbj
       !print *,'iproc,BBBB,',iproc,ispm,norbi,norbj
 
@@ -1053,7 +1053,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    ! Calling arguments
    integer,intent(in):: iproc, nproc, nspin, nspinor, sizePsi, natsc, ndim_hamovr, norbsc
    integer, dimension(natsc+1,nspin), intent(in) :: norbscArr
-   type(orbitals_data), intent(in) :: orbs
+   type(orbitals_data), intent(inout) :: orbs
    !real(kind=8),dimension(norbtot*norbtot*nspinor,nspin,2,orbs%nkpts),intent(in):: hamovr
    real(kind=8),dimension(ndim_hamovr,nspin,2,orbs%nkpts),intent(inout):: hamovr
    real(kind=8),dimension(sizePsi),intent(in):: psi
@@ -1604,9 +1604,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          do ikpt=1,kp
             kk=ikpt+minval(kArr)-1
             do iorb=1,norbtot
-               call dcopy(norbtot*nspinor, hamovr(ii+(iorb-1)*norbtot*nspinor+1,ispin,1,kk), 1,&
+               call vcopy(norbtot*nspinor, hamovr(ii+(iorb-1)*norbtot*nspinor+1,ispin,1,kk), 1,&
                   &   HamPad(1,iorb,ispin,ikpt), 1)
-               call dcopy(norbtot*nspinor, hamovr(ii+(iorb-1)*norbtot*nspinor+1,ispin,2,kk), 1,&
+               call vcopy(norbtot*nspinor, hamovr(ii+(iorb-1)*norbtot*nspinor+1,ispin,2,kk), 1,&
                   &   overlapPad(1,iorb,ispin,ikpt), 1)
                do j=norbtot*nspinor+1,norbtotPad*nspinor
                   HamPad(j,iorb,ispin,ikpt)=0.d0
@@ -1692,7 +1692,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                   rayleigh(iorb)=ddot(norbtotPad, psiGuessP(1,iorb,ispin), 1, gradient(1,iorb), 1)
                else
                   zz=zdotc(norbtotPad, psiGuessP(1,iorb,ispin), 1, gradient(1,iorb), 1)
-                  call dcopy(1, zz, 1, rayleigh(iorb), 1)
+                  call vcopy(1, zz, 1, rayleigh(iorb), 1)
                end if
 
                if(iorb==1) then
@@ -1712,13 +1712,13 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                      cosangle=cosangle/(dnrm2(norbtotPad, gradient(1,iorb), 1)*dnrm2(norbtotPad, gradientOld(1,iorb), 1))
                   else
                      zz=zdotc(norbtotPad, gradient(1,iorb), 1, gradientOld(1,iorb), 1)
-                     call dcopy(1, zz, 1, cosangle, 1)
+                     call vcopy(1, zz, 1, cosangle, 1)
                      zz=zdotc(norbtotPad, gradient(1,iorb), 1, gradient(1,iorb), 1)
-                     call dcopy(1, zz, 1, tt, 1)
+                     call vcopy(1, zz, 1, tt, 1)
                      tt=sqrt(tt)
                      cosangle=cosangle/tt
                      zz=zdotc(norbtotPad, gradientOld(1,iorb), 1, gradientOld(1,iorb), 1)
-                     call dcopy(1, zz, 1, tt, 1)
+                     call vcopy(1, zz, 1, tt, 1)
                      tt=sqrt(tt)
                      cosangle=cosangle/tt
                   end if
@@ -1730,13 +1730,13 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                   end if
                end if
                ! Copy the current gradient to gradientOld.
-               call dcopy(norbtotPad*nspinor, gradient(1,iorb), 1, gradientOld(1,iorb), 1)
+               call vcopy(norbtotPad*nspinor, gradient(1,iorb), 1, gradientOld(1,iorb), 1)
                ! Calculate the square of the norm of the gradient.
                if(nspinor==1) then
                   gradientNorm=ddot(norbtotPad,gradient(1,iorb),1,gradient(1,iorb),1)
                else
                   zz=zdotc(norbtotPad,gradient(1,iorb),1,gradient(1,iorb),1)
-                  call dcopy(1, zz, 1, gradientNorm, 1)
+                  call vcopy(1, zz, 1, gradientNorm, 1)
                end if
                ! Determine the maximal gradient norm among all vectors treated by this processor.
                if(gradientNorm>gradientMax(2)) gradientMax(2)=gradientNorm
@@ -1862,7 +1862,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          if(simul) stop 'should not happen...'
          ii=0
          do ikpt=1,orbs%nkpts
-            call dcopy(norb, rayleigh(1), 1, orbs%eval(1+ii), 1)
+            call vcopy(norb, rayleigh(1), 1, orbs%eval(1+ii), 1)
             ii=ii+1
          end do
       end if
@@ -1873,7 +1873,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       allocate(psiGuessPTrunc(norbtot*nspinor,max(norbpArr(iproc),1),nspin), stat=i_stat)
       call memocc(i_stat, psiGuessPTrunc, 'psiGuessPTrunc', subname)
       do iorb=1,norbpArr(iproc)
-         call dcopy(norbtot*nspinor, psiGuessP(1,iorb,ispin), 1, psiGuessPTrunc(1,iorb,ispin), 1)
+         call vcopy(norbtot*nspinor, psiGuessP(1,iorb,ispin), 1, psiGuessPTrunc(1,iorb,ispin), 1)
       end do
       ! Define the values necessary for mpi_allgatherv
       if(nproc>1) then
@@ -1916,7 +1916,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          end if
       else
          if(simul) stop 'should not happen...'
-         call dcopy(norbtot*nspinor*norb, psiGuessP(1,1,ispin), 1, psiGuess(1,1,ispin), 1)
+         call vcopy(norbtot*nspinor*norb, psiGuessP(1,1,ispin), 1, psiGuess(1,1,ispin), 1)
       end if
       i_all=-product(shape(psiGuessPTrunc))*kind(psiGuessPTrunc)
       deallocate(psiGuessPTrunc, stat=i_stat)
@@ -2028,14 +2028,14 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    allocate(alphaArr((orbs%norb-norbsc)*orbs%nkpts*nspin), stat=i_stat)
    call memocc(i_stat, alphaArr, 'alphaArr', subname)
 
-   call dcopy((orbs%norb-norbsc)*orbs%nkpts*nspin, orbs%eval(1), 1, alphaArr(1), 1)
+   call vcopy((orbs%norb-norbsc)*orbs%nkpts*nspin, orbs%eval(1), 1, alphaArr(1), 1)
    ist=1
    do ikpt=1,orbs%nkpts
       kk=(ikpt-1)*(orbs%norbu-norbsc)+1
       do ispin=1,nspin
          if(ispin==1) ii=orbs%norbu-norbsc
          if(ispin==2) ii=orbs%norbd-norbsc
-         call dcopy(ii, alphaArr(kk), 1, orbs%eval(ist), 1)
+         call vcopy(ii, alphaArr(kk), 1, orbs%eval(ist), 1)
          kk=kk+ii*orbs%nkpts
          ist=ist+ii
       end do
@@ -2278,7 +2278,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                ist=ist+norbsc*nspin
             end do
             ! Copy the orbitals of this k-point to sceval.
-            call dcopy(norbsc*nspin, evale(ist), 1, sceval(ist2), 1)
+            call vcopy(norbsc*nspin, evale(ist), 1, sceval(ist2), 1)
          end if
          ! Send the orbitals to all processes.
          call timing(iproc, 'Input_comput', 'OF')
@@ -2306,7 +2306,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          do ispin=1,nspin
             if(ispin==1) ii=orbs%norbu-norbsc
             if(ispin==2) ii=orbs%norbd-norbsc
-            call dcopy(ii, orbs%eval(ist), 1, sortArr(1,ikpt,ispin), 1)
+            call vcopy(ii, orbs%eval(ist), 1, sortArr(1,ikpt,ispin), 1)
             ist=ist+ii
          end do
       end do
@@ -2335,7 +2335,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             else
                norb=orbs%norbd-norbsc
             end if
-            call dcopy(norb, orbs%eval(ist), 1, sortArr(1,ikpt,ispin), 1)
+            call vcopy(norb, orbs%eval(ist), 1, sortArr(1,ikpt,ispin), 1)
             ist=ist+norb
          end do
       end do
@@ -2430,7 +2430,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       ist2=1
       ist3=1 
       ! First copy the non-semicore orbitals to the temporary array.
-      call dcopy((orbs%norb-nspin*norbsc)*nspin, orbs%eval(1), 1, sortArr(1,1,1), 1)
+      call vcopy((orbs%norb-nspin*norbsc)*nspin, orbs%eval(1), 1, sortArr(1,1,1), 1)
       ! Make a loop over all k-points.
       do ikpt=1,orbs%nkpts
          ! Make a loop over spin up and down.
@@ -2441,11 +2441,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                norb=orbs%norbd-norbsc 
             end if
             ! Copy the semicore orbitals.
-            call dcopy(norbsc, sceval(ist2), 1, orbs%eval(ist),1)
+            call vcopy(norbsc, sceval(ist2), 1, orbs%eval(ist),1)
             ist=ist+norbsc
             ist2=ist2+norbsc
             ! Copy the non-semicore orbitals.
-            call dcopy(norb, sortArr(ist3,1,1), 1, orbs%eval(ist),1)
+            call vcopy(norb, sortArr(ist3,1,1), 1, orbs%eval(ist),1)
             ist=ist+norb
             ist3=ist3+norb
          end do
@@ -2686,8 +2686,8 @@ subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
       do i=nprocSt,nprocSt+nproc-1
          do iorb=0,norbp-1
             ! Copy the non-zero parts
-            call dcopy(norbtotpArr(i)*nspinor, psi(ii+iorb*norbtot*nspinor+1), 1, psiW(jj), 1)
-            call dcopy(norbtotpArr(i)*nspinor, overlapPsi(ii+iorb*norbtot*nspinor+1), 1, overlapPsiW(jj), 1)
+            call vcopy(norbtotpArr(i)*nspinor, psi(ii+iorb*norbtot*nspinor+1), 1, psiW(jj), 1)
+            call vcopy(norbtotpArr(i)*nspinor, overlapPsi(ii+iorb*norbtot*nspinor+1), 1, overlapPsiW(jj), 1)
             jj=jj+norbtotpArr(i)*nspinor
             do j=norbtotpArr(i)+1,norbtotp
                ! "Copy" the zeros. This happens only if norbtotpArr(i) < norbtotp
@@ -2737,8 +2737,8 @@ subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
       call timing(iproc, 'Input_commun', 'OF')
       call timing(iproc, 'Input_comput', 'ON')
    else
-      call dcopy(norbtot*norbp*nspinor, psi, 1, psiWTrans, 1)
-      call dcopy(norbtot*norbp*nspinor, overlapPsi, 1, overlapPsiWTrans, 1)
+      call vcopy(norbtot*norbp*nspinor, psi(1), 1, psiWTrans(1), 1)
+      call vcopy(norbtot*norbp*nspinor, overlapPsi(1), 1, overlapPsiWTrans(1), 1)
    end if
 
 
@@ -2819,13 +2819,13 @@ subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
       jj=1
       do i=nprocSt,nprocSt+nproc-1
          do iorb=0,norbp-1
-            call dcopy(norbtotp*nspinor, psiW(jj), 1, psi(ii+iorb*norbtot*nspinor+1), 1)
+            call vcopy(norbtotp*nspinor, psiW(jj), 1, psi(ii+iorb*norbtot*nspinor+1), 1)
             jj=jj+norbtotp*nspinor
          end do
          ii=ii+norbtotpArr(i)*nspinor
       end do
    else
-      call dcopy(norbtot*norbp*nspinor, psiWTrans, 1, psi, 1)
+      call vcopy(norbtot*norbp*nspinor, psiWTrans(1), 1, psi(1), 1)
    end if
 
 

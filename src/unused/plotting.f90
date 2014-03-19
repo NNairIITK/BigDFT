@@ -42,7 +42,7 @@ subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
  
   call daub_to_isf(lr,w,psi,psir)
@@ -162,9 +162,9 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(nxc,x_c_psifscf)
-     call razero(nxf,x_f_psig)
-     call razero(n1i*n2i*n3i,psir)
+     call to_zero(nxc,x_c_psifscf)
+     call to_zero(nxf,x_f_psig)
+     call to_zero(n1i*n2i*n3i,psir)
   end if
   select case(lr%geocode)
   case('F')
@@ -487,7 +487,7 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
      nl2=15
   end if
 
-  call razero(max(n1i*n2i*n3d,1),rho)
+  call to_zero(max(n1i*n2i*n3d,1),rho)
 
   do i3=0,2*n3+1
      do i2=0,2*n2+1

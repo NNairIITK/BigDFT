@@ -940,15 +940,18 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
   call checkAndDeallocatePointer(p2pcomm%ise, 'p2pcomm%ise', subname)
 
-  if (associated(p2pcomm%mpi_datatypes)) then
-      is=lbound(p2pcomm%mpi_datatypes,2)
-      ie=ubound(p2pcomm%mpi_datatypes,2)
-      do i=is,ie
-          if (p2pcomm%mpi_datatypes(2,i)==1) then
-               call mpi_type_free(p2pcomm%mpi_datatypes(1,i), ierr)
-           end if
-      end do
+  if (.not.p2pcomm%communication_complete) then
+      stop 'cannot deallocate mpi data types if communication has not completed'
   end if
+  !!if (associated(p2pcomm%mpi_datatypes)) then
+  !!    is=lbound(p2pcomm%mpi_datatypes,2)
+  !!    ie=ubound(p2pcomm%mpi_datatypes,2)
+  !!    do i=is,ie
+  !!        if (p2pcomm%mpi_datatypes(2,i)==1) then
+  !!             call mpi_type_free(p2pcomm%mpi_datatypes(1,i), ierr)
+  !!         end if
+  !!    end do
+  !!end if
   call checkAndDeallocatePointer(p2pcomm%mpi_datatypes, 'p2pcomm%mpi_datatypes', subname)
 
 end subroutine deallocate_p2pComms
@@ -991,6 +994,12 @@ subroutine deallocate_sparseMatrix(sparsemat, subname)
   call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
   call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_fortransposed, &
        'sparseMat%matrixindex_in_compressed_fortransposed', subname)
+  call f_free_ptr(sparseMat%isvctr_par)
+  call f_free_ptr(sparseMat%nvctr_par)
+  call f_free_ptr(sparseMat%isfvctr_par)
+  call f_free_ptr(sparseMat%nfvctr_par)
+  call f_free_ptr(sparseMat%matrixp)
+  call f_free_ptr(sparseMat%matrix_comprp)
 
 end subroutine deallocate_sparseMatrix
 
@@ -1037,6 +1046,7 @@ subroutine deallocate_collective_comms(collcom, subname)
   call checkAndDeallocatePointer(collcom%nrecvcounts_repartitionrho, 'collcom%nrecvcounts_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nsenddspls_repartitionrho, 'collcom%nsenddspls_repartitionrho', subname)
   call checkAndDeallocatePointer(collcom%nrecvdspls_repartitionrho, 'collcom%nrecvdspls_repartitionrho', subname)
+  call checkAndDeallocatePointer(collcom%commarr_repartitionrho, 'collcom%commarr_repartitionrho', subname)
 
 end subroutine deallocate_collective_comms
 

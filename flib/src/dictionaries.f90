@@ -46,6 +46,10 @@ module dictionaries
    interface operator(.is.)
       module procedure dict_cont_new_with_value, dict_cont_new_with_dict
    end interface 
+   interface operator(.in.)
+      module procedure key_in_dictionary
+   end interface operator(.in.)
+
    interface operator(==)
       module procedure dicts_are_equal
    end interface
@@ -87,7 +91,7 @@ module dictionaries
    public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_iter,has_key,dict_keys
    public :: dict_new,list_new
    !> Public elements of dictionary_base
-   public :: operator(.is.),operator(.item.),operator(==),operator(/=)
+   public :: operator(.is.),operator(.item.),operator(==),operator(/=),operator(.in.)
    public :: dictionary,max_field_length,dict_get_num
 
    !header of error handling part
@@ -556,7 +560,7 @@ contains
 
    !> Retrieve the pointer to the dictionary which has this key.
    !! If the key does not exists, search for it in the next chain 
-   !! Key Must be already present 
+   !! Key Must be already present, otherwise result is nullified
    recursive function find_key(dict,key) result (dict_ptr)
      implicit none
      type(dictionary), intent(in), pointer :: dict !hidden inout
@@ -604,6 +608,15 @@ contains
      !end if
 
    end function dict_keys
+
+   function key_in_dictionary(key,dict)
+     implicit none
+     type(dictionary), intent(in), pointer :: dict 
+     character(len=*), intent(in) :: key
+     logical :: key_in_dictionary
+     
+     key_in_dictionary=has_key(dict,key)
+   end function key_in_dictionary
 
    !> Search in the dictionary if some of the child has the given
    !! If the key does not exists, search for it in the next chain 
@@ -702,10 +715,12 @@ contains
      else if (associated(dict%next)) then
         call append(dict%next,brother)
      else
+        if (.not. associated(dict%parent,target=brother%parent)) &
+             dict%parent%data%nelems=&
+             dict%parent%data%nelems+brother%parent%data%nelems
         dict%next=>brother
+        call define_parent(dict%parent,dict%next)
         call define_brother(dict,dict%next)
-        dict%parent%data%nelems=dict%parent%data%nelems+brother%parent%data%nelems
-        !print *,'appending',dict%parent%data%nelems,dict%data%nelems,brother%data%nelems,brother%parent%data%nelems
      end if
    end subroutine append
 
@@ -729,6 +744,9 @@ contains
      else if (.not. associated(dict%parent)) then
         call prepend(dict%child,brother)
      else if (.not. associated(brother%parent)) then
+        !increment the number of elements
+        dict%parent%data%nelems=&
+             dict%parent%data%nelems+brother%data%nelems
         call define_parent(dict%parent,brother%child)
         call prepend(dict,brother%child)
         nullify(brother%child)
@@ -747,7 +765,6 @@ contains
      implicit none
      type(dictionary), pointer :: dict
      character(len=*), intent(in) :: val
-
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      !call check_key(dict)
 
@@ -1188,6 +1205,7 @@ contains
                return
             end if
             ! Dict case
+
             allocate(keys(dict_size(subd)))
             keys = dict_keys(subd)
             do i = 1, size(keys), 1

@@ -167,229 +167,10 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
 
 END SUBROUTINE inputguess_gaussian_orbitals
 
-
-!NOT USED ANY MORE
-!>   Generate the input guess via the inguess_generator
-! This is the same as inputguess_gaussian_orbitals, but it redistrubutes the orbitals in a new way
-! (used for O(N), the cubic distribution scheme does not always match the scheme assumed for O(N)).
-! Ask Luigi how to fix this problem.
-subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt,nspin,&
-     nlr, norbsPerAt, mapping, &
-     orbs,orbse,norbsc_arr,locrad,G,psigau,eks,quartic_prefactor)
-  use module_base
-  use module_types
-  use yaml_output
-  use module_interfaces, except_this_one => inputguess_gaussian_orbitals_forLinear
-  implicit none
-  integer, intent(in) :: iproc,nproc,nspin,nlr,norb
-  integer, intent(inout) :: nvirt
-  type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  integer,dimension(norb),intent(in):: mapping
-  integer,dimension(at%astruct%nat),intent(in):: norbsPerAt
-  real(gp), intent(out) :: eks
-  integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-  real(gp), dimension(at%astruct%nat), intent(out) :: locrad
-  type(orbitals_data), intent(inout) :: orbse
-  type(gaussian_basis), intent(out) :: G
-  real(wp), dimension(:,:,:), pointer :: psigau
-  real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
-  !local variables
-  character(len=*), parameter :: subname='inputguess_gaussian_orbitals_forLinear'
-  !integer, parameter :: ngx=31
-  integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
-  integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
-  logical, dimension(:,:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: iorbtolr
-!  integer :: istat,iall
-
-  allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
-  call memocc(i_stat,scorb,'scorb',subname)
-
-  !Generate the input guess via the inguess_generator
-  !here we should allocate the gaussian basis descriptors 
-  !the prescriptions can be found in the creation of psp basis
-  call readAtomicOrbitals(at,norbe,norbsc,nspin,orbs%nspinor,&
-       scorb,norbsc_arr,locrad)
-
-  !in the non-collinear case the number of orbitals double
-  if (orbs%nspinor == 4) then
-     noncoll=2
-  else
-     noncoll=1
-  end if
-
-   if (iproc ==0) then
-      call yaml_map('Total No. of Atomic Input Orbitals',nspin*noncoll*norbe,fmt='(i6)')
-      !write(*,'(1x,a,i0,a)')'Generating ',nspin*noncoll*norbe,' Atomic Input Orbitals'
-      if (norbsc /=0) then
-         !write(*,'(1x,a,i0,a)')'  of which ',nspin*noncoll*norbsc,&
-         !&   ' are semicore orbitals'
-         call yaml_map('No. of Semicore Orbitals',nspin*noncoll*norbsc,fmt='(i6)')
-      end if
-   end if
-
-  if (nvirt /= 0) then
-     do ispin=1,nspin
-        !Check for max number of virtual orbitals
-        !the unoccupied orbitals available as a LCAO
-        !this is well defined only for closed-shell systems
-        !if (ispin == 1) nvirte=min(noncoll*norbe-orbs%norbu,nvirt)
-        !if (ispin == 2) nvirte=min(noncoll*norbe-orbs%norbd,nvirt)
-        !alternative test, put always the limit to the number of elements of the input guess
-        nvirte=noncoll*norbe
-        if(nvirt < nvirte .and. iproc==0) then
-           call yaml_warning('A bigger number of virtual orbitals may be needed for better convergence.')
-           call yaml_comment('Put nvirt= '//trim(yaml_toa(nvirte,fmt='(i0)')))
-           !write(*,'(1x,a)')&
-           !     "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
-           !write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
-        end if
-        !if (nvirte < nvirt) then
-        !   nvirt=nvirte
-        !   if(iproc==0) write(*,'(1x,a,i3)')&
-        !        "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
-        !end if
-        !nvirt=min(nvirt,nvirte)
-     end do
-  end if
-
-  !allocate communications arrays for virtual orbitals
-  !warning: here the aim is just to calculate npsidim, should be fixed
-  !call allocate_comms(nproc,orbsv,commsv,subname)
-!!$  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-!!$  call deallocate_comms(commsv,subname)
-
-  !!!orbitals descriptor for inguess orbitals
-  nspinorfororbse=orbs%nspinor
-
-  !the number of orbitals to be considered is doubled 
-  !in the case of a spin-polarised calculation
-  !also for non-collinear case
-  !nspin*noncoll is always <= 2
-  !call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-  !     & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
-!!$  call orbitals_descriptors_forLinear(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-!!$       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
-!!$  call repartitionOrbitals(iproc, nproc, orbse%norb, orbse%norb_par, orbse%norbp, orbse%isorb_par, orbse%isorb, orbse%onWhichMPI)
-  call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-       nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.) !simple repartition
-
-
-  ! lin%lig%orbsig%inWhichLocreg has been allocated in orbitals_descriptors_forLinear. Since it will again be allcoated
-  ! in assignToLocreg2, deallocate it first.
-  !iall=-product(shape(orbse%inWhichLocreg))*kind(orbse%inWhichLocreg)
-  !deallocate(orbse%inWhichLocreg,stat=istat)
-  !call memocc(istat,iall,'orbse%inWhichLocreg',subname)
-  ! Assign the orbitals to the localization regions.
-  !call assignToLocreg2(iproc,nproc,orbse%norb,orbse%norb_par,at%astruct%nat,nlr,nspin,norbsPerAt,rxyz,orbse%inwhichlocreg)
-
-  do ikpt = 1, orbse%nkpts
-     ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
-     do ispin=1,nspin
-        orbse%spinsgn(ist:ist+norbe-1)=real(1-2*(ispin-1),gp)
-        ist=ist+norbe
-     end do
-  end do
-
-  !this is the distribution procedure for cubic code
-  !should be referred to another routine
-  if (iproc == 0 .and. nproc > 1) then
-     jpst=0
-     do jproc=0,nproc-1
-        norbme=orbse%norb_par(jproc,0)
-        norbyou=orbse%norb_par(min(jproc+1,nproc-1),0)
-        if (norbme /= norbyou .or. jproc == nproc-1) then
-           !this is a screen output that must be modified
-           write(*,'(3(a,i0),a)')&
-                ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' inguess orbitals '
-           jpst=jproc+1
-        end if
-     end do
-     !write(*,'(3(a,i0),a)')&
-     !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
-  end if
-
-  !write(*,'(a,3i6)') 'iproc, orbse%isorb, orbse%norbp', iproc, orbse%isorb,orbse%norbp
-  !write(*,'(a,3i6)') 'norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug', norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug
-  !allocate the gaussian coefficients for the number of orbitals which is needed
-  allocate(psigau(norbe,orbse%nspinor,orbse%isorb+orbse%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,psigau,'psigau',subname)
-  allocate(iorbtolr(orbse%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbtolr,'iorbtolr',subname)
-
-  !fill just the interesting part of the orbital
-  if(present(quartic_prefactor)) then
-      call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
-           psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
-           iorbtolr,mapping,quartic_prefactor)
-  else
-      call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
-           psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
-           iorbtolr,mapping)
-  end if
-
-  !call AtomicOrbitals_forLinear(iproc,at,rxyz,mapping,norbe,orbse,norbsc,nspin,eks,scorb,G,&
-  !     psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
-  !     iorbtolr)
-
-  i_all=-product(shape(scorb))*kind(scorb)
-  deallocate(scorb,stat=i_stat)
-  call memocc(i_stat,i_all,'scorb',subname)
-
-  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
-  deallocate(iorbtolr,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbtolr',subname)
-
-END SUBROUTINE inputguess_gaussian_orbitals_forLinear
-
-
-!> Count the number of atomic shells
-subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occup,nl)
-   use module_base
-   implicit none
-   integer, intent(in) :: lmax,noccmax,nelecmax,nspin,nspinor
-   real(gp), dimension(nelecmax), intent(in) :: elecorbs
-   integer, dimension(lmax), intent(out) :: nl
-   real(gp), dimension(noccmax,lmax), intent(out) :: occup
-   !local variables
-   integer :: l,iocc,noncoll,inl,ispin,icoll,m
-
-   !if non-collinear it is like nspin=1 but with the double of orbitals
-   if (nspinor == 4) then
-      noncoll=2
-   else
-      noncoll=1
-   end if
-   occup(1:noccmax,1:lmax)=0
-   nl(1:lmax)=0
-
-   !calculate nl and the number of occupation numbers per orbital
-   iocc=0
-   do l=1,lmax
-      iocc=iocc+1
-      nl(l)=ceiling(elecorbs(iocc))!nint(elecorbs(iocc))
-      if (nl(l) > noccmax) stop 'noccmax too little'
-      do inl=1,nl(l)!this lose the value of the principal quantum number n
-         occup(inl,l)=0.0_gp
-         do ispin=1,nspin
-            do m=1,2*l-1
-               do icoll=1,noncoll !non-trivial only for nspinor=4
-                  iocc=iocc+1
-                  occup(inl,l)=occup(inl,l)+elecorbs(iocc)
-               end do
-            end do
-         end do
-      end do
-   end do
-
-END SUBROUTINE count_atomic_shells
-
-
 !> Read atomic orbitals
 subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
-   use module_base
+   use module_base, only: gp
+   use ao_inguess, only: atomic_info,ao_nspin_ig,count_atomic_shells
    use module_types
    implicit none
    !Arguments
@@ -401,14 +182,14 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    real(gp), dimension(at%astruct%nat), intent(out) :: locrad
    !local variables
    !n(c) character(len=*), parameter :: subname='readAtomicOrbitals'
-   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+   integer, parameter :: lmax=3,noccmax=2,nelecmax=32
    character(len=2) :: symbol
    integer :: ity,i,iatsc,iat,lsc
-   integer :: nsccode,mxpl,mxchg
+   integer :: nsccode!,mxpl,mxchg
    integer :: norbat,iorbsc_count,niasc,nlsc
-   real(gp) :: rcov,rprb,ehomo,amu
+   real(gp) :: ehomo!rcov,rprb,ehomo,amu
    !integer, dimension(nmax,lmax+1) :: neleconf
-   real(kind=8), dimension(nmax,lmax+1) :: neleconf
+   !real(kind=8), dimension(nmax,lmax+1) :: neleconf
    integer, dimension(lmax+1) :: nl
    real(gp), dimension(noccmax,lmax+1) :: occup
 
@@ -419,17 +200,20 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    scorb(:,:,:)=.false.
    do iat=1,at%astruct%nat
       ity=at%astruct%iatype(iat)
-      call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
+      call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
+           at%aoig(iat)%aocc,occup,nl)
 
       norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
 
       norbe=norbe+norbat
       !print *,'iat',iat,l,norbe,norbat,nl(:)
       !calculate the localisation radius for the input orbitals 
-      call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
-         &   neleconf,nsccode,mxpl,mxchg,amu)
+      !call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
+      !   &   neleconf,nsccode,mxpl,mxchg,amu)
+      call atomic_info(at%nzatom(ity),at%nelpsp(ity),ehomo=ehomo)
+
       locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
-      nsccode=at%iasctype(iat)
+      nsccode=at%aoig(iat)%iasctype
       if (nsccode/=0) then !the atom has some semicore orbitals
          iatsc=iatsc+1
          niasc=nsccode
@@ -465,98 +249,11 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
 
 END SUBROUTINE readAtomicOrbitals
 
-
-
-!> Read atomic orbitals
-subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad,&
-           onWhichAtom)
-  use module_base
-  use module_types
-  implicit none
-  !Arguments
-  integer, intent(in) :: nspin,nspinor
-  type(orbitals_data),intent(in):: orbsig
-  integer, intent(out) :: norbe,norbsc
-  type(atoms_data), intent(inout) :: at
-  logical, dimension(4,2,at%natsc), intent(out) :: scorb
-  integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-  real(gp), dimension(at%astruct%nat), intent(out) :: locrad
-  integer,dimension(orbsig%norb),intent(out):: onWhichAtom
-  !local variables
-  !character(len=*), parameter :: subname='readAtomicOrbitals'
-  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  character(len=2) :: symbol
-  integer :: ity,i,iatsc,iat,lsc
-  integer :: nsccode,mxpl,mxchg
-  integer :: norbat,iorbsc_count,niasc,nlsc
-  real(gp) :: rcov,rprb,ehomo
-  !integer, dimension(nmax,lmax+1) :: neleconf
-  real(kind=8), dimension(nmax,lmax+1) :: neleconf
-  integer, dimension(lmax+1) :: nl
-  real(gp), dimension(noccmax,lmax+1) :: occup
-  integer:: iorb
-
-  ! number of orbitals, total and semicore
-  norbe=0
-  norbsc=0
-  iatsc=0
-  scorb(:,:,:)=.false.
-  do iat=1,at%astruct%nat
-     ity=at%astruct%iatype(iat)
-     call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
-!write(*,'(a,i4,2x,10i4)') 'iat, nl', iat, nl
-     norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
-     do iorb=1,norbat
-         onWhichAtom(norbe+iorb)=iat
-     end do
-
-     norbe=norbe+norbat
-     !print *,'iat',iat,l,norbe,norbat,nl(:)
-     !calculate the localisation radius for the input orbitals 
-     call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
-          neleconf,nsccode,mxpl,mxchg,at%amu(ity))
-     locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
-     nsccode=at%iasctype(iat)
-     if (nsccode/=0) then !the atom has some semicore orbitals
-        iatsc=iatsc+1
-        niasc=nsccode
-        !count the semicore orbitals for this atom
-        iorbsc_count=0
-        do lsc=4,1,-1
-           nlsc=niasc/4**(lsc-1)
-           iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
-           if (nlsc > 2) then
-              write(*,*)'ERROR, atom:',iat,&
-                   ': cannot admit more than two semicore shells per channel'
-              stop
-           end if
-           do i=1,nlsc
-              scorb(lsc,i,iatsc)=.true.
-           end do
-           niasc=niasc-nlsc*4**(lsc-1)
-        end do
-        norbsc_arr(iatsc,1)=iorbsc_count
-        norbsc=norbsc+iorbsc_count
-        !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
-     end if
-
-  end do
-
-  !print *,'NL',nl,norbe
-
-  !orbitals which are non semicore
-  norbsc_arr(at%natsc+1,1)=norbe-norbsc
-
-  !duplicate the values in the case of spin-polarization
-  if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
-
-END SUBROUTINE readAtomicOrbitals_withOnWhichAtom
-
-
 !> Generate atomic orbitals
 subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
    use module_base
+   use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,count_atomic_shells
    use module_types
    use module_interfaces, except_this_one => AtomicOrbitals
    use yaml_output
@@ -576,11 +273,11 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
    integer, parameter :: noccmax=2,lmax=4,nelecmax=32,nmax_occ=10!actually is 24
-   !integer, parameter :: nterm_max=3,nmax=6
+   !integer, parameter :: nterm_max=3,nmax=7
    logical :: orbpol_nc,occeq
    integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
-   integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng
+   integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng,nspin_print
    real(gp) :: ek,mx,my,mz,ma,mb,mc,md
    real(gp) :: mnorm,fac
    logical, dimension(lmax,noccmax) :: semicore
@@ -610,8 +307,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !if non-collinear it is like nspin=1 but with the double of orbitals
    if (orbse%nspinor == 4) then
       noncoll=2
+      nspin_print=4
    else
       noncoll=1
+      nspin_print=nspin
    end if
 
    !calculate the number of atom types by taking into account the occupation
@@ -623,7 +322,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    count_shells: do iat=1,at%astruct%nat
       !print *,'atom,aocc',iat,at%aocc(1:nelecmax,iat)
       ity=at%astruct%iatype(iat)
-      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
+      call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
       G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
       G%nshltot=G%nshltot+G%nshell(iat)
       !check the occupation numbers and the atoms type
@@ -632,7 +331,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          if (at%astruct%iatype(jat) == ity) then
             occeq=.true.
             do i=1,nelecmax
-               occeq = occeq .and. (at%aocc(i,jat) == at%aocc(i,iat))
+               occeq = occeq .and. &
+                    (at%aoig(jat)%aocc(i) == at%aoig(iat)%aocc(i))
             end do
             !have found another similar atoms
             if (occeq) then
@@ -680,18 +380,14 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       ity=at%astruct%iatype(iat)
       ityx=iatypex(iat)
       ishltmp=0
-      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
+      call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
       if (ityx > ntypesx) then
          if (iproc == 0 .and. verbose > 1) then
             call yaml_sequence(advance='no')
             call yaml_open_map(flow=.true.)
             call yaml_map('Atom Type',trim(at%astruct%atomnames(ity)))
-            !write(*,'(1x,a,a6,a)')&
-            !   &   'Generation of input wavefunction data for atom ',&
-            !   &   trim(at%astruct%atomnames(ity)),&
-            !   &   ': '
-            call print_eleconf(nspin,orbse%nspinor,noccmax,nelecmax,lmax,&
-               &   at%aocc(1,iat),at%iasctype(iat))
+            call print_eleconf(nspin_print,&
+                 at%aoig(iat)%aocc,at%aoig(iat)%iasctype)
          end if
 
          !positions for the nlcc arrays
@@ -702,16 +398,15 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          ngc=0
          if(present(quartic_prefactor)) then
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
-                &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
-                &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                &   ng-1,nl,nmax_occ,noccmax,lmax,occup,xp(1,ityx),&
-                &   psiat(1,1,ityx),.false.,quartic_prefactor(ity))
+                  real(at%nelpsp(ity),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ity),&
+                  at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
+                  ng-1,xp(1,ityx),psiat(1:,1:,ityx),.false.,&
+                  quartic_prefactor=quartic_prefactor(ity))
         else
              call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
-                &   real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
-                &   at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
-                &   ng-1,nl,nmax_occ,noccmax,lmax,occup,xp(1,ityx),&
-                &   psiat(1,1,ityx),.false.)
+                  real(at%nelpsp(ity),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ity),&
+                  at%npspcode(ity),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
+                  ng-1,xp(1,ityx),psiat(1:,1:,ityx),.false.)
          end if
          ntypesx=ntypesx+1
          if (iproc == 0 .and. verbose > 1) then
@@ -747,7 +442,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       stop 
    end if
 
-   call razero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
+   call to_zero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
 
    !allocate and assign the exponents and the coefficients
    allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
@@ -782,7 +477,6 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       end do
    end if
 
-
    eks=0.0_gp
    iorb=0
    iatsc=0
@@ -801,9 +495,9 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
       ity=at%astruct%iatype(iat)
       ityx=iatypex(iat)
-      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,orbse%nspinor,at%aocc(1,iat),occup,nl)
+      call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
 
-      nsccode=at%iasctype(iat)
+      nsccode=at%aoig(iat)%iasctype
 
       !the scorb array was already corrected in readAtomicOrbitals routine
       if (nsccode/=0) then !the atom has some semicore orbitals
@@ -824,7 +518,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       iocc=0
       do l=1,4
          iocc=iocc+1
-         nlo=ceiling(at%aocc(iocc,iat))!nint(at%aocc(iocc,iat))
+         nlo=ceiling(at%aoig(iat)%aocc(iocc))!nint(at%aocc(iocc,iat))
          do inl=1,nlo
             ictotpsi=ictotpsi+1
             ictot=ictot+1
@@ -861,17 +555,18 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                         !full orbital, non polarised
                         !if icoll=1 occ(iocc)+occ(iocc+1)
                         !if icoll=2 occ(iocc-1)+occ(iocc)
-                        if (at%aocc(iocc+1-icoll,iat)+at%aocc(iocc+2-icoll,iat) == 2.0_gp) then
+                        if (at%aoig(iat)%aocc(iocc+1-icoll)+&
+                             at%aoig(iat)%aocc(iocc+2-icoll) == 2.0_gp) then
                            orbpol_nc=.false.
                         end if
                      end if
                      do ikpts=1,orbse%nkpts
                         ikorb=iorb+(ikpts-1)*orbse%norb
                         jorb=ikorb-orbse%isorb
-                        orbse%occup(ikorb)=at%aocc(iocc,iat)
+                        orbse%occup(ikorb)=at%aoig(iat)%aocc(iocc)
 
                         !!write(*,'(a,4i6,2es12.4)') 'iat, l, m, iocc, at%aocc(iocc,iat), ek', iat, l, m, iocc, at%aocc(iocc,iat), ek
-                        eks=eks+ek*at%aocc(iocc,iat)*orbse%kwgts(ikpts)
+                        eks=eks+ek*at%aoig(iat)%aocc(iocc)*orbse%kwgts(ikpts)
                         !!write(*,*) 'iat, at%aocc(iocc,iat)', iat, at%aocc(iocc,iat)
                         if (present(mapping)) then
                            iiorb=mapping(iorb)
@@ -1218,444 +913,213 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 
 END SUBROUTINE calc_coeff_inguess
 
-
-subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
-      &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb,quartic_prefactor)
-   use module_base
-   implicit none
-   logical, intent(in) :: enlargerprb
-   integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
-   real(gp), intent(in) :: zion
-   integer, dimension(lmax+1), intent(in) :: nl
-   real(gp), dimension(0:4,0:6), intent(in) :: psppar
-   real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
-   real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
-   real(gp), dimension(ng+1), intent(out) :: expo
-   real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
-   real(gp),intent(in),optional:: quartic_prefactor
-   !local variables
-   character(len=*), parameter :: subname='iguess_generator'
-   integer, parameter :: n_int=100
-   real(gp), parameter :: fact=4.0_gp
-   character(len=2) :: symbol
-   integer :: lpx,nsccode,mxpl,mxchg
-   integer :: l,i,j,iocc,i_all,i_stat
-   real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
-   !integer, dimension(6,4) :: neleconf
-   real(kind=8), dimension(6,4) :: neleconf
-   real(gp), dimension(4) :: gpot
-   real(gp), dimension(noccmax,lmax+1) :: aeval,chrg,res
-   real(gp), dimension(:), allocatable :: xp,alps
-   real(gp), dimension(:,:), allocatable :: vh,hsep,ofdcoef
-   real(gp), dimension(:,:,:), allocatable :: psi
-   real(gp), dimension(:,:,:,:), allocatable :: rmt
-
-   !filename = 'psppar.'//trim(atomname)
-
-   lpx=0
-   lpx_determination: do i=1,4
-      if (psppar(i,0) == 0.0_gp) then
-         exit lpx_determination
-      else
-         lpx=i-1
-      end if
-   end do lpx_determination
-
-   allocate(alps(lpx+1+ndebug),stat=i_stat)
-   call memocc(i_stat,alps,'alps',subname)
-   allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
-   call memocc(i_stat,hsep,'hsep',subname)
-
-   !assignation of radii and coefficients of the local part
-   alpz=psppar(0,0)
-   alpl=psppar(0,0)
-   alps(1:lpx+1)=psppar(1:lpx+1,0)
-   gpot(1:4)=psppar(0,1:4)
-
-   !assignation of the coefficents for the nondiagonal terms
-   if (npspcode == 2) then !GTH case
-      do l=1,lpx+1
-         hsep(1,l)=psppar(l,1)
-         hsep(2,l)=0.0_gp
-         hsep(3,l)=psppar(l,2)
-         hsep(4,l)=0.0_gp
-         hsep(5,l)=0.0_gp
-         hsep(6,l)=psppar(l,3)
-      end do
-   else if (npspcode == 3) then !HGH case
-      allocate(ofdcoef(3,4+ndebug),stat=i_stat)
-      call memocc(i_stat,ofdcoef,'ofdcoef',subname)
-
-      ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
-      ofdcoef(2,1)=0.5_gp*sqrt(5._gp/21._gp) !h4
-      ofdcoef(3,1)=-0.5_gp*sqrt(100.0_gp/63._gp) !h5
-
-      ofdcoef(1,2)=-0.5_gp*sqrt(5._gp/7._gp) !h2
-      ofdcoef(2,2)=1._gp/6._gp*sqrt(35._gp/11._gp) !h4
-      ofdcoef(3,2)=-7._gp/3._gp*sqrt(1._gp/11._gp) !h5
-
-      ofdcoef(1,3)=-0.5_gp*sqrt(7._gp/9._gp) !h2
-      ofdcoef(2,3)=0.5_gp*sqrt(63._gp/143._gp) !h4
-      ofdcoef(3,3)=-9._gp*sqrt(1._gp/143._gp) !h5
-
-      ofdcoef(1,4)=0.0_gp !h2
-      ofdcoef(2,4)=0.0_gp !h4
-      ofdcoef(3,4)=0.0_gp !h5
-
-      !define the values of hsep starting from the pseudopotential file
-      do l=1,lpx+1
-         hsep(1,l)=psppar(l,1)
-         hsep(2,l)=psppar(l,2)*ofdcoef(1,l)
-         hsep(3,l)=psppar(l,2)
-         hsep(4,l)=psppar(l,3)*ofdcoef(2,l)
-         hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
-         hsep(6,l)=psppar(l,3)
-      end do
-      i_all=-product(shape(ofdcoef))*kind(ofdcoef)
-      deallocate(ofdcoef,stat=i_stat)
-      call memocc(i_stat,i_all,'ofdcoef',subname)
-   else if (npspcode == 10 .or. npspcode == 7 .or. npspcode == 12) then !HGH-K case
-! For PAW this is just the initial guess
-      do l=1,lpx+1
-         hsep(1,l)=psppar(l,1) !h11
-         hsep(2,l)=psppar(l,4) !h12
-         hsep(3,l)=psppar(l,2) !h22
-         hsep(4,l)=psppar(l,5) !h13
-         hsep(5,l)=psppar(l,6) !h23
-         hsep(6,l)=psppar(l,3) !h33
-      end do
-   end if
-
-   !!Just for extracting the covalent radius and rprb
-   call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-   !!write(*,*) 'WARNING: multiply rprb with 5!!'
-   !!rprb=rprb*5.d0
-
-   
-   if(present(quartic_prefactor)) then
-     tt=rprb
-     if(quartic_prefactor>0.d0) then
-         ! There is a non-zero confinement
-         rprb=(1.d0/(2.d0*quartic_prefactor))**.25d0
-     else
-         ! No confinement is used. Adjust rprb such that the quartic potential has at r=12 the same
-         ! value as the parabolic potential
-         rprb=144.d0**.25d0*tt
-     end if
-     !if(iproc==0) write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
-     !write(*,'(2(a,es12.3))') 'quartic potential for AO: modify rprb from ',tt,' to ',rprb
-   end if
-
-   if (enlargerprb) then
-      !experimental
-      rprb=100.0_gp
-   end if
-
-   !  occup(:,:)=0.0_gp
-   !   do l=0,lmax-1
-   !     iocc=0
-   !     do i=1,6
-   !        if (elecorbs(i,l+1) > 0.0_gp) then
-   !           iocc=iocc+1
-   !           !print *,'elecorbs',i,l,elecorbs(i,l+1),noccmax
-   !            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
-   !           occup(iocc,l+1)=elecorbs(i,l+1)
-   !        endif
-   !     end do
-   !     nl(l+1)=iocc
-   !  end do
-
-   !allocate arrays for the gatom routine
-   allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
-   call memocc(i_stat,vh,'vh',subname)
-   allocate(psi(0:ng,noccmax,lmax+ndebug),stat=i_stat)
-   call memocc(i_stat,psi,'psi',subname)
-   allocate(xp(0:ng+ndebug),stat=i_stat)
-   call memocc(i_stat,xp,'xp',subname)
-   allocate(rmt(n_int,0:ng,0:ng,lmax+ndebug),stat=i_stat)
-   call memocc(i_stat,rmt,'rmt',subname)
-
-   !can be switched on for debugging
-   !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
-   !     'Input Guess Generation for atom',trim(atomname),&
-   !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
-
-   rij=3._gp
-   ! exponents of gaussians
-   a0in=alpz
-   a0=a0in/rij
-   !       tt=sqrt(sqrt(2._gp))
-   tt=2._gp**.3_gp
-   do i=0,ng
-      a=a0*tt**i
-      xp(i)=.5_gp/a**2
-   end do
-
-   ! initial guess
-   do l=0,lmax-1
-      do iocc=1,noccmax
-         do i=0,ng
-            psi(i,iocc,l+1)=0.0_gp
-         end do
-      end do
-   end do
-
-   call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
-   if(present(quartic_prefactor)) then
-       call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
-          &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
-          &   aeval,ng,psi,res,chrg,4)
-   else
-       call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
-          &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
-          &   aeval,ng,psi,res,chrg,2)
-   end if
-
-   !post-treatment of the inguess data
-   do i=1,ng+1
-      expo(i)=sqrt(0.5_gp/xp(i-1))
-   end do
-
-   i=0
-   do l=1,4
-      do iocc=1,nl(l)
-         i=i+1
-         !occupat(i)=occup(iocc,l)
-         do j=1,ng+1
-            psiat(j,i)=psi(j-1,iocc,l)
-         end do
-      end do
-   end do
-
-   i_all=-product(shape(vh))*kind(vh)
-   deallocate(vh,stat=i_stat)
-   call memocc(i_stat,i_all,'vh',subname)
-   i_all=-product(shape(psi))*kind(psi)
-   deallocate(psi,stat=i_stat)
-   call memocc(i_stat,i_all,'psi',subname)
-   i_all=-product(shape(xp))*kind(xp)
-   deallocate(xp,stat=i_stat)
-   call memocc(i_stat,i_all,'xp',subname)
-   i_all=-product(shape(rmt))*kind(rmt)
-   deallocate(rmt,stat=i_stat)
-   call memocc(i_stat,i_all,'rmt',subname)
-   i_all=-product(shape(hsep))*kind(hsep)
-   deallocate(hsep,stat=i_stat)
-   call memocc(i_stat,i_all,'hsep',subname)
-   i_all=-product(shape(alps))*kind(alps)
-   deallocate(alps,stat=i_stat)
-   call memocc(i_stat,i_all,'alps',subname)
-
-END SUBROUTINE iguess_generator
-
-
-subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
-      &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb, gaenes_aux)
-   use module_base
-   implicit none
-   logical, intent(in) :: enlargerprb
-   integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
-   real(gp), intent(in) :: zion
-   integer, dimension(lmax+1), intent(in) :: nl
-   real(gp), dimension(0:4,0:6), intent(in) :: psppar
-   real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
-   real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
-   real(gp), dimension(ng+1), intent(out) :: expo
-   real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
-   real(gp), dimension(nmax_occ),intent (out) :: gaenes_aux
-
-
-   !local variables
-   character(len=*), parameter :: subname='iguess_generator'
-   integer, parameter :: n_int=100
-   real(gp), parameter :: fact=4.0_gp
-   character(len=2) :: symbol
-   integer :: lpx,nsccode,mxpl,mxchg
-   integer :: l,i,j,iocc,i_all,i_stat
-   real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
-   real(kind=8), dimension(6,4) :: neleconf
-   real(gp), dimension(4) :: gpot
-   real(gp), dimension(noccmax,lmax+1) :: aeval,chrg,res
-   real(gp), dimension(:), allocatable :: xp,alps
-   real(gp), dimension(:,:), allocatable :: vh,hsep,ofdcoef
-   real(gp), dimension(:,:,:), allocatable :: psi
-   real(gp), dimension(:,:,:,:), allocatable :: rmt
-
-   !filename = 'psppar.'//trim(atomname)
-   call to_zero(nmax_occ,gaenes_aux(1))
-
-   lpx=0
-   lpx_determination: do i=1,4
-      if (psppar(i,0) == 0.0_gp) then
-         exit lpx_determination
-      else
-         lpx=i-1
-      end if
-   end do lpx_determination
-
-   allocate(alps(lpx+1+ndebug),stat=i_stat)
-   call memocc(i_stat,alps,'alps',subname)
-   allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
-   call memocc(i_stat,hsep,'hsep',subname)
-
-   !assignation of radii and coefficients of the local part
-   alpz=psppar(0,0)
-   alpl=psppar(0,0)
-   alps(1:lpx+1)=psppar(1:lpx+1,0)
-   gpot(1:4)=psppar(0,1:4)
-
-   !assignation of the coefficents for the nondiagonal terms
-   if (npspcode == 2) then !GTH case
-      do l=1,lpx+1
-         hsep(1,l)=psppar(l,1)
-         hsep(2,l)=0.0_gp
-         hsep(3,l)=psppar(l,2)
-         hsep(4,l)=0.0_gp
-         hsep(5,l)=0.0_gp
-         hsep(6,l)=psppar(l,3)
-      end do
-   else if (npspcode == 3) then !HGH case
-      allocate(ofdcoef(3,4+ndebug),stat=i_stat)
-      call memocc(i_stat,ofdcoef,'ofdcoef',subname)
-
-      ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
-      ofdcoef(2,1)=0.5_gp*sqrt(5._gp/21._gp) !h4
-      ofdcoef(3,1)=-0.5_gp*sqrt(100.0_gp/63._gp) !h5
-
-      ofdcoef(1,2)=-0.5_gp*sqrt(5._gp/7._gp) !h2
-      ofdcoef(2,2)=1._gp/6._gp*sqrt(35._gp/11._gp) !h4
-      ofdcoef(3,2)=-7._gp/3._gp*sqrt(1._gp/11._gp) !h5
-
-      ofdcoef(1,3)=-0.5_gp*sqrt(7._gp/9._gp) !h2
-      ofdcoef(2,3)=0.5_gp*sqrt(63._gp/143._gp) !h4
-      ofdcoef(3,3)=-9._gp*sqrt(1._gp/143._gp) !h5
-
-      ofdcoef(1,4)=0.0_gp !h2
-      ofdcoef(2,4)=0.0_gp !h4
-      ofdcoef(3,4)=0.0_gp !h5
-
-      !define the values of hsep starting from the pseudopotential file
-      do l=1,lpx+1
-         hsep(1,l)=psppar(l,1)
-         hsep(2,l)=psppar(l,2)*ofdcoef(1,l)
-         hsep(3,l)=psppar(l,2)
-         hsep(4,l)=psppar(l,3)*ofdcoef(2,l)
-         hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
-         hsep(6,l)=psppar(l,3)
-      end do
-      i_all=-product(shape(ofdcoef))*kind(ofdcoef)
-      deallocate(ofdcoef,stat=i_stat)
-      call memocc(i_stat,i_all,'ofdcoef',subname)
-   else if (npspcode == 10 .or. npspcode == 12) then !HGH-K case
-      do l=1,lpx+1
-         hsep(1,l)=psppar(l,1) !h11
-         hsep(2,l)=psppar(l,4) !h12
-         hsep(3,l)=psppar(l,2) !h22
-         hsep(4,l)=psppar(l,5) !h13
-         hsep(5,l)=psppar(l,6) !h23
-         hsep(6,l)=psppar(l,3) !h33
-      end do
-   end if
-
-   !!Just for extracting the covalent radius and rprb
-   call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-
-   if (enlargerprb) then
-      !experimental
-      rprb=100.0_gp
-   end if
-
-   !  occup(:,:)=0.0_gp
-   !   do l=0,lmax-1
-   !     iocc=0
-   !     do i=1,6
-   !        if (elecorbs(i,l+1) > 0.0_gp) then
-   !           iocc=iocc+1
-   !           !print *,'elecorbs',i,l,elecorbs(i,l+1),noccmax
-   !            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
-   !           occup(iocc,l+1)=elecorbs(i,l+1)
-   !        endif
-   !     end do
-   !     nl(l+1)=iocc
-   !  end do
-
-   !allocate arrays for the gatom routine
-   allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
-   call memocc(i_stat,vh,'vh',subname)
-   allocate(psi(0:ng,noccmax,lmax+ndebug),stat=i_stat)
-   call memocc(i_stat,psi,'psi',subname)
-   allocate(xp(0:ng+ndebug),stat=i_stat)
-   call memocc(i_stat,xp,'xp',subname)
-   allocate(rmt(n_int,0:ng,0:ng,lmax+ndebug),stat=i_stat)
-   call memocc(i_stat,rmt,'rmt',subname)
-
-   !can be switched on for debugging
-   !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
-   !     'Input Guess Generation for atom',trim(atomname),&
-   !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
-
-   rij=3._gp
-   ! exponents of gaussians
-   a0in=alpz
-   a0=a0in/rij
-   !       tt=sqrt(sqrt(2._gp))
-   tt=2._gp**.3_gp
-   do i=0,ng
-      a=a0*tt**i
-      xp(i)=.5_gp/a**2
-   end do
-
-   ! initial guess
-   do l=0,lmax-1
-      do iocc=1,noccmax
-         do i=0,ng
-            psi(i,iocc,l+1)=0.0_gp
-         end do
-      end do
-   end do
-
-   call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
-   call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
-      &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
-      &   aeval,ng,psi,res,chrg,2)
-
-   !post-treatment of the inguess data
-   do i=1,ng+1
-      expo(i)=sqrt(0.5_gp/xp(i-1))
-   end do
-
-   i=0
-   do l=1,4
-      do iocc=1,nl(l)
-         i=i+1
-         !occupat(i)=occup(iocc,l)
-         do j=1,ng+1
-            psiat(j,i)=psi(j-1,iocc,l)
-         end do
-         gaenes_aux(i) = aeval(iocc,l)
-      end do
-   end do
-
-   i_all=-product(shape(vh))*kind(vh)
-   deallocate(vh,stat=i_stat)
-   call memocc(i_stat,i_all,'vh',subname)
-   i_all=-product(shape(psi))*kind(psi)
-   deallocate(psi,stat=i_stat)
-   call memocc(i_stat,i_all,'psi',subname)
-   i_all=-product(shape(xp))*kind(xp)
-   deallocate(xp,stat=i_stat)
-   call memocc(i_stat,i_all,'xp',subname)
-   i_all=-product(shape(rmt))*kind(rmt)
-   deallocate(rmt,stat=i_stat)
-   call memocc(i_stat,i_all,'rmt',subname)
-   i_all=-product(shape(hsep))*kind(hsep)
-   deallocate(hsep,stat=i_stat)
-   call memocc(i_stat,i_all,'hsep',subname)
-   i_all=-product(shape(alps))*kind(alps)
-   deallocate(alps,stat=i_stat)
-   call memocc(i_stat,i_all,'alps',subname)
-
-END SUBROUTINE iguess_generator_modified
+!!$subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
+!!$      &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb,gaenes_aux)
+!!$   use module_base
+!!$   implicit none
+!!$   logical, intent(in) :: enlargerprb
+!!$   integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
+!!$   real(gp), intent(in) :: zion
+!!$   integer, dimension(lmax+1), intent(in) :: nl
+!!$   real(gp), dimension(0:4,0:6), intent(in) :: psppar
+!!$   real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
+!!$   real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
+!!$   real(gp), dimension(ng+1), intent(out) :: expo
+!!$   real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
+!!$   real(gp), dimension(nmax_occ),intent (out) :: gaenes_aux
+!!$
+!!$
+!!$   !local variables
+!!$   character(len=*), parameter :: subname='iguess_generator'
+!!$   integer, parameter :: n_int=100
+!!$   real(gp), parameter :: fact=4.0_gp
+!!$   character(len=2) :: symbol
+!!$   integer :: lpx,nsccode,mxpl,mxchg
+!!$   integer :: l,i,j,iocc,i_all,i_stat
+!!$   real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
+!!$   real(kind=8), dimension(6,4) :: neleconf
+!!$   real(gp), dimension(4) :: gpot
+!!$   real(gp), dimension(noccmax,lmax+1) :: aeval,chrg,res
+!!$   real(gp), dimension(:), allocatable :: xp,alps
+!!$   real(gp), dimension(:,:), allocatable :: vh,hsep,ofdcoef
+!!$   real(gp), dimension(:,:,:), allocatable :: psi
+!!$   real(gp), dimension(:,:,:,:), allocatable :: rmt
+!!$
+!!$   !filename = 'psppar.'//trim(atomname)
+!!$   call to_zero(nmax_occ,gaenes_aux(1))
+!!$
+!!$   lpx=0
+!!$   lpx_determination: do i=1,4
+!!$      if (psppar(i,0) == 0.0_gp) then
+!!$         exit lpx_determination
+!!$      else
+!!$         lpx=i-1
+!!$      end if
+!!$   end do lpx_determination
+!!$
+!!$   allocate(alps(lpx+1+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,alps,'alps',subname)
+!!$   allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,hsep,'hsep',subname)
+!!$
+!!$   !assignation of radii and coefficients of the local part
+!!$   alpz=psppar(0,0)
+!!$   alpl=psppar(0,0)
+!!$   alps(1:lpx+1)=psppar(1:lpx+1,0)
+!!$   gpot(1:4)=psppar(0,1:4)
+!!$
+!!$   !assignation of the coefficents for the nondiagonal terms
+!!$   if (npspcode == 2) then !GTH case
+!!$      do l=1,lpx+1
+!!$         hsep(1,l)=psppar(l,1)
+!!$         hsep(2,l)=0.0_gp
+!!$         hsep(3,l)=psppar(l,2)
+!!$         hsep(4,l)=0.0_gp
+!!$         hsep(5,l)=0.0_gp
+!!$         hsep(6,l)=psppar(l,3)
+!!$      end do
+!!$   else if (npspcode == 3) then !HGH case
+!!$      allocate(ofdcoef(3,4+ndebug),stat=i_stat)
+!!$      call memocc(i_stat,ofdcoef,'ofdcoef',subname)
+!!$
+!!$      ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
+!!$      ofdcoef(2,1)=0.5_gp*sqrt(5._gp/21._gp) !h4
+!!$      ofdcoef(3,1)=-0.5_gp*sqrt(100.0_gp/63._gp) !h5
+!!$
+!!$      ofdcoef(1,2)=-0.5_gp*sqrt(5._gp/7._gp) !h2
+!!$      ofdcoef(2,2)=1._gp/6._gp*sqrt(35._gp/11._gp) !h4
+!!$      ofdcoef(3,2)=-7._gp/3._gp*sqrt(1._gp/11._gp) !h5
+!!$
+!!$      ofdcoef(1,3)=-0.5_gp*sqrt(7._gp/9._gp) !h2
+!!$      ofdcoef(2,3)=0.5_gp*sqrt(63._gp/143._gp) !h4
+!!$      ofdcoef(3,3)=-9._gp*sqrt(1._gp/143._gp) !h5
+!!$
+!!$      ofdcoef(1,4)=0.0_gp !h2
+!!$      ofdcoef(2,4)=0.0_gp !h4
+!!$      ofdcoef(3,4)=0.0_gp !h5
+!!$
+!!$      !define the values of hsep starting from the pseudopotential file
+!!$      do l=1,lpx+1
+!!$         hsep(1,l)=psppar(l,1)
+!!$         hsep(2,l)=psppar(l,2)*ofdcoef(1,l)
+!!$         hsep(3,l)=psppar(l,2)
+!!$         hsep(4,l)=psppar(l,3)*ofdcoef(2,l)
+!!$         hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
+!!$         hsep(6,l)=psppar(l,3)
+!!$      end do
+!!$      i_all=-product(shape(ofdcoef))*kind(ofdcoef)
+!!$      deallocate(ofdcoef,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'ofdcoef',subname)
+!!$   else if (npspcode == 10 .or. npspcode == 12) then !HGH-K case
+!!$      do l=1,lpx+1
+!!$         hsep(1,l)=psppar(l,1) !h11
+!!$         hsep(2,l)=psppar(l,4) !h12
+!!$         hsep(3,l)=psppar(l,2) !h22
+!!$         hsep(4,l)=psppar(l,5) !h13
+!!$         hsep(5,l)=psppar(l,6) !h23
+!!$         hsep(6,l)=psppar(l,3) !h33
+!!$      end do
+!!$   end if
+!!$
+!!$   !!Just for extracting the covalent radius and rprb
+!!$   call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+!!$
+!!$   if (enlargerprb) then
+!!$      !experimental
+!!$      rprb=100.0_gp
+!!$   end if
+!!$
+!!$   !  occup(:,:)=0.0_gp
+!!$   !   do l=0,lmax-1
+!!$   !     iocc=0
+!!$   !     do i=1,6
+!!$   !        if (elecorbs(i,l+1) > 0.0_gp) then
+!!$   !           iocc=iocc+1
+!!$   !           !print *,'elecorbs',i,l,elecorbs(i,l+1),noccmax
+!!$   !            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
+!!$   !           occup(iocc,l+1)=elecorbs(i,l+1)
+!!$   !        endif
+!!$   !     end do
+!!$   !     nl(l+1)=iocc
+!!$   !  end do
+!!$
+!!$   !allocate arrays for the gatom routine
+!!$   allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,vh,'vh',subname)
+!!$   allocate(psi(0:ng,noccmax,lmax+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,psi,'psi',subname)
+!!$   allocate(xp(0:ng+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,xp,'xp',subname)
+!!$   allocate(rmt(n_int,0:ng,0:ng,lmax+ndebug),stat=i_stat)
+!!$   call memocc(i_stat,rmt,'rmt',subname)
+!!$
+!!$   !can be switched on for debugging
+!!$   !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
+!!$   !     'Input Guess Generation for atom',trim(atomname),&
+!!$   !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
+!!$
+!!$   rij=3._gp
+!!$   ! exponents of gaussians
+!!$   a0in=alpz
+!!$   a0=a0in/rij
+!!$   !       tt=sqrt(sqrt(2._gp))
+!!$   tt=2._gp**.3_gp
+!!$   do i=0,ng
+!!$      a=a0*tt**i
+!!$      xp(i)=.5_gp/a**2
+!!$   end do
+!!$
+!!$   ! initial guess
+!!$   do l=0,lmax-1
+!!$      do iocc=1,noccmax
+!!$         do i=0,ng
+!!$            psi(i,iocc,l+1)=0.0_gp
+!!$         end do
+!!$      end do
+!!$   end do
+!!$
+!!$   call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
+!!$   call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
+!!$      &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
+!!$      &   aeval,ng,psi,res,chrg,2)
+!!$
+!!$   !post-treatment of the inguess data
+!!$   do i=1,ng+1
+!!$      expo(i)=sqrt(0.5_gp/xp(i-1))
+!!$   end do
+!!$
+!!$   i=0
+!!$   do l=1,4
+!!$      do iocc=1,nl(l)
+!!$         i=i+1
+!!$         !occupat(i)=occup(iocc,l)
+!!$         do j=1,ng+1
+!!$            psiat(j,i)=psi(j-1,iocc,l)
+!!$         end do
+!!$         gaenes_aux(i) = aeval(iocc,l)
+!!$      end do
+!!$   end do
+!!$
+!!$   i_all=-product(shape(vh))*kind(vh)
+!!$   deallocate(vh,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'vh',subname)
+!!$   i_all=-product(shape(psi))*kind(psi)
+!!$   deallocate(psi,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'psi',subname)
+!!$   i_all=-product(shape(xp))*kind(xp)
+!!$   deallocate(xp,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'xp',subname)
+!!$   i_all=-product(shape(rmt))*kind(rmt)
+!!$   deallocate(rmt,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'rmt',subname)
+!!$   i_all=-product(shape(hsep))*kind(hsep)
+!!$   deallocate(hsep,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'hsep',subname)
+!!$   i_all=-product(shape(alps))*kind(alps)
+!!$   deallocate(alps,stat=i_stat)
+!!$   call memocc(i_stat,i_all,'alps',subname)
+!!$
+!!$END SUBROUTINE iguess_generator_modified
 
 
 !>  Calculates the solution of the radial Schroedinger equation for a given
@@ -1671,22 +1135,33 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
    integer, intent(in) :: lmax,lpx,noccmax,ngv,ngc,nintp,ng,iorder
    real(gp), intent(in) :: rcov,rprb,zion,alpz,alpl
    real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
+   real(gp), dimension(noccmax,lmax+1), intent(in) :: occup !<occupation numbers of the atomic orbitals, ordered by angular momentum
+                                                            ! there is no need to specify the principal quantum number
+                                                            ! but there cannot be more than noccmax orbitals per shell
+   real(gp), dimension(noccmax,lmax+1), intent(out) :: chrg !<charge of the corresponding shell
+   real(gp), dimension(0:ng,0:ng,4,0:ng,0:ng,4), intent(in) :: vh !<hartree potential matrix in the auxiliary basis set
    real(gp) :: psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
-      &   hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
+   !   &   hh(0:ng,0:ng),
+   ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
       &   gpot(4),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
-      &   pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
+   !   &   pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),
+      alps(lpx+1),&
       &   potgrd(n_int),&
       &   rho(0:ng,0:ng,lmax+1),rhoold(0:ng,0:ng,lmax+1),xcgrd(n_int),&
-      &   occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
-      &   vh(0:ng,0:ng,4,0:ng,0:ng,4),&
+   !   &   occup(noccmax,lmax+1),
+   !   chrg(noccmax,lmax+1),&
+   !   &   vh(0:ng,0:ng,4,0:ng,0:ng,4),&
       &   res(noccmax,lmax+1),xp(0:ng)
    !Local variables
    logical :: noproj
    integer :: i,l,k,j,it,iocc,ilcc,ig,lcx,info
    real(gp) :: sxp,rmix,rk,r,ttt,gml,gml1,gml2,gml3,tt,texp,sd,terf,evsum,evsumold
    real(gp) :: emuxc,dr,d,fact,const
+   real(gp), dimension(0:ng,lpx+1) :: pp1,pp2,pp3 !<scalar products with the coefficients
+   real(gp), dimension(0:ng,0:ng) :: hh !<hamiltonian matrix in the gaussian basis
    !Functions
-   real(gp) :: ddot,gamma_restricted,spherical_gaussian_value
+   real(kind=8), external :: ddot,gamma_restricted
+   real(gp), external :: spherical_gaussian_value
 
    if(iorder/=2 .and. iorder/=4) then
        stop 'ERROR: can only use qudratic or quartic potential'
@@ -1961,22 +1436,16 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 
             tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
             chrg(iocc,1)=chrg(iocc,1) + psi(i,iocc,1)*psi(j,iocc,1)*tt
-            if (lmax.eq.0) then
-               cycle
-            end if
+            if (lmax == 0) cycle
             tt=0.6646701940895686_gp*terf/sd**5 + &
                &   (-0.75_gp*rcov*texp - 0.5_gp*d*rcov**3*texp)/d**2
             chrg(iocc,2)=chrg(iocc,2) + psi(i,iocc,2)*psi(j,iocc,2)*tt
-            if (lmax.eq.1) then
-               cycle
-            end if
+            if (lmax == 1) cycle
             tt=1.661675485223921_gp*terf/sd**7 + &
                &   (-1.875_gp*rcov*texp-1.25_gp*d*rcov**3*texp-.5_gp*d**2*rcov**5*texp) &
                &   /d**3
             chrg(iocc,3)=chrg(iocc,3) + psi(i,iocc,3)*psi(j,iocc,3)*tt
-            if (lmax.eq.2) then
-               cycle
-            end if
+            if (lmax == 2) cycle
             tt=5.815864198283725_gp*terf/sd**9 + &
                &   (-6.5625_gp*rcov*texp - 4.375_gp*d*rcov**3*texp - &
                &   1.75_gp*d**2*rcov**5*texp - .5_gp*d**3*rcov**7*texp)/d**4
@@ -2369,7 +1838,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
       end do
    end do
 
-   call razero(nvctr*nspin*norbep,psi)
+   call to_zero(nvctr*nspin*norbep,psi)
 
    do iorb=1,norbe
       jorb=iorb-iproc*norbep
@@ -2396,126 +1865,6 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    !if (iproc ==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE psitospi0
-
-
-!>  Calculate the occupation number for any of the orbitals
-subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
-   use module_base
-   implicit none
-   integer, intent(in) :: nspinor,nspin,nmax,lmax,nelecmax
-   real(gp), dimension(nmax,lmax), intent(in) :: eleconf
-   integer, intent(inout) :: ipolres
-   real(gp), dimension(nelecmax), intent(out) :: occupIG
-   !local variables
-   logical :: polarised
-   integer :: iocc,ipolorb,norbpol_nc,i,l,m,noncoll,icoll,ispin, ipolsign
-   real(gp) :: shelloccup,occshell,occres,rnl
-
-   !in the non-collinear case the number of orbitals double
-   if (nspinor == 4) then
-      noncoll=2
-   else
-      noncoll=1
-   end if
-
-   call razero(nelecmax,occupIG)
-   !call to_zero(nelecmax, occupIG(1))
-
-   !here we should define the array of the occupation numbers
-   !such array can then be redefined on the parent routines and then used as input
-   iocc=0
-   polarised=.false.
-   !the sign is always the same
-   if (ipolres >= 0) then
-      ipolsign=1
-   else
-      ipolsign=-1
-   end if
-   do l=1,lmax
-      iocc=iocc+1
-      rnl=0.0_gp !real since it goes in occupIG
-      do i=1,nmax
-         if (eleconf(i,l) > 0.0_gp) then
-            rnl=rnl+1.0_gp
-         endif
-      end do
-      occupIG(iocc)=rnl
-      !print *,'rnl,l',l,rnl,eleconf(:,l)
-      do i=1,nmax
-         if (eleconf(i,l) > 0.0_gp) then  
-            shelloccup=eleconf(i,l)
-            !decide the polarisation of the orbital by changing the population
-            if (nint(shelloccup) /=  2*(2*l-1) ) then
-               !this is a polarisable orbital
-               polarised=.true.
-               !assuming that the control of the allowed polarisation is already done
-
-               ipolorb=ipolsign*min(abs(ipolres),  ((2*l-1) - abs( (2*l-1)- int(shelloccup) ) )  )
-               ipolres=ipolres-ipolorb
-            else
-               !check for odd values of the occupation number
-               if (mod(nint(shelloccup),2) /= 0) then
-                  write(*,'(1x,a)')&
-                     &   'The occupation number in the case of closed shells must be even'
-                  stop
-               end if
-            end if
-
-            if( polarised .AND. nspinor==4 .and. ipolorb /=0) then
-               stop " in non-collinear case at_moments must be used for polarising, not natpol input"  
-            endif
-
-            do ispin=1,nspin
-               occshell=shelloccup                 
-               if (nspin==2 .or. nspinor==4) then
-                  if (polarised) then
-                     occshell=0.5_gp*(occshell+real(1-2*(ispin-1),gp)*ipolorb)
-                  else
-                     occshell=0.5_gp*occshell
-                  end if
-               end if
-
-               !residue for the occupation number, to be used for
-               !non-collinear case 
-               occres=occshell
-               !number of orbitals which will be polarised in this shell
-               norbpol_nc=2*l-1
-               do m=1,2*l-1
-                  !each orbital has two electrons in the case of the 
-                  !non-collinear case
-                  do icoll=1,noncoll !non-trivial only for nspinor=4
-                     iocc=iocc+1
-                     !the occupation number rule changes for non-collinear
-                     if (nspinor == 4) then
-                        !for each orbital of the shell, use the Hund rule
-                        !for determining the occupation
-                        !if the occupation is one the orbital is not polarised
-                        !otherwise it can be polarised via the polarisation
-                        !indicated by atmoments
-                        if (ceiling(occres) >= real(2*l-1,gp)) then
-                           occupIG(iocc)=1.0_gp
-                           if (icoll==2) then
-                              occres=occres-1.0_gp
-                              norbpol_nc=norbpol_nc-1
-                           end if
-                        else
-                           if (icoll ==1) then
-                              occupIG(iocc)=2.0_gp*occres/real(norbpol_nc,gp)
-                           else
-                              occupIG(iocc)=0.0_gp
-                           end if
-                        end if
-                     else
-                        occupIG(iocc)=occshell/real(2*l-1,gp)
-                     end if
-                  end do
-               end do
-            end do
-         end if
-      end do
-   end do
-END SUBROUTINE at_occnums
-
 
 !> Control whether the occupation number can be rounded by a shell-dependent fraction 
 !! denominator

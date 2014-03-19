@@ -27,29 +27,33 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.1
- Timestamp of this run                 : 2013-12-16 18:11:18.323
- Root process Hostname                 : girofle
- Number of MPI tasks                   :  3
+ Version Number                        : 1.7.1.11
+ Timestamp of this run                 : 2014-02-24 13:28:37.724
+ Root process Hostname                 : phys-comp-03
+ Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
  Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  3
+ MPI tasks of root process node        :  4
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/local/stephanm/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 
-     -openmp' 
-     '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
-     p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
-     -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
-     -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
-     -lmkl_blacs_intelmpi_lp64 -lpthread -lm'"
-   Compilers (CC, FC, CXX): [icc, /local/stephanm/openmpi-1.6.5_intel/bin/mpif90, g++]
+     " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
+     -heap-arrays 1024 -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
+     ck_lp64.a  -Wl,--start-group  
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
+     -Wl,--end-group -openmp -lpthread -lm'"
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -xSSE4.2 -openmp
+     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
+ radical                               : read1
  perf:
    debug                               : No #     debug option
    fftcache                            : 8192 #   cache size for the FFT
@@ -57,7 +61,7 @@
    ocl_platform                        : ~ #      Chosen OCL platform
    ocl_devices                         : ~ #      Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
-   projrad                             : 15.000 # Radius of the projector as a function of the maxrad
+   projrad                             : 15.0 #   Radius of the projector as a function of the maxrad
    exctxpar                            : OP2P #   Exact exchange parallelisation scheme
    ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
    ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
@@ -82,19 +86,23 @@
    pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 0.10E+02 # FOE max charge difference for interpolation
+   ef_interpol_det                     : 0.1E-19 # FOE max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 0.1E+02 # FOE max charge difference for interpolation
    mixing_after_inputguess             : No #     mixing step after linear input guess (T/F)
    iterative_orthogonalization         : No #     iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      enables linear sumrho check
    experimental_mode                   : No #     activate the experimental mode in linear scaling
    write_orbitals                      : No #     linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     linear scaling explicitely specify localization centers
+   calculate_KS_residue                : Yes #    linear scaling calculate Kohn-Sham residue
+   intermediate_forces                 : No #     linear scaling calculate intermediate forces
+   kappa_conv                          : 0.10000000000000001 # exit kappa for extended input guess (experimental mode)
  dft:
    hgrids: [0.41999999999999998, 0.41999999999999998, 0.41999999999999998] # grid spacing in the three directions (bohr)
-   rmult: [5.0000000000000000, 7.0000000000000000] # c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   rmult: [5.0, 7.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
    ncharge                             : 0 #      charge of the system
-   elecfield: [0.0000000000000000, 0.0000000000000000, 0.0000000000000000] # electric field (Ex,Ey,Ez)
+   elecfield: [0.0, 0.0, 0.0] #                   electric field (Ex,Ey,Ez)
    nspin                               : 1 #      spin polarization
    mpol                                : 0 #      total magnetic moment
    gnrm_cv                             : 1.00000000000000005E-004 # convergence criterion gradient
@@ -106,7 +114,7 @@
    inputpsiid                          : 102
    output_wf                           : 0
    output_denspot                      : 0
-   rbuf                                : 0.0000000000000000 # length of the tail (AU)
+   rbuf                                : 0.0 #    length of the tail (AU)
    ncongt                              : 30
    norbv                               : 0 #      Davidson subspace dim.
    nvirt                               : 0
@@ -139,6 +147,70 @@
    sic_alpha                           : 0. #     SIC downscaling parameter
  tddft:
    tddft_approach                      : none #   TDDFT method
+ posinp:
+   Positions:
+   - C: [-2.24111769999999996E-004, 2.5796089318540001, 0.43443058575600002]
+   - C: [2.26492824999999996E-004, 0.91322691550099999, 2.4505168492029998]
+   - C: [-1.4595572699999999E-004, -1.6656765248550001, 2.015963011362]
+   - C: [1.78215994999999996E-004, -2.5795764531329999, -0.43450143951800002]
+   - C: [-1.59289633000000004E-004, -0.91329091825300002, -2.4504520538989998]
+   - C: [1.88069215999999995E-004, 1.6658000025740001, -2.0158656039220002]
+   - H: [-2.26492824999999996E-004, 4.615977929154, 0.77917597321400001]
+   - H: [-1.41622018000000003E-004, 1.6318597146310001, 4.3869900346320003]
+   - H: [-2.03879040999999989E-004, -2.981920362381, 3.6079063382509999]
+   - H: [-1.68496756000000009E-004, -4.615977929154, -0.77915345297000005]
+   - H: [-2.08918940000000006E-004, -1.631822968909, -4.3869900346330004]
+   - H: [-1.07628682000000006E-004, 2.9819381864649999, -3.6078928337009999]
+   - C: [7.9997758882300003, 2.0167915739370001, 1.6660323893719999]
+   - C: [8.000226492825, -0.43438071635800002, 2.5788233015620001]
+   - C: [7.9998540442730004, -2.4504996906929999, 0.91303691850099999]
+   - C: [8.0001782159949997, -2.0167280196580002, -1.6660775111699999]
+   - C: [7.9998407103669997, 0.434292890697, -2.578799188559]
+   - C: [8.0001880692159997, 2.4505579218150002, -0.91289082232499996]
+   - H: [7.999773507175, 3.6079661633489999, 2.9827751513980001]
+   - H: [7.9998583779820001, -0.78026304903300003, 4.615174673456]
+   - H: [7.9997961209590001, -4.3863719550100004, 1.63357836221]
+   - H: [7.9998315032439997, -3.6079774234699999, -2.982755648296]
+   - H: [7.9997910810599997, 0.78029487176199996, -4.6151563005950003]
+   - H: [7.9998923713180004, 4.3863806388439999, -1.633557754885]
+   Properties:
+     Format                            : xyz
+     Source                            : read1
+ psppar.C:
+   Pseudopotential type                : HGH-K
+   Atomic number                       : 6
+   No. of Electrons                    : 4
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.34883045000000001
+     Coefficients (c1 .. c4): [-8.5137710999999996, 1.22843203, 0.0, 0.0]
+   NonLocal PSP Parameters:
+   - Channel (l)                       : 0
+     Rloc                              : 0.30455321000000002
+     h_ij terms: [9.5228417899999993, 0.0, 0.0, 0.0, 0.0, 0.0]
+   - Channel (l)                       : 1
+     Rloc                              : 0.2326773
+     h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+   Source                              : Hard-coded
+   Radii of active regions (AU):
+     Coarse                            : 1.5843663028121528
+     Fine                              : 0.2326773
+     Coarse PSP                        : 0.2326773
+     Source                            : Hard-coded
+ psppar.H:
+   Pseudopotential type                : HGH-K
+   Atomic number                       : 1
+   No. of Electrons                    : 1
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.20000000000000001
+     Coefficients (c1 .. c4): [-4.1802368000000003, 0.72507482000000001, 0.0, 0.0]
+   Source                              : Hard-coded
+   Radii of active regions (AU):
+     Coarse                            : 1.463418464633951
+     Fine                              : 0.20000000000000001
+     Coarse PSP                        : 0.20000000000000001
+     Source                            : Hard-coded
  #... (file:read1.lin).....................................................Linear Parameters
  #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
  #|0              outer loop iterations (low, high)                                          
@@ -150,8 +222,7 @@
  #|0              DIIS history for density mixing (low, high)                                
  #|.3d0     .     density mixing parameter (low, high)                                       
  #|1.d-9    1.d-  outer loop convergence (low, high)                                         
- #|5.d-5    1.d-5    1basis convergence (low, high) ; early stop TMB optimization (experiment
- #|1.d0     5.    multiplier to (exit one TMB optimization, fix TMB completely). Only used fo
+ #|5.d-5    1.d-5    1.d-4  basis convergence (low, high) ; early stop TMB optimization, dyna
  #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
  #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
  #|1.d-10   1.d-1 density convergence (low, high)                                            
@@ -165,10 +236,8 @@
  #|5.d-2          fscale: length scale over which complementary error function decays from 1 
  #|0 F F F F      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
  #|T T F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
- #|C 4 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
- #|H 1 5.0d-3 1.0d-3 0.0d0 7.0 7.0 20.0  Atom name, number of basis functions per atom, prefa
- # ==== WARNING: the following lines have not been processed by the parser ====
- #|                                                                                          
+ #|C 4 5.0d-3 1.0d-3 0.0d0 7.0 7.0 7.0 20.0  Atom name, number of basis functions per atom, p
+ #|H 1 5.0d-3 1.0d-3 0.0d0 7.0 7.0 7.0 20.0  Atom name, number of basis functions per atom, p
  #... (file:read1.frag)..................................................Fragment Parameters
  #|1 2            # number of fragments in reference system, number of fragments in current s
  #|1 benzene      #  reference fragment number i, fragment label                             
@@ -195,10 +264,10 @@
  Geometry Optimization Parameters:
    Maximum steps                       :  1
    Algorithm                           : none
-   Random atomic displacement          :  0.0E+00
-   Fluctuation in forces               :  1.0E+00
-   Maximum in forces                   :  0.0E+00
-   Steepest descent step               :  4.0E+00
+   Random atomic displacement          :  0.0
+   Fluctuation in forces               :  1.0
+   Maximum in forces                   :  0.0
+   Steepest descent step               :  4.0
  Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
@@ -237,19 +306,19 @@
      Coarse                            :  1.58437
      Fine                              :  0.23268
      Coarse PSP                        :  0.65261
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.58
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
      Rloc                              :  0.34883
-     Coefficients (c1 .. c4)           :  [ -8.51377,  1.22843,  0.00000,  0.00000 ]
+     Coefficients (c1 .. c4)           :  [ -8.51377,  1.22843,  0.0,  0.0 ]
    NonLocal PSP Parameters:
    - Channel (l)                       :  0
      Rloc                              :  0.30455
      h_ij matrix:
-     -  [  9.52284,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
-     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [  9.52284,  0.0,  0.0 ]
+     -  [  0.0,  0.0,  0.0 ]
+     -  [  0.0,  0.0,  0.0 ]
    No. of projectors                   :  1
    PSP XC                              : "XC: Teter 93"
  - Symbol                              : H #Type No.  02
@@ -257,47 +326,74 @@
    No. of Atoms                        :  12
    Radii of active regions (AU):
      Coarse                            :  1.46342
-     Fine                              :  0.20000
-     Coarse PSP                        :  0.00000
-     Source                            : Hard-Coded
-   Grid Spacing threshold (AU)         :  0.50
+     Fine                              :  0.2
+     Coarse PSP                        :  0.0
+     Source                            : PSP File
+   Grid Spacing threshold (AU)         :  0.5
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
-     Rloc                              :  0.20000
-     Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.00000,  0.00000 ]
+     Rloc                              :  0.2
+     Coefficients (c1 .. c4)           :  [ -4.18024,  0.72507,  0.0,  0.0 ]
    No. of projectors                   :  0
    PSP XC                              : "XC: Teter 93"
   #-------------------------------------------------------------------------- Atom Positions
  Atomic positions within the cell (Atomic and Grid Units):
- - C: {AU:  [  7.7598,  14.340,  12.194 ], GU:  [  18.476,  34.142,  29.034 ]} # 0001
+ - C: {AU:  [  7.7598,  14.34,  12.194 ], GU:  [  18.476,  34.142,  29.034 ]} # 0001
  - C: {AU:  [  7.7602,  12.673,  14.211 ], GU:  [  18.477,  30.174,  33.835 ]} # 0002
- - C: {AU:  [  7.7599,  10.094,  13.776 ], GU:  [  18.476,  24.034,  32.800 ]} # 0003
+ - C: {AU:  [  7.7599,  10.094,  13.776 ], GU:  [  18.476,  24.034,  32.8 ]} # 0003
  - C: {AU:  [  7.7602,  9.1804,  11.325 ], GU:  [  18.477,  21.858,  26.965 ]} # 0004
  - C: {AU:  [  7.7598,  10.847,  9.3095 ], GU:  [  18.476,  25.825,  22.166 ]} # 0005
- - C: {AU:  [  7.7602,  13.426,  9.7441 ], GU:  [  18.477,  31.966,  23.200 ]} # 0006
- - H: {AU:  [  7.7598,  16.376,  12.539 ], GU:  [  18.476,  38.990,  29.855 ]} # 0007
+ - C: {AU:  [  7.7602,  13.426,  9.7441 ], GU:  [  18.477,  31.966,  23.2 ]} # 0006
+ - H: {AU:  [  7.7598,  16.376,  12.539 ], GU:  [  18.476,  38.99,  29.855 ]} # 0007
  - H: {AU:  [  7.7599,  13.392,  16.147 ], GU:  [  18.476,  31.885,  38.445 ]} # 0008
- - H: {AU:  [  7.7598,  8.7781,  15.368 ], GU:  [  18.476,  20.900,  36.590 ]} # 0009
- - H: {AU:  [  7.7598,  7.1440,  10.981 ], GU:  [  18.476,  17.010,  26.145 ]} # 0010
- - H: {AU:  [  7.7598,  10.128,  7.3730 ], GU:  [  18.476,  24.115,  17.555 ]} # 0011
- - H: {AU:  [  7.7599,  14.742,  8.1521 ], GU:  [  18.476,  35.100,  19.410 ]} # 0012
- - C: {AU:  [  15.760,  13.777,  13.426 ], GU:  [  37.523,  32.802,  31.967 ]} # 0013
- - C: {AU:  [  15.760,  11.326,  14.339 ], GU:  [  37.524,  26.966,  34.140 ]} # 0014
- - C: {AU:  [  15.760,  9.3095,  12.673 ], GU:  [  37.523,  22.165,  30.174 ]} # 0015
- - C: {AU:  [  15.760,  9.7433,  10.094 ], GU:  [  37.524,  23.198,  24.033 ]} # 0016
- - C: {AU:  [  15.760,  12.194,  9.1812 ], GU:  [  37.523,  29.034,  21.860 ]} # 0017
- - C: {AU:  [  15.760,  14.211,  10.847 ], GU:  [  37.524,  33.835,  25.826 ]} # 0018
- - H: {AU:  [  15.760,  15.368,  14.743 ], GU:  [  37.523,  36.590,  35.102 ]} # 0019
- - H: {AU:  [  15.760,  10.980,  16.375 ], GU:  [  37.523,  26.142,  38.988 ]} # 0020
- - H: {AU:  [  15.760,  7.3736,  13.394 ], GU:  [  37.523,  17.556,  31.889 ]} # 0021
- - H: {AU:  [  15.760,  8.1520,  8.7772 ], GU:  [  37.523,  19.410,  20.898 ]} # 0022
- - H: {AU:  [  15.760,  12.540,  7.1448 ], GU:  [  37.523,  29.858,  17.012 ]} # 0023
- - H: {AU:  [  15.760,  16.146,  10.126 ], GU:  [  37.524,  38.444,  24.111 ]} # 0024
- Rigid Shift Applied (AU)              :  [  7.7600,  11.760,  11.760 ]
+ - H: {AU:  [  7.7598,  8.7781,  15.368 ], GU:  [  18.476,  20.9,  36.59 ]} # 0009
+ - H: {AU:  [  7.7598,  7.144,  10.981 ], GU:  [  18.476,  17.01,  26.145 ]} # 0010
+ - H: {AU:  [  7.7598,  10.128,  7.373 ], GU:  [  18.476,  24.115,  17.555 ]} # 0011
+ - H: {AU:  [  7.7599,  14.742,  8.1521 ], GU:  [  18.476,  35.1,  19.41 ]} # 0012
+ - C: {AU:  [  15.76,  13.777,  13.426 ], GU:  [  37.523,  32.802,  31.967 ]} # 0013
+ - C: {AU:  [  15.76,  11.326,  14.339 ], GU:  [  37.524,  26.966,  34.14 ]} # 0014
+ - C: {AU:  [  15.76,  9.3095,  12.673 ], GU:  [  37.523,  22.165,  30.174 ]} # 0015
+ - C: {AU:  [  15.76,  9.7433,  10.094 ], GU:  [  37.524,  23.198,  24.033 ]} # 0016
+ - C: {AU:  [  15.76,  12.194,  9.1812 ], GU:  [  37.523,  29.034,  21.86 ]} # 0017
+ - C: {AU:  [  15.76,  14.211,  10.847 ], GU:  [  37.524,  33.835,  25.826 ]} # 0018
+ - H: {AU:  [  15.76,  15.368,  14.743 ], GU:  [  37.523,  36.59,  35.102 ]} # 0019
+ - H: {AU:  [  15.76,  10.98,  16.375 ], GU:  [  37.523,  26.142,  38.988 ]} # 0020
+ - H: {AU:  [  15.76,  7.3736,  13.394 ], GU:  [  37.523,  17.556,  31.889 ]} # 0021
+ - H: {AU:  [  15.76,  8.152,  8.7772 ], GU:  [  37.523,  19.41,  20.898 ]} # 0022
+ - H: {AU:  [  15.76,  12.54,  7.1448 ], GU:  [  37.523,  29.858,  17.012 ]} # 0023
+ - H: {AU:  [  15.76,  16.146,  10.126 ], GU:  [  37.524,  38.444,  24.111 ]} # 0024
+ Rigid Shift Applied (AU)              :  [  7.76,  11.76,  11.76 ]
+ Atomic structure:
+   Positions:
+   - C: [ 7.759774698,  14.33960893,  12.1944214] # [  18.48,  34.14,  29.03 ] 0001
+   - C: [ 7.760225302,  12.67322692,  14.21050766] # [  18.48,  30.17,  33.83 ] 0002
+   - C: [ 7.759852854,  10.09432348,  13.77595382] # [  18.48,  24.03,  32.8 ] 0003
+   - C: [ 7.760177025,  9.180423547,  11.32548937] # [  18.48,  21.86,  26.97 ] 0004
+   - C: [ 7.75983952,  10.84670908,  9.30953876] # [  18.48,  25.83,  22.17 ] 0005
+   - C: [ 7.760186879,  13.4258,  9.74412521] # [  18.48,  31.97,  23.2 ] 0006
+   - H: [ 7.759772317,  16.37597793,  12.53916679] # [  18.48,  38.99,  29.86 ] 0007
+   - H: [ 7.759857187,  13.39185971,  16.14698085] # [  18.48,  31.89,  38.45 ] 0008
+   - H: [ 7.75979493,  8.778079638,  15.36789715] # [  18.48,  20.9,  36.59 ] 0009
+   - H: [ 7.759830313,  7.144022071,  10.98083736] # [  18.48,  17.01,  26.14 ] 0010
+   - H: [ 7.759789891,  10.12817703,  7.373000779] # [  18.48,  24.11,  17.55 ] 0011
+   - H: [ 7.759891181,  14.74193819,  8.15209798] # [  18.48,  35.1,  19.41 ] 0012
+   - C: [ 15.7597747,  13.77679157,  13.4260232] # [  37.52,  32.8,  31.97 ] 0013
+   - C: [ 15.7602253,  11.32561928,  14.33881412] # [  37.52,  26.97,  34.14 ] 0014
+   - C: [ 15.75985285,  9.309500309,  12.67302773] # [  37.52,  22.17,  30.17 ] 0015
+   - C: [ 15.76017703,  9.74327198,  10.0939133] # [  37.52,  23.2,  24.03 ] 0016
+   - C: [ 15.75983952,  12.19429289,  9.181191625] # [  37.52,  29.03,  21.86 ] 0017
+   - C: [ 15.76018688,  14.21055792,  10.84709999] # [  37.52,  33.83,  25.83 ] 0018
+   - H: [ 15.75977232,  15.36796616,  14.74276596] # [  37.52,  36.59,  35.1 ] 0019
+   - H: [ 15.75985719,  10.97973695,  16.37516549] # [  37.52,  26.14,  38.99 ] 0020
+   - H: [ 15.75979493,  7.373628045,  13.39356918] # [  37.52,  17.56,  31.89 ] 0021
+   - H: [ 15.75983031,  8.152022577,  8.777235165] # [  37.52,  19.41,  20.9 ] 0022
+   - H: [ 15.75978989,  12.54029487,  7.144834513] # [  37.52,  29.86,  17.01 ] 0023
+   - H: [ 15.75989118,  16.14638064,  10.12643306] # [  37.52,  38.44,  24.11 ] 0024
+   Rigid Shift Applied (AU)            :  [  7.76,  11.76,  11.76 ]
   #------------------------------------------------------------------------- Grid properties
- Box Grid spacings                     :  [  0.4200,  0.4200,  0.4200 ]
+ Box Grid spacings                     :  [  0.42,  0.42,  0.42 ]
  Sizes of the simulation domain:
-   AU                                  :  [  23.520,  23.520,  23.520 ]
+   AU                                  :  [  23.52,  23.52,  23.52 ]
    Angstroem                           :  [  12.446,  12.446,  12.446 ]
    Grid Spacing Units                  :  [  56,  56,  56 ]
    High resolution region boundaries (GU):
@@ -306,20 +402,20 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  3
+   MPI tasks                           :  4
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  7.59
-     Kernel (MB)                       :  7.81
+     Density (MB)                      :  5.7
+     Kernel (MB)                       :  5.89
      Full Grid Arrays (MB)             :  22.31
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 2                : 100%
+         MPI tasks 0- 3                : 100%
        Kernel:
-         MPI tasks 0- 1                : 100%
-         MPI task 2                    :  96%
+         MPI tasks 0- 2                : 100%
+         MPI task 3                    :  92%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -332,65 +428,69 @@
  Total Number of Electrons             :  60
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 2                     :  10
+   MPI tasks  0- 1                     :  8
+   MPI tasks  2- 3                     :  7
  Total Number of Orbitals              :  30
- Occupation numbers coming from        : System properties
  Input Occupation Numbers:
- - Occupation Numbers: {Orbitals No. 1-30:  2.0000}
+ - Occupation Numbers: {Orbitals No. 1-30:  2.0}
  Support function repartition:
-   MPI tasks  0- 2                     :  20
- Wavefunctions memory occupation for root MPI process:  10 MB 629 KB 144 B
+   MPI tasks  0- 3                     :  15
+ Wavefunctions memory occupation for root MPI process:  8 MB 503 KB 256 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  12
    Total number of components          :  7108
    Percent of zero components          :  0
+  #WARNING: Do not call check_communications in the linear scaling version!
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 30)
    Single orbital                      : 1.63 #   (Number of Components: 139124)
-   All (distributed) orbitals          : 31.864 # (Number of Orbitals per MPI task: 10)
-   Wavefunction storage size           : 159.222 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 25.486 # (Number of Orbitals per MPI task: 8)
+   Wavefunction storage size           : 127.381 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.56
    Full Uncompressed (ISF) grid        : 22.318
    Workspaces storage size             : 2.283
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 149.349
-   Density Construction                : 249.609
-   Poisson Solver                      : 258.262
-   Hamiltonian application             : 252.758
- Estimated Memory Peak (MB)            :  258
-  #WARNING: Do not call check_communications in the linear scaling version!
+   Kernel calculation                  : 112.786
+   Density Construction                : 83.840
+   Poisson Solver                      : 75.404
+   Hamiltonian application             : 86.989
+ Estimated Memory Peak (MB)            :  112
  total elements                        :  3600
  non-zero elements                     :  3600
- sparsity in %                         :  0.00
+ sparsity in %                         :  0.0
  total elements                        :  3600
  non-zero elements                     :  3600
- sparsity in %                         :  0.00
+ sparsity in %                         :  0.0
+ Checking Compression/Uncompression of small sparse matrices:
+   Tolerances for this check           :  1.00000001335143196E-10
+   Maxdiff for compress                :  0.0
+   Maxdiff for uncompress              :  0.0
+   Tolerances for this check           :  1.00000001335143196E-10
+   Maxdiff for compress                :  0.0
+   Maxdiff for uncompress              :  0.0
+ check of kernel cutoff radius:
+ -  {atom type: H, adjustment required:  Yes, new value:  10.36}
+ -  {atom type: C, adjustment required:  Yes, new value:  10.36}
  total elements                        :  3600
  non-zero elements                     :  3600
- sparsity in %                         :  0.00
- Checking Compression/Uncompression of sparse matrices:
+ sparsity in %                         :  0.0
+ Checking Compression/Uncompression of large sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
+   Maxdiff for compress                :  0.0
+   Maxdiff for uncompress              :  0.0
  Checking operations for potential communication:
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  0.000000000000000000E+00
+   calculation check, error sum        :  0.0
    Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  0.000000000000000000E+00
+   calculation check, error max        :  0.0
  Checking operations for sumrho:
    Tolerance for the following test    :  9.999999999999999988E-15
-   transposition check, mean error     :  0.000000000000000000E+00
-   transposition check, max error      :  0.000000000000000000E+00
+   transposition check, mean error     :  0.0
+   transposition check, max error      :  0.0
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  5.740801327233977840E-15
+   calculation check, error sum        :  5.74080132723397784E-15
    Tolerance for the following test    :  1.000000000000000036E-10
    calculation check, error max        :  1.278976924368180335E-13
  Ion-Ion interaction energy            :  3.06908743286215E+02
@@ -399,7 +499,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  143,  143,  143 ]
-   MPI tasks                           :  3
+   MPI tasks                           :  4
   #ALLOCATING KSwfn%orbs%eval... is this correct?
   #--------------------------------------------------------- Reading Wavefunctions from disk
  Input Hamiltonian:
@@ -411,122 +511,121 @@
      Box size has changed              :  26
      Molecule was shifted              :  60
      Molecule was rotated              :  30
-     Discrete operations               :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  4.599E+01,  4.073E+01 ]}
+   -  {Process:  0, Timing:  [  2.174E+01,  1.194E+01 ]}
    nstates_max                         :  30
    ksorbs%norb                         :  30
    tmb%orbs%norb                       :  60
    TMB eigenvalues: [
-  {index:  1, value: -7.659813158120E-01}, 
-  {index:  2, value: -7.659813158120E-01}, 
-  {index:  3, value: -6.625740785143E-01}, 
-  {index:  4, value: -6.625740785143E-01}, 
-  {index:  5, value: -6.623995487713E-01}, 
-  {index:  6, value: -6.623995487713E-01}, 
-  {index:  7, value: -5.323384341002E-01}, 
-  {index:  8, value: -5.323384341002E-01}, 
-  {index:  9, value: -5.321807490315E-01}, 
-  {index:  10, value: -5.321807490315E-01}, 
-  {index:  11, value: -4.687911255023E-01}, 
-  {index:  12, value: -4.687911255023E-01}, 
-  {index:  13, value: -3.975490209205E-01}, 
-  {index:  14, value: -3.975490209205E-01}, 
-  {index:  15, value: -3.959502875279E-01}, 
-  {index:  16, value: -3.959502875279E-01}, 
-  {index:  17, value: -3.677854739013E-01}, 
-  {index:  18, value: -3.677854739013E-01}, 
-  {index:  19, value: -3.676200997176E-01}, 
-  {index:  20, value: -3.676200997176E-01}, 
-  {index:  21, value: -3.198570512722E-01}, 
-  {index:  22, value: -3.198570512722E-01}, 
-  {index:  23, value: -2.948018060172E-01}, 
-  {index:  24, value: -2.948018060172E-01}, 
-  {index:  25, value: -2.947227009889E-01}, 
-  {index:  26, value: -2.947227009889E-01}, 
-  {index:  27, value: -2.159343426178E-01}, 
-  {index:  28, value: -2.159343426178E-01}, 
-  {index:  29, value: -2.157983312450E-01}, 
-  {index:  30, value: -2.157983312450E-01},  #  <-- last occupied orbital
-  {index:  31, value: -8.869651251455E-04},  #  <-- first virtual orbital
-  {index:  32, value: -8.869651251455E-04}, 
-  {index:  33, value: -8.593026102684E-04}, 
-  {index:  34, value: -8.593026102684E-04}, 
-  {index:  35, value:  1.483455456765E-01}, 
-  {index:  36, value:  1.483455456765E-01}, 
-  {index:  37, value:  1.765058567148E-01}, 
-  {index:  38, value:  1.765058567148E-01}, 
-  {index:  39, value:  2.341033510150E-01}, 
-  {index:  40, value:  2.341033510150E-01}, 
-  {index:  41, value:  2.344336004845E-01}, 
-  {index:  42, value:  2.344336004845E-01}, 
-  {index:  43, value:  3.263024946864E-01}, 
-  {index:  44, value:  3.263024946864E-01}, 
-  {index:  45, value:  3.416226321141E-01}, 
-  {index:  46, value:  3.416226321141E-01}, 
-  {index:  47, value:  3.422653281551E-01}, 
-  {index:  48, value:  3.422653281551E-01}, 
-  {index:  49, value:  4.571846570624E-01}, 
-  {index:  50, value:  4.571846570624E-01}, 
-  {index:  51, value:  4.578391342802E-01}, 
-  {index:  52, value:  4.578391342802E-01}, 
-  {index:  53, value:  4.933572666814E-01}, 
-  {index:  54, value:  4.933572666814E-01}, 
-  {index:  55, value:  4.940148243325E-01}, 
-  {index:  56, value:  4.940148243325E-01}, 
-  {index:  57, value:  6.412093907282E-01}, 
-  {index:  58, value:  6.412093907282E-01}, 
-  {index:  59, value:  7.186356004351E-01}, 
-  {index:  60, value:  7.186356004351E-01}, 
+  {index:  1, value: -7.659813155922E-01}, 
+  {index:  2, value: -7.659813155922E-01}, 
+  {index:  3, value: -6.625740783962E-01}, 
+  {index:  4, value: -6.625740783962E-01}, 
+  {index:  5, value: -6.623995486705E-01}, 
+  {index:  6, value: -6.623995486705E-01}, 
+  {index:  7, value: -5.323384340607E-01}, 
+  {index:  8, value: -5.323384340607E-01}, 
+  {index:  9, value: -5.321807490032E-01}, 
+  {index:  10, value: -5.321807490032E-01}, 
+  {index:  11, value: -4.687911254069E-01}, 
+  {index:  12, value: -4.687911254069E-01}, 
+  {index:  13, value: -3.975490209535E-01}, 
+  {index:  14, value: -3.975490209535E-01}, 
+  {index:  15, value: -3.959502874573E-01}, 
+  {index:  16, value: -3.959502874573E-01}, 
+  {index:  17, value: -3.677854737846E-01}, 
+  {index:  18, value: -3.677854737846E-01}, 
+  {index:  19, value: -3.676200995861E-01}, 
+  {index:  20, value: -3.676200995861E-01}, 
+  {index:  21, value: -3.19857051157E-01}, 
+  {index:  22, value: -3.19857051157E-01}, 
+  {index:  23, value: -2.948018059594E-01}, 
+  {index:  24, value: -2.948018059594E-01}, 
+  {index:  25, value: -2.94722700935E-01}, 
+  {index:  26, value: -2.94722700935E-01}, 
+  {index:  27, value: -2.159343425173E-01}, 
+  {index:  28, value: -2.159343425173E-01}, 
+  {index:  29, value: -2.157983311563E-01}, 
+  {index:  30, value: -2.157983311563E-01},  #  <-- last occupied orbital
+  {index:  31, value: -8.869650472303E-04},  #  <-- first virtual orbital
+  {index:  32, value: -8.869650472303E-04}, 
+  {index:  33, value: -8.593025328323E-04}, 
+  {index:  34, value: -8.593025328323E-04}, 
+  {index:  35, value:  1.483455457469E-01}, 
+  {index:  36, value:  1.483455457469E-01}, 
+  {index:  37, value:  1.765058567286E-01}, 
+  {index:  38, value:  1.765058567286E-01}, 
+  {index:  39, value:  2.341033510854E-01}, 
+  {index:  40, value:  2.341033510854E-01}, 
+  {index:  41, value:  2.344336005306E-01}, 
+  {index:  42, value:  2.344336005306E-01}, 
+  {index:  43, value:  3.26302494685E-01}, 
+  {index:  44, value:  3.26302494685E-01}, 
+  {index:  45, value:  3.416226321179E-01}, 
+  {index:  46, value:  3.416226321179E-01}, 
+  {index:  47, value:  3.422653281324E-01}, 
+  {index:  48, value:  3.422653281324E-01}, 
+  {index:  49, value:  4.571846572808E-01}, 
+  {index:  50, value:  4.571846572808E-01}, 
+  {index:  51, value:  4.578391344955E-01}, 
+  {index:  52, value:  4.578391344955E-01}, 
+  {index:  53, value:  4.933572667224E-01}, 
+  {index:  54, value:  4.933572667224E-01}, 
+  {index:  55, value:  4.940148243913E-01}, 
+  {index:  56, value:  4.940148243913E-01}, 
+  {index:  57, value:  6.412093907812E-01}, 
+  {index:  58, value:  6.412093907812E-01}, 
+  {index:  59, value:  7.186356006822E-01}, 
+  {index:  60, value:  7.186356006822E-01}, 
  ]
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -7.659813158120E-01, f:  2.0000},  # 00001
- {e: -7.659813158120E-01, f:  2.0000},  # 00002
- {e: -6.625740785143E-01, f:  2.0000},  # 00003
- {e: -6.625740785143E-01, f:  2.0000},  # 00004
- {e: -6.623995487713E-01, f:  2.0000},  # 00005
- {e: -6.623995487713E-01, f:  2.0000},  # 00006
- {e: -5.323384341002E-01, f:  2.0000},  # 00007
- {e: -5.323384341002E-01, f:  2.0000},  # 00008
- {e: -5.321807490315E-01, f:  2.0000},  # 00009
- {e: -5.321807490315E-01, f:  2.0000},  # 00010
- {e: -4.687911255023E-01, f:  2.0000},  # 00011
- {e: -4.687911255023E-01, f:  2.0000},  # 00012
- {e: -3.975490209205E-01, f:  2.0000},  # 00013
- {e: -3.975490209205E-01, f:  2.0000},  # 00014
- {e: -3.959502875279E-01, f:  2.0000},  # 00015
- {e: -3.959502875279E-01, f:  2.0000},  # 00016
- {e: -3.677854739013E-01, f:  2.0000},  # 00017
- {e: -3.677854739013E-01, f:  2.0000},  # 00018
- {e: -3.676200997176E-01, f:  2.0000},  # 00019
- {e: -3.676200997176E-01, f:  2.0000},  # 00020
- {e: -3.198570512722E-01, f:  2.0000},  # 00021
- {e: -3.198570512722E-01, f:  2.0000},  # 00022
- {e: -2.948018060172E-01, f:  2.0000},  # 00023
- {e: -2.948018060172E-01, f:  2.0000},  # 00024
- {e: -2.947227009889E-01, f:  2.0000},  # 00025
- {e: -2.947227009889E-01, f:  2.0000},  # 00026
- {e: -2.159343426178E-01, f:  2.0000},  # 00027
- {e: -2.159343426178E-01, f:  2.0000},  # 00028
- {e: -2.157983312450E-01, f:  2.0000},  # 00029
- {e: -2.157983312450E-01, f:  2.0000}] # 00030
+ {e: -7.659813155922E-01, f:  2.0},  # 00001
+ {e: -7.659813155922E-01, f:  2.0},  # 00002
+ {e: -6.625740783962E-01, f:  2.0},  # 00003
+ {e: -6.625740783962E-01, f:  2.0},  # 00004
+ {e: -6.623995486705E-01, f:  2.0},  # 00005
+ {e: -6.623995486705E-01, f:  2.0},  # 00006
+ {e: -5.323384340607E-01, f:  2.0},  # 00007
+ {e: -5.323384340607E-01, f:  2.0},  # 00008
+ {e: -5.321807490032E-01, f:  2.0},  # 00009
+ {e: -5.321807490032E-01, f:  2.0},  # 00010
+ {e: -4.687911254069E-01, f:  2.0},  # 00011
+ {e: -4.687911254069E-01, f:  2.0},  # 00012
+ {e: -3.975490209535E-01, f:  2.0},  # 00013
+ {e: -3.975490209535E-01, f:  2.0},  # 00014
+ {e: -3.959502874573E-01, f:  2.0},  # 00015
+ {e: -3.959502874573E-01, f:  2.0},  # 00016
+ {e: -3.677854737846E-01, f:  2.0},  # 00017
+ {e: -3.677854737846E-01, f:  2.0},  # 00018
+ {e: -3.676200995861E-01, f:  2.0},  # 00019
+ {e: -3.676200995861E-01, f:  2.0},  # 00020
+ {e: -3.19857051157E-01, f:  2.0},  # 00021
+ {e: -3.19857051157E-01, f:  2.0},  # 00022
+ {e: -2.948018059594E-01, f:  2.0},  # 00023
+ {e: -2.948018059594E-01, f:  2.0},  # 00024
+ {e: -2.94722700935E-01, f:  2.0},  # 00025
+ {e: -2.94722700935E-01, f:  2.0},  # 00026
+ {e: -2.159343425173E-01, f:  2.0},  # 00027
+ {e: -2.159343425173E-01, f:  2.0},  # 00028
+ {e: -2.157983311563E-01, f:  2.0},  # 00029
+ {e: -2.157983311563E-01, f:  2.0}] # 00030
    communication strategy kernel       : ALLREDUCE
    Total charge                        :  5.999999965735E+01
    Poisson Solver:
      BC                                : Free
      Box                               :  [  143,  143,  143 ]
-     MPI tasks                         :  3
+     MPI tasks                         :  4
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  45804,  1521 ]
-   Tolerances for this check: [ 3.28155504381345839E-06,  1.33226762955018785E-14]
+   Number of coarse and fine DoF (MasterMPI task):  [  40617,  1184 ]
+   Tolerances for this check: [ 3.28064671046799737E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  1.16415321826934814E-09
-   Maxdiff for untranspose             :  0.00000000000000000E+00
+   Maxdiff for untranspose             :  0.0
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  40873,  1494 ]
-   Tolerances for this check: [ 8.10961510827497357E-06,  1.33226762955018785E-14]
+   Number of coarse and fine DoF (MasterMPI task):  [  33775,  1141 ]
+   Tolerances for this check: [ 8.10998677494660162E-06,  1.33226762955018785E-14]
    Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
-   Maxdiff for untranspose             :  0.00000000000000000E+00
+   Maxdiff for untranspose             :  0.0
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - fake iteration: &it_fake000
@@ -541,1395 +640,448 @@
      -  { #-------------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.86E-03, eBS:  0.00000000000000000E+00, D: -2.571E+01, 
-          alpha:  1.000E-01}
+ iter:  1, fnrm:  1.86E-03, eBS:  0.0, D: -2.571E+01, alpha:  1.0E-01}
      Kohn-Sham residue                 :  1.711E-01
      Coefficients available            :  Yes
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  9.83794082742E+01, Epot: -1.05456584063E+02, Enl:  4.47596588784E+00}, 
+ Energies: {Ekin:  9.83794082739E+01, Epot: -1.05456584071E+02, Enl:  4.47596588763}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.41E-01, Omega: -7.48539687644064315E+01, D: -7.485E+01, 
+ iter:  1, fnrm:  2.41E-01, Omega: -7.485396876443178E+01, D: -7.49E+01, D best: -7.49E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
- Energies: {Ekin:  9.83794082742E+01, Epot: -1.05456584063E+02, Enl:  4.47596588784E+00}, 
- iter:  1, fnrm:  2.41E-01, Omega: -7.48539687644064315E+01, D: -7.485E+01}
+ Energies: {Ekin:  9.83794082739E+01, Epot: -1.05456584071E+02, Enl:  4.47596588763}, 
+ iter:  1, fnrm:  2.41E-01, Omega: -7.485396876443178E+01, D: -7.49E+01, D best: -7.49E+01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
-   -  #-------------------------------------------------------------------- kernel iter: 1
-       Kernel update:
-         max dev from unity            :  1.54E-03
-         Hamiltonian application required:  No
-         method                        : directmin
-         expansion coefficients optimization: &it_coeff001_001_001
-         -  { #---------------------------------------------------------------- it coeff: 1
+   -  #--------------------------------------------------------------------- kernel iter: 1
+     Kernel update:
+       max dev from unity              :  1.54E-03
+       Hamiltonian application required:  No
+       method                          : directmin
+       expansion coefficients optimization: &it_coeff001_001_001
+       -  { #------------------------------------------------------------------ it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.63E-03, eBS: -2.57126033396157467E+01, D: -1.394E-05, 
-          alpha:  2.000E-01}
-         Coefficients available        :  Yes
-       Hamiltonian update: {
- Energies: {Ekin:  9.83794082742E+01, Epot: -1.05456584063E+02, Enl:  4.47596588784E+00, 
-              EH:  3.63622741018E+02,  EXC: -2.45926097925E+01, EvXC: -3.21652420997E+01}, 
+ iter:  1, fnrm:  1.63E-03, eBS: -2.57126033475680416E+01, D: -1.394E-05, alpha:  2.0E-01}
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  9.83794082739E+01, Epot: -1.05456584071E+02, Enl:  4.47596588763, 
+              EH:  3.6362274101E+02,   EXC: -2.45926097921E+01, EvXC: -3.21652420992E+01}, 
     Total charge:  5.999999965735E+01, 
- Poisson Solver: {BC: Free, Box:  [  143,  143,  143 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -7.659813158120E-01, f:  2.0000},  # 00001
- {e: -7.659813158120E-01, f:  2.0000},  # 00002
- {e: -6.625740785143E-01, f:  2.0000},  # 00003
- {e: -6.625740785143E-01, f:  2.0000},  # 00004
- {e: -6.623995487713E-01, f:  2.0000},  # 00005
- {e: -6.623995487713E-01, f:  2.0000},  # 00006
- {e: -5.323384341002E-01, f:  2.0000},  # 00007
- {e: -5.323384341002E-01, f:  2.0000},  # 00008
- {e: -5.321807490315E-01, f:  2.0000},  # 00009
- {e: -5.321807490315E-01, f:  2.0000},  # 00010
- {e: -4.687911255023E-01, f:  2.0000},  # 00011
- {e: -4.687911255023E-01, f:  2.0000},  # 00012
- {e: -3.975490209205E-01, f:  2.0000},  # 00013
- {e: -3.975490209205E-01, f:  2.0000},  # 00014
- {e: -3.959502875279E-01, f:  2.0000},  # 00015
- {e: -3.959502875279E-01, f:  2.0000},  # 00016
- {e: -3.677854739013E-01, f:  2.0000},  # 00017
- {e: -3.677854739013E-01, f:  2.0000},  # 00018
- {e: -3.676200997176E-01, f:  2.0000},  # 00019
- {e: -3.676200997176E-01, f:  2.0000},  # 00020
- {e: -3.198570512722E-01, f:  2.0000},  # 00021
- {e: -3.198570512722E-01, f:  2.0000},  # 00022
- {e: -2.948018060172E-01, f:  2.0000},  # 00023
- {e: -2.948018060172E-01, f:  2.0000},  # 00024
- {e: -2.947227009889E-01, f:  2.0000},  # 00025
- {e: -2.947227009889E-01, f:  2.0000},  # 00026
- {e: -2.159343426178E-01, f:  2.0000},  # 00027
- {e: -2.159343426178E-01, f:  2.0000},  # 00028
- {e: -2.157983312450E-01, f:  2.0000},  # 00029
- {e: -2.157983312450E-01, f:  2.0000}] # 00030
-       summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.40E-08, energy: -7.48539827070155184E+01, D: -7.485E+01}]
-   -  #-------------------------------------------------------------------- kernel iter: 2
-       Kernel update:
-         max dev from unity            :  1.54E-03
-         Hamiltonian application required:  Yes
-         method                        : directmin
-         expansion coefficients optimization: &it_coeff001_001_002
-         -  { #---------------------------------------------------------------- it coeff: 1
+ Poisson Solver: {BC: Free, Box:  [  143,  143,  143 ], MPI tasks:  4}}
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -7.659813155922E-01, f:  2.0},  # 00001
+ {e: -7.659813155922E-01, f:  2.0},  # 00002
+ {e: -6.625740783962E-01, f:  2.0},  # 00003
+ {e: -6.625740783962E-01, f:  2.0},  # 00004
+ {e: -6.623995486705E-01, f:  2.0},  # 00005
+ {e: -6.623995486705E-01, f:  2.0},  # 00006
+ {e: -5.323384340607E-01, f:  2.0},  # 00007
+ {e: -5.323384340607E-01, f:  2.0},  # 00008
+ {e: -5.321807490032E-01, f:  2.0},  # 00009
+ {e: -5.321807490032E-01, f:  2.0},  # 00010
+ {e: -4.687911254069E-01, f:  2.0},  # 00011
+ {e: -4.687911254069E-01, f:  2.0},  # 00012
+ {e: -3.975490209535E-01, f:  2.0},  # 00013
+ {e: -3.975490209535E-01, f:  2.0},  # 00014
+ {e: -3.959502874573E-01, f:  2.0},  # 00015
+ {e: -3.959502874573E-01, f:  2.0},  # 00016
+ {e: -3.677854737846E-01, f:  2.0},  # 00017
+ {e: -3.677854737846E-01, f:  2.0},  # 00018
+ {e: -3.676200995861E-01, f:  2.0},  # 00019
+ {e: -3.676200995861E-01, f:  2.0},  # 00020
+ {e: -3.19857051157E-01, f:  2.0},  # 00021
+ {e: -3.19857051157E-01, f:  2.0},  # 00022
+ {e: -2.948018059594E-01, f:  2.0},  # 00023
+ {e: -2.948018059594E-01, f:  2.0},  # 00024
+ {e: -2.94722700935E-01, f:  2.0},  # 00025
+ {e: -2.94722700935E-01, f:  2.0},  # 00026
+ {e: -2.159343425173E-01, f:  2.0},  # 00027
+ {e: -2.159343425173E-01, f:  2.0},  # 00028
+ {e: -2.157983311563E-01, f:  2.0},  # 00029
+ {e: -2.157983311563E-01, f:  2.0}] # 00030
+     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+ iter:  1, delta:  1.4E-08, energy: -7.4853982707045418E+01, D: -7.485E+01}]
+   -  #--------------------------------------------------------------------- kernel iter: 2
+     Kernel update:
+       max dev from unity              :  1.54E-03
+       Hamiltonian application required:  Yes
+       method                          : directmin
+       expansion coefficients optimization: &it_coeff001_001_002
+       -  { #------------------------------------------------------------------ it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.09E-03, eBS: -2.57126172822247980E+01, D: -8.903E-03, 
-          alpha:  2.000E-01}
-         Kohn-Sham residue             :  1.712E-01
-         Coefficients available        :  Yes
-       alpha                           :  0.22000000000000003
-       energydiff                      : -4.36186695651485934E-006
-       Hamiltonian update: {
- Energies: {Ekin:  9.83794082742E+01, Epot: -1.05465494715E+02, Enl:  4.47596588784E+00, 
-              EH:  3.63613680290E+02,  EXC: -2.45921021882E+01, EvXC: -3.21645726909E+01}, 
+ iter:  1, fnrm:  1.09E-03, eBS: -2.57126172901817185E+01, D: -8.903E-03, alpha:  2.0E-01}
+       Kohn-Sham residue               :  1.712E-01
+       Coefficients available          :  Yes
+     alpha                             :  0.22000000000000003
+     energydiff                        : -4.36186263641502592E-006
+     Hamiltonian update: {
+ Energies: {Ekin:  9.83794082739E+01, Epot: -1.05465494726E+02, Enl:  4.47596588763, 
+              EH:  3.63613680277E+02,  EXC: -2.45921021875E+01, EvXC: -3.216457269E+01}, 
     Total charge:  5.999999965734E+01, 
- Poisson Solver: {BC: Free, Box:  [  143,  143,  143 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -7.659813158120E-01, f:  2.0000},  # 00001
- {e: -7.659813158120E-01, f:  2.0000},  # 00002
- {e: -6.625740785143E-01, f:  2.0000},  # 00003
- {e: -6.625740785143E-01, f:  2.0000},  # 00004
- {e: -6.623995487713E-01, f:  2.0000},  # 00005
- {e: -6.623995487713E-01, f:  2.0000},  # 00006
- {e: -5.323384341002E-01, f:  2.0000},  # 00007
- {e: -5.323384341002E-01, f:  2.0000},  # 00008
- {e: -5.321807490315E-01, f:  2.0000},  # 00009
- {e: -5.321807490315E-01, f:  2.0000},  # 00010
- {e: -4.687911255023E-01, f:  2.0000},  # 00011
- {e: -4.687911255023E-01, f:  2.0000},  # 00012
- {e: -3.975490209205E-01, f:  2.0000},  # 00013
- {e: -3.975490209205E-01, f:  2.0000},  # 00014
- {e: -3.959502875279E-01, f:  2.0000},  # 00015
- {e: -3.959502875279E-01, f:  2.0000},  # 00016
- {e: -3.677854739013E-01, f:  2.0000},  # 00017
- {e: -3.677854739013E-01, f:  2.0000},  # 00018
- {e: -3.676200997176E-01, f:  2.0000},  # 00019
- {e: -3.676200997176E-01, f:  2.0000},  # 00020
- {e: -3.198570512722E-01, f:  2.0000},  # 00021
- {e: -3.198570512722E-01, f:  2.0000},  # 00022
- {e: -2.948018060172E-01, f:  2.0000},  # 00023
- {e: -2.948018060172E-01, f:  2.0000},  # 00024
- {e: -2.947227009889E-01, f:  2.0000},  # 00025
- {e: -2.947227009889E-01, f:  2.0000},  # 00026
- {e: -2.159343426178E-01, f:  2.0000},  # 00027
- {e: -2.159343426178E-01, f:  2.0000},  # 00028
- {e: -2.157983312450E-01, f:  2.0000},  # 00029
- {e: -2.157983312450E-01, f:  2.0000}] # 00030
-       summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.53E-08, energy: -7.48539870688824749E+01, D: -4.362E-06}]
-   -  #-------------------------------------------------------------------- kernel iter: 3
-       Kernel update:
-         max dev from unity            :  1.54E-03
-         Hamiltonian application required:  Yes
-         method                        : directmin
-         expansion coefficients optimization: &it_coeff001_001_003
-         -  { #---------------------------------------------------------------- it coeff: 1
+ Poisson Solver: {BC: Free, Box:  [  143,  143,  143 ], MPI tasks:  4}}
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -7.659813155922E-01, f:  2.0},  # 00001
+ {e: -7.659813155922E-01, f:  2.0},  # 00002
+ {e: -6.625740783962E-01, f:  2.0},  # 00003
+ {e: -6.625740783962E-01, f:  2.0},  # 00004
+ {e: -6.623995486705E-01, f:  2.0},  # 00005
+ {e: -6.623995486705E-01, f:  2.0},  # 00006
+ {e: -5.323384340607E-01, f:  2.0},  # 00007
+ {e: -5.323384340607E-01, f:  2.0},  # 00008
+ {e: -5.321807490032E-01, f:  2.0},  # 00009
+ {e: -5.321807490032E-01, f:  2.0},  # 00010
+ {e: -4.687911254069E-01, f:  2.0},  # 00011
+ {e: -4.687911254069E-01, f:  2.0},  # 00012
+ {e: -3.975490209535E-01, f:  2.0},  # 00013
+ {e: -3.975490209535E-01, f:  2.0},  # 00014
+ {e: -3.959502874573E-01, f:  2.0},  # 00015
+ {e: -3.959502874573E-01, f:  2.0},  # 00016
+ {e: -3.677854737846E-01, f:  2.0},  # 00017
+ {e: -3.677854737846E-01, f:  2.0},  # 00018
+ {e: -3.676200995861E-01, f:  2.0},  # 00019
+ {e: -3.676200995861E-01, f:  2.0},  # 00020
+ {e: -3.19857051157E-01, f:  2.0},  # 00021
+ {e: -3.19857051157E-01, f:  2.0},  # 00022
+ {e: -2.948018059594E-01, f:  2.0},  # 00023
+ {e: -2.948018059594E-01, f:  2.0},  # 00024
+ {e: -2.94722700935E-01, f:  2.0},  # 00025
+ {e: -2.94722700935E-01, f:  2.0},  # 00026
+ {e: -2.159343425173E-01, f:  2.0},  # 00027
+ {e: -2.159343425173E-01, f:  2.0},  # 00028
+ {e: -2.157983311563E-01, f:  2.0},  # 00029
+ {e: -2.157983311563E-01, f:  2.0}] # 00030
+     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+ iter:  2, delta:  1.53E-08, energy: -7.48539870689080544E+01, D: -4.362E-06}]
+   -  #--------------------------------------------------------------------- kernel iter: 3
+     Kernel update:
+       max dev from unity              :  1.54E-03
+       Hamiltonian application required:  Yes
+       method                          : directmin
+       expansion coefficients optimization: &it_coeff001_001_003
+       -  { #------------------------------------------------------------------ it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.90E-04, eBS: -2.57215205679384766E+01, D: -9.749E-03, 
-          alpha:  2.200E-01}
-         Kohn-Sham residue             :  1.712E-01
-         Coefficients available        :  Yes
-       alpha                           :  0.24200000000000005
-       energydiff                      : -4.65989216991147259E-007
-       Hamiltonian update: {
- Energies: {Ekin:  9.83794082742E+01, Epot: -1.05475255500E+02, Enl:  4.47596588784E+00, 
-              EH:  3.63603755986E+02,  EXC: -2.45915506436E+01, EvXC: -3.21638453351E+01}, 
+ iter:  1, fnrm:  6.9E-04, eBS: -2.57215205803841158E+01, D: -9.749E-03, alpha:  2.2E-01}
+       Kohn-Sham residue               :  1.712E-01
+       Coefficients available          :  Yes
+     alpha                             :  0.24200000000000005
+     energydiff                        : -4.65982736841397127E-007
+     Hamiltonian update: {
+ Energies: {Ekin:  9.83794082739E+01, Epot: -1.05475255515E+02, Enl:  4.47596588763, 
+              EH:  3.6360375597E+02,   EXC: -2.45915506428E+01, EvXC: -3.21638453341E+01}, 
     Total charge:  5.999999965734E+01, 
- Poisson Solver: {BC: Free, Box:  [  143,  143,  143 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -7.659813158120E-01, f:  2.0000},  # 00001
- {e: -7.659813158120E-01, f:  2.0000},  # 00002
- {e: -6.625740785143E-01, f:  2.0000},  # 00003
- {e: -6.625740785143E-01, f:  2.0000},  # 00004
- {e: -6.623995487713E-01, f:  2.0000},  # 00005
- {e: -6.623995487713E-01, f:  2.0000},  # 00006
- {e: -5.323384341002E-01, f:  2.0000},  # 00007
- {e: -5.323384341002E-01, f:  2.0000},  # 00008
- {e: -5.321807490315E-01, f:  2.0000},  # 00009
- {e: -5.321807490315E-01, f:  2.0000},  # 00010
- {e: -4.687911255023E-01, f:  2.0000},  # 00011
- {e: -4.687911255023E-01, f:  2.0000},  # 00012
- {e: -3.975490209205E-01, f:  2.0000},  # 00013
- {e: -3.975490209205E-01, f:  2.0000},  # 00014
- {e: -3.959502875279E-01, f:  2.0000},  # 00015
- {e: -3.959502875279E-01, f:  2.0000},  # 00016
- {e: -3.677854739013E-01, f:  2.0000},  # 00017
- {e: -3.677854739013E-01, f:  2.0000},  # 00018
- {e: -3.676200997176E-01, f:  2.0000},  # 00019
- {e: -3.676200997176E-01, f:  2.0000},  # 00020
- {e: -3.198570512722E-01, f:  2.0000},  # 00021
- {e: -3.198570512722E-01, f:  2.0000},  # 00022
- {e: -2.948018060172E-01, f:  2.0000},  # 00023
- {e: -2.948018060172E-01, f:  2.0000},  # 00024
- {e: -2.947227009889E-01, f:  2.0000},  # 00025
- {e: -2.947227009889E-01, f:  2.0000},  # 00026
- {e: -2.159343426178E-01, f:  2.0000},  # 00027
- {e: -2.159343426178E-01, f:  2.0000},  # 00028
- {e: -2.157983312450E-01, f:  2.0000},  # 00029
- {e: -2.157983312450E-01, f:  2.0000}] # 00030
-       summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.41E-08, energy: -7.48539875348716919E+01, D: -4.660E-07}]
-   -  #-------------------------------------------------------------------- kernel iter: 4
-       Kernel update:
-         max dev from unity            :  1.54E-03
-         Hamiltonian application required:  Yes
-         method                        : directmin
-         expansion coefficients optimization: &it_coeff001_001_004
-         -  { #---------------------------------------------------------------- it coeff: 1
+ Poisson Solver: {BC: Free, Box:  [  143,  143,  143 ], MPI tasks:  4}}
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -7.659813155922E-01, f:  2.0},  # 00001
+ {e: -7.659813155922E-01, f:  2.0},  # 00002
+ {e: -6.625740783962E-01, f:  2.0},  # 00003
+ {e: -6.625740783962E-01, f:  2.0},  # 00004
+ {e: -6.623995486705E-01, f:  2.0},  # 00005
+ {e: -6.623995486705E-01, f:  2.0},  # 00006
+ {e: -5.323384340607E-01, f:  2.0},  # 00007
+ {e: -5.323384340607E-01, f:  2.0},  # 00008
+ {e: -5.321807490032E-01, f:  2.0},  # 00009
+ {e: -5.321807490032E-01, f:  2.0},  # 00010
+ {e: -4.687911254069E-01, f:  2.0},  # 00011
+ {e: -4.687911254069E-01, f:  2.0},  # 00012
+ {e: -3.975490209535E-01, f:  2.0},  # 00013
+ {e: -3.975490209535E-01, f:  2.0},  # 00014
+ {e: -3.959502874573E-01, f:  2.0},  # 00015
+ {e: -3.959502874573E-01, f:  2.0},  # 00016
+ {e: -3.677854737846E-01, f:  2.0},  # 00017
+ {e: -3.677854737846E-01, f:  2.0},  # 00018
+ {e: -3.676200995861E-01, f:  2.0},  # 00019
+ {e: -3.676200995861E-01, f:  2.0},  # 00020
+ {e: -3.19857051157E-01, f:  2.0},  # 00021
+ {e: -3.19857051157E-01, f:  2.0},  # 00022
+ {e: -2.948018059594E-01, f:  2.0},  # 00023
+ {e: -2.948018059594E-01, f:  2.0},  # 00024
+ {e: -2.94722700935E-01, f:  2.0},  # 00025
+ {e: -2.94722700935E-01, f:  2.0},  # 00026
+ {e: -2.159343425173E-01, f:  2.0},  # 00027
+ {e: -2.159343425173E-01, f:  2.0},  # 00028
+ {e: -2.157983311563E-01, f:  2.0},  # 00029
+ {e: -2.157983311563E-01, f:  2.0}] # 00030
+     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+ iter:  3, delta:  1.41E-08, energy: -7.48539875348907913E+01, D: -4.66E-07}]
+   -  #--------------------------------------------------------------------- kernel iter: 4
+     Kernel update:
+       max dev from unity              :  1.54E-03
+       Hamiltonian application required:  Yes
+       method                          : directmin
+       expansion coefficients optimization: &it_coeff001_001_004
+       -  { #------------------------------------------------------------------ it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.14E-04, eBS: -2.57312695269341916E+01, D: -8.925E-03, 
-          alpha:  2.420E-01}
-         Kohn-Sham residue             :  1.712E-01
-         Coefficients available        :  Yes
-       alpha                           :  0.12100000000000002
-       energydiff                      :  8.69754444465797860E-007
-       Hamiltonian update: {
- Energies: {Ekin:  9.83794082742E+01, Epot: -1.05484191254E+02, Enl:  4.47596588784E+00, 
-              EH:  3.63594671325E+02,  EXC: -2.45910524860E+01, EvXC: -3.21631883844E+01}, 
+ iter:  1, fnrm:  4.14E-04, eBS: -2.57312695427269418E+01, D: -8.925E-03, alpha:  2.42E-01}
+       Kohn-Sham residue               :  1.712E-01
+       Coefficients available          :  Yes
+     alpha                             :  0.12100000000000002
+     energydiff                        :  8.6975722979332204E-007
+     Hamiltonian update: {
+ Energies: {Ekin:  9.83794082739E+01, Epot: -1.0548419127E+02, Enl:  4.47596588763, 
+              EH:  3.63594671308E+02,  EXC: -2.45910524851E+01, EvXC: -3.21631883833E+01}, 
     Total charge:  5.999999965734E+01, 
- Poisson Solver: {BC: Free, Box:  [  143,  143,  143 ], MPI tasks:  3}}
-        #Eigenvalues and New Occupation Numbers
-       Orbitals: [
- {e: -7.659813158120E-01, f:  2.0000},  # 00001
- {e: -7.659813158120E-01, f:  2.0000},  # 00002
- {e: -6.625740785143E-01, f:  2.0000},  # 00003
- {e: -6.625740785143E-01, f:  2.0000},  # 00004
- {e: -6.623995487713E-01, f:  2.0000},  # 00005
- {e: -6.623995487713E-01, f:  2.0000},  # 00006
- {e: -5.323384341002E-01, f:  2.0000},  # 00007
- {e: -5.323384341002E-01, f:  2.0000},  # 00008
- {e: -5.321807490315E-01, f:  2.0000},  # 00009
- {e: -5.321807490315E-01, f:  2.0000},  # 00010
- {e: -4.687911255023E-01, f:  2.0000},  # 00011
- {e: -4.687911255023E-01, f:  2.0000},  # 00012
- {e: -3.975490209205E-01, f:  2.0000},  # 00013
- {e: -3.975490209205E-01, f:  2.0000},  # 00014
- {e: -3.959502875279E-01, f:  2.0000},  # 00015
- {e: -3.959502875279E-01, f:  2.0000},  # 00016
- {e: -3.677854739013E-01, f:  2.0000},  # 00017
- {e: -3.677854739013E-01, f:  2.0000},  # 00018
- {e: -3.676200997176E-01, f:  2.0000},  # 00019
- {e: -3.676200997176E-01, f:  2.0000},  # 00020
- {e: -3.198570512722E-01, f:  2.0000},  # 00021
- {e: -3.198570512722E-01, f:  2.0000},  # 00022
- {e: -2.948018060172E-01, f:  2.0000},  # 00023
- {e: -2.948018060172E-01, f:  2.0000},  # 00024
- {e: -2.947227009889E-01, f:  2.0000},  # 00025
- {e: -2.947227009889E-01, f:  2.0000},  # 00026
- {e: -2.159343426178E-01, f:  2.0000},  # 00027
- {e: -2.159343426178E-01, f:  2.0000},  # 00028
- {e: -2.157983312450E-01, f:  2.0000},  # 00029
- {e: -2.157983312450E-01, f:  2.0000}] # 00030
-       summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.15E-08, energy: -7.48539866651172474E+01, D:  8.698E-07}]
+ Poisson Solver: {BC: Free, Box:  [  143,  143,  143 ], MPI tasks:  4}}
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -7.659813155922E-01, f:  2.0},  # 00001
+ {e: -7.659813155922E-01, f:  2.0},  # 00002
+ {e: -6.625740783962E-01, f:  2.0},  # 00003
+ {e: -6.625740783962E-01, f:  2.0},  # 00004
+ {e: -6.623995486705E-01, f:  2.0},  # 00005
+ {e: -6.623995486705E-01, f:  2.0},  # 00006
+ {e: -5.323384340607E-01, f:  2.0},  # 00007
+ {e: -5.323384340607E-01, f:  2.0},  # 00008
+ {e: -5.321807490032E-01, f:  2.0},  # 00009
+ {e: -5.321807490032E-01, f:  2.0},  # 00010
+ {e: -4.687911254069E-01, f:  2.0},  # 00011
+ {e: -4.687911254069E-01, f:  2.0},  # 00012
+ {e: -3.975490209535E-01, f:  2.0},  # 00013
+ {e: -3.975490209535E-01, f:  2.0},  # 00014
+ {e: -3.959502874573E-01, f:  2.0},  # 00015
+ {e: -3.959502874573E-01, f:  2.0},  # 00016
+ {e: -3.677854737846E-01, f:  2.0},  # 00017
+ {e: -3.677854737846E-01, f:  2.0},  # 00018
+ {e: -3.676200995861E-01, f:  2.0},  # 00019
+ {e: -3.676200995861E-01, f:  2.0},  # 00020
+ {e: -3.19857051157E-01, f:  2.0},  # 00021
+ {e: -3.19857051157E-01, f:  2.0},  # 00022
+ {e: -2.948018059594E-01, f:  2.0},  # 00023
+ {e: -2.948018059594E-01, f:  2.0},  # 00024
+ {e: -2.94722700935E-01, f:  2.0},  # 00025
+ {e: -2.94722700935E-01, f:  2.0},  # 00026
+ {e: -2.159343425173E-01, f:  2.0},  # 00027
+ {e: -2.159343425173E-01, f:  2.0},  # 00028
+ {e: -2.157983311563E-01, f:  2.0},  # 00029
+ {e: -2.157983311563E-01, f:  2.0}] # 00030
+     summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
+ iter:  4, delta:  1.15E-08, energy: -7.48539866651335615E+01, D:  8.698E-07}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  1.15E-08, energy: -7.48539866651172474E+01, D:  8.698E-07}]}
+ iter:  5, delta:  1.15E-08, energy: -7.48539866651335615E+01, D:  8.698E-07}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  4.933E-09, energy: -7.48539866651172474E+01, D: -7.485E+01}
+ iter high:  1, delta out:  4.933E-09, energy: -7.48539866651335615E+01, D: -7.485E+01}
+    #Eigenvalues and New Occupation Numbers
+   Orbitals: [
+ {e: -7.659813155922E-01, f:  1.0},  # 00001
+ {e: -7.659813155922E-01, f:  1.0},  # 00002
+ {e: -6.625740783962E-01, f:  1.0},  # 00003
+ {e: -6.625740783962E-01, f:  1.0},  # 00004
+ {e: -6.623995486705E-01, f:  1.0},  # 00005
+ {e: -6.623995486705E-01, f:  1.0},  # 00006
+ {e: -5.323384340607E-01, f:  1.0},  # 00007
+ {e: -5.323384340607E-01, f:  1.0},  # 00008
+ {e: -5.321807490032E-01, f:  1.0},  # 00009
+ {e: -5.321807490032E-01, f:  1.0},  # 00010
+ {e: -4.687911254069E-01, f:  1.0},  # 00011
+ {e: -4.687911254069E-01, f:  1.0},  # 00012
+ {e: -3.975490209535E-01, f:  1.0},  # 00013
+ {e: -3.975490209535E-01, f:  1.0},  # 00014
+ {e: -3.959502874573E-01, f:  1.0},  # 00015
+ {e: -3.959502874573E-01, f:  1.0},  # 00016
+ {e: -3.677854737846E-01, f:  1.0},  # 00017
+ {e: -3.677854737846E-01, f:  1.0},  # 00018
+ {e: -3.676200995861E-01, f:  1.0},  # 00019
+ {e: -3.676200995861E-01, f:  1.0},  # 00020
+ {e: -3.19857051157E-01, f:  1.0},  # 00021
+ {e: -3.19857051157E-01, f:  1.0},  # 00022
+ {e: -2.948018059594E-01, f:  1.0},  # 00023
+ {e: -2.948018059594E-01, f:  1.0},  # 00024
+ {e: -2.94722700935E-01, f:  1.0},  # 00025
+ {e: -2.94722700935E-01, f:  1.0},  # 00026
+ {e: -2.159343425173E-01, f:  1.0},  # 00027
+ {e: -2.159343425173E-01, f:  1.0},  # 00028
+ {e: -2.157983311563E-01, f:  1.0},  # 00029
+ {e: -2.157983311563E-01, f:  1.0},  # 00030
+ {e: -8.869650472303E-04, f:  1.0},  # 00031
+ {e: -8.869650472303E-04, f:  1.0},  # 00032
+ {e: -8.593025328323E-04, f:  1.0},  # 00033
+ {e: -8.593025328323E-04, f:  1.0},  # 00034
+ {e:  1.483455457469E-01, f:  1.0},  # 00035
+ {e:  1.483455457469E-01, f:  1.0},  # 00036
+ {e:  1.765058567286E-01, f:  1.0},  # 00037
+ {e:  1.765058567286E-01, f:  1.0},  # 00038
+ {e:  2.341033510854E-01, f:  1.0},  # 00039
+ {e:  2.341033510854E-01, f:  1.0},  # 00040
+ {e:  2.344336005306E-01, f:  1.0},  # 00041
+ {e:  2.344336005306E-01, f:  1.0},  # 00042
+ {e:  3.26302494685E-01, f:  1.0},  # 00043
+ {e:  3.26302494685E-01, f:  1.0},  # 00044
+ {e:  3.416226321179E-01, f:  1.0},  # 00045
+ {e:  3.416226321179E-01, f:  1.0},  # 00046
+ {e:  3.422653281324E-01, f:  1.0},  # 00047
+ {e:  3.422653281324E-01, f:  1.0},  # 00048
+ {e:  4.571846572808E-01, f:  1.0},  # 00049
+ {e:  4.571846572808E-01, f:  1.0},  # 00050
+ {e:  4.578391344955E-01, f:  1.0},  # 00051
+ {e:  4.578391344955E-01, f:  1.0},  # 00052
+ {e:  4.933572667224E-01, f:  1.0},  # 00053
+ {e:  4.933572667224E-01, f:  1.0},  # 00054
+ {e:  4.940148243913E-01, f:  1.0},  # 00055
+ {e:  4.940148243913E-01, f:  1.0},  # 00056
+ {e:  6.412093907812E-01, f:  1.0},  # 00057
+ {e:  6.412093907812E-01, f:  1.0},  # 00058
+ {e:  7.186356006822E-01, f:  1.0},  # 00059
+ {e:  7.186356006822E-01, f:  1.0}] # 00060
    Weight analysis: [
   #coeff, occ, eval, frac for each frag
-  {iorb:  1, occ:  2.0000, eval: -0.765981, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  2, occ:  2.0000, eval: -0.765981, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  3, occ:  2.0000, eval: -0.662574, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  4, occ:  2.0000, eval: -0.662574, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  5, occ:  2.0000, eval: -0.662400, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  6, occ:  2.0000, eval: -0.662400, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  7, occ:  2.0000, eval: -0.532338, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  8, occ:  2.0000, eval: -0.532338, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  9, occ:  2.0000, eval: -0.532181, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  10, occ:  2.0000, eval: -0.532181, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  11, occ:  2.0000, eval: -0.468791, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  12, occ:  2.0000, eval: -0.468791, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  13, occ:  2.0000, eval: -0.397549, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  14, occ:  2.0000, eval: -0.397549, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  15, occ:  2.0000, eval: -0.395950, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  16, occ:  2.0000, eval: -0.395950, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  17, occ:  2.0000, eval: -0.367785, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  18, occ:  2.0000, eval: -0.367785, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  19, occ:  2.0000, eval: -0.367620, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  20, occ:  2.0000, eval: -0.367620, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  21, occ:  2.0000, eval: -0.319857, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  22, occ:  2.0000, eval: -0.319857, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  23, occ:  2.0000, eval: -0.294802, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  24, occ:  2.0000, eval: -0.294802, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  25, occ:  2.0000, eval: -0.294723, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  26, occ:  2.0000, eval: -0.294723, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  27, occ:  2.0000, eval: -0.215934, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  28, occ:  2.0000, eval: -0.215934, frac:  0.0000, frac:  1.0000}, 
-  {iorb:  29, occ:  2.0000, eval: -0.215798, frac:  1.0000, frac:  0.0000}, 
-  {iorb:  30, occ:  2.0000, eval: -0.215798, frac:  0.0000, frac:  1.0000}, 
+  {iorb:  1, occ:  2.0, eval: -0.765981, frac:  1.0, frac:  0.0}, 
+  {iorb:  2, occ:  2.0, eval: -0.765981, frac:  0.0, frac:  1.0}, 
+  {iorb:  3, occ:  2.0, eval: -0.662574, frac:  1.0, frac:  0.0}, 
+  {iorb:  4, occ:  2.0, eval: -0.662574, frac:  0.0, frac:  1.0}, 
+  {iorb:  5, occ:  2.0, eval: -0.6624, frac:  1.0, frac:  0.0}, 
+  {iorb:  6, occ:  2.0, eval: -0.6624, frac:  0.0, frac:  1.0}, 
+  {iorb:  7, occ:  2.0, eval: -0.532338, frac:  1.0, frac:  0.0}, 
+  {iorb:  8, occ:  2.0, eval: -0.532338, frac:  0.0, frac:  1.0}, 
+  {iorb:  9, occ:  2.0, eval: -0.532181, frac:  1.0, frac:  0.0}, 
+  {iorb:  10, occ:  2.0, eval: -0.532181, frac:  0.0, frac:  1.0}, 
+  {iorb:  11, occ:  2.0, eval: -0.468791, frac:  1.0, frac:  0.0}, 
+  {iorb:  12, occ:  2.0, eval: -0.468791, frac:  0.0, frac:  1.0}, 
+  {iorb:  13, occ:  2.0, eval: -0.397549, frac:  1.0, frac:  0.0}, 
+  {iorb:  14, occ:  2.0, eval: -0.397549, frac:  0.0, frac:  1.0}, 
+  {iorb:  15, occ:  2.0, eval: -0.39595, frac:  1.0, frac:  0.0}, 
+  {iorb:  16, occ:  2.0, eval: -0.39595, frac:  0.0, frac:  1.0}, 
+  {iorb:  17, occ:  2.0, eval: -0.367785, frac:  1.0, frac:  0.0}, 
+  {iorb:  18, occ:  2.0, eval: -0.367785, frac:  0.0, frac:  1.0}, 
+  {iorb:  19, occ:  2.0, eval: -0.36762, frac:  1.0, frac:  0.0}, 
+  {iorb:  20, occ:  2.0, eval: -0.36762, frac:  0.0, frac:  1.0}, 
+  {iorb:  21, occ:  2.0, eval: -0.319857, frac:  1.0, frac:  0.0}, 
+  {iorb:  22, occ:  2.0, eval: -0.319857, frac:  0.0, frac:  1.0}, 
+  {iorb:  23, occ:  2.0, eval: -0.294802, frac:  1.0, frac:  0.0}, 
+  {iorb:  24, occ:  2.0, eval: -0.294802, frac:  0.0, frac:  1.0}, 
+  {iorb:  25, occ:  2.0, eval: -0.294723, frac:  1.0, frac:  0.0}, 
+  {iorb:  26, occ:  2.0, eval: -0.294723, frac:  0.0, frac:  1.0}, 
+  {iorb:  27, occ:  2.0, eval: -0.215934, frac:  1.0, frac:  0.0}, 
+  {iorb:  28, occ:  2.0, eval: -0.215934, frac:  0.0, frac:  1.0}, 
+  {iorb:  29, occ:  2.0, eval: -0.215798, frac:  1.0, frac:  0.0}, 
+  {iorb:  30, occ:  2.0, eval: -0.215798, frac:  0.0, frac:  1.0}, 
  ]
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
- Energies: {Ekin:  9.83794082742E+01, Epot: -1.05484191254E+02, Enl:  4.47596588784E+00, 
-              EH:  3.63587398801E+02,  EXC: -2.45906621231E+01, EvXC: -3.21626735903E+01}, 
+ Energies: {Ekin:  9.83794082739E+01, Epot: -1.0548419127E+02, Enl:  4.47596588763, 
+              EH:  3.63587398785E+02,  EXC: -2.45906621224E+01, EvXC: -3.21626735893E+01}, 
        iter high:  1,            delta out:  4.933E-09, 
-          energy: -7.48539866651172474E+01,                       D:  0.000E+00,  #FINAL
+          energy: -7.48539866651335615E+01,                      D:  0.0,  #FINAL
  }
  Total charge                          :  5.999999965734E+01
- Site energies: [ #state, energy, orthog energy, frag eval, overlap, orthog overlap, occ
-  {label: benzene, 
- state: HOMO-14, energy: -7.61716695E-01, orthog energy: -7.61677449E-01, 
-              frag eval: -7.65981316E-01, overlap:  1.000050E+00, occ:  2.00, 
- state: HOMO-13, energy: -6.58537827E-01, orthog energy: -6.58574387E-01, 
-              frag eval: -6.62574079E-01, overlap:  9.999432E-01, occ:  2.00, 
- state: HOMO-12, energy: -6.58382343E-01, orthog energy: -6.58403342E-01, 
-              frag eval: -6.62399549E-01, overlap:  9.999669E-01, occ:  2.00, 
- state: HOMO-11, energy: -5.28630234E-01, orthog energy: -5.28612303E-01, 
-              frag eval: -5.32338434E-01, overlap:  1.000033E+00, occ:  2.00, 
- state: HOMO-10, energy: -5.28523386E-01, orthog energy: -5.28463529E-01, 
-              frag eval: -5.32180749E-01, overlap:  1.000113E+00, occ:  2.00, 
- state: HOMO-9, energy: -4.65085641E-01, orthog energy: -4.65147385E-01, 
-             frag eval: -4.68791126E-01, overlap:  9.998668E-01, occ:  2.00, 
- state: HOMO-8, energy: -3.94181974E-01, orthog energy: -3.94259545E-01, 
-             frag eval: -3.97549021E-01, overlap:  9.998032E-01, occ:  2.00, 
- state: HOMO-7, energy: -3.92050191E-01, orthog energy: -3.92055729E-01, 
-             frag eval: -3.95950288E-01, overlap:  9.999857E-01, occ:  2.00, 
- state: HOMO-6, energy: -3.64127535E-01, orthog energy: -3.64117006E-01, 
-             frag eval: -3.67785474E-01, overlap:  1.000029E+00, occ:  2.00, 
- state: HOMO-5, energy: -3.63970161E-01, orthog energy: -3.63904226E-01, 
-             frag eval: -3.67620100E-01, overlap:  1.000181E+00, occ:  2.00, 
- state: HOMO-4, energy: -3.15458231E-01, orthog energy: -3.15447135E-01, 
-             frag eval: -3.19857051E-01, overlap:  1.000005E+00, occ:  2.00, 
- state: HOMO-3, energy: -2.91235558E-01, orthog energy: -2.91235437E-01, 
-             frag eval: -2.94801806E-01, overlap:  1.000000E+00, occ:  2.00, 
- state: HOMO-2, energy: -2.91166439E-01, orthog energy: -2.91143125E-01, 
-             frag eval: -2.94722701E-01, overlap:  1.000080E+00, occ:  2.00, 
- state: HOMO-1, energy: -2.11607218E-01, orthog energy: -2.11604406E-01, 
-             frag eval: -2.15934343E-01, overlap:  9.999872E-01, occ:  2.00, 
- state: HOMO, energy: -2.11515315E-01, orthog energy: -2.11511179E-01, 
-           frag eval: -2.15798331E-01, overlap:  9.999943E-01, occ:  2.00, 
- state: LUMO, energy:  3.28592139E-03, orthog energy:  3.28722638E-03, 
-           frag eval: -8.86965125E-04, overlap:  1.000032E+00, occ:  0.00, 
- state: LUMO+1, energy:  3.29056124E-03, orthog energy:  3.29191726E-03, 
-             frag eval: -8.59302610E-04, overlap:  1.000009E+00, occ:  0.00, 
- state: LUMO+2, energy:  1.52443588E-01, orthog energy:  1.52447891E-01, 
-             frag eval:  1.48345546E-01, overlap:  9.999723E-01, occ:  0.00, 
- state: LUMO+3, energy:  1.79635535E-01, orthog energy:  1.79616655E-01, 
-             frag eval:  1.76505857E-01, overlap:  1.000106E+00, occ:  0.00, 
- 2*frag sum: -12.872377494770852, 2*frag sum orthog: -12.872312367934951, 
- 2*eval sum: -12.988568731879649}, 
-  {label: benzene, 
- state: HOMO-14, energy: -7.61565407E-01, orthog energy: -7.61526682E-01, 
-              frag eval: -7.65981316E-01, overlap:  1.000049E+00, occ:  2.00, 
- state: HOMO-13, energy: -6.58385615E-01, orthog energy: -6.58412477E-01, 
-              frag eval: -6.62574079E-01, overlap:  9.999580E-01, occ:  2.00, 
- state: HOMO-12, energy: -6.58229960E-01, orthog energy: -6.58257417E-01, 
-              frag eval: -6.62399549E-01, overlap:  9.999570E-01, occ:  2.00, 
- state: HOMO-11, energy: -5.28505759E-01, orthog energy: -5.28463556E-01, 
-              frag eval: -5.32338434E-01, overlap:  1.000079E+00, occ:  2.00, 
- state: HOMO-10, energy: -5.28357083E-01, orthog energy: -5.28322256E-01, 
-              frag eval: -5.32180749E-01, overlap:  1.000065E+00, occ:  2.00, 
- state: HOMO-9, energy: -4.64944022E-01, orthog energy: -4.65001223E-01, 
-             frag eval: -4.68791126E-01, overlap:  9.998766E-01, occ:  2.00, 
- state: HOMO-8, energy: -3.94042831E-01, orthog energy: -3.94114800E-01, 
-             frag eval: -3.97549021E-01, overlap:  9.998173E-01, occ:  2.00, 
- state: HOMO-7, energy: -3.91903049E-01, orthog energy: -3.91906664E-01, 
-             frag eval: -3.95950288E-01, overlap:  9.999906E-01, occ:  2.00, 
- state: HOMO-6, energy: -3.64010169E-01, orthog energy: -3.63969213E-01, 
-             frag eval: -3.67785474E-01, overlap:  1.000112E+00, occ:  2.00, 
- state: HOMO-5, energy: -3.63795203E-01, orthog energy: -3.63762046E-01, 
-             frag eval: -3.67620100E-01, overlap:  1.000091E+00, occ:  2.00, 
- state: HOMO-4, energy: -3.15306484E-01, orthog energy: -3.15294768E-01, 
-             frag eval: -3.19857051E-01, overlap:  1.000007E+00, occ:  2.00, 
- state: HOMO-3, energy: -2.91094401E-01, orthog energy: -2.91084513E-01, 
-             frag eval: -2.94801806E-01, overlap:  1.000034E+00, occ:  2.00, 
- state: HOMO-2, energy: -2.91010783E-01, orthog energy: -2.91000628E-01, 
-             frag eval: -2.94722701E-01, overlap:  1.000035E+00, occ:  2.00, 
- state: HOMO-1, energy: -2.11455938E-01, orthog energy: -2.11452873E-01, 
-             frag eval: -2.15934343E-01, overlap:  9.999886E-01, occ:  2.00, 
- state: HOMO, energy: -2.11362042E-01, orthog energy: -2.11358687E-01, 
-           frag eval: -2.15798331E-01, overlap:  9.999900E-01, occ:  2.00, 
- state: LUMO, energy:  3.44486585E-03, orthog energy:  3.44620918E-03, 
-           frag eval: -8.86965125E-04, overlap:  1.000022E+00, occ:  0.00, 
- state: LUMO+1, energy:  3.43474202E-03, orthog energy:  3.43606480E-03, 
-             frag eval: -8.59302610E-04, overlap:  1.000021E+00, occ:  0.00, 
- state: LUMO+2, energy:  1.52594584E-01, orthog energy:  1.52599003E-01, 
-             frag eval:  1.48345546E-01, overlap:  9.999716E-01, occ:  0.00, 
- state: LUMO+3, energy:  1.79760340E-01, orthog energy:  1.79743338E-01, 
-             frag eval:  1.76505857E-01, overlap:  1.000095E+00, occ:  0.00, 
- 2*frag sum: -12.867937494367022, 2*frag sum orthog: -12.867855603288398, 
- 2*eval sum: -12.988568731879649}, 
- ]
- 2.0_gp*frag_sum_tot                   : -25.740314989137872
- 2.0_gp*frag_sum_tot_orthog            : -25.740167971223350
- 2.0_gp*eval_sum_tot                   : -25.977137463759298
  Transfer integrals (HOMO and LUMO are defined as those of the neutral fragment): [
   #state1, state2, energy, orthog energy, orthog energy2, overlap, orthog overlap, occ1, occ2
   {
- label: benzene, i:  1, s1: HOMO-3, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy: -0.291235557663, trans_int_energy_orthog: -0.291235436552, 
-     orthog_energy: -0.145617752009,  trans_int_ovrlp:  1.000000368017, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-2, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy:  0.000000270054, trans_int_energy_orthog:  0.000010576721, 
-     orthog_energy:  0.000010567432,  trans_int_ovrlp:  0.000035361753, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-1, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy: -0.000000422580, trans_int_energy_orthog: -0.000000406531, 
-     orthog_energy: -0.000000436440,  trans_int_ovrlp: -0.000000055125, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy: -0.000000072290, trans_int_energy_orthog: -0.000000043663, 
-     orthog_energy: -0.000000076701,        trans_int_ovrlp: -0.000000017547, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy:  0.000033400504, trans_int_energy_orthog:  0.000033636835, 
-     orthog_energy:  0.000033699860,        trans_int_ovrlp:  0.000002079227, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+1, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy:  0.000045564170, trans_int_energy_orthog:  0.000045523329, 
-     orthog_energy:  0.000045598550,  trans_int_ovrlp:  0.000000238796, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+2, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy:  0.000003762382, trans_int_energy_orthog:  0.000003766323, 
-     orthog_energy:  0.000003759397,  trans_int_ovrlp: -0.000000043022, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+3, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy: -0.000024502917, trans_int_energy_orthog: -0.000020956220, 
-     orthog_energy: -0.000020968952,  trans_int_ovrlp:  0.000063332705, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-3, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000000270014, trans_int_energy_orthog:  0.000010576681, 
-     orthog_energy:  0.000010567392,  trans_int_ovrlp:  0.000035361753, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-2, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy: -0.291166438551, trans_int_energy_orthog: -0.291143124569, 
-     orthog_energy: -0.145577400280,  trans_int_ovrlp:  1.000079943670, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-1, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000000034225, trans_int_energy_orthog:  0.000000069261, 
-     orthog_energy:  0.000000013719,  trans_int_ovrlp: -0.000000081570, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000000315628, trans_int_energy_orthog:  0.000000430830, 
-     orthog_energy:  0.000000459018,        trans_int_ovrlp:  0.000000570500, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000044999010, trans_int_energy_orthog:  0.000044664809, 
-     orthog_energy:  0.000044718589,        trans_int_ovrlp: -0.000001948179, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+1, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy: -0.000033205306, trans_int_energy_orthog: -0.000032822774, 
-     orthog_energy: -0.000032872491,  trans_int_ovrlp:  0.000002312213, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+2, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000000830184, trans_int_energy_orthog:  0.000000858791, 
-     orthog_energy:  0.000000858952,  trans_int_ovrlp:  0.000000414750, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+3, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000019100854, trans_int_energy_orthog:  0.000019068920, 
-     orthog_energy:  0.000019071681,  trans_int_ovrlp: -0.000000523128, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-3, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy: -0.000000422580, trans_int_energy_orthog: -0.000000406531, 
-     orthog_energy: -0.000000436440,  trans_int_ovrlp: -0.000000055125, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-2, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy:  0.000000034225, trans_int_energy_orthog:  0.000000069261, 
-     orthog_energy:  0.000000013719,  trans_int_ovrlp: -0.000000081570, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-1, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy: -0.211607218357, trans_int_energy_orthog: -0.211604406246, 
-     orthog_energy: -0.105804285775,  trans_int_ovrlp:  0.999987210401, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy: -0.000012215967, trans_int_energy_orthog: -0.000011463831, 
-     orthog_energy: -0.000011421885,        trans_int_ovrlp:  0.000003753435, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy: -0.000194700501, trans_int_energy_orthog: -0.000195113986, 
-     orthog_energy: -0.000194710772,        trans_int_ovrlp: -0.000000098614, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+1, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy:  0.000072534847, trans_int_energy_orthog:  0.000072564732, 
-     orthog_energy:  0.000072547821,  trans_int_ovrlp:  0.000000124559, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+2, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy:  0.000000031069, trans_int_energy_orthog: -0.000000077938, 
-     orthog_energy: -0.000000104328,  trans_int_ovrlp: -0.000004577039, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+3, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy:  0.000000659260, trans_int_energy_orthog:  0.000000669833, 
-     orthog_energy:  0.000000656987,  trans_int_ovrlp: -0.000000142194, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-3, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000000072290, trans_int_energy_orthog: -0.000000043663, 
-     orthog_energy: -0.000000076701,  trans_int_ovrlp: -0.000000017547, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-2, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy:  0.000000315628, trans_int_energy_orthog:  0.000000430830, 
-     orthog_energy:  0.000000459018,  trans_int_ovrlp:  0.000000570500, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-1, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000012215967, trans_int_energy_orthog: -0.000011463831, 
-     orthog_energy: -0.000011421885,  trans_int_ovrlp:  0.000003753435, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
  label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.211515314777, trans_int_energy_orthog: -0.211511178635, 
-     orthog_energy: -0.105757957903,        trans_int_ovrlp:  0.999994316953, 
-    trans_int_ovrlp_orthog:  1.000000000000,   occ1:  2.00, occ2:  2.00}, 
+  trans_int_energy: -0.211515315097, trans_int_energy_orthog: -0.211511181325, 
+   trans_int_ovrlp:  0.999994316955, trans_int_ovrlp_orthog:  1.0, occ1:  2.0, occ2:  2.0}, 
   {
  label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000050281970, trans_int_energy_orthog: -0.000050323431, 
-     orthog_energy: -0.000050298776,        trans_int_ovrlp: -0.000000161420, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+1, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000153863492, trans_int_energy_orthog: -0.000154172643, 
-     orthog_energy: -0.000153870319,  trans_int_ovrlp: -0.000000065569, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+2, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000032564902, trans_int_energy_orthog: -0.000032249910, 
-     orthog_energy: -0.000032178077,  trans_int_ovrlp:  0.000013096814, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+3, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000003595420, trans_int_energy_orthog: -0.000003530602, 
-     orthog_energy: -0.000003585277,  trans_int_ovrlp:  0.000000636310, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-3, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy:  0.000033400505, trans_int_energy_orthog:  0.000033636836, 
-     orthog_energy:  0.000033699861,  trans_int_ovrlp:  0.000002079227, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-2, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy:  0.000044999010, trans_int_energy_orthog:  0.000044664809, 
-     orthog_energy:  0.000044718589,  trans_int_ovrlp: -0.000001948179, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-1, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy: -0.000194700501, trans_int_energy_orthog: -0.000195113986, 
-     orthog_energy: -0.000194710772,  trans_int_ovrlp: -0.000000098614, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
+  trans_int_energy: -0.000050281949, trans_int_energy_orthog: -0.000050361261, 
+   trans_int_ovrlp: -0.00000016142,  trans_int_ovrlp_orthog:  0.0, occ1:  0.0, occ2:  2.0}, 
   {
  label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy: -0.000050281970, trans_int_energy_orthog: -0.000050323431, 
-     orthog_energy: -0.000050298776,        trans_int_ovrlp: -0.000000161420, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  2.00, occ2:  0.00}, 
+  trans_int_energy: -0.000050281949, trans_int_energy_orthog: -0.000050361261, 
+   trans_int_ovrlp: -0.00000016142,  trans_int_ovrlp_orthog:  0.0, occ1:  2.0, occ2:  0.0}, 
   {
  label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy:  0.003285921386, trans_int_energy_orthog:  0.003287226379, 
-     orthog_energy:  0.001642934432,        trans_int_ovrlp:  1.000031967874, 
-    trans_int_ovrlp_orthog:  1.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+1, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy: -0.000009492426, trans_int_energy_orthog: -0.000009466923, 
-     orthog_energy: -0.000009484314,  trans_int_ovrlp: -0.000002466929, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+2, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy: -0.000050911410, trans_int_energy_orthog: -0.000050928513, 
-     orthog_energy: -0.000050909722,  trans_int_ovrlp: -0.000000021676, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+3, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy:  0.000000055160, trans_int_energy_orthog:  0.000000443264, 
-     orthog_energy:  0.000000426218,  trans_int_ovrlp: -0.000004057025, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy:  0.000045564170, trans_int_energy_orthog:  0.000045523329, 
-     orthog_energy:  0.000045598550,  trans_int_ovrlp:  0.000000238796, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy: -0.000033205306, trans_int_energy_orthog: -0.000032822775, 
-     orthog_energy: -0.000032872491,  trans_int_ovrlp:  0.000002312213, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.000072534847, trans_int_energy_orthog:  0.000072564732, 
-     orthog_energy:  0.000072547821,  trans_int_ovrlp:  0.000000124559, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000153863492, trans_int_energy_orthog: -0.000154172643, 
-     orthog_energy: -0.000153870319,        trans_int_ovrlp: -0.000000065569, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000009492426, trans_int_energy_orthog: -0.000009466923, 
-     orthog_energy: -0.000009484314,        trans_int_ovrlp: -0.000002466929, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.003290561238, trans_int_energy_orthog:  0.003291917264, 
-     orthog_energy:  0.001645273430,  trans_int_ovrlp:  1.000008738891, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy: -0.000251525278, trans_int_energy_orthog: -0.000251587896, 
-     orthog_energy: -0.000251535217,  trans_int_ovrlp:  0.000000127635, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy: -0.000000730944, trans_int_energy_orthog: -0.000000809731, 
-     orthog_energy: -0.000000819779,  trans_int_ovrlp:  0.000000971260, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy:  0.000003762382, trans_int_energy_orthog:  0.000003766323, 
-     orthog_energy:  0.000003759397,  trans_int_ovrlp: -0.000000043022, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy:  0.000000830184, trans_int_energy_orthog:  0.000000858790, 
-     orthog_energy:  0.000000858952,  trans_int_ovrlp:  0.000000414750, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.000000031069, trans_int_energy_orthog: -0.000000077938, 
-     orthog_energy: -0.000000104328,  trans_int_ovrlp: -0.000004577039, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000032564902, trans_int_energy_orthog: -0.000032249910, 
-     orthog_energy: -0.000032178076,        trans_int_ovrlp:  0.000013096814, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000050911410, trans_int_energy_orthog: -0.000050928512, 
-     orthog_energy: -0.000050909722,        trans_int_ovrlp: -0.000000021676, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000251525278, trans_int_energy_orthog: -0.000251587896, 
-     orthog_energy: -0.000251535217,  trans_int_ovrlp:  0.000000127635, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy:  0.152443587660, trans_int_energy_orthog:  0.152447890891, 
-     orthog_energy:  0.076222850607,  trans_int_ovrlp:  0.999972271403, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy: -0.000000077622, trans_int_energy_orthog: -0.000000059701, 
-     orthog_energy: -0.000000058186,  trans_int_ovrlp: -0.000000117054, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy: -0.000024502813, trans_int_energy_orthog: -0.000020956115, 
-     orthog_energy: -0.000020968847,  trans_int_ovrlp:  0.000063332705, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy:  0.000019100648, trans_int_energy_orthog:  0.000019068715, 
-     orthog_energy:  0.000019071476,  trans_int_ovrlp: -0.000000523128, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO-1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.000000659260, trans_int_energy_orthog:  0.000000669833, 
-     orthog_energy:  0.000000656987,  trans_int_ovrlp: -0.000000142194, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: HOMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000003595420, trans_int_energy_orthog: -0.000003530602, 
-     orthog_energy: -0.000003585277,        trans_int_ovrlp:  0.000000636310, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.000000055161, trans_int_energy_orthog:  0.000000443265, 
-     orthog_energy:  0.000000426219,        trans_int_ovrlp: -0.000004057025, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000000730945, trans_int_energy_orthog: -0.000000809731, 
-     orthog_energy: -0.000000819779,  trans_int_ovrlp:  0.000000971260, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy: -0.000000077622, trans_int_energy_orthog: -0.000000059701, 
-     orthog_energy: -0.000000058186,  trans_int_ovrlp: -0.000000117054, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  1, s1: LUMO+3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy:  0.179635534799, trans_int_energy_orthog:  0.179616654731, 
-     orthog_energy:  0.089813028083,  trans_int_ovrlp:  1.000105537402, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy: -0.000007048794, trans_int_energy_orthog: -0.000005195280, 
-     orthog_energy: -0.000005212674,  trans_int_ovrlp:  0.000006306117, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy: -0.000013700024, trans_int_energy_orthog: -0.000009877098, 
-     orthog_energy: -0.000009912093,  trans_int_ovrlp:  0.000013011439, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy:  0.000011048387, trans_int_energy_orthog:  0.000007042188, 
-     orthog_energy:  0.000007048045,  trans_int_ovrlp: -0.000015915693, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy:  0.000006761012, trans_int_energy_orthog:  0.000004479186, 
-     orthog_energy:  0.000004501259,        trans_int_ovrlp: -0.000008992296, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy: -0.000056345603, trans_int_energy_orthog: -0.000050034892, 
-     orthog_energy: -0.000050140541,        trans_int_ovrlp:  0.000043122044, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy:  0.000009614972, trans_int_energy_orthog:  0.000008131532, 
-     orthog_energy:  0.000008142365,  trans_int_ovrlp: -0.000010233519, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy:  0.000001819023, trans_int_energy_orthog:  0.000001611116, 
-     orthog_energy:  0.000001602725,  trans_int_ovrlp: -0.000003120260, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  1, s1: HOMO-3, 
-  trans_int_energy:  0.000003787270, trans_int_energy_orthog:  0.000003438467, 
-     orthog_energy:  0.000003427397,  trans_int_ovrlp: -0.000006456544, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000012242182, trans_int_energy_orthog:  0.000009238074, 
-     orthog_energy:  0.000009275197,  trans_int_ovrlp: -0.000010191259, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy: -0.000007874275, trans_int_energy_orthog: -0.000005765152, 
-     orthog_energy: -0.000005785686,  trans_int_ovrlp:  0.000007175099, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000011297215, trans_int_energy_orthog:  0.000007145730, 
-     orthog_energy:  0.000007151724,  trans_int_ovrlp: -0.000016495450, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy: -0.000011905064, trans_int_energy_orthog: -0.000007237153, 
-     orthog_energy: -0.000007228654,        trans_int_ovrlp:  0.000018611523, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000004177987, trans_int_energy_orthog:  0.000004282829, 
-     orthog_energy:  0.000004286017,        trans_int_ovrlp:  0.000000750934, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000055840681, trans_int_energy_orthog:  0.000049897131, 
-     orthog_energy:  0.000050025225,  trans_int_ovrlp: -0.000040422769, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy: -0.000002480866, trans_int_energy_orthog: -0.000002474713, 
-     orthog_energy: -0.000002495822,  trans_int_ovrlp: -0.000000215852, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  1, s1: HOMO-2, 
-  trans_int_energy:  0.000001736071, trans_int_energy_orthog:  0.000001611220, 
-     orthog_energy:  0.000001617763,  trans_int_ovrlp: -0.000002123908, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy:  0.000004640323, trans_int_energy_orthog:  0.000003023641, 
-     orthog_energy:  0.000003012765,  trans_int_ovrlp: -0.000006475244, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy: -0.000017535782, trans_int_energy_orthog: -0.000010724392, 
-     orthog_energy: -0.000010720077,  trans_int_ovrlp:  0.000027120817, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy:  0.002113987359, trans_int_energy_orthog:  0.001686198233, 
-     orthog_energy:  0.001685366597,  trans_int_ovrlp: -0.002026305886, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy: -0.001229227051, trans_int_energy_orthog: -0.000979218115, 
-     orthog_energy: -0.000978717388,        trans_int_ovrlp:  0.001184535424, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy: -0.000050352328, trans_int_energy_orthog: -0.000040194789, 
-     orthog_energy: -0.000039997821,        trans_int_ovrlp:  0.000099484923, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy:  0.000056264659, trans_int_energy_orthog:  0.000044662781, 
-     orthog_energy:  0.000044320528,  trans_int_ovrlp: -0.000114752269, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy:  0.000014618355, trans_int_energy_orthog:  0.000013730649, 
-     orthog_energy:  0.000013719973,  trans_int_ovrlp: -0.000030447093, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  1, s1: HOMO-1, 
-  trans_int_energy: -0.000002219524, trans_int_energy_orthog: -0.000002158520, 
-     orthog_energy: -0.000002161706,  trans_int_ovrlp:  0.000003630972, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000013273624, trans_int_energy_orthog: -0.000008665189, 
-     orthog_energy: -0.000008669120,  trans_int_ovrlp:  0.000018322385, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000006482424, trans_int_energy_orthog: -0.000004065494, 
-     orthog_energy: -0.000004058508,  trans_int_ovrlp:  0.000009646924, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy:  0.001197550843, trans_int_energy_orthog:  0.000959327409, 
-     orthog_energy:  0.000958858390,  trans_int_ovrlp: -0.001128651995, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
+  trans_int_energy:  0.003285921058, trans_int_energy_orthog:  0.003286427095, 
+   trans_int_ovrlp:  1.000031967873, trans_int_ovrlp_orthog:  1.0, occ1:  0.0, occ2:  0.0}, 
   {
  label: benzene, i:  2, s1: HOMO, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy:  0.002086583053, trans_int_energy_orthog:  0.001668368293, 
-     orthog_energy:  0.001667495329,        trans_int_ovrlp: -0.001982107901, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  2.00, occ2:  2.00}, 
+  trans_int_energy:  0.002086583054, trans_int_energy_orthog:  0.001668354935, 
+   trans_int_ovrlp: -0.001982107901, trans_int_ovrlp_orthog:  0.0, occ1:  2.0, occ2:  2.0}, 
   {
  label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000053481478, trans_int_energy_orthog: -0.000042669271, 
-     orthog_energy: -0.000042369297,        trans_int_ovrlp:  0.000106811725, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000031859608, trans_int_energy_orthog: -0.000025574313, 
-     orthog_energy: -0.000025451944,  trans_int_ovrlp:  0.000061588301, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000012675310, trans_int_energy_orthog: -0.000012010883, 
-     orthog_energy: -0.000011977822,  trans_int_ovrlp:  0.000023675489, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  1, s1: HOMO, 
-  trans_int_energy: -0.000016398417, trans_int_energy_orthog: -0.000015961732, 
-     orthog_energy: -0.000016032879,  trans_int_ovrlp:  0.000023022427, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy: -0.000020918847, trans_int_energy_orthog: -0.000018444545, 
-     orthog_energy: -0.000018508236,  trans_int_ovrlp:  0.000016751493, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy:  0.000053450648, trans_int_energy_orthog:  0.000047143481, 
-     orthog_energy:  0.000047246220,  trans_int_ovrlp: -0.000043127512, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy: -0.000065483039, trans_int_energy_orthog: -0.000052107327, 
-     orthog_energy: -0.000051737682,  trans_int_ovrlp:  0.000132058961, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
+  trans_int_energy: -0.000053481482, trans_int_energy_orthog: -0.000042603555, 
+   trans_int_ovrlp:  0.000106811732, trans_int_ovrlp_orthog:  0.0, occ1:  0.0, occ2:  2.0}, 
   {
  label: benzene, i:  2, s1: HOMO, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy:  0.000026557591, trans_int_energy_orthog:  0.000020722660, 
-     orthog_energy:  0.000020577415,        trans_int_ovrlp: -0.000057480662, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  0.00}, 
+  trans_int_energy:  0.000026557586, trans_int_energy_orthog:  0.000020657265, 
+   trans_int_ovrlp: -0.000057480651, trans_int_ovrlp_orthog:  0.0, occ1:  2.0, occ2:  0.0}, 
   {
  label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy:  0.000534469394, trans_int_energy_orthog:  0.000536385018, 
-     orthog_energy:  0.000536183408,        trans_int_ovrlp: -0.000509264359, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy: -0.000920996456, trans_int_energy_orthog: -0.000924225943, 
-     orthog_energy: -0.000923900051,  trans_int_ovrlp:  0.000863874644, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy:  0.000013866104, trans_int_energy_orthog:  0.000016749109, 
-     orthog_energy:  0.000016624169,  trans_int_ovrlp: -0.000035386910, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  1, s1: LUMO, 
-  trans_int_energy: -0.000001262498, trans_int_energy_orthog: -0.000001160259, 
-     orthog_energy: -0.000001168548,  trans_int_ovrlp: -0.000001026509, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy:  0.000055497848, trans_int_energy_orthog:  0.000048172214, 
-     orthog_energy:  0.000048272226,  trans_int_ovrlp: -0.000050212130, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy:  0.000025288474, trans_int_energy_orthog:  0.000022003268, 
-     orthog_energy:  0.000022052830,  trans_int_ovrlp: -0.000022491598, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000015375677, trans_int_energy_orthog: -0.000011433980, 
-     orthog_energy: -0.000011348123,  trans_int_ovrlp:  0.000038695713, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000051149595, trans_int_energy_orthog: -0.000040887115, 
-     orthog_energy: -0.000040586539,        trans_int_ovrlp:  0.000101532954, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.000920854565, trans_int_energy_orthog:  0.000924098191, 
-     orthog_energy:  0.000923777960,        trans_int_ovrlp: -0.000867858650, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.000528502079, trans_int_energy_orthog:  0.000530352785, 
-     orthog_energy:  0.000530158942,  trans_int_ovrlp: -0.000492686739, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy: -0.000014674815, trans_int_energy_orthog: -0.000017707030, 
-     orthog_energy: -0.000017624112,  trans_int_ovrlp:  0.000037839359, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy: -0.000003714888, trans_int_energy_orthog: -0.000004207995, 
-     orthog_energy: -0.000004216238,  trans_int_ovrlp:  0.000005477710, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy: -0.000002337600, trans_int_energy_orthog: -0.000002136936, 
-     orthog_energy: -0.000002146140,  trans_int_ovrlp:  0.000002761763, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy: -0.000000707853, trans_int_energy_orthog: -0.000000768855, 
-     orthog_energy: -0.000000786453,  trans_int_ovrlp: -0.000001134468, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000004636775, trans_int_energy_orthog: -0.000004496096, 
-     orthog_energy: -0.000004483532,  trans_int_ovrlp:  0.000005193576, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000018550604, trans_int_energy_orthog: -0.000017629985, 
-     orthog_energy: -0.000017577924,        trans_int_ovrlp:  0.000033017845, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000017872723, trans_int_energy_orthog: -0.000021478169, 
-     orthog_energy: -0.000021336693,        trans_int_ovrlp:  0.000044441655, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000004678091, trans_int_energy_orthog: -0.000005613625, 
-     orthog_energy: -0.000005572685,  trans_int_ovrlp:  0.000011478107, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy: -0.000000113182, trans_int_energy_orthog: -0.000000050634, 
-     orthog_energy: -0.000000058066,  trans_int_ovrlp: -0.000000361373, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy:  0.000001122104, trans_int_energy_orthog:  0.000001260214, 
-     orthog_energy:  0.000001260761,  trans_int_ovrlp: -0.000000834769, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy:  0.000002391329, trans_int_energy_orthog:  0.000002113191, 
-     orthog_energy:  0.000002118898,  trans_int_ovrlp: -0.000004888450, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy:  0.000002173235, trans_int_energy_orthog:  0.000002000901, 
-     orthog_energy:  0.000002001889,  trans_int_ovrlp: -0.000003076928, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.000008195713, trans_int_energy_orthog:  0.000008012073, 
-     orthog_energy:  0.000008057081,  trans_int_ovrlp: -0.000008713450, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.000006595381, trans_int_energy_orthog:  0.000006448357, 
-     orthog_energy:  0.000006510092,        trans_int_ovrlp: -0.000005376486, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy:  0.000002145049, trans_int_energy_orthog:  0.000002360252, 
-     orthog_energy:  0.000002351613,        trans_int_ovrlp: -0.000002256542, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  1, s1: LUMO+1, 
-  trans_int_energy: -0.000000225703, trans_int_energy_orthog: -0.000000297977, 
-     orthog_energy: -0.000000285239,  trans_int_ovrlp:  0.000000650413, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  1, s1: LUMO+2, 
-  trans_int_energy: -0.000000519876, trans_int_energy_orthog: -0.000000615054, 
-     orthog_energy: -0.000000619828,  trans_int_ovrlp:  0.000000601706, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  1, s1: LUMO+3, 
-  trans_int_energy: -0.000278529843, trans_int_energy_orthog: -0.000318438709, 
-     orthog_energy: -0.000318543003,  trans_int_ovrlp:  0.000222668916, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  2, s1: HOMO-3, 
-  trans_int_energy: -0.291094401342, trans_int_energy_orthog: -0.291084512803, 
-     orthog_energy: -0.145544735434,  trans_int_ovrlp:  1.000033876004, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  2, s1: HOMO-3, 
-  trans_int_energy:  0.000011793081, trans_int_energy_orthog:  0.000005391297, 
-     orthog_energy:  0.000005401322,  trans_int_ovrlp: -0.000021960837, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  2, s1: HOMO-3, 
-  trans_int_energy: -0.000000438622, trans_int_energy_orthog: -0.000000427734, 
-     orthog_energy: -0.000000428791,  trans_int_ovrlp:  0.000000039124, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: HOMO-3, 
-  trans_int_energy: -0.000000374225, trans_int_energy_orthog: -0.000000368406, 
-     orthog_energy: -0.000000310626,        trans_int_ovrlp:  0.000000253156, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: HOMO-3, 
-  trans_int_energy: -0.000032653953, trans_int_energy_orthog: -0.000032036298, 
-     orthog_energy: -0.000032106308,        trans_int_ovrlp:  0.000003807724, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  2, s1: HOMO-3, 
-  trans_int_energy: -0.000042839059, trans_int_energy_orthog: -0.000042711346, 
-     orthog_energy: -0.000042769701,  trans_int_ovrlp:  0.000000482218, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  2, s1: HOMO-3, 
-  trans_int_energy: -0.000003412526, trans_int_energy_orthog: -0.000003468288, 
-     orthog_energy: -0.000003459115,  trans_int_ovrlp: -0.000000672768, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  2, s1: HOMO-3, 
-  trans_int_energy:  0.000022991018, trans_int_energy_orthog:  0.000023255375, 
-     orthog_energy:  0.000023263010,  trans_int_ovrlp:  0.000004886040, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  2, s1: HOMO-2, 
-  trans_int_energy:  0.000011793037, trans_int_energy_orthog:  0.000005391254, 
-     orthog_energy:  0.000005401279,  trans_int_ovrlp: -0.000021960837, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  2, s1: HOMO-2, 
-  trans_int_energy: -0.291010783358, trans_int_energy_orthog: -0.291000627698, 
-     orthog_energy: -0.145502858922,  trans_int_ovrlp:  1.000034813843, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  2, s1: HOMO-2, 
-  trans_int_energy:  0.000000496123, trans_int_energy_orthog:  0.000000366833, 
-     orthog_energy:  0.000000439832,  trans_int_ovrlp: -0.000000224058, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: HOMO-2, 
-  trans_int_energy: -0.000000227839, trans_int_energy_orthog: -0.000000362064, 
-     orthog_energy: -0.000000373277,        trans_int_ovrlp: -0.000000579005, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: HOMO-2, 
-  trans_int_energy: -0.000044948551, trans_int_energy_orthog: -0.000044824140, 
-     orthog_energy: -0.000044895256,        trans_int_ovrlp:  0.000000370663, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  2, s1: HOMO-2, 
-  trans_int_energy:  0.000032675138, trans_int_energy_orthog:  0.000032391970, 
-     orthog_energy:  0.000032448248,  trans_int_ovrlp: -0.000001577942, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  2, s1: HOMO-2, 
-  trans_int_energy:  0.000003238951, trans_int_energy_orthog:  0.000003246029, 
-     orthog_energy:  0.000003236366,  trans_int_ovrlp: -0.000000037362, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  2, s1: HOMO-2, 
-  trans_int_energy: -0.000009266054, trans_int_energy_orthog: -0.000009474585, 
-     orthog_energy: -0.000009466358,  trans_int_ovrlp: -0.000003600954, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  2, s1: HOMO-1, 
-  trans_int_energy: -0.000000438622, trans_int_energy_orthog: -0.000000427734, 
-     orthog_energy: -0.000000428791,  trans_int_ovrlp:  0.000000039124, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  2, s1: HOMO-1, 
-  trans_int_energy:  0.000000496123, trans_int_energy_orthog:  0.000000366833, 
-     orthog_energy:  0.000000439832,  trans_int_ovrlp: -0.000000224058, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  2, s1: HOMO-1, 
-  trans_int_energy: -0.211455938256, trans_int_energy_orthog: -0.211452872507, 
-     orthog_energy: -0.105728571043,  trans_int_ovrlp:  0.999988613973, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: HOMO-1, 
-  trans_int_energy: -0.000013366487, trans_int_energy_orthog: -0.000013425774, 
-     orthog_energy: -0.000013322104,        trans_int_ovrlp:  0.000000209936, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: HOMO-1, 
-  trans_int_energy: -0.000187027116, trans_int_energy_orthog: -0.000187410436, 
-     orthog_energy: -0.000187059527,        trans_int_ovrlp: -0.000000311626, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  2, s1: HOMO-1, 
-  trans_int_energy:  0.000099170809, trans_int_energy_orthog:  0.000099460608, 
-     orthog_energy:  0.000099241914,  trans_int_ovrlp:  0.000000683639, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  2, s1: HOMO-1, 
-  trans_int_energy:  0.000001861588, trans_int_energy_orthog:  0.000001882646, 
-     orthog_energy:  0.000001856911,  trans_int_ovrlp: -0.000000158910, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  2, s1: HOMO-1, 
-  trans_int_energy:  0.000002888815, trans_int_energy_orthog:  0.000002847486, 
-     orthog_energy:  0.000002896177,  trans_int_ovrlp:  0.000000464538, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  2, s1: HOMO, 
-  trans_int_energy: -0.000000374225, trans_int_energy_orthog: -0.000000368406, 
-     orthog_energy: -0.000000310625,  trans_int_ovrlp:  0.000000253156, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  2, s1: HOMO, 
-  trans_int_energy: -0.000000227839, trans_int_energy_orthog: -0.000000362064, 
-     orthog_energy: -0.000000373277,  trans_int_ovrlp: -0.000000579005, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  2, s1: HOMO, 
-  trans_int_energy: -0.000013366487, trans_int_energy_orthog: -0.000013425774, 
-     orthog_energy: -0.000013322104,  trans_int_ovrlp:  0.000000209936, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  2.00}, 
+  trans_int_energy:  0.000534469394, trans_int_energy_orthog:  0.000536382758, 
+   trans_int_ovrlp: -0.000509264359, trans_int_ovrlp_orthog:  0.0, occ1:  0.0, occ2:  0.0}, 
   {
  label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: HOMO, 
-  trans_int_energy: -0.211362042264, trans_int_energy_orthog: -0.211358687279, 
-     orthog_energy: -0.105681547348,        trans_int_ovrlp:  0.999990041482, 
-    trans_int_ovrlp_orthog:  1.000000000000,   occ1:  2.00, occ2:  2.00}, 
+  trans_int_energy: -0.211362042584, trans_int_energy_orthog: -0.211358691811, 
+   trans_int_ovrlp:  0.999990041483, trans_int_ovrlp_orthog:  1.0, occ1:  2.0, occ2:  2.0}, 
   {
  label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: HOMO, 
-  trans_int_energy: -0.000077836596, trans_int_energy_orthog: -0.000077978486, 
-     orthog_energy: -0.000077854566,        trans_int_ovrlp: -0.000000172862, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  2, s1: HOMO, 
-  trans_int_energy: -0.000148890229, trans_int_energy_orthog: -0.000149167694, 
-     orthog_energy: -0.000148873030,  trans_int_ovrlp:  0.000000165426, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  2, s1: HOMO, 
-  trans_int_energy: -0.000030776856, trans_int_energy_orthog: -0.000030830419, 
-     orthog_energy: -0.000030753947,  trans_int_ovrlp:  0.000000779650, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  2, s1: HOMO, 
-  trans_int_energy:  0.000003916956, trans_int_energy_orthog:  0.000003855982, 
-     orthog_energy:  0.000003920452,  trans_int_ovrlp:  0.000000221215, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  2.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  2, s1: LUMO, 
-  trans_int_energy: -0.000032653952, trans_int_energy_orthog: -0.000032036298, 
-     orthog_energy: -0.000032106307,  trans_int_ovrlp:  0.000003807724, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  2, s1: LUMO, 
-  trans_int_energy: -0.000044948551, trans_int_energy_orthog: -0.000044824140, 
-     orthog_energy: -0.000044895256,  trans_int_ovrlp:  0.000000370663, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  2, s1: LUMO, 
-  trans_int_energy: -0.000187027116, trans_int_energy_orthog: -0.000187410436, 
-     orthog_energy: -0.000187059527,  trans_int_ovrlp: -0.000000311626, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
+  trans_int_energy: -0.000077836555, trans_int_energy_orthog: -0.000077916801, 
+   trans_int_ovrlp: -0.000000172862, trans_int_ovrlp_orthog:  0.0, occ1:  0.0, occ2:  2.0}, 
   {
  label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: LUMO, 
-  trans_int_energy: -0.000077836596, trans_int_energy_orthog: -0.000077978486, 
-     orthog_energy: -0.000077854566,        trans_int_ovrlp: -0.000000172862, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  2.00, occ2:  0.00}, 
+  trans_int_energy: -0.000077836555, trans_int_energy_orthog: -0.000077916801, 
+   trans_int_ovrlp: -0.000000172862, trans_int_ovrlp_orthog:  0.0, occ1:  2.0, occ2:  0.0}, 
   {
  label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: LUMO, 
-  trans_int_energy:  0.003444865845, trans_int_energy_orthog:  0.003446209178, 
-     orthog_energy:  0.001722414385,        trans_int_ovrlp:  1.000021524740, 
-    trans_int_ovrlp_orthog:  1.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  2, s1: LUMO, 
-  trans_int_energy: -0.000009476902, trans_int_energy_orthog: -0.000009490053, 
-     orthog_energy: -0.000009475909,  trans_int_ovrlp: -0.000000288804, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  2, s1: LUMO, 
-  trans_int_energy: -0.000016346290, trans_int_energy_orthog: -0.000016360600, 
-     orthog_energy: -0.000016344295,  trans_int_ovrlp: -0.000000025571, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  2, s1: LUMO, 
-  trans_int_energy: -0.000000193972, trans_int_energy_orthog: -0.000000362782, 
-     orthog_energy: -0.000000354612,  trans_int_ovrlp:  0.000001753657, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  2, s1: LUMO+3, 
-  trans_int_energy: -0.000042839058, trans_int_energy_orthog: -0.000042711346, 
-     orthog_energy: -0.000042769701,  trans_int_ovrlp:  0.000000482218, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  2, s1: LUMO+2, 
-  trans_int_energy:  0.000032675138, trans_int_energy_orthog:  0.000032391970, 
-     orthog_energy:  0.000032448248,  trans_int_ovrlp: -0.000001577942, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy:  0.000099170809, trans_int_energy_orthog:  0.000099460608, 
-     orthog_energy:  0.000099241914,  trans_int_ovrlp:  0.000000683639, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy: -0.000148890229, trans_int_energy_orthog: -0.000149167694, 
-     orthog_energy: -0.000148873030,        trans_int_ovrlp:  0.000000165426, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy: -0.000009476902, trans_int_energy_orthog: -0.000009490053, 
-     orthog_energy: -0.000009475909,        trans_int_ovrlp: -0.000000288804, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy:  0.003434742016, trans_int_energy_orthog:  0.003436064803, 
-     orthog_energy:  0.001717352970,  trans_int_ovrlp:  1.000021006359, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  2, s1: LUMO+2, 
-  trans_int_energy: -0.000263099882, trans_int_energy_orthog: -0.000263155948, 
-     orthog_energy: -0.000263097824,  trans_int_ovrlp: -0.000000026381, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  2, s1: LUMO+3, 
-  trans_int_energy:  0.000000378245, trans_int_energy_orthog:  0.000000640406, 
-     orthog_energy:  0.000000655003,  trans_int_ovrlp: -0.000003021453, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  2, s1: LUMO+3, 
-  trans_int_energy: -0.000003412526, trans_int_energy_orthog: -0.000003468289, 
-     orthog_energy: -0.000003459115,  trans_int_ovrlp: -0.000000672768, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  2, s1: LUMO+2, 
-  trans_int_energy:  0.000003238951, trans_int_energy_orthog:  0.000003246029, 
-     orthog_energy:  0.000003236366,  trans_int_ovrlp: -0.000000037362, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy:  0.000001861588, trans_int_energy_orthog:  0.000001882646, 
-     orthog_energy:  0.000001856911,  trans_int_ovrlp: -0.000000158910, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy: -0.000030776856, trans_int_energy_orthog: -0.000030830419, 
-     orthog_energy: -0.000030753947,        trans_int_ovrlp:  0.000000779650, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy: -0.000016346290, trans_int_energy_orthog: -0.000016360600, 
-     orthog_energy: -0.000016344295,        trans_int_ovrlp: -0.000000025571, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy: -0.000263099882, trans_int_energy_orthog: -0.000263155948, 
-     orthog_energy: -0.000263097824,  trans_int_ovrlp: -0.000000026381, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  2, s1: LUMO+2, 
-  trans_int_energy:  0.152594583989, trans_int_energy_orthog:  0.152599003273, 
-     orthog_energy:  0.076298376638,  trans_int_ovrlp:  0.999971568364, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  2, s1: LUMO+3, 
-  trans_int_energy: -0.000000780235, trans_int_energy_orthog: -0.000000665352, 
-     orthog_energy: -0.000000667915,  trans_int_ovrlp: -0.000000675903, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-3, label: benzene, j:  2, s1: LUMO+3, 
-  trans_int_energy:  0.000022990788, trans_int_energy_orthog:  0.000023255145, 
-     orthog_energy:  0.000023262780,  trans_int_ovrlp:  0.000004886040, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-2, label: benzene, j:  2, s1: LUMO+2, 
-  trans_int_energy: -0.000009265986, trans_int_energy_orthog: -0.000009474517, 
-     orthog_energy: -0.000009466290,  trans_int_ovrlp: -0.000003600954, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO-1, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy:  0.000002888815, trans_int_energy_orthog:  0.000002847486, 
-     orthog_energy:  0.000002896176,  trans_int_ovrlp:  0.000000464538, 
-    trans_int_ovrlp_orthog:  0.000000000000,     occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: HOMO, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy:  0.000003916956, trans_int_energy_orthog:  0.000003855982, 
-     orthog_energy:  0.000003920452,        trans_int_ovrlp:  0.000000221215, 
-    trans_int_ovrlp_orthog:  0.000000000000,   occ1:  2.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy: -0.000000193972, trans_int_energy_orthog: -0.000000362781, 
-     orthog_energy: -0.000000354611,        trans_int_ovrlp:  0.000001753657, 
-    trans_int_ovrlp_orthog: -0.000000000000,   occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+1, label: benzene, j:  2, s1: LUMO+1, 
-  trans_int_energy:  0.000000378245, trans_int_energy_orthog:  0.000000640406, 
-     orthog_energy:  0.000000655003,  trans_int_ovrlp: -0.000003021453, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+2, label: benzene, j:  2, s1: LUMO+2, 
-  trans_int_energy: -0.000000780235, trans_int_energy_orthog: -0.000000665353, 
-     orthog_energy: -0.000000667915,  trans_int_ovrlp: -0.000000675903, 
-    trans_int_ovrlp_orthog: -0.000000000000,     occ1:  0.00, occ2:  0.00}, 
-  {
- label: benzene, i:  2, s1: LUMO+3, label: benzene, j:  2, s1: LUMO+3, 
-  trans_int_energy:  0.179760340256, trans_int_energy_orthog:  0.179743338405, 
-     orthog_energy:  0.089875902004,  trans_int_ovrlp:  1.000094978152, 
-    trans_int_ovrlp_orthog:  1.000000000000,     occ1:  0.00, occ2:  0.00}, 
+  trans_int_energy:  0.003444865523, trans_int_energy_orthog:  0.003445405902, 
+   trans_int_ovrlp:  1.00002152474,  trans_int_ovrlp_orthog:  1.0, occ1:  0.0, occ2:  0.0}, 
  ]
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  143,  143,  143 ]
-   MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+   MPI tasks                           :  4
+ Calculate local forces: {Leaked force:  0.0}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x: -2.47819340E-03, y:  6.32642216E-03, z:  8.81917090E-04, 
-                    total:  6.85148434E-03}
- Clean forces norm (Ha/Bohr): {maxval:  6.368677212105E-02, fnrm2:  5.042188483065E-02}
- Raw forces norm (Ha/Bohr): {maxval:  6.237212192472E-02, fnrm2:  5.047206076116E-02}
+ Average noise forces: {x: -2.47819338E-03, y:  6.32642167E-03, z:  8.8191699E-04, 
+                    total:  6.85148387E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  6.368677203928E-02, fnrm2:  5.042188520059E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  6.237212194508E-02, fnrm2:  5.047206112445E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 3.402463129586E-03,  2.130577788352E-02,  3.424099172072E-03]} # 0001
- -  {C: [ 3.513147366931E-03,  8.944908480177E-03,  2.115109930268E-02]} # 0002
- -  {C: [ 3.275561697278E-03, -1.190437208242E-02,  1.696697972703E-02]} # 0003
- -  {C: [ 3.207497466464E-03, -1.836024051429E-02, -3.790989721002E-03]} # 0004
- -  {C: [ 3.008498428540E-03, -4.938690810109E-03, -2.230413508555E-02]} # 0005
- -  {C: [ 3.195587327635E-03,  1.560078966050E-02, -1.662953126014E-02]} # 0006
- -  {H: [ 8.573399421391E-04,  5.814147011261E-02,  1.003136851029E-02]} # 0007
- -  {H: [ 1.106908047960E-03,  2.068914980830E-02,  5.620464219838E-02]} # 0008
- -  {H: [ 1.020993083491E-03, -4.055842060623E-02,  4.737524280643E-02]} # 0009
- -  {H: [ 7.403465722545E-04, -6.280866449446E-02, -1.051325328211E-02]} # 0010
- -  {H: [ 5.760095553329E-04, -2.329275444612E-02, -5.688555973210E-02]} # 0011
- -  {H: [ 6.463183307312E-04,  3.710596359554E-02, -4.638378447875E-02]} # 0012
- -  {C: [-3.910244369358E-03,  1.665636926627E-02,  1.382222086197E-02]} # 0013
- -  {C: [-3.798030973086E-03, -2.797804976745E-03,  2.295875257644E-02]} # 0014
- -  {C: [-4.001428431366E-03, -1.882096099949E-02,  8.930025277842E-03]} # 0015
- -  {C: [-4.055472080088E-03, -1.398347218972E-02, -1.224992863111E-02]} # 0016
- -  {C: [-4.270456042233E-03,  6.843865338880E-03, -2.155823241928E-02]} # 0017
- -  {C: [-4.096994341399E-03,  2.177970174077E-02, -6.429716667886E-03]} # 0018
- -  {H: [ 5.926416823631E-05,  4.517932939868E-02,  3.778597221800E-02]} # 0019
- -  {H: [ 2.393073244986E-04, -1.046443898005E-02,  5.909526040340E-02]} # 0020
- -  {H: [ 6.058668271999E-05, -5.915269418000E-02,  2.108126660760E-02]} # 0021
- -  {H: [-2.532640582027E-04, -4.911371336183E-02, -4.008608875559E-02]} # 0022
- -  {H: [-3.483318689809E-04,  8.425484904757E-03, -6.050784470037E-02]} # 0023
- -  {H: [-1.756069590843E-04,  5.552341745146E-02, -2.148786492825E-02]} # 0024
+ -  {C: [ 3.402462353894E-03,  2.130577853647E-02,  3.424099345109E-03]} # 0001
+ -  {C: [ 3.513146605349E-03,  8.944908535853E-03,  2.115109995942E-02]} # 0002
+ -  {C: [ 3.275561042094E-03, -1.190437268544E-02,  1.696698001715E-02]} # 0003
+ -  {C: [ 3.207496863522E-03, -1.836024106079E-02, -3.790989762504E-03]} # 0004
+ -  {C: [ 3.00849778835E-03, -4.938691307564E-03, -2.2304135567E-02]} # 0005
+ -  {C: [ 3.195586581296E-03,  1.560078992485E-02, -1.662953186699E-02]} # 0006
+ -  {H: [ 8.573398183426E-04,  5.814147032736E-02,  1.003136853791E-02]} # 0007
+ -  {H: [ 1.106907918212E-03,  2.068914992313E-02,  5.62046423328E-02]} # 0008
+ -  {H: [ 1.020992965785E-03, -4.055842056876E-02,  4.737524284025E-02]} # 0009
+ -  {H: [ 7.403464725866E-04, -6.280866441452E-02, -1.051325327142E-02]} # 0010
+ -  {H: [ 5.76009461999E-04, -2.329275439676E-02, -5.688555977397E-02]} # 0011
+ -  {H: [ 6.463182293116E-04,  3.710596376524E-02, -4.638378459055E-02]} # 0012
+ -  {C: [-3.910243589371E-03,  1.665636972996E-02,  1.382222137885E-02]} # 0013
+ -  {C: [-3.798030255279E-03, -2.797805297667E-03,  2.295875314305E-02]} # 0014
+ -  {C: [-4.001427809152E-03, -1.882096163524E-02,  8.930025251484E-03]} # 0015
+ -  {C: [-4.055471460895E-03, -1.398347265779E-02, -1.224992891662E-02]} # 0016
+ -  {C: [-4.270455357774E-03,  6.84386513049E-03, -2.155823308941E-02]} # 0017
+ -  {C: [-4.096993555504E-03,  2.177970226655E-02, -6.429717059737E-03]} # 0018
+ -  {H: [ 5.926427802335E-05,  4.517932958975E-02,  3.77859723396E-02]} # 0019
+ -  {H: [ 2.393074203288E-04, -1.04644389367E-02,  5.909526054921E-02]} # 0020
+ -  {H: [ 6.058677536932E-05, -5.915269412831E-02,  2.108126662949E-02]} # 0021
+ -  {H: [-2.532639589086E-04, -4.911371329081E-02, -4.008608873152E-02]} # 0022
+ -  {H: [-3.483317501113E-04,  8.425484980967E-03, -6.050784473113E-02]} # 0023
+ -  {H: [-1.756068374708E-04,  5.552341766971E-02, -2.148786496349E-02]} # 0024
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  134.29
-   Elapsed time (s)                    :  90.44
+   CPU time (s)                        :  68.38
+   Elapsed time (s)                    :  39.78
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
- Status of the memory at finalization:
-   Timestamp of Profile initialization:
-     2013-12-16 18:11:17.127
-   Process Id:
-     0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  11747
-   Tot. No. of Deallocations           :  11747
+   Tot. No. of Allocations             :  15422
+   Tot. No. of Deallocations           :  15422
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  1073
+     Peak Value (MB)                   :  832
      for the array                     : nrecvdspls
      in the routine                    : transpose_communicate_psi
- Max No. of dictionaries used          :  1253 #(  138 still in use)
+ Max No. of dictionaries used          :  4019 #(  138 still in use)
