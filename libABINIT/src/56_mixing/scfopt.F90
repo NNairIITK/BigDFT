@@ -180,7 +180,6 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
 
 !  Compute new vtrial (and new rhoij if PAW)
    if (iscf/=2) f_fftgr(:,:,i_vstore)=vtrial(:,:)
-   write(*,'(a,2es18.9)') 'in mix: sum(vtrial), sum(f_fftgr)', sum(vtrial), sum(f_fftgr(:,:,i_vrespc(1)))
    vtrial(:,:)=vtrial(:,:)+f_fftgr(:,:,i_vrespc(1))
    if (usepaw==1) then
      if (iscf/=2) f_paw(:,i_vstore)=vpaw(:)
@@ -371,15 +370,6 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    deallocate(amatinv)
    write(message,'(a,5(1x,g10.3))')' mixing of old trial potential : alpha(m:m-4)=',(alpha(ii),ii=niter,max(1,niter-4),-1)
    call wrtout(std_out,message,'COLL')
-
-   !!if (niter==2) then
-   !!    write(*,*) 'WARNING: MODIFY ALPHA:'
-   !!    alpha(1)=0.d0
-   !!    alpha(2)=1.d0
-   !!end if
-   do ii=niter,1,-1
-       write(*,*) 'ii, alpha(ii)',ii, alpha(ii)
-   end do
 
 !  Save latest trial potential and compute new trial potential
    do isp=1,nspden
