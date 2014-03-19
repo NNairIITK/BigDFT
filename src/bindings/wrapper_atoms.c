@@ -178,10 +178,7 @@ BigDFT_Atoms* bigdft_atoms_new_from_file(const gchar *filename)
 
 void bigdft_atoms_set_n_atoms(BigDFT_Atoms *atoms, guint nat)
 {
-  const gchar subname[] = "bigdft_atoms_set_n_atoms";
-
-  FC_FUNC_(astruct_set_n_atoms, ASTRUCT_SET_N_ATOMS)(F_TYPE(atoms->astruct), (int*)(&nat));//,
-  //                                         subname, strlen(subname));
+  FC_FUNC_(astruct_set_n_atoms, ASTRUCT_SET_N_ATOMS)(F_TYPE(atoms->astruct), (int*)(&nat));
   atoms->nat = nat;
   bigdft_atoms_get_nat_arrays(atoms);
 }
@@ -209,12 +206,10 @@ static void _sync_atomnames(BigDFT_Atoms *atoms)
 void bigdft_atoms_set_types(BigDFT_Atoms *atoms, const gchar **names)
 {
   guint i, ntypes;
-  const gchar subname[] = "bigdft_atoms_set_types";
 
   for (ntypes = 0; names[ntypes]; ntypes++);
   FC_FUNC_(astruct_set_n_types, ASTRUCT_SET_N_TYPES)(F_TYPE(atoms->astruct),
-                                                     (int*)(&ntypes)); //,
-  //subname, strlen(subname));
+                                                     (int*)(&ntypes));
   atoms->ntypes = ntypes;
   bigdft_atoms_get_ntypes_arrays(atoms);
   atoms->atomnames = g_malloc(sizeof(gchar*) * (ntypes + 1));
@@ -347,14 +342,13 @@ void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar
 {
   /* int verb = 0; */
   /* int ln; */
-  const gchar subname[] = "bigdft_atoms_set_psp";
 
   /* Allocate the atomic arrays if not already. */
   if (!atoms->psppar)
     {
-      FC_FUNC_(allocate_atoms_nat, ALLOCATE_ATOMS_NAT)(F_TYPE(atoms->data)); //, subname, strlen(subname));
+      FC_FUNC_(allocate_atoms_nat, ALLOCATE_ATOMS_NAT)(F_TYPE(atoms->data));
       bigdft_atoms_get_nat_arrays(atoms);
-      FC_FUNC_(allocate_atoms_ntypes, ALLOCATE_ATOMS_NTYPES)(F_TYPE(atoms->data)); //, subname, strlen(subname));
+      FC_FUNC_(allocate_atoms_ntypes, ALLOCATE_ATOMS_NTYPES)(F_TYPE(atoms->data));
       bigdft_atoms_get_ntypes_arrays(atoms);
     }
 
