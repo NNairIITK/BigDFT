@@ -32,6 +32,7 @@ real(8):: tt
   tt=1.d0-alphaMix
   !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
   !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
+  write(*,'(a,2es18.9)') 'in mix: sum(vtrial), sum(f_fftgr)', sum(rhopot), sum(alphamix*(rhopot-rhopotold))
   do i=1,Glr%d%n1i*Glr%d%n2i*n3p
       pnrm=pnrm+(rhopot(ioffset+i)-rhopotOld(ioffset+i))**2
   end do

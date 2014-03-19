@@ -180,6 +180,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
 
 !  Compute new vtrial (and new rhoij if PAW)
    if (iscf/=2) f_fftgr(:,:,i_vstore)=vtrial(:,:)
+   write(*,'(a,2es18.9)') 'in mix: sum(vtrial), sum(f_fftgr)', sum(vtrial), sum(f_fftgr(:,:,i_vrespc(1)))
    vtrial(:,:)=vtrial(:,:)+f_fftgr(:,:,i_vrespc(1))
    if (usepaw==1) then
      if (iscf/=2) f_paw(:,i_vstore)=vpaw(:)
