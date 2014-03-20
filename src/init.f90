@@ -2028,9 +2028,23 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)
+     if (in%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+        ! set the initial charge density
+        call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+             denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
+             pnrm,denspot%dpbox%nscatterarr)
+     end if
      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
      call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+     if (in%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+        ! set the initial potential
+        call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+             denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
+             pnrm,denspot%dpbox%nscatterarr)
+     end if
      call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
 
     !call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'potential.cube', &
