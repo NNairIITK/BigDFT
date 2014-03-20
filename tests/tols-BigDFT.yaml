@@ -824,7 +824,7 @@ intermediateforces:
  multiplicator for the confinement: 1.6e-11
 
 DIIShistory:
- Atomic Forces (Ha/Bohr): 3.1e-9
+ Atomic Forces (Ha/Bohr): 1.9e-9
  Clean forces norm (Ha/Bohr): 1.1e-9
  Raw forces norm (Ha/Bohr): 1.7e-9
  Average noise forces: 2.1e-10
@@ -839,8 +839,9 @@ DIIShistory:
  multiplicator for the confinement: 5.4e-9
  Omega: 1.7e-8
  Total charge: 2.01e-11
-Locreg:
+ Locreg:
  EH: 1.1e-10
+ Pulay forces (Ha/Bohr): 7.8e-09
 
 sparsity:
  Total charge: 1.1e-10
@@ -889,6 +890,7 @@ PBE_potmixdiis:
 
 PBE_densmixdiis:
  Epot: 1.1e-10
+ EvXC: 1.1e-10
  Enl: 1.1e-10
  energy: 3.7e-11
  Omega: 4.5e-11
