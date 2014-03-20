@@ -124,12 +124,13 @@ subroutine run_objects_parse(runObj)
   use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
   use dynamic_memory
   use dictionaries
+  use module_atoms, only: deallocate_atoms_data
   implicit none
   type(run_objects), intent(inout) :: runObj
 
   ! Free potential previous inputs and atoms.
   if (associated(runObj%atoms)) then
-     call deallocate_atoms(runObj%atoms, "run_objects_update") 
+     call deallocate_atoms_data(runObj%atoms) 
      deallocate(runObj%atoms)
   end if
   call atoms_new(runObj%atoms)
