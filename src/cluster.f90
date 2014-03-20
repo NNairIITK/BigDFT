@@ -311,7 +311,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
-  integer :: ilr, nlr, iorb, jorb, ioffset
+  integer :: ilr, nlr, iorb, jorb, ioffset, linear_iscf
   character(len=20) :: comment
 
   !debug
@@ -581,9 +581,45 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
       in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
       in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
-           inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
-           locregcenters)
+     ! Setup the mixing, if necessary -- NEW
+     if (in%lin%mixHist_lowaccuracy /= in%lin%mixHist_highaccuracy) then
+         ! This must be fixed later
+         stop 'in%lin%mixHist_lowaccuracy /= in%lin%mixHist_highaccuracy'
+     end if
+     select case (in%lin%scf_mode) 
+     case (LINEAR_DIRECT_MINIMIZATION)
+         linear_iscf = 0
+     case (LINEAR_MIXDENS_SIMPLE) 
+         if (in%lin%mixHist_lowaccuracy==0) then
+             ! simple mixing
+             linear_iscf = 12
+         else
+             ! Pulay mixing
+             linear_iscf = 17
+         end if
+     case (LINEAR_MIXPOT_SIMPLE) 
+         if (in%lin%mixHist_lowaccuracy==0) then
+             ! simple mixing
+             linear_iscf = 2
+         else
+             ! Pulay mixing
+             linear_iscf = 7
+         end if
+     case (LINEAR_FOE)
+         if (in%lin%mixHist_lowaccuracy==0) then
+             ! simple mixing
+             linear_iscf = 12
+         else
+             ! Pulay mixing
+             linear_iscf = 17
+         end if
+     case default
+         stop 'ERROR: wrong in%lin%scf_mode'
+     end select
+     call denspot_set_history(denspot,linear_iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
+          inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
+          locregcenters)
   else
       call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
            inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
@@ -656,9 +692,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      allocate(fpulay(3,atoms%astruct%nat),stat=i_stat)
      call memocc(i_stat,fpulay,'fpulay',subname)
 
+
+
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
           rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
           fdisp, fion)
+
+     ! Clean denspot parts only needed in the SCF loop -- NEW
+     call denspot_free_history(denspot)
 
      ! maybe not the best place to keep it - think about it!
      if (in%lin%calc_transfer_integrals) then

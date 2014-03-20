@@ -127,7 +127,7 @@ contains
     use module_fragments
     use communications, only: transpose_localized
     use sparsematrix_base, only: sparse_matrix
-    use sparsematrix, only: compress_matrix_for_allreduce, uncompressMatrix
+    use sparsematrix, only: compress_matrix, uncompress_matrix
     implicit none
     type(sparse_matrix), intent(inout) :: weight_matrix
     type(input_variables),intent(in) :: input
@@ -169,7 +169,7 @@ contains
 
     if (calculate_ovrlp_half) then
        tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
-       call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+       call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
              tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, ovrlp_half, error, tmb%orbs)
        call f_free_ptr(tmb%linmat%ovrlp%matrix)
@@ -224,7 +224,7 @@ contains
        call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix%matrix(1,1),1)
     end if
     call f_free(weight_matrixp)
-    call compress_matrix_for_allreduce(bigdft_mpi%iproc,weight_matrix)
+    call compress_matrix(bigdft_mpi%iproc,weight_matrix)
     call f_free_ptr(weight_matrix%matrix)
     call f_release_routine()
 
@@ -320,7 +320,7 @@ contains
     ! debug
     !allocate(cdft%weight_matrix%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
     !call memocc(istat, cdft%weight_matrix%matrix, 'cdft%weight_matrix%matrix', subname)
-    !call uncompressMatrix(bigdft_mpi%iproc,cdft%weight_matrix)
+    !call uncompress_matrix(bigdft_mpi%iproc,cdft%weight_matrix)
     !do iorb=1,tmb%orbs%norb
     !   do jorb=1,tmb%orbs%norb
     !      write(87,*) iorb,jorb,cdft%weight_matrix%matrix(iorb,jorb)

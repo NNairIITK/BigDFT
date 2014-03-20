@@ -35,13 +35,10 @@ module sparsematrix_init
       character(len=*), parameter :: subname='init_sparse_matrix'
       integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
       integer :: nseglinemax, iall, ierr, jorbe, jorbs, jorbold, ii
-      !integer :: compressed_index, matrixindex_in_compressed
       integer :: matrixindex_in_compressed
       integer, dimension(:,:,:), pointer :: keygline
       integer, dimension(:), pointer :: noverlaps
       integer, dimension(:,:), pointer :: overlaps
-      !integer, dimension(:,:), allocatable :: sendbuf, requests, iminmaxarr
-      !integer :: ierr, imin, imax, irecv, isend, kproc
       
       call timing(iproc,'init_matrCompr','ON')
     
@@ -335,19 +332,13 @@ module sparsematrix_init
     
       ! Local variables
       integer :: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold
-      !integer :: is1, ie1, is2, ie2, is3, ie3
-      !integer :: js1, je1, js2, je2, js3, je3
       integer :: iiorb, istat, iall, noverlaps, ierr, ii
-      !integer :: noverlapsmaxp
-      !logical :: ovrlpx, ovrlpy, ovrlpz
       logical :: isoverlap
-      !integer :: i1, i2
       integer :: onseg
       logical,dimension(:,:),allocatable :: overlapMatrix
       integer,dimension(:),allocatable :: noverlapsarr, displs, recvcnts, comon_noverlaps
       integer,dimension(:,:),allocatable :: overlaps_op
       integer,dimension(:,:,:),allocatable :: overlaps_nseg
-      !integer,dimension(:,:,:),allocatable :: iseglist, jseglist
       character(len=*),parameter :: subname='determine_overlap_from_descriptors'
     
       allocate(overlapMatrix(orbsig%norb,maxval(orbs%norb_par(:,0))), stat=istat)
@@ -558,21 +549,13 @@ module sparsematrix_init
       sparsemat%nfvctrp=orbs%norbp
       sparsemat%isfvctr=orbs%isorb
     
-      !allocate(sparsemat%nfvctr_par(0:nproc-1),stat=istat)
-      !call memocc(istat, sparsemat%nfvctr_par, 'sparsemat%nfvctr_par', subname)
       sparsemat%nfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
-      !allocate(sparsemat%isfvctr_par(0:nproc-1),stat=istat)
-      !call memocc(istat, sparsemat%isfvctr_par, 'sparsemat%isfvctr_par', subname)
       sparsemat%isfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
     
       call vcopy(nproc,orbs%isorb_par(0),1,sparsemat%isfvctr_par(0),1)
       call vcopy(nproc,orbs%norb_par(0,0),1,sparsemat%nfvctr_par(0),1)
     
-      !allocate(sparsemat%nsegline(orbs%norb),stat=istat)
-      !call memocc(istat, sparsemat%nsegline, 'sparsemat%nsegline', subname)
       sparsemat%nsegline=f_malloc_ptr(orbs%norb,id='sparsemat%nsegline')
-      !allocate(sparsemat%istsegline(orbs%norb),stat=istat)
-      !call memocc(istat, sparsemat%istsegline, 'sparsemat%istsegline', subname)
       sparsemat%istsegline=f_malloc_ptr(orbs%norb,id='sparsemat%istsegline')
     
       sparsemat%nseg=0
@@ -612,11 +595,7 @@ module sparsematrix_init
       end if
     
     
-      !allocate(sparsemat%keyv(sparsemat%nseg),stat=istat)
-      !call memocc(istat, sparsemat%keyv, 'sparsemat%keyv', subname)
       sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
-      !allocate(sparsemat%keyg(2,sparsemat%nseg),stat=istat)
-      !call memocc(istat, sparsemat%keyg, 'sparsemat%keyg', subname)
       sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
     
     
@@ -715,11 +694,7 @@ module sparsematrix_init
       character(len=*),parameter :: subname='init_matrix_parallelization'
     
       ! parallelization of matrices, following same idea as norb/norbp/isorb
-      !allocate(sparsemat%nvctr_par(0:nproc-1),stat=istat)
-      !call memocc(istat, sparsemat%nvctr_par, 'sparsemat%nvctr_par', subname)
       sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
-      !allocate(sparsemat%isvctr_par(0:nproc-1),stat=istat)
-      !call memocc(istat, sparsemat%isvctr_par, 'sparsemat%isvctr_par', subname)
       sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
     
       !most equal distribution, but want corresponding to norbp for second column
@@ -789,8 +764,6 @@ module sparsematrix_init
           sparsemat%store_index=.true.
     
           ! initialize sparsemat%matrixindex_in_compressed
-          !allocate(sparsemat%matrixindex_in_compressed_arr(norb,norb),stat=istat)
-          !call memocc(istat, sparsemat%matrixindex_in_compressed_arr, 'sparsemat%matrixindex_in_compressed_arr', subname)
           sparsemat%matrixindex_in_compressed_arr=f_malloc_ptr((/norb,norb/),id='sparsemat%matrixindex_in_compressed_arr')
     
           do iorb=1,norb

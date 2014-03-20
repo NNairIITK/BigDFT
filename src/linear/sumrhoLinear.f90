@@ -294,7 +294,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   use module_types
   use yaml_output
   use sparsematrix_base, only: sparse_matrix
-  use sparsematrix, only: compress_matrix_for_allreduce
+  use sparsematrix, only: compress_matrix
   implicit none
 
   ! Calling arguments
@@ -371,7 +371,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
 
       call f_free(density_kernel_partial)
 
-      call compress_matrix_for_allreduce(iproc,denskern)
+      call compress_matrix(iproc,denskern)
       call f_free_ptr(denskern%matrix)
   else if (communication_strategy==ALLREDUCE) then
       if (iproc==0) call yaml_map('communication strategy kernel','ALLREDUCE')
@@ -406,7 +406,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      call compress_matrix_for_allreduce(iproc,denskern)
+      call compress_matrix(iproc,denskern)
       call f_free_ptr(denskern%matrix)
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
@@ -414,7 +414,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
 
-      !call compress_matrix_for_allreduce(iproc,denskern)
+      !call compress_matrix(iproc,denskern)
       !call f_free_ptr(denskern%matrix)
   end if
   call f_release_routine()

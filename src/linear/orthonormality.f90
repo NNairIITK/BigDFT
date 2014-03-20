@@ -138,7 +138,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use yaml_output
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: uncompressMatrix
+  use sparsematrix, only: uncompress_matrix
   implicit none
 
   ! Calling arguments
@@ -230,7 +230,7 @@ call timing(iproc,'misc','ON')
       !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
       if (iproc==0) write(*,*) 'correction orthoconstraint'
       linmat%ovrlp%matrix=f_malloc_ptr((/orbs%norb,orbs%norb/),id='linmat%ovrlp%matrix')
-      call uncompressMatrix(iproc,linmat%ovrlp)
+      call uncompress_matrix(iproc,linmat%ovrlp)
       allocate(tmp_mat(orbs%norb,orbs%norb))
       allocate(tmp_mat2(orbs%norb,orbs%norb))
       call to_zero(orbs%norb**2, tmp_mat(1,1))
@@ -296,7 +296,7 @@ call timing(iproc,'misc','OF')
   !!! TEST ORTHOGONALITY OF GRADIENT AND TMBs ##############################
   !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, linmat%ovrlp)
   !!allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb))
-  !!call uncompressMatrix(iproc,linmat%ovrlp)
+  !!call uncompress_matrix(iproc,linmat%ovrlp)
   !!if (iproc==0) then
   !!  do iorb=1,orbs%norb
   !!    do jorb=1,orbs%norb
@@ -368,7 +368,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
   use sparsematrix_base, only: sparse_matrix
-  use sparsematrix, only: compress_matrix_for_allreduce, uncompressmatrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
   
   ! Calling arguments
@@ -411,7 +411,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
      if (present(inv_ovrlp_smat)) then
         if (.not. ovrlp_allocated) ovrlp_smat%matrix=f_malloc_ptr((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),&
              id='ovrlp_smat%matrix')
-        if (.not.(ovrlp_smat%can_use_dense.and.ovrlp_allocated)) call uncompressMatrix(iproc,ovrlp_smat)
+        if (.not.(ovrlp_smat%can_use_dense.and.ovrlp_allocated)) call uncompress_matrix(iproc,ovrlp_smat)
         if (.not. inv_ovrlp_allocated) inv_ovrlp_smat%matrix=f_malloc_ptr((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%nfvctr/),&
              id='inv_ovrlp_smat%matrix')
         call vcopy(norb*norb,ovrlp_smat%matrix(1,1),1,inv_ovrlp_smat%matrix(1,1),1)
@@ -435,7 +435,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
         call overlap_plus_minus_one_half_exact(norb,blocksize,.false.,inv_ovrlp,orbs)
      end if
      if (present(inv_ovrlp_smat)) then
-        call compress_matrix_for_allreduce(iproc,inv_ovrlp_smat)
+        call compress_matrix(iproc,inv_ovrlp_smat)
         nullify(inv_ovrlp)
         if (.not. inv_ovrlp_allocated) then
            call f_free_ptr(inv_ovrlp_smat%matrix)
@@ -458,10 +458,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
         end if
         if (iorder>1) then
            if (.not. inv_ovrlp_allocated) inv_ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='inv_ovrlp_smat%matrix')
-           call uncompressMatrix(iproc,inv_ovrlp_smat)
+           call uncompress_matrix(iproc,inv_ovrlp_smat)
            inv_ovrlp => inv_ovrlp_smat%matrix
            if (.not. ovrlp_allocated) ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='ovrlp_smat%matrix')
-           call uncompressMatrix(iproc,ovrlp_smat)
+           call uncompress_matrix(iproc,ovrlp_smat)
            ovrlp => ovrlp_smat%matrix
         end if
      end if
@@ -537,7 +537,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
            nullify(inv_ovrlpp)
         end if
         if (present(inv_ovrlp_smat)) then
-           call compress_matrix_for_allreduce(iproc,inv_ovrlp_smat)
+           call compress_matrix(iproc,inv_ovrlp_smat)
            if (.not. inv_ovrlp_allocated) then
               call f_free_ptr(inv_ovrlp_smat%matrix)
            else
@@ -554,9 +554,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   if (check_accuracy) then
      if (present(inv_ovrlp_smat)) then
         if (.not.inv_ovrlp_allocated) inv_ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='inv_ovrlp_smat%matrix')
-        if (.not.(inv_ovrlp_smat%can_use_dense.and.inv_ovrlp_allocated)) call uncompressMatrix(iproc,inv_ovrlp_smat)
+        if (.not.(inv_ovrlp_smat%can_use_dense.and.inv_ovrlp_allocated)) call uncompress_matrix(iproc,inv_ovrlp_smat)
         if (.not.ovrlp_allocated) ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='ovrlp_smat%matrix')
-        if (.not.(ovrlp_smat%can_use_dense.and.ovrlp_allocated)) call uncompressMatrix(iproc,ovrlp_smat)
+        if (.not.(ovrlp_smat%can_use_dense.and.ovrlp_allocated)) call uncompress_matrix(iproc,ovrlp_smat)
 
         call check_accuracy_overlap_minus_one(iproc,norb,power,ovrlp_smat%matrix,inv_ovrlp_smat%matrix,error)
         if (.not.ovrlp_allocated) call f_free_ptr(ovrlp_smat%matrix)

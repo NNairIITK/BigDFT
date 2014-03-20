@@ -1868,7 +1868,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      !!call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
      !!call calculate_density_kernel(iproc, nproc, .true., KSwfn%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
-     !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+     !!call compress_matrix(iproc,tmb%linmat%denskern)
      !!do itmb=1,tmb%orbs%norb
      !!   do jtmb=1,tmb%orbs%norb
      !!      write(20,*) itmb,jtmb,tmb%linmat%denskern%matrix(itmb,jtmb)
@@ -1943,8 +1943,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
      !!ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
      !!ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ksk')
-     !!call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
-     !!call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%denskern)
+     !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+     !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%denskern)
      !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
      !!           tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, 0.d0, ks(1,1), tmb%orbs%norb) 
      !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
