@@ -265,7 +265,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj,nbseg_dim
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj,nbseg_dim,npack_dim,mproj_max
   integer :: iat,i_stat,i_all,iseg
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
@@ -301,14 +301,29 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
 
   !here the allocation is possible
   nbseg_dim=0
+  npack_dim=0
+  mproj_max=0
   do iat=1,nl%natoms
      !also the fact of allocating pointers with size zero has to be discussed
      !for the moments the bounds are not needed for projectors
      call allocate_wfd(nl%pspd(iat)%plr%wfd)
      nbseg_dim=max(nbseg_dim,&
           nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f)
+     if (nl%pspd(iat)%mproj>0) then
+        mproj_max=max(mproj_max,nl%pspd(iat)%mproj)
+        npack_dim=max(npack_dim,&
+             nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f)
+        !packing array (for the moment all the projectors contribute) 
+        npack_dim=max(npack_dim,nl%pspd(iat)%plr%wfd%nvctr_c+&
+             7*nl%pspd(iat)%plr%wfd%nvctr_f)
+     end if
+     
   end do
   nl%proj=f_malloc0_ptr(nl%nprojel,id='proj')
+  !for the work arrays assume always the maximum components
+  nl%wpack=f_malloc_ptr(4*npack_dim,id='wpack')
+  nl%scpr=f_malloc_ptr(4*2*mproj_max,id='scpr')
+  nl%cproj=f_malloc_ptr((/4*mproj_max,2/),id='cproj')
 
   !allocate the work arrays for building tolr array of structures
   nbsegs_cf=f_malloc(nbseg_dim,id='nbsegs_cf')
@@ -357,10 +372,10 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
            call transform_keyglob_to_keygloc(lr,nl%pspd(iat)%plr,mseg,nl%pspd(iat)%plr%wfd%keyglob(1,iseg),&
                 nl%pspd(iat)%plr%wfd%keygloc(1,iseg)) 
         end if
+        !in the case of linear scaling this section has to be built again
+        call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
+             keyg_lin,nbsegs_cf,nl%pspd(iat)%tolr)
      endif
-     !in the case of linear scaling this section has to be built again
-     call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
-          keyg_lin,nbsegs_cf,nl%pspd(iat)%tolr)
   enddo
 
   call f_free(logrid)

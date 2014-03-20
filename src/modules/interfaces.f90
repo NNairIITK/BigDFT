@@ -2875,7 +2875,7 @@ module module_interfaces
        end subroutine psi_to_vlocpsi
 
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
-                  rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+                  rxyz, KSwfn, tmb, denspot,nlpsp, ldiis, locreg_increased, lowaccur_converged, locrad)
          use module_base
          use module_types
          implicit none
@@ -2886,6 +2886,7 @@ module module_interfaces
          real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
          type(DFT_wavefunction),intent(inout):: KSwfn, tmb
          type(DFT_local_fields),intent(inout) :: denspot
+         type(DFT_PSP_projectors), intent(inout) :: nlpsp
          type(localizedDIISParameters),intent(inout):: ldiis
          logical, intent(out) :: locreg_increased
          logical, intent(in) :: lowaccur_converged
@@ -3598,13 +3599,14 @@ module module_interfaces
           real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
         end subroutine pulay_correction
 
-        subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
+        subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp, input, at, rxyz, lowaccur_converged)
           use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc
           type(DFT_Wavefunction),intent(inout):: KSwfn, tmb
           type(DFT_local_fields),intent(in):: denspot
+          type(DFT_PSP_projectors), intent(inout) :: nlpsp
           type(input_variables),intent(in):: input
           type(atoms_data),intent(in):: at
           real(8),dimension(3,at%astruct%nat),intent(in):: rxyz

@@ -767,8 +767,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               iatype=at%astruct%iatype(iat)
 
               mproj=nl%pspd(iat)%mproj
+              !no projector on this atom
               if(mproj == 0) cycle
-
+              !projector not overlapping with the locreg
+              if(nl%pspd(iat)%tolr(ilr)%strategy == PSP_APPLY_SKIP) cycle
               !check if the atom projector intersect with the given localisation region
               !this part can be moved at the place of the analysis between psp and lrs
               call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
@@ -850,6 +852,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                  ! Check if atom has projectors, if not cycle
                  mproj=nl%pspd(iat)%mproj
                  if(mproj == 0) cycle
+                 !projector not overlapping with the locreg
+                 if(nl%pspd(iat)%tolr(ilr)%strategy == PSP_APPLY_SKIP) cycle
+
                  !check if the atom intersect with the given localisation region
                  call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
                  if(.not. overlap) stop 'ERROR all atoms should be in global'

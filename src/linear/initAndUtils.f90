@@ -1103,7 +1103,7 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
 end subroutine update_wavefunctions_size
 
 
-subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
+subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, rxyz, lowaccur_converged)
   use module_base
   use module_types
   use module_interfaces, except_this_one => create_large_tmbs
@@ -1113,6 +1113,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz,
   integer,intent(in):: iproc, nproc
   type(DFT_Wavefunction),intent(inout):: KSwfn, tmb
   type(DFT_local_fields),intent(in):: denspot
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(input_variables),intent(in):: input
   type(atoms_data),intent(in):: at
   real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
@@ -1120,14 +1121,16 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz,
 
   ! Local variables
   integer:: iorb, ilr, istat, iall
+  logical, dimension(:), allocatable :: lr_mask
   real(8),dimension(:,:),allocatable:: locrad_tmp
   real(8),dimension(:,:),allocatable:: locregCenter
   character(len=*),parameter:: subname='create_large_tmbs'
 
-  allocate(locregCenter(3,tmb%lzd%nlr), stat=istat)
-  call memocc(istat, locregCenter, 'locregCenter', subname)
-  allocate(locrad_tmp(tmb%lzd%nlr,2), stat=istat)
-  call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+  call f_routine(id=subname)
+
+  locregCenter=f_malloc((/3,tmb%lzd%nlr/),id='locregCenter')
+  locrad_tmp=f_malloc((/tmb%lzd%nlr,2/),id='locrad_tmp')
+  lr_mask=f_malloc0(tmb%lzd%nlr,id='lr_mask')
 
   do iorb=1,tmb%orbs%norb
       ilr=tmb%orbs%inwhichlocreg(iorb)
@@ -1163,17 +1166,47 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz,
            4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
   end if
 
-  iall=-product(shape(locregCenter))*kind(locregCenter)
-  deallocate(locregCenter, stat=istat)
-  call memocc(istat, iall, 'locregCenter', subname)
-  iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-  deallocate(locrad_tmp, stat=istat)
-  call memocc(istat, iall, 'locrad_tmp', subname)
+  call f_free(locregCenter)
+  call f_free(locrad_tmp)
 
+  call update_lrmask_array(tmb%lzd%nlr,tmb%orbs,lr_mask)
+
+  !when the new tmbs are created the projector descriptors can be updated
+  call update_nlpsp(nlpsp,tmb%ham_descr%lzd%nlr,tmb%ham_descr%lzd%llr,KSwfn%Lzd%Glr,lr_mask)
+  if (iproc == 0) call print_nlpsp(nlpsp)
+  call f_free(lr_mask)
+  call f_release_routine()
 end subroutine create_large_tmbs
 
+!>create the masking array to determine which localization regions have to be 
+!! calculated
+subroutine update_lrmask_array(nlr,orbs,lr_mask)
+  use module_types, only: orbitals_data
+  implicit none
+  integer, intent(in) :: nlr
+  type(orbitals_data), intent(in) :: orbs
+  !> array of the masking, prior initialized to .false.
+  logical, dimension(nlr), intent(inout) :: lr_mask
+  !local variables
+  integer :: ikpt,isorb,ieorb,nspinor,ilr,iorb
 
+  !create the masking array according to the locregs which are known by the 
+  !task
+  ikpt=orbs%iokpt(1)
+  loop_kpt: do
+     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
 
+     !activate all the localization regions which are present in the orbitals
+     do iorb=isorb,ieorb
+        ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+        lr_mask(ilr)=.true.
+     end do
+     !last k-point has been treated
+     if (ieorb == orbs%norbp) exit loop_kpt
+     ikpt=ikpt+1
+  end do loop_kpt
+ 
+end subroutine update_lrmask_array
 
 subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confdatarr, &
      convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
@@ -1257,7 +1290,7 @@ end subroutine set_optimization_variables
 
 
 subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
-           rxyz, KSwfn, tmb, denspot, ldiis, locreg_increased, lowaccur_converged, locrad)
+           rxyz, KSwfn, tmb, denspot, nlpsp,ldiis, locreg_increased, lowaccur_converged, locrad)
   use module_base
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
@@ -1272,6 +1305,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
   type(DFT_wavefunction),intent(inout) :: KSwfn, tmb
   type(DFT_local_fields),intent(inout) :: denspot
+  type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(localizedDIISParameters),intent(inout) :: ldiis
   logical, intent(out) :: locreg_increased
   logical, intent(in) :: lowaccur_converged
@@ -1400,10 +1434,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      
      deallocate(tmb%confdatarr, stat=istat)
 
-     call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, input, at, rxyz, lowaccur_converged)
-     !after that the locregs are (re-)created, update the mask arrays
-     !for the pseudopotential
-     
+     call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp, input, at, rxyz, lowaccur_converged)
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)

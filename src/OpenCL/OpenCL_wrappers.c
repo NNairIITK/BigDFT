@@ -135,7 +135,8 @@ void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, c
     //printf("num_platforms: %d\n",num_platforms);
     if(num_platforms == 0) {
       fprintf(stderr,"No OpenCL platform available!\n");
-      exit(1);
+      *context=NULL;
+      return;
     }
     platform_ids = (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
     clGetPlatformIDs(num_platforms, platform_ids, NULL);
@@ -169,7 +170,8 @@ void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, c
       }
       if(!found) {
         fprintf(stderr, "No matching OpenCL platform available : %s!\n", platform);
-        exit(1);
+	*context=NULL;
+        return;
       }
     } else {
       properties[1] = (cl_context_properties) platform_ids[0];
@@ -203,7 +205,9 @@ void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, c
       clGetDeviceIDs((cl_platform_id)properties[1], type, 0, NULL, &num_devices);
       if(num_devices == 0) {
         fprintf(stderr,"No device of type %d!\n", (int)type);
-        exit(1);
+	free(*context);
+	*context=NULL;
+        return;
       }
       device_ids = (cl_device_id *)malloc(num_devices * sizeof(cl_device_id));
       matching_device_ids = (cl_device_id *)malloc(num_devices * sizeof(cl_device_id));
@@ -222,7 +226,9 @@ void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, c
       }
       if(!found) {
         fprintf(stderr, "No matching OpenCL device available : %s!\n", devices);
-        exit(1);
+	free(*context);
+	*context=NULL;
+        return;
       }
       (*context)->context = clCreateContext(properties, found, matching_device_ids, NULL, NULL, &ciErrNum);
       free(matching_device_ids);

@@ -1730,7 +1730,7 @@ subroutine print_nlpsp(nlpsp)
   implicit none
   type(DFT_PSP_projectors), intent(in) :: nlpsp
   !local variables
-  integer :: iat,ilr,sizemask,maxmask,totmask
+  integer :: iat,ilr,sizemask,maxmask,totmask,totpack
 
   call yaml_open_map('NonLocal PSP Projectors Descriptors')
   if (nlpsp%on_the_fly) then
@@ -1744,7 +1744,12 @@ subroutine print_nlpsp(nlpsp)
   !calculate the amount of memory spent in the descriptor for the wavefunction
   maxmask=0
   totmask=0
+  totpack=0
   do iat=1,nlpsp%natoms
+     if (nlpsp%pspd(iat)%mproj>0) then
+        totpack=max(totpack,nlpsp%pspd(iat)%plr%wfd%nvctr_c+&
+             7*nlpsp%pspd(iat)%plr%wfd%nvctr_f)
+     end if
      sizemask=0
      if (associated(nlpsp%pspd(iat)%tolr)) then
         do ilr=1,nlpsp%pspd(iat)%nlr
@@ -1755,6 +1760,11 @@ subroutine print_nlpsp(nlpsp)
      maxmask=max(maxmask,sizemask)
      totmask=totmask+sizemask
   end do
+  totpack=totpack*4
+  if (associated(nlpsp%scpr)) totpack=totpack+size(nlpsp%scpr)
+  if (associated(nlpsp%cproj)) totpack=totpack+size(nlpsp%cproj)
+  if (totpack /=0) &
+       call yaml_map('Size of workspaces',totpack)
   if (maxmask /=0) &
        call yaml_map('Maximum size of masking arrays for a projector',3*maxmask)
   if (totmask /=0) &
