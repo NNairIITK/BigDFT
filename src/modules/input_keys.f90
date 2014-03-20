@@ -171,16 +171,8 @@ contains
   end subroutine abort_excl
 
   subroutine warn_illegal()
-    use yaml_output
-    use dictionaries
     implicit none
     
-    integer :: ierr
-    character(len = max_field_length) :: val
-
-    ! Transform current error into a warning.
-    ierr = f_err_pop(val)
-    call yaml_warning(trim(val))
   end subroutine warn_illegal
 
   subroutine input_keys_init()

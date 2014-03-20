@@ -342,14 +342,20 @@
   end subroutine f_err_clean
 
   !> clean last error, if any and get message.
-  function f_err_pop(add_msg)
+  function f_err_pop(err_id, err_name, add_msg)
     implicit none
+    integer, intent(in), optional :: err_id            !< The code of the error to be checked for
+    character(len=*), intent(in), optional :: err_name !< Name of the error to search
     character(len=*), intent(out), optional :: add_msg
     integer :: f_err_pop
     !local variables
-    integer :: ierr
-    ierr=dict_len(dict_present_error)-1
-    if (ierr >= 0) then
+    include 'get_err-inc.f90'
+
+    if (get_error == -1) then
+       ierr=dict_len(dict_present_error)-1
+       get_error = 3
+    end if
+    if (ierr >= 0 .and. get_error > 0) then
        f_err_pop=dict_present_error//ierr//errid
        if (present(add_msg)) add_msg=dict_present_error//ierr//'Additional Info'
        call pop(dict_present_error, ierr)
