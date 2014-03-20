@@ -719,6 +719,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
+  real(kind=8) :: pnrm
 
   ! Determine size of phi_old and phi
   ndim_old=0
@@ -889,7 +890,21 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
       call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
+      if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+         ! set the initial charge density
+         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+              pnrm,denspot%dpbox%nscatterarr)
+      end if
       call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+      if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+         ! set the initial potential
+         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+              pnrm,denspot%dpbox%nscatterarr)
+      end if
       call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
   end if
 

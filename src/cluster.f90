@@ -588,7 +588,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
      select case (in%lin%scf_mode) 
      case (LINEAR_DIRECT_MINIMIZATION)
-         linear_iscf = 0
+         ! still do a density mixing, maybe  to be modified later
+         if (in%lin%mixHist_lowaccuracy==0) then
+             ! simple mixing
+             linear_iscf = 12
+         else
+             ! Pulay mixing
+             linear_iscf = 17
+         end if
      case (LINEAR_MIXDENS_SIMPLE) 
          if (in%lin%mixHist_lowaccuracy==0) then
              ! simple mixing
@@ -616,7 +623,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      case default
          stop 'ERROR: wrong in%lin%scf_mode'
      end select
-     call denspot_set_history(denspot,linear_iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+     call denspot_set_history(denspot,linear_iscf,in%nspin, &
+          KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
           inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
           locregcenters)
@@ -1540,7 +1548,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 !  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
 
   ! Setup the mixing, if necessary
-  call denspot_set_history(denspot,opt%iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+  call denspot_set_history(denspot,opt%iscf,in%nspin, &
+       KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
 
   ! allocate arrays necessary for DIIS convergence acceleration
   call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
