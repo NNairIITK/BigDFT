@@ -376,25 +376,23 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   real(gp) :: rfree
 
   ! Calculate the symmetries, if needed
-! if (astruct%geocode /= 'F') then
-  if (astruct%sym%symObj < 0) then
-     call symmetry_new(astruct%sym%symObj)
-  end if
-  ! Adjust tolerance
-  if (tol > 0._gp) call symmetry_set_tolerance(astruct%sym%symObj, tol, ierr)
+  if (astruct%sym%symObj < 0) call symmetry_new(astruct%sym%symObj)
   ! New values
   rprimd(:,:) = 0
   rfree = max(1000.0_gp,10.0_gp*maxval(astruct%rxyz))
   select case(astruct%geocode)
   case('F')
+     call symmetry_set_periodicity(astruct%sym%symObj, (/ .false., .false., .false. /), ierr)
      rprimd(1,1) = rfree
      rprimd(2,2) = rfree
      rprimd(3,3) = rfree
   case('W')
+     call symmetry_set_periodicity(astruct%sym%symObj, (/ .false., .false., .true. /), ierr)
      rprimd(1,1) = rfree
      rprimd(2,2) = rfree
      rprimd(3,3) = astruct%cell_dim(3)
   case('S')
+     call symmetry_set_periodicity(astruct%sym%symObj, (/ .true., .false., .true. /), ierr)
      rprimd(1,1) = astruct%cell_dim(1)
      rprimd(2,2) = rfree
      rprimd(3,3) = astruct%cell_dim(3)
@@ -404,6 +402,9 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      rprimd(3,3) = astruct%cell_dim(3)
   end select
   call symmetry_set_lattice(astruct%sym%symObj, rprimd, ierr)
+
+  ! Adjust tolerance
+  if (tol > 0._gp) call symmetry_set_tolerance(astruct%sym%symObj, tol, ierr)
 
   !Set the structure for symmetry
   allocate(xRed(3, astruct%nat+ndebug),stat=i_stat)
@@ -420,17 +421,6 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   deallocate(xRed,stat=i_stat)
   call memocc(i_stat,i_all,'xRed',subname)
 
-  select case(astruct%geocode)
-  case('F')
-     call symmetry_set_periodicity(astruct%sym%symObj, &
-          & (/ .false., .false., .false. /), ierr)
-  case('W')
-     call symmetry_set_periodicity(astruct%sym%symObj, &
-          & (/ .false., .false., .true. /), ierr)
-  case('S')
-     call symmetry_set_periodicity(astruct%sym%symObj, &
-          & (/ .true., .false., .true. /), ierr)
-  end select
   !if (all(in%elecfield(:) /= 0)) then
   !     ! I'm not sure what this subroutine does!
   !   call symmetry_set_field(astruct%sym%symObj, (/ in%elecfield(1) , in%elecfield(2),in%elecfield(3) /), ierr)
@@ -499,6 +489,8 @@ subroutine astruct_set_displacement(astruct, randdis)
      do iat=1,astruct%nat
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
      end do
+  case('F')
+     !Do nothing!
   end select
 END SUBROUTINE astruct_set_displacement
 

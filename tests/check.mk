@@ -92,6 +92,10 @@ failed-check: $(FAILEDCHECKS) report
 report:
 	@if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi
 
+#Binary dependencies
+$(abs_top_builddir)/src/BigDFT2Wannier:
+	cd $(abs_top_builddir)/src && $(MAKE) BigDFT2Wannier WaCo;
+
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
 	@name=`basename $@ .memguess.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \

@@ -89,6 +89,61 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 end subroutine read_input_dict_from_files
 
 
+!> Routine to read YAML input files and create input dictionary.
+subroutine merge_input_file_to_dict(dict, fname, mpi_env)
+  use module_base
+  use module_input_keys
+  use dictionaries
+  use yaml_parse
+  use wrapper_MPI
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: fname
+  type(mpi_environment), intent(in) :: mpi_env
+
+  integer(kind = 8) :: cbuf, cbuf_len
+  integer :: ierr
+  character(len = max_field_length) :: val
+  character, dimension(:), allocatable :: fbuf
+  type(dictionary), pointer :: udict
+  
+  call f_routine(id='merge_input_file_to_dict')
+  if (mpi_env%iproc == 0) then
+     call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
+     if (mpi_env%nproc > 1) &
+          & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
+  else
+     call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
+  end if
+  fbuf=f_malloc_str(1,int(cbuf_len),id='fbuf')
+  fbuf(:) = " "
+
+  if (mpi_env%iproc == 0) then
+     call copyCBuffer(fbuf(1), cbuf, cbuf_len)
+     call freeCBuffer(cbuf)
+     if (mpi_env%nproc > 1) &
+          & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+  else
+     call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+  end if
+
+  call f_err_open_try()
+  call yaml_parse_from_char_array(udict, fbuf)
+  ! Handle with possible partial dictionary.
+  call f_free_str(1,fbuf)
+  call dict_update(dict, udict // 0)
+  call dict_free(udict)
+
+  ierr = 0
+  if (f_err_check()) ierr = f_get_last_error(val)
+  call f_err_close_try()
+  !in the present implementation f_err_check is not cleaned after the close of the try
+  if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
+  call f_release_routine()
+
+end subroutine merge_input_file_to_dict
+
+
 !> Fill the input_variables structure with the information
 !! contained in the dictionary dict
 !! the dictionary should be completes to fill all the information

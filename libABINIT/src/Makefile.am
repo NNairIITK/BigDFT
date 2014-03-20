@@ -21,14 +21,16 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xcast_mpi.F90 \
 	12_hide_mpi/xexch_mpi.F90 \
 	12_hide_mpi/xgather_mpi.F90 \
-        12_hide_mpi/xgatherv_mpi.F90 \
+	12_hide_mpi/xgatherv_mpi.F90 \
 	12_hide_mpi/xmax_mpi.F90 \
 	12_hide_mpi/xmin_mpi.F90 \
 	12_hide_mpi/xrecv_mpi.F90 \
 	12_hide_mpi/xsend_mpi.F90 \
 	12_hide_mpi/xsum_master.F90 \
 	12_hide_mpi/xsum_mpi.F90 \
-        42_libpaw/abi_common_for_bigdft.h
+		42_libpaw/abi_common_for_bigdft.h \
+		42_geometry/symmetry-main.c \
+		42_geometry/symmetry.h
 
 lib_LIBRARIES = libabinit.a
 
@@ -69,7 +71,7 @@ libabinit_a_SOURCES = \
 	18_timing/timab.F90 \
 	18_memory/m_profiling.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
-        28_numeric_noabirule/m_splines.F90 \
+	28_numeric_noabirule/m_splines.F90 \
 	28_numeric_noabirule/sort_dp.F90 \
 	28_numeric_noabirule/sort_int.F90 \
 	28_numeric_noabirule/uniformrandom.F90 \
@@ -146,23 +148,23 @@ libabinit_a_SOURCES = \
 	42_geometry/symspgr.F90 \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
-        42_libpaw/interfaces_42_libpaw.F90   \
-        42_libpaw/m_atompaw.F90              \
-        42_libpaw/m_gaussfit.F90             \
-        42_libpaw/m_paral_atom.F90           \
-        42_libpaw/m_paw_numeric.F90          \
-        42_libpaw/m_pawang.F90               \
-        42_libpaw/m_pawcprj.F90              \
-        42_libpaw/m_pawio.F90                \
-        42_libpaw/m_pawpsp.F90               \
-        42_libpaw/m_pawrad.F90               \
-        42_libpaw/m_pawrhoij.F90             \
-        42_libpaw/m_pawtab.F90               \
-        42_libpaw/m_pawxc.F90                \
-        42_libpaw/m_sphharm.F90              \
-        42_libpaw/m_xml_converters.F90       \
-        42_libpaw/m_xml_pawpseudo.F90        \
-        42_libpaw/m_xml_pawpseudo_types.F90  \
+		42_libpaw/interfaces_42_libpaw.F90   \
+		42_libpaw/m_atompaw.F90              \
+		42_libpaw/m_gaussfit.F90             \
+		42_libpaw/m_paral_atom.F90           \
+		42_libpaw/m_paw_numeric.F90          \
+		42_libpaw/m_pawang.F90               \
+		42_libpaw/m_pawcprj.F90              \
+		42_libpaw/m_pawio.F90                \
+		42_libpaw/m_pawpsp.F90               \
+		42_libpaw/m_pawrad.F90               \
+		42_libpaw/m_pawrhoij.F90             \
+		42_libpaw/m_pawtab.F90               \
+		42_libpaw/m_pawxc.F90                \
+		42_libpaw/m_sphharm.F90              \
+		42_libpaw/m_xml_converters.F90       \
+		42_libpaw/m_xml_pawpseudo.F90        \
+		42_libpaw/m_xml_pawpseudo_types.F90  \
 	42_geometry/interfaces_42_geometry.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
 	56_mixing/aprxdr.F90 \
@@ -183,11 +185,12 @@ libabinit_a_SOURCES = \
 	56_recipspace/symkpt.F90 \
 	56_recipspace/testkgrid.F90 \
 	67_common/ewald.F90 \
-        67_common/ewald2.F90 \
+	67_common/ewald2.F90 \
 	67_common/fconv.F90 \
 	67_common/prtxvf.F90 \
 	72_geomoptim/ab6_moldyn.F90 \
-	72_geomoptim/xfpack.F90
+	72_geomoptim/xfpack.F90 \
+	42_geometry/symmetry.c
 
 CLEANFILES = mpif.h *.@MODULE_EXT@
 

@@ -54,9 +54,9 @@ dev.check: dev.test/toy_model
 dev.test/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
 	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
 			$(AM_LDFLAGS) $(LDFLAGS) -lbigdft-1 $(LIBS)
-dev-N2.out.post-out: dev-N2.out.out toy_model 
-	rm -f input.perf
-	./toy_model > log-model.yaml
+dev-N2.out.post-out: dev-N2.out.out toy_model
+	rm -f input.perf 
+	$(run_serial) ./toy_model > log-model.yaml
 dev.post-clean:
 	rm -f toy_model
 

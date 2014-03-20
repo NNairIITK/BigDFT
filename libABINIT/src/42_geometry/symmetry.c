@@ -1713,10 +1713,12 @@ int
 find_symmetries_( 
                 int *nat,
                 int * typat,
-                double *xat
+                double *xat,
+                SYMMETRIES * gsym
                 )
 {
-        SYMMETRIES    * gsym = calloc( 1, sizeof( SYMMETRIES ) ) ; 
+/*        SYMMETRIES    * gsym = calloc( 1, sizeof( SYMMETRIES ) ) ; */
+        gsym = (SYMMETRIES *)calloc( 1, sizeof( SYMMETRIES ) ) ;
         STATISTICS    * stat = calloc( 1, sizeof( STATISTICS ) ) ;
 
 /* init gsym and stat */
@@ -1734,5 +1736,5 @@ if( gsym->verbose >= 0 )
     report_symmetry_elements_verbose(gsym) ;
 report_symmetry_elements_brief(gsym) ;
 identify_point_group(gsym) ;
-exit( EXIT_SUCCESS ) ;
+/* exit( EXIT_SUCCESS ) ; */
 }

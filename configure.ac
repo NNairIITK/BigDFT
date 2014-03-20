@@ -262,8 +262,12 @@ end
     fi
 
     dnl Test for MPI2.
-    AC_MSG_CHECKING([for MPI 2 capabilities])
-    AC_LINK_IFELSE([[
+    AC_ARG_WITH(mpi2, AS_HELP_STRING([--with-mpi2],
+                [Use MPI2 capabilities like MPI_IN_PLACE.]),
+                ac_with_mpi2=$withval, ac_with_mpi2="auto")
+    if test x"$ac_with_mpi2" == x"yes" -o x"$ac_with_mpi2" == x"auto" ; then
+      AC_MSG_CHECKING([for MPI 2 capabilities])
+      AC_LINK_IFELSE([[
 program main
 implicit none
 
@@ -275,16 +279,13 @@ include "mpif.h"
 call MPI_ALLREDUCE(MPI_IN_PLACE,rho,3,&
               MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 end
-]], withmpi2=yes, withmpi2=no)
-    AC_MSG_RESULT([$withmpi2])
-
-    if test x"$withmpi2" = x"yes" ; then
-      ac_with_mpi2="yes"
-      AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
-    else
-      ac_with_mpi2="no"
+]], ac_with_mpi2="yes", ac_with_mpi2="no")
+      AC_MSG_RESULT([$ac_with_mpi2])
     fi
 
+    if test x"$ac_with_mpi2" = x"yes" ; then
+      AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
+    fi
 
   else
     AC_MSG_WARN([MPI is not working and has been disabled.])
