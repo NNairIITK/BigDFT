@@ -110,7 +110,7 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   !type(dictionary), pointer :: profs
   integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max
-  character(len = max_field_length) :: writing_dir, output_dir, run_name
+  character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
   type(dictionary), pointer :: dict_minimal, var
 
   call f_routine(id='inputs_from_dict')
@@ -265,7 +265,11 @@ subroutine inputs_from_dict(in, atoms, dict)
 !!$  end if
 
   !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-  
+
+  ! Warn for all INPUT_VAR_ILLEGAL errors.
+  do while (f_err_pop(INPUT_VAR_ILLEGAL, add_msg = msg) /= 0)
+     call yaml_warning(trim(msg))
+  end do
   !check if an error has been found and raise an exception to be handled
   if (f_err_check()) then
      call f_err_throw('Error in reading input variables from dictionary',&

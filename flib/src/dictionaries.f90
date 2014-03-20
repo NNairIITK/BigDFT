@@ -521,6 +521,7 @@ contains
        integer, intent(in) :: item
        !local variables
        type(dictionary), pointer :: dict_first !<in case of first occurrence
+       type(dictionary), pointer :: dict_update !<dict to update data%item field
 
        if (associated(dict)) then
 !          print *,dict%data%item,trim(dict%data%key)
@@ -540,6 +541,12 @@ contains
                    !the next should now become me
                    dict => dict%next
                 end if
+                ! Update data%item for all next.
+                dict_update => dict_first%next
+                do while( associated(dict_update) )
+                   dict_update%data%item = dict_update%data%item - 1
+                   dict_update => dict_update%next
+                end do
                 deallocate(dict_first)
              else
                 call dict_free(dict)

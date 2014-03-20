@@ -294,6 +294,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
 
   if (dry_run) then
      call f_free(logrid)
+     call f_release_routine()
      return
   end if
 
