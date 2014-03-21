@@ -30,6 +30,7 @@ Keys to ignore:
  - accel
  - Max No. of dictionaries used
  - Occupation numbers coming from
+ - Number of dictionary folders allocated
 Patterns to ignore:
  - Timestamp
  - memory
@@ -666,7 +667,7 @@ linearcubic_cubic:
 
 linearcubic_linear:
  Epsilon: 1.1e-10
- EH: 1.0e-9
+ EH: 1.1e-9
  Epot: 1.01e-9
  energy: 1.841e-10
  Omega: 5.3e-10

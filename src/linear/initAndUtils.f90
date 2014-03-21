@@ -1658,6 +1658,11 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   ! How much should the cutoff be increased
   cutoff_incr=cutoff_incr+1.d0
 
+  if (iproc==0) then
+      call yaml_map('Need to re-initialize FOE cutoff',.true.)
+      call yaml_map('Total increase of FOE cutoff wrt input values',cutoff_incr,fmt='(f5.1)')
+  end if
+
   ! Re-initialize the foe data
   call init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset=.false., &
        cutoff_incr=cutoff_incr)
@@ -1678,19 +1683,23 @@ subroutine clean_rho(npt, rho)
 
   ! Local variables
   integer :: ncorrection, ipt, ierr
+  real(kind=8) :: charge_correction
 
   call yaml_map('Need to correct charge density',.true.)
 
   ncorrection=0
+  charge_correction=0.d0
   do ipt=1,npt
       if (rho(ipt)<0.d0) then
-          if (rho(ipt)>1.d-8) then
+          if (rho(ipt)>-1.d-10) then
               ! negative, but small, so simply set to zero
+              charge_correction=charge_correction+rho(ipt)
               rho(ipt)=0.d0
               ncorrection=ncorrection+1
           else
               ! negative, but non-negligible, so issue a warning
-              call yaml_warning('considerable negative rho, value:'//trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+              call yaml_warning('considerable negative rho, value: '//trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+              charge_correction=charge_correction+rho(ipt)
               rho(ipt)=0.d0
               ncorrection=ncorrection+1
           end if
@@ -1698,6 +1707,8 @@ subroutine clean_rho(npt, rho)
   end do
 
   call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call yaml_map('number of corrected points',ncorrection)
+  call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (iproc==0) call yaml_map('number of corrected points',ncorrection)
+  if (iproc==0) call yaml_map('total charge correction',abs(charge_correction))
   
 end subroutine clean_rho
