@@ -1063,8 +1063,8 @@ void inline reduction_generic(cl_kernel kernel, bigdft_command_queue command_que
   oclErrorCheck(ciErrNum,"Failed to enqueue reduction kernel!");
 }
 
-cl_program reductionProgram;
-cl_program dgemmProgram;
+//cl_program reductionProgram;
+//cl_program dgemmProgram;
 
 void FC_FUNC_(set_d,SET_D)(bigdft_command_queue *command_queue, cl_uint *n, cl_double *val, cl_mem *x){
   if(*n==0) return;
@@ -1354,55 +1354,55 @@ void FC_FUNC_(dot_d_async,DOT_D_ASYNC)(bigdft_command_queue *command_queue, cl_u
 }
 
 
-void create_reduction_kernels(struct bigdft_kernels * kernels){
+void create_reduction_kernels(bigdft_context * context, struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    kernels->axpy_offset_kernel_d=clCreateKernel(reductionProgram,"axpy_offsetKernel_d",&ciErrNum);
+    kernels->axpy_offset_kernel_d=clCreateKernel((*context)->reductionProgram,"axpy_offsetKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->axpy_kernel_d=clCreateKernel(reductionProgram,"axpyKernel_d",&ciErrNum);
+    kernels->axpy_kernel_d=clCreateKernel((*context)->reductionProgram,"axpyKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->scal_kernel_d=clCreateKernel(reductionProgram,"scalKernel_d",&ciErrNum);
+    kernels->scal_kernel_d=clCreateKernel((*context)->reductionProgram,"scalKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->reduction_kernel_d=clCreateKernel(reductionProgram,"reductionKernel_d",&ciErrNum);
+    kernels->reduction_kernel_d=clCreateKernel((*context)->reductionProgram,"reductionKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->reduction_dot_kernel_d=clCreateKernel(reductionProgram,"reduction_dotKernel_d",&ciErrNum);
+    kernels->reduction_dot_kernel_d=clCreateKernel((*context)->reductionProgram,"reduction_dotKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->copy_kernel_d=clCreateKernel(reductionProgram,"copyKernel_d",&ciErrNum);
+    kernels->copy_kernel_d=clCreateKernel((*context)->reductionProgram,"copyKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->dot_kernel_d=clCreateKernel(reductionProgram,"dotKernel_d",&ciErrNum);
+    kernels->dot_kernel_d=clCreateKernel((*context)->reductionProgram,"dotKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->set_kernel_d=clCreateKernel(reductionProgram,"setKernel_d",&ciErrNum);
+    kernels->set_kernel_d=clCreateKernel((*context)->reductionProgram,"setKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_block_kernel_d=clCreateKernel(dgemmProgram,"gemm_blockKernel_d",&ciErrNum);
+    kernels->gemm_block_kernel_d=clCreateKernel((*context)->dgemmProgram,"gemm_blockKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemmsy_kernel_d=clCreateKernel(dgemmProgram,"gemmsyKernel_d",&ciErrNum);
+    kernels->gemmsy_kernel_d=clCreateKernel((*context)->dgemmProgram,"gemmsyKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_volkov_kernel_d=clCreateKernel(dgemmProgram,"gemm_volkovKernel_d",&ciErrNum);
+    kernels->gemm_volkov_kernel_d=clCreateKernel((*context)->dgemmProgram,"gemm_volkovKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_d=clCreateKernel(dgemmProgram,"gemmKernel_d",&ciErrNum);
+    kernels->gemm_kernel_d=clCreateKernel((*context)->dgemmProgram,"gemmKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_z=clCreateKernel(dgemmProgram,"gemmKernel_z",&ciErrNum);
+    kernels->gemm_kernel_z=clCreateKernel((*context)->dgemmProgram,"gemmKernel_z",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_d_tb=clCreateKernel(dgemmProgram,"gemmKernel_d_tb",&ciErrNum);
+    kernels->gemm_kernel_d_tb=clCreateKernel((*context)->dgemmProgram,"gemmKernel_d_tb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_z_tb=clCreateKernel(dgemmProgram,"gemmKernel_z_tb",&ciErrNum);
+    kernels->gemm_kernel_z_tb=clCreateKernel((*context)->dgemmProgram,"gemmKernel_z_tb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_z_cb=clCreateKernel(dgemmProgram,"gemmKernel_z_cb",&ciErrNum);
+    kernels->gemm_kernel_z_cb=clCreateKernel((*context)->dgemmProgram,"gemmKernel_z_cb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_d_ta=clCreateKernel(dgemmProgram,"gemmKernel_d_ta",&ciErrNum);
+    kernels->gemm_kernel_d_ta=clCreateKernel((*context)->dgemmProgram,"gemmKernel_d_ta",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_z_ta=clCreateKernel(dgemmProgram,"gemmKernel_z_ta",&ciErrNum);
+    kernels->gemm_kernel_z_ta=clCreateKernel((*context)->dgemmProgram,"gemmKernel_z_ta",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_z_ca=clCreateKernel(dgemmProgram,"gemmKernel_z_ca",&ciErrNum);
+    kernels->gemm_kernel_z_ca=clCreateKernel((*context)->dgemmProgram,"gemmKernel_z_ca",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_d_tatb=clCreateKernel(dgemmProgram,"gemmKernel_d_tatb",&ciErrNum);
+    kernels->gemm_kernel_d_tatb=clCreateKernel((*context)->dgemmProgram,"gemmKernel_d_tatb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_z_tatb=clCreateKernel(dgemmProgram,"gemmKernel_z_tatb",&ciErrNum);
+    kernels->gemm_kernel_z_tatb=clCreateKernel((*context)->dgemmProgram,"gemmKernel_z_tatb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_z_catb=clCreateKernel(dgemmProgram,"gemmKernel_z_catb",&ciErrNum);
+    kernels->gemm_kernel_z_catb=clCreateKernel((*context)->dgemmProgram,"gemmKernel_z_catb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_z_tacb=clCreateKernel(dgemmProgram,"gemmKernel_z_tacb",&ciErrNum);
+    kernels->gemm_kernel_z_tacb=clCreateKernel((*context)->dgemmProgram,"gemmKernel_z_tacb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
-    kernels->gemm_kernel_z_cacb=clCreateKernel(dgemmProgram,"gemmKernel_z_cacb",&ciErrNum);
+    kernels->gemm_kernel_z_cacb=clCreateKernel((*context)->dgemmProgram,"gemmKernel_z_cacb",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kernel!");
 }
 
@@ -1411,27 +1411,27 @@ void build_reduction_programs(bigdft_context * context){
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum = CL_SUCCESS;
     char * code = generate_reduction_program(&infos);
-    reductionProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &(code), NULL, &ciErrNum);
+    (*context)->reductionProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &(code), NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(reductionProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram((*context)->reductionProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build reduction program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(reductionProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo((*context)->reductionProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
         fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
     ciErrNum = CL_SUCCESS;
-    dgemmProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &dgemm_program, NULL, &ciErrNum);
+    (*context)->dgemmProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &dgemm_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(dgemmProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram((*context)->dgemmProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build dgemm program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(dgemmProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo((*context)->dgemmProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
         fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
@@ -1488,10 +1488,10 @@ void clean_reduction_kernels(struct bigdft_kernels * kernels){
   ciErrNum = clReleaseKernel(kernels->gemm_kernel_z_cacb);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
 }
-void clean_reduction_programs(){
+void clean_reduction_programs(bigdft_context * context){
   cl_int ciErrNum;
-  ciErrNum = clReleaseProgram(reductionProgram);
+  ciErrNum = clReleaseProgram((*context)->reductionProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
-  ciErrNum = clReleaseProgram(dgemmProgram);
+  ciErrNum = clReleaseProgram((*context)->dgemmProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
 }

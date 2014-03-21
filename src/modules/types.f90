@@ -14,7 +14,7 @@ module module_types
 
   use m_ab7_mixing, only : ab7_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
-       bigdft_mpi,ndebug,memocc,vcopy
+       bigdft_mpi,ndebug,memocc!,vcopy
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
   use dictionaries, only: dictionary
@@ -1232,6 +1232,7 @@ contains
   !> Fills the old_wavefunction structure with corresponding data
   !! Deallocate previous workspaces if already existing
   subroutine old_wavefunction_set(wfn,nat,norbp,Lzd,rxyz,psi)
+    
     implicit none
     integer, intent(in) :: nat,norbp
     type(local_zone_descriptors), intent(in) :: Lzd

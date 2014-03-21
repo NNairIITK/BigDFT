@@ -12,7 +12,7 @@
 #include "OpenCL_wrappers.h"
 #include "Initialize.h"
 
-char * initialize_program="\
+const char * initialize_program="\
 #ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 #elif defined (cl_amd_fp64)\n\
@@ -35,7 +35,7 @@ y[ig] = x[ig] * x[ig];\n\
 };\n\
 ";
 
-cl_program initializeProgram;
+//cl_program initializeProgram;
 
 void inline p_initialize_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
@@ -80,27 +80,27 @@ void inline v_initialize_generic(cl_kernel kernel, cl_command_queue command_queu
   oclErrorCheck(ciErrNum,"Failed to enqueue v_initialize kernel!");
 }
 
-void create_initialize_kernels(struct bigdft_kernels * kernels){
+void create_initialize_kernels(bigdft_context * context, struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    kernels->c_initialize_kernel_d=clCreateKernel(initializeProgram,"c_initializeKernel_d",&ciErrNum);
+    kernels->c_initialize_kernel_d=clCreateKernel((*context)->initializeProgram,"c_initializeKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create c_initializeKernel_d kernel!");
-    kernels->v_initialize_kernel_d=clCreateKernel(initializeProgram,"v_initializeKernel_d",&ciErrNum);
+    kernels->v_initialize_kernel_d=clCreateKernel((*context)->initializeProgram,"v_initializeKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create v_initializeKernel_d kernel!");
-    kernels->p_initialize_kernel_d=clCreateKernel(initializeProgram,"p_initializeKernel_d",&ciErrNum);
+    kernels->p_initialize_kernel_d=clCreateKernel((*context)->initializeProgram,"p_initializeKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create p_initializeKernel_d kernel!");
 }
 
 void build_initialize_programs(bigdft_context * context){
     cl_int ciErrNum = CL_SUCCESS;
 
-    initializeProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &initialize_program, NULL, &ciErrNum);
+    (*context)->initializeProgram = clCreateProgramWithSource((*context)->context,1,(const char**) &initialize_program, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(initializeProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram((*context)->initializeProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error: Failed to build c_initialize program!\n");
         char cBuildLog[10240];
-        clGetProgramBuildInfo(initializeProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo((*context)->initializeProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG,sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr,"%s\n",cBuildLog);
         exit(1);
     }
@@ -115,8 +115,8 @@ void clean_initialize_kernels(struct bigdft_kernels * kernels){
   ciErrNum = clReleaseKernel(kernels->p_initialize_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
 }
-void clean_initialize_programs(){
+void clean_initialize_programs(bigdft_context * context){
   cl_int ciErrNum;
-  ciErrNum = clReleaseProgram(initializeProgram);
+  ciErrNum = clReleaseProgram((*context)->initializeProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
 }
