@@ -1686,13 +1686,13 @@ subroutine clean_rho(iproc, npt, rho)
   integer :: ncorrection, ipt, ierr
   real(kind=8) :: charge_correction
 
-  call yaml_map('Need to correct charge density',.true.)
+  if (iproc==0) call yaml_map('Need to correct charge density',.true.)
 
   ncorrection=0
   charge_correction=0.d0
   do ipt=1,npt
       if (rho(ipt)<0.d0) then
-          if (rho(ipt)>-1.d-10) then
+          if (rho(ipt)>=-1.d-9) then
               ! negative, but small, so simply set to zero
               charge_correction=charge_correction+rho(ipt)
               rho(ipt)=0.d0
@@ -1710,6 +1710,6 @@ subroutine clean_rho(iproc, npt, rho)
   call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   if (iproc==0) call yaml_map('number of corrected points',ncorrection)
-  if (iproc==0) call yaml_map('total charge correction',abs(charge_correction))
+  if (iproc==0) call yaml_map('total charge correction',abs(charge_correction),fmt='(es14.5)')
   
 end subroutine clean_rho

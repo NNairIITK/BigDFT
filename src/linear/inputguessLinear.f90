@@ -472,7 +472,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
-      call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
       call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
       call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   end if
@@ -749,7 +749,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
-      call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
       call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
       call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   end if
