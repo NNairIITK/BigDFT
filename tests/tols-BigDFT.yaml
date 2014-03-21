@@ -666,10 +666,10 @@ linearcubic_cubic:
 
 linearcubic_linear:
  Epsilon: 1.1e-10
- EH: 1.0-e9
+ EH: 1.0e-9
  Epot: 1.01e-9
  energy: 1.841e-10
- Omega: 4.0e-10
+ Omega: 5.3e-10
 
 experimentalfoe_long:
  Atomic Forces (Ha/Bohr): 1.4e-05
@@ -715,7 +715,7 @@ experimentalfoe_short:
  eF: 3.6e-05
  D Tr: 8.0e-07
  D eF: 2.3e-05
- charge diff: 7.9e-07
+ charge diff: 8.0e-07
  Omega: 4.0e-06
  Atomic Forces (Ha/Bohr): 5.8e-07
  Average noise forces: 2.6e-07
@@ -840,7 +840,7 @@ DIIShistory:
  Omega: 1.7e-8
  Total charge: 2.01e-11
  Locreg:
- EH: 1.1e-10
+ EH: 7.7e-9
  Pulay forces (Ha/Bohr): 7.8e-09
 
 sparsity:
@@ -852,6 +852,7 @@ sparsity:
  charge diff: 1.1e-10
  energy: 4.9e-10
  EXC: 1.1e-10
+ Epot: 1.1e-9
 
 PBE_densmixlin:
  Ekin: 1.1e-10
