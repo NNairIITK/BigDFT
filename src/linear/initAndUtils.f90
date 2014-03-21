@@ -1660,7 +1660,9 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   cutoff_incr=cutoff_incr+1.d0
 
   if (iproc==0) then
+      call yaml_newline()
       call yaml_map('Need to re-initialize FOE cutoff',.true.)
+      call yaml_newline()
       call yaml_map('Total increase of FOE cutoff wrt input values',cutoff_incr,fmt='(f5.1)')
   end if
 
@@ -1686,7 +1688,10 @@ subroutine clean_rho(iproc, npt, rho)
   integer :: ncorrection, ipt, ierr
   real(kind=8) :: charge_correction
 
-  if (iproc==0) call yaml_map('Need to correct charge density',.true.)
+  if (iproc==0) then
+      call yaml_newline()
+      call yaml_map('Need to correct charge density',.true.)
+  end if
 
   ncorrection=0
   charge_correction=0.d0
@@ -1709,7 +1714,43 @@ subroutine clean_rho(iproc, npt, rho)
 
   call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (iproc==0) call yaml_map('number of corrected points',ncorrection)
-  if (iproc==0) call yaml_map('total charge correction',abs(charge_correction),fmt='(es14.5)')
+  if (iproc==0) then
+      call yaml_newline()
+      call yaml_map('number of corrected points',ncorrection)
+      call yaml_newline()
+      call yaml_map('total charge correction',abs(charge_correction),fmt='(es14.5)')
+      call yaml_newline()
+  end if
   
 end subroutine clean_rho
+
+
+
+subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+  use module_types
+  use module_interfaces
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(in) :: KSwfn
+  type(atoms_data),intent(in) :: at
+  type(input_variables),intent(in) :: input
+  type(DFT_wavefunction),intent(inout) :: tmb
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  if (iproc==0) then
+      !call yaml_open_sequence()
+      !call yaml_open_map()
+      call yaml_newline()
+      call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+  end if
+  call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+  call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  if (iproc==0) then
+      !call yaml_close_map()
+      !call yaml_close_sequence()
+  end if
+
+end subroutine corrections_for_negative_charge
