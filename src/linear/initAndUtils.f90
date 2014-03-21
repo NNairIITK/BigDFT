@@ -1632,6 +1632,7 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   use module_base
   use module_types
   use module_interfaces, except_this_one => increase_FOE_cutoff
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -1672,13 +1673,13 @@ end subroutine increase_FOE_cutoff
 
 
 !> Set negative entries to zero
-subroutine clean_rho(npt, rho)
+subroutine clean_rho(iproc, npt, rho)
   use module_base
   use yaml_output
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: npt
+  integer,intent(in) :: iproc,npt
   real(kind=8),dimension(npt),intent(inout) :: rho
 
   ! Local variables
