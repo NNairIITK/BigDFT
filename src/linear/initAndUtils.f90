@@ -471,7 +471,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
 end subroutine check_linear_and_create_Lzd
 
-subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
+subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rxyz,nl,Lzd)
   use module_base
   use module_types
   use module_xc
@@ -486,15 +486,17 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   integer, intent(in) :: linearmode
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(local_zone_descriptors), intent(inout) :: Lzd
-!  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+  type(DFT_PSP_projectors), intent(inout) :: nl
+  !  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
   integer :: iat,ityp,nspin_ig,i_all,i_stat,ilr
   real(gp) :: rcov
   real(gp), dimension(:), allocatable :: locrad
-  logical,dimension(:),allocatable :: calculateBounds
+  logical,dimension(:),allocatable :: calculateBounds,lr_mask
 
+  call f_routine(id=subname)
   !default variables
   Lzd%nlr = 1
 
@@ -511,15 +513,14 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   linear  = .true.
   if (linearmode == INPUT_IG_LIG .or. linearmode == INPUT_IG_FULL) then
      Lzd%nlr=atoms%astruct%nat
-     allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
-     call memocc(i_stat,locrad,'locrad',subname)
+     locrad=f_malloc(Lzd%nlr,id='locrad')
      ! locrad read from last line of  psppar
      do iat=1,atoms%astruct%nat
         ityp = atoms%astruct%iatype(iat)
         call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),rcov=rcov)
         locrad(iat) =  rcov * 10.0_gp ! atoms%rloc(ityp,1)
         !locrad(iat)=18.d0
-     end do  
+     end do
      call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,&
           Glr,linear) 
@@ -536,12 +537,12 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   Lzd%linear = .true.
   if (.not. linear)  Lzd%linear = .false.
 
-!  print *,'before Glr => Lzd%Glr'
+  !  print *,'before Glr => Lzd%Glr'
   call nullify_locreg_descriptors(Lzd%Glr)
   call copy_locreg_descriptors(Glr,Lzd%Glr)
 
   if(linearmode /= INPUT_IG_TMO) then
-     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+     allocate(Lzd%Llr(Lzd%nlr))
      do ilr=1,Lzd%nlr
         Lzd%Llr(ilr)=locreg_null()
      end do
@@ -549,9 +550,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
 
      if(.not. Lzd%linear) then
         Lzd%lintyp = 0
-        !copy Glr Lzd%Llr(1)
         call nullify_locreg_descriptors(Lzd%Llr(1))
-!        print *,'before Glr => Lzd%Llr(1)'
         call copy_locreg_descriptors(Glr,Lzd%Llr(1))
      else 
         Lzd%lintyp = 1
@@ -562,64 +561,69 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
         ! calculateBounds indicate whether the arrays with the bounds (for convolutions...) shall also
         ! be allocated and calculated. In principle this is only necessary if the current process has orbitals
         ! in this localization region.
-        allocate(calculateBounds(lzd%nlr),stat=i_stat)
-        call memocc(i_stat,calculateBounds,'calculateBounds',subname)
+        calculateBounds=f_malloc(lzd%nlr,id='calculateBounds')
         calculateBounds=.true.
-!        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,Lzd%Llr,calculateBounds)
+        !        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,Lzd%Llr,calculateBounds)
         call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
              hx,hy,hz,Glr,Lzd%Llr,&
              orbs,calculateBounds)  
-        i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
-        deallocate(calculateBounds,stat=i_stat)
-        call memocc(i_stat,i_all,'calculateBounds',subname)
-        i_all = -product(shape(locrad))*kind(locrad)
-        deallocate(locrad,stat=i_stat)
-        call memocc(i_stat,i_all,'locrad',subname)
+        call f_free(calculateBounds)
+        call f_free(locrad)
 
         ! determine the wavefunction dimension
         call wavefunction_dimension(Lzd,orbs)
+        !in this case update the projector descriptor to be compatible with the locregs
+        lr_mask=f_malloc0(Lzd%nlr,id='lr_mask')
+        call update_lrmask_array(Lzd%nlr,orbs,lr_mask)
+        !when the new tmbs are created the projector descriptors can be updated
+        call update_nlpsp(nl,Lzd%nlr,Lzd%llr,Lzd%Glr,lr_mask)
+        if (iproc == 0) call print_nlpsp(nl)
+       
+        call f_free(lr_mask)
      end if
   else
      Lzd%lintyp = 2
   end if
 
-!DEBUG
-!!if(iproc==0)then
-!!print *,'###################################################'
-!!print *,'##        General information:                   ##'
-!!print *,'###################################################'
-!!print *,'Lzd%nlr,linear, Lpsidimtot, ndimpotisf, Lnprojel:',Lzd%nlr,Lzd%linear,Lzd%ndimpotisf
-!!print *,'###################################################'
-!!print *,'##        Global box information:                ##'
-!!print *,'###################################################'
-!!write(*,'(a24,3i4)')'Global region n1,n2,n3:',Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3
-!!write(*,*)'Global fine grid: nfl',Lzd%Glr%d%nfl1,Lzd%Glr%d%nfl2,Lzd%Glr%d%nfl3
-!!write(*,*)'Global fine grid: nfu',Lzd%Glr%d%nfu1,Lzd%Glr%d%nfu2,Lzd%Glr%d%nfu3
-!!write(*,*)'Global inter. grid: ni',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i
-!!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (1x,y,z):',Lzd%Glr%d%n1*hx,Lzd%Glr%d%n2*hy,Lzd%Glr%d%n3*hz
-!!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*hx*Lzd%Glr%d%n2*hy*Lzd%Glr%d%n3*hz
-!!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
-!!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
-!!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
-!!print *,'###################################################'
-!!print *,'##        Local boxes information:               ##'
-!!print *,'###################################################'
-!!do i_stat =1, Lzd%nlr
-!!   write(*,*)'=====> Region:',i_stat
-!!   write(*,'(a24,3i4)')'Local region n1,n2,n3:',Lzd%Llr(i_stat)%d%n1,Lzd%Llr(i_stat)%d%n2,Lzd%Llr(i_stat)%d%n3
-!!   write(*,*)'Local fine grid: nfl',Lzd%Llr(i_stat)%d%nfl1,Lzd%Llr(i_stat)%d%nfl2,Lzd%Llr(i_stat)%d%nfl3
-!!   write(*,*)'Local fine grid: nfu',Lzd%Llr(i_stat)%d%nfu1,Lzd%Llr(i_stat)%d%nfu2,Lzd%Llr(i_stat)%d%nfu3
-!!   write(*,*)'Local inter. grid: ni',Lzd%Llr(i_stat)%d%n1i,Lzd%Llr(i_stat)%d%n2i,Lzd%Llr(i_stat)%d%n3i
-!!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (1x,y,z):',Lzd%Llr(i_stat)%d%n1*hx,Lzd%Llr(i_stat)%d%n2*hy,&
-!!            Lzd%Llr(i_stat)%d%n3*hz
-!!   write(*,'(a17,f12.2)')'Local volume: ',Lzd%Llr(i_stat)%d%n1*hx*Lzd%Llr(i_stat)%d%n2*hy*Lzd%Llr(i_stat)%d%n3*hz
-!!   print *,'Local wfd statistics:',Lzd%Llr(i_stat)%wfd%nseg_c,Lzd%Llr(i_stat)%wfd%nseg_f,Lzd%Llr(i_stat)%wfd%nvctr_c,&
-!!            Lzd%Llr(i_stat)%wfd%nvctr_f
-!!end do
-!!end if
-!call mpi_finalize(i_stat)
-!stop
-!END DEBUG
+  call f_release_routine()
+
+  !DEBUG
+  !!if(iproc==0)then
+  !!print *,'###################################################'
+  !!print *,'##        General information:                   ##'
+  !!print *,'###################################################'
+  !!print *,'Lzd%nlr,linear, Lpsidimtot, ndimpotisf, Lnprojel:',Lzd%nlr,Lzd%linear,Lzd%ndimpotisf
+  !!print *,'###################################################'
+  !!print *,'##        Global box information:                ##'
+  !!print *,'###################################################'
+  !!write(*,'(a24,3i4)')'Global region n1,n2,n3:',Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3
+  !!write(*,*)'Global fine grid: nfl',Lzd%Glr%d%nfl1,Lzd%Glr%d%nfl2,Lzd%Glr%d%nfl3
+  !!write(*,*)'Global fine grid: nfu',Lzd%Glr%d%nfu1,Lzd%Glr%d%nfu2,Lzd%Glr%d%nfu3
+  !!write(*,*)'Global inter. grid: ni',Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i
+  !!write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (1x,y,z):',Lzd%Glr%d%n1*hx,Lzd%Glr%d%n2*hy,Lzd%Glr%d%n3*hz
+  !!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*hx*Lzd%Glr%d%n2*hy*Lzd%Glr%d%n3*hz
+  !!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
+  !!write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
+  !!print *,'Global wfd statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
+  !!print *,'###################################################'
+  !!print *,'##        Local boxes information:               ##'
+  !!print *,'###################################################'
+  !!do i_stat =1, Lzd%nlr
+  !!   write(*,*)'=====> Region:',i_stat
+  !!   write(*,'(a24,3i4)')'Local region n1,n2,n3:',Lzd%Llr(i_stat)%d%n1,Lzd%Llr(i_stat)%d%n2,Lzd%Llr(i_stat)%d%n3
+  !!   write(*,*)'Local fine grid: nfl',Lzd%Llr(i_stat)%d%nfl1,Lzd%Llr(i_stat)%d%nfl2,Lzd%Llr(i_stat)%d%nfl3
+  !!   write(*,*)'Local fine grid: nfu',Lzd%Llr(i_stat)%d%nfu1,Lzd%Llr(i_stat)%d%nfu2,Lzd%Llr(i_stat)%d%nfu3
+  !!   write(*,*)'Local inter. grid: ni',Lzd%Llr(i_stat)%d%n1i,Lzd%Llr(i_stat)%d%n2i,Lzd%Llr(i_stat)%d%n3i
+  !!   write(*,'(a27,f6.2,f6.2,f6.2)')'Local dimension (1x,y,z):',Lzd%Llr(i_stat)%d%n1*hx,Lzd%Llr(i_stat)%d%n2*hy,&
+  !!            Lzd%Llr(i_stat)%d%n3*hz
+  !!   write(*,'(a17,f12.2)')'Local volume: ',Lzd%Llr(i_stat)%d%n1*hx*Lzd%Llr(i_stat)%d%n2*hy*Lzd%Llr(i_stat)%d%n3*hz
+  !!   print *,'Local wfd statistics:',Lzd%Llr(i_stat)%wfd%nseg_c,Lzd%Llr(i_stat)%wfd%nseg_f,Lzd%Llr(i_stat)%wfd%nvctr_c,&
+  !!            Lzd%Llr(i_stat)%wfd%nvctr_f
+  !!end do
+  !!end if
+  !call mpi_finalize(i_stat)
+  !stop
+  !END DEBUG
 
 end subroutine create_LzdLIG
 

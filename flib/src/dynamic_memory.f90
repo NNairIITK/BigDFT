@@ -898,24 +898,32 @@ contains
   end subroutine f_malloc_finalize
 
   !> Dump all allocations
-  subroutine dump_leaked_memory(dict)
+  subroutine dump_leaked_memory(dict,unit)
     use metadata_interfaces, only: address_toi
      use yaml_output
      implicit none
      type(dictionary), pointer, intent(in) :: dict
+     integer, intent(in), optional :: unit
      !Local variables
      type(dictionary), pointer :: dict_ptr!, dict_tmp
      character(len=256) :: array_id
+     integer :: iunt
+
+     if (present(unit)) then
+        iunt=unit
+     else
+        call yaml_get_default_stream(iunt)
+     end if
      dict_ptr => dict_next(dict)
      do while(associated(dict_ptr))
         if (has_key(dict_ptr,trim(arrayid))) then
            array_id = dict_ptr//arrayid
-           call yaml_open_map(trim(array_id))
-           call yaml_dict_dump(dict_ptr)
-           call yaml_map(metadatadd,trim(dict_key(dict_ptr)))
-           call yaml_close_map()
+           call yaml_open_map(trim(array_id),unit=iunt)
+           call yaml_dict_dump(dict_ptr,unit=iunt)
+           call yaml_map(metadatadd,trim(dict_key(dict_ptr)),unit=iunt)
+           call yaml_close_map(unit=iunt)
         else
-           call yaml_map(trim(dict_key(dict_ptr)),dict_ptr)
+           call yaml_map(trim(dict_key(dict_ptr)),dict_ptr,unit=iunt)
 
 !!$           call yaml_dict_dump(dict_ptr)
 !!$           call yaml_close_map()
@@ -924,27 +932,51 @@ contains
      end do
   end subroutine dump_leaked_memory
 
-  subroutine f_malloc_dump_status()
+  subroutine f_malloc_dump_status(filename)
     use yaml_output
     implicit none
+    character(len=*), intent(in), optional :: filename
+    !local variables
+    integer, parameter :: iunit=97 !<if used switch to default
+    integer :: iunt,iunit_def,istat
 
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_dump_status): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
+    !retrieve current unit
+    call yaml_get_default_stream(iunit_def)
+    iunt=iunit_def
+    !inquire for presence of unit iunit in the case of filename
+    if (present(filename)) then
+       call yaml_set_stream(unit=iunit,filename=filename,position='rewind',setdefault=.false.,&
+            istat=istat)
+       if (istat /= 0) then
+          call yaml_newline()
+          call yaml_warning('Memory allocation status filename '//trim(filename)//&
+               ' not created, dumping in default stream')
+       else
+          iunt=iunit
+       end if
+    end if
 
-    call yaml_newline()
-    call yaml_open_map('Calling sequence of Main program')
-      call yaml_dict_dump(mems(ictrl)%dict_calling_sequence)
-    call yaml_close_map()
+    call yaml_newline(unit=iunt)
+    call yaml_open_map('Calling sequence of Main program',unit=iunt)
+      call yaml_dict_dump(mems(ictrl)%dict_calling_sequence,unit=iunt)
+    call yaml_close_map(unit=iunt)
     if (associated(mems(ictrl)%dict_routine)) then
-       call yaml_open_map('Routine dictionary')
-       call dump_leaked_memory(mems(ictrl)%dict_routine)
-       call yaml_close_map()
+       call yaml_open_map('Routine dictionary',unit=iunt)
+       call dump_leaked_memory(mems(ictrl)%dict_routine,unit=iunt)
+       call yaml_close_map(unit=iunt)
     end if
     call yaml_open_map('Global dictionary (size'//&
-         trim(yaml_toa(dict_size(mems(ictrl)%dict_global)))//')')
-    call dump_leaked_memory(mems(ictrl)%dict_global)
-    call yaml_close_map()
+         trim(yaml_toa(dict_size(mems(ictrl)%dict_global)))//')',unit=iunt)
+    call dump_leaked_memory(mems(ictrl)%dict_global,unit=iunt)
+    call yaml_close_map(unit=iunt)
+
+    !then close the file
+    if (iunt /= iunit_def) then
+       call yaml_close_stream(unit=iunt)
+    end if
 
   end subroutine f_malloc_dump_status
 

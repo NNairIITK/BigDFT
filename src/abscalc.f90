@@ -1768,7 +1768,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   if(potshortcut<=0) then
      call nullify_local_zone_descriptors(Lzde)
-     call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
+     call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,nlpsp,Lzde)
   else
      call nullify_local_zone_descriptors(Lzde)
      Lzde = Lzd
@@ -1882,9 +1882,23 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call memocc(i_stat,i_all,'orbse%eval',subname)
 
 
+  !in the case of multiple nlr restore the nl projectors
+  if (Lzde%nlr > 1) then
+     if (Lzd%nlr /=1) then
+        call f_err_throw('The cubic localization region should have always nlr=1',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+     else
+        call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/.true./))
+        if (iproc == 0) call print_nlpsp(nlpsp)
+     end if
+  end if
+  
+
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)
   if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde, subname)  
+
+
 
   i_all=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=i_stat)
