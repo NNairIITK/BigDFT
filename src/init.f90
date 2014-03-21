@@ -750,6 +750,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
   real(kind=8) :: pnrm
+  logical :: rho_negative
 
   ! Determine size of phi_old and phi
   ndim_old=0
@@ -917,7 +918,14 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+           tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+           denspot%rhov, rho_negative)
+     if (rho_negative) then
+         call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+         call clean_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+     end if
+
       call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
       if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
@@ -1612,7 +1620,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   integer :: iatyp
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
   type(paw_objects)::paw
-  logical :: overlap_calculated, perx,pery,perz
+  logical :: overlap_calculated, perx,pery,perz, rho_negative
   real(gp) :: tx,ty,tz,displ,mindist
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max
@@ -2025,7 +2033,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           tmb%orbs, tmb%psi, tmb%collcom_sr)
 
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+          tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+          denspot%rhov, rho_negative)
+     if (rho_negative) then
+         call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+         call clean_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+     end if
 
      ! CDFT: calculate w(r) and w_ab, define some initial guess for V and initialize other cdft_data stuff
      call timing(iproc,'constraineddft','ON')

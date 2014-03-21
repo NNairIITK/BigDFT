@@ -213,7 +213,8 @@ function megabytes(bytes)
 end function megabytes
 
 
-subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset)
+subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset, &
+           cutoff_incr)
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
@@ -227,15 +228,22 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   type(orbitals_data),intent(in) :: orbs_KS, orbs
   type(foe_data),intent(out) :: foe_obj
   logical, intent(in) :: reset
+  real(kind=8),optional,intent(in) :: cutoff_incr
   
   ! Local variables
   integer :: iorb, iiorb, jjorb, istat, iseg, ilr, jlr
   integer :: iwa, jwa, itype, jtype, ierr, iall
   logical :: seg_started
-  real(kind=8) :: tt, cut
+  real(kind=8) :: tt, cut, incr
   logical,dimension(:,:),allocatable :: kernel_locreg
   character(len=*),parameter :: subname='initMatrixCompression'
 !  integer :: ii, iseg
+
+  if (present(cutoff_incr)) then
+      incr=cutoff_incr
+  else
+      incr=0.d0
+  end if
   
   call timing(iproc,'init_matrCompr','ON')
 
@@ -280,7 +288,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
                 (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
                 (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-           cut = input%lin%kernel_cutoff_FOE(itype)+input%lin%kernel_cutoff_FOE(jtype)
+           cut = input%lin%kernel_cutoff_FOE(itype)+input%lin%kernel_cutoff_FOE(jtype)+2.d0*incr
            tt=sqrt(tt)
            if (tt<=cut) then
               kernel_locreg(iorb,jjorb)=.true.
@@ -1616,3 +1624,80 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   conv_crit_TMB=input%lin%convCrit_lowaccuracy
 
 end subroutine set_variables_for_hybrid
+
+
+
+
+subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => increase_FOE_cutoff
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(atomic_structure),intent(in) :: astruct
+  type(input_variables),intent(in) :: input
+  type(orbitals_data),intent(in) :: orbs_KS, orbs
+  type(foe_data),intent(out) :: foe_obj
+  logical,intent(in) :: init
+  ! Local variables
+  real(kind=8),save :: cutoff_incr
+  character(len=*),parameter :: subname='increase_FOE_cutoff'
+
+  ! Just initialize the save variable
+  if (init) then
+      cutoff_incr=0.d0
+      return
+  end if
+
+  ! Deallocate the pointers
+  call deallocate_foe(foe_obj, subname)
+
+  ! How much should the cutoff be increased
+  cutoff_incr=cutoff_incr+1.d0
+
+  ! Re-initialize the foe data
+  call init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset=.false., &
+       cutoff_incr=cutoff_incr)
+
+end subroutine increase_FOE_cutoff
+
+
+
+!> Set negative entries to zero
+subroutine clean_rho(npt, rho)
+  use module_base
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: npt
+  real(kind=8),dimension(npt),intent(inout) :: rho
+
+  ! Local variables
+  integer :: ncorrection, ipt, ierr
+
+  call yaml_map('Need to correct charge density',.true.)
+
+  ncorrection=0
+  do ipt=1,npt
+      if (rho(ipt)<0.d0) then
+          if (rho(ipt)>1.d-8) then
+              ! negative, but small, so simply set to zero
+              rho(ipt)=0.d0
+              ncorrection=ncorrection+1
+          else
+              ! negative, but non-negligible, so issue a warning
+              call yaml_warning('considerable negative rho, value:'//trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+              rho(ipt)=0.d0
+              ncorrection=ncorrection+1
+          end if
+      end if
+  end do
+
+  call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call yaml_map('number of corrected points',ncorrection)
+  
+end subroutine clean_rho

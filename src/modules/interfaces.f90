@@ -2306,7 +2306,8 @@ module module_interfaces
        type(paw_objects),optional,intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
-       subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset)
+       subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset, &
+                  cutoff_incr)
          use module_base
          use module_atoms, only: atomic_structure
          use module_types
@@ -2318,6 +2319,7 @@ module module_interfaces
          type(orbitals_data),intent(in):: orbs_KS, orbs
          type(foe_data),intent(out):: foe_obj
          logical, intent(in) :: reset
+         real(kind=8),optional,intent(in) :: cutoff_incr
        end subroutine init_foe
 
       subroutine allocate_workarrays_quartic_convolutions(lr, subname, work)
@@ -3500,7 +3502,8 @@ module module_interfaces
           type(comms_linear),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
 
-        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
+        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, rho_negative, &
+                   print_results)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3510,6 +3513,7 @@ module module_interfaces
           type(comms_linear),intent(in) :: collcom_sr
           type(sparse_matrix),intent(in) :: denskern
           real(kind=8),dimension(ndimrho),intent(out) :: rho
+          logical,intent(out) :: rho_negative
           logical,intent(in),optional :: print_results
         end subroutine sumrho_for_TMBs
 
@@ -4187,6 +4191,19 @@ module module_interfaces
           real(wp), dimension(:), pointer, optional :: work
           real(wp), dimension(*), intent(out), optional :: outadd
         end subroutine
+
+        subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(atomic_structure),intent(in) :: astruct
+          type(input_variables),intent(in) :: input
+          type(orbitals_data),intent(in) :: orbs_KS, orbs
+          type(foe_data),intent(out) :: foe_obj
+          logical,intent(in) :: init
+        end subroutine increase_FOE_cutoff
 
   
   end interface
