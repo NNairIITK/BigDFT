@@ -798,7 +798,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       call check_idempotency(iproc, nproc, tmb, idempotency_diff)
       if (iproc==0) call yaml_map('diff from idempotency',idempotency_diff,fmt='(es12.4)')
-      if (idempotency_diff>1.d-3) then
+      if (idempotency_diff>4.d-1) then
           cycle_FOE=.true.
       else
           cycle_FOE=.false.
