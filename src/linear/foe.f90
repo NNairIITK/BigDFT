@@ -800,7 +800,7 @@ subroutine foe(iproc, nproc, tmprtr, &
       ! Check whether this agrees with the number of electrons. If not,
       ! calculate a new kernel with a sharper decay of the error function
       ! (correponds to a lower temperature)
-      if (abs(sumn-tmb%foe_obj%charge)>1.d-6) then
+      if (abs(sumn-tmb%foe_obj%charge)>1.d-5) then
           cycle_FOE=.true.
       else
           cycle_FOE=.false.
