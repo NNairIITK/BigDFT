@@ -46,6 +46,12 @@ module psp_projectors
      real(gp) :: zerovol               !< Proportion of zero components.
      real(wp), dimension(:), pointer :: proj !<storage space of the projectors in wavelet basis
      type(nonlocal_psp_descriptors), dimension(:), pointer :: pspd !<descriptor per projector, of size natom
+     !>workspace for packing the wavefunctions in the case of multiple projectors
+     real(wp), dimension(:), pointer :: wpack 
+     !> scalar product of the projectors and the wavefuntions, term by term (raw data)
+     real(wp), dimension(:), pointer :: scpr
+     !> full data of the scalar products, rank-two as it may contain HGH hamiltonian
+     real(wp), dimension(:,:), pointer :: cproj
   end type DFT_PSP_projectors
 
   contains
@@ -94,6 +100,9 @@ module psp_projectors
       nl%zerovol=100.0_gp
       nullify(nl%proj)
       nullify(nl%pspd)
+      nullify(nl%wpack)
+      nullify(nl%scpr)
+      nullify(nl%cproj)
     end subroutine nullify_DFT_PSP_projectors
 
     !allocators
@@ -135,6 +144,9 @@ module psp_projectors
          nullify(nl%pspd)
       end if
       call f_free_ptr(nl%proj)
+      call f_free_ptr(nl%wpack)
+      call f_free_ptr(nl%scpr)
+      call f_free_ptr(nl%cproj)
     END SUBROUTINE deallocate_DFT_PSP_projectors
 
     subroutine free_DFT_PSP_projectors(nl)
@@ -267,5 +279,501 @@ module psp_projectors
 
     END SUBROUTINE pregion_size
 
+    !> routine to update the PSP descriptors as soon as the localization regions
+    ! are modified
+    subroutine update_nlpsp(nl,nlr,lrs,Glr,lr_mask)
+      implicit none
+      integer, intent(in) :: nlr
+      type(locreg_descriptors), intent(in) :: Glr
+      !>logical array of the localization regions active on site
+      !it is true for all the elements corresponding to localisation 
+      !! regions whose descriptors are calculated
+      logical, dimension(nlr), intent(in) :: lr_mask
+      type(locreg_descriptors), dimension(nlr), intent(in) :: lrs
+      type(DFT_PSP_projectors), intent(inout) :: nl
+      !local variables
+      integer :: nbseg_dim,nkeyg_dim,iat,ilr
+      integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
+      !find allocating dimensions for work arrays
+      nbseg_dim=0
+      do iat=1,nl%natoms
+         nbseg_dim=max(nbseg_dim,&
+              nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f)
+      end do
+      nkeyg_dim=0
+      do ilr=1,nlr
+         nkeyg_dim=max(nkeyg_dim,lrs(ilr)%wfd%nseg_c+lrs(ilr)%wfd%nseg_f)
+      end do
+
+      !allocate the work arrays for building tolr array of structures
+      nbsegs_cf=f_malloc(nbseg_dim,id='nbsegs_cf')
+      keyg_lin=f_malloc(nkeyg_dim,id='keyg_lin')
+      !reconstruct the projectors for any of the atoms
+      do iat=1,nl%natoms
+         !free the pre-existing array of structures
+         if (associated(nl%pspd(iat)%tolr)) then
+            do ilr=1,nl%pspd(iat)%nlr
+               call deallocate_nlpsp_to_wfd(nl%pspd(iat)%tolr(ilr))
+               call nullify_nlpsp_to_wfd(nl%pspd(iat)%tolr(ilr))
+            end do
+            deallocate(nl%pspd(iat)%tolr)
+            nullify(nl%pspd(iat)%tolr)
+         end if
+         if (nl%pspd(iat)%mproj > 0) then 
+            !then fill it again, if the locreg is demanded
+            nl%pspd(iat)%nlr=nlr
+            call set_nlpsp_to_wfd(Glr,nl%pspd(iat)%plr,&
+                 keyg_lin,nbsegs_cf,nl%pspd(iat)%tolr,lrs,lr_mask)
+         end if
+      end do
+
+      call f_free(keyg_lin)
+      call f_free(nbsegs_cf)
+
+    end subroutine update_nlpsp
+
+    !> initialize the information for matching the localisation region
+    !! of each projector to all the localisation regions of the system
+    subroutine set_nlpsp_to_wfd(Glr,plr,keyag_lin_cf,nbsegs_cf,tolr,lrs,lr_mask)
+      implicit none
+      type(locreg_descriptors), intent(in) :: Glr !<global simulation domain
+      type(locreg_descriptors), intent(in) :: plr !<locreg of the projector
+      !>work array: needed to build the mask array
+      integer, dimension(plr%wfd%nseg_c+plr%wfd%nseg_f), intent(inout) :: nbsegs_cf
+      !>work array: needed to put the unstrided keygloc of all locregs
+      !! the dimension has to be maxval(lrs(:)%nseg_c+lrs(:)%nseg_f)
+      integer, dimension(*), intent(inout) :: keyag_lin_cf
+      !>structures which have to be filled to prepare projector applications
+      type(nlpsp_to_wfd), dimension(:), pointer :: tolr 
+      !> mask array which is associated to the localization regions of interest in this processor
+      logical, dimension(:), optional, intent(in) :: lr_mask
+      !> descriptors of all the localization regions of the simulation domain
+      !! susceptible to interact with the projector
+      type(locreg_descriptors), dimension(:), optional, intent(in) :: lrs
+      !local variables
+      logical :: overlap
+      integer :: ilr,nlr
+
+      nlr=1
+      overlap=.true.
+      if (present(lrs)) nlr=size(lrs)
+      if (nlr <=0) return
+      if (present(lrs) .and. present(lr_mask)) then
+         if (f_err_raise(nlr /= size(lr_mask),'The sizes of lr_mask and lrs should coincide',&
+              err_name='BIGDFT_RUNTIME_ERROR')) return
+      end if
+      !allocate the pointer with the good size
+      allocate(tolr(nlr))
+      !then for any of the localization regions check the strategy
+      !for applying the projectors
+      do ilr=1,nlr
+         !this will set to PSP_APPLY_SKIP the projector application
+         call nullify_nlpsp_to_wfd(tolr(ilr))
+         !now control if the projector overlaps with this locreg
+         if (present(lrs)) then
+            overlap=.true.
+            if (present(lr_mask)) overlap=lr_mask(ilr)
+            if (overlap) call check_overlap(lrs(ilr),plr,Glr,overlap)
+            !if there is overlap, activate the strategy for the application
+            if (overlap) then
+               !calculate the size of the mask array
+               call vcopy(lrs(ilr)%wfd%nseg_c+lrs(ilr)%wfd%nseg_f,&
+                    lrs(ilr)%wfd%keyglob(1,1),2,keyag_lin_cf(1),1)
+               call to_zero(plr%wfd%nseg_c+plr%wfd%nseg_f,nbsegs_cf(1))
+               call mask_sizes(lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
+                    tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f)
+               !then allocate and fill it
+               tolr(ilr)%mask=&
+                    f_malloc0_ptr((/3,tolr(ilr)%nmseg_c+tolr(ilr)%nmseg_f/),&
+                    id='mask')
+               !and filled
+               call init_mask(lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
+                    tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f,tolr(ilr)%mask)
+            end if
+         else
+            !calculate the size of the mask array
+            call vcopy(Glr%wfd%nseg_c+Glr%wfd%nseg_f,&
+                 Glr%wfd%keyglob(1,1),2,keyag_lin_cf(1),1)
+            call to_zero(plr%wfd%nseg_c+plr%wfd%nseg_f,nbsegs_cf(1))
+            call mask_sizes(Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
+                 tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f)
+            !then allocate and fill it
+            tolr(ilr)%mask=&
+                 f_malloc0_ptr((/3,tolr(ilr)%nmseg_c+tolr(ilr)%nmseg_f/),&
+                 id='mask')
+            !and filled
+            call init_mask(Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
+                 tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f,tolr(ilr)%mask)
+         end if
+            !then the best strategy can be decided according to total number of 
+            !common points
+            !complete stategy, the packing array is created after first projector
+         if (overlap) tolr(ilr)%strategy=PSP_APPLY_MASK_PACK
+            !masking is used but packing is not created, 
+            !useful when only one projector has to be applied
+            !tolr(ilr)%strategy=PSP_APPLY_MASK
+            !old scheme, even though mask arrays is created it is never used.
+            !most likely this scheme is useful for debugging purposes
+            !tolr(ilr)%strategy=PSP_APPLY_KEYS
+      end do
+
+    end subroutine set_nlpsp_to_wfd
+
+    !>find the size of the mask array for a given couple plr - llr
+    subroutine mask_sizes(wfd_w,wfd_p,keyag_lin_cf,nbsegs_cf,nmseg_c,nmseg_f)
+      
+      implicit none
+      type(wavefunctions_descriptors), intent(in) :: wfd_w,wfd_p
+      !> array of the unstrided keyglob starting points of wfd_w, pre-filled
+      integer, dimension(wfd_w%nseg_c+wfd_w%nseg_f), intent(in) :: keyag_lin_cf
+      !> number of common segments of the wfd_w for each of the segment of wfd_p.
+      !! should be initialized to zero at input
+      integer, dimension(wfd_p%nseg_c+wfd_p%nseg_f), intent(inout) :: nbsegs_cf
+      integer, intent(out) :: nmseg_c,nmseg_f
+
+      call count_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,keyag_lin_cf(1),&
+           wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),nbsegs_cf(1))
+      !  print *,'no of points',sum(nbsegs_cf),wfd_w%nseg_c,wfd_p%nseg_c
+      call integrate_nseg(wfd_p%nseg_c,nbsegs_cf(1),nmseg_c)
+      !  print *,'no of points',nmseg_c
+
+      if (wfd_w%nseg_f >0 .and. wfd_p%nseg_f > 0 ) then
+         call count_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,keyag_lin_cf(wfd_w%nseg_c+1),&
+              wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
+              nbsegs_cf(wfd_p%nseg_c+1))
+         call integrate_nseg(wfd_p%nseg_f,nbsegs_cf(wfd_p%nseg_c+1),nmseg_f)
+      else
+         nmseg_f=0
+      end if
+
+    contains
+
+      !> count the total number of segments and define the integral array of displacements
+      pure subroutine integrate_nseg(mseg,msegs,nseg_tot)
+        implicit none
+        integer, intent(in) :: mseg
+        integer, dimension(mseg), intent(inout) :: msegs
+        integer, intent(out) :: nseg_tot
+        !local variables
+        integer :: iseg,jseg
+
+        nseg_tot=0
+        do iseg=1,mseg
+           jseg=msegs(iseg)
+           msegs(iseg)=nseg_tot
+           nseg_tot=nseg_tot+jseg
+        end do
+      end subroutine integrate_nseg
+
+    end subroutine mask_sizes
+
+    !>fill the mask array which has been previoulsly allocated and cleaned
+    subroutine init_mask(wfd_w,wfd_p,keyag_lin_cf,nbsegs_cf,nmseg_c,nmseg_f,mask)
+      implicit none
+      integer, intent(in) :: nmseg_c,nmseg_f
+      type(wavefunctions_descriptors), intent(in) :: wfd_w,wfd_p
+      !> array of the unstrided keyglob starting points of wfd_w, pre-filled
+      integer, dimension(wfd_w%nseg_c+wfd_w%nseg_f), intent(in) :: keyag_lin_cf
+      !> number of common segments of the wfd_w for each of the segment of wfd_p.
+      !! should be created by mask_sizes routine
+      integer, dimension(wfd_p%nseg_c+wfd_p%nseg_f), intent(in) :: nbsegs_cf
+      !>masking array. On output, it indicates for any of the segments 
+      !which are common between the wavefunction and the projector
+      !the starting positions in the packed arrays of projectors and wavefunction
+      !respectively
+      integer, dimension(3,nmseg_c+nmseg_f), intent(inout) :: mask
+
+      call fill_wblas_segs(wfd_w%nseg_c,wfd_p%nseg_c,nmseg_c,&
+           nbsegs_cf(1),keyag_lin_cf(1),wfd_w%keyglob(1,1),wfd_p%keyglob(1,1),&
+           wfd_w%keyvglob(1),wfd_p%keyvglob(1),mask(1,1))
+      if (nmseg_f > 0) then
+         call fill_wblas_segs(wfd_w%nseg_f,wfd_p%nseg_f,nmseg_f,&
+              nbsegs_cf(wfd_p%nseg_c+1),keyag_lin_cf(wfd_w%nseg_c+1),&
+              wfd_w%keyglob(1,wfd_w%nseg_c+1),wfd_p%keyglob(1,wfd_p%nseg_c+1),&
+              wfd_w%keyvglob(wfd_w%nseg_c+1),wfd_p%keyvglob(wfd_p%nseg_c+1),&
+              mask(1,nmseg_c+1))
+      end if
+
+    end subroutine init_mask
+    
+    !> applies a projector of HGH type, written in a localization region
+    !! onto a wavefunction written in the same formalism
+    !! uses the desctiptors for the application which have been defined previously
+    ! replace the routine nl_HGH_application as it does not need allocating arrays anymore
+    subroutine hgh_psp_application(npspcode,psppar,ncplx_p,n_p,wfd_p,proj,&
+         ncplx_w,n_w,wfd_w,tolr,psi_pack,scpr,pdpsi,hpdpsi,psi,hpsi,eproj)
+      implicit none
+      integer, intent(in) :: npspcode !<HGH pseudopotential code.
+      integer, intent(in) :: ncplx_p !< number of complex components of the projector
+      integer, intent(in) :: n_p !< number of elements of the projector
+      integer, intent(in) :: ncplx_w !< number of complex components of the wavefunction
+      integer, intent(in) :: n_w !< number of complex components of the wavefunction
+      type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
+      type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
+      !> interaction between the wavefuntion and the psp projector
+      type(nlpsp_to_wfd), intent(in) :: tolr
+      real(gp), dimension(0:4,0:6), intent(in) :: psppar !< parameters of HGH PSP
+      !> components of the projectors, real and imaginary parts
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,ncplx_p,n_p), intent(in) :: proj 
+      !> components of wavefunctions, real and imaginary parts
+      real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(in) :: psi 
+      !> components of wavefunctions after application, real and imaginary parts
+      real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,ncplx_w,n_w), intent(inout) :: hpsi 
+      !> workspaces for the packing array
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w*ncplx_w), intent(inout) :: psi_pack
+      !> array of the scalar product between the projectors and the wavefunctions
+      real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(inout) :: scpr
+      !> array of the coefficients of the hgh projectors
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(inout) :: pdpsi
+      !> array of the coefficients of the hgh projectors multiplied by HGH matrix
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(inout) :: hpdpsi
+      real(gp), intent(out) :: eproj !< energy of the projectors
+
+      !put to zero the array
+      call to_zero((wfd_p%nvctr_c+7*wfd_p%nvctr_f)*n_w*ncplx_w,psi_pack(1,1))
+
+      !here also the strategy can be considered
+      call proj_dot_psi(n_p*ncplx_p,wfd_p,proj,n_w*ncplx_w,wfd_w,psi,&
+           tolr%nmseg_c,tolr%nmseg_f,tolr%mask,psi_pack,scpr)
+
+      !first create the coefficients for the application of the matrix
+      !pdpsi = < p_i | psi >
+      call full_coefficients('C',ncplx_p,n_p,'N',ncplx_w,n_w,scpr,'N',pdpsi)
+
+      call apply_hij_coeff(npspcode,psppar,max(ncplx_w,ncplx_p)*n_w,n_p,pdpsi,hpdpsi)
+
+      !then create the coefficients for the evaluation of the projector energy
+      !pdpsi= < psi | p_i> = conj(< p_i | psi >)
+      call full_coefficients('N',ncplx_p,n_p,'C',ncplx_w,n_w,scpr,'C',pdpsi)
+
+      !the energy can be calculated here
+      eproj=dot(max(ncplx_p,ncplx_w)*n_w*n_p,pdpsi(1,1,1),1,hpdpsi(1,1,1),1)
+
+      !then the coefficients have to be transformed for the projectors
+      call reverse_coefficients(ncplx_p,n_p,ncplx_w,n_w,hpdpsi,scpr)
+
+      call scpr_proj_p_hpsi(n_p*ncplx_p,wfd_p,proj,n_w*ncplx_w,wfd_w,&
+           tolr%nmseg_c,tolr%nmseg_f,tolr%mask,psi_pack,scpr,hpsi)
+
+    end subroutine hgh_psp_application
+
+    !> routine for applying the coefficients needed HGH-type PSP to the scalar product
+    !! among wavefunctions and projectors. The coefficients are real therefore 
+    !! there is no need to separate scpr in its real and imaginary part before
+    pure subroutine apply_hij_coeff(npspcode,psppar,n_w,n_p,scpr,hscpr)
+      use module_base, only: gp
+      implicit none
+      integer, intent(in) :: n_p,n_w,npspcode
+      real(gp), dimension(0:4,0:6), intent(in) :: psppar
+      real(gp), dimension(n_w,n_p), intent(in) :: scpr
+      real(gp), dimension(n_w,n_p), intent(out) :: hscpr
+      !local variables
+      integer :: i,j,l,m,iproj,iw
+      real(gp), dimension(3,3,4) :: hij
+      real(gp), dimension(7,3,4) :: cproj,dproj 
+
+      !fill the hij matrix
+      call hgh_hij_matrix(npspcode,psppar,hij)
+
+      reversed_loop: do iw=1,n_w
+         dproj=0.0_gp
+
+         iproj=1
+         !fill the complete coefficients
+         do l=1,4 !diagonal in l
+            do i=1,3
+               if (psppar(l,i) /= 0.0_gp) then
+                  do m=1,2*l-1
+                     cproj(m,i,l)=scpr(iw,iproj)
+                     iproj=iproj+1
+                  end do
+               else
+                  do m=1,2*l-1
+                     cproj(m,i,l)=0.0_gp
+                  end do
+               end if
+            end do
+         end do
+
+         !applies the hij matrix
+         do l=1,4 !diagonal in l
+            do i=1,3
+               do j=1,3
+                  do m=1,2*l-1 !diagonal in m
+                     dproj(m,i,l)=dproj(m,i,l)+&
+                          hij(i,j,l)*cproj(m,j,l)
+                  end do
+               end do
+            end do
+         end do
+
+         !copy back the coefficient
+         iproj=1
+         !fill the complete coefficients
+         do l=1,4 !diagonal in l
+            do i=1,3
+               if (psppar(l,i) /= 0.0_gp) then
+                  do m=1,2*l-1
+                     hscpr(iw,iproj)=dproj(m,i,l)
+                     iproj=iproj+1
+                  end do
+               end if
+            end do
+         end do
+      end do reversed_loop
+
+    end subroutine apply_hij_coeff
+
+    pure subroutine hgh_hij_matrix(npspcode,psppar,hij)
+      use module_base
+      implicit none
+      !Arguments
+      integer, intent(in) :: npspcode
+      real(gp), dimension(0:4,0:6), intent(in) :: psppar
+      real(gp), dimension(3,3,4), intent(out) :: hij
+      !Local variables
+      integer :: l,i,j
+      real(gp), dimension(2,2,3) :: offdiagarr
+
+      !enter the coefficients for the off-diagonal terms (HGH case, npspcode=3)
+      offdiagarr(1,1,1)=-0.5_gp*sqrt(3._gp/5._gp)
+      offdiagarr(2,1,1)=-0.5_gp*sqrt(100._gp/63._gp)
+      offdiagarr(1,2,1)=0.5_gp*sqrt(5._gp/21._gp)
+      offdiagarr(2,2,1)=0.0_gp !never used
+      offdiagarr(1,1,2)=-0.5_gp*sqrt(5._gp/7._gp)  
+      offdiagarr(2,1,2)=-7._gp/3._gp*sqrt(1._gp/11._gp)
+      offdiagarr(1,2,2)=1._gp/6._gp*sqrt(35._gp/11._gp)
+      offdiagarr(2,2,2)=0.0_gp !never used
+      offdiagarr(1,1,3)=-0.5_gp*sqrt(7._gp/9._gp)
+      offdiagarr(2,1,3)=-9._gp*sqrt(1._gp/143._gp)
+      offdiagarr(1,2,3)=0.5_gp*sqrt(63._gp/143._gp)
+      offdiagarr(2,2,3)=0.0_gp !never used
+
+      !  call to_zero(3*3*4,hij(1,1,1))
+      hij=0.0_gp
+
+      do l=1,4
+         !term for all npspcodes
+         loop_diag: do i=1,3
+            hij(i,i,l)=psppar(l,i) !diagonal term
+            if ((npspcode == 3 .and. l/=4 .and. i/=3) .or. &
+                 ((npspcode == 10 .or. npspcode == 12) .and. i/=3)) then !HGH(-K) case, offdiagonal terms
+               loop_offdiag: do j=i+1,3
+                  if (psppar(l,j) == 0.0_gp) exit loop_offdiag
+                  !offdiagonal HGH term
+                  if (npspcode == 3) then !traditional HGH convention
+                     hij(i,j,l)=offdiagarr(i,j-i,l)*psppar(l,j)
+                  else !HGH-K convention
+                     hij(i,j,l)=psppar(l,i+j+1)
+                  end if
+                  hij(j,i,l)=hij(i,j,l) !symmetrization
+               end do loop_offdiag
+            end if
+         end do loop_diag
+      end do
+
+    end subroutine hgh_hij_matrix
+
+    pure subroutine reverse_coefficients(ncplx_p,n_p,ncplx_w,n_w,pdpsi,scpr)
+      implicit none
+      integer, intent(in) :: ncplx_p,ncplx_w,n_p,n_w
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(in) :: pdpsi
+      real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(out) :: scpr
+      !local variables
+      logical :: cplx_p,cplx_w,cplx_pw
+      integer :: iw,ip,icplx
+
+      cplx_p=ncplx_p==2
+      cplx_w=ncplx_w==2
+      cplx_pw=cplx_p .and. cplx_w
+
+      if (cplx_pw) then
+         do ip=1,n_p
+            do iw=1,n_w
+               scpr(1,iw,1,ip)=pdpsi(1,iw,ip)
+               scpr(2,iw,1,ip)=pdpsi(2,iw,ip)
+               scpr(1,iw,2,ip)=-pdpsi(2,iw,ip)
+               scpr(2,iw,2,ip)=pdpsi(1,iw,ip)
+            end do
+         end do
+         !copy the values, only one of the two might be 2
+      else if (cplx_p) then
+         do ip=1,n_p
+            do icplx=1,ncplx_p
+               do iw=1,n_w
+                  scpr(1,iw,icplx,ip)=pdpsi(icplx,iw,ip)
+               end do
+            end do
+         end do
+      else if (cplx_w) then
+         do ip=1,n_p
+            do iw=1,n_w
+               do icplx=1,ncplx_w
+                  scpr(icplx,iw,1,ip)=pdpsi(icplx,iw,ip)
+               end do
+            end do
+         end do
+      else !real case
+         do ip=1,n_p
+            do iw=1,n_w
+               scpr(1,iw,1,ip)=pdpsi(1,iw,ip)
+            end do
+         end do
+
+      end if
+    end subroutine reverse_coefficients
+
+    !> Identify the coefficients
+    pure subroutine full_coefficients(trans_p,ncplx_p,n_p,trans_w,ncplx_w,n_w,scpr,trans,pdpsi)
+      implicit none
+      integer, intent(in) :: ncplx_p,ncplx_w,n_p,n_w
+      character(len=1), intent(in) :: trans_p,trans_w,trans
+      real(wp), dimension(ncplx_w,n_w,ncplx_p,n_p), intent(in) :: scpr
+      real(wp), dimension(max(ncplx_w,ncplx_p),n_w,n_p), intent(out) :: pdpsi
+      !local variables
+      logical :: cplx_p,cplx_w,cplx_pw
+      integer :: iw,ip,ieps_p,ieps_w,ieps
+      real(wp) :: prfr,prfi,pifr,pifi
+
+      cplx_p=ncplx_p==2
+      cplx_w=ncplx_w==2
+      cplx_pw=cplx_p .and. cplx_w
+
+      ieps_p=1
+      if (trans_p=='C' .and. cplx_p) ieps_p=-1
+      ieps_w=1
+      if (trans_w=='C' .and. cplx_w) ieps_w=-1
+      ieps=1
+      if (trans=='C' .and. (cplx_p .or. cplx_w)) ieps=-1
+
+
+      !the coefficients have to be transformed to the complex version
+      if ((.not. cplx_p) .and. (.not.  cplx_w)) then
+         !real case, simply copy the values
+         do ip=1,n_p
+            do iw=1,n_w
+               pdpsi(1,iw,ip)=scpr(1,iw,1,ip)
+            end do
+         end do
+      else
+         !complex case, build real and imaginary part when applicable
+         prfi=0.0_wp
+         pifr=0.0_wp
+         pifi=0.0_wp
+         do ip=1,n_p
+            do iw=1,n_w
+               prfr=scpr(1,iw,1,ip)
+               if (cplx_p) pifr=scpr(1,iw,2,ip)
+               if (cplx_w) prfi=scpr(2,iw,1,ip)
+               if (cplx_pw) pifi=scpr(2,iw,2,ip)   
+               !real part
+               pdpsi(1,iw,ip)=prfr-ieps_p*ieps_w*pifi
+               !imaginary part
+               pdpsi(2,iw,ip)=ieps*ieps_w*prfi+ieps*ieps_p*pifr
+            end do
+         end do
+      end if
+
+    end subroutine full_coefficients
 
   end module psp_projectors
