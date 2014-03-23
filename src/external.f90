@@ -280,6 +280,7 @@ subroutine bigdft_severe_abort()
   !call f_dump_last_error()
   call f_dump_all_errors()
   call yaml_comment('An error has occured, dumping run status in file(s) '//trim(filename))
+  call f_lib_finalize()
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 

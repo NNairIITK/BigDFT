@@ -98,14 +98,33 @@ module time_profiling
     !>for the moment the timing callback is a severe error.
     !! we should decide what to do to override this
     subroutine f_timing_callback()
-      use yaml_output, only: yaml_warning,yaml_map
+      use yaml_output
       use dictionaries, only: f_err_severe
       implicit none
-      call yaml_warning('An error occured in timing module')
+      !local variables
+      integer, parameter :: iunit=96
+      integer :: iunit_def,iunt,istat
+      call yaml_warning('An error occured in timing module!')
+      !retrieve current unit
+      call yaml_get_default_stream(iunit_def)
+      iunt=iunit_def
+      !inquire for presence of unit iunit
+      call yaml_set_stream(unit=iunit,filename='timing-categories.yaml',&
+           position='rewind',setdefault=.false.,istat=istat)
+      if (istat == 0) then
+         call yaml_comment('Dumping active categories in file timing-categories.yaml')
+         iunt=iunit
+      end if
       call yaml_map('Dictionary of category groups',&
-           times(ictrl)%dict_timing_groups)
+           times(ictrl)%dict_timing_groups,unit=iunt)
       call yaml_map('Dictionary of active categories',&
-           times(ictrl)%dict_timing_categories)
+           times(ictrl)%dict_timing_categories,unit=iunt)
+
+      !then close the file
+      if (iunt /= iunit_def) then
+         call yaml_close_stream(unit=iunt)
+      end if
+
       call f_err_severe()
     end subroutine f_timing_callback
 
