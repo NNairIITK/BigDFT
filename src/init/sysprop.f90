@@ -22,6 +22,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use vdwcorrection
   use yaml_output
   use module_atoms, only: set_symmetry_data
+  use communications_base, only: comms_cubic
+  use communications_init, only: orbitals_communicators
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -32,7 +34,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   type(orbitals_data), intent(inout) :: orbs, lorbs
   type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
   type(DFT_PSP_projectors), intent(out) :: nlpsp
-  type(communications_arrays), intent(out) :: comms
+  type(comms_cubic), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(system_fragment), dimension(:), pointer :: ref_frags
@@ -308,7 +310,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !check the communication distribution
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-      call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+      call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')

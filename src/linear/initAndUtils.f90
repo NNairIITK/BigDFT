@@ -213,7 +213,8 @@ function megabytes(bytes)
 end function megabytes
 
 
-subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset)
+subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset, &
+           cutoff_incr)
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
@@ -227,15 +228,22 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   type(orbitals_data),intent(in) :: orbs_KS, orbs
   type(foe_data),intent(out) :: foe_obj
   logical, intent(in) :: reset
+  real(kind=8),optional,intent(in) :: cutoff_incr
   
   ! Local variables
   integer :: iorb, iiorb, jjorb, istat, iseg, ilr, jlr
   integer :: iwa, jwa, itype, jtype, ierr, iall
   logical :: seg_started
-  real(kind=8) :: tt, cut
+  real(kind=8) :: tt, cut, incr
   logical,dimension(:,:),allocatable :: kernel_locreg
   character(len=*),parameter :: subname='initMatrixCompression'
 !  integer :: ii, iseg
+
+  if (present(cutoff_incr)) then
+      incr=cutoff_incr
+  else
+      incr=0.d0
+  end if
   
   call timing(iproc,'init_matrCompr','ON')
 
@@ -280,7 +288,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
                 (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
                 (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-           cut = input%lin%kernel_cutoff_FOE(itype)+input%lin%kernel_cutoff_FOE(jtype)
+           cut = input%lin%kernel_cutoff_FOE(itype)+input%lin%kernel_cutoff_FOE(jtype)+2.d0*incr
            tt=sqrt(tt)
            if (tt<=cut) then
               kernel_locreg(iorb,jjorb)=.true.
@@ -805,6 +813,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
+  use communications_base, only: comms_linear_null
+  use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
+                                 initialize_communication_potential
   implicit none
   
   ! Calling arguments
@@ -822,8 +833,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
   type(local_zone_descriptors),intent(inout) :: lzd
   type(p2pComms),intent(inout) :: lbcomgp
   type(foe_data),intent(inout),optional :: lfoe
-  type(collective_comms),intent(inout) :: lbcollcom
-  type(collective_comms),intent(inout),optional :: lbcollcom_sr
+  type(comms_linear),intent(inout) :: lbcollcom
+  type(comms_linear),intent(inout),optional :: lbcollcom_sr
 
   
   ! Local variables
@@ -832,9 +843,11 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
 
   call timing(iproc,'updatelocreg1','ON') 
   if (present(lfoe)) call nullify_foe(lfoe)
-  call nullify_collective_comms(lbcollcom)
+  !call nullify_comms_linear(lbcollcom)
+  lbcollcom=comms_linear_null()
   if (present(lbcollcom_sr)) then
-      call nullify_collective_comms(lbcollcom_sr)
+      !call nullify_comms_linear(lbcollcom_sr)
+      lbcollcom_sr=comms_linear_null()
   end if
   call nullify_p2pComms(lbcomgp)
   call nullify_local_zone_descriptors(lzd)
@@ -877,9 +890,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter,
 
   if (present(lfoe)) call init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, lfoe, .false.)
 
-  call init_collective_comms(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
+  call init_comms_linear(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
-      call init_collective_comms_sumrho(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
+      call init_comms_linear_sumrho(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
   end if
 
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
@@ -971,6 +984,8 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_new_locregs
+  use communications_base, only: deallocate_comms_linear
+  use communications, only: synchronize_onesided_communication
   implicit none
 
   ! Calling arguments
@@ -988,12 +1003,12 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
   call deallocate_orbitals_data(tmb%orbs, subname)
   call deallocate_foe(tmb%foe_obj, subname)
-  !call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
-  !call deallocate_sparseMatrix(tmb%linmat%ham, subname)
-  !call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
+  !call deallocate_sparse_matrix(tmb%linmat%denskern, subname)
+  !call deallocate_sparse_matrix(tmb%linmat%ham, subname)
+  !call deallocate_sparse_matrix(tmb%linmat%ovrlp, subname)
 
-  call deallocate_collective_comms(tmb%collcom, subname)
-  call deallocate_collective_comms(tmb%collcom_sr, subname)
+  call deallocate_comms_linear(tmb%collcom)
+  call deallocate_comms_linear(tmb%collcom_sr)
 
 end subroutine destroy_new_locregs
 
@@ -1003,6 +1018,8 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_types
   use module_interfaces, except_this_one => destroy_DFT_wavefunction
   use deallocatePointers
+  use communications_base, only: deallocate_comms_linear
+  use sparsematrix_base, only: deallocate_sparse_matrix
   implicit none
   
   ! Calling arguments
@@ -1018,19 +1035,19 @@ subroutine destroy_DFT_wavefunction(wfn)
 
   call deallocate_p2pComms(wfn%comgp, subname)
   call deallocate_foe(wfn%foe_obj, subname)
-  !call deallocate_sparseMatrix(wfn%linmat%denskern, subname)
-  !call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp, subname)
-  call deallocate_sparseMatrix(wfn%linmat%ovrlp, subname)
-  call deallocate_sparseMatrix(wfn%linmat%ham, subname)
-  !call deallocate_sparseMatrix(wfn%linmat%ham_large, subname)
-  !call deallocate_sparseMatrix(wfn%linmat%ovrlp_large, subname)
-  call deallocate_sparseMatrix(wfn%linmat%denskern_large, subname)
-  call deallocate_sparseMatrix(wfn%linmat%inv_ovrlp_large, subname)
+  !call deallocate_sparse_matrix(wfn%linmat%denskern, subname)
+  !call deallocate_sparse_matrix(wfn%linmat%inv_ovrlp, subname)
+  call deallocate_sparse_matrix(wfn%linmat%ovrlp, subname)
+  call deallocate_sparse_matrix(wfn%linmat%ham, subname)
+  !call deallocate_sparse_matrix(wfn%linmat%ham_large, subname)
+  !call deallocate_sparse_matrix(wfn%linmat%ovrlp_large, subname)
+  call deallocate_sparse_matrix(wfn%linmat%denskern_large, subname)
+  call deallocate_sparse_matrix(wfn%linmat%inv_ovrlp_large, subname)
 
   call deallocate_orbitals_data(wfn%orbs, subname)
-  !call deallocate_communications_arrays(wfn%comms, subname)
-  call deallocate_collective_comms(wfn%collcom, subname)
-  call deallocate_collective_comms(wfn%collcom_sr, subname)
+  !call deallocate_comms_cubic(wfn%comms, subname)
+  call deallocate_comms_linear(wfn%collcom)
+  call deallocate_comms_linear(wfn%collcom_sr)
   call deallocate_local_zone_descriptors(wfn%lzd, subname)
 
   if (associated(wfn%coeff)) then
@@ -1042,7 +1059,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   !call deallocate_p2pComms(wfn%ham_descr%comgp, subname)
   !call deallocate_local_zone_descriptors(wfn%ham_descr%lzd, subname)
   !call deallocate_matrixDescriptors_foe(wfn%ham_descr%mad, subname)
-  !call deallocate_collective_comms(wfn%ham_descr%collcom, subname)
+  !call deallocate_comms_linear(wfn%ham_descr%collcom, subname)
 
 end subroutine destroy_DFT_wavefunction
 
@@ -1299,6 +1316,10 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
   use yaml_output
+  use communications_base, only: deallocate_comms_linear
+  use communications, only: synchronize_onesided_communication
+  use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_init, only: init_sparse_matrix, init_sparsity_from_distance, check_kernel_cutoff
   implicit none
   
   ! Calling argument
@@ -1347,8 +1368,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
      call deallocate_p2pComms(tmb%comgp, subname)
 
-     call deallocate_collective_comms(tmb%collcom, subname)
-     call deallocate_collective_comms(tmb%collcom_sr, subname)
+     call deallocate_comms_linear(tmb%collcom)
+     call deallocate_comms_linear(tmb%collcom_sr)
 
      call nullify_local_zone_descriptors(lzd_tmp)
      call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
@@ -1359,14 +1380,14 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_foe(tmb%foe_obj, subname)
 
-     !call deallocate_sparseMatrix(tmb%linmat%denskern, subname)
-     call deallocate_sparseMatrix(tmb%linmat%denskern_large, subname)
-     !call deallocate_sparseMatrix(tmb%linmat%ham_large, subname)
-     !call deallocate_sparseMatrix(tmb%linmat%ovrlp_large, subname)
-     call deallocate_sparseMatrix(tmb%linmat%inv_ovrlp_large, subname)
-     !call deallocate_sparseMatrix(tmb%linmat%inv_ovrlp, subname)
-     call deallocate_sparseMatrix(tmb%linmat%ovrlp, subname)
-     call deallocate_sparseMatrix(tmb%linmat%ham, subname)
+     !call deallocate_sparse_matrix(tmb%linmat%denskern, subname)
+     call deallocate_sparse_matrix(tmb%linmat%denskern_large, subname)
+     !call deallocate_sparse_matrix(tmb%linmat%ham_large, subname)
+     !call deallocate_sparse_matrix(tmb%linmat%ovrlp_large, subname)
+     call deallocate_sparse_matrix(tmb%linmat%inv_ovrlp_large, subname)
+     !call deallocate_sparse_matrix(tmb%linmat%inv_ovrlp, subname)
+     call deallocate_sparse_matrix(tmb%linmat%ovrlp, subname)
+     call deallocate_sparse_matrix(tmb%linmat%ham, subname)
 
      allocate(locregCenter(3,lzd_tmp%nlr), stat=istat)
      call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -1423,7 +1444,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
      call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
-     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
+     call deallocate_comms_linear(tmb%ham_descr%collcom)
 
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
      if(tmb%ham_descr%can_use_transposed) then
@@ -1444,23 +1465,24 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
 
      ! Update sparse matrices
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%ham)
+     call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, input, tmb%linmat%ovrlp)
+     call init_sparse_matrix(iproc, nproc, tmb%lzd, tmb%orbs, input, tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
-     !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
-     !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
+     !call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
+     !call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
 
      call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, input, tmb%linmat%denskern_large)
      !allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
      !call memocc(istat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
-     !call nullify_sparsematrix(tmb%linmat%ovrlp_large)
-     !call nullify_sparsematrix(tmb%linmat%ham_large)
-     call nullify_sparsematrix(tmb%linmat%inv_ovrlp_large)
+     !call nullify_sparse_matrix(tmb%linmat%ovrlp_large)
+     !call nullify_sparse_matrix(tmb%linmat%ham_large)
+     !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
+     tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      !call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ovrlp_large, iproc, subname)
      !call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ham_large, iproc, subname)
      call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)
@@ -1477,18 +1499,22 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
-     !call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
+     !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp)
      !call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
 
-     allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
-     call memocc(istat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
-     allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
-     call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
-     allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
-     call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
-     !allocate(tmb%linmat%inv_ovrlp%matrix_compr(tmb%linmat%inv_ovrlp%nvctr), stat=istat)
-     !call memocc(istat, tmb%linmat%inv_ovrlp%matrix_compr, 'tmb%linmat%inv_ovrlp%matrix_compr', subname)
+     !!allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
+     !!call memocc(istat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
+     !!allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
+     !!call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
+     !!allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
+     !!call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
+     tmb%linmat%denskern_large%matrix_compr=f_malloc_ptr(tmb%linmat%denskern_large%nvctr,&
+         id='tmb%linmat%denskern_large%matrix_compr')
+     tmb%linmat%ham%matrix_compr=f_malloc_ptr(tmb%linmat%ham%nvctr,&
+         id='tmb%linmat%ham%matrix_compr')
+     tmb%linmat%ovrlp%matrix_compr=f_malloc_ptr(tmb%linmat%ovrlp%nvctr,&
+         id='tmb%linmat%ovrlp%matrix_compr')
 
   else ! no change in locrad, just confining potential that needs updating
 
@@ -1602,3 +1628,133 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   conv_crit_TMB=input%lin%convCrit_lowaccuracy
 
 end subroutine set_variables_for_hybrid
+
+
+
+
+subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => increase_FOE_cutoff
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(atomic_structure),intent(in) :: astruct
+  type(input_variables),intent(in) :: input
+  type(orbitals_data),intent(in) :: orbs_KS, orbs
+  type(foe_data),intent(out) :: foe_obj
+  logical,intent(in) :: init
+  ! Local variables
+  real(kind=8),save :: cutoff_incr
+  character(len=*),parameter :: subname='increase_FOE_cutoff'
+
+  ! Just initialize the save variable
+  if (init) then
+      cutoff_incr=0.d0
+      return
+  end if
+
+  ! Deallocate the pointers
+  call deallocate_foe(foe_obj, subname)
+
+  ! How much should the cutoff be increased
+  cutoff_incr=cutoff_incr+1.d0
+
+  if (iproc==0) then
+      call yaml_newline()
+      call yaml_map('Need to re-initialize FOE cutoff',.true.)
+      call yaml_newline()
+      call yaml_map('Total increase of FOE cutoff wrt input values',cutoff_incr,fmt='(f5.1)')
+  end if
+
+  ! Re-initialize the foe data
+  call init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset=.false., &
+       cutoff_incr=cutoff_incr)
+
+end subroutine increase_FOE_cutoff
+
+
+
+!> Set negative entries to zero
+subroutine clean_rho(iproc, npt, rho)
+  use module_base
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc,npt
+  real(kind=8),dimension(npt),intent(inout) :: rho
+
+  ! Local variables
+  integer :: ncorrection, ipt, ierr
+  real(kind=8) :: charge_correction
+
+  if (iproc==0) then
+      call yaml_newline()
+      call yaml_map('Need to correct charge density',.true.)
+  end if
+
+  ncorrection=0
+  charge_correction=0.d0
+  do ipt=1,npt
+      if (rho(ipt)<0.d0) then
+          if (rho(ipt)>=-1.d-9) then
+              ! negative, but small, so simply set to zero
+              charge_correction=charge_correction+rho(ipt)
+              rho(ipt)=0.d0
+              ncorrection=ncorrection+1
+          else
+              ! negative, but non-negligible, so issue a warning
+              call yaml_warning('considerable negative rho, value: '//trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+              charge_correction=charge_correction+rho(ipt)
+              rho(ipt)=0.d0
+              ncorrection=ncorrection+1
+          end if
+      end if
+  end do
+
+  call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (iproc==0) then
+      call yaml_newline()
+      call yaml_map('number of corrected points',ncorrection)
+      call yaml_newline()
+      call yaml_map('total charge correction',abs(charge_correction),fmt='(es14.5)')
+      call yaml_newline()
+  end if
+  
+end subroutine clean_rho
+
+
+
+subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+  use module_types
+  use module_interfaces
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(in) :: KSwfn
+  type(atoms_data),intent(in) :: at
+  type(input_variables),intent(in) :: input
+  type(DFT_wavefunction),intent(inout) :: tmb
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  if (iproc==0) then
+      !call yaml_open_sequence()
+      !call yaml_open_map()
+      call yaml_newline()
+      call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+  end if
+  call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+  call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  if (iproc==0) then
+      !call yaml_close_map()
+      !call yaml_close_sequence()
+  end if
+
+end subroutine corrections_for_negative_charge

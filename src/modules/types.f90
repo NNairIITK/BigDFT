@@ -21,6 +21,8 @@ module module_types
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
+  use communications_base, only: comms_linear, comms_cubic
+  use sparsematrix_base, only: sparse_matrix
 
   implicit none
 
@@ -369,6 +371,9 @@ module module_types
 
      !> linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
      integer :: method_updatekernel
+
+     !> linear scaling: quick return in purification
+     logical :: purification_quickreturn
   end type input_variables
 
   !> Contains all energy terms
@@ -467,13 +472,6 @@ module module_types
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type orbitals_data
 
-  !> Contains the information needed for communicating the wavefunctions
-  !! between processors for the transposition
-  type, public :: communications_arrays
-     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
-     integer, dimension(:,:), pointer :: nvctr_par
-  end type communications_arrays
-
 
   !> Contains the pointers to be handled to control GPU information
   !! Given that they are pointers on GPU address, they are C pointers
@@ -570,50 +568,33 @@ module module_types
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
-!!$  type, public :: sparseMatrix_metadata
+!!$  type, public :: sparse_matrix_metadata
 !!$     integer :: nvctr, nseg, full_dim1, full_dim2
 !!$     integer,dimension(:),pointer :: noverlaps
 !!$     integer,dimension(:,:),pointer :: overlaps
 !!$     integer,dimension(:),pointer :: keyv, nsegline, istsegline
 !!$     integer,dimension(:,:),pointer :: keyg
 !!$     integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-!!$  end type sparseMatrix_metadata
+!!$  end type sparse_matrix_metadata
 
-  type,public :: sparseMatrix
-      integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
-      integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
-      integer,dimension(:,:),pointer :: keyg
-      !type(sparseMatrix_metadata), pointer :: pattern
-      real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
-      real(kind=8),dimension(:,:),pointer :: matrix,matrixp
-      !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
-      logical :: store_index, can_use_dense
-      !!contains
-      !!  procedure,pass :: matrixindex_in_compressed
-  end type sparseMatrix
+  !!type,public :: sparse_matrix
+  !!    integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
+  !!    integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
+  !!    integer,dimension(:,:),pointer :: keyg
+  !!    !type(sparse_matrix_metadata), pointer :: pattern
+  !!    real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
+  !!    real(kind=8),dimension(:,:),pointer :: matrix,matrixp
+  !!    !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
+  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
+  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
+  !!    logical :: store_index, can_use_dense
+  !!    !!contains
+  !!    !!  procedure,pass :: matrixindex_in_compressed
+  !!end type sparse_matrix
 
   type,public :: linear_matrices !may not keep
-      type(sparseMatrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
+      type(sparse_matrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
   end type linear_matrices
-
-  type:: collective_comms
-    integer :: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
-    integer,dimension(:),pointer :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
-    integer,dimension(:),pointer :: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
-    integer,dimension(:),pointer :: norb_per_gridpoint_c, indexrecvorbital_c
-    integer,dimension(:),pointer :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
-    integer,dimension(:),pointer :: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
-    integer,dimension(:),pointer :: norb_per_gridpoint_f, indexrecvorbital_f
-    integer,dimension(:),pointer :: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
-    real(kind=8),dimension(:),pointer :: psit_c, psit_f
-    integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
-    integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
-    integer :: ncomms_repartitionrho, window
-    integer,dimension(:,:),pointer :: commarr_repartitionrho
-  end type collective_comms
-
 
   type,public:: workarrays_quartic_convolutions
     real(wp),dimension(:,:,:),pointer :: xx_c, xy_c, xz_c
@@ -732,7 +713,7 @@ module module_types
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
-     type(collective_comms) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom ! describes collective communication
      type(p2pComms) :: comgp           !<describing p2p communications for distributing the potential
      real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
      logical :: can_use_transposed
@@ -753,15 +734,15 @@ module module_types
      !data properties
      logical :: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
-     type(communications_arrays) :: comms !< communication objects for the cubic approach
+     type(comms_cubic) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      type(p2pComms) :: comgp !<describing p2p communications for distributing the potential
-     type(collective_comms) :: collcom ! describes collective communication
-     type(collective_comms) :: collcom_sr ! describes collective communication for the calculation of the charge density
+     type(comms_linear) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
      type(foe_data) :: foe_obj        !<describes the structure of the matrices for the linear method foe
      type(linear_matrices) :: linmat
@@ -1301,12 +1282,12 @@ contains
   end subroutine old_wavefunction_free
    
 
-!> De-Allocate communications_arrays
+!> De-Allocate comms_cubic
   subroutine deallocate_comms(comms,subname)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(communications_arrays), intent(inout) :: comms
+    type(comms_cubic), intent(inout) :: comms
     !local variables
     integer :: i_all,i_stat
 
@@ -2322,7 +2303,7 @@ end subroutine find_category
 !!  implicit none
 !!
 !!  ! Calling arguments
-!!  class(sparseMatrix),intent(in) :: this
+!!  class(sparse_matrix),intent(in) :: this
 !!  integer,intent(in) :: iorb, jorb
 !!
 !!  ! Local variables
@@ -2345,7 +2326,7 @@ end subroutine find_category
 !!    
 !!      ! Calling arguments
 !!      integer,intent(in) :: irow, jcol, norb
-!!      type(sparseMatrix),intent(in) :: sparsemat
+!!      type(sparse_matrix),intent(in) :: sparsemat
 !!    
 !!      ! Local variables
 !!      integer :: ii, iseg
@@ -2739,6 +2720,9 @@ end subroutine find_category
        case (METHOD_UPDATEKERNEL)
            ! linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
            in%method_updatekernel = val
+       case (PURIFICATION_QUICKRETURN)
+           ! linear scaling: quick return in purification
+           in%purification_quickreturn = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

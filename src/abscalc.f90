@@ -277,6 +277,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use lanczos_interface, only: xabs_lanczos,xabs_cg,xabs_chebychev
    use esatto, only: binary_search
    use module_atoms, only: set_symmetry_data,atoms_data
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -314,7 +316,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(kind=8) :: tel,psoffset
    !real(gp) :: edisp ! Dispersion energy
    type(DFT_PSP_projectors) :: nlpsp
-   type(communications_arrays) :: comms
+   type(comms_cubic) :: comms
    type(gaussian_basis) :: Gvirt
    type(rho_descriptors)  :: rhodsc
    type(energy_terms) :: energs
@@ -1689,6 +1691,8 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use module_interfaces, except_this_one => extract_potential_for_spectra
    use module_types
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
@@ -1700,7 +1704,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(orbitals_data), intent(inout) :: orbs
    type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
-   type(communications_arrays), intent(in) :: comms
+   type(comms_cubic), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
    type(input_variables):: input
    type(symmetry_data), intent(in) :: symObj
@@ -1720,7 +1724,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   integer :: i_stat,i_all,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu
   type(orbitals_data) :: orbse
-  type(communications_arrays) :: commse
+  type(comms_cubic) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   !real(wp), dimension(:,:,:), allocatable :: mom_vec

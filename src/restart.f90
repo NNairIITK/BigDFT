@@ -929,6 +929,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
+  use sparsematrix, only: uncompress_matrix
   implicit none
   integer, intent(in) :: iproc,nproc,iformat
   character(len=*), intent(in) :: filename 
@@ -946,10 +947,12 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
+     !!allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
+     tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr/),&
+         id='tmb%linmat%ham%matrix')
 
-     call uncompressMatrix(iproc,tmb%linmat%ham)
+     call uncompress_matrix(iproc,tmb%linmat%ham)
 
      do iorb=1,tmb%linmat%ham%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
@@ -963,9 +966,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         end do
      end do
 
-     i_all = -product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
-     deallocate(tmb%linmat%ham%matrix,stat=i_stat)
-     call memocc(i_stat,i_all,'tmb%linmat%ham%matrix',subname)
+     !!i_all = -product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
+     !!deallocate(tmb%linmat%ham%matrix,stat=i_stat)
+     !!call memocc(i_stat,i_all,'tmb%linmat%ham%matrix',subname)
+     call f_free_ptr(tmb%linmat%ham%matrix)
 
      close(99)
 
@@ -975,10 +979,12 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+     !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+     tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr/),&
+         id='tmb%linmat%ovrlp%matrix')
 
-     call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+     call uncompress_matrix(iproc,tmb%linmat%ovrlp)
 
      do iorb=1,tmb%linmat%ovrlp%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
@@ -992,9 +998,11 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         end do
      end do
 
-     i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-     deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-     call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
+     !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+     !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
+     !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
+     call f_free_ptr(tmb%linmat%ovrlp%matrix)
+
 
      close(99)
 
@@ -1004,10 +1012,13 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      end if
 
-     allocate(tmb%linmat%denskern_large%matrix(tmb%linmat%denskern_large%nfvctr,tmb%linmat%denskern_large%nfvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
+     !!allocate(tmb%linmat%denskern_large%matrix(tmb%linmat%denskern_large%nfvctr,tmb%linmat%denskern_large%nfvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
+     tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%linmat%denskern_large%nfvctr,tmb%linmat%denskern_large%nfvctr/),&
+         id='tmb%linmat%denskern_large%matrix')
 
-     call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+
+     call uncompress_matrix(iproc,tmb%linmat%denskern_large)
 
      do iorb=1,tmb%linmat%denskern_large%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
@@ -1021,9 +1032,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         end do
      end do
 
-     i_all = -product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
-     deallocate(tmb%linmat%denskern_large%matrix,stat=i_stat)
-     call memocc(i_stat,i_all,'tmb%linmat%denskern_large%matrix',subname)
+     !!i_all = -product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
+     !!deallocate(tmb%linmat%denskern_large%matrix,stat=i_stat)
+     !!call memocc(i_stat,i_all,'tmb%linmat%denskern_large%matrix',subname)
+     call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
      close(99)
 
@@ -1031,8 +1043,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 
   ! calculate 'onsite' overlap matrix as well - needs double checking
 
-  allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
-  call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+  !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
+  !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr/),&
+      id='tmb%linmat%ovrlp%matrix')
 
   call tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   !call tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
@@ -1060,9 +1074,10 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 
   close(99)
 
-  i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-  deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-  call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
+  !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+  !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
+  !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
+  call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
 end subroutine write_linear_matrices
 
@@ -1073,6 +1088,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
+  use communications_base, only: comms_linear_null, deallocate_comms_linear
+  use communications_init, only: init_comms_linear
+  use communications, only: transpose_localized
   implicit none
 
   ! Calling arguments
@@ -1091,7 +1109,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
   real(wp), dimension(:), pointer :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
   integer, dimension(0:6) :: reformat_reason
-  type(collective_comms) :: collcom_tmp
+  type(comms_linear) :: collcom_tmp
   type(local_zone_descriptors) :: lzd_tmp
   real(gp) :: tol
   character(len=*),parameter:: subname='tmb_overlap_onsite'
@@ -1223,8 +1241,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
      call copy_locreg_descriptors(tmb%lzd%llr(ilr_tmp), lzd_tmp%llr(i1))
   end do
 
-  call nullify_collective_comms(collcom_tmp)
-  call init_collective_comms(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
+  !call nullify_comms_linear(collcom_tmp)
+  collcom_tmp=comms_linear_null()
+  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
 
   allocate(psit_c_tmp(sum(collcom_tmp%nrecvcounts_c)), stat=i_stat)
   call memocc(i_stat, psit_c_tmp, 'psit_c_tmp', subname)
@@ -1246,7 +1265,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
        psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
 
-  call deallocate_collective_comms(collcom_tmp, subname)
+  call deallocate_comms_linear(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
   i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)
@@ -1270,6 +1289,9 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
+  use communications_base, only: comms_linear_null, deallocate_comms_linear
+  use communications_init, only: init_comms_linear
+  use communications, only: transpose_localized
   implicit none
 
   ! Calling arguments
@@ -1288,7 +1310,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
   real(wp), dimension(:), pointer :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
   integer, dimension(0:6) :: reformat_reason
-  type(collective_comms) :: collcom_tmp
+  type(comms_linear) :: collcom_tmp
   type(local_zone_descriptors) :: lzd_tmp
   real(gp) :: tol
   character(len=*),parameter:: subname='tmb_overlap_onsite'
@@ -1496,8 +1518,9 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
      call copy_locreg_descriptors(tmb%lzd%llr(jlr), lzd_tmp%llr(i1))
   end do
 
-  call nullify_collective_comms(collcom_tmp)
-  call init_collective_comms(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
+  !call nullify_comms_linear(collcom_tmp)
+  collcom_tmp=comms_linear_null()
+  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
 
   allocate(psit_c_tmp(sum(collcom_tmp%nrecvcounts_c)), stat=i_stat)
   call memocc(i_stat, psit_c_tmp, 'psit_c_tmp', subname)
@@ -1519,7 +1542,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
        psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
 
-  call deallocate_collective_comms(collcom_tmp, subname)
+  call deallocate_comms_linear(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
   i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)

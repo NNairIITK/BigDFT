@@ -30,6 +30,7 @@ Keys to ignore:
  - accel
  - Max No. of dictionaries used
  - Occupation numbers coming from
+ - Number of dictionary folders allocated
 Patterns to ignore:
  - Timestamp
  - memory
@@ -359,6 +360,7 @@ restartdisk_charge:
 
 restartdisk_read:
  EH: 1.0e-10
+ Epot: 1.1e-10
 
 H2-freq:
  (F) Frequencies (Hartree): 5.e-10
@@ -658,17 +660,17 @@ rotatesmall_read2:
 
 linearcubic_cubic:
  Epsilon: 1.1e-10
- Ekin: 1.0e-9
+ Ekin: 1.1e-9
  EH: 1.01e-9
  energy: 1.83e-10
  EKS: 2.44e-10
 
 linearcubic_linear:
  Epsilon: 1.1e-10
- EH: 1.0-e9
+ EH: 1.1e-9
  Epot: 1.01e-9
  energy: 1.841e-10
- Omega: 1.86e-10
+ Omega: 5.3e-10
 
 experimentalfoe_long:
  Atomic Forces (Ha/Bohr): 1.4e-05
@@ -710,11 +712,11 @@ experimentalfoe_short:
  energy: 3.9e-06
  tr(KS) before purification: 4.0e-06
  Raw forces norm (Ha/Bohr): 5.5e-07
- Tr(K): 1.7e-07
+ Tr(K): 8.0e-07
  eF: 3.6e-05
- D Tr: 2.1e-07
+ D Tr: 8.0e-07
  D eF: 2.3e-05
- charge diff: 1.7e-07
+ charge diff: 8.0e-07
  Omega: 4.0e-06
  Atomic Forces (Ha/Bohr): 5.8e-07
  Average noise forces: 2.6e-07
@@ -838,8 +840,9 @@ DIIShistory:
  multiplicator for the confinement: 5.4e-9
  Omega: 1.7e-8
  Total charge: 2.01e-11
-Locreg:
- EH: 1.1e-10
+ Locreg:
+ EH: 7.7e-9
+ Pulay forces (Ha/Bohr): 7.8e-09
 
 sparsity:
  Total charge: 1.1e-10
@@ -850,6 +853,7 @@ sparsity:
  charge diff: 1.1e-10
  energy: 4.9e-10
  EXC: 1.1e-10
+ Epot: 1.1e-9
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -880,7 +884,7 @@ PBE_potmixdiis:
  energy: 4.8e-8
  EXC: 2.0e-8
  EvXC: 2.7e-8
- Omega: 6.4e-10
+ Omega: 2.0e-9
  Epot: 6.2e-8
  EH: 6.3e-8
  Ekin: 1.2e-8
@@ -888,6 +892,7 @@ PBE_potmixdiis:
 
 PBE_densmixdiis:
  Epot: 1.1e-10
+ EvXC: 1.1e-10
  Enl: 1.1e-10
  energy: 3.7e-11
  Omega: 4.5e-11

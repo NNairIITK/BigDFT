@@ -20,6 +20,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -39,7 +41,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,matrixindex_in_compressed
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0,tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
@@ -57,13 +59,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8) :: rcov,rprb,ehomo,amu,pnrm
   integer :: nsccode,mxpl,mxchg,inl
   type(mixrhopotDIISParameters) :: mixdiis
-  type(sparseMatrix) :: ham_small ! for FOE
+  type(sparse_matrix) :: ham_small ! for FOE
   logical :: finished, can_use_ham
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   real(kind=8),dimension(:),allocatable :: philarge
   integer :: npsidim_large, sdim, ldim, ists, istl, ilr, nspin, info_basis_functions
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
-  logical :: ortho_on, reduce_conf
+  logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
@@ -467,7 +469,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, rho_negative)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
+
 
   !!do istat=1,size(denspot%rhov)
   !!    write(300+iproc,*) istat, denspot%rhov(istat)
@@ -480,6 +490,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
            .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+          ! initial setting of the old charge density
+          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.0d0,denspot%mix,&
+               denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+               pnrm,denspot%dpbox%nscatterarr)
       end if
   end if
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
@@ -499,6 +514,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%lin%mixing_after_inputguess) then
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+          ! initial setting of the old charge density
+          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.0d0,denspot%mix,&
+               denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+               pnrm,denspot%dpbox%nscatterarr)
       end if
   end if
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
@@ -657,7 +677,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
          50,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
-         input%lin%gnrm_dynamic, can_use_ham, input%lin%order_taylor, input%kappa_conv, input%method_updatekernel)
+         input%lin%gnrm_dynamic, can_use_ham, input%lin%order_taylor, input%kappa_conv, input%method_updatekernel,&
+         input%purification_quickreturn)
      reduce_conf=.true.
      call yaml_close_sequence()
      call yaml_close_map()
@@ -667,7 +688,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  end if
 
 
-  call nullify_sparsematrix(ham_small) ! nullify anyway
+  !call nullify_sparse_matrix(ham_small) ! nullify anyway
+  ham_small=sparse_matrix_null()
 
   !!if (iproc==0) then
   !!    call yaml_close_map()
@@ -688,19 +710,22 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%lin%scf_mode==LINEAR_FOE) then
 
       call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
-      allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-      call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+      !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
+      !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
+      ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
 
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,input%calculate_KS_residue)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
+           input%purification_quickreturn,input%calculate_KS_residue)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-         call deallocate_sparsematrix(ham_small,subname)
+         call deallocate_sparse_matrix(ham_small,subname)
       end if
 
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,input%calculate_KS_residue)
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
+           input%purification_quickreturn,input%calculate_KS_residue)
 
       call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
@@ -722,7 +747,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
 
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, rho_negative)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
 
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
 
@@ -732,29 +764,51 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      if (input%experimental_mode) then
          !if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
          if (iproc==0) call yaml_map('INFO mixing parameter for this step',1.d0)
-         call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, 1.d0, &
-              denspot, mixdiis, rhopotold, pnrm)
+         !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, 1.d0, &
+         !!     denspot, mixdiis, rhopotold, pnrm)
+         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+              pnrm,denspot%dpbox%nscatterarr)
      else
-         call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
-              denspot, mixdiis, rhopotold, pnrm)
+         !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+         !!     denspot, mixdiis, rhopotold, pnrm)
+         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
+              denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+              pnrm,denspot%dpbox%nscatterarr)
      end if
   end if
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
       call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      ! initial setting of the old charge density
+      call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+           denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+           at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+           pnrm,denspot%dpbox%nscatterarr)
   end if
   if (iproc==0) call yaml_newline()
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   if(iproc==0) call yaml_close_map()
   ! Mix the potential.
   if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-     call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
-          denspot, mixdiis, rhopotold, pnrm)
+     !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+     !!     denspot, mixdiis, rhopotold, pnrm)
+     call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
+          denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+          at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+          pnrm,denspot%dpbox%nscatterarr)
   end if
 
 
   if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
       call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
+      ! initial setting of the old potential
+      call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+           denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+           at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+           pnrm,denspot%dpbox%nscatterarr)
   end if
 
 

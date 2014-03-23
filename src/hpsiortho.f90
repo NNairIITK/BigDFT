@@ -1084,6 +1084,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,potential,pot,c
    use module_base
    use module_types
    use module_xc
+   use communications, only: synchronize_onesided_communication
    implicit none
    integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid
    !integer, intent(in) :: ndimrhopot,i3rho_add
@@ -1404,6 +1405,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient
   use yaml_output
+  use communications, only: transpose_v, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
   type(energy_terms), intent(inout) :: energs
@@ -1450,18 +1452,19 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   
 
   !transpose the hpsi wavefunction
-   call transpose_v2(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%hpsi,work=wfn%psi)
+   call toglobal_and_transpose(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%hpsi,wfn%psi)
   
   !PAW:
   !transpose the spsi wavefunction
   if(present(paw)) then
-     call transpose_v2(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi,work=wfn%psi)
+     call toglobal_and_transpose(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi,wfn%psi)
   end if
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
      wfn%psit => wfn%psi
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%psit)
+     ! work array not used for nproc==1, so pass the same address
+     call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%psit(1),wfn%psit(1))
   end if
 
 !!$  if (iproc==0 .and. verbose > 0) then
@@ -1484,11 +1487,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi,work=wfn%psi)
+  call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi(1),wfn%psi(1))
   
   if(present(paw)) then
    !retranspose the spsi wavefunction
-   call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi,work=wfn%psi)
+   call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi(1),wfn%psi(1))
   end if
 
   !deallocate temporary array
@@ -1643,6 +1646,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    use module_interfaces, except_this_one_A => hpsitopsi
    use yaml_output
    use gaussians, only: gaussian_basis
+   use communications, only: transpose_v, untranspose_v
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,idsx,iter
@@ -1685,8 +1689,8 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    wfn%diis%energy_min=min(wfn%diis%energy_min,wfn%diis%energy)
 
    !transpose the hpsi wavefunction
-   call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
-        wfn%hpsi,work=wfn%psi)
+   call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,&
+        wfn%hpsi(1),wfn%psi(1))
    
    !!experimental, orthogonalize the preconditioned gradient wrt wavefunction
    !call orthon_virt_occup(iproc,nproc,orbs,orbs,comms,comms,psit,hpsi,(verbose > 2))
@@ -1701,7 +1705,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    if(any(at%npspcode == 7)) then
      !retranspose psit
      call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
-        &   wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
+        &   wfn%psit(1),wfn%hpsi(1),out_add=wfn%psi(1))
 
      !Calculate  hpsi,spsi and cprj with new psi
      if (wfn%orbs%npsidim_orbs >0) then 
@@ -1712,7 +1716,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
           wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,eproj_sum,proj_G,paw)
 
 !    Transpose spsi:     
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi,work=wfn%hpsi)
+     call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,paw%spsi(1),wfn%hpsi(1))
 !    Gather cprj:
      call gather_cprj()
    end if
@@ -1745,7 +1749,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    end if
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
-        wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
+        wfn%psit(1),wfn%hpsi(1),out_add=wfn%psi(1))
 
    if (nproc == 1) then
       nullify(wfn%psit)
@@ -1908,15 +1912,17 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
    use module_base
    use module_types
    use module_interfaces, except_this_one => select_active_space
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
    type(locreg_descriptors), intent(in) :: Glr
-   type(communications_arrays), intent(in) :: comms
+   type(comms_cubic), intent(in) :: comms
    logical, dimension(orbs%norb*orbs%nkpts), intent(in) :: mask_array
    real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
    type(orbitals_data), intent(out) :: orbs_as
-   type(communications_arrays), intent(out) :: comms_as
+   type(comms_cubic), intent(out) :: comms_as
    real(wp), dimension(:), pointer :: psi_as
    !local variables
    character(len=*), parameter :: subname='select_active_space'
@@ -1996,15 +2002,17 @@ END SUBROUTINE select_active_space
 
 
 !>   First orthonormalisation
-subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
+subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    use module_base
    use module_types
    use module_interfaces, except_this_one_B => first_orthon
+   use communications_base, only: comms_cubic
+   use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
-   type(wavefunctions_descriptors), intent(in) :: wfd
-   type(communications_arrays), intent(in) :: comms
+   type(local_zone_descriptors),intent(in) :: lzd
+   type(comms_cubic), intent(in) :: comms
    type(orthon_data):: orthpar
    real(wp), dimension(:) , pointer :: psi,hpsi,psit
    type(paw_objects),optional,intent(inout)::paw
@@ -2033,8 +2041,14 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
    end if
 
    !to be substituted, must pass the wavefunction descriptors to the routine
-   call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
-      &   work=hpsi,outadd=psit(1))
+   if (nproc>1) then
+       call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
+          &   hpsi(1),out_add=psit(1))
+   else
+       ! work array not nedded for nproc==1, so pass the same address
+       call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
+          &   psi(1),out_add=psit(1))
+   end if
 
    if(usepaw==1) then
      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
@@ -2044,8 +2058,14 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar,paw)
 
    !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
-   call untranspose_v(iproc,nproc,orbs,wfd,comms,psit,&
-      &   work=hpsi,outadd=psi(1))
+   if (nproc>1) then
+       call untranspose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psit(1),&
+          &   hpsi(1),out_add=psi(1))
+   else
+       ! work array not nedded for nproc==1, so pass the same address
+       call untranspose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psit(1),&
+          &   psit(1),out_add=psi(1))
+   end if
 
    if (nproc == 1) then
       nullify(psit)
@@ -2062,6 +2082,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    use module_base
    use module_types
    use module_interfaces, fake_name => last_orthon
+   use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc,iter
    real(wp), intent(out) :: evsum
@@ -2078,10 +2099,11 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
       keeppsit=.false.
    end if
 
-   call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi,work=wfn%psi)
+   call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%hpsi(1),wfn%psi(1))
    if (nproc==1) then
       wfn%psit => wfn%psi
-      call transpose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%psit)
+      ! workarray not used for nporc==1, so pass the sa,e address
+      call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%psit(1),wfn%psit(1))
    end if
 
    call subspace_diagonalisation(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%hpsi,evsum)
@@ -2089,7 +2111,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    !here we should preserve hpsi and transpose it if we are in ensemble mimimization scheme
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
-        wfn%psit,work=wfn%hpsi,outadd=wfn%psi(1))
+        wfn%psit(1),wfn%hpsi(1),out_add=wfn%psi(1))
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then
       call kswfn_emit_psi(wfn, iter, 0, iproc, nproc)
@@ -2538,16 +2560,18 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 END SUBROUTINE calc_moments
 
 
-subroutine check_communications(iproc,nproc,orbs,lr,comms)
+subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    use module_base
    use module_types
    use module_interfaces, except_this_one => check_communications
    use yaml_output
+   use communications_base, only: comms_cubic
+   use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
-   type(locreg_descriptors), intent(in) :: lr
-   type(communications_arrays), intent(in) :: comms
+   type(local_zone_descriptors), intent(in) :: lzd
+   type(comms_cubic), intent(in) :: comms
    !local variables
    character(len=*), parameter :: subname='check_communications'
    integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
@@ -2570,10 +2594,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
       ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
       !valkpt=real(512*ikpt,wp)
       !valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
-      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
+      indorb=(iorb-1)*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)*orbs%nspinor
       do ispinor=1,orbs%nspinor
-         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+         indspin=(ispinor-1)*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)
+         do i=1,lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
             !vali=real(i,wp)/512.0_wp  ! *1.d-5
             call test_value(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
             psi(i+indspin+indorb)=psival!(valorb+vali)*(-1)**(ispinor-1)
@@ -2582,7 +2606,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    end do
 
    !transpose the hpsi wavefunction
-   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psi,work=pwork)
+   call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi_add=psi(1),work_add=pwork(1))
 
    !check the results of the transposed wavefunction
    maxdiff=0.0_wp
@@ -2681,18 +2705,18 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
    end if
 
    !retranspose the hpsi wavefunction
-   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
-      &   psi,work=pwork)
+   call untranspose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,&
+      &   psi(1),pwork(1))
 
    maxdiff=0.0_wp
    do iorb=1,orbs%norbp
       ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
       !valkpt=real(512*ikpt,wp)
       !valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
-      indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
+      indorb=(iorb-1)*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)*orbs%nspinor
       do ispinor=1,orbs%nspinor
-         indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-         do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+         indspin=(ispinor-1)*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)
+         do i=1,lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
             !vali=real(i,wp)/512.d0  !*1.d-5
             !psival=(valorb+vali)*(-1)**(ispinor-1)
             call test_value(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
@@ -2717,10 +2741,10 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
          ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
          !valkpt=real(512*ikpt,wp)
          !valorb=real(orbs%isorb+iorb-(ikpt-1)*orbs%norb,wp)+valkpt
-         indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
+         indorb=(iorb-1)*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)*orbs%nspinor
          do ispinor=1,orbs%nspinor
-            indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-            do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+            indspin=(ispinor-1)*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f)
+            do i=1,lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
                !vali=real(i,wp)/512.d0  !*1.d-5
                !psival=(valorb+vali)*(-1)**(ispinor-1)
                call test_value(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
@@ -2920,7 +2944,7 @@ END SUBROUTINE broadcast_kpt_objects
 !!  integer, intent(in) :: iproc,nproc
 !!  type(orbitals_data), intent(in) :: orbs
 !!  type(wavefunctions_descriptors),intent(in):: wfd
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(orthon_data), intent(in) :: orthpar
 !!  !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
 !!  !real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: hpsi

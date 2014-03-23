@@ -23,12 +23,13 @@ module module_fragments
                  basis_overlap, coeff, orbs)
         use module_base
         use module_types
+        use sparsematrix_base, only: sparse_matrix
         implicit none
         integer, intent(in) :: iproc, nproc, norb
         integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
         type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
         type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
-        type(sparseMatrix),intent(in) :: basis_overlap
+        type(sparse_matrix),intent(in) :: basis_overlap
         real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
       end subroutine reorthonormalize_coeff
 
@@ -999,6 +1000,8 @@ contains
     nstates_max,cdft)
     use yaml_output
     use module_base
+    use communications, only: transpose_localized
+    use sparsematrix, only: uncompress_matrix
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
     type(input_variables), intent(in) :: input
@@ -1134,7 +1137,7 @@ contains
     call to_zero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
     !*call to_zero(tmb%linmat%denskern%nvctr,kernel_final(1))
     tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
-    call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+    call uncompress_matrix(iproc,tmb%linmat%ovrlp)
     do ifrag=1,input%frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
@@ -1208,7 +1211,7 @@ contains
        !!output final kernel
        !! 20 - if just calculate, 21 if reconstruct total, 22 if reconstruct then sum
        !tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
-       !call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%denskern)
+       !call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%denskern)
        !!do itmb=1,tmb%orbs%norb
        !!   do jtmb=1,tmb%orbs%norb
        !!      write(30+ifrag,*) itmb,jtmb,tmb%linmat%denskern%matrix(itmb,jtmb),tmb%coeff(itmb,jtmb)
@@ -1247,7 +1250,7 @@ contains
     !output final kernel
     ! 20 - if just calculate, 21 if reconstruct total, 22 if reconstruct then sum
     !tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
-    !call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%denskern)
+    !call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%denskern)
     !do itmb=1,tmb%orbs%norb
     !   do jtmb=1,tmb%orbs%norb
     !      write(22,*) itmb,jtmb,tmb%linmat%denskern%matrix(itmb,jtmb),tmb%coeff(itmb,jtmb)
@@ -1258,7 +1261,7 @@ contains
     !tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
     !ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
     !ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ksk')
-    !call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+    !call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
     !call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
     !           tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, 0.d0, ks(1,1), tmb%orbs%norb) 
     !call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &

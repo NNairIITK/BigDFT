@@ -55,6 +55,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   use module_interfaces, except_this_one => constrained_davidson
   use module_xc
   use yaml_output
+  use communications, only: transpose_v, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nvirt
@@ -62,7 +63,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms, commsv
+  type(comms_cubic), intent(in) :: comms, commsv
   type(denspot_distribution), intent(in) :: dpcom
   real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
@@ -179,7 +180,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   
   !transpose the wavefunction psi if any 
   if (occorbs) then
-     call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi,work=psiw)
+     call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),psiw(1))
   end if
 
 
@@ -270,7 +271,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! untranspose v 
   !
-  call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
+  call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
   !
   ! inform
   !
@@ -297,8 +298,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   ! 
   !transpose  v and hv
   !
-  call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
-  call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,hv,work=psiw)
+  call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,v(1),psiw(1))
+  call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hv(1),psiw(1))
   !
   ! reset e 
   !
@@ -478,7 +479,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! untranspose gradients for preconditionning
      !
-     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g,work=psiw)
+     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g(1),psiw(1))
      !
      ! use the values of the eval for the orbitals used in the preconditioner
      !
@@ -494,7 +495,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! transpose gradients for orthogonalization and norm computation
      !
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,g(1),psiw(1))
      !
      ! orthogonalize with respect to occupied states again
      !
@@ -509,7 +510,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! untranspose gradients
      !
-     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g,work=psiw)
+     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g(1),psiw(1))
      !
      ! End gradients
      ! **********************************************
@@ -586,8 +587,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! transpose  g and hg and Pg (v, hv and Pv are aLzd%Glready transposed)
      !
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,g,work=psiw)
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,hg,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,g(1),psiw(1))
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hg(1),psiw(1))
      !
      ! reset expanded hamiltonian/overlap matrices
      !
@@ -814,7 +815,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      ! untranspose v 
      !
-     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
+     call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
      !
      ! inform
      !
@@ -843,8 +844,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! 
      !transpose  v and hv
      !
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
-     call transpose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,hv,work=psiw)
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,v(1),psiw(1))
+     call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hv(1),psiw(1))
      !
      ! compute rayleigh quotients. 
      !
@@ -924,8 +925,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
 
   !retranspose v and psi
-  call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v,work=psiw)
-  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi,work=psiw)
+  call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
+  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi(1),psiw(1))
 
 
   ! inform

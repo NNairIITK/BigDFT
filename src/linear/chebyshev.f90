@@ -15,6 +15,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -22,7 +23,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   real(8),dimension(npl,3),intent(in) :: cc
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix), intent(in) :: kernel
+  type(sparse_matrix), intent(in) :: kernel
   real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
   real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
@@ -443,12 +444,13 @@ end subroutine axpy_kernel_vectors
 subroutine determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
 
   ! Local variables
@@ -480,12 +482,13 @@ end subroutine determine_sequential_length
 subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   integer,intent(out) :: nout
   integer,dimension(:,:),pointer :: onedimindices
 
@@ -535,12 +538,13 @@ subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsema
            istindexarr, ivectorindex)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
   integer,dimension(nseq),intent(out) :: ivectorindex
 
@@ -573,12 +577,13 @@ end subroutine get_arrays_for_sequential_acces
 subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, nseq, nmaxsegk, nmaxvalk, a_seq)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
   real(kind=8),dimension(nseq),intent(out) :: a_seq
 
@@ -610,12 +615,13 @@ end subroutine sequential_acces_matrix
 subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, kernelp)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nsize_polynomial, npl
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: fermi
+  type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
   real(kind=8),dimension(npl),intent(in) :: cc
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: kernelp

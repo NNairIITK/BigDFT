@@ -2647,7 +2647,7 @@ end subroutine initCommsCompression
 
 
 
-subroutine uncompressMatrix(norb, mad, lmat, mat)
+subroutine uncompress_matrix(norb, mad, lmat, mat)
   use module_base
   use module_types
   implicit none
@@ -2671,11 +2671,11 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
       end do
   end do
   if(jj/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR in uncompressMatrix: jj/=mad%nvctr',jj,mad%nvctr
+      write(*,'(a,2(2x,i0))') 'ERROR in uncompress_matrix: jj/=mad%nvctr',jj,mad%nvctr
       stop
   end if
   
-end subroutine uncompressMatrix
+end subroutine uncompress_matrix
 
 
 
