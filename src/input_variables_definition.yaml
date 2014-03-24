@@ -615,6 +615,7 @@
    experimental_mode:
      COMMENT: activate the experimental mode in linear scaling
      default: No
+     best: Yes
    write_orbitals:
      COMMENT: linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
      default: No
@@ -642,3 +643,142 @@
    purification_quickreturn:
      COMMENT: linear scaling quick return in purification
      default: No
+   lin_general:
+     hybrid: 
+       COMMENT: activate the hybrid mode; if set to true, only the low accuracy values will be relevant
+       default: No
+       best: Yes
+     nit:
+       COMMENT: number of iteration with low/high accuracy
+       RANGE: [0,1000]
+       default: [100,100]
+       best: [100, 1]
+     rpnrm_cv:
+       COMMENT: convergence criterion for low/high accuracy
+       RANGE: [1.e-6,1.e-15]
+       default: [1.e-12,1.e-12]
+     conf_damping:
+       COMMENT: how the confinement should be decreased, only relevant for hybrid mode; negative -> automatic
+       RANGE: [-1.0,1.0]
+       default: -0.5
+     taylor_order:
+       COMMENT: order of the Taylor approximation; 0 -> exact
+       RANGE: [0,100]
+       default: 0
+       best: 6
+     output_wf:
+       COMMENT: output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+       EXCLUSIVE:
+         0: no output
+         1: formatted output
+         2: Fortran bin
+         3: ETSF
+       default: 0
+     calc_dipole:
+       COMMENT: calculate dipole
+       default: No
+# this is now an array!
+     calc_pulay:
+       COMMENT: calculate Pulay forces (old/new version)
+       default: [No,No]
+       new: [ No, Yes]
+       old: [ Yes, No] 
+# this name might be misleading
+     subspace_diag: #called calc_ks, to be renamed
+       COMMENT: diagonalization at the end
+       default: No
+   lin_basis:
+     nit:
+       COMMENT: maximal number of iterations in the optimization of the support functions
+       RANGE: [1,100]
+       default: [4,5]
+       best: [10,1]
+     idsx:
+       COMMENT: DIIS history for optimization of the support function (low/high accuracy); 0 -> SD
+       RANGE: [0,20]
+       default: [6,0]
+     gnrm_cv:
+       COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
+       RANGE: [1.e-1,1.e-6]
+       default: [1.e-2,1.e-4]
+       best: [1.e-3,1.e-3]
+     deltae_cv:
+       COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
+       RANGE: [1.e-6,1.e-2]
+       default: 1.e-4
+     gnrm_dyn:
+       COMMENT: dynamic convergence criterion ('experimental_mode' only)
+       RANGE: [1.e-3,1.e-7]
+       default: 1.e-4
+     alpha_diis:
+       COMMENT: multiplactor for DIIS
+       RANGE: [0.1,10]
+       default: 1.0
+       best: 0.5
+     alpha_sd:
+       COMMENT: initial step size for SD
+       RANGE: [0.1,10]
+       default: 1.0
+       best: 0.5
+     nstep_prec:
+       COMMENT: number of iterations in the preconditioner
+       RANGE: [1,30]
+       default: 5
+       best: 6
+   lin_kernel:
+     nstep:
+       COMMENT: don't know what this variable stands for...
+       default: [1,1]
+     nit:
+       COMMENT: number of iterations in the optimization of the density kernel
+       RANGE: [1,30]
+       default: [5,5]
+       best: [3,1]
+# check whether there are different DIIS histories...
+     idsx_coeff:
+       COMMENT: DIIS history for directmin?
+       default: [0,0]
+     idsx:
+       COMMENT: mixing method: 0 -> linear mixing, >=1 -> Pulay mixing
+       RANGE: [0,20]
+       default: [0,0]
+       best: [6,0]
+     alphamix:
+       COMMENT: mixing parameter (low/high accuracy)
+       RANGE: [0.0,1.0]
+       default: [0.5,0.5]
+     gnrm_cv_coeff:
+       COMMENT: convergence criterion for directmin (low/high)?
+       default: [1.e-5,1.e-5]
+     rpnrm_cv:
+       COMMENT: convergence criterion (change in density/potential) for the kernel optimization
+       RANGE: [1.e-7,1.e-14]
+       default: [1.e-10,1.e-10]
+     method:
+       COMMENT: method to optimize the density kernel
+       EXCLUSIVE:
+         DIRMIN: direct minimization
+         DIAG: diagonalization
+         FOE: Fermi Operator Expansion
+       default: DIAG
+       best: FOE
+     mixing_method:
+       COMMENT: quantity to be mixed
+       EXCLUSIVE:
+         DEN: density mixing
+         POT: potential mixing
+       default: DEN
+     alpha_sd_coeff:
+       COMMENT: step size for direct minimization?
+       default: 0.2
+     alpha_fit_coeff:
+       COMMENT: don't know exactly what this means
+       default: No
+     eval_range_foe:
+       COMMENT: lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
+       RANGE: [-10.0,10.0]
+       default: [-0.5,0.5]
+     fscale_foe: 
+       COMMENT: decay length of the error function
+       RANGE: [1.e-4,1.0]
+       default: 5.e-2
