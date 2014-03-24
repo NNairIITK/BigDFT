@@ -211,10 +211,12 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
            'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
   call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
-  call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY)
-  in%lin%pulay_correction=dummy_bool
-  call input_var(in%lin%new_pulay_correction,'F')
-  call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_KS,comment=comments)
+  call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY//0)
+  call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_PULAY//1)
+
+!  in%lin%pulay_correction=dummy_bool
+!  call input_var(in%lin%new_pulay_correction,'F')
+  call input_var(dummy_bool,'F',dict//LIN_GENERAL//SUBSPACE_DIAG,comment=comments)
 
 
 
@@ -292,8 +294,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   in%lin%methTransformOverlap=dict//LIN_GENERAL//TAYLOR_ORDER
   in%lin%plotBasisFunctions=dict//LIN_GENERAL//OUTPUT_WF
   in%lin%calc_dipole=dict//LIN_GENERAL//CALC_DIPOLE
-  in%lin%pulay_correction=dict//LIN_GENERAL//CALC_PULAY
-  in%lin%diag_end=dict//LIN_GENERAL//CALC_KS
+  in%lin%pulay_correction=dict//LIN_GENERAL//CALC_PULAY//0
+  in%lin%new_pulay_correction=dict//LIN_GENERAL//CALC_PULAY//1
+  in%lin%diag_end=dict//LIN_GENERAL//SUBSPACE_DIAG
 
 
   dummy_iarr=dict//LIN_BASIS//NIT
@@ -310,6 +313,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   in%lin%alphaDIIS=dict//LIN_BASIS//ALPHA_DIIS
   in%lin%alphaSD=dict//LIN_BASIS//ALPHA_SD
   in%lin%nItPrecond=dict//LIN_BASIS//NSTEP_PREC
+  in%lin%support_functions_converged=dict//LIN_BASIS//FIX_BASIS
 
   !filling of input variable
   dummy_char=dict//LIN_KERNEL//LINEAR_METHOD
@@ -354,6 +358,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   in%lin%evlow =dummy_darr(1)
   in%lin%evhigh=dummy_darr(2)
   in%lin%fscale=dict//LIN_KERNEL//FSCALE_FOE
+  in%lin%correctionOrthoconstraint=1 !to be checked later
 
   ! not sure whether to actually make this an input variable or not so just set to false for now
   in%lin%diag_start=.false.
