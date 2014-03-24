@@ -267,13 +267,20 @@ end subroutine bigdft_get_eigenvalues
 
 subroutine bigdft_severe_abort()
   use module_base
+  use yaml_output, only: yaml_toa,yaml_comment
   implicit none
   integer :: ierr
+  !local variables
+  character(len=128) :: filename
 
   !the MPI_ABORT works only in MPI_COMM_WORLD
-  call f_malloc_dump_status()
+  filename(1:len(filename))='bigdft-err-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//&
+       '-'//trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.yaml'
+  call f_malloc_dump_status(filename=filename)
   !call f_dump_last_error()
   call f_dump_all_errors()
+  call yaml_comment('An error has occured, dumping run status in file(s) '//trim(filename))
+  call f_lib_finalize()
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 

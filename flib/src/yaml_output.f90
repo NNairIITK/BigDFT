@@ -346,9 +346,22 @@ contains
                   YAML_STREAM_ALREADY_PRESENT)
           end if
        end if
-       if (.not. unit_is_open) &
-            open(unit=unt,file=trim(filename),status='unknown',&
-            position=trim(pos),iostat=ierr)
+       if (.not. unit_is_open) then
+          !inquire also file opening
+          inquire(file=trim(filename),opened=unit_is_open,iostat=ierr)
+          if (f_err_raise(ierr /=0,'error in file inquiring, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+          if (unit_is_open) then
+             if(present(istat)) then
+                istat=YAML_STREAM_ALREADY_PRESENT
+             else
+                call f_err_throw('The file '//trim(filename)//' is already connected',&
+                     YAML_STREAM_ALREADY_PRESENT)
+             end if
+          end if
+          open(unit=unt,file=trim(filename),status='unknown',&
+               position=trim(pos),iostat=ierr)
+       end if
        if (present(istat)) then
           istat=ierr
        else
