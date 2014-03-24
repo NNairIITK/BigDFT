@@ -759,7 +759,7 @@
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
        RANGE: [1.e-14,1.e-7]
        default: [1.e-10,1.e-10]
-     method:
+     linear_method:
        COMMENT: method to optimize the density kernel
        EXCLUSIVE:
          DIRMIN: direct minimization

@@ -725,6 +725,9 @@ subroutine input_analyze(in)
   use module_types, only: input_variables
   use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
   use module_types, only: bigdft_mpi
+  use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
+                          MIXINGMODE_DENS, MIXINGMODE_POT, &
+                          LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_defs, only: gp
   use dynamic_memory
   use module_input_keys, only: input_keys_equal
@@ -795,6 +798,26 @@ subroutine input_analyze(in)
         in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
      end if
   end if
+
+  ! determine the scf mode
+  select case (in%lin%kernel_mode)
+  case (KERNELMODE_DIRMIN)
+      in%lin%scf_mode = LINEAR_DIRECT_MINIMIZATION
+  case (KERNELMODE_DIAG)
+      select case (in%lin%mixing_mode)
+      case (MIXINGMODE_DENS)
+          in%lin%scf_mode = LINEAR_MIXDENS_SIMPLE
+      case (MIXINGMODE_POT)
+          in%lin%scf_mode = LINEAR_MIXPOT_SIMPLE
+      case default
+          stop 'wrong value of in%lin%mixing_mode'
+      end select
+  case (KERNELMODE_FOE)
+      in%lin%scf_mode = LINEAR_FOE
+  case default
+      stop 'wrong value of in%lin%kernel_mode'
+  end select
+
   call f_release_routine()
 END SUBROUTINE input_analyze
 
