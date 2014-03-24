@@ -71,6 +71,8 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, TDDFT_VARIABLES)
      call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, 'lin')
+     call read_lin_from_text_format(mpi_env%iproc,dict, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
      ! This will be changed in far future when only YAML input will be allowed.
@@ -132,10 +134,16 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   ! presence, we put a barrier here.
   if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 
+  !call yaml_map('Dictionary parsed',dict)
+
   ! Analyse the input dictionary and transfer it to in.
   ! extract also the minimal dictionary which is necessary to do this run
   call input_keys_fill_all(dict,dict_minimal)
 
+  !call yaml_map('Dictionary completed',dict)
+
+  !call yaml_map('Minimal dictionary',dict_minimal)
+  !stop
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
   do while(associated(var))

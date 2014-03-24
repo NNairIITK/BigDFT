@@ -155,7 +155,7 @@ module module_input_keys
   character(len=*), parameter, public :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter, public :: CALC_DIPOLE     ='calc_dipole'
   character(len=*), parameter, public :: CALC_PULAY      ='calc_pulay'
-  character(len=*), parameter, public :: CALC_KS         ='calc_ks'
+  character(len=*), parameter, public :: SUBSPACE_DIAG   ='subspace_diag'
   character(len=*), parameter, public :: ALPHA_DIIS      ='alpha_diis'
   character(len=*), parameter, public :: ALPHA_SD        ='alpha_sd'
   character(len=*), parameter, public :: ALPHA_SD_COEFF  ='alpha_sd_coeff'
@@ -172,6 +172,7 @@ module module_input_keys
   character(len=*), parameter, public :: NBASIS          ='nbasis'
   character(len=*), parameter, public :: TRANSFER_INTEGRALS='transfer_integrals'
   character(len=*), parameter, public :: CONSTRAINED_DFT  ='constrained_dft'
+  character(len=*), parameter, public :: FIX_BASIS       ='fix_basis' 
 
 
 
@@ -475,6 +476,10 @@ contains
     call input_keys_fill(dict, MIX_VARIABLES)
     call input_keys_fill(dict, SIC_VARIABLES)
     call input_keys_fill(dict, TDDFT_VARIABLES)
+    call input_keys_fill(dict, LIN_GENERAL)
+    call input_keys_fill(dict, LIN_BASIS)
+    call input_keys_fill(dict, LIN_KERNEL)
+
 
     !create a shortened dictionary which will be associated to the given run
     call input_minimal(dict,dict_minimal)
@@ -521,8 +526,8 @@ contains
        !for any of the keys of parameters look at the corresponding value of the dictionary
        category=dict_key(dict_tmp)
        !call yaml_map('dict category',parameters//category)
-!       print *,'category',trim(category),has_key(dict,category)
-       !call yaml_map('dict category',dict_tmp)
+       print *,'category',trim(category),has_key(dict,category)
+       call yaml_map('dict category',dict_tmp)
        if (has_key(dict,category)) then
           call minimal_category(dict_tmp,dict//category,min_cat)
           if (associated(min_cat)) then

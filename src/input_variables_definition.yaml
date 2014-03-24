@@ -643,7 +643,7 @@
    purification_quickreturn:
      COMMENT: linear scaling quick return in purification
      default: No
-   lin_general:
+ lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if set to true, only the low accuracy values will be relevant
        default: No
@@ -651,11 +651,12 @@
      nit:
        COMMENT: number of iteration with low/high accuracy
        RANGE: [0,1000]
+       PROFILE_FROM: hybrid
        default: [100,100]
-       best: [100, 1]
+       Yes: [100, 1]
      rpnrm_cv:
        COMMENT: convergence criterion for low/high accuracy
-       RANGE: [1.e-6,1.e-15]
+       RANGE: [1.e-15,1.e-6]
        default: [1.e-12,1.e-12]
      conf_damping:
        COMMENT: how the confinement should be decreased, only relevant for hybrid mode; negative -> automatic
@@ -667,7 +668,7 @@
        default: 0
        best: 6
      output_wf:
-       COMMENT: output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+       COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
        EXCLUSIVE:
          0: no output
          1: formatted output
@@ -687,7 +688,7 @@
      subspace_diag: #called calc_ks, to be renamed
        COMMENT: diagonalization at the end
        default: No
-   lin_basis:
+ lin_basis:
      nit:
        COMMENT: maximal number of iterations in the optimization of the support functions
        RANGE: [1,100]
@@ -699,7 +700,7 @@
        default: [6,0]
      gnrm_cv:
        COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
-       RANGE: [1.e-1,1.e-6]
+       RANGE: [1.e-6,1.e-1]
        default: [1.e-2,1.e-4]
        best: [1.e-3,1.e-3]
      deltae_cv:
@@ -708,7 +709,7 @@
        default: 1.e-4
      gnrm_dyn:
        COMMENT: dynamic convergence criterion ('experimental_mode' only)
-       RANGE: [1.e-3,1.e-7]
+       RANGE: [1.e-7,1.e-3]
        default: 1.e-4
      alpha_diis:
        COMMENT: multiplactor for DIIS
@@ -725,7 +726,11 @@
        RANGE: [1,30]
        default: 5
        best: 6
-   lin_kernel:
+     fix_basis:
+       COMMENT: fix the support functions if the density change is below this threshold
+       RANGE: [1.e-14,1.e-6]
+       default: 1.e-10
+ lin_kernel:
      nstep:
        COMMENT: don't know what this variable stands for...
        default: [1,1]
@@ -739,7 +744,7 @@
        COMMENT: DIIS history for directmin?
        default: [0,0]
      idsx:
-       COMMENT: mixing method: 0 -> linear mixing, >=1 -> Pulay mixing
+       COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
        RANGE: [0,20]
        default: [0,0]
        best: [6,0]
@@ -752,7 +757,7 @@
        default: [1.e-5,1.e-5]
      rpnrm_cv:
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
-       RANGE: [1.e-7,1.e-14]
+       RANGE: [1.e-14,1.e-7]
        default: [1.e-10,1.e-10]
      method:
        COMMENT: method to optimize the density kernel

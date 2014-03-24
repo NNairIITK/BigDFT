@@ -2512,6 +2512,7 @@ end subroutine find_category
     character(len = *), intent(in) :: level
     integer, dimension(2) :: dummy_int !<to use as filling for input variables
     real(gp), dimension(3) :: dummy_gp !< to fill the input variables
+    logical, dimension(2) :: dummy_log !< to fill the input variables
     character(len = max_field_length) :: str
     integer :: i, ipos
 
@@ -2820,6 +2821,80 @@ end subroutine find_category
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select      
+    case (LIN_GENERAL)
+       ! the variables for the linear version, general section
+       select case (trim(dict_key(val)))
+       case (HYBRID)
+           if (val) then
+               in%lin%nlevel_accuracy = 1
+           else
+               in%lin%nlevel_accuracy = 2
+           end if
+       case (NIT)
+          dummy_int(1:2) = val
+          in%lin%nit_lowaccuracy = dummy_int(1)
+          in%lin%nit_highaccuracy = dummy_int(2)
+       case (RPNRM_CV)
+          dummy_gp(1:2) = val
+          in%lin%lowaccuracy_conv_crit = dummy_gp(1)
+          in%lin%highaccuracy_conv_crit = dummy_gp(2)
+       case (CONF_DAMPING) 
+          in%lin%reduce_confinement_factor = val
+       case (TAYLOR_ORDER)
+          in%lin%methTransformOverlap = val
+       case (OUTPUT_WF)
+          in%lin%plotBasisFunctions = val
+       case (CALC_DIPOLE)
+          in%lin%calc_dipole = val
+       case (CALC_PULAY)
+          dummy_log(1:2) = val
+          in%lin%pulay_correction = dummy_log(1)
+          in%lin%new_pulay_correction = dummy_log(2)
+       case (SUBSPACE_DIAG)
+          in%lin%diag_end = val
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case (LIN_BASIS)
+       case (NIT)
+          dummy_int(1:2) = val
+          in%lin%nItBasis_lowaccuracy = dummy_int(1)
+          in%lin%nItBasis_highaccuracy = dummy_int(2)
+       case (IDSX)
+          dummy_iarr(1:2) = val
+          in%lin%DIIS_hist_lowaccur = dummt_int(1)
+          in%lin%DIIS_hist_highaccur = dummy_int(2)
+       case (GNRM_CV)
+          dummy_gp(1:2) = val
+          in%lin%convCrit_lowaccuracy = dummy_gp(1)
+          in%lin%convCrit_highaccuracy = dummy_gp(2)
+       case (DELTAE_CV)
+          in%lin%early_stop = val
+       case (GNRM_DYN)
+          in%lin%gnrm_dynamic = val
+       case (ALPHA_DIIS)
+          in%lin%alphaDIIS = val
+       case (ALPHA_SD)
+          in%lin%alphaSD = val
+       case (NSTEP_PREC)
+          in%lin%nItPrecond = val
+       case (fix_basis)
+          in%lin%support_functions_converged = val
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case (LIN_KERNEL)
+       case (NSTEP)
+          dummy_int(1:2) = val
+          in%lin%nItdmin_lowaccuracy = dummy_int(1)
+          in%lin%nItdmin_highaccuracy = dummy_int(2)
+       case (NIT)
+          dummy_int(1:2) = val
+          in%lin%nItSCCWhenFixed_lowaccuracy = dummy_int(1)
+          in%lin%nItSCCWhenFixed_highaccuracy = dummy_int(2)
+       case (IDSX_COEFF)
+
+
     case DEFAULT
        call yaml_warning("unknown level '" // trim(level) //"'")
     end select
