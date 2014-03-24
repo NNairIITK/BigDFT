@@ -806,7 +806,7 @@ subroutine foe(iproc, nproc, tmprtr, &
       if (foe_verbosity>=1 .and. iproc==0) then
           call yaml_map('need to repeat with sharper decay',cycle_FOE)
       end if
-      if (.not.cycle_FOE) exit temp_loop
+      if (purification_quickreturn .and. .not.cycle_FOE) exit temp_loop
 
 
 
