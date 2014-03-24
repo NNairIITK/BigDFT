@@ -65,7 +65,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8),dimension(:),allocatable :: philarge
   integer :: npsidim_large, sdim, ldim, ists, istl, ilr, nspin, info_basis_functions
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
-  logical :: ortho_on, reduce_conf
+  logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
@@ -469,7 +469,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, rho_negative)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
+
 
   !!do istat=1,size(denspot%rhov)
   !!    write(300+iproc,*) istat, denspot%rhov(istat)
@@ -739,7 +747,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
 
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, rho_negative)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
 
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
 

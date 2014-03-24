@@ -862,6 +862,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
   use sparsematrix_base, only: sparse_matrix
+  use yaml_output
   implicit none
   
   ! Calling arguments
@@ -882,6 +883,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   type(comms_cubic) :: comms
   type(sparse_matrix) :: ham_small ! for FOE
   real(gp) :: fnrm
+  logical :: rho_negative
   integer :: infoCoeff, nvctrp, npsidim_global
   real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
   character(len=*),parameter :: subname='build_ks_orbitals'
@@ -896,7 +898,16 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, rho_negative)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
+
+
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
   tmb%can_use_transposed=.false.
@@ -992,7 +1003,14 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, rho_negative)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
   call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &

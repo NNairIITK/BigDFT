@@ -637,7 +637,8 @@ end subroutine calculate_density_kernel_uncompressed
 
 
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, print_results)
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, rho_negative, &
+        print_results)
   use module_base
   use module_types
   use yaml_output
@@ -650,6 +651,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   type(comms_linear),intent(in) :: collcom_sr
   type(sparse_matrix),intent(in) :: denskern
   real(kind=8),dimension(ndimrho),intent(out) :: rho
+  logical,intent(out) :: rho_negative
   logical,intent(in),optional :: print_results
 
   ! Local variables
@@ -658,7 +660,10 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
   logical :: print_local
-  integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc
+  integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, irho
+
+  ! check whether all entries of the charge density are positive
+  rho_negative=.false.
 
   if (present(print_results)) then
       if (print_results) then
@@ -695,9 +700,10 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !!if (print_local .and. iproc==0) write(*,'(a)', advance='no') 'Calculating charge density... '
 
   total_charge=0.d0
+  irho=0
   !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, denskern, rho_local)
-  !$omp do schedule(static,50) reduction(+:total_charge)
+  !$omp shared(total_charge, collcom_sr, factor, denskern, rho_local, irho)
+  !$omp do schedule(static,50) reduction(+:total_charge, irho)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
       i0=collcom_sr%isptsp_c(ipt)
@@ -717,9 +723,15 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
       tt=factor*tt
       total_charge=total_charge+tt
       rho_local(ipt)=tt
+      if (tt<0.d0) irho=irho+1
   end do
   !$omp end do
   !$omp end parallel
+
+  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (irho>0) then
+      rho_negative=.true.
+  end if
 
   !if (print_local .and. iproc==0) write(*,'(a)') 'done.'
 
@@ -990,6 +1002,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   real(kind=8),parameter :: tol_calculation_mean=1.d-12
   real(kind=8),parameter :: tol_calculation_max=1.d-10
   character(len=*), parameter :: subname='check_sumrho'
+  logical :: rho_negative
 
   call timing(iproc,'check_sumrho','ON')
 
@@ -1289,7 +1302,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! Now calculate the charge density in the transposed way using the standard routine
       rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
       call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, &
-           lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, .false.)
+           lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, rho_negative, .false.)
     
       ! Determine the difference between the two versions
       sumdiff=0.d0

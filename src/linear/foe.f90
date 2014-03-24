@@ -37,7 +37,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol, ddot
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
-  real(kind=8) :: fscale, error, tt_ovrlp, tt_ham
+  real(kind=8) :: fscale, error, tt_ovrlp, tt_ham, idempotency_diff
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -796,20 +796,35 @@ subroutine foe(iproc, nproc, tmprtr, &
       sumn=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
 
 
-
-      ! Check whether this agrees with the number of electrons. If not,
-      ! calculate a new kernel with a sharper decay of the error function
-      ! (correponds to a lower temperature)
-      if (abs(sumn-tmb%foe_obj%charge)>1.d-6) then
+      call check_idempotency(iproc, nproc, tmb, idempotency_diff)
+      if (iproc==0) call yaml_map('diff from idempotency',idempotency_diff,fmt='(es12.4)')
+      if (idempotency_diff>4.d-1) then
           cycle_FOE=.true.
       else
           cycle_FOE=.false.
       end if
       if (foe_verbosity>=1 .and. iproc==0) then
-          call yaml_map('trace(KS)',sumn)
           call yaml_map('need to repeat with sharper decay',cycle_FOE)
       end if
       if (.not.cycle_FOE) exit temp_loop
+
+
+
+      ! Check whether this agrees with the number of electrons. If not,
+      ! calculate a new kernel with a sharper decay of the error function
+      ! (correponds to a lower temperature)
+      if (.not.purification_quickreturn) then
+          if (abs(sumn-tmb%foe_obj%charge)>1.d-5) then
+              cycle_FOE=.true.
+          else
+              cycle_FOE=.false.
+          end if
+          if (foe_verbosity>=1 .and. iproc==0) then
+              call yaml_map('trace(KS)',sumn)
+              call yaml_map('need to repeat with sharper decay',cycle_FOE)
+          end if
+          if (.not.cycle_FOE) exit temp_loop
+      end if
 
     
 
