@@ -10,18 +10,22 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, tmprtr, &
-           ebs, itout, it_scc, order_taylor, &
+           ebs, itout, it_scc, order_taylor, purification_quickreturn, foe_verbosity, &
            tmb)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
   use yaml_output
+  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc,itout,it_scc, order_taylor
   real(kind=8),intent(in) :: tmprtr
   real(kind=8),intent(out) :: ebs
+  logical,intent(in) :: purification_quickreturn
+  integer,intent(in) :: foe_verbosity
   type(DFT_wavefunction),intent(inout) :: tmb
 
   ! Local variables
@@ -46,12 +50,13 @@ subroutine foe(iproc, nproc, tmprtr, &
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8) :: trace_sparse
-  integer :: irow, icol, itemp, matrixindex_in_compressed, iflag
+  integer :: irow, icol, itemp, iflag
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked
 
+  call f_routine(id='foe')
 
-  allocate(tmb%linmat%inv_ovrlp_large%matrix_compr(tmb%linmat%inv_ovrlp_large%nvctr), stat=istat)
-  call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix_compr, 'tmb%linmat%inv_ovrlp_large%matrix_compr', subname)
+  tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr,&
+      id='tmb%linmat%inv_ovrlp_large%matrix_compr')
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -149,7 +154,7 @@ subroutine foe(iproc, nproc, tmprtr, &
       evlow_old=1.d100
       evhigh_old=-1.d100
       
-      if (iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
+      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
     
           ! Don't let this value become too small.
           tmb%foe_obj%bisection_shift = max(tmb%foe_obj%bisection_shift,1.d-4)
@@ -170,10 +175,15 @@ subroutine foe(iproc, nproc, tmprtr, &
     
           if (iproc==0) then
               !call yaml_sequence(advance='no')
-              call yaml_open_sequence('FOE to determine density kernel',label=&
-                   'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
-                   trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
-                   trim(adjustl(yaml_toa(itemp,fmt='(i2.2)'))))
+              if (foe_verbosity>=1) then
+                  call yaml_open_sequence('FOE to determine density kernel',label=&
+                       'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
+                       trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
+                       trim(adjustl(yaml_toa(itemp,fmt='(i2.2)'))))
+              else
+                  call yaml_open_sequence('FOE to determine density kernel')
+                  if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='-')
+              end if
           end if
     
     
@@ -190,7 +200,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call yaml_newline()
                   call yaml_sequence(advance='no')
                   call yaml_open_map(flow=.true.)
-                  call yaml_comment('it FOE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
+                  if (foe_verbosity>=1) call yaml_comment('it FOE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
               end if
               
               if (adjust_lower_bound) then
@@ -256,7 +266,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
               end if
     
-              if (iproc==0) then
+              if (foe_verbosity>=1 .and. iproc==0) then
                   call yaml_map('bisec/eval bounds',&
                        (/efarr(1),efarr(2),tmb%foe_obj%evlow,tmb%foe_obj%evhigh/),fmt='(f5.2)')
                   !call yaml_map('lower bisection bound',efarr(1),fmt='(es10.3)')
@@ -310,7 +320,7 @@ subroutine foe(iproc, nproc, tmprtr, &
     
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
-                  if (iproc==0) call yaml_map('polynomials','recalculated')
+                  if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                   call chebyshev_clean(iproc, nproc, npl, cc, tmb%orbs, tmb%foe_obj, &
                        tmb%linmat%denskern_large, hamscal_compr, &
                        tmb%linmat%inv_ovrlp_large%matrix_compr, calculate_SHS, &
@@ -318,7 +328,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                        emergency_stop)
               else
                   ! The Chebyshev polynomials are already available
-                  if (iproc==0) call yaml_map('polynomials','from memory')
+                  if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                   call chebyshev_fast(iproc, nsize_polynomial, npl, tmb%orbs, &
                       tmb%linmat%denskern_large, chebyshev_polynomials, cc, fermip)
               end if 
@@ -539,10 +549,12 @@ subroutine foe(iproc, nproc, tmprtr, &
               ! Check whether the system behaves reasonably.
               interpolation_possible=.true.
               if (it_solver>1) then
-                  if (iproc==0) call yaml_newline()
-                  if (iproc==0) call yaml_open_map('interpol check',flow=.true.)
-                  if (iproc==0) call yaml_map('D eF',tmb%foe_obj%ef-ef_old,fmt='(es13.6)')
-                  if (iproc==0) call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
+                  if (foe_verbosity>=1 .and. iproc==0) then
+                      call yaml_newline()
+                      call yaml_open_map('interpol check',flow=.true.)
+                      call yaml_map('D eF',tmb%foe_obj%ef-ef_old,fmt='(es13.6)')
+                      call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
+                  end if
                   if (tmb%foe_obj%ef>ef_old .and. sumn<sumn_old) then
                       interpolation_possible=.false.
                   end if
@@ -550,13 +562,13 @@ subroutine foe(iproc, nproc, tmprtr, &
                       interpolation_possible=.false.
                   end if
                   if (tmb%foe_obj%ef>ef_old .and. sumn<sumn_old .or. tmb%foe_obj%ef<ef_old .and. sumn>sumn_old) then
-                      if (iproc==0) call yaml_map('interpol possible',.false.)
+                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.false.)
                   else
-                      if (iproc==0) call yaml_map('interpol possible',.true.)
+                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.true.)
                   end if
-                  if (iproc==0) call yaml_close_map()
+                  if (foe_verbosity>=1 .and. iproc==0) call yaml_close_map()
                   !!call bigdft_utils_flush(unit=6)
-                  if (iproc==0) call yaml_newline()
+                  if (foe_verbosity>=1 .and. iproc==0) call yaml_newline()
               end if
               if (.not.interpolation_possible) then
                   ! Set the history for the interpolation to zero.
@@ -617,18 +629,22 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
               ! Calculate the new Fermi energy.
-              if (iproc==0) call yaml_newline()
-              if (iproc==0) call yaml_open_map('Search new eF',flow=.true.)
+              if (foe_verbosity>=1 .and. iproc==0) then
+                  call yaml_newline()
+                  call yaml_open_map('Search new eF',flow=.true.)
+              end if
               if (it_solver>=4 .and.  abs(sumn-tmb%foe_obj%charge)<tmb%foe_obj%ef_interpol_chargediff) then
                   det=determinant(iproc,4,interpol_matrix)
-                  if (iproc==0) call yaml_map('det',det,fmt='(es10.3)')
-                  if (iproc==0) call yaml_map('limit',tmb%foe_obj%ef_interpol_det,fmt='(es10.3)')
+                  if (foe_verbosity>=1 .and. iproc==0) then
+                      call yaml_map('det',det,fmt='(es10.3)')
+                      call yaml_map('limit',tmb%foe_obj%ef_interpol_det,fmt='(es10.3)')
+                  end if
                   if(abs(det)>tmb%foe_obj%ef_interpol_det) then
                       tmb%foe_obj%ef=ef_interpol
-                      if (iproc==0) call yaml_map('method','cubic interpolation')
+                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','cubic interpolation')
                   else
                       ! linear interpolation
-                      if (iproc==0) call yaml_map('method','linear interpolation')
+                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','linear interpolation')
                       m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
                       b = interpol_vector(4)-m*interpol_matrix(4,3)
                       tmb%foe_obj%ef = -b/m
@@ -641,9 +657,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                   tmb%foe_obj%ef = tmb%foe_obj%ef + .5d0*(efarr(1)+efarr(2))
                   ! Take the mean value
                   tmb%foe_obj%ef=.5d0*tmb%foe_obj%ef
-                  if (iproc==0) call yaml_map('method','bisection / secant method')
+                  if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','bisection / secant method')
               end if
-              if (iproc==0) then
+              if (foe_verbosity>=1 .and. iproc==0) then
                   call yaml_close_map()
                   !!call bigdft_utils_flush(unit=6)
                   !call yaml_newline()
@@ -651,9 +667,9 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
               if (iproc==0) then
-                  call yaml_newline()
-                  call yaml_map('iter',it)
-                  call yaml_map('Tr(K)',sumn,fmt='(es16.9)')
+                  if (foe_verbosity>=1) call yaml_newline()
+                  if (foe_verbosity>=1) call yaml_map('iter',it)
+                  if (foe_verbosity>=1) call yaml_map('Tr(K)',sumn,fmt='(es16.9)')
                   call yaml_map('charge diff',sumn-tmb%foe_obj%charge,fmt='(es16.9)')
               end if
     
@@ -712,17 +728,19 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
     
-      allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix, 'tmb%linmat%inv_ovrlp_large%matrix', subname)
+      tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
+          id='tmb%linmat%inv_ovrlp_large%matrix')
     
       allocate(workmat(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
       call memocc(istat, workmat, 'workmat', subname)
     
-      call uncompressMatrix(iproc,tmb%linmat%inv_ovrlp_large)
+      call uncompress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
     
-      allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
-      call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
-      call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+      !!allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
+      !!call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
+      tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
+          id='tmb%linmat%denskern_large%matrix')
+      call uncompress_matrix(iproc,tmb%linmat%denskern_large)
     
       if (tmb%orbs%norbp>0) then
           call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
@@ -741,19 +759,18 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
     
-      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+      call compress_matrix(iproc,tmb%linmat%denskern_large)
 
-     iall=-product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
-     deallocate(tmb%linmat%denskern_large%matrix,stat=istat)
-     call memocc(istat,iall,'tmb%linmat%denskern_large%matrix',subname)
+     !iall=-product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
+     !deallocate(tmb%linmat%denskern_large%matrix,stat=istat)
+     !call memocc(istat,iall,'tmb%linmat%denskern_large%matrix',subname)
+     call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
      iall=-product(shape(workmat))*kind(workmat)
      deallocate(workmat,stat=istat)
      call memocc(istat,iall,'workmat',subname)
 
-     iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix))*kind(tmb%linmat%inv_ovrlp_large%matrix)
-     deallocate(tmb%linmat%inv_ovrlp_large%matrix,stat=istat)
-     call memocc(istat,iall,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+     call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
     
   
       ! Purify the kernel
@@ -769,7 +786,7 @@ subroutine foe(iproc, nproc, tmprtr, &
       else
           it_shift=1
       end if
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor)
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
       if (iproc==0) then
           call yaml_close_sequence()
       end if
@@ -783,12 +800,12 @@ subroutine foe(iproc, nproc, tmprtr, &
       ! Check whether this agrees with the number of electrons. If not,
       ! calculate a new kernel with a sharper decay of the error function
       ! (correponds to a lower temperature)
-      if (abs(sumn-tmb%foe_obj%charge)>1.d-6) then
+      if (abs(sumn-tmb%foe_obj%charge)>1.d-5) then
           cycle_FOE=.true.
       else
           cycle_FOE=.false.
       end if
-      if (iproc==0) then
+      if (foe_verbosity>=1 .and. iproc==0) then
           call yaml_map('trace(KS)',sumn)
           call yaml_map('need to repeat with sharper decay',cycle_FOE)
       end if
@@ -799,9 +816,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   end do temp_loop
 
 
-  iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix_compr))*kind(tmb%linmat%inv_ovrlp_large%matrix_compr)
-  deallocate(tmb%linmat%inv_ovrlp_large%matrix_compr,stat=istat)
-  call memocc(istat,iall,'tmb%linmat%inv_ovrlp_large%matrix_compr',subname)
+  call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
   
 
 
@@ -845,6 +860,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
 
+  call f_release_routine()
 
 
       contains
@@ -853,21 +869,19 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Taylor approximation of S^-1/2 up to higher order
           allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
           call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-          call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+          call uncompress_matrix(iproc,tmb%linmat%ovrlp)
 
-          allocate(tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%norb,tmb%orbs%norb),stat=istat)
-          call memocc(istat, tmb%linmat%inv_ovrlp_large%matrix,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+          tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
+              id='tmb%linmat%inv_ovrlp_large%matrix')
 
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, &
                tmb%linmat%ovrlp%matrix, tmb%linmat%inv_ovrlp_large%matrix, error, tmb%orbs, check_accur=.true.)
-          if (iproc==0) then
+          if (foe_verbosity>=1 .and. iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
-          call compress_matrix_for_allreduce(iproc,tmb%linmat%inv_ovrlp_large)
+          call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
 
-          iall=-product(shape(tmb%linmat%inv_ovrlp_large%matrix))*kind(tmb%linmat%inv_ovrlp_large%matrix)
-          deallocate(tmb%linmat%inv_ovrlp_large%matrix,stat=istat)
-          call memocc(istat,iall,'tmb%linmat%inv_ovrlp_large%matrix',subname)
+          call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
 
           iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
           deallocate(tmb%linmat%ovrlp%matrix,stat=istat)
@@ -1329,12 +1343,13 @@ end function determinant
 subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector, vector_compressed)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nsize_polynomial
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: fermi
+  type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(in) :: vector
   real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
 
@@ -1372,12 +1387,13 @@ end subroutine compress_polynomial_vector
 subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector_compressed, vector)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nsize_polynomial
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: fermi
+  type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
 
@@ -1418,16 +1434,18 @@ end subroutine uncompress_polynomial_vector
 function trace_sparse(iproc, nproc, orbs, amat, bmat)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc,  nproc
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: amat, bmat
+  type(sparse_matrix),intent(in) :: amat, bmat
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
-  integer :: matrixindex_in_compressed, ierr
+  integer :: ierr
   real(kind=8) :: sumn, trace_sparse
 
       sumn=0.d0

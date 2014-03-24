@@ -18,6 +18,8 @@ program WaCo
    use yaml_output
    use module_input_dicts
    use module_atoms, only: deallocate_atoms_data
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -25,7 +27,7 @@ program WaCo
    type(atoms_data) :: atoms
    type(input_variables) :: input
    type(workarr_sumrho) :: w
-   type(communications_arrays), target :: commsw
+   type(comms_cubic), target :: commsw
    type(local_zone_descriptors) :: Lzd             !< debug only
    integer :: iiband,ldim,gdim                     !< debug only
    logical, dimension(:),allocatable :: calcbounds !< debug only
@@ -73,7 +75,7 @@ program WaCo
 !   integer :: indL,ilr
 !   real(kind=8),dimension(:,:),allocatable :: coeff
 !   type(orbitals_data) :: wannorbs
-!   type(communications_arrays), target :: wanncomms
+!   type(comms_cubic), target :: wanncomms
 !   real(wp), allocatable :: psi2(:)
 !   real(gp),allocatable :: cxyz2(:,:) !debug only
 !   integer, allocatable :: list(:)    !debug only

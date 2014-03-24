@@ -147,6 +147,9 @@ subroutine timing(iproc,category,action)
   integer :: cat_id
   character(len=max_field_length) :: cattmp
 
+  !this is ti ensure that timing routines have been properly called
+  call check_initialization()
+
   !modification of the timing to see if it works
   select case(action)
   case('PR')

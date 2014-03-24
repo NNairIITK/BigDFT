@@ -14,10 +14,11 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => orthogonalize
+  use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   !>Choose which orthogonalization method shall be used:
   !!    orthpar%methOrtho==0: Cholesky orthonormalization (i.e. a pseudo Gram-Schmidt)
   !!    orthpar%methOrtho==1: hybrid Gram-Schmidt/Cholesky orthonormalization
@@ -208,11 +209,12 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   use module_base
   use module_types
   use module_interfaces, except_this_one => orthoconstraint
+  use communications_base, only: comms_cubic
   implicit none
           logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
           integer, intent(in) :: iproc,nproc
           type(orbitals_data), intent(in) :: orbs
-          type(communications_arrays), intent(in) :: comms
+          type(comms_cubic), intent(in) :: comms
           !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
           real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
           real(wp), dimension(orbs%npsidim_comp), optional, intent(in) :: spsi
@@ -460,10 +462,11 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   use module_base
   use module_types
   use yaml_output
+  use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs !eval is updated
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: hpsi
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
   real(wp), intent(out) :: evsum
@@ -787,11 +790,12 @@ END SUBROUTINE subspace_diagonalisation
 subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_virt,msg)
   use module_base
   use module_types
+          use communications_base, only: comms_cubic
   implicit none
   logical, intent(in) :: msg
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs,orbsv
-  type(communications_arrays), intent(in) :: comms,commsv
+  type(comms_cubic), intent(in) :: comms,commsv
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: psi_occ
   real(wp), dimension(commsv%nvctr_par(iproc,0)*orbsv%nspinor*orbsv%norb), intent(inout) :: psi_virt
   !local variables
@@ -979,10 +983,11 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
         subroutine orbitals_and_components(iproc,ikpt,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
           use module_base
           use module_types
+          use communications_base, only: comms_cubic
           implicit none
           integer, intent(in) :: iproc,ikpt,ispin
           type(orbitals_data), intent(in) :: orbs
-          type(communications_arrays), intent(in) :: comms
+          type(comms_cubic), intent(in) :: comms
           integer, intent(out) :: nvctrp,norb,norbs,ncomp,nspinor
           
           nvctrp=comms%nvctr_par(iproc,ikpt)
@@ -1856,6 +1861,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => gsChol
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
@@ -1864,7 +1870,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
   integer, intent(inout) :: nspinor
   type(orthon_data), intent(in):: orthpar
   type(orbitals_data):: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   integer, dimension(nspin), intent(in) :: norbArr
   integer, dimension(nspin,0:orbs%nkpts), intent(inout) :: ndim_ovrlp
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psi
@@ -2019,13 +2025,14 @@ subroutine gramschmidt(iproc, norbIn, psit, ndim_ovrlp, ovrlp, orbs, nspin,&
      nspinor, comms, norbTot, block1, block2, ispinIn, paw)
 use module_base
 use module_types
+use communications_base, only: comms_cubic
 implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, norbIn, nspin, block1, block2, ispinIn
 integer,intent(out) :: nspinor
 type(orbitals_data):: orbs
-type(communications_arrays), intent(in) :: comms
+type(comms_cubic), intent(in) :: comms
 type(paw_objects),optional,intent(inout)::paw
 real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psit
 integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
@@ -2166,13 +2173,14 @@ subroutine cholesky(iproc,nspin, norbIn, psi, orbs, comms, ndim_ovrlp, ovrlp, no
 
 use module_base
 use module_types
+use communications_base, only: comms_cubic
 implicit none
 
 ! Calling arguments
 !integer:: iproc,nvctrp,norbIn, nspinor, nspin, norbTot, block1, ispinIn
 integer:: iproc,nvctrp,norbIn, block1, ispinIn,nspin
 type(orbitals_data):: orbs
-type(communications_arrays):: comms
+type(comms_cubic):: comms
 real(kind=8),dimension(orbs%npsidim_comp),intent(inout):: psi
 integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
 real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts),1):: ovrlp
@@ -2304,6 +2312,7 @@ subroutine loewdin(iproc, norbIn, nspinor, block1, ispinIn, orbs, comms, nspin, 
 
 use module_base
 use module_types
+use communications_base, only: comms_cubic
 implicit none
 
 ! Calling arguments
@@ -2311,7 +2320,7 @@ integer,intent(in):: iproc,norbIn, nspin, block1, ispinIn
 type(paw_objects),optional,intent(inout)::paw
 integer, intent(inout) :: nspinor
 type(orbitals_data),intent(in):: orbs
-type(communications_arrays),intent(in):: comms
+type(comms_cubic),intent(in):: comms
 real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
 integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
 real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
@@ -2512,13 +2521,14 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
   character(len=*), intent(in) :: category
   integer,intent(in):: iproc,nproc,nspin,norbIn,block1,ispinIn
   type(orbitals_data),intent(in):: orbs
-  type(communications_arrays),intent(in) :: comms
+  type(comms_cubic),intent(in) :: comms
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psi
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
   real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)),intent(out):: ovrlp
@@ -2617,13 +2627,14 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
   character(len=*), intent(in) :: category
   integer,intent(in):: iproc,nproc,nspin,norbIn,block1,ispinIn
   type(orbitals_data),intent(in):: orbs
-  type(communications_arrays),intent(in) :: comms
+  type(comms_cubic),intent(in) :: comms
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psi
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: spsi
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
@@ -2742,6 +2753,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
 
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
@@ -2749,7 +2761,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
   character(len=*), intent(in) :: category
   integer,intent(in):: iproc, nproc, nspin, norbIn, block1, block2, ispinIn
   type(orbitals_data),intent(in):: orbs
-  type(communications_arrays),intent(in) :: comms
+  type(comms_cubic),intent(in) :: comms
   real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psit
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
   real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
@@ -2850,6 +2862,7 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
 
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
@@ -2857,7 +2870,7 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
   character(len=*), intent(in) :: category
   integer,intent(in):: iproc, nproc, nspin, norbIn, block1, block2, ispinIn
   type(orbitals_data),intent(in):: orbs
-  type(communications_arrays),intent(in) :: comms
+  type(comms_cubic),intent(in) :: comms
   real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psit,spsit
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
   real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
@@ -3010,7 +3023,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!  implicit none
 !!  integer, intent(in) :: iproc,nproc,ndim
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(wavefunctions_descriptors), intent(in) :: wfd
 !!  !real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(in) :: psi
 !!  !real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(out) :: hpsi
@@ -3217,7 +3230,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!!!!  implicit none
 !!!!!  integer, intent(in) :: iproc,lproc, uproc, norbPerGroup, newComm
 !!!!!  type(orbitals_data), intent(in) :: orbs
-!!!!!  type(communications_arrays), intent(in) :: comms
+!!!!!  type(comms_cubic), intent(in) :: comms
 !!!!!  type(input_variables), intent(in) :: input
 !!!!!  !real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(inout) :: psi
 !!!!!  real(wp), dimension(orbs%npsidim), intent(inout) :: psi
@@ -3374,7 +3387,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!!!!  character(len=*), intent(in) :: category
 !!!!!  integer,intent(in):: iproc,nproc,nspin,norbIn,block1,ispinIn, newComm
 !!!!!  type(orbitals_data),intent(in):: orbs
-!!!!!  type(communications_arrays),intent(in) :: comms
+!!!!!  type(comms_cubic),intent(in) :: comms
 !!!!!  real(wp),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb),intent(in) :: psi
 !!!!!  integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
 !!!!!  real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)),intent(out):: ovrlp
@@ -3463,7 +3476,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!!!!  implicit none
 !!!!!  integer, intent(in) :: iproc,ikptp,ispin, jproc, iorb
 !!!!!  type(orbitals_data), intent(in) :: orbs
-!!!!!  type(communications_arrays), intent(in) :: comms
+!!!!!  type(comms_cubic), intent(in) :: comms
 !!!!!  integer, intent(out) :: nvctrp,norb,norbs,ncomp,nspinor
 !!!!!
 !!!!!  !nvctrp=comms%nvctr_par(iproc,ikptp)

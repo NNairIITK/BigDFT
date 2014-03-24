@@ -277,6 +277,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use lanczos_interface, only: xabs_lanczos,xabs_cg,xabs_chebychev
    use esatto, only: binary_search
    use module_atoms, only: set_symmetry_data,atoms_data
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -314,7 +316,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(kind=8) :: tel,psoffset
    !real(gp) :: edisp ! Dispersion energy
    type(DFT_PSP_projectors) :: nlpsp
-   type(communications_arrays) :: comms
+   type(comms_cubic) :: comms
    type(gaussian_basis) :: Gvirt
    type(rho_descriptors)  :: rhodsc
    type(energy_terms) :: energs
@@ -1692,6 +1694,8 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use module_types
    use module_xc
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
@@ -1703,7 +1707,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(orbitals_data), intent(inout) :: orbs
    type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
-   type(communications_arrays), intent(in) :: comms
+   type(comms_cubic), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
    type(input_variables):: input
    type(symmetry_data), intent(in) :: symObj
@@ -1724,7 +1728,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   integer :: i_stat,i_all,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu
   type(orbitals_data) :: orbse
-  type(communications_arrays) :: commse
+  type(comms_cubic) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   !real(wp), dimension(:,:,:), allocatable :: mom_vec
@@ -1772,7 +1776,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   if(potshortcut<=0) then
      call nullify_local_zone_descriptors(Lzde)
-     call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
+     call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,nlpsp,Lzde)
   else
      call nullify_local_zone_descriptors(Lzde)
      Lzde = Lzd
@@ -1893,9 +1897,23 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call memocc(i_stat,i_all,'orbse%eval',subname)
 
 
+  !in the case of multiple nlr restore the nl projectors
+  if (Lzde%nlr > 1) then
+     if (Lzd%nlr /=1) then
+        call f_err_throw('The cubic localization region should have always nlr=1',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+     else
+        call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/.true./))
+        if (iproc == 0) call print_nlpsp(nlpsp)
+     end if
+  end if
+  
+
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)
   if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde, subname)  
+
+
 
   i_all=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=i_stat)

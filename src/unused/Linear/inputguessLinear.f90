@@ -2178,7 +2178,7 @@ do iat=1,lzd%nlr
         !!do istat=1,mad%nvctr
         !!    write(4000+iproc,*) i, hamTempCompressed2(istat,i)
         !!end do
-        call uncompressMatrix(orbsig%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
+        call uncompress_matrix(orbsig%norb, mad, hamTempCompressed2(1,i), ham(1,1,i))
      end do
      imatold=imat+1
 

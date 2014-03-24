@@ -22,6 +22,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use vdwcorrection
   use yaml_output
   use module_atoms, only: set_symmetry_data
+  use communications_base, only: comms_cubic
+  use communications_init, only: orbitals_communicators
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -34,7 +36,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   type(orbitals_data), intent(inout) :: orbs, lorbs
   type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
   type(DFT_PSP_projectors), intent(out) :: nlpsp
-  type(communications_arrays), intent(out) :: comms
+  type(comms_cubic), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(system_fragment), dimension(:), pointer :: ref_frags
@@ -282,12 +284,14 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,proj_G)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
-  !calculate the partitioning of the orbitals between the different processors
-
+  !the complicated part of the descriptors has not been filled
   if (dry_run) then
      call f_release_routine()
      return
   end if
+  !calculate the partitioning of the orbitals between the different processors
+!  print *,'here the localization regions should have been filled already'
+!  stop
 
 
   if (present(denspot)) then
@@ -308,7 +312,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !check the communication distribution
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-      call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+      call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
@@ -1263,7 +1267,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
         nproc_left=nproc-nproc_per_kpt*nkpts
         ikpt=0
         jproc=0
-        !print *,'qui',nproc_left,nproc_per_kpt
+        !print *,'here',nproc_left,nproc_per_kpt
         do kproc=0,nproc_left-1
            ikpt=ikpt+1
            if (ikpt > nkpts) stop 'ERROR: also this should not happen3'
@@ -1272,7 +1276,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
            end do
            jproc=jproc+nproc_per_kpt+1
         end do
-        !print *,'ciao'
+        !print *,'debug'
         if ((nproc_per_kpt+1)*nproc_left < nproc) then
            do jproc=(nproc_per_kpt+1)*nproc_left,nproc-1,nproc_per_kpt
               ikpt=ikpt+1
@@ -1292,7 +1296,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
         nkpts_left=nkpts-nkpt_per_proc*nproc
         ikpt=1
         jproc=-1
-        !print *,'qui',nkpts_left,nkpts_per_proc
+        !print *,'hello',nkpts_left,nkpts_per_proc
         do jkpt=1,nkpts_left
            jproc=jproc+1
            if (jproc > nproc-1) stop 'ERROR: also this should not happen4'

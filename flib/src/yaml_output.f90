@@ -63,6 +63,7 @@ module yaml_output
      integer :: ievt_flow=0                                       !< Events which track is kept of in the flowrite
      integer, dimension(tot_max_flow_events) :: flow_events=0     !< Set of events in the flow
      type(dictionary), pointer :: dict_warning=>null()            !< Dictionary of warnings emitted in the stream
+     !character(len=tot_max_record_length), dimension(:), pointer :: buffer !<
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
@@ -341,8 +342,21 @@ contains
        else
           pos(1:len(pos))='append'
        end if
-       if (.not. unit_is_open) &
+       if (.not. unit_is_open) then
+          !inquire also file opening
+          inquire(file=trim(filename),opened=unit_is_open,iostat=ierr)
+          if (f_err_raise(ierr /=0,'error in file inquiring, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+          if (unit_is_open) then
+             if(present(istat)) then
+                istat=YAML_STREAM_ALREADY_PRESENT
+             else
+                call f_err_throw('The file '//trim(filename)//' is already connected',&
+                     YAML_STREAM_ALREADY_PRESENT)
+             end if
+          end if
           open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
+       end if
        if (present(istat)) then
           istat=ierr
        else

@@ -3,6 +3,8 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_types
   use module_interfaces, except_this_one => pulay_correction_new
   use yaml_output
+  use communications, only: transpose_localized
+  use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
 
   ! Calling arguments
@@ -78,7 +80,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   delta_phit_f=f_malloc(isize,id='delta_phit_f')
   !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
   tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
-  call uncompressMatrix(iproc,tmb%linmat%denskern_large)
+  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
   call to_zero(3*at%astruct%nat, fpulay(1,1))
   do idir=1,3
       ! calculate the overlap matrix among hphi and phi_delta_large
@@ -87,7 +89,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%ham)
       tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
-      call uncompressMatrix(iproc,tmb%linmat%ham)
+      call uncompress_matrix(iproc,tmb%linmat%ham)
 
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
@@ -136,7 +138,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
 
       tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
       tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-      call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+      call uncompress_matrix(iproc,tmb%linmat%ovrlp)
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
                  tmb%linmat%ovrlp%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
                  0.d0, tempmat, tmb%orbs%norb)
@@ -152,7 +154,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       denskern_tmp=tmb%linmat%denskern_large%matrix_compr
       tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
       tmb%linmat%denskern_large%matrix=tempmat
-      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern_large)
+      call compress_matrix(iproc,tmb%linmat%denskern_large)
       call f_free_ptr(tmb%linmat%denskern_large%matrix)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%denskern_large, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
@@ -427,6 +429,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use module_types
   use module_interfaces, except_this_one => pulay_correction
   use yaml_output
+  use communications, only: transpose_localized, start_onesided_communication
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -448,7 +452,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   !!integer :: ialpha, iat, iiorb
   real(kind=8) :: kernel, ekernel
   real(kind=8),dimension(:),allocatable :: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
-  type(sparseMatrix) :: dovrlp(3), dham(3)
+  type(sparse_matrix) :: dovrlp(3), dham(3)
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   character(len=*),parameter :: subname='pulay_correction'
@@ -518,14 +522,18 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   ! DOVRLP AND DHAM SHOULD HAVE DIFFERENT SPARSITIES, BUT TO MAKE LIFE EASIER KEEPING THEM THE SAME FOR NOW
   ! also array of structure a bit inelegant at the moment
   do jdir = 1, 3
-    call nullify_sparsematrix(dovrlp(jdir))
-    call nullify_sparsematrix(dham(jdir))
+    !call nullify_sparse_matrix(dovrlp(jdir))
+    !call nullify_sparse_matrix(dham(jdir))
+    dovrlp(jdir)=sparse_matrix_null()
+    dham(jdir)=sparse_matrix_null()
     call sparse_copy_pattern(tmb%linmat%ham,dovrlp(jdir),iproc,subname) 
     call sparse_copy_pattern(tmb%linmat%ham,dham(jdir),iproc,subname)
-    allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
-    call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
-    allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
-    call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
+    !!allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
+    !!call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
+    !!allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
+    !!call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
+    dham(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
+    dovrlp(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
 
     call get_derivative(jdir, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%lzd%hgrids(1), tmb%orbs, &
          tmb%ham_descr%lzd, tmb%ham_descr%psi, lhphilarge)
@@ -640,8 +648,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call memocc(istat, iall, 'denspot%pot_work', subname)
 
   do jdir=1,3
-     call deallocate_sparseMatrix(dovrlp(jdir),subname)
-     call deallocate_sparseMatrix(dham(jdir),subname)
+     call deallocate_sparse_matrix(dovrlp(jdir),subname)
+     call deallocate_sparse_matrix(dham(jdir),subname)
   end do
 
   !!if(iproc==0) write(*,'(1x,a)') 'done.'

@@ -265,8 +265,9 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj,nbseg_dim,npack_dim,mproj_max
   integer :: iat,i_stat,i_all,iseg
+  integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
   call f_routine(id=subname)
 
@@ -299,12 +300,35 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   end if
 
   !here the allocation is possible
+  nbseg_dim=0
+  npack_dim=0
+  mproj_max=0
   do iat=1,nl%natoms
      !also the fact of allocating pointers with size zero has to be discussed
      !for the moments the bounds are not needed for projectors
      call allocate_wfd(nl%pspd(iat)%plr%wfd)
+     if (nl%pspd(iat)%mproj>0) then
+        nbseg_dim=max(nbseg_dim,&
+             nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f)
+        mproj_max=max(mproj_max,nl%pspd(iat)%mproj)
+        npack_dim=max(npack_dim,&
+             nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f)
+        !packing array (for the moment all the projectors contribute) 
+        npack_dim=max(npack_dim,nl%pspd(iat)%plr%wfd%nvctr_c+&
+             7*nl%pspd(iat)%plr%wfd%nvctr_f)
+     end if
+     
   end do
   nl%proj=f_malloc0_ptr(nl%nprojel,id='proj')
+  !for the work arrays assume always the maximum components
+  nl%wpack=f_malloc_ptr(4*npack_dim,id='wpack')
+  nl%scpr=f_malloc_ptr(4*2*mproj_max,id='scpr')
+  nl%cproj=f_malloc_ptr(4*mproj_max,id='cproj')
+  nl%hcproj=f_malloc_ptr(4*mproj_max,id='hcproj')
+
+  !allocate the work arrays for building tolr array of structures
+  nbsegs_cf=f_malloc(nbseg_dim,id='nbsegs_cf')
+  keyg_lin=f_malloc(lr%wfd%nseg_c+lr%wfd%nseg_f,id='keyg_lin')
 
   ! After having determined the size of the projector descriptor arrays fill them
   do iat=1,at%astruct%nat
@@ -349,10 +373,15 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
            call transform_keyglob_to_keygloc(lr,nl%pspd(iat)%plr,mseg,nl%pspd(iat)%plr%wfd%keyglob(1,iseg),&
                 nl%pspd(iat)%plr%wfd%keygloc(1,iseg)) 
         end if
+        !in the case of linear scaling this section has to be built again
+        call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
+             keyg_lin,nbsegs_cf,nl%pspd(iat)%tolr)
      endif
   enddo
 
   call f_free(logrid)
+  call f_free(keyg_lin)
+  call f_free(nbsegs_cf)
   !fill the projectors if the strategy is a distributed calculation
   if (.not. nl%on_the_fly) then
      !calculate the wavelet expansion of projectors
@@ -701,6 +730,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_interfaces, except_this_one => input_memory_linear
   use module_fragments
   use yaml_output
+  use communications, only: transpose_localized, untranspose_localized
   implicit none
 
   ! Calling arguments
@@ -723,6 +753,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
+  real(kind=8) :: pnrm
+  logical :: rho_negative
 
   ! Determine size of phi_old and phi
   ndim_old=0
@@ -798,9 +830,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!   call memocc(i_stat, i_all, 'tmb_old%linmat%denskern%matrix_compr', subname)
   !!end if
   if (associated(tmb_old%linmat%denskern_large%matrix_compr)) then
-     i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
-     deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)
-     call memocc(i_stat, i_all, 'tmb_old%linmat%denskern_large%matrix_compr', subname)
+     !!i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
+     !!deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)
+     !!call memocc(i_stat, i_all, 'tmb_old%linmat%denskern_large%matrix_compr', subname)
+     call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
   end if
 
   ! destroy it all together here - don't have all comms arrays
@@ -889,11 +922,31 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+           tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+           denspot%rhov, rho_negative)
+     if (rho_negative) then
+         call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+         !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+         !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+         !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+     end if
+
       call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
-      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-      call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+      if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+         ! set the initial charge density
+         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+              pnrm,denspot%dpbox%nscatterarr)
+      end if
+      if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+         ! set the initial potential
+         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+              pnrm,denspot%dpbox%nscatterarr)
+      end if
   end if
 
   ! Orthonormalize the input guess if necessary
@@ -966,6 +1019,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use gaussians
+           use communications_base, only: comms_cubic
+           use communications_init, only: orbitals_communicators
+           use communications, only: transpose_v
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc
@@ -974,7 +1030,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   type(atoms_data), intent(in) :: at
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(local_zone_descriptors), intent(inout) :: Lzd
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   type(energy_terms), intent(inout) :: energs
   type(orbitals_data), intent(inout) :: orbs
   type(DFT_local_fields), intent(inout) :: denspot
@@ -992,7 +1048,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin,ikpt
   real(gp) :: hxh,hyh,hzh,etol,accurex,eks
   type(orbitals_data) :: orbse
-  type(communications_arrays) :: commse
+  type(comms_cubic) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: passmat
   !real(wp), dimension(:,:,:), allocatable :: mom_vec
@@ -1060,7 +1116,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   ! ###################################################################
   call nullify_local_zone_descriptors(Lzde)
   call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,&
-       Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,at,orbse,rxyz,Lzde)
+       Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,at,orbse,rxyz,nlpsp,Lzde)
 
   if(iproc==0 .and. Lzde%linear) call yaml_comment('Entering the Linear IG')
   !write(*,'(1x,A)') 'Entering the Linear IG'
@@ -1163,7 +1219,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      end if
 
      !transpose the psi wavefunction
-     call transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,work=hpsi,outadd=psit)
+     call toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,hpsi,outadd=psit)
 
      nullify(G%rxyz)
 
@@ -1321,6 +1377,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call full_local_potential(iproc,nproc,orbse,Lzde,Lzde%lintyp,denspot%dpbox,&
        & denspot%xc,denspot%rhov,denspot%pot_work)
   orbse%nspin=nspin_ig
+
+  !update the locregs in the case of locreg for input guess
+
+
 
   !write(*,*) 'size(denspot%pot_work)', size(denspot%pot_work)
   call FullHamiltonianApplication(iproc,nproc,at,orbse,rxyz,&
@@ -1502,6 +1562,16 @@ contains
        end if
     endif
 
+    !in the case of multiple nlr restore the nl projectors
+    if (Lzde%nlr > 1) then
+!!$       if (Lzd%nlr /=1) then
+!!$          call f_err_throw('The cubic localization region has always nlr=1',err_name='BIGDFT_RUNTIME_ERROR')
+!!$       else
+          call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/(.true.,ii=1,Lzd%nlr)/))
+          if (iproc == 0) call print_nlpsp(nlpsp)
+!!$       end if
+    end if
+
     !here we can define the subroutine which generates the coefficients for the virtual orbitals
     call deallocate_gwf(G,subname)
     call deallocate_local_zone_descriptors(Lzde, subname)
@@ -1531,6 +1601,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use dynamic_memory
   use yaml_output
   use gaussians, only:gaussian_basis
+  use sparsematrix_base, only: sparse_matrix
+  use communications, only: transpose_localized, untranspose_localized
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
@@ -1565,12 +1637,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   integer :: iatyp
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
   type(paw_objects)::paw
-  logical :: overlap_calculated, perx,pery,perz
+  logical :: overlap_calculated, perx,pery,perz, rho_negative
   real(gp) :: tx,ty,tz,displ,mindist
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max
   real(kind=8) :: pnrm
-  type(sparseMatrix) :: ham_small
+  type(sparse_matrix) :: ham_small
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
@@ -1866,7 +1938,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      !!call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
      !!call calculate_density_kernel(iproc, nproc, .true., KSwfn%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern%matrix)
-     !!call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
+     !!call compress_matrix(iproc,tmb%linmat%denskern)
      !!do itmb=1,tmb%orbs%norb
      !!   do jtmb=1,tmb%orbs%norb
      !!      write(20,*) itmb,jtmb,tmb%linmat%denskern%matrix(itmb,jtmb)
@@ -1941,8 +2013,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
      !!ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
      !!ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ksk')
-     !!call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
-     !!call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%denskern)
+     !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+     !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%denskern)
      !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix(1,1), tmb%orbs%norb, &
      !!           tmb%linmat%ovrlp%matrix(1,1), tmb%orbs%norb, 0.d0, ks(1,1), tmb%orbs%norb) 
      !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
@@ -1978,7 +2050,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           tmb%orbs, tmb%psi, tmb%collcom_sr)
 
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+          tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+          denspot%rhov, rho_negative)
+     if (rho_negative) then
+         if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+         call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+     end if
 
      ! CDFT: calculate w(r) and w_ab, define some initial guess for V and initialize other cdft_data stuff
      call timing(iproc,'constraineddft','ON')
@@ -2011,10 +2089,23 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)
+     if (in%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+        ! set the initial charge density
+        call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+             denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
+             pnrm,denspot%dpbox%nscatterarr)
+     end if
      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
      call updatePotential(in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-     call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+     if (in%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+        ! set the initial potential
+        call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+             denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
+             pnrm,denspot%dpbox%nscatterarr)
+     end if
 
     !call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'potential.cube', &
     !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
@@ -2037,7 +2128,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.false.,&
-             .true.,ham_small,0,0,0,0,in%lin%order_taylor,in%calculate_KS_residue) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             .true.,ham_small,0,0,0,0,in%lin%order_taylor,&
+             in%purification_quickreturn,in%calculate_KS_residue) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then
         !print*,'coeffs after extra diag:'
@@ -2097,7 +2189,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
     
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,&
+     call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,KSwfn%comms,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 

@@ -1604,7 +1604,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
-type(communications_arrays), intent(in) :: comms
+type(comms_cubic), intent(in) :: comms
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb), intent(in) :: phi, hphi
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: HamSmall
 
@@ -1917,8 +1917,8 @@ implicit none
 integer:: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
 type(orbitals_data), intent(in) :: orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
+type(comms_cubic), intent(in) :: comms
+type(comms_cubic), intent(in) :: commsLIN
 real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
 real(8),dimension(orbsLIN%norb,orbsLIN%norb):: HamSmall
@@ -1971,8 +1971,8 @@ implicit none
 integer:: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
 type(orbitals_data), intent(in) :: orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
+type(comms_cubic), intent(in) :: comms
+type(comms_cubic), intent(in) :: commsLIN
 real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
 real(8),dimension(orbsLIN%norb,orbs%norb):: coeff

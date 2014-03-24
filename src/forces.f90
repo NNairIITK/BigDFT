@@ -4190,11 +4190,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
      orbs,nlpsp,lzd,collcom,phi,denskern,fsep,refill,strten)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: lzd
-  type(collective_comms),intent(in) :: collcom
+  type(comms_linear),intent(in) :: collcom
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   logical, intent(in) :: refill
   integer, intent(in) :: iproc, nproc, npsidim_orbs
@@ -4203,7 +4204,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim_orbs), intent(in) :: phi
-  type(SparseMatrix),intent(in) :: denskern
+  type(sparse_matrix),intent(in) :: denskern
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------

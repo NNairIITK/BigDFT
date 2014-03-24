@@ -91,7 +91,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
   real(gp), dimension(:), allocatable :: energies_mpi
   real(dp) :: detg
 
-  call timing(iproc,'Exchangecorr  ','ON')
+  call f_timing(TCAT_EXCHANGECORR,'ON')
+  !call timing(iproc,'Exchangecorr  ','ON')
 
 !!$  if (present(quiet)) then
 !!$     if(quiet == 'yes' .or. quiet == 'YES') then
@@ -477,7 +478,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
 
   if(nspin==1 .and. xc%ixc /= 0) eh=eh*2.0_gp
   !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
-  call timing(iproc,'Exchangecorr  ','OF')
+  !call timing(iproc,'Exchangecorr  ','OF')
+  call f_timing(TCAT_EXCHANGECORR,'OF')
 contains
 
   subroutine PSolver_yaml(code,n01,n02,n03,nproc,ixc)

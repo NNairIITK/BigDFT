@@ -55,7 +55,9 @@ program memguess
    integer :: ierror
 
    call f_lib_initialize()
-
+   !initialize errors and timings as bigdft routines are called
+   call bigdft_init_errors()
+   call bigdft_init_timing_categories()
    ! Get arguments
    !call getarg(1,tatonam)
    call get_command_argument(1, value = tatonam, status = istat)
