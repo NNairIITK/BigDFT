@@ -69,6 +69,7 @@ program wvl
       call print_general_parameters(inputs,atoms)
    end if
    call dict_free(user_inputs)
+   GPU%OCLconv = .false.
 
 !!$  ! Start MPI in parallel version
 !!$  call MPI_INIT(ierr)
@@ -91,7 +92,7 @@ program wvl
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
   call system_size(atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult, &
-       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),.false.,Lzd%Glr,shift)
+       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),GPU%OCLconv,Lzd%Glr,shift)
   call print_atoms_and_grid(Lzd%Glr, atoms, atoms%astruct%rxyz, shift, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
 
