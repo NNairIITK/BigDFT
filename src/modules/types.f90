@@ -2289,7 +2289,7 @@ subroutine find_category(category,cat_id)
   enddo
   if (cat_id==0) then
      call f_err_throw('Timing routine error,'//&
-          ' the category '//trim(category)//' requested has not been found',&
+          ' requested category '//trim(category)//' has not been found',&
           err_id=TIMING_INVALID)
 !!$     if (bigdft_mpi%iproc==0) &
 !!$          call yaml_warning('Requested timing category '//trim(category)//&

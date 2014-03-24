@@ -2468,7 +2468,7 @@ module module_interfaces
          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
        end subroutine check_linear_and_create_Lzd
 
-       subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rxyz,Lzd)
+       subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rxyz,nl,Lzd)
          use module_base
          use module_types
          implicit none
@@ -2480,6 +2480,7 @@ module module_interfaces
          type(orbitals_data),intent(inout) :: orbs
          integer, intent(in) :: linearmode
          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+         type(DFT_PSP_projectors), intent(inout) :: nl
        end subroutine create_LzdLIG
 
        subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)

@@ -1762,7 +1762,7 @@ subroutine print_nlpsp(nlpsp)
   end do
   totpack=totpack*4
   if (associated(nlpsp%scpr)) totpack=totpack+size(nlpsp%scpr)
-  if (associated(nlpsp%cproj)) totpack=totpack+size(nlpsp%cproj)
+  if (associated(nlpsp%cproj)) totpack=totpack+size(nlpsp%cproj)*2
   if (totpack /=0) &
        call yaml_map('Size of workspaces',totpack)
   if (maxmask /=0) &
