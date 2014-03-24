@@ -670,7 +670,7 @@ linearcubic_linear:
  EH: 1.1e-9
  Epot: 1.01e-9
  energy: 1.841e-10
- Omega: 5.3e-10
+ Omega: 7.8e-10
 
 experimentalfoe_long:
  Atomic Forces (Ha/Bohr): 1.4e-05
