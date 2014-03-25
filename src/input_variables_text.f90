@@ -162,7 +162,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   !these variables seems deprecated, put them to their default value
   comments = 'convergence criterion on density to fix TMBS'
-  call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
+  call input_var(dummy_real,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
 
   ! Miscellaneous
   comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
@@ -201,7 +201,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
 
   !this variable seems deprecated
-  call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
+  call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
 
   comments='fscale: length scale over which complementary error function decays from 1 to 0'
   call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
@@ -254,7 +254,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      end if
 
      !number of basis functions for this atom type
-     call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
+ call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
      call input_var(ppao,'1.2d-2',dict_basis//AO_CONFINEMENT,&
           ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(ppl,'1.2d-2',dict_basis//CONFINEMENT//0,&
@@ -278,86 +278,87 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   !input dictionary is ready
   if (iproc==0) call yaml_map('Dictionary for lin',dict)
 
-  dummy_bool=dict//LIN_GENERAL//HYBRID
-  if (dummy_bool) then
-     in%lin%nlevel_accuracy=1
-  else
-     in%lin%nlevel_accuracy=2
-  end if
-  dummy_iarr=dict//LIN_GENERAL//NIT
-  in%lin%nit_lowaccuracy=dummy_iarr(1)
-  in%lin%nit_highaccuracy=dummy_iarr(2)
-  dummy_darr=dict//LIN_GENERAL//RPNRM_CV
-  in%lin%lowaccuracy_conv_crit =dummy_darr(1)
-  in%lin%highaccuracy_conv_crit=dummy_darr(2)
-  in%lin%reduce_confinement_factor=dict//LIN_GENERAL//CONF_DAMPING
-  in%lin%methTransformOverlap=dict//LIN_GENERAL//TAYLOR_ORDER
-  in%lin%plotBasisFunctions=dict//LIN_GENERAL//OUTPUT_WF
-  in%lin%calc_dipole=dict//LIN_GENERAL//CALC_DIPOLE
-  in%lin%pulay_correction=dict//LIN_GENERAL//CALC_PULAY//0
-  in%lin%new_pulay_correction=dict//LIN_GENERAL//CALC_PULAY//1
-  in%lin%diag_end=dict//LIN_GENERAL//SUBSPACE_DIAG
+!!  dummy_bool=dict//LIN_GENERAL//HYBRID
+!!  if (dummy_bool) then
+!!     in%lin%nlevel_accuracy=1
+!!  else
+!!     in%lin%nlevel_accuracy=2
+!!  end if
+!!  dummy_iarr=dict//LIN_GENERAL//NIT
+!!  in%lin%nit_lowaccuracy=dummy_iarr(1)
+!!  in%lin%nit_highaccuracy=dummy_iarr(2)
+!!  dummy_darr=dict//LIN_GENERAL//RPNRM_CV
+!!  in%lin%lowaccuracy_conv_crit =dummy_darr(1)
+!!  in%lin%highaccuracy_conv_crit=dummy_darr(2)
+!!  in%lin%reduce_confinement_factor=dict//LIN_GENERAL//CONF_DAMPING
+!!  in%lin%methTransformOverlap=dict//LIN_GENERAL//TAYLOR_ORDER
+!!  in%lin%plotBasisFunctions=dict//LIN_GENERAL//OUTPUT_WF
+!!  in%lin%calc_dipole=dict//LIN_GENERAL//CALC_DIPOLE
+!!  in%lin%pulay_correction=dict//LIN_GENERAL//CALC_PULAY//0
+!!  in%lin%new_pulay_correction=dict//LIN_GENERAL//CALC_PULAY//1
+!!  in%lin%diag_end=dict//LIN_GENERAL//SUBSPACE_DIAG
+!!
+!!
+!!  dummy_iarr=dict//LIN_BASIS//NIT
+!!  in%lin%nItBasis_lowaccuracy =dummy_iarr(1) 
+!!  in%lin%nItBasis_highaccuracy=dummy_iarr(2)
+!!  dummy_iarr=dict//LIN_BASIS//IDSX
+!!  in%lin%DIIS_hist_lowaccur =dummy_iarr(1)
+!!  in%lin%DIIS_hist_highaccur=dummy_iarr(2)
+!!  dummy_darr=dict//LIN_BASIS//GNRM_CV
+!!  in%lin%convCrit_lowaccuracy =dummy_darr(1)
+!!  in%lin%convCrit_highaccuracy=dummy_darr(2)
+!!  in%lin%early_stop=dict//LIN_BASIS//DELTAE_CV
+!!  in%lin%gnrm_dynamic=dict//LIN_BASIS//GNRM_DYN
+!!  in%lin%alphaDIIS=dict//LIN_BASIS//ALPHA_DIIS
+!!  in%lin%alphaSD=dict//LIN_BASIS//ALPHA_SD
+!!  in%lin%nItPrecond=dict//LIN_BASIS//NSTEP_PREC
+!!  in%lin%support_functions_converged=dict//LIN_BASIS//FIX_BASIS
+!!
+!!  !filling of input variable
+!!  dummy_char=dict//LIN_KERNEL//LINEAR_METHOD
+!!  select case(trim(dummy_char))
+!!  case('DIRMIN')
+!!     in%lin%scf_mode=100
+!!  case('DIAG')
+!!     dummy_char2=dict//LIN_KERNEL//MIXING_METHOD
+!!     select case(trim(dummy_char2))
+!!     case('DEN')
+!!        in%lin%scf_mode=101
+!!     case('POT')
+!!        in%lin%scf_mode=102
+!!     end select
+!!  case('FOE')
+!!     in%lin%scf_mode=103
+!!  end select
+!!  dummy_iarr=dict//LIN_KERNEL//NIT
+!!  in%lin%nItSCCWhenFixed_lowaccuracy =dummy_iarr(1)
+!!  in%lin%nItSCCWhenFixed_highaccuracy=dummy_iarr(2)
+!!  dummy_iarr=dict//LIN_KERNEL//NSTEP
+!!  in%lin%nItdmin_lowaccuracy =dummy_iarr(1)
+!!  in%lin%nItdmin_highaccuracy=dummy_iarr(2)
+!!  dummy_iarr=dict//LIN_KERNEL//IDSX_COEFF
+!!  in%lin%dmin_hist_lowaccuracy =dummy_iarr(1)
+!!  in%lin%dmin_hist_highaccuracy=dummy_iarr(2)
+!!  dummy_iarr=dict//LIN_KERNEL//IDSX
+!!  in%lin%mixHist_lowaccuracy =dummy_iarr(1)
+!!  in%lin%mixHist_highaccuracy=dummy_iarr(2)
+!!  dummy_darr=dict//LIN_KERNEL//ALPHAMIX
+!!  in%lin%alpha_mix_lowaccuracy =dummy_darr(1)
+!!  in%lin%alpha_mix_highaccuracy=dummy_darr(2)
+!!  dummy_darr=dict//LIN_KERNEL//GNRM_CV_COEFF
+!!  in%lin%convCritdmin_lowaccuracy =dummy_darr(1)
+!!  in%lin%convCritdmin_highaccuracy=dummy_darr(2)
+!!  dummy_darr=dict//LIN_KERNEL//RPNRM_CV
+!!  in%lin%convCritMix_lowaccuracy =dummy_darr(1)
+!!  in%lin%convCritMix_highaccuracy=dummy_darr(2)
+!!  in%lin%alphaSD_coeff=dict//LIN_KERNEL//ALPHA_SD_COEFF
+!!  in%lin%curvefit_dmin=dict//LIN_KERNEL//ALPHA_FIT_COEFF
+!!  dummy_darr=dict//LIN_KERNEL//EVAL_RANGE_FOE
+!!  in%lin%evlow =dummy_darr(1)
+!!  in%lin%evhigh=dummy_darr(2)
+!!  in%lin%fscale=dict//LIN_KERNEL//FSCALE_FOE
 
-
-  dummy_iarr=dict//LIN_BASIS//NIT
-  in%lin%nItBasis_lowaccuracy =dummy_iarr(1) 
-  in%lin%nItBasis_highaccuracy=dummy_iarr(2)
-  dummy_iarr=dict//LIN_BASIS//IDSX
-  in%lin%DIIS_hist_lowaccur =dummy_iarr(1)
-  in%lin%DIIS_hist_highaccur=dummy_iarr(2)
-  dummy_darr=dict//LIN_BASIS//GNRM_CV
-  in%lin%convCrit_lowaccuracy =dummy_darr(1)
-  in%lin%convCrit_highaccuracy=dummy_darr(2)
-  in%lin%early_stop=dict//LIN_BASIS//DELTAE_CV
-  in%lin%gnrm_dynamic=dict//LIN_BASIS//GNRM_DYN
-  in%lin%alphaDIIS=dict//LIN_BASIS//ALPHA_DIIS
-  in%lin%alphaSD=dict//LIN_BASIS//ALPHA_SD
-  in%lin%nItPrecond=dict//LIN_BASIS//NSTEP_PREC
-  in%lin%support_functions_converged=dict//LIN_BASIS//FIX_BASIS
-
-  !filling of input variable
-  dummy_char=dict//LIN_KERNEL//LINEAR_METHOD
-  select case(trim(dummy_char))
-  case('DIRMIN')
-     in%lin%scf_mode=100
-  case('DIAG')
-     dummy_char2=dict//LIN_KERNEL//MIXING_METHOD
-     select case(trim(dummy_char2))
-     case('DEN')
-        in%lin%scf_mode=101
-     case('POT')
-        in%lin%scf_mode=102
-     end select
-  case('FOE')
-     in%lin%scf_mode=103
-  end select
-  dummy_iarr=dict//LIN_KERNEL//NIT
-  in%lin%nItSCCWhenFixed_lowaccuracy =dummy_iarr(1)
-  in%lin%nItSCCWhenFixed_highaccuracy=dummy_iarr(2)
-  dummy_iarr=dict//LIN_KERNEL//NSTEP
-  in%lin%nItdmin_lowaccuracy =dummy_iarr(1)
-  in%lin%nItdmin_highaccuracy=dummy_iarr(2)
-  dummy_iarr=dict//LIN_KERNEL//IDSX_COEFF
-  in%lin%dmin_hist_lowaccuracy =dummy_iarr(1)
-  in%lin%dmin_hist_highaccuracy=dummy_iarr(2)
-  dummy_iarr=dict//LIN_KERNEL//IDSX
-  in%lin%mixHist_lowaccuracy =dummy_iarr(1)
-  in%lin%mixHist_highaccuracy=dummy_iarr(2)
-  dummy_darr=dict//LIN_KERNEL//ALPHAMIX
-  in%lin%alpha_mix_lowaccuracy =dummy_darr(1)
-  in%lin%alpha_mix_highaccuracy=dummy_darr(2)
-  dummy_darr=dict//LIN_KERNEL//GNRM_CV_COEFF
-  in%lin%convCritdmin_lowaccuracy =dummy_darr(1)
-  in%lin%convCritdmin_highaccuracy=dummy_darr(2)
-  dummy_darr=dict//LIN_KERNEL//RPNRM_CV
-  in%lin%convCritMix_lowaccuracy =dummy_darr(1)
-  in%lin%convCritMix_highaccuracy=dummy_darr(2)
-  in%lin%alphaSD_coeff=dict//LIN_KERNEL//ALPHA_SD_COEFF
-  in%lin%curvefit_dmin=dict//LIN_KERNEL//ALPHA_FIT_COEFF
-  dummy_darr=dict//LIN_KERNEL//EVAL_RANGE_FOE
-  in%lin%evlow =dummy_darr(1)
-  in%lin%evhigh=dummy_darr(2)
-  in%lin%fscale=dict//LIN_KERNEL//FSCALE_FOE
   in%lin%correctionOrthoconstraint=1 !to be checked later
 
   ! not sure whether to actually make this an input variable or not so just set to false for now
@@ -370,26 +371,26 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   ! Allocate lin pointers and atoms%rloc
 
-  call nullifyInputLinparameters(in%lin)
-  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
+!  call nullifyInputLinparameters(in%lin)
+!  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
 
-  !first fill all the types by the default, then override by per-type values
-  do jtype=1,atoms%astruct%ntypes
-     dict_basis => dict_iter(dict//BASIS_PARAMS)
-     do while(associated(dict_basis))
-        call basis_params_set_dict(dict_basis,in%lin,jtype)
-        dict_basis => dict_next(dict_basis)
-     end do
-     !then check if the objects exists in separate specifications
-     if (has_key(dict//BASIS_PARAMS,trim(atoms%astruct%atomnames(jtype)))) then
-        dict_basis => &
-             dict_iter(dict//BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
-     end if
-     do while(associated(dict_basis))
-        call basis_params_set_dict(dict_basis,in%lin,jtype)
-        dict_basis => dict_next(dict_basis)
-     end do
-  end do
+  !!!first fill all the types by the default, then override by per-type values
+  !!do jtype=1,atoms%astruct%ntypes
+  !!   dict_basis => dict_iter(dict//BASIS_PARAMS)
+  !!   do while(associated(dict_basis))
+  !!      call basis_params_set_dict(dict_basis,in%lin,jtype)
+  !!      dict_basis => dict_next(dict_basis)
+  !!   end do
+  !!   !then check if the objects exists in separate specifications
+  !!   if (trim(atoms%astruct%atomnames(jtype)) .in. dict//BASIS_PARAMS) then
+  !!      dict_basis => &
+  !!           dict_iter(dict//BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
+  !!   end if
+  !!   do while(associated(dict_basis))
+  !!      call basis_params_set_dict(dict_basis,in%lin,jtype)
+  !!      dict_basis => dict_next(dict_basis)
+  !!   end do
+  !!end do
   !then perform extra allocations
   nlr=0
   do iat=1,atoms%astruct%nat

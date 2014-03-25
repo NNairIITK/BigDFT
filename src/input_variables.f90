@@ -112,7 +112,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   logical, intent(in) :: dump
 
   !type(dictionary), pointer :: profs
-  integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max
+  integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max, jtype
   type(dictionary), pointer :: dict_minimal, var
   character(max_field_length) :: radical
 
@@ -175,6 +175,44 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      call input_set(in, TDDFT_VARIABLES, var)
      var => dict_next(var)
   end do
+  var => dict_iter(dict // LIN_GENERAL)
+  do while(associated(var))
+     call input_set(in, LIN_GENERAL, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_BASIS)
+  do while(associated(var))
+     call input_set(in, LIN_BASIS, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_KERNEL)
+  do while(associated(var))
+     call input_set(in, LIN_KERNEL, var)
+     var => dict_next(var)
+  end do
+  call nullifyInputLinparameters(in%lin)
+  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
+
+  !first fill all the types by the default, then override by per-type values
+  do jtype=1,atoms%astruct%ntypes
+     var => dict_iter(dict//LIN_BASIS_PARAMS)
+     do while(associated(var))
+        call basis_params_set_dict(var,in%lin,jtype)
+        var => dict_next(var)
+     end do
+     !then check if the objects exists in separate specifications
+     if (trim(atoms%astruct%atomnames(jtype)) .in. dict//LIN_BASIS_PARAMS) then
+        var => &
+             dict_iter(dict//LIN_BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
+     end if
+     do while(associated(var))
+        call basis_params_set_dict(var,in%lin,jtype)
+        var => dict_next(var)
+     end do
+  end do
+
+
+  write(*,*) 'HERE'
 
   if (.not. in%debug) then
      call ab7_memocc_set_state(1)

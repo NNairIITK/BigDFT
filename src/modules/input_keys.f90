@@ -143,7 +143,7 @@ module module_input_keys
   character(len=*), parameter, public :: LIN_KERNEL      ='lin_kernel'
   character(len=*), parameter, public :: LIN_BASIS_PARAMS='lin_basis_params'
   character(len=*), parameter, public :: HYBRID          ='hybrid'
-  character(len=*), parameter, public :: LINEAR_METHOD   ='method'
+  character(len=*), parameter, public :: LINEAR_METHOD   ='linear_method'
   character(len=*), parameter, public :: MIXING_METHOD   ='mixing_method'
   character(len=*), parameter, public :: NIT             ='nit'
   character(len=*), parameter, public :: NSTEP           ='nstep'
@@ -163,7 +163,7 @@ module module_input_keys
   character(len=*), parameter, public :: NSTEP_PREC      ='nstep_prec'
   character(len=*), parameter, public :: EVAL_RANGE_FOE  ='eval_range_foe'
   character(len=*), parameter, public :: FSCALE_FOE      ='fscale_foe'
-  character(len=*), parameter, public :: BASIS_PARAMS    ='basis_params'
+!  character(len=*), parameter, public :: BASIS_PARAMS    ='basis_params'
   character(len=*), parameter, public :: AO_CONFINEMENT  ='ao_confinement'
   character(len=*), parameter, public :: CONFINEMENT     ='confinement'
   character(len=*), parameter, public :: RLOC            ='rloc'
@@ -256,7 +256,6 @@ contains
     !there is only one document in the input variables specifications
     parameters=>parsed_parameters//0
     call f_free_str(1,params)
-
 
     !call yaml_dict_dump(parameters, comment_key = COMMENT)
     if (INPUT_VAR_NOT_IN_LIST == 0) then
@@ -479,8 +478,7 @@ contains
     call input_keys_fill(dict, LIN_GENERAL)
     call input_keys_fill(dict, LIN_BASIS)
     call input_keys_fill(dict, LIN_KERNEL)
-
-
+    call input_keys_fill(dict, LIN_BASIS_PARAMS)
     !create a shortened dictionary which will be associated to the given run
     call input_minimal(dict,dict_minimal)
 
@@ -526,8 +524,8 @@ contains
        !for any of the keys of parameters look at the corresponding value of the dictionary
        category=dict_key(dict_tmp)
        !call yaml_map('dict category',parameters//category)
-       print *,'category',trim(category),has_key(dict,category)
-       call yaml_map('dict category',dict_tmp)
+       !print *,'category',trim(category),has_key(dict,category)
+       !call yaml_map('dict category',dict_tmp)
        if (has_key(dict,category)) then
           call minimal_category(dict_tmp,dict//category,min_cat)
           if (associated(min_cat)) then

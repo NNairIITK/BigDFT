@@ -1876,9 +1876,10 @@ contains
     !local variables
     !n(c) character(len=*), parameter :: subname='perf_input_variables'
     logical :: exists, dummy_bool
-    integer :: dummy_int
+    integer :: dummy_int,ios
     double precision :: dummy_real
-    character(len=256) :: comments
+    character(len=256) :: comments,dummy_char
+    type(dictionary), pointer :: dict_basis
 
     call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for Localized basis generation (O(N) approach)')
 !    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_GENERAL)
@@ -2019,6 +2020,72 @@ contains
 
 
 
+
+
+  !fragment calculation and transfer integrals: true or false
+  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
+  !these should becode dummy variables to build dictionary
+  !!call input_var(in%lin%fragment_calculation,'F')
+  !!call input_var(in%lin%calc_transfer_integrals,'F')
+  !!call input_var(in%lin%constrained_dft,'F')
+  !!call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
+  call input_var(dummy_bool,'F')
+  call input_var(dummy_bool,'F')
+  call input_var(dummy_bool,'F')
+  call input_var(dummy_int,'0',ranges=(/0,10000/),comment=comments)
+
+  ! Now read in the parameters specific for each atom type.
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
+       'localization radius, kernel cutoff, kernel cutoff FOE'
+  read_basis: do !while(itype <= atoms%astruct%ntypes) 
+  !!   if (exists) then
+        call input_var(dummy_char,'C',input_iostat=ios)
+        if (ios /= 0) exit read_basis
+  !!      dict_basis=>dict//BASIS_PARAMS//trim(atomname)
+  !!   else
+  !!      call input_var(atomname,'C')!trim(atoms%astruct%atomnames(1)))
+  !!      dict_basis=>dict//BASIS_PARAMS! default values
+  !!      !itype = itype + 1
+  !!   end if
+
+     !number of basis functions for this atom type
+     !!call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
+     !!call input_var(ppao,'1.2d-2',dict_basis//AO_CONFINEMENT,&
+     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     !!call input_var(ppl,'1.2d-2',dict_basis//CONFINEMENT//0,&
+     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     !!call input_var(pph,'5.d-5',dict_basis//CONFINEMENT//1,&
+     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     !!call input_var(lrl,'10.d0',dict_basis//RLOC//0,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     !!call input_var(lrh,'10.d0',dict_basis//RLOC//1,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     !!call input_var(kco,'12.d0',dict_basis//RLOC_KERNEL,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     !!call input_var(kco_FOE,'20.d0',dict_basis//RLOC_KERNEL_FOE,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+     dict_basis=>dict//LIN_BASIS_PARAMS//trim(dummy_char)
+     call input_var(dummy_int,'1',dict_basis//NBASIS,ranges=(/1,100/))
+     call input_var(dummy_real,'1.2d-2',dict_basis//AO_CONFINEMENT,&
+          ranges=(/0.0_gp,1.0_gp/))
+     call input_var(dummy_real,'1.2d-2',dict_basis//CONFINEMENT//0,&
+          ranges=(/0.0_gp,1.0_gp/))
+     call input_var(dummy_real,'5.d-5',dict_basis//CONFINEMENT//1,&
+          ranges=(/0.0_gp,1.0_gp/))
+     call input_var(dummy_real,'10.d0',dict_basis//RLOC//0,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'10.d0',dict_basis//RLOC//1,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'12.d0',dict_basis//RLOC_KERNEL,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'20.d0',dict_basis//RLOC_KERNEL_FOE,&
+          ranges=(/1.0_gp,10000.0_gp/),comment=comments)
+
+  !!   if (.not. exists) exit read_basis !default has been filled
+  end do read_basis
+
+
+    call input_free(.false.)
 
 
 
