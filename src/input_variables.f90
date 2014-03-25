@@ -212,8 +212,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   end do
 
 
-  write(*,*) 'HERE'
-
   if (.not. in%debug) then
      call ab7_memocc_set_state(1)
      call f_malloc_set_status(output_level=1)
