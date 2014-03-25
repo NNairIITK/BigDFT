@@ -246,15 +246,15 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      if (exists) then
         call input_var(atomname,'C',input_iostat=ios)
         if (ios /= 0) exit read_basis
-        dict_basis=>dict//BASIS_PARAMS//trim(atomname)
+        dict_basis=>dict//LIN_BASIS_PARAMS//trim(atomname)
      else
         call input_var(atomname,'C')!trim(atoms%astruct%atomnames(1)))
-        dict_basis=>dict//BASIS_PARAMS! default values
+        dict_basis=>dict//LIN_BASIS_PARAMS! default values
         !itype = itype + 1
      end if
 
      !number of basis functions for this atom type
- call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
+     call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
      call input_var(ppao,'1.2d-2',dict_basis//AO_CONFINEMENT,&
           ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(ppl,'1.2d-2',dict_basis//CONFINEMENT//0,&
