@@ -787,32 +787,32 @@
        COMMENT: decay length of the error function
        RANGE: [1.e-4,1.0]
        default: 5.e-2
-##  basis_params:
-##    nbasis:
-##      COMMENT: number of support functions per atom
-##      EXCLUSIVE:
-##        1: s orbital type
-##        4: s,p orbital types
-##        9: s,p,d orbital types
-##        16: s,p,d,f orbital types
-##      default: 4
-##    ao_confinement:
-##      COMMENT: prefactor for the input guess confining potential
-##      RANGE: [0.0,10.0]
-##      default: 8.3e-3
-##    confinement:
-##      COMMENT: prefactor for the confining potential (low/high accuracy)
-##      RANGE: [0.0,10.0]
-##      default: [8.3e-3,0.0]
-##    rloc:
-##      COMMENT: localization radius for the support functions
-##      RANGE: [2.0,1000.0]
-##      default: [7.0,7.0]
-##    rloc_kernel:
-##      COMMENT: localization radius for the density kernel
-##      RANGE: [2.0,1000.0] 
-##      default: 9.0
-##    rloc_kernel_foe:
-##      COMMENT: cutoff radius for the FOE matrix vector multiplications
-##      RANGE: [2.0,1000]
-##      default: 14.0
+ lin_basis_params:
+     nbasis:
+       COMMENT: number of support functions per atom
+       EXCLUSIVE:
+         1: s orbital type
+         4: s,p orbital types
+         9: s,p,d orbital types
+         16: s,p,d,f orbital types
+       default: 4
+     ao_confinement:
+       COMMENT: prefactor for the input guess confining potential
+       RANGE: [0.0,10.0]
+       default: 8.3e-3
+     confinement:
+       COMMENT: prefactor for the confining potential (low/high accuracy)
+       RANGE: [0.0,10.0]
+       default: [8.3e-3,0.0]
+     rloc:
+       COMMENT: localization radius for the support functions
+       RANGE: [2.0,1000.0]
+       default: [7.0,7.0]
+     rloc_kernel:
+       COMMENT: localization radius for the density kernel
+       RANGE: [2.0,1000.0] 
+       default: 9.0
+     rloc_kernel_foe:
+       COMMENT: cutoff radius for the FOE matrix vector multiplications
+       RANGE: [2.0,1000]
+       default: 14.0

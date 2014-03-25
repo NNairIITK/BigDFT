@@ -254,7 +254,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
      end if
 
      !number of basis functions for this atom type
-     call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
+ call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
      call input_var(ppao,'1.2d-2',dict_basis//AO_CONFINEMENT,&
           ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
      call input_var(ppl,'1.2d-2',dict_basis//CONFINEMENT//0,&
@@ -371,26 +371,26 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 
   ! Allocate lin pointers and atoms%rloc
 
-  call nullifyInputLinparameters(in%lin)
-  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
+!  call nullifyInputLinparameters(in%lin)
+!  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
 
-  !first fill all the types by the default, then override by per-type values
-  do jtype=1,atoms%astruct%ntypes
-     dict_basis => dict_iter(dict//BASIS_PARAMS)
-     do while(associated(dict_basis))
-        call basis_params_set_dict(dict_basis,in%lin,jtype)
-        dict_basis => dict_next(dict_basis)
-     end do
-     !then check if the objects exists in separate specifications
-     if (trim(atoms%astruct%atomnames(jtype)) .in. dict//BASIS_PARAMS) then
-        dict_basis => &
-             dict_iter(dict//BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
-     end if
-     do while(associated(dict_basis))
-        call basis_params_set_dict(dict_basis,in%lin,jtype)
-        dict_basis => dict_next(dict_basis)
-     end do
-  end do
+  !!!first fill all the types by the default, then override by per-type values
+  !!do jtype=1,atoms%astruct%ntypes
+  !!   dict_basis => dict_iter(dict//BASIS_PARAMS)
+  !!   do while(associated(dict_basis))
+  !!      call basis_params_set_dict(dict_basis,in%lin,jtype)
+  !!      dict_basis => dict_next(dict_basis)
+  !!   end do
+  !!   !then check if the objects exists in separate specifications
+  !!   if (trim(atoms%astruct%atomnames(jtype)) .in. dict//BASIS_PARAMS) then
+  !!      dict_basis => &
+  !!           dict_iter(dict//BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
+  !!   end if
+  !!   do while(associated(dict_basis))
+  !!      call basis_params_set_dict(dict_basis,in%lin,jtype)
+  !!      dict_basis => dict_next(dict_basis)
+  !!   end do
+  !!end do
   !then perform extra allocations
   nlr=0
   do iat=1,atoms%astruct%nat
