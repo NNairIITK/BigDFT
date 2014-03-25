@@ -2920,8 +2920,8 @@ end subroutine find_category
           in%lin%convCritdmin_highaccuracy = dummy_gp(2)
        case (RPNRM_CV)
           dummy_gp(1:2) = val
-          in%lin%convCritdmin_lowaccuracy = dummy_gp(1)
-          in%lin%convCritdmin_highaccuracy = dummy_gp(2)
+          in%lin%convCritMix_lowaccuracy = dummy_gp(1)
+          in%lin%convCritMix_highaccuracy = dummy_gp(2)
        case (LINEAR_METHOD)
           dummy_char = val
           select case (trim(dummy_char))

@@ -656,7 +656,7 @@
        Yes: [100, 1]
      rpnrm_cv:
        COMMENT: convergence criterion for low/high accuracy
-       RANGE: [1.e-15,1.e-6]
+       RANGE: [1.e-15,1.e-5]
        default: [1.e-12,1.e-12]
      conf_damping:
        COMMENT: how the confinement should be decreased, only relevant for hybrid mode; negative -> automatic
@@ -691,7 +691,7 @@
  lin_basis:
      nit:
        COMMENT: maximal number of iterations in the optimization of the support functions
-       RANGE: [1,100]
+       RANGE: [0,100]
        default: [4,5]
        best: [10,1]
      idsx:
@@ -709,7 +709,7 @@
        default: 1.e-4
      gnrm_dyn:
        COMMENT: dynamic convergence criterion ('experimental_mode' only)
-       RANGE: [1.e-7,1.e-3]
+       RANGE: [1.e-7,1.e-1]
        default: 1.e-4
      alpha_diis:
        COMMENT: multiplactor for DIIS
@@ -718,7 +718,7 @@
        best: 0.5
      alpha_sd:
        COMMENT: initial step size for SD
-       RANGE: [0.1,10]
+       RANGE: [1.e-4,10.0]
        default: 1.0
        best: 0.5
      nstep_prec:
@@ -736,7 +736,7 @@
        default: [1,1]
      nit:
        COMMENT: number of iterations in the optimization of the density kernel
-       RANGE: [1,30]
+       RANGE: [0,100]
        default: [5,5]
        best: [3,1]
 # check whether there are different DIIS histories...
@@ -757,7 +757,7 @@
        default: [1.e-5,1.e-5]
      rpnrm_cv:
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
-       RANGE: [1.e-14,1.e-7]
+       RANGE: [1.e-14,1.e-5]
        default: [1.e-10,1.e-10]
      linear_method:
        COMMENT: method to optimize the density kernel
