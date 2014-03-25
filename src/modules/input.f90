@@ -2015,6 +2015,7 @@ contains
     call input_var(dummy_bool,'F',dict//LIN_GENERAL//SUBSPACE_DIAG,comment=comments)
 
 
+    call input_free(.false.)
 
 
 

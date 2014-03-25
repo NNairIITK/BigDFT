@@ -143,7 +143,7 @@ module module_input_keys
   character(len=*), parameter, public :: LIN_KERNEL      ='lin_kernel'
   character(len=*), parameter, public :: LIN_BASIS_PARAMS='lin_basis_params'
   character(len=*), parameter, public :: HYBRID          ='hybrid'
-  character(len=*), parameter, public :: LINEAR_METHOD   ='method'
+  character(len=*), parameter, public :: LINEAR_METHOD   ='linear_method'
   character(len=*), parameter, public :: MIXING_METHOD   ='mixing_method'
   character(len=*), parameter, public :: NIT             ='nit'
   character(len=*), parameter, public :: NSTEP           ='nstep'
