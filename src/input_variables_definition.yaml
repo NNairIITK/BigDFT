@@ -645,7 +645,7 @@
      default: No
  lin_general:
      hybrid: 
-       COMMENT: activate the hybrid mode; if set to true, only the low accuracy values will be relevant
+       COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
        default: No
        best: Yes
      nit:
