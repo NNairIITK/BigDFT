@@ -639,6 +639,28 @@ contains
 !    call f_release_routine()
   END SUBROUTINE input_keys_fill
 
+  !> control if all the keys which are defined in a given field are associated with a true input variable
+  subroutine input_keys_control(dict,file)
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(in) :: file
+    !local variables
+    type(dictionary), pointer :: dict_tmp,ref
+    
+    ref=> parameters // file
+    !parse all the keys of the dictionary
+    dict_tmp=>dict_iter(dict)
+    do while(associated(dict_tmp))
+       if (.not. (dict_key(dict_tmp) .in. ref)) then
+          call f_err_throw('Error in input file, section '//&
+               file//'; the key '//trim(dict_key(dict_tmp))//&
+               'is not a valid item',err_id=INPUT_VAR_ILLEGAL)
+       end if
+       dict_tmp=> dict_next(dict_tmp)
+    end do
+  end subroutine input_keys_control
+
   subroutine input_keys_set(userDef, dict, file, key)
     use dictionaries
     use yaml_output
