@@ -732,12 +732,12 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                   diff=sqrt(diff)
                   if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
-                  if (diff<1.d-3) then
+                  if (diff<5.d-4) then
                       ! can decrease polynomial degree
                       tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
                       if (iproc==0) call yaml_map('Need to change fscale',.true.)
                       degree_sufficient=.true.
-                  else if (diff>=1.d-3 .and. diff < 2.d-3) then
+                  else if (diff>=5.d-4 .and. diff < 1.d-3) then
                       ! polynomial degree seems to be appropriate
                       degree_sufficient=.true.
                       if (iproc==0) call yaml_map('Need to change fscale',.false.)
@@ -745,7 +745,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       ! polynomial degree too small, increase and recalculate
                       ! the kernel
                       degree_sufficient=.false.
-                      tmb%foe_obj%fscale=0.8*tmb%foe_obj%fscale
+                      tmb%foe_obj%fscale=0.6*tmb%foe_obj%fscale
                       if (iproc==0) call yaml_map('Need to change fscale',.true.)
                   end if
 
