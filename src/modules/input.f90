@@ -1881,7 +1881,9 @@ contains
     character(len=256) :: comments,dummy_char
     type(dictionary), pointer :: dict_basis
 
-    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for Localized basis generation (O(N) approach)')
+    ! This name seems to be too long..
+    !call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for Localized basis generation (O(N) approach)')
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for O(N) approach')
 !    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_GENERAL)
 !    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_BASIS)
 !    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_KERNEL)
