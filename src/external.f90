@@ -282,7 +282,7 @@ subroutine bigdft_severe_abort()
   call yaml_comment('Error raised!',hfill='^')
   call yaml_comment('Messages are above, dumping run status in file(s) '//trim(filename),hfill='^')
   call yaml_comment('Exiting...',hfill='v')
-  call f_lib_finalize()
+  !call f_lib_finalize()
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 
