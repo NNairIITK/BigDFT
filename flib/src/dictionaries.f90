@@ -795,7 +795,7 @@ contains
    end subroutine put_list
 
    !> creates a dictionary which has only one entry as a list
-   function item_char(val) result(elem)
+   elemental function item_char(val) result(elem)
      implicit none
      character(len=*), intent(in) :: val
      type(list_container) :: elem

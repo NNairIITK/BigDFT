@@ -2,7 +2,7 @@
 0        1                       outer loop iterations (low, high)
 4        1                       basis iterations (low, high)
 6        10                      kernel iterations (low, high) - dmin only
-6        200                     density iterations
+6        50                      density iterations
 0        0                       DIIS history for basis (low, high)
 5        0                       DIIS history for kernel (low, high) - dmin only
 0        0                       DIIS history for density mixing (low, high)
