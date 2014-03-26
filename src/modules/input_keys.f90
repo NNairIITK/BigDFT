@@ -273,7 +273,7 @@ contains
     if (INPUT_VAR_ILLEGAL == 0) then
        call f_err_define(err_name='INPUT_VAR_ILLEGAL',&
             err_msg='provided variable is not allowed in this context.',&
-            err_action='remove the input variable.',&
+            err_action='correct or remove the input variable.',&
             err_id=INPUT_VAR_ILLEGAL,callback=warn_illegal)
     end if
   END SUBROUTINE input_keys_init
@@ -468,6 +468,9 @@ contains
     ! Check and complete dictionary.
     call input_keys_init()
 
+    !check for some fields that the user did not specify any unsupported key
+    call input_keys_control(dict,DFT_VARIABLES)
+
     call input_keys_fill(dict, PERF_VARIABLES)
     call input_keys_fill(dict, DFT_VARIABLES)
     call input_keys_fill(dict, KPT_VARIABLES)
@@ -638,6 +641,46 @@ contains
     call f_free_str(max_field_length, keys)
 !    call f_release_routine()
   END SUBROUTINE input_keys_fill
+
+  !> control if all the keys which are defined in a given field are associated with a true input variable
+  subroutine input_keys_control(dict,file)
+    use dictionaries
+    use yaml_output, only: yaml_map,yaml_toa,yaml_warning
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(in) :: file
+    !local variables
+    type(dictionary), pointer :: dict_tmp,ref,dict_err
+    
+    ref=> parameters // file
+    !parse all the keys of the dictionary
+    dict_tmp=>dict_iter(dict//file)
+    do while(associated(dict_tmp))
+       if (.not. (dict_key(dict_tmp) .in. ref)) then
+    !      call yaml_map('Allowed keys',dict_keys(ref))
+          !even in a f_err_open_try section this error is assumed to be fatal
+          !for the moment. A mechanism to downgrade its gravity should be
+          !provided
+          dict_err=>list_new(.item. dict_keys(ref))
+          call yaml_warning('Input file, section "'//file//&
+            '"; invalid key "'//trim(dict_key(dict_tmp))//'".')
+          call yaml_map('Allowed keys',dict_err)
+          call dict_free(dict_err)
+          call f_err_throw('An invalid key ('//trim(dict_key(dict_tmp))&
+              //') has been found in section "'&
+                //file//'". Check above the allowed keys.' ,&
+            err_id=INPUT_VAR_ILLEGAL,callback=f_err_severe)
+       end if
+       dict_tmp=> dict_next(dict_tmp)
+    end do
+  end subroutine input_keys_control
+
+subroutine input_control_callback()
+    use yaml_output
+    use dictionaries
+    implicit none
+    call f_err_severe()
+end subroutine input_control_callback
 
   subroutine input_keys_set(userDef, dict, file, key)
     use dictionaries

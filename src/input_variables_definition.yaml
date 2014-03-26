@@ -78,7 +78,7 @@
      COMMENT: wfn. diis history
      RANGE: [0, 15]
      default: 6
-     low memory: 2
+     low_memory: 2
    dispersion:
      COMMENT: dispersion correction potential (values 1,2,3,4,5), 0=none
      RANGE: [0, 5]
@@ -99,7 +99,7 @@
        101: Linear restart
        102: Linear on disk
      linear: 100
-     linear restart: 102
+     linear_restart: 102
    output_wf:
      default: 0
      EXCLUSIVE:

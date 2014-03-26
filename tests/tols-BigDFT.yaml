@@ -31,6 +31,8 @@ Keys to ignore:
  - Max No. of dictionaries used
  - Occupation numbers coming from
  - Number of dictionary folders allocated
+ - Maximum size of masking arrays for a projector
+ - Cumulative size of masking arrays
 Patterns to ignore:
  - Timestamp
  - memory
