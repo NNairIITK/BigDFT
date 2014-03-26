@@ -1,5 +1,5 @@
 !> @file
-!! Fermi Operator Expansion Medthod
+!! Fermi Operator Expansion Method
 !! @author
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -306,12 +306,14 @@ subroutine foe(iproc, nproc, tmprtr, &
               call timing(iproc, 'chebyshev_coef', 'ON')
     
               !call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,1), tmb%foe_obj%ef, tmb%foe_obj%fscale, temperature)
-              call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,1), tmb%foe_obj%ef, fscale, tmprtr)
+              call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,1), &
+                   tmb%foe_obj%ef, tmb%foe_obj%fscale, tmprtr)
               call chder(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, cc(1,1), cc(1,2), npl)
               call chebft2(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,3))
               call evnoise(npl, cc(1,3), tmb%foe_obj%evlow, tmb%foe_obj%evhigh, anoise)
 
-              call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl_check, cc_check(1,1), tmb%foe_obj%ef, fscale, tmprtr)
+              call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl_check, cc_check(1,1), &
+                   tmb%foe_obj%ef, tmb%foe_obj%fscale, tmprtr)
               call chder(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, cc_check(1,1), cc_check(1,2), npl_check)
               call chebft2(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl_check, cc_check(1,3))
     
