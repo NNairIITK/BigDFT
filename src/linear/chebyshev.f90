@@ -646,8 +646,6 @@ subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_p
 
       call uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, kernel_compressed, kernelp)
 
-      iall=-product(shape(kernel_compressed))*kind(kernel_compressed)
-!     deallocate(kernel_compressed, stat=istat)
       call f_free(kernel_compressed)
   end if
 
