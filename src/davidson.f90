@@ -145,7 +145,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !prepare the v array starting from a set of gaussians
    call psivirt_from_gaussians(iproc,nproc,at,VTwfn%orbs,VTwfn%Lzd,VTwfn%comms,rxyz,&
         VTwfn%Lzd%hgrids(1),VTwfn%Lzd%hgrids(2),VTwfn%Lzd%hgrids(3),in%nspin,&
-        VTwfn%psi)
+        VTwfn%psi, max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp))
 
    !if(iproc==0) call yaml_map('Orthogonality to occupied psi',.true.)
    !if(iproc==0) write(*,'(1x,a)',advance="no") "Orthogonality to occupied psi..."
@@ -556,7 +556,8 @@ subroutine davidson(iproc,nproc,in,at,&
    orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 
    !prepare the v array starting from a set of gaussians
-   call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),in%nspin,v)
+   call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,Lzd%hgrids(1),&
+        & Lzd%hgrids(2),Lzd%hgrids(3),in%nspin,v, max(orbsv%npsidim_orbs, orbsv%npsidim_comp))
 
    !if(iproc==0) call yaml_open_map('Orthogonality to occupied psi',flow=.true.)
    !if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
@@ -1501,7 +1502,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
 END SUBROUTINE update_psivirt
 
 
-subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,nspin,psivirt)
+subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,nspin,psivirt,npsidim)
    use module_base
    use module_types
    use module_interfaces
@@ -1509,26 +1510,25 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
    implicit none
-   integer, intent(in) :: iproc,nproc,nspin
+   integer, intent(in) :: iproc,nproc,nspin,npsidim
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(comms_cubic), intent(in) :: comms
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   real(wp), dimension(orbs%npsidim_orbs), intent(out) :: psivirt
+   real(wp), dimension(npsidim), intent(out) :: psivirt
    !local variables
    character(len=*), parameter :: subname='psivirt_from_gaussians'
    logical ::  randinp
    integer :: iorb,icoeff,i_all,i_stat,nwork,info,jorb,ikpt,korb
    integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f,jcoeff
-   real(wp) :: rfreq,gnrm_fake
+   real(wp) :: rfreq,gnrm_fake, psi_fake
    real(wp), dimension(:,:,:), allocatable :: gaucoeffs
    real(gp), dimension(:), allocatable :: work,ev
    real(gp), dimension(:,:), allocatable :: ovrlp
    type(gaussian_basis) :: G
    real(wp), dimension(:), pointer :: gbd_occ,psiw
-
 
    !initialise some coefficients in the gaussian basis
    !nullify the G%rxyz pointer

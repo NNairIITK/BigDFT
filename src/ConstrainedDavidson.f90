@@ -186,7 +186,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
 
   ! prepare the v array starting from a set of gaussians
-  call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,hx,hy,hz,in%nspin,v)
+  call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,hx,hy,hz,in%nspin,&
+       & v, max(orbsv%npsidim_orbs, orbsv%npsidim_comp))
 
 
   ! allocate the potential in the full box
