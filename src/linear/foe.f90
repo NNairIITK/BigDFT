@@ -31,13 +31,13 @@ subroutine foe(iproc, nproc, tmprtr, &
   ! Local variables
   integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver, iorb
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge, nsize_polynomial
-  integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift
+  integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check
   integer,parameter :: nplx=50000
-  real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials
+  real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials, cc_check, fermip_check
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol, ddot
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
-  real(kind=8) :: fscale, error, tt_ovrlp, tt_ham, idempotency_diff
+  real(kind=8) :: fscale, error, tt_ovrlp, tt_ham, idempotency_diff, diff
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -51,7 +51,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8) :: trace_sparse
   integer :: irow, icol, itemp, iflag
-  logical :: overlap_calculated, cycle_FOE, evbounds_shrinked
+  logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient
 
   call f_routine(id='foe')
 
@@ -70,6 +70,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   allocate(fermip(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
   call memocc(istat, fermip, 'fermip', subname)
+  allocate(fermip_check(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
+  call memocc(istat, fermip_check, 'fermip_check', subname)
 
   allocate(SHS(tmb%linmat%denskern_large%nvctr), stat=istat)
   call memocc(istat, SHS, 'SHS', subname)
@@ -145,6 +147,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   end if
 
   ntemp=4
+  degree_sufficient=.true.
 
   temp_loop: do itemp=1,ntemp
 
@@ -154,7 +157,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       evlow_old=1.d100
       evhigh_old=-1.d100
       
-      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
+      !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
+      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',tmb%foe_obj%fscale,fmt='(es10.3)')
     
           ! Don't let this value become too small.
           tmb%foe_obj%bisection_shift = max(tmb%foe_obj%bisection_shift,1.d-4)
@@ -248,7 +252,14 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!tmb%foe_obj%ef = tmb%foe_obj%evlow+1.d-4*it
     
               ! Determine the degree of the polynomial
-              npl=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
+              if (itemp==1 .or. .not.degree_sufficient) then
+                  npl=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
+              else
+                  ! this will probably disappear.. only needed when the degree is
+                  ! increased by the old way via purification etc.
+                  npl=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
+              end if
+              npl_check=nint(0.8d0*real(npl,kind=8))
               npl_boundaries=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
@@ -281,6 +292,8 @@ subroutine foe(iproc, nproc, tmprtr, &
     
               allocate(cc(npl,3), stat=istat)
               call memocc(istat, cc, 'cc', subname)
+              allocate(cc_check(npl,3), stat=istat)
+              call memocc(istat, cc_check, 'cc_check', subname)
     
               if (tmb%foe_obj%evlow>=0.d0) then
                   stop 'ERROR: lowest eigenvalue must be negative'
@@ -297,6 +310,10 @@ subroutine foe(iproc, nproc, tmprtr, &
               call chder(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, cc(1,1), cc(1,2), npl)
               call chebft2(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,3))
               call evnoise(npl, cc(1,3), tmb%foe_obj%evlow, tmb%foe_obj%evhigh, anoise)
+
+              call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl_check, cc_check(1,1), tmb%foe_obj%ef, fscale, tmprtr)
+              call chder(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, cc_check(1,1), cc_check(1,2), npl_check)
+              call chebft2(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl_check, cc_check(1,3))
     
               call timing(iproc, 'chebyshev_coef', 'OF')
               call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -312,6 +329,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                       cc(ipl,1)=2.d0*cc(ipl,1)
                       cc(ipl,2)=2.d0*cc(ipl,2)
                       cc(ipl,3)=2.d0*cc(ipl,3)
+                      cc_check(ipl,1)=2.d0*cc_check(ipl,1)
+                      cc_check(ipl,2)=2.d0*cc_check(ipl,2)
+                      cc_check(ipl,3)=2.d0*cc_check(ipl,3)
                   end do
               end if
             
@@ -332,6 +352,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call chebyshev_fast(iproc, nsize_polynomial, npl, tmb%orbs, &
                       tmb%linmat%denskern_large, chebyshev_polynomials, cc, fermip)
               end if 
+
+
 
              ! Check for an emergency stop, which happens if the kernel explodes, presumably due
              ! to the eigenvalue bounds being too small.
@@ -362,6 +384,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                   iall=-product(shape(cc))*kind(cc)
                   deallocate(cc, stat=istat)
                   call memocc(istat, iall, 'cc', subname)
+                  iall=-product(shape(cc_check))*kind(cc_check)
+                  deallocate(cc_check, stat=istat)
+                  call memocc(istat, iall, 'cc_check', subname)
                   cycle main_loop
              end if
     
@@ -444,6 +469,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call yaml_close_map()
                       !call bigdft_utils_flush(unit=6)
                   end if
+                  iall=-product(shape(cc_check))*kind(cc_check)
+                  deallocate(cc_check, stat=istat)
+                  call memocc(istat, iall, 'cc_check', subname)
                   cycle
               end if
                   
@@ -514,6 +542,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                       call yaml_close_map()
                   end if
+                  iall=-product(shape(cc_check))*kind(cc_check)
+                  deallocate(cc_check, stat=istat)
+                  call memocc(istat, iall, 'cc_check', subname)
                   cycle
               end if
               if (adjust_upper_bound) then
@@ -540,6 +571,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (iproc==0) then
                       call yaml_close_map()
                   end if
+                  iall=-product(shape(cc_check))*kind(cc_check)
+                  deallocate(cc_check, stat=istat)
+                  call memocc(istat, iall, 'cc_check', subname)
                   cycle
               end if
     
@@ -680,8 +714,45 @@ subroutine foe(iproc, nproc, tmprtr, &
     
               if (abs(charge_diff)<charge_tolerance) then
                   if (iproc==0) call yaml_close_sequence()
+                  ! experimental: calculate a second kernel with a lower
+                  ! polynomial degree  and calculate the difference
+                  call chebyshev_fast(iproc, nsize_polynomial, npl_check, tmb%orbs, &
+                      tmb%linmat%denskern_large, chebyshev_polynomials, cc_check, fermip_check)
+                  iall=-product(shape(cc_check))*kind(cc_check)
+                  deallocate(cc_check, stat=istat)
+                  call memocc(istat, iall, 'cc_check', subname)
+                  diff=0.d0
+                  do iorb=1,tmb%orbs%norbp
+                      do jorb=1,tmb%orbs%norb
+                          diff = diff + (fermip(jorb,iorb)-fermip_check(jorb,iorb))**2
+                      end do
+                  end do
+                  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                  diff=sqrt(diff)
+                  if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
+                  if (diff<1.d-3) then
+                      ! can decrease polynomial degree
+                      tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
+                      if (iproc==0) call yaml_map('Need to change fscale',.true.)
+                      degree_sufficient=.true.
+                  else if (diff>=1.d-3 .and. diff < 2.d-3) then
+                      ! polynomial degree seems to be appropriate
+                      degree_sufficient=.true.
+                      if (iproc==0) call yaml_map('Need to change fscale',.false.)
+                  else
+                      ! polynomial degree too small, increase and recalculate
+                      ! the kernel
+                      degree_sufficient=.false.
+                      tmb%foe_obj%fscale=0.8*tmb%foe_obj%fscale
+                      if (iproc==0) call yaml_map('Need to change fscale',.true.)
+                  end if
+
                   exit
               end if
+
+              iall=-product(shape(cc_check))*kind(cc_check)
+              deallocate(cc_check, stat=istat)
+              call memocc(istat, iall, 'cc_check', subname)
     
     
           end do main_loop
@@ -796,17 +867,23 @@ subroutine foe(iproc, nproc, tmprtr, &
       sumn=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
 
 
-      call check_idempotency(iproc, nproc, tmb, idempotency_diff)
-      if (iproc==0) call yaml_map('diff from idempotency',idempotency_diff,fmt='(es12.4)')
-      if (idempotency_diff>4.d-1) then
-          cycle_FOE=.true.
-      else
-          cycle_FOE=.false.
-      end if
+      !!call check_idempotency(iproc, nproc, tmb, idempotency_diff)
+      !!if (iproc==0) call yaml_map('diff from idempotency',idempotency_diff,fmt='(es12.4)')
+      !!if (idempotency_diff>4.d-1) then
+      !!    cycle_FOE=.true.
+      !!else
+      !!    cycle_FOE=.false.
+      !!end if
+      !!if (foe_verbosity>=1 .and. iproc==0) then
+      !!    call yaml_map('need to repeat with sharper decay',cycle_FOE)
+      !!end if
+      !!if (purification_quickreturn .and. .not.cycle_FOE) exit temp_loop
+
       if (foe_verbosity>=1 .and. iproc==0) then
-          call yaml_map('need to repeat with sharper decay',cycle_FOE)
+          call yaml_map('need to repeat with sharper decay (new)',.not.degree_sufficient)
       end if
-      if (purification_quickreturn .and. .not.cycle_FOE) exit temp_loop
+      if (degree_sufficient) exit temp_loop
+
 
 
 
@@ -866,6 +943,10 @@ subroutine foe(iproc, nproc, tmprtr, &
   iall=-product(shape(fermip))*kind(fermip)
   deallocate(fermip, stat=istat)
   call memocc(istat, iall, 'fermip', subname)
+
+  iall=-product(shape(fermip_check))*kind(fermip_check)
+  deallocate(fermip_check, stat=istat)
+  call memocc(istat, iall, 'fermip_check', subname)
 
   iall=-product(shape(SHS))*kind(SHS)
   deallocate(SHS, stat=istat)
