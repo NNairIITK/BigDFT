@@ -109,7 +109,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   type(dictionary), pointer :: dict
 
   !type(dictionary), pointer :: profs
-  integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max
+  integer :: ierr, ityp, nelec_up, nelec_down, norb_max
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
   type(dictionary), pointer :: dict_minimal, var
 

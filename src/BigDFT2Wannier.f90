@@ -23,7 +23,6 @@ program BigDFT2Wannier
    character :: filetype*4
    !etsf
    character(len=*), parameter :: subname='BigDFT2Wannier'
-   type(locreg_descriptors) :: Glr
    type(local_zone_descriptors) :: lzd
    type(orbitals_data) :: orbs  !< describes the occupied orbitals
    type(orbitals_data) :: orbsp !< describes the projectors
@@ -100,9 +99,6 @@ program BigDFT2Wannier
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
-   if (iproc == 0) then
-      call print_general_parameters(input,atoms)
-   end if
    call dict_free(user_inputs)
 
 !!$   if (input%verbosity > 2) then
@@ -311,7 +307,7 @@ program BigDFT2Wannier
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
-            call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,psi_etsfv(1),work=pwork)
+            call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,psi_etsfv(1),pwork(1))
             i_all = -product(shape(pwork))*kind(pwork)
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
@@ -393,7 +389,7 @@ program BigDFT2Wannier
          ! Tranposition of the distribution of the spherical harmonics: orbitals -> components.
          allocate(pwork(npsidim2),stat=i_stat)
          call memocc(i_stat,pwork,'pwork',subname)
-         call transpose_v(iproc,nproc,orbsp,lzd%glr%wfd,commsp,sph_daub(1),work=pwork)
+         call transpose_v(iproc,nproc,orbsp,lzd%glr%wfd,commsp,sph_daub(1),pwork(1))
          i_all = -product(shape(pwork))*kind(pwork)
          deallocate(pwork,stat=i_stat)
          call memocc(i_stat,i_all,'pwork',subname)
@@ -700,7 +696,7 @@ program BigDFT2Wannier
          if(nproc>1) then
             allocate(pwork(npsidim2),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
-            call transpose_v(iproc,nproc,orbsp,lzd%glr%wfd,commsp,sph_daub,work=pwork)
+            call transpose_v(iproc,nproc,orbsp,lzd%glr%wfd,commsp,sph_daub(1),pwork(1))
             i_all = -product(shape(pwork))*kind(pwork)
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
@@ -749,7 +745,7 @@ program BigDFT2Wannier
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
-            call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_etsf(1,1),work=pwork,outadd=psi_etsf2(1))
+            call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_etsf(1,1),pwork(1),out_add=psi_etsf2(1))
             i_all = -product(shape(pwork))*kind(pwork)
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
@@ -765,7 +761,7 @@ program BigDFT2Wannier
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
-            call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_etsf(1,1),work=pwork,outadd=psi_etsf2(1))
+            call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_etsf(1,1),pwork(1),out_add=psi_etsf2(1))
             i_all = -product(shape(pwork))*kind(pwork)
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
@@ -805,7 +801,7 @@ program BigDFT2Wannier
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
-            call untranspose_v(iproc,nproc,orbsb,lzd%Glr%wfd,commsb,psi_etsf2,pwork,outadd=psi_etsf(1,1))
+            call untranspose_v(iproc,nproc,orbsb,lzd%Glr%wfd,commsb,psi_etsf2(1),pwork(1),out_add=psi_etsf(1,1))
             i_all = -product(shape(pwork))*kind(pwork)
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
@@ -955,8 +951,8 @@ program BigDFT2Wannier
             call timing(iproc,'Input_comput  ','OF')
             allocate(pwork(npsidim),stat=i_stat)
             call memocc(i_stat,pwork,'pwork',subname)
-            call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_daub_re,work=pwork)
-            call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_daub_im,work=pwork)
+            call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_daub_re(1),pwork(1))
+            call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_daub_im(1),pwork(1))
             i_all = -product(shape(pwork))*kind(pwork)
             deallocate(pwork,stat=i_stat)
             call memocc(i_stat,i_all,'pwork',subname)
@@ -1214,9 +1210,8 @@ subroutine final_deallocations()
   call deallocate_atoms_data(atoms)
 !  call free_input_variables(input)
   call free_input_variables(input)
-  call f_lib_finalize()
   !free all yaml_streams active
-  call yaml_close_all_streams()
+  !call yaml_close_all_streams()
 
 END SUBROUTINE final_deallocations
 END PROGRAM BigDFT2Wannier
