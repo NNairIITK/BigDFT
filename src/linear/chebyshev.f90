@@ -455,6 +455,7 @@ subroutine determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, n
 
   ! Local variables
   integer :: i,iseg,jorb,iorb,jseg,ii
+  integer :: isegoffset, istart, iend
 
   nseq=0
   nmaxsegk=0
@@ -462,9 +463,14 @@ subroutine determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, n
   do i = 1,norbp
      ii=isorb+i
      nmaxsegk=max(nmaxsegk,foe_obj%kernel_nsegline(ii))
+     isegoffset=foe_obj%istsegline(ii)-1
      do iseg=1,foe_obj%kernel_nsegline(ii)
-          nmaxvalk=max(nmaxvalk,foe_obj%kernel_segkeyg(2,iseg,ii)-foe_obj%kernel_segkeyg(1,iseg,ii)+1)
-          do iorb=foe_obj%kernel_segkeyg(1,iseg,ii),foe_obj%kernel_segkeyg(2,iseg,ii)
+          !nmaxvalk=max(nmaxvalk,foe_obj%kernel_segkeyg(2,iseg,ii)-foe_obj%kernel_segkeyg(1,iseg,ii)+1)
+          istart=foe_obj%keyg(1,isegoffset+iseg)
+          iend=foe_obj%keyg(2,isegoffset+iseg)
+          nmaxvalk=max(nmaxvalk,iend-istart+1)
+          !do iorb=foe_obj%kernel_segkeyg(1,iseg,ii),foe_obj%kernel_segkeyg(2,iseg,ii)
+          do iorb=istart,iend
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
                       nseq=nseq+1
@@ -494,14 +500,19 @@ subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindi
 
   ! Local variables
   integer :: i, iii, iseg, iorb, istat, ii, jseg, ilen, itot
+  integer :: isegoffset, istart, iend
   character(len=*),parameter :: subname='init_onedimindices'
 
 
   nout=0
   do i = 1,norbp
      iii=isorb+i
+     isegoffset=foe_obj%istsegline(iii)-1
      do iseg=1,foe_obj%kernel_nsegline(iii)
-          do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
+          !do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
+          istart=foe_obj%keyg(1,isegoffset+iseg)
+          iend=foe_obj%keyg(2,isegoffset+iseg)
+          do iorb=istart,iend
               nout=nout+1
           end do
       end do
@@ -514,8 +525,12 @@ subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindi
   itot=1
   do i = 1,norbp
      iii=isorb+i
+     isegoffset=foe_obj%istsegline(iii)-1
      do iseg=1,foe_obj%kernel_nsegline(iii)
-          do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
+          !do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
+          istart=foe_obj%keyg(1,isegoffset+iseg)
+          iend=foe_obj%keyg(2,isegoffset+iseg)
+          do iorb=istart,iend
               ii=ii+1
               onedimindices(1,ii)=i
               onedimindices(2,ii)=iorb
@@ -550,14 +565,20 @@ subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsema
 
   ! Local variables
   integer :: i,iseg,jorb,jjorb,iorb,jseg,ii,iii
+  integer :: isegoffset, istart, iend
 
 
   ii=1
   do i = 1,norbp
      iii=isorb+i
+     isegoffset=foe_obj%istsegline(iii)-1
      do iseg=1,foe_obj%kernel_nsegline(iii)
-          do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
-              istindexarr(iorb-foe_obj%kernel_segkeyg(1,iseg,iii)+1,iseg,i)=ii
+          !do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
+          istart=foe_obj%keyg(1,isegoffset+iseg)
+          iend=foe_obj%keyg(2,isegoffset+iseg)
+          do iorb=istart,iend
+              !istindexarr(iorb-foe_obj%kernel_segkeyg(1,iseg,iii)+1,iseg,i)=ii
+              istindexarr(iorb-istart+1,iseg,i)=ii
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
                       jjorb = jorb - (iorb-1)*norb
@@ -589,13 +610,18 @@ subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, ns
 
   ! Local variables
   integer :: i,iseg,jorb,jj,iorb,jseg,ii,iii
+  integer :: isegoffset, istart, iend
 
 
   ii=1
   do i = 1,norbp
      iii=isorb+i
+     isegoffset=foe_obj%istsegline(iii)-1
      do iseg=1,foe_obj%kernel_nsegline(iii)
-          do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
+          !do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
+          istart=foe_obj%keyg(1,isegoffset+iseg)
+          iend=foe_obj%keyg(2,isegoffset+iseg)
+          do iorb=istart,iend
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   jj=1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
