@@ -153,7 +153,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       
       fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
-      fscale_check=0.8d0*tmb%foe_obj%fscale
+      fscale_check=1.25*tmb%foe_obj%fscale
 
       evlow_old=1.d100
       evhigh_old=-1.d100
