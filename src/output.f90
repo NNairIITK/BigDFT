@@ -1,5 +1,5 @@
 !>  @file
-!!  File where most relavant screen output are collected
+!!  File where most relevant screen output are collected
 !!  Routines which are present in this file should have *all* arguments as intent(in)
 !!  Also, the master process only should acces these routines
 !! @author
@@ -212,8 +212,8 @@ subroutine print_general_parameters(in,atoms)
         call yaml_comment('Code: '//atoms%astruct%geocode)
      end select
      !Symmetries
-     !if (atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) then
-     if (.not. in%disableSym) then
+     if (atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) then
+     !if (.not. in%disableSym) then
         call symmetry_get_matrices(atoms%astruct%sym%symObj, nSym, sym, transNon, symAfm, ierr)
         call symmetry_get_group(atoms%astruct%sym%symObj, spaceGroup, &
              & spaceGroupId, pointGroupMagn, genAfm, ierr)

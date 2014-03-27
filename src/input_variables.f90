@@ -785,6 +785,7 @@ subroutine frequencies_input_variables_default(in)
   in%freq_method=1
 END SUBROUTINE frequencies_input_variables_default
 
+
 subroutine input_analyze(in)
   use module_types, only: input_variables
   use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE

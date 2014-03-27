@@ -681,11 +681,11 @@ contains
 
     errno = AB6_NO_ERROR
 
-    !if (sym%FBC) then
-    !   !Calculation for Free Boundary conditions (isolated systems)
+    if (sym%FBC) then
+       !Calculation for Free Boundary conditions (isolated systems)
     !   call find_symmetries(sym%nAtoms, sym%typeAt, sym%xRed, sym%cPointer)
-    !   return
-    !end if
+       return
+    end if
 
 
     if (sym%nBravSym < 0) then
