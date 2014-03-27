@@ -3913,7 +3913,7 @@ module module_interfaces
         end subroutine gramschmidt_subset
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, &
-             orbs, ovrlp_smat, inv_ovrlp_smat, check_accur)
+             orbs, ovrlp_smat, inv_ovrlp_smat, foe_obj, check_accur)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3926,6 +3926,7 @@ module module_interfaces
           real(kind=8),intent(out) :: error
           type(orbitals_data), optional, intent(in) :: orbs
           type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+          type(foe_data),intent(in),optional :: foe_obj
           logical,intent(in),optional :: check_accur
         end subroutine overlapPowerGeneral
 

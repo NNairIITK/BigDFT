@@ -363,12 +363,12 @@ end subroutine setCommsParameters
 !contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
 !power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, orbs, &
-     ovrlp_smat, inv_ovrlp_smat, check_accur)
+     ovrlp_smat, inv_ovrlp_smat, foe_obj, check_accur)
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
   use sparsematrix_base, only: sparse_matrix
-  use sparsematrix, only: compress_matrix, uncompress_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix
   implicit none
   
   ! Calling arguments
@@ -378,6 +378,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   real(kind=8),intent(out) :: error
   type(orbitals_data), optional, intent(in) :: orbs
   type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+  type(foe_data),intent(in),optional :: foe_obj
   logical,intent(in),optional :: check_accur
   
   ! Local variables
@@ -388,6 +389,16 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   real(kind=8) :: factor, newfactor
   logical :: ovrlp_allocated, inv_ovrlp_allocated
   logical :: check_accuracy
+
+  ! new for sparse taylor
+  integer :: nout, nseq, nmaxsegk, nmaxvalk
+  integer,dimension(:),allocatable :: ivectorindex
+  integer,dimension(:,:),pointer :: onedimindices
+  integer,dimension(:,:,:),allocatable :: istindexarr
+  real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse, ovrlpminone_sparse_seq, ovrlp_large_compr
+  real(kind=8),dimension(:,:),allocatable :: ovrlpminoneoldp, invovrlpp
+
+
 
   if (present(check_accur)) then
       check_accuracy=check_accur
@@ -486,6 +497,75 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
 
      ! add sparse here once we have sparse matrix multiply
      if (iorder>1) then
+        ! HERE START SPARSE TAYLOR ##########################
+            if (.not.present(ovrlp_smat) .or. .not.present(inv_ovrlp_smat)) then
+                write(*,*) sqrt(-1.d0)
+                stop
+            end if
+            call init_onedimindices(norb, norbp, isorb, foe_obj%nseg, &
+                 foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, &
+                 inv_ovrlp_smat, nout, onedimindices)
+            call determine_sequential_length(norb, norbp, isorb, foe_obj%nseg, &
+                 foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, &
+                 inv_ovrlp_smat, nseq, nmaxsegk, nmaxvalk)
+            ovrlp_compr_seq = f_malloc(nseq,id='ovrlp_compr_seq')
+            ovrlpminone_sparse_seq = f_malloc(nseq,id='ovrlpminone_sparse_seq')
+            istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
+            ivectorindex = f_malloc(nseq,id='ivectorindex')
+            call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_obj%nseg, &
+                 foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, inv_ovrlp_smat, nseq, nmaxsegk, nmaxvalk, &
+                 istindexarr, ivectorindex)
+            ovrlpminone_sparse=f_malloc(inv_ovrlp_smat%nvctr,id='ovrlpminone_sparse')
+            ovrlpminonep=f_malloc_ptr((/norb,norbp/),id='ovrlpminone_sparse')
+            ovrlpminoneoldp=f_malloc((/norb,norbp/),id='ovrlpminone_sparse')
+            invovrlpp=f_malloc((/norb,norbp/),id='ovrlpminone_sparse')
+            ovrlp_large_compr=f_malloc(inv_ovrlp_smat%nvctr,id='ovrlp_large_compr')
+            call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
+                 ovrlp_smat%matrix_compr, ovrlp_large_compr, 'small_to_large')
+            call matrix_minus_identity_sparse(norb, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
+            call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
+                 foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, &
+                 inv_ovrlp_smat, ovrlpminone_sparse, nseq, nmaxsegk, nmaxvalk, &
+                 ovrlpminone_sparse_seq)
+            call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
+                 inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
+            !call sparsemm(nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
+            !     norb, norbp, ivectorindex, nout, onedimindices)
+            if (power==1) then
+               factor=-1.0d0
+            else if (power==2) then
+               factor=0.5d0
+            else if (power==-2) then
+               factor=-0.5d0
+            end if
+            if (norbp>0) then
+                 call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
+                      inv_ovrlp_smat, ovrlp_large_compr, ovrlpminonep)
+                call first_order_taylor_dense(norb,isorb,norbp,power,ovrlpminonep,invovrlpp)
+            end if
+            do i=2,iorder
+               !call dgemm('n', 'n', norb, norbp, norb, 1.d0, ovrlpminone(1,1), &
+               !     norb, ovrlppoweroldp(1,1), norb, 0.d0, ovrlppowerp(1,1), norb)
+               call sparsemm(nseq, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep, &
+                    norb, norbp, ivectorindex, nout, onedimindices)
+               factor=newfactor(power,i,factor)
+               call daxpy(norb*norbp,factor,ovrlpminonep,1,invovrlpp,1)
+               call vcopy(norb*norbp,ovrlpminonep(1,1),1,ovrlpminoneoldp(1,1),1)
+            end do
+            call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
+            call compress_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
+                 inv_ovrlp_smat, invovrlpp, inv_ovrlp_smat%matrix_compr)
+            call mpiallred(inv_ovrlp_smat%matrix_compr(1), inv_ovrlp_smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+             do i=1,inv_ovrlp_smat%nvctr
+                 write(200+iproc,*) i, inv_ovrlp_smat%matrix_compr(i)
+             end do
+             call mpi_finalize(i)
+             stop
+
+        !! HERE END SPARSE TAYLOR ############################
+
+
         ovrlpminone=f_malloc_ptr((/norb,norb/),id='ovrlpminone')
         if (present(orbs).and.nproc>1) then
            ovrlpminonep=f_malloc_ptr((/norb,norbp/),id='ovrlpminonep')
@@ -538,6 +618,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
         end if
         if (present(inv_ovrlp_smat)) then
            call compress_matrix(iproc,inv_ovrlp_smat)
+             do i=1,inv_ovrlp_smat%nvctr
+                 write(300+iproc,*) i, inv_ovrlp_smat%matrix_compr(i)
+             end do
+             call mpi_finalize(i)
+             stop
            if (.not. inv_ovrlp_allocated) then
               call f_free_ptr(inv_ovrlp_smat%matrix)
            else
@@ -2001,3 +2086,129 @@ subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
   call timing(iproc,'lovrlp^-1/2par','OF')
 
 end subroutine diagonalize_localized
+
+
+
+
+
+
+
+
+
+  subroutine extract_matrix_distributed(iproc, nproc, norb, norbp, isorb_par, smat, matrix_compr, matrixp)
+    use module_base
+    use module_types
+    use sparsematrix_base, only: sparse_matrix
+    implicit none
+
+    ! Calling arguments
+    integer,intent(in) :: iproc, nproc, norb, norbp
+    integer,dimension(0:nproc-1),intent(in) :: isorb_par
+    type(sparse_matrix),intent(in) :: smat
+    real(kind=8),dimension(smat%nvctr),intent(in) :: matrix_compr
+    real(kind=8),dimension(norb,norbp),intent(out) :: matrixp
+
+    ! Local variables
+    integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+
+
+       if (norbp>0) then
+           isegstart=smat%istsegline(isorb_par(iproc)+1)
+           if (isorb_par(iproc)+norbp<norb) then
+               isegend=smat%istsegline(isorb_par(iproc+1)+1)-1
+           else
+               isegend=smat%nseg
+           end if
+           !!!$omp parallel default(private) shared(isegstart, isegend, fermip, tmb, sumn) 
+           !!!$omp do reduction(+:sumn)
+           do iseg=isegstart,isegend
+               ii=smat%keyv(iseg)-1
+               do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                   ii=ii+1
+                   iiorb = (jorb-1)/norb + 1
+                   jjorb = jorb - (iiorb-1)*norb
+                   matrixp(jjorb,iiorb-isorb_par(iproc)) = matrix_compr(ii)
+               end do
+           end do
+           !!!$omp end do
+           !!!$omp end parallel
+       end if
+
+   end subroutine extract_matrix_distributed
+
+
+
+
+   subroutine matrix_minus_identity_sparse(norb, smat, ovrlp_compr, ovrlpminone_compr)
+     use module_base
+     use module_types
+     use sparsematrix_base, only: sparse_matrix
+     implicit none
+
+     ! Calling arguments
+     integer,intent(in) :: norb
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nvctr),intent(in) :: ovrlp_compr
+     real(kind=8),dimension(smat%nvctr),intent(out) :: ovrlpminone_compr
+
+     ! Local variables
+     integer :: ii, iseg, jorb, iiorb, jjorb
+
+     ii=0
+     do iseg=1,smat%nseg
+         do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+             iiorb = (jorb-1)/norb + 1
+             jjorb = jorb - (iiorb-1)*norb
+             ii=ii+1
+             if (iiorb==jjorb) then
+                 ovrlpminone_compr(ii)=ovrlp_compr(ii)-1.d0
+             else
+                 ovrlpminone_compr(ii)=ovrlp_compr(ii)
+             end if
+         end do
+     end do
+
+   end subroutine matrix_minus_identity_sparse
+
+
+
+   subroutine compress_matrix_distributed(iproc, nproc, norb, norbp, isorb_par, &
+              smat, matrixp, matrix_compr)
+     use module_base
+     use module_types
+     use sparsematrix_base, only: sparse_matrix
+     implicit none
+
+     ! Calling arguments
+     integer,intent(in) :: iproc, nproc, norb, norbp
+     integer,dimension(0:nproc-1),intent(in) :: isorb_par
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(norb,norbp),intent(in) :: matrixp
+     real(kind=8),dimension(smat%nvctr),intent(out) :: matrix_compr
+
+     ! Local variables
+     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+
+     if (norbp>0) then
+         isegstart=smat%istsegline(isorb_par(iproc)+1)
+         if (isorb_par(iproc)+norbp<norb) then
+             isegend=smat%istsegline(isorb_par(iproc+1)+1)-1
+         else
+             isegend=smat%nseg
+         end if
+         !!$omp parallel default(private) shared(isegstart, isegend, fermip, tmb)
+         !!$omp do
+         do iseg=isegstart,isegend
+             ii=smat%keyv(iseg)-1
+             do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                 ii=ii+1
+                 iiorb = (jorb-1)/norb + 1
+                 jjorb = jorb - (iiorb-1)*norb
+                 matrix_compr(ii)=matrixp(jjorb,iiorb-isorb_par(iproc))
+             end do
+         end do
+         !!$omp end do
+         !!$omp end parallel
+     end if
+
+  end subroutine compress_matrix_distributed

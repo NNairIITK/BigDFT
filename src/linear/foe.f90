@@ -975,12 +975,21 @@ subroutine foe(iproc, nproc, tmprtr, &
           tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
               id='tmb%linmat%inv_ovrlp_large%matrix')
 
+          !!call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, &
+          !!     tmb%linmat%ovrlp%matrix, tmb%linmat%inv_ovrlp_large%matrix, error, tmb%orbs, check_accur=.true.)
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, &
-               tmb%linmat%ovrlp%matrix, tmb%linmat%inv_ovrlp_large%matrix, error, tmb%orbs, check_accur=.true.)
+               tmb%linmat%ovrlp%matrix, tmb%linmat%inv_ovrlp_large%matrix, error, tmb%orbs, &
+               tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, tmb%foe_obj, check_accur=.true.)
           if (foe_verbosity>=1 .and. iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
           call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
+          do i=1,tmb%linmat%inv_ovrlp_large%nvctr
+              write(300+iproc,*) i, tmb%linmat%inv_ovrlp_large%matrix_compr(i)
+          end do
+          call mpi_finalize(i)
+          stop
+
 
           call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
 
