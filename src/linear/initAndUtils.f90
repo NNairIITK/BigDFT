@@ -232,7 +232,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   
   ! Local variables
   integer :: iorb, iiorb, jjorb, istat, iseg, ilr, jlr
-  integer :: iwa, jwa, itype, jtype, ierr, iall
+  integer :: iwa, jwa, itype, jtype, ierr, iall, isegstart
   logical :: seg_started
   real(kind=8) :: tt, cut, incr
   logical,dimension(:,:),allocatable :: kernel_locreg
@@ -274,6 +274,9 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
      allocate(foe_obj%kernel_nsegline(orbs%norb), stat=istat)
      call memocc(istat, foe_obj%kernel_nsegline, 'foe_obj%kernel_nsegline', subname)
      call to_zero(orbs%norb, foe_obj%kernel_nsegline(1))
+     allocate(foe_obj%istsegline(orbs%norb), stat=istat)
+     call memocc(istat, foe_obj%istsegline, 'foe_obj%kernel_nsegline', subname)
+     call to_zero(orbs%norb, foe_obj%istsegline(1))
      do iorb=1,orbs%norbp
         iiorb=orbs%isorb+iorb
         ilr=orbs%inwhichlocreg(iiorb)
@@ -304,6 +307,19 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
      end do
      call mpiallred(foe_obj%kernel_nsegline(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
+     ! Total number of segments
+     foe_obj%nseg = sum(foe_obj%kernel_nsegline)
+     
+     ! Initialize istsegline, which gives the first segment of each line
+     foe_obj%istsegline(1)=1
+     do iorb=2,orbs%norb
+         foe_obj%istsegline(iorb) = foe_obj%istsegline(iorb-1) + foe_obj%kernel_nsegline(iorb-1)
+     end do
+
+     allocate(foe_obj%keyg(2,foe_obj%nseg),stat=istat)
+     call memocc(istat, foe_obj%keyg, 'foe_obj%keyg', subname)
+     call to_zero(2*foe_obj%nseg, foe_obj%keyg(1,1))
+
      allocate(foe_obj%kernel_segkeyg(2,maxval(foe_obj%kernel_nsegline),orbs%norb), stat=istat)
      call memocc(istat, foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
      call to_zero(2*maxval(foe_obj%kernel_nsegline)*orbs%norb, foe_obj%kernel_segkeyg(1,1,1))
@@ -311,25 +327,30 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
         iiorb=orbs%isorb+iorb
         iseg=0
         seg_started=.false.
+        isegstart=foe_obj%istsegline(iiorb)-1
         do jjorb=1,orbs%norb
            if(kernel_locreg(iorb,jjorb)) then
               if (.not.seg_started) then
                  iseg=iseg+1
                  foe_obj%kernel_segkeyg(1,iseg,iiorb)=jjorb
+                 foe_obj%keyg(1,isegstart+iseg)=jjorb
               end if
               seg_started=.true.
            else
               if (seg_started) then
                  foe_obj%kernel_segkeyg(2,iseg,iiorb)=jjorb-1
+                 foe_obj%keyg(2,isegstart+iseg)=jjorb-1
               end if
               seg_started=.false.
            end if
         end do
         if (seg_started) then
            foe_obj%kernel_segkeyg(2,iseg,iiorb)=orbs%norb
+           foe_obj%keyg(2,isegstart+iseg)=orbs%norb
         end if
      end do
      call mpiallred(foe_obj%kernel_segkeyg(1,1,1), 2*maxval(foe_obj%kernel_nsegline)*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     call mpiallred(foe_obj%keyg(1,1), 2*foe_obj%nseg, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
      iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 
      deallocate(kernel_locreg,stat=istat)
