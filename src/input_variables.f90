@@ -201,7 +201,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
         var => dict_next(var)
      end do
      !then check if the objects exists in separate specifications
-     if (trim(atoms%astruct%atomnames(jtype)) .in. dict//LIN_BASIS_PARAMS) then
+     if (has_key(dict//LIN_BASIS_PARAMS,trim(atoms%astruct%atomnames(jtype)))) then
         var => &
              dict_iter(dict//LIN_BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
      end if

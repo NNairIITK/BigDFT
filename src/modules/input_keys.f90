@@ -650,7 +650,7 @@ contains
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file
     !local variables
-    type(dictionary), pointer :: dict_tmp,ref,dict_err
+    type(dictionary), pointer :: dict_tmp,ref,dict_err,dict_it
     
     ref=> parameters // file
     !parse all the keys of the dictionary
@@ -660,8 +660,14 @@ contains
     !      call yaml_map('Allowed keys',dict_keys(ref))
           !even in a f_err_open_try section this error is assumed to be fatal
           !for the moment. A mechanism to downgrade its gravity should be
-          !provided
-          dict_err=>list_new(.item. dict_keys(ref))
+          !provided 
+          dict_it=>dict_iter(ref)
+          call dict_init(dict_err)
+          do while(associated(dict_it))
+             call add(dict_err,dict_key(dict_it))
+             dict_it=>dict_next(dict_it)
+          end do
+          !dict_err=>list_new(.item. dict_keys(ref))
           call yaml_warning('Input file, section "'//file//&
             '"; invalid key "'//trim(dict_key(dict_tmp))//'".')
           call yaml_map('Allowed keys',dict_err)
