@@ -37,7 +37,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol, ddot
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
-  real(kind=8) :: fscale, error, tt_ovrlp, tt_ham, idempotency_diff, diff
+  real(kind=8) :: fscale, error, tt_ovrlp, tt_ham, idempotency_diff, diff, fscale_check
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
@@ -153,6 +153,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       
       fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
+      fscale_check=1.25*tmb%foe_obj%fscale
 
       evlow_old=1.d100
       evhigh_old=-1.d100
@@ -259,7 +260,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   ! increased by the old way via purification etc.
                   npl=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
               end if
-              npl_check=nint(0.8d0*real(npl,kind=8))
+              npl_check=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
               npl_boundaries=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
@@ -313,7 +314,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               call evnoise(npl, cc(1,3), tmb%foe_obj%evlow, tmb%foe_obj%evhigh, anoise)
 
               call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl_check, cc_check(1,1), &
-                   tmb%foe_obj%ef, tmb%foe_obj%fscale, tmprtr)
+                   tmb%foe_obj%ef, fscale_check, tmprtr)
               call chder(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, cc_check(1,1), cc_check(1,2), npl_check)
               call chebft2(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl_check, cc_check(1,3))
     
