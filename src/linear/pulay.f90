@@ -3,6 +3,8 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_types
   use module_interfaces, except_this_one => pulay_correction_new
   use yaml_output
+  use communications, only: transpose_localized
+  use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
 
   ! Calling arguments
@@ -13,7 +15,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
 
   ! Local variables
-  integer :: iat, isize, iorb, jorb, korb, idir, iiorb, ierr
+  integer :: iat, isize, iorb, jorb, korb, idir, iiorb, ierr, num_points, num_points_tot
   real(kind=8),dimension(:,:),allocatable :: phi_delta, energykernel, tempmat, phi_delta_large
   real(kind=8),dimension(:),allocatable :: hphit_c, hphit_f, denskern_tmp, delta_phit_c, delta_phit_f
   real(kind=8) :: tt
@@ -24,7 +26,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
 
   phi_delta=f_malloc0((/tmb%npsidim_orbs,3/),id='phi_delta')
   ! Get the values of the support functions on the boundary of the localization region
-  call extract_boundary(tmb, phi_delta)
+  call extract_boundary(tmb, phi_delta, num_points, num_points_tot)
 
 
   ! calculate the "energy kernel"
@@ -77,8 +79,8 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
   delta_phit_f=f_malloc(isize,id='delta_phit_f')
   !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
-  tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
-  call uncompressMatrix(iproc,tmb%linmat%denskern)
+  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
+  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
   call to_zero(3*at%astruct%nat, fpulay(1,1))
   do idir=1,3
       ! calculate the overlap matrix among hphi and phi_delta_large
@@ -87,14 +89,14 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%ham)
       tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
-      call uncompressMatrix(iproc,tmb%linmat%ham)
+      call uncompress_matrix(iproc,tmb%linmat%ham)
 
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
           iat=tmb%orbs%onwhichatom(iiorb)
           tt=0.d0
           do jorb=1,tmb%orbs%norb
-              tt = tt -2.d0*tmb%linmat%denskern%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
+              tt = tt -2.d0*tmb%linmat%denskern_large%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
               !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
           end do  
           fpulay(idir,iat)=fpulay(idir,iat)+tt
@@ -102,7 +104,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       call f_free_ptr(tmb%linmat%ham%matrix)
   end do
   call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call f_free_ptr(tmb%linmat%denskern%matrix)
+  call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
   if(iproc==0) then
        call yaml_comment('new Pulay correction',hfill='-')
@@ -136,7 +138,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
 
       tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
       tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-      call uncompressMatrix(iproc,tmb%linmat%ovrlp)
+      call uncompress_matrix(iproc,tmb%linmat%ovrlp)
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
                  tmb%linmat%ovrlp%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
                  0.d0, tempmat, tmb%orbs%norb)
@@ -147,16 +149,16 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       hphit_f=f_malloc(isize,id='hphit_f')
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                                tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
-      isize=size(tmb%linmat%denskern%matrix_compr)
+      isize=size(tmb%linmat%denskern_large%matrix_compr)
       denskern_tmp=f_malloc(isize,id='denskern_tmp')
-      denskern_tmp=tmb%linmat%denskern%matrix_compr
-      tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
-      tmb%linmat%denskern%matrix=tempmat
-      call compress_matrix_for_allreduce(iproc,tmb%linmat%denskern)
-      call f_free_ptr(tmb%linmat%denskern%matrix)
+      denskern_tmp=tmb%linmat%denskern_large%matrix_compr
+      tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
+      tmb%linmat%denskern_large%matrix=tempmat
+      call compress_matrix(iproc,tmb%linmat%denskern_large)
+      call f_free_ptr(tmb%linmat%denskern_large%matrix)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%denskern, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
-      tmb%linmat%denskern%matrix_compr=denskern_tmp
+           tmb%linmat%denskern_large, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
+      tmb%linmat%denskern_large%matrix_compr=denskern_tmp
     
       call f_free(tempmat)
       call f_free(denskern_tmp)
@@ -168,7 +170,7 @@ end subroutine pulay_correction_new
 
 
 
-subroutine extract_boundary(tmb, phi_delta)
+subroutine extract_boundary(tmb, phi_delta, numpoints, numpoints_tot)
   use module_base
   use module_types
   use module_interfaces
@@ -178,6 +180,7 @@ subroutine extract_boundary(tmb, phi_delta)
   ! Calling arguments
   type(DFT_wavefunction),intent(in) :: tmb
   real(kind=8),dimension(tmb%npsidim_orbs,3),intent(out) :: phi_delta
+  integer, intent(out) :: numpoints, numpoints_tot
 
   ! Local variables
   integer :: ishift, iorb, iiorb, ilr, iseg, jj_prev, j0_prev, j1_prev, ii_prev, i3_prev, i2_prev, i1_prev, i0_prev
@@ -186,7 +189,7 @@ subroutine extract_boundary(tmb, phi_delta)
   real(kind=8) :: dist, crit, xsign, ysign, zsign
 
   call f_routine(id='extract_boundary')
-
+  numpoints=0
   ! First copy the boundary elements of the first array to a temporary array,
   ! filling the remaining part with zeros.
   call to_zero(3*tmb%npsidim_orbs,phi_delta(1,1))
@@ -254,7 +257,9 @@ subroutine extract_boundary(tmb, phi_delta)
                       phi_delta(ishift+jj-1,2)=ysign*tmb%psi(ishift+jj-1)
                       phi_delta(ishift+jj-1,3)=zsign*tmb%psi(ishift+jj-1)
                       boundaryarray(i1_prev,i2_prev,i3_prev)=.true.
+                      numpoints=numpoints+1
                   end if
+                  numpoints_tot=numpoints_tot+1
               end if
               dist= sqrt(((tmb%lzd%llr(ilr)%ns1+i1)*tmb%lzd%hgrids(1)-tmb%lzd%llr(ilr)%locregcenter(1))**2 &
                         +((tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)-tmb%lzd%llr(ilr)%locregcenter(2))**2 &
@@ -269,7 +274,9 @@ subroutine extract_boundary(tmb, phi_delta)
                   phi_delta(ishift+jj,2)=ysign*tmb%psi(ishift+jj)
                   phi_delta(ishift+jj,3)=zsign*tmb%psi(ishift+jj)
                   boundaryarray(i1,i2,i3)=.true.
+                  numpoints=numpoints+1
               end if
+              numpoints_tot=numpoints_tot+1
           end if
       end do
 
@@ -340,7 +347,9 @@ subroutine extract_boundary(tmb, phi_delta)
                   zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+6)
               phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7,3) = &
                   zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(jj-1)+7)
+              numpoints=numpoints+7
           end if
+          numpoints_tot=numpoints_tot+1
           ! Check the end of the segment. If it was a boundary element of
           ! the coarse grid, copy its content also for the fine part.
           if (boundaryarray(i1,i2,i3)) then
@@ -396,7 +405,9 @@ subroutine extract_boundary(tmb, phi_delta)
                   zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+6)
               phi_delta(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7,3) = &
                   zsign*tmb%psi(ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i1-i0+jj-1)+7)
+              numpoints=numpoints+7
           end if
+          numpoints_tot=numpoints_tot+1
       end do
       
       ishift=ishift+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
@@ -418,6 +429,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use module_types
   use module_interfaces, except_this_one => pulay_correction
   use yaml_output
+  use communications, only: transpose_localized, start_onesided_communication
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -439,13 +452,13 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   !!integer :: ialpha, iat, iiorb
   real(kind=8) :: kernel, ekernel
   real(kind=8),dimension(:),allocatable :: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
-  type(sparseMatrix) :: dovrlp(3), dham(3)
+  type(sparse_matrix) :: dovrlp(3), dham(3)
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   character(len=*),parameter :: subname='pulay_correction'
 
   ! Begin by updating the Hpsi
-  call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+  call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
 
   allocate(lhphilarge(tmb%ham_descr%npsidim_orbs), stat=istat)
   call memocc(istat, lhphilarge, 'lhphilarge', subname)
@@ -509,14 +522,18 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   ! DOVRLP AND DHAM SHOULD HAVE DIFFERENT SPARSITIES, BUT TO MAKE LIFE EASIER KEEPING THEM THE SAME FOR NOW
   ! also array of structure a bit inelegant at the moment
   do jdir = 1, 3
-    call nullify_sparsematrix(dovrlp(jdir))
-    call nullify_sparsematrix(dham(jdir))
+    !call nullify_sparse_matrix(dovrlp(jdir))
+    !call nullify_sparse_matrix(dham(jdir))
+    dovrlp(jdir)=sparse_matrix_null()
+    dham(jdir)=sparse_matrix_null()
     call sparse_copy_pattern(tmb%linmat%ham,dovrlp(jdir),iproc,subname) 
     call sparse_copy_pattern(tmb%linmat%ham,dham(jdir),iproc,subname)
-    allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
-    call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
-    allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
-    call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
+    !!allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
+    !!call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
+    !!allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
+    !!call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
+    dham(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
+    dovrlp(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
 
     call get_derivative(jdir, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%lzd%hgrids(1), tmb%orbs, &
          tmb%ham_descr%lzd, tmb%ham_descr%psi, lhphilarge)
@@ -631,8 +648,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call memocc(istat, iall, 'denspot%pot_work', subname)
 
   do jdir=1,3
-     call deallocate_sparseMatrix(dovrlp(jdir),subname)
-     call deallocate_sparseMatrix(dham(jdir),subname)
+     call deallocate_sparse_matrix(dovrlp(jdir),subname)
+     call deallocate_sparse_matrix(dham(jdir),subname)
   end do
 
   !!if(iproc==0) write(*,'(1x,a)') 'done.'

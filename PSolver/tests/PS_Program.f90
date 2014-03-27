@@ -16,6 +16,7 @@ program PSolver_Program
   use Poisson_Solver
   use wrapper_mpi
   use memory_profiling, only: memocc,ndebug
+  use time_profiling
   implicit none
   !include 'mpif.h'
   !Order of interpolating scaling function
@@ -186,7 +187,8 @@ program PSolver_Program
 
   write(*,'(a12,i4)') ' itype_scf = ', itype_scf 
 
-  call timing(nproc,'time.prc','IN')
+  call f_timing_reset(filename='time.yaml',master=iproc==0)
+  !call timing(nproc,'time.prc','IN')
 
   karray=pkernel_init(.true.,iproc,nproc,0,&
        geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
@@ -321,7 +323,7 @@ program PSolver_Program
 !!$  deallocate(karray,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'karray',subname)
 
-  call timing(karray%mpi_env%mpi_comm,'              ','RE')
+  call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm)
 
   if (.not. onlykernel) then
 
@@ -357,7 +359,8 @@ program PSolver_Program
 
   !Serial case
   if (alsoserial) then
-     call timing(0,'             ','IN')
+     call f_timing_reset(filename='time_serial.yaml',master=iproc==0)
+     !call timing(0,'             ','IN')
 
      karray=pkernel_init(.true.,0,1,0,&
           geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0,(/alpha,beta,gamma/))
@@ -390,7 +393,8 @@ program PSolver_Program
 !!$     deallocate(karray,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'karray',subname)
 
-     call timing(karray%mpi_env%mpi_comm,'              ','RE')
+     !call timing(,'              ','RE')
+     call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm)
 
      if (.not. onlykernel) then
         !Maximum difference

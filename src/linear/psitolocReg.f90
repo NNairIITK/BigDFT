@@ -218,7 +218,7 @@ subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
   icheck = 0
 
 ! Initialize loc_psi
-  call razero(ldim, lpsi)
+  call to_zero(ldim, lpsi)
 
 ! Get the keymask: shift for every segment of Llr (with respect to Glr)
 ! allocate(keymask(2,nseg),stat=i_stat)

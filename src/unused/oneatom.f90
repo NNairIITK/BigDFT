@@ -31,7 +31,7 @@ program oneatom
   type(locreg_descriptors) :: Glr
   type(local_zone_descriptors) :: Lzd
   type(nonlocal_psp_descriptors) :: nlpspd
-  type(communications_arrays) :: comms
+  type(comms_cubic) :: comms
   type(denspot_distribution) :: denspotd
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
@@ -416,7 +416,7 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,& !n(c) elecfield (arg:9)
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call razero(n1i*n2i*n3pi,pot_ion)
+  call to_zero(n1i*n2i*n3pi,pot_ion)
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -571,7 +571,7 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,& !n(c) elecfield (arg:9)
            allocate(potion_corr(n1i*n2i*n3pi+ndebug),stat=i_stat)
            call memocc(i_stat,potion_corr,'potion_corr',subname)
 
-           call razero(n1i*n2i*n3pi,potion_corr)
+           call to_zero(n1i*n2i*n3pi,potion_corr)
 
            !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
            !for the moment works only in the isolated BC case
@@ -843,13 +843,13 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,Lzd,rxyz,hx,hy,hz,nspin,psi)
 !!$  end if
 
      !copy the eigenvectors to the matrix
-     call razero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
+     call to_zero(G%ncoeff*orbs%norbp*orbs%nspinor,gaucoeffs)
      if (orbs%norb > G%ncoeff) stop 'wrong gaussian basis'
      jorb=mod(orbs%isorb,orbs%norb)
      do iorb=1,orbs%norbp
         jorb=jorb+1
         if (jorb == orbs%norb+1) jorb=1 !for k-points calculation
-        call dcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
+        call vcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
      end do
 
 
@@ -942,7 +942,7 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
 
   allocate(psi2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+ndebug),stat=i_stat)
@@ -956,10 +956,10 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi)
 
   print *,'normISF',dot(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir(-nl1,-nl2,-nl3),1)
 
-  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+  call vcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
   call isf_to_daub(lr,w,psir2,psi2)
   !psir2 is destroyed
-  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+  call vcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
 
   print *,'normDaub2',dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi2(1),1,psi2(1),1)
 

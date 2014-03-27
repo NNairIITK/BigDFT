@@ -81,6 +81,7 @@ F_DEFINE_TYPE(run_image);
 F_DEFINE_TYPE(NEB_data);
 F_DEFINE_TYPE(system_fragment);
 /* Advanced types, used for full bindings. */
+F_DEFINE_TYPE(xc_info);
 F_DEFINE_TYPE(communications_arrays);
 F_DEFINE_TYPE(coulomb_operator);
 F_DEFINE_TYPE(denspot_distribution);

@@ -1333,106 +1333,6 @@ subroutine write_forces(atoms,fxyz)
    !$$        end if
 END SUBROUTINE write_forces
 
-
-!> Print the electronic configuration, with the semicore orbitals
-subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
-   use module_base
-   use yaml_output
-   implicit none
-   integer, intent(in) :: nelecmax,nsccode,noccmax,lmax,nspinor,nspin
-   real(gp), dimension(nelecmax), intent(in) :: aocc
-   !local variables
-   character(len=10) :: tmp
-   character(len=500) :: string
-   integer :: i,m,iocc,icoll,inl,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
-   logical, dimension(4,2) :: scorb
-
-   !if non-collinear it is like nspin=1 but with the double of orbitals
-   if (nspinor == 4) then
-      noncoll=2
-   else
-      noncoll=1
-   end if
-   scorb=.false.
-   if (nsccode/=0) then !the atom has some semicore orbitals
-      niasc=nsccode
-      do lsc=4,1,-1
-         nlsc=niasc/4**(lsc-1)
-         do i=1,nlsc
-            scorb(lsc,i)=.true.
-         end do
-         niasc=niasc-nlsc*4**(lsc-1)
-      end do
-   end if
-
-   call yaml_open_map('Electronic configuration',flow=.true.)
-
-   !initalise string
-   string=repeat(' ',len(string))
-
-   is=1
-   do i=1,noccmax
-      iocc=0
-      do l=1,lmax
-         iocc=iocc+1
-         nl=nint(aocc(iocc))
-         do inl=1,nl
-            !write to the string the angular momentum
-            if (inl == i) then
-               iss=is
-               if (scorb(l,inl)) then
-                  string(is:is)='('
-                  is=is+1
-               end if
-               select case(l)
-               case(1)
-                  string(is:is)='s'
-               case(2)
-                  string(is:is)='p'
-               case(3)
-                  string(is:is)='d'
-               case(4)
-                  string(is:is)='f'
-               case default
-                  stop 'l not admitted'
-               end select
-               is=is+1
-               if (scorb(l,inl)) then
-                  string(is:is)=')'
-                  is=is+1
-               end if
-               call yaml_open_sequence(string(iss:is))
-            end if
-            do ispin=1,nspin
-               do m=1,2*l-1
-                  do icoll=1,noncoll !non-trivial only for nspinor=4
-                     iocc=iocc+1
-                     !write to the string the value of the occupation numbers
-                     if (inl == i) then
-                        call write_fraction_string(l,aocc(iocc),tmp,ntmp)
-                        string(is:is+ntmp-1)=tmp(1:ntmp)
-                        call yaml_sequence(tmp(1:ntmp))
-                        is=is+ntmp
-                     end if
-                  end do
-               end do
-            end do
-            if (inl == i) then
-               string(is:is+2)=' , '
-               is=is+3
-               call yaml_close_sequence()
-            end if
-         end do
-      end do
-   end do
-
-   !write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
-
-   call yaml_close_map()
-
-END SUBROUTINE print_eleconf
-
-
 !> Write stress tensor matrix
 subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   use module_base
@@ -1698,6 +1598,7 @@ subroutine print_memory_estimation(mem)
      call yaml_map('Density Construction',trim(MibdotKib(mem%density)))
      call yaml_map('Poisson Solver',trim(MibdotKib(mem%psolver)))
      call yaml_map('Hamiltonian application',trim(MibdotKib(mem%ham)))
+     call yaml_map('Orbitals Orthonormalization',trim(MibdotKib(mem%ham+mem%submat)))
 !           call yaml_comment('Wfn, Work, Den, Ker ',tabbing=50)
   call yaml_close_map()
   call yaml_map('Estimated Memory Peak (MB)',yaml_toa(mega(mem%peak)))
@@ -1832,22 +1733,47 @@ subroutine print_nlpsp(nlpsp)
   use yaml_output
   implicit none
   type(DFT_PSP_projectors), intent(in) :: nlpsp
+  !local variables
+  integer :: iat,ilr,sizemask,maxmask,totmask,totpack
 
   call yaml_open_map('NonLocal PSP Projectors Descriptors')
   if (nlpsp%on_the_fly) then
      call yaml_map('Creation strategy','On-the-fly')
-     !write(*,'(44x,a)') '------  On-the-fly projectors application'
   else
      call yaml_map('Creation strategy','Once-and-for-all')
-     !write(*,'(44x,a)') '------'
   end if
   call yaml_map('Total number of projectors',nlpsp%nproj)
   call yaml_map('Total number of components',nlpsp%nprojel)
   call yaml_map('Percent of zero components',nint(100.0_gp*nlpsp%zerovol))
+  !calculate the amount of memory spent in the descriptor for the wavefunction
+  maxmask=0
+  totmask=0
+  totpack=0
+  do iat=1,nlpsp%natoms
+     if (nlpsp%pspd(iat)%mproj>0) then
+        totpack=max(totpack,nlpsp%pspd(iat)%plr%wfd%nvctr_c+&
+             7*nlpsp%pspd(iat)%plr%wfd%nvctr_f)
+     end if
+     sizemask=0
+     if (associated(nlpsp%pspd(iat)%tolr)) then
+        do ilr=1,nlpsp%pspd(iat)%nlr
+           sizemask=sizemask+&
+                nlpsp%pspd(iat)%tolr(ilr)%nmseg_c+nlpsp%pspd(iat)%tolr(ilr)%nmseg_f
+        end do
+     end if
+     maxmask=max(maxmask,sizemask)
+     totmask=totmask+sizemask
+  end do
+  totpack=totpack*4
+  if (associated(nlpsp%scpr)) totpack=totpack+size(nlpsp%scpr)
+  if (associated(nlpsp%cproj)) totpack=totpack+size(nlpsp%cproj)*2
+  if (totpack /=0) &
+       call yaml_map('Size of workspaces',totpack)
+  if (maxmask /=0) &
+       call yaml_map('Maximum size of masking arrays for a projector',3*maxmask)
+  if (totmask /=0) &
+       call yaml_map('Cumulative size of masking arrays',3*totmask)
 
-!!$     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
-!!$     write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
-!!$     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
   call yaml_close_map()
 END SUBROUTINE print_nlpsp
 

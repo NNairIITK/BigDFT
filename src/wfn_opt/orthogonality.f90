@@ -14,10 +14,11 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => orthogonalize
+  use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   !>Choose which orthogonalization method shall be used:
   !!    orthpar%methOrtho==0: Cholesky orthonormalization (i.e. a pseudo Gram-Schmidt)
   !!    orthpar%methOrtho==1: hybrid Gram-Schmidt/Cholesky orthonormalization
@@ -208,11 +209,12 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   use module_base
   use module_types
   use module_interfaces, except_this_one => orthoconstraint
+  use communications_base, only: comms_cubic
   implicit none
           logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
           integer, intent(in) :: iproc,nproc
           type(orbitals_data), intent(in) :: orbs
-          type(communications_arrays), intent(in) :: comms
+          type(comms_cubic), intent(in) :: comms
           !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
           real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
           real(wp), dimension(orbs%npsidim_comp), optional, intent(in) :: spsi
@@ -257,7 +259,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   end if
 
           !put to zero all the k-points which are not needed
-          call razero(ndim_ovrlp(nspin,orbs%nkpts),alag)
+          call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
 
           !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
           ispsi=1
@@ -460,10 +462,11 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   use module_base
   use module_types
   use yaml_output
+  use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(inout) :: orbs !eval is updated
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: hpsi
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(inout) :: psi
   real(wp), intent(out) :: evsum
@@ -502,7 +505,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   call memocc(i_stat,hamks,'hamks',subname)
 
   !put to zero all the k-points which are not needed
-  call razero(ndim_ovrlp(nspin,orbs%nkpts),hamks)
+  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),hamks)
 
   !dimension of the work arrays
   n_lp=0
@@ -657,7 +660,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
         if(nspinor==1) then
 
-           call syev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,&
+                   call syev('V','U',norb,hamks(ndim_ovrlp(ispin,ikpt-1)+1),norb,&
                 orbs%eval(isorb+(ikpt-1)*orbs%norb),work_lp(1),n_lp,info)
            if (info /= 0) write(*,*) 'SYEV ERROR',info
 
@@ -694,7 +697,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         !!        ! dgemm can be used instead of daxpy
         !!        if(nspinor==1) then
         !!           do iorb=1,norb
-        !!              call razero(nvctrp,psitt(1,iorb))
+        !!              call to_zero(nvctrp,psitt(1,iorb))
         !!              do jorb=1,norb
         !!                 alpha=hamks(jorb,iorb,1)
         !!                 call axpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
@@ -702,7 +705,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         !!           enddo
         !!        else
         !!           do iorb=1,norb
-        !!              call razero(nvctrp*nspinor,psitt(1,iorb))
+        !!              call to_zero(nvctrp*nspinor,psitt(1,iorb))
         !!              do jorb=1,norb
         !!                 call c_axpy(ncomp*nvctrp,hamks(2*jorb-1,iorb,1),psit(1,jorb),1,psitt(1,iorb),1)
         !!              enddo
@@ -743,7 +746,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
                 (0.0_wp,0.0_wp),psiw(1),max(1,ncomp*nvctrp))
         end if
 
-        call DCOPY(nvctrp*norb*nspinor,psiw(1),1,psi(ispsi),1)
+        call vcopy(nvctrp*norb*nspinor,psiw(1),1,psi(ispsi),1)
 
         !here we should add the same transformation for hpsi if required
 
@@ -787,11 +790,12 @@ END SUBROUTINE subspace_diagonalisation
 subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_virt,msg)
   use module_base
   use module_types
+          use communications_base, only: comms_cubic
   implicit none
   logical, intent(in) :: msg
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs,orbsv
-  type(communications_arrays), intent(in) :: comms,commsv
+  type(comms_cubic), intent(in) :: comms,commsv
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: psi_occ
   real(wp), dimension(commsv%nvctr_par(iproc,0)*orbsv%nspinor*orbsv%norb), intent(inout) :: psi_virt
   !local variables
@@ -825,7 +829,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   call memocc(i_stat,alag,'alag',subname)
 
   !put to zero all the k-points which are not needed
-  call razero(ndim_ovrlp(nspin,orbs%nkpts),alag)
+  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
 
   !differentiate between real and complex wavefunctions
   !Lower triangle of overlap matrix using BLAS
@@ -979,10 +983,11 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
         subroutine orbitals_and_components(iproc,ikpt,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
           use module_base
           use module_types
+          use communications_base, only: comms_cubic
           implicit none
           integer, intent(in) :: iproc,ikpt,ispin
           type(orbitals_data), intent(in) :: orbs
-          type(communications_arrays), intent(in) :: comms
+          type(comms_cubic), intent(in) :: comms
           integer, intent(out) :: nvctrp,norb,norbs,ncomp,nspinor
           
           nvctrp=comms%nvctr_par(iproc,ikpt)
@@ -1124,7 +1129,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 
   !initialise if nvctrp=0
   if (nvctrp == 0) then
-     call razero(norbs*norb*istart,alag)
+     call to_zero(norbs*norb*istart,alag(1,1,1))
   end if
 
   !     alag(jorb,iorb,istart)=+psit(k,jorb)*hpsit(k,iorb)
@@ -1263,7 +1268,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,psit,nspinor)
      allocate(ovrlp(norbs,norb,istart+ndebug),stat=i_stat)
      call memocc(i_stat,ovrlp,'ovrlp',subname)
 
-     call razero(norbs*norb*istart,ovrlp)
+     call to_zero(norbs*norb*istart,ovrlp(1,1,1))
 
      ! Upper triangle of overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
@@ -1465,7 +1470,7 @@ subroutine loewe_p(iproc,norb,ndim,nvctrp,nvctr_tot,psit)
      ! new eigenvectors
      !   psitt(i,iorb)=psit(i,jorb)*ovrlp(jorb,iorb,3)
      call DGEMM('N','N',nvctrp,norb,norb,1.d0,psit,nvctrp,ovrlp(1,1,3),norb,0.d0,psitt,nvctrp)
-     call DCOPY(nvctrp*ndim,psitt,1,psit,1)
+     call vcopy(nvctrp*ndim,psitt(1,1),1,psit(1,1),1)
      i_all=-product(shape(psitt))*kind(psitt)
      deallocate(psitt,stat=i_stat)
      call memocc(i_stat,i_all,'psitt',subname)
@@ -1547,7 +1552,7 @@ subroutine loewe(norb,nvctrp,psi)
      call memocc(i_stat,tpsi,'tpsi',subname)
      !   tpsi(i,iorb)=psi(i,jorb)*ovrlp(jorb,iorb,3)
      call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi(1,1),nvctrp,ovrlp(1,1,3),norb,0.d0,tpsi,nvctrp)
-     call DCOPY(nvctrp*norb,tpsi,1,psi,1)
+     call vcopy(nvctrp*norb,tpsi(1,1),1,psi(1,1),1)
      i_all=-product(shape(tpsi))*kind(tpsi)
      deallocate(tpsi,stat=i_stat)
      call memocc(i_stat,i_all,'tpsi',subname)
@@ -1808,7 +1813,7 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
   ! dgemm can be used instead of daxpy
   if(nspinor==1) then
      do iorb=1,norb
-        call razero(nvctrp,psitt(1,iorb))
+        call to_zero(nvctrp,psitt(1,iorb))
         do jorb=1,norb
            alpha=hamks(jorb,iorb,1)
            call axpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
@@ -1816,7 +1821,7 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
      enddo
   else
      do iorb=1,norb
-        call razero(nvctrp*nspinor,psitt(1,iorb))
+        call to_zero(nvctrp*nspinor,psitt(1,iorb))
         do jorb=1,norb
            call c_axpy(ncomp*nvctrp,hamks(2*jorb-1,iorb,1),psit(1,jorb),1,psitt(1,iorb),1)
         enddo
@@ -1826,7 +1831,7 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
   deallocate(hamks,stat=i_stat)
   call memocc(i_stat,i_all,'hamks',subname)
 
-  call DCOPY(nvctrp*norb*nspinor,psitt,1,psit,1)
+  call vcopy(nvctrp*norb*nspinor,psitt(1,1),1,psit(1,1),1)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt',subname)
@@ -1856,6 +1861,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => gsChol
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
@@ -1864,7 +1870,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
   integer, intent(inout) :: nspinor
   type(orthon_data), intent(in):: orthpar
   type(orbitals_data):: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   integer, dimension(nspin), intent(in) :: norbArr
   integer, dimension(nspin,0:orbs%nkpts), intent(inout) :: ndim_ovrlp
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psi
@@ -2019,13 +2025,14 @@ subroutine gramschmidt(iproc, norbIn, psit, ndim_ovrlp, ovrlp, orbs, nspin,&
      nspinor, comms, norbTot, block1, block2, ispinIn, paw)
 use module_base
 use module_types
+use communications_base, only: comms_cubic
 implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, norbIn, nspin, block1, block2, ispinIn
 integer,intent(out) :: nspinor
 type(orbitals_data):: orbs
-type(communications_arrays), intent(in) :: comms
+type(comms_cubic), intent(in) :: comms
 type(paw_objects),optional,intent(inout)::paw
 real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psit
 integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
@@ -2166,13 +2173,14 @@ subroutine cholesky(iproc,nspin, norbIn, psi, orbs, comms, ndim_ovrlp, ovrlp, no
 
 use module_base
 use module_types
+use communications_base, only: comms_cubic
 implicit none
 
 ! Calling arguments
 !integer:: iproc,nvctrp,norbIn, nspinor, nspin, norbTot, block1, ispinIn
 integer:: iproc,nvctrp,norbIn, block1, ispinIn,nspin
 type(orbitals_data):: orbs
-type(communications_arrays):: comms
+type(comms_cubic):: comms
 real(kind=8),dimension(orbs%npsidim_comp),intent(inout):: psi
 integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
 real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts),1):: ovrlp
@@ -2304,6 +2312,7 @@ subroutine loewdin(iproc, norbIn, nspinor, block1, ispinIn, orbs, comms, nspin, 
 
 use module_base
 use module_types
+use communications_base, only: comms_cubic
 implicit none
 
 ! Calling arguments
@@ -2311,7 +2320,7 @@ integer,intent(in):: iproc,norbIn, nspin, block1, ispinIn
 type(paw_objects),optional,intent(inout)::paw
 integer, intent(inout) :: nspinor
 type(orbitals_data),intent(in):: orbs
-type(communications_arrays),intent(in):: comms
+type(comms_cubic),intent(in):: comms
 real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
 integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
 real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
@@ -2404,7 +2413,7 @@ do ikptp=1,orbs%nkptsp
             end if
 
             ! Now copy the orbitals from the temporary variable to psit.
-            call dcopy(nvctrp*norb*nspinor, psitt(1), 1, psit(ist), 1)
+            call vcopy(nvctrp*norb*nspinor, psitt(1), 1, psit(ist), 1)
 
             ! For PAW: upgrade also spsi and cprj
             if(usepaw==1) then
@@ -2418,7 +2427,7 @@ do ikptp=1,orbs%nkptsp
                end if
 
                ! Now copy the orbitals from the temporary variable to psit.
-               call dcopy(nvctrp*norb*nspinor, psitt(1), 1, paw%spsi(ist), 1)
+               call vcopy(nvctrp*norb*nspinor, psitt(1), 1, paw%spsi(ist), 1)
                
                !Now upgrade cprj:
                !Pending: check that this works for more than 1 orbital, and in parallel
@@ -2512,13 +2521,14 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
   character(len=*), intent(in) :: category
   integer,intent(in):: iproc,nproc,nspin,norbIn,block1,ispinIn
   type(orbitals_data),intent(in):: orbs
-  type(communications_arrays),intent(in) :: comms
+  type(comms_cubic),intent(in) :: comms
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psi
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
   real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)),intent(out):: ovrlp
@@ -2531,7 +2541,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
-  call razero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
+  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
 
 
   ispsi=1
@@ -2617,13 +2627,14 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
   character(len=*), intent(in) :: category
   integer,intent(in):: iproc,nproc,nspin,norbIn,block1,ispinIn
   type(orbitals_data),intent(in):: orbs
-  type(communications_arrays),intent(in) :: comms
+  type(comms_cubic),intent(in) :: comms
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psi
   real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: spsi
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
@@ -2637,8 +2648,8 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
-  call razero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
-  call razero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp_pw)
+  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
+  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp_pw)
 
 
   ispsi=1
@@ -2742,6 +2753,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
 
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
@@ -2749,7 +2761,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
   character(len=*), intent(in) :: category
   integer,intent(in):: iproc, nproc, nspin, norbIn, block1, block2, ispinIn
   type(orbitals_data),intent(in):: orbs
-  type(communications_arrays),intent(in) :: comms
+  type(comms_cubic),intent(in) :: comms
   real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psit
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
   real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
@@ -2759,7 +2771,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
   
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
-  call razero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
+  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
 
   ispsi1=1
   ispsi2=1
@@ -2850,6 +2862,7 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
 
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 
   ! Calling arguments
@@ -2857,7 +2870,7 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
   character(len=*), intent(in) :: category
   integer,intent(in):: iproc, nproc, nspin, norbIn, block1, block2, ispinIn
   type(orbitals_data),intent(in):: orbs
-  type(communications_arrays),intent(in) :: comms
+  type(comms_cubic),intent(in) :: comms
   real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psit,spsit
   integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
   real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
@@ -2868,8 +2881,8 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
   
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
-  call razero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
-  call razero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp_pw)
+  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
+  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp_pw)
 
   ispsi1=1
   ispsi2=1
@@ -3010,7 +3023,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!  implicit none
 !!  integer, intent(in) :: iproc,nproc,ndim
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(wavefunctions_descriptors), intent(in) :: wfd
 !!  !real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(in) :: psi
 !!  !real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(out) :: hpsi
@@ -3053,7 +3066,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!  call memocc(i_stat,alag,'alag',subname)
 !!
 !!  !put to zero all the k-points which are not needed
-!!  call razero(ndim_ovrlp(nspin,orbs%nkpts),alag)
+!!  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
 !!
 !!  !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
 !!  ispsi=1
@@ -3217,7 +3230,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!!!!  implicit none
 !!!!!  integer, intent(in) :: iproc,lproc, uproc, norbPerGroup, newComm
 !!!!!  type(orbitals_data), intent(in) :: orbs
-!!!!!  type(communications_arrays), intent(in) :: comms
+!!!!!  type(comms_cubic), intent(in) :: comms
 !!!!!  type(input_variables), intent(in) :: input
 !!!!!  !real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(inout) :: psi
 !!!!!  real(wp), dimension(orbs%npsidim), intent(inout) :: psi
@@ -3374,7 +3387,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!!!!  character(len=*), intent(in) :: category
 !!!!!  integer,intent(in):: iproc,nproc,nspin,norbIn,block1,ispinIn, newComm
 !!!!!  type(orbitals_data),intent(in):: orbs
-!!!!!  type(communications_arrays),intent(in) :: comms
+!!!!!  type(comms_cubic),intent(in) :: comms
 !!!!!  real(wp),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb),intent(in) :: psi
 !!!!!  integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
 !!!!!  real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)),intent(out):: ovrlp
@@ -3387,7 +3400,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!!!!
 !!!!!  ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
 !!!!!  ! of the matrix.
-!!!!!  call razero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
+!!!!!  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
 !!!!!
 !!!!!
 !!!!!  ispsi=1
@@ -3463,7 +3476,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!!!!  implicit none
 !!!!!  integer, intent(in) :: iproc,ikptp,ispin, jproc, iorb
 !!!!!  type(orbitals_data), intent(in) :: orbs
-!!!!!  type(communications_arrays), intent(in) :: comms
+!!!!!  type(comms_cubic), intent(in) :: comms
 !!!!!  integer, intent(out) :: nvctrp,norb,norbs,ncomp,nspinor
 !!!!!
 !!!!!  !nvctrp=comms%nvctr_par(iproc,ikptp)

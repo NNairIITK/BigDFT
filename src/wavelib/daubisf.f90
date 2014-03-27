@@ -85,8 +85,8 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      call to_zero(w%nyc*nspinor,w%y_c(1,1))
      call to_zero(w%nyf*nspinor,w%y_f(1,1))
 
-!!        call razero(w%nw1*nspinor,w%w1)
-!!        call razero(w%nw2*nspinor,w%w2)
+!!        call to_zero(w%nw1*nspinor,w%w1)
+!!        call to_zero(w%nw2*nspinor,w%w2)
 
   case('S')
      w%nw1=0
@@ -624,7 +624,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   i_f=min(1,lr%wfd%nvctr_f)
   iseg_f=min(1,lr%wfd%nseg_f)
 
-  !call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
+  !call to_zero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
   !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   select case(lr%geocode)
   case('F')
@@ -1158,6 +1158,17 @@ subroutine deallocate_work_arrays_sumrho(w)
   call memocc(i_stat,i_all,'w2',subname)
   
 END SUBROUTINE deallocate_work_arrays_sumrho
+
+subroutine psig_to_psir_free(n1,n2,n3,work,psig_psir)
+ implicit none
+ integer, intent(in) :: n1,n2,n3 !< dimensions in the daubechies grid
+ real(kind=8),dimension((2*n1+31)*(2*n2+31)*(2*n3+31)), intent(inout):: work !< enlarged buffer 
+ real(kind=8),dimension((2*n1+31)*(2*n2+31)*(2*n3+31)), intent(inout):: psig_psir  !< final result, containing psig data but big enough to contain psir (used as work array)
+
+ call synthese_free_self(n1,n2,n3,psig_psir,work)
+ call convolut_magic_n_free_self(2*n1+15,2*n2+15,2*n3+15,work,psig_psir)
+	
+end subroutine psig_to_psir_free
 
 !transform a daubechies function in compressed form to a function in real space via
 !the Magic Filter operation

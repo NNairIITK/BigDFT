@@ -14,7 +14,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
   use wrapper_MPI
   use module_input_keys
-  use module_interfaces, only: merge_input_file_to_dict
+  use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
   use yaml_output
   implicit none
@@ -87,59 +87,6 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   call f_release_routine()
 end subroutine read_input_dict_from_files
 
-!> Routine to read YAML input files and create input dictionary.
-subroutine merge_input_file_to_dict(dict, fname, mpi_env)
-  use module_base
-  use module_input_keys
-  use dictionaries
-  use yaml_parse
-  use wrapper_MPI
-  implicit none
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
-  type(mpi_environment), intent(in) :: mpi_env
-
-  integer(kind = 8) :: cbuf, cbuf_len
-  integer :: ierr
-  character(len = max_field_length) :: val
-  character, dimension(:), allocatable :: fbuf
-  type(dictionary), pointer :: udict
-  
-  call f_routine(id='merge_input_file_to_dict')
-  if (mpi_env%iproc == 0) then
-     call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
-     if (mpi_env%nproc > 1) &
-          & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-  else
-     call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-  end if
-  fbuf=f_malloc_str(1,int(cbuf_len),id='fbuf')
-  fbuf(:) = " "
-
-  if (mpi_env%iproc == 0) then
-     call copyCBuffer(fbuf(1), cbuf, cbuf_len)
-     call freeCBuffer(cbuf)
-     if (mpi_env%nproc > 1) &
-          & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-  else
-     call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-  end if
-
-  call f_err_open_try()
-  call yaml_parse_from_char_array(udict, fbuf)
-  ! Handle with possible partial dictionary.
-  call f_free_str(1,fbuf)
-  call dict_update(dict, udict // 0)
-  call dict_free(udict)
-
-  ierr = 0
-  if (f_err_check()) ierr = f_get_last_error(val)
-  call f_err_close_try()
-  !in the present implementation f_err_check is not cleaned after the close of the try
-  if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
-  call f_release_routine()
-
-end subroutine merge_input_file_to_dict
 
 !> Fill the input_variables structure with the information
 !! contained in the dictionary dict
@@ -155,13 +102,14 @@ subroutine inputs_from_dict(in, atoms, dict)
   use dynamic_memory
   use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   use module_xc
+  use module_atoms, only: atoms_data,atoms_data_null,set_astruct_from_dict
   implicit none
   type(input_variables), intent(out) :: in
   type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
 
   !type(dictionary), pointer :: profs
-  integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max
+  integer :: ierr, ityp, nelec_up, nelec_down, norb_max
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
   type(dictionary), pointer :: dict_minimal, var
 
@@ -171,9 +119,9 @@ subroutine inputs_from_dict(in, atoms, dict)
   call create_log_file(dict, writing_dir, output_dir, run_name)
 
   ! Atoms case.
-  atoms = atoms_null()
+  atoms = atoms_data_null()
   if (.not. has_key(dict, "posinp")) stop "missing posinp"
-  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
+  call set_astruct_from_dict(dict // "posinp", atoms%astruct)
 
   ! Input variables case.
   call default_input_variables(in)
@@ -461,6 +409,7 @@ subroutine default_input_variables(in)
   nullify(in%lin%locrad_lowaccuracy)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%locrad_type)
+  nullify(in%lin%kernel_cutoff_FOE)
   nullify(in%lin%kernel_cutoff)
   !nullify(in%frag%frag_info)
   nullify(in%frag%label)
@@ -561,6 +510,7 @@ subroutine allocateInputFragArrays(input_frag)
   allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
+  !f_malloc0_str_ptr should be used here
   allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
@@ -777,6 +727,7 @@ subroutine input_analyze(in)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
+  !@todo also the inputguess variable should be checked if BC are nonFree
 
   ! the DFT variables ------------------------------------------------------
   in%SIC%ixc = in%ixc
@@ -828,6 +779,7 @@ END SUBROUTINE input_analyze
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
+  use module_atoms, only: symmetry_data
   use defs_basis
   use m_ab6_kpoints
   use yaml_output
@@ -1038,3 +990,10 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   if (in%nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
 END SUBROUTINE kpt_input_analyse
+
+!!$  ! linear scaling: explicitely specify localization centers
+!!$  in%explicit_locregcenters = dict//EXPLICIT_LOCREGCENTERS
+!!$  ! linear scaling: calculate Kohn-Sham residue
+!!$  in%calculate_KS_residue = dict//CALCULATE_KS_RESIDUE
+!!$  ! linear scaling: calculate intermediate forces
+!!$  in%intermediate_forces = dict//INTERMEDIATE_FORCES

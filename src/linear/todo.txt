@@ -1,0 +1,68 @@
+TODO:
+
+Short term:
+- fragment and constrained DFT input files - including random coeff guess, number of states for transfer integrals etc.
+- add sparsematrix parallelization parameter to input.perf
+- move reformatting to module & check reformatting is called correctly for input_memory (should be ok now but some cleaning maybe still needed)
+- use reformatting for FOE
+- check accuracy of forces with constrained DFT
+- investigate load imbalancing for fragment calculations, e.g. OpenMP problems in calculate_overlap_transpose
+- better ordering of tmbs, esp in fragment calculations - space filling curve?
+- combine/use extra states variables correctly
+- use higher order Taylor routines directly in FOE
+- add parameter for checking accuracy of Taylor to input.perf
+- add option for reordering states in direct min so finite temperature can be used
+- try enlarging SHAMOP radius
+- new input file profiles etc.
+- FOE charged systems - add parameter to converge the kernel less well, occupations?
+- parallelize dgemms in inverse check
+- weight analysis for fragments in input file, and generalize to include tmbs
+* semicore
+
+Long term:
+- parallelize reading TMB files for fragment calculations
+- use inwhichlocreg correctly and allow tmbs not atom centred - cleaning of orbs needed for this etc.
+- specify a different sparsity pattern for the density kernel
+- other boundary conditions
+- GGA
+- spin polarized
+- parallelized matrices (memory)
+- sparse matrix multiply etc.
+* fuse different modes?
+* sparse Lin Alg
+* separate kernel cutoff
+* check necessity of using S,S^-1
+* convergence criterion
+* variable locreg centers
+* PSolver Nazim
+* preconditioning
+
+Known problems:
+- problem with check_surmho on Titan
+- communicate potential problem still existing on Vesta?
+- sparsemat%parallel/=0 doesn't work on Vesta
+- purify kernel on Vesta crashes/NaN on Vesta
+* out of memory on Cray-Rosa
+
+
+~~~~~~~~~~~~~
+LAPACK on Vesta - check spectral decomposition and dump matrix to file if incorrect (instead of info check)
+
+
+
+final goal:
+* "ready-for-production" version for as many applications as possible
+
+
+
+
+
+
+
+
+
+
+
+
+
+

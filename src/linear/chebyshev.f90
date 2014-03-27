@@ -9,11 +9,13 @@
 
  
 !> Again assuming all matrices have same sparsity, still some tidying to be done
-subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kernel, ham_compr, &
-           ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials)
+subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_compr, &
+           ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
+           emergency_stop)
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -21,13 +23,14 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
   real(8),dimension(npl,3),intent(in) :: cc
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix), intent(in) :: sparsemat, kernel
-  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
+  type(sparse_matrix), intent(in) :: kernel
+  real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
-  real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
+  real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
+  logical,intent(out) :: emergency_stop
   ! Local variables
   integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
@@ -35,7 +38,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
   real(8), dimension(:,:,:), allocatable :: vectors
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS_seq
   real(kind=8),dimension(:,:),allocatable :: matrix
-  real(kind=8) :: tt
+  real(kind=8) :: tt, ddot
   integer,dimension(:,:,:),allocatable :: istindexarr
   integer,dimension(:),allocatable :: ivectorindex
   integer,parameter :: one=1, three=3
@@ -50,9 +53,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
 
   if (norbp>0) then
 
-      call init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
+      call init_onedimindices(norbp, isorb, foe_obj, kernel, nout, onedimindices)
     
-      call determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
+      call determine_sequential_length(norbp, isorb, norb, foe_obj, kernel, nseq, nmaxsegk, nmaxvalk)
     
     
       ham_compr_seq = f_malloc(nseq,id='ham_compr_seq')
@@ -60,7 +63,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
       istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
       ivectorindex = f_malloc(nseq,id='ivectorindex')
     
-      call get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+      call get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, kernel, nseq, nmaxsegk, nmaxvalk, &
            istindexarr, ivectorindex)
     
     
@@ -71,30 +74,36 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
           if (norbp>0) then
               call to_zero(norb*norbp, matrix(1,1))
           end if
+          !write(*,*) 'WARNING CHEBYSHEV: MODIFYING MATRIX MULTIPLICATION'
           if (orbs%norbp>0) then
-              isegstart=sparsemat%istsegline(orbs%isorb_par(iproc)+1)
+              isegstart=kernel%istsegline(orbs%isorb_par(iproc)+1)
               if (orbs%isorb+orbs%norbp<orbs%norb) then
-                  isegend=sparsemat%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                  isegend=kernel%istsegline(orbs%isorb_par(iproc+1)+1)-1
               else
-                  isegend=sparsemat%nseg
+                  isegend=kernel%nseg
               end if
               do iseg=isegstart,isegend
-                  ii=sparsemat%keyv(iseg)-1
-                  do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
+                  ii=kernel%keyv(iseg)-1
+                  do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*orbs%norb
                       matrix(jjorb,iiorb-orbs%isorb)=ovrlp_compr(ii)
+                      !if (jjorb==iiorb) then
+                      !    matrix(jjorb,iiorb-orbs%isorb)=1.d0
+                      !else
+                      !    matrix(jjorb,iiorb-orbs%isorb)=0.d0
+                      !end if
                   end do
               end do
           end if
       end if
     
-      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, ham_compr, nseq, nmaxsegk, nmaxvalk, &
+      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, kernel, ham_compr, nseq, nmaxsegk, nmaxvalk, &
            ham_compr_seq)
     
     
-      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
+      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, kernel, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
            ovrlp_compr_seq)
     
       vectors = f_malloc((/ norb, norbp, 4 /),id='vectors')
@@ -114,20 +123,20 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
               call to_zero(norbp*norb, matrix(1,1))
               call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
                    norb, norbp, ivectorindex, nout, onedimindices)
-              !call to_zero(sparsemat%nvctr, SHS(1))
+              !call to_zero(kernel%nvctr, SHS(1))
           end if
-          call to_zero(sparsemat%nvctr, SHS(1))
+          call to_zero(kernel%nvctr, SHS(1))
           
           if (orbs%norbp>0) then
-              isegstart=sparsemat%istsegline(orbs%isorb_par(iproc)+1)
+              isegstart=kernel%istsegline(orbs%isorb_par(iproc)+1)
               if (orbs%isorb+orbs%norbp<orbs%norb) then
-                  isegend=sparsemat%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                  isegend=kernel%istsegline(orbs%isorb_par(iproc+1)+1)-1
               else
-                  isegend=sparsemat%nseg
+                  isegend=kernel%nseg
               end if
               do iseg=isegstart,isegend
-                  ii=sparsemat%keyv(iseg)-1
-                  do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
+                  ii=kernel%keyv(iseg)-1
+                  do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*orbs%norb
@@ -136,16 +145,22 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
               end do
           end if
   
-          call mpiallred(SHS(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   
       end if
   
       if (orbs%norbp>0) then
-          call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, SHS, nseq, nmaxsegk, &
+          call sequential_acces_matrix(norbp, isorb, norb, foe_obj, kernel, SHS, nseq, nmaxsegk, &
                nmaxvalk, SHS_seq)
       end if
   
   end if
+
+  !!if (iproc==0) then
+  !!    do istat=1,kernel%nvctr
+  !!        write(300,*) ham_compr(istat), SHS(istat)
+  !!    end do
+  !!end if
     
   if (norbp>0) then
     
@@ -193,7 +208,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
           call axpy_kernel_vectors(norbp, norb, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
         
         
-          do ipl=3,npl
+          emergency_stop=.false.
+          main_loop: do ipl=3,npl
               ! apply (3/2 - 1/2 S) H (3/2 - 1/2 S)
               if (number_of_matmuls==three) then
                   call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
@@ -221,7 +237,17 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, kern
          
               call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,1), vectors(1,1,4))
               call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,3), vectors(1,1,1))
-          end do
+
+              ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
+              ! be a consequence of the eigenvalue bounds being to small.
+              do iorb=1,norbp
+                  tt=ddot(norb, fermi(1,iorb), 1, fermi(1,iorb), 1)
+                  if (abs(tt)>1.d3) then
+                      emergency_stop=.true.
+                      exit main_loop
+                  end if
+              end do
+          end do main_loop
     
       end if
 
@@ -418,12 +444,13 @@ end subroutine axpy_kernel_vectors
 subroutine determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
 
   ! Local variables
@@ -455,12 +482,13 @@ end subroutine determine_sequential_length
 subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   integer,intent(out) :: nout
   integer,dimension(:,:),pointer :: onedimindices
 
@@ -510,12 +538,13 @@ subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsema
            istindexarr, ivectorindex)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
   integer,dimension(nseq),intent(out) :: ivectorindex
 
@@ -548,12 +577,13 @@ end subroutine get_arrays_for_sequential_acces
 subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, nseq, nmaxsegk, nmaxvalk, a_seq)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
   real(kind=8),dimension(nseq),intent(out) :: a_seq
 
@@ -585,12 +615,13 @@ end subroutine sequential_acces_matrix
 subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, kernelp)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nsize_polynomial, npl
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: fermi
+  type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
   real(kind=8),dimension(npl),intent(in) :: cc
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: kernelp

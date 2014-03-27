@@ -341,7 +341,7 @@ gboolean bigdft_dict_move_to_item(BigDFT_Dict *dict, guint id, BigDFT_DictIter *
 {
   int exists;
 
-  FC_FUNC_(dict_move_to_item, DICT_MOVE_TO_ITEM)(&dict->current, &exists, &id);
+  FC_FUNC_(dict_move_to_item, DICT_MOVE_TO_ITEM)(&dict->current, &exists, (int*)&id);
   if (iter)
     {
       iter->dict = dict;

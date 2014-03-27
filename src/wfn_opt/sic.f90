@@ -131,7 +131,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi
         !sum the two potentials in the potential array
         !fill the other part, for spin polarised
         if (orbs%nspin == 2) then
-           call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i,rhopoti(1,1),1,&
+           call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i,rhopoti(1,1),1,&
                 rhopoti(1,2),1)
         end if
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,1.0_dp,vSICi(1,1),1,&
@@ -264,10 +264,10 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
 
      !take total density from the first poti component or the second potand rho component
      if (virtual) then
-        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,potandrho(1,orbs%nspin+1),1,&
+        call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,potandrho(1,orbs%nspin+1),1,&
              deltarho(1,1),1)
      else
-        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,poti(1,1),1,&
+        call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,poti(1,1),1,&
              deltarho(1,1),1)
      end if
      !print *,'here',poti(1,1),deltarho(1,1)
@@ -292,7 +292,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
 
      !put the density in the rho array
      if (.not. virtual) then
-        call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,poti(1,1),1,&
+        call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,poti(1,1),1,&
              rho(1,1),1)
      end if
 

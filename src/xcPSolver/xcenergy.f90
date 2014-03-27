@@ -263,6 +263,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   !Idem
   use module_interfaces, only: calc_gradient
   use module_xc
+  use module_types, only: TCAT_EXCHANGECORR
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
@@ -296,7 +297,9 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   real(gp), dimension(:), allocatable :: energies_mpi
   real(dp), dimension(:,:,:,:), pointer :: dvxci
   real(dp), dimension(6) :: wbstr, rhocstr
-  call timing(iproc,'Exchangecorr  ','ON')
+
+  !call timing(iproc,'Exchangecorr  ','ON')
+  call f_timing(TCAT_EXCHANGECORR,'ON')
 
 call to_zero(6,xcstr(1))
 call to_zero(6,wbstr(1))
@@ -362,7 +365,8 @@ call to_zero(6,rhocstr(1))
      if (nspin == 2) call axpy(n01*n02*nxc,1.d0,rho(n01*n02*nxc+1),1,rho(1),1)
      exc=0.0_gp
      vxc=0.0_gp
-     call timing(iproc,'Exchangecorr  ','OF')
+     call f_timing(TCAT_EXCHANGECORR,'OF')
+     !call timing(iproc,'Exchangecorr  ','OF')
      return
   end if
   
@@ -529,9 +533,9 @@ call to_zero(6,rhocstr(1))
   !the value of the shift depends of the distributed i/o or not
   if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
      !copy the relevant part of vxci on the output potxc
-     call dcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
+     call vcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
      if (nspin == 2) then
-        call dcopy(m1*m3*nxc,vxci(1,1,nxcl,2),1,potxc(1+m1*m3*nxc),1)
+        call vcopy(m1*m3*nxc,vxci(1,1,nxcl,2),1,potxc(1+m1*m3*nxc),1)
      end if
   end if
  
@@ -570,13 +574,11 @@ call to_zero(6,rhocstr(1))
 !print *,' aaaa', vexcuRC,vexcuLOC,eexcuLOC
   end if
 
-  call timing(iproc,'Exchangecorr  ','OF')
+
 !stop
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
-
-     call timing(iproc,'PSolv_commun  ','ON')
      allocate(energies_mpi(2+ndebug),stat=i_stat)
      call memocc(i_stat,energies_mpi,'energies_mpi',subname)
 
@@ -603,7 +605,6 @@ call to_zero(6,rhocstr(1))
      i_all=-product(shape(energies_mpi))*kind(energies_mpi)
      deallocate(energies_mpi,stat=i_stat)
      call memocc(i_stat,i_all,'energies_mpi',subname)
-     call timing(iproc,'PSolv_commun  ','OF')
 
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
@@ -613,7 +614,6 @@ call to_zero(6,rhocstr(1))
            stop
         end if
 
-        call timing(iproc,'PSolv_comput  ','ON')
         allocate(gather_arr(0:nproc-1,2+ndebug),stat=i_stat)
         call memocc(i_stat,gather_arr,'gather_arr',subname)
         do jproc=0,nproc-1
@@ -627,8 +627,6 @@ call to_zero(6,rhocstr(1))
         !gather all the results in the same rho array
         istart=min(iproc*(md2/nproc),m2-1)
 
-        call timing(iproc,'PSolv_comput  ','OF')
-        call timing(iproc,'PSolv_commun  ','ON')
         istden=1+n01*n02*istart
         istglo=1
         do ispin=1,nspin
@@ -640,14 +638,10 @@ call to_zero(6,rhocstr(1))
                 potxc(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
                 mpi_comm,ierr)
         end do
-        call timing(iproc,'PSolv_commun  ','OF')
-        call timing(iproc,'PSolv_comput  ','ON')
 
         i_all=-product(shape(gather_arr))*kind(gather_arr)
         deallocate(gather_arr,stat=i_stat)
         call memocc(i_stat,i_all,'gather_arr',subname)
-
-        call timing(iproc,'PSolv_comput  ','OF')
 
      end if
 
@@ -678,6 +672,8 @@ call to_zero(6,rhocstr(1))
      call memocc(i_stat,i_all,'dvxci',subname)
   end if
 
+  call f_timing(TCAT_EXCHANGECORR,'OF')
+  !call timing(iproc,'Exchangecorr  ','OF')
   !if (iproc==0 .and. wrtmsg) write(*,'(a)')'done.'
 
 contains
@@ -816,6 +812,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   logical :: use_gradient
 
+
   !check for the dimensions
   if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
      print *,'the XC dimensions are not correct'
@@ -926,7 +923,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   if(nspden==1) sfactor=2.0_dp
 
   !compact the rho array into the total charge density
-  !try to use dot and dcopy routines, more general
+  !try to use dot and vcopy routines, more general
   ! e.g. exc=dot(m1*m3*nxc,exci(1,1,nxcl),1,rho(1,1,offset+nxcl-1,ispden),1)
 
   ispden=1

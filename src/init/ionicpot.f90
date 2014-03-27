@@ -746,7 +746,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         allocate(potion_corr(n1i*n2i*n3pi+ndebug),stat=i_stat)
         call memocc(i_stat,potion_corr,'potion_corr',subname)
 
-        call razero(n1i*n2i*n3pi,potion_corr)
+        call to_zero(n1i*n2i*n3pi,potion_corr)
 
         !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
         !for the moment works only in the isolated BC case
@@ -1180,6 +1180,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_input_dicts
   use dictionaries
   use yaml_output
+  use module_atoms, only: deallocate_atoms_data,set_astruct_from_dict,nullify_atoms_data
   !use gaussians
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -1215,11 +1216,11 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
           '--------------------------------------------------- Counter Ionic Potential Creation'
   end if
 
-  call atoms_nullify(at)
+  call nullify_atoms_data(at)
   !read the positions of the counter ions from file
   call dict_init(dict)
   call astruct_file_merge_to_dict(dict, "posinp", 'posinp_ci')
-  call astruct_set_from_dict(dict // "posinp", at%astruct)
+  call set_astruct_from_dict(dict // "posinp", at%astruct)
 
   call atoms_file_merge_to_dict(dict)
   do ityp = 1, at%astruct%ntypes, 1
@@ -1244,7 +1245,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call razero(grid%n1i*grid%n2i*n3pi,pot_ion)
+  call to_zero(grid%n1i*grid%n2i*n3pi,pot_ion(1))
 
 
   !conditions for periodicity in the three directions
@@ -1360,7 +1361,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
         allocate(potion_corr(grid%n1i*grid%n2i*n3pi+ndebug),stat=i_stat)
         call memocc(i_stat,potion_corr,'potion_corr',subname)
 
-        call razero(grid%n1i*grid%n2i*n3pi,potion_corr)
+        call to_zero(grid%n1i*grid%n2i*n3pi,potion_corr)
 
         !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
         !for the moment works only in the isolated BC case
@@ -1427,7 +1428,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   end if
 
   !deallocations
-  call deallocate_atoms(at,subname) 
+  call deallocate_atoms_data(at) 
 
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
