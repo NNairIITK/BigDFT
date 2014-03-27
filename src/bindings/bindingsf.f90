@@ -1555,15 +1555,32 @@ subroutine dict_dump(dict, unit)
      call yaml_dict_dump(dict, unit = unit)
   end if
 END SUBROUTINE dict_dump
+subroutine dict_dump_to_file(dict, path)
+  use dictionaries, only: dictionary
+  use yaml_output, only: yaml_dict_dump, yaml_set_stream, yaml_close_stream, yaml_get_default_stream
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: path
+
+  integer :: unit
+
+  call yaml_set_stream(filename = trim(path), &
+       & record_length = 92, setdefault = .true., tabbing = 0)
+  call yaml_get_default_stream(unit = unit)
+  call yaml_dict_dump(dict, unit = unit)
+  call yaml_close_stream(unit = unit)
+END SUBROUTINE dict_dump_to_file
 subroutine dict_parse(dict, buf)
-  use dictionaries, only: dictionary, operator(//)
+  use dictionaries, only: dictionary, operator(//), dict_len
   use yaml_parse, only: yaml_parse_from_string
   implicit none
   type(dictionary), pointer :: dict
   character(len = *), intent(in) :: buf
 
   call yaml_parse_from_string(dict, buf)
-  dict => dict // 0
+  if (dict_len(dict) == 1) then
+     dict => dict // 0
+  end if
 END SUBROUTINE dict_parse
 subroutine dict_pop(dict, exists, key)
   use dictionaries, only: dictionary, has_key, pop

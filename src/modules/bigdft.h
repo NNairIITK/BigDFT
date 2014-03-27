@@ -91,6 +91,7 @@ gchar* bigdft_dict_value         (BigDFT_Dict *dict);
 guint bigdft_dict_len            (BigDFT_Dict *dict);
 void  bigdft_dict_unref          (BigDFT_Dict *dict);
 void  bigdft_dict_dump           (BigDFT_Dict *dict, gint unit);
+void  bigdft_dict_dump_to_file   (BigDFT_Dict *dict, const gchar *filename);
 /*********************************/
 
 /********************************/

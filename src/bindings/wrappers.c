@@ -556,4 +556,8 @@ void bigdft_dict_dump(BigDFT_Dict *dict, gint unit)
 {
   FC_FUNC_(dict_dump, DICT_DUMP)(&dict->root, &unit);
 }
+void bigdft_dict_dump_to_file(BigDFT_Dict *dict, const gchar *filename)
+{
+  FC_FUNC_(dict_dump_to_file, DICT_DUMP_TO_FILE)(&dict->root, filename, strlen(filename));
+}
 /*********************************/

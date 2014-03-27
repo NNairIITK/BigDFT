@@ -206,6 +206,19 @@ class Dict(BigDFT.Dict):
 
   def __setitem__(self, k, v):
     DictAccessor(self, None)[k] = v
+
+  def __str__(self):
+    return str(DictAccessor(self, None))
+
+  def dump(self, args = ()):
+    if isinstance(args, str):
+      self.dump_to_file(args)
+    elif isinstance(args, int):
+      super(BigDFT.Dict, self).dump(args)
+    elif isinstance(args, tuple) and len(args) == 0:
+      super(BigDFT.Dict, self).dump(-1)
+    else:
+      raise TypeError
     
 Dict = override(Dict)
 __all__.append('Dict')
