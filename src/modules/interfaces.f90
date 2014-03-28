@@ -3913,7 +3913,7 @@ module module_interfaces
         end subroutine gramschmidt_subset
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, &
-             orbs, ovrlp_smat, inv_ovrlp_smat, foe_obj, check_accur)
+             orbs, ovrlp_smat, inv_ovrlp_smat, foe_obj, imode, check_accur)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3927,6 +3927,7 @@ module module_interfaces
           type(orbitals_data), optional, intent(in) :: orbs
           type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           type(foe_data),intent(in),optional :: foe_obj
+          integer,intent(in),optional :: imode
           logical,intent(in),optional :: check_accur
         end subroutine overlapPowerGeneral
 
@@ -4212,6 +4213,22 @@ module module_interfaces
           type(foe_data),intent(out) :: foe_obj
           logical,intent(in) :: init
         end subroutine increase_FOE_cutoff
+
+        subroutine check_accuracy_overlap_minus_one_sparse(iproc, norb, norbp, isorb, nseq, nout, &
+                   ivectorindex, onedimindices, amat_seq, bmatp, power, &
+                   error, &
+                   dmat_seq, cmatp)
+          use module_base
+          implicit none
+          integer,intent(in) :: iproc, norb, norbp, isorb, nseq, nout, power
+          integer,dimension(nseq),intent(in) :: ivectorindex
+          integer,dimension(4,nout) :: onedimindices
+          real(kind=8),dimension(nseq),intent(in) :: amat_seq
+          real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
+          real(kind=8),intent(out) :: error
+          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
+          real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
+        end subroutine check_accuracy_overlap_minus_one_sparse
 
   
   end interface
