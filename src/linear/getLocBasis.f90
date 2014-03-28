@@ -2616,3 +2616,82 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call f_release_routine()
 
 end subroutine get_KS_residue
+
+
+
+
+subroutine check_idempotency(iproc, nproc, tmb, diff)
+  use module_base
+  use module_types
+  use sparsematrix, only: uncompress_matrix
+  implicit none
+
+  ! Calling variables
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(inout) :: tmb
+  real(kind=8),intent(out) :: diff
+
+  ! Local variables
+  integer :: iorb, iiorb, jsegstart, jsegend, jseg, jorb, jjorb, ierr
+  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
+
+
+  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
+  call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
+
+
+  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern_large%matrix, 1)
+
+  ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
+  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+
+  call to_zero(tmb%orbs%norb**2, ks(1,1))
+  if (tmb%orbs%norbp>0) then
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+                 1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
+                 tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                 0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
+  end if
+  call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (tmb%orbs%norbp>0) then
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+                 1.d0, ks(1,1), tmb%orbs%norb, &
+                 tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                 0.d0, ksk(1,1), tmb%orbs%norb)
+  end if
+  !!if (tmb%orbs%norbp>0) then
+  !!    call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
+  !!               ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
+  !!end if
+
+
+  diff=0.d0
+  do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+      iiorb=iorb-tmb%orbs%isorb
+      jsegstart=tmb%linmat%denskern_large%istsegline(iorb)
+      if (iorb<tmb%orbs%norb) then
+          jsegend=tmb%linmat%denskern_large%istsegline(iorb+1)-1
+      else
+          jsegend=tmb%linmat%denskern_large%nseg
+      end if
+      do jseg=jsegstart,jsegend
+          do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
+              jjorb=jorb-(iorb-1)*tmb%orbs%norb
+              diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%denskern_large%matrix(jjorb,iorb))**2
+          end do
+      end do
+  end do
+  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  diff=sqrt(diff)
+
+
+  call f_free(ks)
+  call f_free(ksk)
+  call f_free(ksksk)
+  call f_free_ptr(tmb%linmat%ovrlp%matrix)
+  call f_free_ptr(tmb%linmat%denskern_large%matrix)
+
+end subroutine check_idempotency

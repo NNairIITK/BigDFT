@@ -71,6 +71,8 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, TDDFT_VARIABLES)
      call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, 'lin')
+     call read_lin_from_text_format(mpi_env%iproc,dict, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
      ! This will be changed in far future when only YAML input will be allowed.
@@ -109,7 +111,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   type(dictionary), pointer :: dict
 
   !type(dictionary), pointer :: profs
-  integer :: ierr, ityp, nelec_up, nelec_down, norb_max
+  integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
   type(dictionary), pointer :: dict_minimal, var
 
@@ -125,6 +127,8 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Input variables case.
   call default_input_variables(in)
+
+  !call yaml_map('Dictionary parsed',dict)
 
   ! Analyse the input dictionary and transfer it to in.
   ! extract also the minimal dictionary which is necessary to do this run
@@ -146,6 +150,10 @@ subroutine inputs_from_dict(in, atoms, dict)
   end if
   if (associated(dict_minimal)) call dict_free(dict_minimal)
 
+  !call yaml_map('Dictionary completed',dict)
+
+  !call yaml_map('Minimal dictionary',dict_minimal)
+  !stop
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
   do while(associated(var))
@@ -177,6 +185,42 @@ subroutine inputs_from_dict(in, atoms, dict)
      call input_set(in, TDDFT_VARIABLES, var)
      var => dict_next(var)
   end do
+  var => dict_iter(dict // LIN_GENERAL)
+  do while(associated(var))
+     call input_set(in, LIN_GENERAL, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_BASIS)
+  do while(associated(var))
+     call input_set(in, LIN_BASIS, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_KERNEL)
+  do while(associated(var))
+     call input_set(in, LIN_KERNEL, var)
+     var => dict_next(var)
+  end do
+  call nullifyInputLinparameters(in%lin)
+  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
+
+  !first fill all the types by the default, then override by per-type values
+  do jtype=1,atoms%astruct%ntypes
+     var => dict_iter(dict//LIN_BASIS_PARAMS)
+     do while(associated(var))
+        call basis_params_set_dict(var,in%lin,jtype)
+        var => dict_next(var)
+     end do
+     !then check if the objects exists in separate specifications
+     if (has_key(dict//LIN_BASIS_PARAMS,trim(atoms%astruct%atomnames(jtype)))) then
+        var => &
+             dict_iter(dict//LIN_BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
+     end if
+     do while(associated(var))
+        call basis_params_set_dict(var,in%lin,jtype)
+        var => dict_next(var)
+     end do
+  end do
+
 
   if (.not. in%debug) then
      call ab7_memocc_set_state(1)
@@ -703,6 +747,9 @@ subroutine input_analyze(in)
   use module_types, only: input_variables
   use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
   use module_types, only: bigdft_mpi
+  use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
+                          MIXINGMODE_DENS, MIXINGMODE_POT, &
+                          LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_defs, only: gp
   use dynamic_memory
   use module_input_keys, only: input_keys_equal
@@ -773,6 +820,26 @@ subroutine input_analyze(in)
         in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
      end if
   end if
+
+  ! determine the scf mode
+  select case (in%lin%kernel_mode)
+  case (KERNELMODE_DIRMIN)
+      in%lin%scf_mode = LINEAR_DIRECT_MINIMIZATION
+  case (KERNELMODE_DIAG)
+      select case (in%lin%mixing_mode)
+      case (MIXINGMODE_DENS)
+          in%lin%scf_mode = LINEAR_MIXDENS_SIMPLE
+      case (MIXINGMODE_POT)
+          in%lin%scf_mode = LINEAR_MIXPOT_SIMPLE
+      case default
+          stop 'wrong value of in%lin%mixing_mode'
+      end select
+  case (KERNELMODE_FOE)
+      in%lin%scf_mode = LINEAR_FOE
+  case default
+      stop 'wrong value of in%lin%kernel_mode'
+  end select
+
   call f_release_routine()
 END SUBROUTINE input_analyze
 

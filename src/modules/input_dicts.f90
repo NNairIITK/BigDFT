@@ -106,7 +106,6 @@ contains
 
   end subroutine merge_input_file_to_dict
 
-
   subroutine user_dict_from_files(dict,radical,posinp, mpi_env)
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST

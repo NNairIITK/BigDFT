@@ -1897,6 +1897,7 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
   character(len=*), parameter :: subname='toglobal_and_transpose'
   integer :: ierr,i_all,i_stat
   integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
+  real(wp) :: workdum
   real(wp), dimension(:), pointer :: workarr
 
   call timing(iproc,'Un-TransSwitch','ON')
@@ -1935,11 +1936,19 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
      call memocc(i_stat,i_all,'workarr',subname)
   end if
 
+  if (nproc > 1 .and. .not. associated(work)) then
+     call f_err_throw('The working pointer must be associated',&
+          err_name='BIGDFT_RUNTIME_ERROR')
+  end if
 
   if (present(outadd)) then
       call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1),outadd(1))
   else
-      call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1))
+     if (.not. associated(work)) then
+        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),workdum)
+     else
+        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1))
+     end if
   end if
 
   !!if (nproc > 1) then
