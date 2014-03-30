@@ -15,6 +15,7 @@ module module_types
   use m_ab7_mixing, only : ab7_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc!,vcopy
+  use module_xc, only : xc_info
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
   use dictionaries, only: dictionary
@@ -485,6 +486,7 @@ module module_types
   !! So they are declared as kind=8 variables either if the GPU works in simple precision
   !! Also other information concerning the GPU runs can be stored in this structure
   type, public :: GPU_pointers
+     logical :: OCLconv  !< True if OCL is used for convolutions for this MPI process
      logical :: useDynamic,full_locham
      integer :: id_proc,ndevices
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
@@ -695,6 +697,7 @@ module module_types
      real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC
      type(rho_descriptors) :: rhod !< descriptors of the density for parallel communication
      type(denspot_distribution) :: dpbox !< distribution of density and potential box
+     type(xc_info) :: xc !< structure about the used xc functionals
      character(len=3) :: PSquiet
      !real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
      type(coulomb_operator) :: pkernel !< kernel of the Poisson Solver used for V_H[rho]
@@ -1434,6 +1437,9 @@ subroutine deallocate_orbs(orbs,subname)
 
     !Nullify LZD for cubic version (new input guess)
     call nullify_local_zone_descriptors(rst%tmb%lzd)
+
+    !Nullify GPU data
+    rst%GPU%OCLconv=.false.
   END SUBROUTINE restart_objects_new
 
   subroutine restart_objects_set_mode(rst, inputpsiid)

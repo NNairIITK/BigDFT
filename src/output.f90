@@ -499,7 +499,11 @@ subroutine print_dft_parameters(in,atoms)
   call yaml_open_map('DFT parameters')
     call yaml_open_map('eXchange Correlation')
       call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
-      call xc_dump()
+      if (in%ixc < 0) then
+         call xc_dump(in%ixc, XC_MIXED, in%nspin)
+      else
+         call xc_dump(in%ixc, XC_ABINIT, in%nspin)
+      end if
       if (in%nspin>=2) then
          call yaml_map('Polarisation',in%mpol)
          !write(*,'(1x,a,i7,1x,a)')&

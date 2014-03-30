@@ -79,18 +79,12 @@ program MINHOP
   !optimized input parameters
   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
-  call inputs_from_dict(inputs_opt, atoms, user_inputs, .true.)
-  if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(inputs_opt,atoms)
-  end if
+  call inputs_from_dict(inputs_opt, atoms, user_inputs)
   call dict_free(user_inputs)
   !unoptimized input parameters
   call user_dict_from_files(user_inputs, 'md'//trim(run_id)//trim(bigdft_run_id_toa()), &
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
-  call inputs_from_dict(inputs_md, md_atoms, user_inputs, .true.)
-  if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(inputs_md,md_atoms)
-  end if
+  call inputs_from_dict(inputs_md, md_atoms, user_inputs)
   call dict_free(user_inputs)
 !   write(*,*) 'nat=',atoms%astruct%nat
   ! Create the DFT_global_output container.

@@ -56,9 +56,9 @@ for line in header.splitlines()[1:]:
   if tp[0].startswith("type"):
     f_tp = re.match(r"^type\((?P<type>[^)]+)\)", tp[0]).group("type")
     if "pointer" in tp:
-      c_tp = "_%s_pointer *" % f_tp # "gpointer "
+      c_tp = "f90_%s_pointer *" % f_tp # "gpointer "
     else:
-      c_tp = "_%s *" % f_tp # "gpointer "
+      c_tp = "f90_%s *" % f_tp # "gpointer "
   elif (tp[0].startswith("real") or tp[0].startswith("double")):
     if "pointer" in tp:
       c_tp = "f90_pointer_double%s *" % dim

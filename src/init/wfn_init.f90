@@ -475,6 +475,14 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
         !reduce the overlap matrix between all the processors
         call mpi_bcast(hamovr(1,1,1), 2*nspin*ndim_hamovr*orbse%nkpts, mpidtypw, &
              & 0, bigdft_mpi%mpi_comm, ierr)
+     else if (nproc > 1) then
+        do ikpt=1,orbse%nkpts
+           if (iproc /= orbse%ikptproc(ikpt)) then
+              hamovr(:,:,ikpt) = 0._gp
+           end if
+        end do
+        call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbse%nkpts,&
+             MPI_SUM,bigdft_mpi%mpi_comm,ierr)
      end if
 
      do ikptp=1,orbse%nkptsp
@@ -670,13 +678,13 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
-      !n(c) ncomp=1
+      !ncomp=1
       elseif(nspinor == 2) then
       ncplx=2
-      !n(c) ncomp=1
+      !ncomp=1
    else if (nspinor == 4) then
       ncplx=2
-      !n(c) ncomp=2
+      !ncomp=2
    end if
 
    !find the eigenfunctions for each group
@@ -761,6 +769,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
 !!$call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
 !!$if (jproc==bigdft_mpi%iproc) then
 !!$  print *,'PASSAGE MATRIX',jproc
+!!$        open(33+2*(i-1)+100*bigdft_mpi%iproc)
 !!$     do jjorb=1,norbi
         !   do jiorb=1,norbi
         !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
@@ -768,16 +777,15 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
         !   end do
         !end do
         !close(12)
-        !open(33+2*(i-1)+100*iproc)
-        !write(33+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
-        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
-        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
+!!$        write(33+2*(i-1)+100*bigdft_mpi%iproc,'(2000(1pe10.2))')&
+             !(hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
+!!$             (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
 !!$        write(*,'(1x,2(i6),2000(1pe10.2))')jjorb,jiorb,(hamovr(jjorb+norbi*(jiorb-1),1),jiorb=1,norbi)
 !!$
 !!$     end do
 !!$  end if
 !!$end do
-!!$     close(33+2*(i-1)+100*iproc)
+!!$     close(33+2*(i-1)+100*bigdft_mpi%iproc)
 !!$     open(34+2*(i-1)+100*iproc)
 !!$     do jjorb=1,8!norbi
 !!$        write(34+2*(i-1)+100*iproc,'(2000(1pe10.2))')&

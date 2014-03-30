@@ -63,7 +63,9 @@ int bigdft_lib_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint
   ierr = bigdft_mpi_set_distribution(mpi_iproc, mpi_nproc, mpi_igroup, mpi_ngroup, mpi_groupsize);
 
 #ifdef HAVE_GLIB
+#if GLIB_MINOR_VERSION < 36
   g_type_init();
+#endif
 #endif
 
   return ierr;
@@ -207,7 +209,7 @@ void bigdft_dict_unref(BigDFT_Dict *dict)
 
 /**
  * bigdft_dict_new:
- * @root: (allow-none) (out) (caller-allocates):
+ * @root: (allow-none) (out caller-allocates):
  *
  * Pouet.
  *
@@ -223,62 +225,193 @@ BigDFT_Dict *bigdft_dict_new(BigDFT_DictIter *root)
   dict = g_malloc(sizeof(BigDFT_Dict));
   bigdft_dict_init(dict);
 #endif
-  FC_FUNC_(dict_new, DICT_NEW)(&dict->root);
+  FC_FUNC_(dict_init, DICT_INIT)(&dict->root);
   dict->current = dict->root;
 
   if (root)
     {
-      (*root).dict = dict;
-      (*root).pointer = dict->root;
-    } 
+      root->dict = dict;
+      root->pointer = dict->root;
+    }
 
   return dict;
 }
 /**
  * bigdft_dict_new_from_yaml:
  * @buf: 
+ * @root: (allow-none) (out caller-allocates):
  *
  * Pouet.
  *
  * Returns: (transfer full):
  **/
-BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf)
+BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf, BigDFT_DictIter *root)
 {
   BigDFT_Dict *dict;
 
   dict = bigdft_dict_new(NULL);
   FC_FUNC_(dict_parse, DICT_PARSE)(&dict->root, buf, strlen(buf));
   dict->current = dict->root;
+
+  if (root)
+    {
+      root->dict = dict;
+      root->pointer = dict->root;
+    }
+
   return dict;
 }
+BigDFT_Dict *bigdft_dict_new_from_fortran(f90_dictionary_pointer dictf)
+{
+  BigDFT_Dict *dict;
+
+#ifdef HAVE_GLIB
+  dict = BIGDFT_DICT(g_object_new(BIGDFT_DICT_TYPE, NULL));
+#else
+  dict = g_malloc(sizeof(BigDFT_Dict));
+  bigdft_dict_init(dict);
+#endif
+  dict->root = dictf;
+  dict->current = dict->root;
+
+  return dict;
+}
+/**
+ * bigdft_dict_get_current:
+ * @dict: 
+ * @iter: (out caller-allocates)
+ *
+ * 
+ **/
+void bigdft_dict_get_current(BigDFT_Dict *dict, BigDFT_DictIter *iter)
+{
+  iter->dict = dict;
+  iter->pointer = dict->current;
+}
+/**
+ * bigdft_dict_move_to:
+ * @dict: 
+ * @iter: (allow-none):
+ *
+ * 
+ *
+ * Returns: 
+ **/
 gboolean bigdft_dict_move_to(BigDFT_Dict *dict, BigDFT_DictIter *iter)
 {
-  if (iter->dict != dict)
+  if (iter && iter->dict != dict)
     return FALSE;
-  dict->current = iter->pointer;
+
+  dict->current = (iter)?iter->pointer:dict->root;
   return TRUE;
+}
+/**
+ * bigdft_dict_move_to_key:
+ * @dict: 
+ * @iter: (out caller-allocates) (allow-none):
+ * @key:
+ *
+ * 
+ *
+ * Returns: TRUE, if @key exists.
+ **/
+gboolean bigdft_dict_move_to_key(BigDFT_Dict *dict, const gchar *key, BigDFT_DictIter *iter)
+{
+  int exists;
+
+  FC_FUNC_(dict_move_to_key, DICT_MOVE_TO_KEY)(&dict->current, &exists, key, strlen(key));
+  if (iter)
+    {
+      iter->dict = dict;
+      iter->pointer = dict->current;
+    }
+  return (gboolean)exists;
+}
+/**
+ * bigdft_dict_move_to_item:
+ * @dict: 
+ * @iter: (out caller-allocates) (allow-none):
+ * @id:
+ *
+ * 
+ *
+ * Returns: TRUE, if @key exists.
+ **/
+gboolean bigdft_dict_move_to_item(BigDFT_Dict *dict, guint id, BigDFT_DictIter *iter)
+{
+  int exists;
+
+  FC_FUNC_(dict_move_to_item, DICT_MOVE_TO_ITEM)(&dict->current, &exists, (int*)&id);
+  if (iter)
+    {
+      iter->dict = dict;
+      iter->pointer = dict->current;
+    }
+  return (gboolean)exists;
+}
+/**
+ * bigdft_dict_iter:
+ * @dict: 
+ * @iter: (out caller-allocates) (allow-none):
+ *
+ * 
+ *
+ * Returns: 
+ **/
+gboolean bigdft_dict_iter(BigDFT_Dict *dict, BigDFT_DictIter *iter)
+{
+  int exists;
+
+  FC_FUNC_(dict_iter, DICT_ITER)(&dict->current, &exists);
+  if (iter && exists)
+    {
+      iter->dict = dict;
+      iter->pointer = dict->current;
+    }  
+  return (gboolean)exists;
+}
+/**
+ * bigdft_dict_next:
+ * @dict: 
+ * @iter: (out caller-allocates) (allow-none):
+ *
+ * 
+ *
+ * Returns: 
+ **/
+gboolean bigdft_dict_next(BigDFT_Dict *dict, BigDFT_DictIter *iter)
+{
+  int exists;
+
+  FC_FUNC_(dict_next, DICT_NEXT)(&dict->current, &exists);
+  if (iter && exists)
+    {
+      iter->dict = dict;
+      iter->pointer = dict->current;
+    }  
+  return (gboolean)exists;
 }
 /**
  * bigdft_dict_insert:
  * @dict: 
- * @id: 
- * @iter: (out) (caller-allocates) (allow-none):
+ * @key: 
+ * @iter: (out caller-allocates) (allow-none):
  *
  * Pouet.
  **/
-void bigdft_dict_insert(BigDFT_Dict *dict, const gchar *id, BigDFT_DictIter *iter)
+void bigdft_dict_insert(BigDFT_Dict *dict, const gchar *key, BigDFT_DictIter *iter)
 {
-  FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
+  FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, key, strlen(key));
   if (iter)
     {
-      (*iter).dict = dict;
-      (*iter).pointer = dict->current;
+      iter->dict = dict;
+      iter->pointer = dict->current;
     }
 }
 /**
  * bigdft_dict_append:
  * @dict: 
- * @iter: (out) (caller-allocates) (allow-none):
+ * @iter: (out caller-allocates) (allow-none):
  *
  * Pouet.
  **/
@@ -287,8 +420,8 @@ void bigdft_dict_append(BigDFT_Dict *dict, BigDFT_DictIter *iter)
   FC_FUNC_(dict_append, DICT_APPEND)(&dict->current);
   if (iter)
     {
-      (*iter).dict = dict;
-      (*iter).pointer = dict->current;
+      iter->dict = dict;
+      iter->pointer = dict->current;
     }
 }
 /**
@@ -301,7 +434,7 @@ void bigdft_dict_append(BigDFT_Dict *dict, BigDFT_DictIter *iter)
  **/
 void  bigdft_dict_set(BigDFT_Dict *dict, const gchar *id, const gchar *value)
 {
-  _dictionary_pointer root;
+  f90_dictionary_pointer root;
   
   root = dict->current;
   if (id)
@@ -311,7 +444,7 @@ void  bigdft_dict_set(BigDFT_Dict *dict, const gchar *id, const gchar *value)
 }
 /**
  * bigdft_dict_set_array:
- * @in: 
+ * @dict: 
  * @id: (allow-none):
  * @value: (array zero-terminated=1):
  *
@@ -320,7 +453,7 @@ void  bigdft_dict_set(BigDFT_Dict *dict, const gchar *id, const gchar *value)
 void  bigdft_dict_set_array(BigDFT_Dict *dict, const gchar *id, const gchar **value)
 {
   guint i;
-  _dictionary_pointer root, key;
+  f90_dictionary_pointer root, key;
 
   root = dict->current;
   if (id)
@@ -334,8 +467,97 @@ void  bigdft_dict_set_array(BigDFT_Dict *dict, const gchar *id, const gchar **va
     }
   dict->current = root;
 }
-void bigdft_dict_dump(BigDFT_Dict *dict)
+/**
+ * bigdft_dict_set_dict:
+ * @dict: 
+ * @id: (allow-none):
+ * @value:
+ *
+ * 
+ **/
+void  bigdft_dict_set_dict(BigDFT_Dict *dict, const gchar *id, const BigDFT_Dict *value)
 {
-  FC_FUNC_(dict_dump, DICT_DUMP)(&dict->root);
+  f90_dictionary_pointer root;
+  
+  root = dict->current;
+  if (id)
+    FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
+  FC_FUNC_(dict_update, DICT_UPDATE)(&dict->current, &value->current);
+  dict->current = root;
+}
+gboolean bigdft_dict_pop(BigDFT_Dict *dict, const gchar *key)
+{
+  int exists;
+
+  FC_FUNC_(dict_pop, DICT_POP)(&dict->current, &exists, key, strlen(key));
+  return (gboolean)exists;
+}
+/**
+ * bigdft_dict_value:
+ * @dict: 
+ *
+ * 
+ *
+ * Returns: (transfer full):
+ **/
+gchar* bigdft_dict_value(BigDFT_Dict *dict)
+{
+#define max_field_length 256
+  char buf[max_field_length + 1];
+  guint i, ln;
+  gchar *out;
+  
+  buf[max_field_length] = ' ';
+  FC_FUNC_(dict_value, DICT_VALUE)(&dict->current, buf, max_field_length);
+  for (i = max_field_length; i > 0 && buf[i] == ' '; i--)
+    buf[i] = '\0';
+  ln = max_field_length - i;
+  out = g_malloc(sizeof(gchar) * (ln + 1));
+  memcpy(out, buf, sizeof(gchar) * (ln + 1));
+  return out;
+}
+/**
+ * bigdft_dict_key:
+ * @dict: 
+ *
+ * 
+ *
+ * Returns: (transfer full):
+ **/
+gchar* bigdft_dict_key(BigDFT_Dict *dict)
+{
+#define max_field_length 256
+  char buf[max_field_length + 1];
+  guint i, ln;
+  gchar *out;
+  
+  buf[max_field_length] = ' ';
+  FC_FUNC_(dict_key, DICT_KEY)(&dict->current, buf, max_field_length);
+  for (i = max_field_length; i >= 0 && buf[i] == ' '; i--)
+    buf[i] = '\0';
+  ln = max_field_length - i;
+  out = g_malloc(sizeof(gchar) * (ln + 1));
+  memcpy(out, buf, sizeof(gchar) * (ln + 1));
+  return out;
+}
+guint bigdft_dict_len(BigDFT_Dict *dict)
+{
+  int ln;
+
+  FC_FUNC_(dict_len, DICT_LEN)(&dict->current, &ln);
+  if (ln >= 0)
+    return (guint)ln;
+  FC_FUNC_(dict_size, DICT_SIZE)(&dict->current, &ln);
+  if (ln >= 0)
+    return (guint)ln;
+  return 1;
+}
+void bigdft_dict_dump(BigDFT_Dict *dict, gint unit)
+{
+  FC_FUNC_(dict_dump, DICT_DUMP)(&dict->root, &unit);
+}
+void bigdft_dict_dump_to_file(BigDFT_Dict *dict, const gchar *filename)
+{
+  FC_FUNC_(dict_dump_to_file, DICT_DUMP_TO_FILE)(&dict->root, filename, strlen(filename));
 }
 /*********************************/

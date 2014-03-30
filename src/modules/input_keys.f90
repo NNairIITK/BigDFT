@@ -219,15 +219,8 @@ contains
   end subroutine abort_excl
 
   subroutine warn_illegal()
-    use yaml_output
-    use dictionaries
     implicit none
     
-    integer :: ierr
-    character(len = max_field_length) :: val
-
-    ierr = f_get_last_error(val)
-    call yaml_warning(trim(val))
   end subroutine warn_illegal
 
   subroutine input_keys_init()

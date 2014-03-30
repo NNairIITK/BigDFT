@@ -655,7 +655,7 @@ end subroutine plotGrid
 
 
 
-subroutine local_potential_dimensions(iproc,Lzd,orbs,ndimfirstproc)
+subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   use module_base
   use module_types
   use module_xc
@@ -663,6 +663,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,ndimfirstproc)
   integer, intent(in) :: iproc, ndimfirstproc
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(orbitals_data), intent(inout) :: orbs
+  type(xc_info), intent(in) :: xc
   !local variables
   character(len=*), parameter :: subname='local_potential_dimensions'
   logical :: newvalue
@@ -722,7 +723,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,ndimfirstproc)
              lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%nspin
      end do
      !part which refers to exact exchange (only meaningful for one region)
-     if (xc_exctXfac() /= 0.0_gp) then
+     if (xc_exctXfac(xc) /= 0.0_gp) then
         lzd%ndimpotisf = lzd%ndimpotisf + &
              max(max(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%norbp,ndimfirstproc*orbs%norb),1)
      end if
@@ -747,7 +748,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,ndimfirstproc)
           lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i*orbs%nspin
           
      !part which refers to exact exchange (only meaningful for one region)
-     if (xc_exctXfac() /= 0.0_gp) then
+     if (xc_exctXfac(xc) /= 0.0_gp) then
         lzd%ndimpotisf = lzd%ndimpotisf + &
              max(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i*orbs%norbp,ndimfirstproc*orbs%norb),1)
      end if
@@ -908,7 +909,6 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   end if
 
 
-  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
@@ -1011,7 +1011,6 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
       !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
       !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   end if
-  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &

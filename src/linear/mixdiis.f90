@@ -91,7 +91,7 @@ subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
       mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
       mixdiis%is=mixdiis%is+1
       call mixrhopotDIIS(iproc, nproc, denspot%dpbox%n3d, denspot%dpbox%n3p, glr, input, &
-           denspot%rhov, rhopotold, mixdiis, alpha_mix, ioffset, 1, pnrm)
+           denspot%rhov, rhopotold, mixdiis, alpha_mix, ioffset, 1, pnrm, denspot%xc)
   end if
 
   ! Copy the current charge density.
@@ -100,7 +100,7 @@ subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
 end subroutine mix_main
 
 
-subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, mixdiis, alphaMix, ioffset, mixMeth, pnrm)
+subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, mixdiis, alphaMix, ioffset, mixMeth, pnrm, xc)
 use module_base
 use module_types
 use module_xc
@@ -116,6 +116,7 @@ real(8),dimension(max(glr%d%n1i*glr%d%n2i*n3d,1)*input%nspin),intent(out):: rhop
 type(mixrhopotDIISParameters),intent(inout):: mixdiis
 real(8),intent(in):: alphaMix
 real(8),intent(out):: pnrm
+type(xc_info), intent(in) :: xc
 
 ! Local variables
 integer:: ist, jst, i, j, mi, istat, lwork, info
@@ -242,7 +243,7 @@ endif
 ! Make a new guess for the density/potential.
 ! If we are mixing the density (mixMeth==1) it is initialized to 0 or 10^-20, depending on the functional.
 ! If we are mixing the potential (mixMeth==2) it is always initialized to 0.
-if (xc_isgga() .or. mixMeth==2) then
+if (xc_isgga(xc) .or. mixMeth==2) then
     call to_zero(ndimtot, rhopot)
 else
     ! There is no mpi_allreduce, therefore directly initialize to
