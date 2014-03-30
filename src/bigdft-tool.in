@@ -113,6 +113,9 @@ def parse():
                       "Input file manual: helps in identifying the input variables which are interesting")
   group.add_option("--profile", type="str", default="single-point", metavar="NAME", \
                      help="Write a input file corresponding to profile named NAME")
+  group.add_option("--find-key", type="str", default=None, metavar="NAME", \
+                     help="Find the keys which are typographically similar to NAME")
+
   parser.add_option_group(group)
 
 
@@ -198,25 +201,32 @@ if __name__ == "__main__":
       allkeys += params[f].keys()
     print ' Possible keys',allkeys
     # try to see if a key matches a expression
-    searchfor='idsx'
-    matching_keys=closest_keys(allkeys,searchfor)
-    print 'matching',searchfor,'in:',matching_keys
-    print 'keys wich matches the most with',searchfor
-    foundkeys=[]
-    doc=[]
-    for (i,ratio) in matching_keys:
-      if ratio > 0.5 and i not in foundkeys:
-        for f in find_files(params,i):
-          dc={}
-          dc['Key found']=i
-          dc['Similarity']=ratio
-          dc['Field']=f
-          dc['Description']=params[f][i]
-          doc.append(dc)
-        foundkeys.append(i)
-    sys.stdout.write(yaml.dump(doc,default_flow_style=False,explicit_start=True))
-
-    #sys.stdout.write(yaml.dump(params,default_flow_style=False,explicit_start=True))
+    if options.find_key is not None:
+      searchfor=options.find_key
+      matching_keys=closest_keys(allkeys,searchfor)
+      print 'matching',searchfor,'in:',matching_keys
+      print 'keys wich match the most with',searchfor
+      foundkeys=[]
+      doc=[]
+      for (i,ratio) in matching_keys:
+        if ratio > 0.5 and i not in foundkeys:
+          for f in find_files(params,i):
+            dc={}
+            dc['Key found']=i
+            dc['Similarity']=ratio
+            dc['Field']=f
+            dc['Description']=params[f][i]
+            doc.append(dc)
+            foundkeys.append(i)
+      sys.stdout.write(yaml.dump(doc,default_flow_style=False,explicit_start=True))
+    infiles=fulldoc[1]
+    profs=infiles.keys()
+    print 'Possible profiles:'
+    for p in profs:
+      print '-',p,infiles[p]["COMMENT"]
+    print 'profile searched',options.profile
+    if options.profile in profs:
+      sys.stdout.write(yaml.dump(infiles[options.profile],default_flow_style=False,explicit_start=True))
 
   #print command
   #print 
