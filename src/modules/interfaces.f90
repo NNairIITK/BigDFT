@@ -4232,6 +4232,22 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
         end subroutine check_accuracy_overlap_minus_one_sparse
 
+        subroutine check_accur_overlap_minus_one_sparse(iproc, norb, norbp, isorb, nseq, nout, &
+                   ivectorindex, onedimindices, amat_seq, bmatp, power, &
+                   error, &
+                   dmat_seq, cmatp)
+          use module_base
+          implicit none
+          integer,intent(in) :: iproc, norb, norbp, isorb, nseq, nout, power
+          integer,dimension(nseq),intent(in) :: ivectorindex
+          integer,dimension(4,nout) :: onedimindices
+          real(kind=8),dimension(nseq),intent(in) :: amat_seq
+          real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
+          real(kind=8),intent(out) :: error
+          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
+          real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
+        end subroutine check_accur_overlap_minus_one_sparse
+
   
   end interface
 END MODULE module_interfaces

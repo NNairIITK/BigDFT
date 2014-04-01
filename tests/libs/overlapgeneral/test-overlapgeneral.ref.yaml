@@ -850,8 +850,8 @@
  imode                                 :  1
  iorder                                :  0
  power                                 : -2
+  #WARNING: The compressed matrix will not be filled! You should know what you do.
  init: nseq         350
- nseq         350
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.97044443718291995}, 
@@ -938,7 +938,6 @@
  iorder                                :  1
  power                                 : -2
  init: nseq         350
- nseq         350
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.92919265817264285}, 
@@ -1024,8 +1023,6 @@
  imode                                 :  1
  iorder                                :  6
  power                                 : -2
- init: nseq         350
- nseq         350
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.96074339452403723}, 
@@ -1111,6 +1108,7 @@
  imode                                 :  1
  iorder                                :  0
  power                                 :  1
+  #WARNING: The compressed matrix will not be filled! You should know what you do.
  init: nseq         350
  final result:
  -  {segment:  1, elements: [
@@ -1283,7 +1281,6 @@
  imode                                 :  1
  iorder                                :  6
  power                                 :  1
- init: nseq         350
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.93989564180364638}, 
@@ -1369,6 +1366,7 @@
  imode                                 :  1
  iorder                                :  0
  power                                 :  2
+  #WARNING: The compressed matrix will not be filled! You should know what you do.
  init: nseq         350
  final result:
  -  {segment:  1, elements: [
@@ -1541,7 +1539,6 @@
  imode                                 :  1
  iorder                                :  6
  power                                 :  2
- init: nseq         350
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0593696653489439}, 
@@ -1622,78 +1619,44 @@
  {coordinates:  [  10,  9 ], value:  2.06018160895698604E-002}, 
  {coordinates:  [  10,  10 ], value:  1.0938208712562774}]}
  error of the result                   :  4.71346458383710767E-002
- Size of the global database           :  7
+ Size of the global database           :  4
  Raw version:
-   140736661610936:
-     Array Id                          : inv_ovrlp_smat%matrix
-     Size (Bytes)                      : 800
-     Allocating Routine Id             : overlapPowerGeneral
-     Address of first element          : 0x49ba330
-   140736661610936:
-     Array Id                          : inv_ovrlp_smat%matrix
-     Size (Bytes)                      : 800
-     Allocating Routine Id             : overlapPowerGeneral
-     Address of first element          : 0x49ba000
-   140736661608392:
+   140737247743304:
      Array Id                          : orbs%norb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4825c50
-   140736661608104:
+     Address of first element          : 0x5c49c50
+   140737247743016:
      Array Id                          : orbs%isorb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4825c70
-   140736661610936:
-     Array Id                          : smat%matrix
-     Size (Bytes)                      : 800
-     Allocating Routine Id             : Main program
-     Address of first element          : 0x49b3a60
-   Timestamp of Profile initialization : 2014-04-01 14:19:21.772
+     Address of first element          : 0x5c49c70
+   Timestamp of Profile initialization : 2014-04-01 15:16:44.880
    Process Id                          : 0
  Status of the memory at finalization:
-   inv_ovrlp_smat%matrix:
-     Array Id                          : inv_ovrlp_smat%matrix
-     Size (Bytes)                      : 800
-     Allocating Routine Id             : overlapPowerGeneral
-     Address of first element          : 0x49ba330
-     Address of metadata               : 140736661610936
-   inv_ovrlp_smat%matrix:
-     Array Id                          : inv_ovrlp_smat%matrix
-     Size (Bytes)                      : 800
-     Allocating Routine Id             : overlapPowerGeneral
-     Address of first element          : 0x49ba000
-     Address of metadata               : 140736661610936
    orbs%norb_par:
      Array Id                          : orbs%norb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4825c50
-     Address of metadata               : 140736661608392
+     Address of first element          : 0x5c49c50
+     Address of metadata               : 140737247743304
    orbs%isorb_par:
      Array Id                          : orbs%isorb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4825c70
-     Address of metadata               : 140736661608104
-   smat%matrix:
-     Array Id                          : smat%matrix
-     Size (Bytes)                      : 800
-     Allocating Routine Id             : Main program
-     Address of first element          : 0x49b3a60
-     Address of metadata               : 140736661610936
+     Address of first element          : 0x5c49c70
+     Address of metadata               : 140737247743016
    Timestamp of Profile initialization:
-     2014-04-01 14:19:21.772
+     2014-04-01 15:16:44.880
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  173
-   Tot. No. of Deallocations           :  170
-   Remaining Memory (B)                :  2400
+   Tot. No. of Allocations             :  171
+   Tot. No. of Deallocations           :  171
+   Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  0
      for the array                     : ovrlp_large_compr
      in the routine                    : overlapPowerGeneral
- #Use the python script 'memcheck.py' in utils/scripts to checkmalloc.prc file
- Max No. of dictionaries used          :  919 #(  748 still in use)
+ Max No. of dictionaries used          :  909 #(  748 still in use)
  Number of dictionary folders allocated:  1

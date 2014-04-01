@@ -137,6 +137,7 @@ program driver
                imode, check_accur=.true., ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error, &
                ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, &
                foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, foe_istsegline=smat_A%istsegline, foe_keyg=keyg_tmp)
+           if (iorder==0) call compress_matrix(iproc, smat_B)
       end if
       if (iproc==0) call write_matrix_compressed('final result', smat_B)
       if (iproc==0) call yaml_map('error of the result',error)
