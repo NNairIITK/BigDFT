@@ -252,7 +252,6 @@
  imode                                 :  2
  iorder                                :  6
  power                                 : -2
- dense taylor
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.9824654288573883}, 
@@ -508,7 +507,6 @@
  imode                                 :  2
  iorder                                :  6
  power                                 :  1
- dense taylor
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0227508297903889}, 
@@ -764,7 +762,6 @@
  imode                                 :  2
  iorder                                :  6
  power                                 :  2
- dense taylor
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0551218835132419}, 
@@ -937,7 +934,6 @@
  imode                                 :  1
  iorder                                :  1
  power                                 : -2
- init: nseq         350
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.92919265817264285}, 
@@ -1017,7 +1013,7 @@
  {coordinates:  [  10,  8 ], value: -3.88085455159833392E-002}, 
  {coordinates:  [  10,  9 ], value: -2.26173201672483747E-002}, 
  {coordinates:  [  10,  10 ], value:  0.90086185661780105}]}
- error of the result                   :  0.5
+ error of the result                   :  5.30576871466524394E-002
   #------------------------------------------------------------------------------- check: 12
  check number                          :  12
  imode                                 :  1
@@ -1195,7 +1191,6 @@
  imode                                 :  1
  iorder                                :  1
  power                                 :  1
- init: nseq         350
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.8583853163452857}, 
@@ -1275,7 +1270,7 @@
  {coordinates:  [  10,  8 ], value: -7.76170910319666785E-002}, 
  {coordinates:  [  10,  9 ], value: -4.52346403344967493E-002}, 
  {coordinates:  [  10,  10 ], value:  0.8017237132356021}]}
- error of the result                   :  1.0
+ error of the result                   :  0.15592161815825609
   #------------------------------------------------------------------------------- check: 15
  check number                          :  15
  imode                                 :  1
@@ -1453,7 +1448,6 @@
  imode                                 :  1
  iorder                                :  1
  power                                 :  2
- init: nseq         350
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0708073418273572}, 
@@ -1533,7 +1527,7 @@
  {coordinates:  [  10,  8 ], value:  3.88085455159833392E-002}, 
  {coordinates:  [  10,  9 ], value:  2.26173201672483747E-002}, 
  {coordinates:  [  10,  10 ], value:  1.099138143382199}]}
- error of the result                   :  0.60896588057256085
+ error of the result                   :  4.39609457738243184E-002
   #------------------------------------------------------------------------------- check: 18
  check number                          :  18
  imode                                 :  1
@@ -1621,38 +1615,38 @@
  error of the result                   :  4.71346458383710767E-002
  Size of the global database           :  4
  Raw version:
-   140737247743304:
+   140735833262152:
      Array Id                          : orbs%norb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x5c49c50
-   140737247743016:
+     Address of first element          : 0x4bcec50
+   140735833261864:
      Array Id                          : orbs%isorb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x5c49c70
-   Timestamp of Profile initialization : 2014-04-01 15:16:44.880
+     Address of first element          : 0x4bcec70
+   Timestamp of Profile initialization : 2014-04-01 16:31:24.527
    Process Id                          : 0
  Status of the memory at finalization:
    orbs%norb_par:
      Array Id                          : orbs%norb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x5c49c50
-     Address of metadata               : 140737247743304
+     Address of first element          : 0x4bcec50
+     Address of metadata               : 140735833262152
    orbs%isorb_par:
      Array Id                          : orbs%isorb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x5c49c70
-     Address of metadata               : 140737247743016
+     Address of first element          : 0x4bcec70
+     Address of metadata               : 140735833261864
    Timestamp of Profile initialization:
-     2014-04-01 15:16:44.880
+     2014-04-01 16:31:24.527
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  171
-   Tot. No. of Deallocations           :  171
+   Tot. No. of Allocations             :  195
+   Tot. No. of Deallocations           :  195
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  0
