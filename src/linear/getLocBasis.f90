@@ -2005,7 +2005,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   call timing(iproc,'renormCoefCom1','OF')
 
   call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
-       blocksize_dsyev, norb, ovrlp_coeff, ovrlp_coeff2, error, orbs)
+       blocksize_dsyev, norb, orbs, imode=2, check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
 
   call timing(iproc,'renormCoefCom2','ON')
 
@@ -2462,10 +2462,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
         subroutine calculate_overlap_onehalf()
           ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
 
-          call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, &
-               tmb%linmat%ovrlp%matrix, ovrlp_onehalf, error, tmb%orbs, check_accur=.true.)
-          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, &
-               tmb%linmat%ovrlp%matrix, ovrlp_minusonehalf, error, tmb%orbs, check_accur=.true.)
+          call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, tmb%orbs, &
+               imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_onehalf, &
+               error=error)
+          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
+               imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_minusonehalf, &
+               error=error)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
